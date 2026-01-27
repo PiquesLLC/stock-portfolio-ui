@@ -27,32 +27,80 @@ export interface Portfolio {
   quotesUnavailableCount?: number;
 }
 
-export interface ProjectionMetrics {
-  velocity: number;
-  acceleration: number;
-  volatility: number;
-  drawdown: number;
-}
-
-export interface Projection {
-  horizon: '6mo' | '1yr' | '5yr' | '10yr';
-  base: number;
-  bull: number;
-  bear: number;
-  confidence: number;
-}
-
-export interface ProjectionResponse {
-  currentValue: number;
-  projections: Projection[];
-  snapshotCount: number;
-  method: 'momentum' | 'insufficient_data';
-  metrics: ProjectionMetrics | null;
-  message?: string;
-}
-
 export interface HoldingInput {
   ticker: string;
   shares: number;
   averageCost: number;
+}
+
+// Dividend types
+export interface DividendEvent {
+  id: string;
+  ticker: string;
+  amount: number;
+  date: string;
+  createdAt: string;
+}
+
+export interface DividendInput {
+  ticker: string;
+  amount: number;
+  date: string;
+}
+
+// Projection types
+export type ProjectionMode = 'sp500' | 'realized';
+export type LookbackPeriod = '1d' | '1w' | '1m' | '6m' | '1y' | 'max';
+
+export interface ProjectionHorizons {
+  '6m': { base: number };
+  '1y': { base: number };
+  '5y': { base: number };
+  '10y': { base: number };
+}
+
+export interface SP500ProjectionResponse {
+  mode: 'sp500';
+  asOf: string;
+  currentValue: number;
+  assumptions: {
+    annualReturn: number;
+    compounding: 'monthly';
+  };
+  horizons: ProjectionHorizons;
+}
+
+export interface RealizedMetrics {
+  cagr: number | null;
+  volatility: number | null;
+  maxDrawdown: number | null;
+  sharpe: number | null;
+}
+
+export interface RealizedProjectionResponse {
+  mode: 'realized';
+  lookback: LookbackPeriod;
+  lookbackUsed: LookbackPeriod;
+  asOf: string;
+  currentValue: number;
+  realized: RealizedMetrics;
+  horizons: ProjectionHorizons;
+  notes: string[];
+  snapshotCount: number;
+  dataStartDate: string | null;
+  dataEndDate: string | null;
+}
+
+export type ProjectionResponse = SP500ProjectionResponse | RealizedProjectionResponse;
+
+export interface MetricsResponse {
+  lookback: LookbackPeriod;
+  lookbackUsed: LookbackPeriod;
+  asOf: string;
+  currentValue: number;
+  metrics: RealizedMetrics;
+  notes: string[];
+  snapshotCount: number;
+  dataStartDate: string | null;
+  dataEndDate: string | null;
 }

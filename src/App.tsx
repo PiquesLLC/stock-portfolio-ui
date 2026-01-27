@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Portfolio, ProjectionResponse } from './types';
-import { getPortfolio, getProjections } from './api';
+import { Portfolio } from './types';
+import { getPortfolio } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { CashBalance } from './components/CashBalance';
 import { HoldingForm } from './components/HoldingForm';
@@ -21,10 +21,8 @@ function formatPercent(value: number): string {
 
 export default function App() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [projections, setProjections] = useState<ProjectionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [projectionsError, setProjectionsError] = useState('');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isStale, setIsStale] = useState(false);
 
@@ -33,10 +31,7 @@ export default function App() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [portfolioData, projectionsData] = await Promise.all([
-        getPortfolio(),
-        getProjections(),
-      ]);
+      const portfolioData = await getPortfolio();
 
       // Check if the new data is valid (not showing -100% P/L for all holdings)
       const hasValidData = portfolioData.holdings.length === 0 ||
@@ -51,9 +46,7 @@ export default function App() {
 
       // Update with new data
       setPortfolio(portfolioData);
-      setProjections(projectionsData);
       setError('');
-      setProjectionsError('');
       setLastUpdate(new Date());
 
       // Track staleness
@@ -200,12 +193,8 @@ export default function App() {
           onUpdate={handleUpdate}
         />
 
-        {/* Projections */}
-        <Projections
-          data={projections}
-          loading={loading}
-          error={projectionsError}
-        />
+        {/* Projections - now fetches its own data */}
+        <Projections currentValue={portfolio?.totalValue ?? 0} />
       </main>
     </div>
   );

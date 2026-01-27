@@ -1,5 +1,14 @@
 import { API_BASE_URL } from './config';
-import { Portfolio, ProjectionResponse, HoldingInput } from './types';
+import {
+  Portfolio,
+  ProjectionResponse,
+  MetricsResponse,
+  HoldingInput,
+  DividendEvent,
+  DividendInput,
+  ProjectionMode,
+  LookbackPeriod,
+} from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -26,8 +35,19 @@ export async function getPortfolio(): Promise<Portfolio> {
   return fetchJson<Portfolio>(`${API_BASE_URL}/portfolio`);
 }
 
-export async function getProjections(): Promise<ProjectionResponse> {
-  return fetchJson<ProjectionResponse>(`${API_BASE_URL}/portfolio/projections`);
+export async function getProjections(
+  mode: ProjectionMode = 'sp500',
+  lookback: LookbackPeriod = '1y'
+): Promise<ProjectionResponse> {
+  const params = new URLSearchParams({ mode });
+  if (mode === 'realized') {
+    params.append('lookback', lookback);
+  }
+  return fetchJson<ProjectionResponse>(`${API_BASE_URL}/portfolio/projections?${params}`);
+}
+
+export async function getMetrics(lookback: LookbackPeriod = '1y'): Promise<MetricsResponse> {
+  return fetchJson<MetricsResponse>(`${API_BASE_URL}/portfolio/metrics?lookback=${lookback}`);
 }
 
 export async function updateCashBalance(cashBalance: number): Promise<{ cashBalance: number }> {
@@ -46,6 +66,24 @@ export async function addHolding(holding: HoldingInput): Promise<void> {
 
 export async function deleteHolding(ticker: string): Promise<void> {
   await fetchJson(`${API_BASE_URL}/portfolio/holdings/${ticker}`, {
+    method: 'DELETE',
+  });
+}
+
+// Dividend endpoints
+export async function getDividends(): Promise<DividendEvent[]> {
+  return fetchJson<DividendEvent[]>(`${API_BASE_URL}/dividends`);
+}
+
+export async function addDividend(dividend: DividendInput): Promise<DividendEvent> {
+  return fetchJson<DividendEvent>(`${API_BASE_URL}/dividends`, {
+    method: 'POST',
+    body: JSON.stringify(dividend),
+  });
+}
+
+export async function deleteDividend(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/dividends/${id}`, {
     method: 'DELETE',
   });
 }
