@@ -376,13 +376,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session }: Props
               {/* Metrics row */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">
-                    {paceWindow === 'YTD' ? 'True YTD Return'
-                      : paceWindow === '1D' ? '1 Day Return'
-                      : paceWindow === '1M' ? '1 Month Return'
-                      : paceWindow === '6M' ? '6 Month Return'
-                      : '1 Year Return'}
-                  </p>
+                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Window Return</p>
                   <p className={`text-lg font-bold ${
                     (paceData.windowReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
@@ -393,13 +387,13 @@ export function Projections({ currentValue, refreshTrigger = 0, session }: Props
                   </p>
                 </div>
                 <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Annualized Pace</p>
+                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Annualized Pace (Linear)</p>
                   <p className={`text-lg font-bold ${
                     (paceData.annualizedPacePct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {formatPct(paceData.annualizedPacePct)}
                     {paceData.capped && (
-                      <span className="text-xs text-rh-light-muted dark:text-rh-muted ml-1">(capped)</span>
+                      <span className="text-xs text-rh-light-muted dark:text-rh-muted ml-1">Capped for realism</span>
                     )}
                     {paceData.estimated && !paceData.capped && (
                       <span className="text-xs font-normal text-amber-500 ml-1">Est.</span>
@@ -416,7 +410,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session }: Props
 
               {/* Horizon projections */}
               <div className="mb-6">
-                <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-3">Projected Values (at current pace)</p>
+                <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-3">Projected Values (Current Pace)</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {(['1y', '2y', '5y', '10y'] as const).map((horizon) => {
                     const proj = paceData.projections[horizon];
@@ -459,9 +453,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session }: Props
                   </p>
                 )}
                 <p className="text-xs text-rh-light-muted dark:text-rh-muted">
-                  {paceWindow === 'YTD'
-                    ? 'Calculated using the Modified Dietz method. This is the industry-standard approach when full transaction history is unavailable.'
-                    : 'CAGR-based projection using portfolio snapshots. Not a forecast. Past performance does not predict future results.'}
+                  Linear projection based on current performance pace. Not a forecast. Past performance does not guarantee future results.
                 </p>
               </div>
             </>
