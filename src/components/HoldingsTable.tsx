@@ -19,7 +19,7 @@ interface Props {
   showExtendedHours?: boolean;
 }
 
-type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'profitLoss' | 'profitLossPercent';
+type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
 type SortDir = 'asc' | 'desc';
 
 function formatCurrency(value: number): string {
@@ -120,6 +120,11 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: 
         comparison = (aVal as number) - (bVal as number);
       }
 
+      // Tiebreaker: alphabetical by ticker
+      if (comparison === 0 && sortKey !== 'ticker') {
+        comparison = a.ticker.localeCompare(b.ticker);
+      }
+
       return sortDir === 'desc' ? -comparison : comparison;
     });
   }, [holdings, sortKey, sortDir]);
@@ -127,12 +132,12 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: 
   // Get sort indicator for a column
   const getSortIndicator = (key: SortKey) => {
     if (sortKey !== key) return null;
-    return <span className="ml-1 text-rh-green">{sortDir === 'desc' ? '▼' : '▲'}</span>;
+    return <span className="ml-1 opacity-70">{sortDir === 'desc' ? '▼' : '▲'}</span>;
   };
 
   // Get header class for a column
   const getHeaderClass = (key: SortKey, align: 'left' | 'right' = 'left') => {
-    const base = 'px-6 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none';
+    const base = 'px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap';
     const alignClass = align === 'right' ? 'text-right' : '';
     const activeClass = sortKey === key ? 'text-rh-light-text dark:text-white' : '';
     return `${base} ${alignClass} ${activeClass}`;
@@ -408,13 +413,16 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: 
               <th className={getHeaderClass('dayChange', 'right')} onClick={() => handleSort('dayChange')}>
                 {getSortIndicator('dayChange')}Day P/L
               </th>
+              <th className={getHeaderClass('dayChangePercent', 'right')} onClick={() => handleSort('dayChangePercent')}>
+                {getSortIndicator('dayChangePercent')}Day %
+              </th>
               <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')}>
                 {getSortIndicator('profitLoss')}Total P/L
               </th>
               <th className={getHeaderClass('profitLossPercent', 'right')} onClick={() => handleSort('profitLossPercent')}>
                 {getSortIndicator('profitLossPercent')}Total %
               </th>
-              <th className="px-6 py-3 font-medium"></th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -428,7 +436,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: 
                   key={holding.id}
                   className={`border-b border-rh-light-border dark:border-rh-border hover:bg-gray-50 dark:hover:bg-rh-dark/50 ${isUnavailable ? 'opacity-60' : ''}`}
                 >
-                  <td className="px-6 py-4 font-semibold text-rh-light-text dark:text-rh-text">
+                  <td className="px-4 py-4 font-semibold text-rh-light-text dark:text-rh-text">
                     <div className="flex items-center gap-2">
                       {holding.ticker}
                       {isRepricing && !isUnavailable && (
@@ -447,9 +455,9 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: 
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right text-rh-light-text dark:text-rh-text">{holding.shares.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-right text-rh-light-text dark:text-rh-text">{formatCurrency(holding.averageCost)}</td>
-                  <td className={`px-6 py-4 text-right ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text'}`}>
+                  <td className="px-4 py-4 text-right text-rh-light-text dark:text-rh-text">{holding.shares.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-right text-rh-light-text dark:text-rh-text">{formatCurrency(holding.averageCost)}</td>
+                  <td className={`px-4 py-4 text-right ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text'}`}>
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
                       {showExtendedHours && hasValidPrice && holding.session && getSessionBadge(holding.session) && (
@@ -459,28 +467,34 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: 
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right text-rh-light-text dark:text-rh-text">
+                  <td className="px-4 py-4 text-right text-rh-light-text dark:text-rh-text">
                     {hasValidPrice ? formatCurrency(holding.currentValue) : '—'}
                   </td>
-                  <td className={`px-6 py-4 text-right ${
+                  <td className={`px-4 py-4 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {hasValidPrice ? formatPL(holding.dayChange) : '—'}
                   </td>
-                  <td className={`px-6 py-4 text-right ${
+                  <td className={`px-4 py-4 text-right ${
+                    !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
+                    holding.dayChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'
+                  }`}>
+                    {hasValidPrice ? formatPercent(holding.dayChangePercent) : '—'}
+                  </td>
+                  <td className={`px-4 py-4 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
-                  <td className={`px-6 py-4 text-right ${
+                  <td className={`px-4 py-4 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLossPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {hasValidPrice ? formatPercent(holding.profitLossPercent) : '—'}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleEdit(holding)}
