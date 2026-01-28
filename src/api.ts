@@ -8,6 +8,11 @@ import {
   DividendInput,
   ProjectionMode,
   LookbackPeriod,
+  PerformanceSummary,
+  BaselineInput,
+  BrokerLifetimeInput,
+  Settings,
+  SettingsUpdateInput,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -86,4 +91,41 @@ export async function deleteDividend(id: string): Promise<void> {
   await fetchJson(`${API_BASE_URL}/dividends/${id}`, {
     method: 'DELETE',
   });
+}
+
+// Settings endpoints
+export async function getSettings(): Promise<Settings> {
+  return fetchJson<Settings>(`${API_BASE_URL}/settings`);
+}
+
+export async function updateSettings(input: SettingsUpdateInput): Promise<Settings> {
+  return fetchJson<Settings>(`${API_BASE_URL}/settings`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function setBaseline(input: BaselineInput): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/settings/baseline`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function setBrokerLifetime(input: BrokerLifetimeInput): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/settings/broker-lifetime`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function clearBrokerLifetime(): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/settings/broker-lifetime`, {
+    method: 'DELETE',
+  });
+}
+
+// Performance summary endpoint
+export async function getPerformanceSummary(): Promise<PerformanceSummary> {
+  return fetchJson<PerformanceSummary>(`${API_BASE_URL}/portfolio/summary`);
 }

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Portfolio } from './types';
-import { getPortfolio } from './api';
+import { Portfolio, Settings } from './types';
+import { getPortfolio, getSettings } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { CashBalance } from './components/CashBalance';
+import { MarginDebt } from './components/MarginDebt';
 import { HoldingForm } from './components/HoldingForm';
 import { HoldingsTable } from './components/HoldingsTable';
 import { Projections } from './components/Projections';
+import { PerformanceSummary } from './components/PerformanceSummary';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -21,10 +23,12 @@ function formatPercent(value: number): string {
 
 export default function App() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isStale, setIsStale] = useState(false);
+  const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
 
   // Keep track of the last valid portfolio to avoid flickering
   const lastValidPortfolio = useRef<Portfolio | null>(null);
@@ -32,6 +36,7 @@ export default function App() {
   const fetchData = useCallback(async () => {
     try {
       const portfolioData = await getPortfolio();
+      const settingsData = await getSettings();
 
       // Check if the new data is valid (not showing -100% P/L for all holdings)
       const hasValidData = portfolioData.holdings.length === 0 ||
@@ -46,6 +51,7 @@ export default function App() {
 
       // Update with new data
       setPortfolio(portfolioData);
+      setSettings(settingsData);
       setError('');
       setLastUpdate(new Date());
 
@@ -81,7 +87,9 @@ export default function App() {
 
   const handleUpdate = () => {
     fetchData();
+    setSummaryRefreshTrigger((t) => t + 1);
   };
+
 
   if (loading && !portfolio) {
     return (
@@ -149,14 +157,26 @@ export default function App() {
           </div>
         )}
 
+        {/* Performance Summary - Two Box UX */}
+        <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+
         {/* Portfolio Summary */}
         {portfolio && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-rh-card border border-rh-border rounded-lg p-4">
-              <p className="text-rh-muted text-sm">Total Value</p>
-              <p className="text-2xl font-bold">{formatCurrency(portfolio.totalValue)}</p>
+              <p className="text-rh-muted text-sm">Holdings Value</p>
+              <p className="text-2xl font-bold">{formatCurrency(portfolio.holdingsValue)}</p>
               {portfolio.quotesUnavailableCount && portfolio.quotesUnavailableCount > 0 && (
                 <p className="text-xs text-yellow-400 mt-1">*Partial</p>
+              )}
+            </div>
+            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
+              <p className="text-rh-muted text-sm">Net Portfolio Value</p>
+              <p className="text-2xl font-bold">{formatCurrency(portfolio.netEquity)}</p>
+              {portfolio.marginDebt > 0 && (
+                <p className="text-xs text-rh-muted mt-1">
+                  After ${portfolio.marginDebt.toLocaleString()} margin
+                </p>
               )}
             </div>
             <div className="bg-rh-card border border-rh-border rounded-lg p-4">
@@ -171,17 +191,17 @@ export default function App() {
                 {formatCurrency(portfolio.totalPL)} ({formatPercent(portfolio.totalPLPercent)})
               </p>
             </div>
-            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
-              <p className="text-rh-muted text-sm">Cash Balance</p>
-              <p className="text-2xl font-bold">{formatCurrency(portfolio.cashBalance)}</p>
-            </div>
           </div>
         )}
 
         {/* Forms Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <CashBalance
             currentBalance={portfolio?.cashBalance ?? 0}
+            onUpdate={handleUpdate}
+          />
+          <MarginDebt
+            currentDebt={portfolio?.marginDebt ?? 0}
             onUpdate={handleUpdate}
           />
           <HoldingForm onUpdate={handleUpdate} />
@@ -193,8 +213,8 @@ export default function App() {
           onUpdate={handleUpdate}
         />
 
-        {/* Projections - now fetches its own data */}
-        <Projections currentValue={portfolio?.totalValue ?? 0} />
+        {/* Projections - uses net equity */}
+        <Projections currentValue={portfolio?.netEquity ?? 0} />
       </main>
     </div>
   );

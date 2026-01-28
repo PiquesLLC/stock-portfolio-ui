@@ -2,19 +2,19 @@ import { useState, useEffect } from 'react';
 import { updateSettings } from '../api';
 
 interface Props {
-  currentBalance: number;
+  currentDebt: number;
   onUpdate: () => void;
 }
 
-export function CashBalance({ currentBalance, onUpdate }: Props) {
-  const [value, setValue] = useState(currentBalance.toString());
+export function MarginDebt({ currentDebt, onUpdate }: Props) {
+  const [value, setValue] = useState(currentDebt.toString());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Update value when currentBalance prop changes
+  // Update value when currentDebt prop changes
   useEffect(() => {
-    setValue(currentBalance.toString());
-  }, [currentBalance]);
+    setValue(currentDebt.toString());
+  }, [currentDebt]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,13 +22,13 @@ export function CashBalance({ currentBalance, onUpdate }: Props) {
 
     const numValue = parseFloat(value);
     if (isNaN(numValue) || numValue < 0) {
-      setError('Cash balance must be a non-negative number');
+      setError('Margin debt must be a non-negative number');
       return;
     }
 
     setLoading(true);
     try {
-      await updateSettings({ cashBalance: numValue });
+      await updateSettings({ marginDebt: numValue });
       onUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update');
@@ -39,7 +39,7 @@ export function CashBalance({ currentBalance, onUpdate }: Props) {
 
   return (
     <div className="bg-rh-card border border-rh-border rounded-lg p-6">
-      <h2 className="text-lg font-semibold mb-4">Cash Balance</h2>
+      <h2 className="text-lg font-semibold mb-4">Margin Debt</h2>
       <form onSubmit={handleSubmit} className="flex gap-3">
         <div className="flex-1">
           <div className="relative">
@@ -64,6 +64,9 @@ export function CashBalance({ currentBalance, onUpdate }: Props) {
         </button>
       </form>
       {error && <p className="text-rh-red text-sm mt-2">{error}</p>}
+      <p className="text-xs text-rh-muted mt-2">
+        Enter your broker margin balance to calculate net equity
+      </p>
     </div>
   );
 }

@@ -17,6 +17,9 @@ export interface Holding {
 export interface Portfolio {
   holdings: Holding[];
   cashBalance: number;
+  marginDebt: number;
+  holdingsValue: number;
+  netEquity: number;
   totalValue: number;
   totalCost: number;
   totalPL: number;
@@ -103,4 +106,66 @@ export interface MetricsResponse {
   snapshotCount: number;
   dataStartDate: string | null;
   dataEndDate: string | null;
+}
+
+// Performance Summary types
+export interface PerformanceSummary {
+  sinceTracking: {
+    hasBaseline: boolean;
+    startDate: string | null;
+    startingValue: number | null;
+    currentValue: number;
+    absoluteReturn: number | null;
+    percentReturn: number | null;
+    snapshotCount: number;
+  };
+  holdingsPL: {
+    totalCost: number;
+    currentValue: number;
+    unrealizedPL: number;
+    unrealizedPLPercent: number;
+  };
+  brokerLifetime: {
+    hasData: boolean;
+    deposits: number | null;
+    withdrawals: number | null;
+    currentValue: number | null;
+    netContributions: number | null;
+    absoluteReturn: number | null;
+    percentReturn: number | null;
+    asOf: string | null;
+  } | null;
+}
+
+export interface BaselineInput {
+  type: 'fresh_start' | 'existing_portfolio';
+}
+
+export interface BrokerLifetimeInput {
+  deposits: number;
+  withdrawals: number;
+  currentValue: number;
+}
+
+export interface Settings {
+  cashBalance: number;
+  marginDebt: number;
+}
+
+export interface SettingsUpdateInput {
+  cashBalance?: number;
+  marginDebt?: number;
+}
+
+export interface FullSettings {
+  id: string;
+  cashBalance: number;
+  marginDebt: number;
+  trackingStartDate: string | null;
+  baselineTotalValue: number | null;
+  baselineType: string | null;
+  brokerLifetimeDeposits: number | null;
+  brokerLifetimeWithdrawals: number | null;
+  brokerLifetimeValue: number | null;
+  brokerLifetimeAsOf: string | null;
 }
