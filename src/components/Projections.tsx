@@ -11,6 +11,7 @@ type ProjectionModeSimple = 'sp500' | 'pace';
 
 interface Props {
   currentValue: number;
+  refreshTrigger?: number;
 }
 
 function formatCurrency(value: number): string {
@@ -58,7 +59,7 @@ function isSP500Response(resp: ProjectionResponse): resp is SP500ProjectionRespo
   return resp.mode === 'sp500';
 }
 
-export function Projections({ currentValue }: Props) {
+export function Projections({ currentValue, refreshTrigger = 0 }: Props) {
   const [mode, setMode] = useState<ProjectionModeSimple>('sp500');
   const [data, setData] = useState<ProjectionResponse | null>(null);
   const [paceData, setPaceData] = useState<CurrentPaceResponse | null>(null);
@@ -72,9 +73,12 @@ export function Projections({ currentValue }: Props) {
   const [ytdSaving, setYtdSaving] = useState(false);
   const [ytdFormError, setYtdFormError] = useState('');
 
+  const hasData = data !== null || paceData !== null;
+
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
+      // Only show loading spinner on initial load, not background refreshes
+      if (!hasData) setLoading(true);
       if (mode === 'pace') {
         const response = await getCurrentPace(paceWindow);
         setPaceData(response);
@@ -84,11 +88,15 @@ export function Projections({ currentValue }: Props) {
       }
       setError('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch projections');
+      // On refresh errors, keep previous data instead of showing error
+      if (!hasData) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch projections');
+      }
     } finally {
       setLoading(false);
     }
-  }, [mode, paceWindow]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, paceWindow, refreshTrigger]);
 
   useEffect(() => {
     fetchData();

@@ -58,6 +58,7 @@ export default function App() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isStale, setIsStale] = useState(false);
   const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
+  const [portfolioRefreshCount, setPortfolioRefreshCount] = useState(0);
   const [showExtendedHours, setShowExtendedHours] = useState(() => {
     const stored = localStorage.getItem('showExtendedHours');
     return stored !== null ? stored === 'true' : true; // Default to showing extended hours
@@ -89,6 +90,7 @@ export default function App() {
       setSettings(settingsData);
       setError('');
       setLastUpdate(new Date());
+      setPortfolioRefreshCount((c) => c + 1);
 
       // Track repricing state
       const dataIsRepricing = portfolioData.quotesMeta?.anyRepricing ||
@@ -340,6 +342,7 @@ export default function App() {
             {/* 6. Portfolio Projections (last section) */}
             <Projections
               currentValue={portfolio?.netEquity ?? 0}
+              refreshTrigger={portfolioRefreshCount}
             />
           </>
         )}
