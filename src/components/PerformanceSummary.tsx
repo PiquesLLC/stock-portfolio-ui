@@ -78,11 +78,40 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Main two-box layout */}
+      {/* Main two-box layout: Holdings P/L (left), Since Tracking Start (right) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Box 1: Since Tracking Start */}
+        {/* Box 1: Current Holdings P/L (LEFT) */}
         <div className="bg-rh-card border border-rh-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-medium text-rh-muted mb-4">Current Holdings P/L</h3>
+
+          <div className="mb-3">
+            <p className="text-2xl font-bold">{formatCurrency(holdingsPL.unrealizedPL)}</p>
+            <p
+              className={`text-lg font-semibold ${
+                holdingsPL.unrealizedPLPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
+              }`}
+            >
+              {formatPercent(holdingsPL.unrealizedPLPercent)}
+            </p>
+          </div>
+
+          <div className="flex justify-between text-sm text-rh-muted border-t border-rh-border pt-3 mt-3">
+            <div>
+              <p className="text-xs">Total Cost</p>
+              <p className="text-white">{formatCurrency(holdingsPL.totalCost)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs">Market Value</p>
+              <p className="text-white">{formatCurrency(holdingsPL.currentValue)}</p>
+            </div>
+          </div>
+
+          <p className="text-xs text-rh-muted mt-2">Unrealized gains/losses only</p>
+        </div>
+
+        {/* Box 2: Since Tracking Start (RIGHT) */}
+        <div className="bg-rh-card border border-rh-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-1">
             <h3 className="text-sm font-medium text-rh-muted">Since Tracking Start</h3>
             {sinceTracking.startDate && (
               <span className="text-xs text-rh-muted">
@@ -90,6 +119,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
               </span>
             )}
           </div>
+          <p className="text-xs text-rh-muted mb-4">Asset performance only — excludes margin</p>
 
           {sinceTracking.hasBaseline ? (
             <>
@@ -126,8 +156,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
               </div>
 
               <p className="text-xs text-rh-muted mt-2">
-                {sinceTracking.snapshotCount > 0 && `${sinceTracking.snapshotCount.toLocaleString()} snapshots · `}
-                Asset performance only
+                Tracking asset value independent of leverage
               </p>
             </>
           ) : (
@@ -138,35 +167,6 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
               </p>
             </div>
           )}
-        </div>
-
-        {/* Box 2: Current Holdings P/L */}
-        <div className="bg-rh-card border border-rh-border rounded-lg p-6">
-          <h3 className="text-sm font-medium text-rh-muted mb-4">Current Holdings P/L</h3>
-
-          <div className="mb-3">
-            <p className="text-2xl font-bold">{formatCurrency(holdingsPL.unrealizedPL)}</p>
-            <p
-              className={`text-lg font-semibold ${
-                holdingsPL.unrealizedPLPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
-              }`}
-            >
-              {formatPercent(holdingsPL.unrealizedPLPercent)}
-            </p>
-          </div>
-
-          <div className="flex justify-between text-sm text-rh-muted border-t border-rh-border pt-3 mt-3">
-            <div>
-              <p className="text-xs">Total Cost</p>
-              <p className="text-white">{formatCurrency(holdingsPL.totalCost)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs">Market Value</p>
-              <p className="text-white">{formatCurrency(holdingsPL.currentValue)}</p>
-            </div>
-          </div>
-
-          <p className="text-xs text-rh-muted mt-2">Unrealized gains/losses only</p>
         </div>
       </div>
 

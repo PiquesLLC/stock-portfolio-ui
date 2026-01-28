@@ -161,10 +161,10 @@ export default function App() {
           </div>
         )}
 
-        {/* 1. Top Summary Stat Cards */}
+        {/* 1. Top Summary Stat Cards: Total Assets, Net Equity, Day Change, Total P/L */}
         {portfolio && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Total Assets - used for performance tracking (no margin debt) */}
+            {/* 1. Total Assets - used for performance tracking (no margin debt) */}
             <div className="bg-rh-card border border-rh-border rounded-lg p-4">
               <p className="text-rh-muted text-sm">Total Assets</p>
               <p className="text-2xl font-bold">
@@ -172,27 +172,7 @@ export default function App() {
               </p>
               <p className="text-xs text-rh-muted mt-1">Holdings + Cash</p>
             </div>
-            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
-              <p className="text-rh-muted text-sm">Day Change</p>
-              <p className={`text-2xl font-bold ${
-                portfolio.dayChange === 0 ? '' : portfolio.dayChange > 0 ? 'text-rh-green' : 'text-rh-red'
-              }`}>
-                {portfolio.holdings.length > 0
-                  ? `${formatCurrency(portfolio.dayChange)} (${formatPercent(portfolio.dayChangePercent)})`
-                  : '—'}
-              </p>
-            </div>
-            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
-              <p className="text-rh-muted text-sm">Total P/L</p>
-              <p className={`text-2xl font-bold ${
-                portfolio.totalPL === 0 ? '' : portfolio.totalPL > 0 ? 'text-rh-green' : 'text-rh-red'
-              }`}>
-                {portfolio.holdings.length > 0
-                  ? `${formatCurrency(portfolio.totalPL)} (${formatPercent(portfolio.totalPLPercent)})`
-                  : '—'}
-              </p>
-            </div>
-            {/* Net Equity - shows balance after margin debt */}
+            {/* 2. Net Equity - shows balance after margin debt */}
             <div className="bg-rh-card border border-rh-border rounded-lg p-4">
               <p className="text-rh-muted text-sm">Net Equity</p>
               <p className="text-2xl font-bold">
@@ -205,6 +185,28 @@ export default function App() {
               ) : (
                 <p className="text-xs text-rh-muted mt-1">Cash: {formatCurrency(portfolio.cashBalance)}</p>
               )}
+            </div>
+            {/* 3. Day Change */}
+            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
+              <p className="text-rh-muted text-sm">Day Change</p>
+              <p className={`text-2xl font-bold ${
+                portfolio.dayChange === 0 ? '' : portfolio.dayChange > 0 ? 'text-rh-green' : 'text-rh-red'
+              }`}>
+                {portfolio.holdings.length > 0
+                  ? `${formatCurrency(portfolio.dayChange)} (${formatPercent(portfolio.dayChangePercent)})`
+                  : '—'}
+              </p>
+            </div>
+            {/* 4. Total P/L */}
+            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
+              <p className="text-rh-muted text-sm">Total P/L</p>
+              <p className={`text-2xl font-bold ${
+                portfolio.totalPL === 0 ? '' : portfolio.totalPL > 0 ? 'text-rh-green' : 'text-rh-red'
+              }`}>
+                {portfolio.holdings.length > 0
+                  ? `${formatCurrency(portfolio.totalPL)} (${formatPercent(portfolio.totalPLPercent)})`
+                  : '—'}
+              </p>
             </div>
           </div>
         )}
