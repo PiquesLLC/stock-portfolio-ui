@@ -61,19 +61,15 @@ export function HoldingsTable({ holdings, onUpdate }: Props) {
     }
   };
 
-  // Handle column header click - cycle: desc → asc → default (ticker asc)
+  // Handle column header click - toggle between desc and asc
   const handleSort = (key: SortKey) => {
     if (sortKey !== key) {
       // New column: start with descending
       setSortKey(key);
       setSortDir('desc');
-    } else if (sortDir === 'desc') {
-      // Same column, was desc: switch to asc
-      setSortDir('asc');
     } else {
-      // Same column, was asc: reset to default (ticker asc)
-      setSortKey('ticker');
-      setSortDir('asc');
+      // Same column: toggle direction
+      setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
     }
   };
 
