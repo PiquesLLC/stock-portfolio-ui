@@ -257,15 +257,33 @@ export interface LeakDetectorResult {
   partial: boolean;
 }
 
+export interface RiskForecastBasis {
+  lookbackDays: number;           // Actual days of data used
+  dataQuality: 'full' | 'partial' | 'fallback';
+  tickersCovered: number;         // How many tickers had data
+  tickersTotal: number;           // Total tickers in portfolio
+  note: string | null;            // Explanation of data source
+}
+
+export interface RiskForecastMetrics {
+  annualReturn: number | null;    // CAGR from historical data
+  annualVolatility: number | null;
+  maxDrawdown: number | null;
+  sharpeRatio: number | null;     // Risk-adjusted return (rf=0)
+}
+
+export interface RiskForecastScenarios {
+  optimistic: number;             // 90th percentile outcome
+  baseCase: number;               // 50th percentile outcome
+  pessimistic: number;            // 10th percentile outcome
+}
+
 export interface RiskForecast {
-  expectedAnnualVol: number | null;
-  maxDrawdown1y: number | null;
-  monteCarloBands: {
-    p10: number;
-    p50: number;
-    p90: number;
-  } | null;
-  partial: boolean;
+  status: 'ready' | 'caching' | 'insufficient';
+  basis: RiskForecastBasis;
+  metrics: RiskForecastMetrics;
+  scenarios: RiskForecastScenarios | null;
+  currentValue: number;           // Portfolio value used as starting point
 }
 
 // Goal types
@@ -298,6 +316,39 @@ export interface GoalInput {
   targetValue: number;
   monthlyContribution?: number;
   deadline?: string | null;
+}
+
+// Portfolio Intelligence types
+export type IntelligenceWindow = '1d' | '5d' | '1m';
+
+export interface ContributorEntry {
+  ticker: string;
+  contributionPercent: number;
+  contributionDollar: number;
+}
+
+export interface SectorExposureEntry {
+  sector: string;
+  exposurePercent: number;
+  exposureDollar: number;
+}
+
+export interface BetaResult {
+  portfolioBeta: number;
+  betaContributionPercent: number | null;
+  spyReturnPercent: number;
+  alphaPercent: number;
+  dataNote: string;
+}
+
+export interface PortfolioIntelligenceResponse {
+  window: IntelligenceWindow;
+  contributors: ContributorEntry[];
+  detractors: ContributorEntry[];
+  sectorExposure: SectorExposureEntry[];
+  beta: BetaResult | null;
+  explanation: string;
+  partial: boolean;
 }
 
 // Symbol search types

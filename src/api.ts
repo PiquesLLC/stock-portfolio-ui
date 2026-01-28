@@ -21,6 +21,8 @@ import {
   Goal,
   GoalInput,
   SymbolSearchResponse,
+  PortfolioIntelligenceResponse,
+  IntelligenceWindow,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -200,4 +202,13 @@ export async function searchSymbols(
   }
 
   return fetchJson<SymbolSearchResponse>(url);
+}
+
+// Portfolio Intelligence endpoint
+export async function getPortfolioIntelligence(
+  window: IntelligenceWindow = '1d'
+): Promise<PortfolioIntelligenceResponse> {
+  return fetchJson<PortfolioIntelligenceResponse>(
+    `${API_BASE_URL}/intelligence?window=${window}`
+  );
 }
