@@ -6,6 +6,9 @@ import { Attribution } from './Attribution';
 import { LeakDetector } from './LeakDetector';
 import { RiskForecast } from './RiskForecast';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
+import { GoalsPage } from './GoalsPage';
+
+type InsightsSubTab = 'intelligence' | 'goals';
 
 // Cache for insights data - persists across component mounts
 const insightsCache: {
@@ -28,6 +31,8 @@ const insightsCache: {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export function InsightsPage() {
+  const [subTab, setSubTab] = useState<InsightsSubTab>('intelligence');
+
   // Initialize state from cache
   const [healthScore, setHealthScore] = useState<HealthScoreType | null>(insightsCache.healthScore);
   const [attribution, setAttribution] = useState<AttributionType | null>(insightsCache.attribution);
@@ -148,6 +153,35 @@ export function InsightsPage() {
   // Check if we have any data to show
   const hasAnyData = healthScore || attribution || leakDetector || riskForecast || intelligence;
 
+  const subTabs: { id: InsightsSubTab; label: string }[] = [
+    { id: 'intelligence', label: 'Intelligence' },
+    { id: 'goals', label: 'Goals' },
+  ];
+
+  // Goals subtab
+  if (subTab === 'goals') {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1 w-fit">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <GoalsPage />
+      </div>
+    );
+  }
+
   // Show initial loading only if we have no cached data at all
   if (!initialLoadComplete && !hasAnyData) {
     return (
@@ -162,6 +196,23 @@ export function InsightsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Sub-navigation: Intelligence / Goals */}
+      <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1 w-fit">
+        {subTabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSubTab(t.id)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors
+              ${subTab === t.id
+                ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+              }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Subtle refresh indicator - only show when manually refreshing */}
       {isRefreshing && hasAnyData && (
         <div className="flex items-center justify-end">

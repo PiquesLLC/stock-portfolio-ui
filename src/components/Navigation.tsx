@@ -1,4 +1,4 @@
-export type TabType = 'portfolio' | 'insights' | 'goals' | 'leaderboard';
+export type TabType = 'portfolio' | 'insights' | 'leaderboard';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -9,7 +9,6 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const tabs: { id: TabType; label: string }[] = [
     { id: 'portfolio', label: 'Portfolio' },
     { id: 'insights', label: 'Insights' },
-    { id: 'goals', label: 'Goals' },
     { id: 'leaderboard', label: 'Leaderboard' },
   ];
 
