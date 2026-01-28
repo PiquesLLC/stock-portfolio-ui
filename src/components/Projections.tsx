@@ -375,12 +375,19 @@ export function Projections({ currentValue, refreshTrigger = 0 }: Props) {
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
                   <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">
-                    {paceWindow === 'YTD' ? 'True YTD Return' : `${paceData.windowLabel} Return`}
+                    {paceWindow === 'YTD' ? 'True YTD Return'
+                      : paceWindow === '1D' ? '1 Day Return'
+                      : paceWindow === '1M' ? '1 Month Return'
+                      : paceWindow === '6M' ? '6 Month Return'
+                      : '1 Year Return'}
                   </p>
                   <p className={`text-lg font-bold ${
                     (paceData.windowReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {formatPct(paceData.windowReturnPct)}
+                    {paceData.estimated && (
+                      <span className="text-xs font-normal text-amber-500 ml-1">Est.</span>
+                    )}
                   </p>
                 </div>
                 <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
@@ -391,6 +398,9 @@ export function Projections({ currentValue, refreshTrigger = 0 }: Props) {
                     {formatPct(paceData.annualizedPacePct)}
                     {paceData.capped && (
                       <span className="text-xs text-rh-light-muted dark:text-rh-muted ml-1">(capped)</span>
+                    )}
+                    {paceData.estimated && !paceData.capped && (
+                      <span className="text-xs font-normal text-amber-500 ml-1">Est.</span>
                     )}
                   </p>
                 </div>
@@ -431,7 +441,11 @@ export function Projections({ currentValue, refreshTrigger = 0 }: Props) {
               {/* Footer */}
               <div className="border-t border-rh-light-border dark:border-rh-border pt-4">
                 <div className="flex justify-between text-sm text-rh-light-muted dark:text-rh-muted mb-2">
-                  <span>{paceData.snapshotCount} snapshots over {Math.round(paceData.daysCovered)} days</span>
+                  <span>
+                    {paceData.snapshotCount > 0
+                      ? `Using ${paceData.snapshotCount} snapshots spanning ${Math.round(paceData.daysCovered)} days.`
+                      : `${Math.round(paceData.daysCovered)} days of data.`}
+                  </span>
                   <span>Ref: {paceData.referenceAssets !== null ? formatCurrency(paceData.referenceAssets) : '—'}</span>
                 </div>
                 {paceData.note && (
