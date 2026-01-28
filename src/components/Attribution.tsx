@@ -63,13 +63,17 @@ export function Attribution({ initialData }: AttributionProps) {
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-rh-green border-t-transparent"></div>
+      {loading && (
+        <div className="flex items-center justify-end mb-2">
+          <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+            <div className="w-3 h-3 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin"></div>
+            <span>Loading...</span>
+          </div>
         </div>
-      ) : partial ? (
+      )}
+      {partial && topContributors.length === 0 && topDetractors.length === 0 ? (
         <p className="text-rh-light-muted dark:text-rh-muted text-center py-8">
-          Attribution data unavailable
+          Add holdings to see attribution
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

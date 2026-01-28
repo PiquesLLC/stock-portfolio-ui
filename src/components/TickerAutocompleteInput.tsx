@@ -59,7 +59,6 @@ function applyLocalBoosts(
   recentTickers: string[]
 ): SymbolSearchResult[] {
   const heldSet = new Set(heldTickers.map(t => t.toUpperCase()));
-  const recentSet = new Set(recentTickers.map(t => t.toUpperCase()));
 
   // Create boosted scores
   const boosted = results.map(r => {
