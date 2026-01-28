@@ -54,10 +54,10 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-rh-card border border-rh-border rounded-lg p-6 animate-pulse">
-            <div className="h-4 bg-rh-border rounded w-1/3 mb-4"></div>
-            <div className="h-8 bg-rh-border rounded w-1/2 mb-2"></div>
-            <div className="h-4 bg-rh-border rounded w-1/4"></div>
+          <div key={i} className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 animate-pulse shadow-sm dark:shadow-none">
+            <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/3 mb-4"></div>
+            <div className="h-8 bg-gray-200 dark:bg-rh-border rounded w-1/2 mb-2"></div>
+            <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4"></div>
           </div>
         ))}
       </div>
@@ -66,7 +66,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
 
   if (error && !data) {
     return (
-      <div className="bg-rh-card border border-rh-border rounded-lg p-6">
+      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
         <p className="text-rh-red text-center">{error}</p>
       </div>
     );
@@ -81,11 +81,11 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
       {/* Main two-box layout: Holdings P/L (left), Since Tracking Start (right) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Box 1: Current Holdings P/L (LEFT) */}
-        <div className="bg-rh-card border border-rh-border rounded-lg p-6">
-          <h3 className="text-sm font-medium text-rh-muted mb-4">Current Holdings P/L</h3>
+        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+          <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-4">Current Holdings P/L</h3>
 
           <div className="mb-3">
-            <p className="text-2xl font-bold">{formatCurrency(holdingsPL.unrealizedPL)}</p>
+            <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(holdingsPL.unrealizedPL)}</p>
             <p
               className={`text-lg font-semibold ${
                 holdingsPL.unrealizedPLPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -95,36 +95,36 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
             </p>
           </div>
 
-          <div className="flex justify-between text-sm text-rh-muted border-t border-rh-border pt-3 mt-3">
+          <div className="flex justify-between text-sm text-rh-light-muted dark:text-rh-muted border-t border-rh-light-border dark:border-rh-border pt-3 mt-3">
             <div>
               <p className="text-xs">Total Cost</p>
-              <p className="text-white">{formatCurrency(holdingsPL.totalCost)}</p>
+              <p className="text-rh-light-text dark:text-white">{formatCurrency(holdingsPL.totalCost)}</p>
             </div>
             <div className="text-right">
               <p className="text-xs">Market Value</p>
-              <p className="text-white">{formatCurrency(holdingsPL.currentValue)}</p>
+              <p className="text-rh-light-text dark:text-white">{formatCurrency(holdingsPL.currentValue)}</p>
             </div>
           </div>
 
-          <p className="text-xs text-rh-muted mt-2">Unrealized gains/losses only</p>
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">Unrealized gains/losses only</p>
         </div>
 
         {/* Box 2: Since Tracking Start (RIGHT) */}
-        <div className="bg-rh-card border border-rh-border rounded-lg p-6">
+        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-medium text-rh-muted">Since Tracking Start</h3>
+            <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">Since Tracking Start</h3>
             {sinceTracking.startDate && (
-              <span className="text-xs text-rh-muted">
+              <span className="text-xs text-rh-light-muted dark:text-rh-muted">
                 {formatDate(sinceTracking.startDate)}
               </span>
             )}
           </div>
-          <p className="text-xs text-rh-muted mb-4">Asset performance only — excludes margin</p>
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-4">Asset performance only — excludes margin</p>
 
           {sinceTracking.hasBaseline ? (
             <>
               <div className="mb-3">
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">
                   {sinceTracking.absoluteReturn !== null
                     ? formatCurrency(sinceTracking.absoluteReturn)
                     : '—'}
@@ -140,10 +140,10 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
                 </p>
               </div>
 
-              <div className="flex justify-between text-sm text-rh-muted border-t border-rh-border pt-3 mt-3">
+              <div className="flex justify-between text-sm text-rh-light-muted dark:text-rh-muted border-t border-rh-light-border dark:border-rh-border pt-3 mt-3">
                 <div>
                   <p className="text-xs">Starting Assets</p>
-                  <p className="text-white">
+                  <p className="text-rh-light-text dark:text-white">
                     {sinceTracking.startingValue !== null
                       ? formatCurrency(sinceTracking.startingValue)
                       : '—'}
@@ -151,18 +151,18 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
                 </div>
                 <div className="text-right">
                   <p className="text-xs">Current Assets</p>
-                  <p className="text-white">{formatCurrency(sinceTracking.currentValue)}</p>
+                  <p className="text-rh-light-text dark:text-white">{formatCurrency(sinceTracking.currentValue)}</p>
                 </div>
               </div>
 
-              <p className="text-xs text-rh-muted mt-2">
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">
                 Tracking asset value independent of leverage
               </p>
             </>
           ) : (
             <div className="text-center py-4">
-              <p className="text-rh-muted">No baseline set</p>
-              <p className="text-xs text-rh-muted mt-1">
+              <p className="text-rh-light-muted dark:text-rh-muted">No baseline set</p>
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
                 Add holdings and set a baseline to track performance
               </p>
             </div>
@@ -172,11 +172,11 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
 
       {/* Optional Box 3: Broker Lifetime (if data exists) */}
       {brokerLifetime && brokerLifetime.hasData && (
-        <div className="bg-rh-card border border-rh-border rounded-lg p-6">
+        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-rh-muted">Broker Lifetime Performance</h3>
+            <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">Broker Lifetime Performance</h3>
             {brokerLifetime.asOf && (
-              <span className="text-xs text-rh-muted">
+              <span className="text-xs text-rh-light-muted dark:text-rh-muted">
                 as of {formatDate(brokerLifetime.asOf)}
               </span>
             )}
@@ -184,23 +184,23 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-xs text-rh-muted">Net Contributions</p>
-              <p className="text-lg font-semibold">
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Net Contributions</p>
+              <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                 {brokerLifetime.netContributions !== null
                   ? formatCurrency(brokerLifetime.netContributions)
                   : '—'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-rh-muted">Current Value</p>
-              <p className="text-lg font-semibold">
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Current Value</p>
+              <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                 {brokerLifetime.currentValue !== null
                   ? formatCurrency(brokerLifetime.currentValue)
                   : '—'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-rh-muted">Total Return</p>
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Total Return</p>
               <p
                 className={`text-lg font-semibold ${
                   (brokerLifetime.absoluteReturn ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -212,7 +212,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
               </p>
             </div>
             <div>
-              <p className="text-xs text-rh-muted">Return %</p>
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Return %</p>
               <p
                 className={`text-lg font-semibold ${
                   (brokerLifetime.percentReturn ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -225,7 +225,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
             </div>
           </div>
 
-          <p className="text-xs text-rh-muted mt-3">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-3">
             User-provided data from broker account
           </p>
         </div>

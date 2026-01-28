@@ -1,3 +1,5 @@
+export type MarketSession = 'PRE' | 'REG' | 'POST' | 'CLOSED';
+
 export interface Holding {
   id: string;
   ticker: string;
@@ -12,6 +14,17 @@ export interface Holding {
   dayChangePercent: number;
   priceUnavailable?: boolean;
   priceIsStale?: boolean;
+  isRepricing?: boolean;
+  quoteAgeSeconds?: number;
+  session?: MarketSession;
+}
+
+export interface QuotesMeta {
+  anyRepricing: boolean;
+  quoteTimestamp: number;
+  provider: string;
+  staleCount?: number;
+  failedTickers?: string[];
 }
 
 export interface Portfolio {
@@ -29,6 +42,9 @@ export interface Portfolio {
   dayChangePercent: number;
   quotesStale?: boolean;
   quotesUnavailableCount?: number;
+  quotesMeta?: QuotesMeta;
+  session?: MarketSession;
+  paceProjection?: PaceProjection; // MTD-based pace projections
 }
 
 export interface HoldingInput {
@@ -158,6 +174,31 @@ export interface SettingsUpdateInput {
   marginDebt?: number;
 }
 
+// Pace Projection types (MTD-based simple linear projections)
+export interface PaceProjection {
+  hasData: boolean;
+  mtdReturnPct: number | null;        // Month-to-date return percentage
+  paceMonthlyPct: number | null;      // Same as MTD (the month's current performance)
+  paceAnnualPct: number | null;       // Monthly * 12
+  horizonPct: {
+    '1y': number | null;
+    '2y': number | null;
+    '5y': number | null;
+    '10y': number | null;
+  };
+  horizonValue: {
+    '1y': number | null;
+    '2y': number | null;
+    '5y': number | null;
+    '10y': number | null;
+  };
+  baselineMonthDate: string | null;   // ISO date of baseline snapshot
+  baselineMonthAssets: number | null; // Asset value at start of month
+  currentAssets: number;              // Current total assets
+  daysIntoMonth: number;              // Days elapsed in current month
+  note: string | null;                // Any warning or info message
+}
+
 export interface FullSettings {
   id: string;
   cashBalance: number;
@@ -169,4 +210,116 @@ export interface FullSettings {
   brokerLifetimeWithdrawals: number | null;
   brokerLifetimeValue: number | null;
   brokerLifetimeAsOf: string | null;
+}
+
+// Insights types
+export interface HealthScore {
+  overall: number; // 0-100
+  breakdown: {
+    concentration: number;
+    volatility: number;
+    drawdown: number;
+    diversification: number;
+    margin: number;
+  };
+  reasons: string[];
+  quickFixes: string[];
+  partial: boolean;
+}
+
+export type AttributionWindow = '1d' | '5d' | '1m';
+
+export interface Attribution {
+  window: AttributionWindow;
+  topContributors: {
+    ticker: string;
+    contributionDollar: number;
+    contributionPct: number;
+  }[];
+  topDetractors: {
+    ticker: string;
+    contributionDollar: number;
+    contributionPct: number;
+  }[];
+  partial: boolean;
+}
+
+export interface LeakDetectorResult {
+  correlationClusters: {
+    tickers: string[];
+    avgCorrelation: number;
+  }[];
+  summaries: string[];
+  heatmapData: {
+    tickers: string[];
+    matrix: number[][];
+  } | null;
+  partial: boolean;
+}
+
+export interface RiskForecast {
+  expectedAnnualVol: number | null;
+  maxDrawdown1y: number | null;
+  monteCarloBands: {
+    p10: number;
+    p50: number;
+    p90: number;
+  } | null;
+  partial: boolean;
+}
+
+// Goal types
+export interface TimeToGoalRange {
+  optimistic: number | null;
+  base: number | null;
+  pessimistic: number | null;
+}
+
+export interface Goal {
+  id: string;
+  name: string;
+  targetValue: number;
+  monthlyContribution: number;
+  deadline: string | null;
+  createdAt: string;
+  updatedAt: string;
+  currentProgress: number; // 0-100
+  currentPortfolioValue: number;
+  timeToGoal: TimeToGoalRange;
+  projectedDate: {
+    optimistic: string | null;
+    base: string | null;
+    pessimistic: string | null;
+  };
+}
+
+export interface GoalInput {
+  name: string;
+  targetValue: number;
+  monthlyContribution?: number;
+  deadline?: string | null;
+}
+
+// Symbol search types
+export interface SymbolSearchResult {
+  symbol: string;
+  description: string;
+  type: string;
+  primaryExchange: string;
+  popularityScore: number;  // Combined ranking score (higher = more relevant)
+  marketCapB?: number;      // Market cap in billions USD, if available
+  avgVolume?: number;       // Average daily volume, if available
+  isPopular?: boolean;      // True if this is a well-known popular ticker
+  isHeld?: boolean;         // True if user currently holds this ticker
+}
+
+export interface SymbolSearchResponse {
+  results: SymbolSearchResult[];
+  meta: {
+    query: string;
+    count: number;
+    partial: boolean;
+    cached: boolean;
+    advPending: string[];   // Tickers whose ADV is being fetched async
+  };
 }

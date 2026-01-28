@@ -13,6 +13,14 @@ import {
   BrokerLifetimeInput,
   Settings,
   SettingsUpdateInput,
+  HealthScore,
+  Attribution,
+  AttributionWindow,
+  LeakDetectorResult,
+  RiskForecast,
+  Goal,
+  GoalInput,
+  SymbolSearchResponse,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -128,4 +136,68 @@ export async function clearBrokerLifetime(): Promise<void> {
 // Performance summary endpoint
 export async function getPerformanceSummary(): Promise<PerformanceSummary> {
   return fetchJson<PerformanceSummary>(`${API_BASE_URL}/portfolio/summary`);
+}
+
+// Insights endpoints
+export async function getHealthScore(): Promise<HealthScore> {
+  return fetchJson<HealthScore>(`${API_BASE_URL}/insights/health`);
+}
+
+export async function getAttribution(window: AttributionWindow = '1d'): Promise<Attribution> {
+  return fetchJson<Attribution>(`${API_BASE_URL}/insights/attribution?window=${window}`);
+}
+
+export async function getLeakDetector(): Promise<LeakDetectorResult> {
+  return fetchJson<LeakDetectorResult>(`${API_BASE_URL}/insights/leak-detector`);
+}
+
+export async function getRiskForecast(): Promise<RiskForecast> {
+  return fetchJson<RiskForecast>(`${API_BASE_URL}/insights/risk-forecast`);
+}
+
+// Goals endpoints
+export async function getGoals(): Promise<Goal[]> {
+  return fetchJson<Goal[]>(`${API_BASE_URL}/goals`);
+}
+
+export async function createGoal(input: GoalInput): Promise<Goal> {
+  return fetchJson<Goal>(`${API_BASE_URL}/goals`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateGoal(id: string, input: Partial<GoalInput>): Promise<Goal> {
+  return fetchJson<Goal>(`${API_BASE_URL}/goals/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteGoal(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/goals/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Symbol search endpoint
+export async function searchSymbols(
+  query: string,
+  heldTickers: string[] = []
+): Promise<SymbolSearchResponse> {
+  if (!query.trim()) {
+    return {
+      results: [],
+      meta: { query: '', count: 0, partial: false, cached: false, advPending: [] },
+    };
+  }
+
+  let url = `${API_BASE_URL}/market/search?q=${encodeURIComponent(query.trim())}`;
+
+  // Add held tickers to help with ranking
+  if (heldTickers.length > 0) {
+    url += `&held=${encodeURIComponent(heldTickers.join(','))}`;
+  }
+
+  return fetchJson<SymbolSearchResponse>(url);
 }

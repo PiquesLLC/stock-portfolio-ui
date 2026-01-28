@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { addHolding } from '../api';
+import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 
 interface Props {
   onUpdate: () => void;
+  heldTickers?: string[];
 }
 
-export function HoldingForm({ onUpdate }: Props) {
+export function HoldingForm({ onUpdate, heldTickers = [] }: Props) {
   const [ticker, setTicker] = useState('');
   const [shares, setShares] = useState('');
   const [averageCost, setAverageCost] = useState('');
@@ -54,43 +56,42 @@ export function HoldingForm({ onUpdate }: Props) {
   };
 
   return (
-    <div className="bg-rh-card border border-rh-border rounded-lg p-6">
-      <h2 className="text-lg font-semibold mb-4">Add / Update Holding</h2>
+    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Add / Update Holding</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm text-rh-muted mb-1">Ticker</label>
-            <input
-              type="text"
+            <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Ticker</label>
+            <TickerAutocompleteInput
               value={ticker}
-              onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              className="w-full bg-rh-dark border border-rh-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-rh-green"
+              onChange={setTicker}
               placeholder="AAPL"
+              heldTickers={heldTickers}
             />
           </div>
           <div>
-            <label className="block text-sm text-rh-muted mb-1">Shares</label>
+            <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
             <input
               type="number"
               step="0.0001"
               min="0"
               value={shares}
               onChange={(e) => setShares(e.target.value)}
-              className="w-full bg-rh-dark border border-rh-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-rh-green"
+              className="w-full bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg px-3 py-2 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green focus:ring-2 focus:ring-rh-green/20"
               placeholder="10"
             />
           </div>
           <div>
-            <label className="block text-sm text-rh-muted mb-1">Average Cost</label>
+            <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Average Cost</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-muted">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted">$</span>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={averageCost}
                 onChange={(e) => setAverageCost(e.target.value)}
-                className="w-full bg-rh-dark border border-rh-border rounded-lg px-3 py-2 pl-7 text-white focus:outline-none focus:border-rh-green"
+                className="w-full bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg px-3 py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green focus:ring-2 focus:ring-rh-green/20"
                 placeholder="150.00"
               />
             </div>
