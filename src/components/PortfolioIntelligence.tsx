@@ -46,8 +46,11 @@ function ContributorBar({ entry, maxAbsDollar, isPositive }: {
       <span className={`w-20 text-right text-sm font-mono ${isPositive ? 'text-rh-green' : 'text-red-400'}`}>
         {formatDollar(entry.contributionDollar)}
       </span>
-      <span className="w-14 text-right text-xs text-rh-light-muted dark:text-rh-muted">
-        {formatPct(entry.contributionPercent)}
+      <span className={`w-14 text-right text-xs ${
+        entry.percentReturn === null ? 'text-rh-light-muted dark:text-rh-muted' :
+        isPositive ? 'text-rh-green' : 'text-red-400'
+      }`}>
+        {entry.percentReturn !== null ? formatPct(entry.percentReturn) : '—'}
       </span>
     </div>
   );

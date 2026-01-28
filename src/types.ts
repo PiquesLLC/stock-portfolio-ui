@@ -323,7 +323,7 @@ export type IntelligenceWindow = '1d' | '5d' | '1m';
 
 export interface ContributorEntry {
   ticker: string;
-  contributionPercent: number;
+  percentReturn: number | null;
   contributionDollar: number;
 }
 
