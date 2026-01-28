@@ -4,6 +4,7 @@ import {
   SP500ProjectionResponse,
   CurrentPaceResponse,
   PaceWindow,
+  MarketSession,
 } from '../types';
 import { getProjections, getCurrentPace, getYtdSettings, setYtdSettings } from '../api';
 
@@ -12,6 +13,7 @@ type ProjectionModeSimple = 'sp500' | 'pace';
 interface Props {
   currentValue: number;
   refreshTrigger?: number;
+  session?: MarketSession;
 }
 
 function formatCurrency(value: number): string {
@@ -59,7 +61,7 @@ function isSP500Response(resp: ProjectionResponse): resp is SP500ProjectionRespo
   return resp.mode === 'sp500';
 }
 
-export function Projections({ currentValue, refreshTrigger = 0 }: Props) {
+export function Projections({ currentValue, refreshTrigger = 0, session }: Props) {
   const [mode, setMode] = useState<ProjectionModeSimple>('sp500');
   const [data, setData] = useState<ProjectionResponse | null>(null);
   const [paceData, setPaceData] = useState<CurrentPaceResponse | null>(null);
@@ -450,6 +452,11 @@ export function Projections({ currentValue, refreshTrigger = 0 }: Props) {
                 </div>
                 {paceData.note && (
                   <p className="text-xs text-amber-500 mb-1">{paceData.note}</p>
+                )}
+                {session === 'CLOSED' && (
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">
+                    Market closed — projections will update on next price refresh.
+                  </p>
                 )}
                 <p className="text-xs text-rh-light-muted dark:text-rh-muted">
                   {paceWindow === 'YTD'

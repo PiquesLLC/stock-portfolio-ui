@@ -68,6 +68,8 @@ export default function App() {
 
   // Keep track of the last valid portfolio to avoid flickering
   const lastValidPortfolio = useRef<Portfolio | null>(null);
+  // Track last totalAssets to only trigger projection refresh on value change
+  const lastTotalAssets = useRef<number | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -90,7 +92,13 @@ export default function App() {
       setSettings(settingsData);
       setError('');
       setLastUpdate(new Date());
-      setPortfolioRefreshCount((c) => c + 1);
+
+      // Only trigger projection refresh when portfolio value actually changes
+      const newTotalAssets = Math.round(portfolioData.totalAssets * 100) / 100;
+      if (lastTotalAssets.current === null || newTotalAssets !== lastTotalAssets.current) {
+        lastTotalAssets.current = newTotalAssets;
+        setPortfolioRefreshCount((c) => c + 1);
+      }
 
       // Track repricing state
       const dataIsRepricing = portfolioData.quotesMeta?.anyRepricing ||
@@ -343,6 +351,7 @@ export default function App() {
             <Projections
               currentValue={portfolio?.netEquity ?? 0}
               refreshTrigger={portfolioRefreshCount}
+              session={portfolio?.session}
             />
           </>
         )}
