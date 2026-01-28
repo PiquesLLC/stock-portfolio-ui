@@ -174,7 +174,43 @@ export interface SettingsUpdateInput {
   marginDebt?: number;
 }
 
-// Pace Projection types (MTD-based simple linear projections)
+// Current Pace Projection types (CAGR-based)
+export type PaceWindow = '1D' | '1M' | '6M' | '1Y' | 'YTD';
+
+export type YtdMode = 'holdings' | 'true';
+
+export interface CurrentPaceResponse {
+  window: PaceWindow;
+  windowLabel: string;
+  dataStatus: 'ok' | 'insufficient' | 'no_data';
+  snapshotCount: number;
+  dataStartDate: string | null;
+  dataEndDate: string | null;
+  daysCovered: number;
+  currentAssets: number;
+  referenceAssets: number | null;
+  windowReturnPct: number | null;
+  annualizedPacePct: number | null;
+  capped: boolean;
+  projections: {
+    '1y': { value: number; gainPct: number } | null;
+    '2y': { value: number; gainPct: number } | null;
+    '5y': { value: number; gainPct: number } | null;
+    '10y': { value: number; gainPct: number } | null;
+  };
+  note: string | null;
+  // YTD-specific fields (only present when window === 'YTD')
+  ytdMode?: YtdMode;
+  trueYtdAvailable?: boolean;
+  ytdDetail?: Record<string, unknown>;
+}
+
+export interface YtdSettings {
+  ytdStartEquity: number | null;
+  ytdNetContributions: number | null;
+}
+
+// Legacy Pace Projection types (MTD-based simple linear projections)
 export interface PaceProjection {
   hasData: boolean;
   mtdReturnPct: number | null;        // Month-to-date return percentage

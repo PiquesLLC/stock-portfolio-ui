@@ -23,6 +23,10 @@ import {
   SymbolSearchResponse,
   PortfolioIntelligenceResponse,
   IntelligenceWindow,
+  CurrentPaceResponse,
+  PaceWindow,
+  YtdMode,
+  YtdSettings,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -202,6 +206,33 @@ export async function searchSymbols(
   }
 
   return fetchJson<SymbolSearchResponse>(url);
+}
+
+// Current Pace endpoint
+export async function getCurrentPace(window: PaceWindow = '1M', ytdMode?: YtdMode): Promise<CurrentPaceResponse> {
+  let url = `${API_BASE_URL}/portfolio/projections/current-pace?window=${window}`;
+  if (window === 'YTD' && ytdMode) {
+    url += `&mode=${ytdMode}`;
+  }
+  return fetchJson<CurrentPaceResponse>(url);
+}
+
+// YTD Settings endpoints
+export async function getYtdSettings(): Promise<YtdSettings> {
+  return fetchJson<YtdSettings>(`${API_BASE_URL}/settings/ytd`);
+}
+
+export async function setYtdSettings(input: { ytdStartEquity: number; netContributionsYTD?: number }): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/settings/ytd`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function clearYtdSettings(): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/settings/ytd`, {
+    method: 'DELETE',
+  });
 }
 
 // Portfolio Intelligence endpoint
