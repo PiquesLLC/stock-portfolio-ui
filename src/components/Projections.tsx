@@ -5,7 +5,6 @@ import {
   CurrentPaceResponse,
   PaceWindow,
   YtdMode,
-  YtdSettings,
 } from '../types';
 import { getProjections, getCurrentPace, getYtdSettings, setYtdSettings } from '../api';
 

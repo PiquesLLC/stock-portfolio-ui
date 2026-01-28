@@ -11,6 +11,7 @@ import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { InsightsPage } from './components/InsightsPage';
 import { GoalsPage } from './components/GoalsPage';
+import { LeaderboardPage } from './components/LeaderboardPage';
 
 // Theme utilities
 function getInitialTheme(): 'dark' | 'light' {
@@ -349,6 +350,9 @@ export default function App() {
 
         {/* Goals Tab */}
         {activeTab === 'goals' && <GoalsPage />}
+
+        {/* Leaderboard Tab */}
+        {activeTab === 'leaderboard' && <LeaderboardPage />}
       </main>
     </div>
   );
