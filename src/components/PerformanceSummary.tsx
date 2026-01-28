@@ -112,7 +112,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
 
               <div className="flex justify-between text-sm text-rh-muted border-t border-rh-border pt-3 mt-3">
                 <div>
-                  <p className="text-xs">Starting</p>
+                  <p className="text-xs">Starting Assets</p>
                   <p className="text-white">
                     {sinceTracking.startingValue !== null
                       ? formatCurrency(sinceTracking.startingValue)
@@ -120,16 +120,15 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs">Current</p>
+                  <p className="text-xs">Current Assets</p>
                   <p className="text-white">{formatCurrency(sinceTracking.currentValue)}</p>
                 </div>
               </div>
 
-              {sinceTracking.snapshotCount > 0 && (
-                <p className="text-xs text-rh-muted mt-2">
-                  {sinceTracking.snapshotCount} snapshots recorded
-                </p>
-              )}
+              <p className="text-xs text-rh-muted mt-2">
+                {sinceTracking.snapshotCount > 0 && `${sinceTracking.snapshotCount.toLocaleString()} snapshots · `}
+                Asset performance only
+              </p>
             </>
           ) : (
             <div className="text-center py-4">

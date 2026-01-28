@@ -19,8 +19,9 @@ export interface Portfolio {
   cashBalance: number;
   marginDebt: number;
   holdingsValue: number;
-  netEquity: number;
-  totalValue: number;
+  totalAssets: number;      // holdingsValue + cashBalance (NO marginDebt - for tracking)
+  netEquity: number;        // totalAssets - marginDebt (for display only)
+  totalValue: number;       // same as totalAssets for compatibility
   totalCost: number;
   totalPL: number;
   totalPLPercent: number;

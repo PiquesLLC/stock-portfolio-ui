@@ -127,8 +127,12 @@ export default function App() {
           <h1 className="text-xl font-bold">Stock Portfolio</h1>
           <div className="flex items-center gap-4">
             {isStale && (
-              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">
-                Using cached quotes
+              <span className="flex items-center gap-2" title="Repricing quotes…">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
+                </span>
+                <span className="text-xs text-yellow-400">Repricing…</span>
               </span>
             )}
             {lastUpdate && (
@@ -141,8 +145,8 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Stale Data Banner */}
-        {isStale && portfolio && portfolio.quotesUnavailableCount && portfolio.quotesUnavailableCount > 0 && (
+        {/* Stale Data Banner - only show if quotes are completely unavailable */}
+        {portfolio && portfolio.quotesUnavailableCount && portfolio.quotesUnavailableCount > 0 && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
             <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -157,45 +161,71 @@ export default function App() {
           </div>
         )}
 
-        {/* Performance Summary - Two Box UX */}
-        <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
-
-        {/* Portfolio Summary */}
+        {/* 1. Top Summary Stat Cards */}
         {portfolio && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Total Assets - used for performance tracking (no margin debt) */}
             <div className="bg-rh-card border border-rh-border rounded-lg p-4">
-              <p className="text-rh-muted text-sm">Holdings Value</p>
-              <p className="text-2xl font-bold">{formatCurrency(portfolio.holdingsValue)}</p>
-              {portfolio.quotesUnavailableCount && portfolio.quotesUnavailableCount > 0 && (
-                <p className="text-xs text-yellow-400 mt-1">*Partial</p>
-              )}
-            </div>
-            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
-              <p className="text-rh-muted text-sm">Net Portfolio Value</p>
-              <p className="text-2xl font-bold">{formatCurrency(portfolio.netEquity)}</p>
-              {portfolio.marginDebt > 0 && (
-                <p className="text-xs text-rh-muted mt-1">
-                  After ${portfolio.marginDebt.toLocaleString()} margin
-                </p>
-              )}
+              <p className="text-rh-muted text-sm">Total Assets</p>
+              <p className="text-2xl font-bold">
+                {portfolio.totalAssets > 0 ? formatCurrency(portfolio.totalAssets) : '—'}
+              </p>
+              <p className="text-xs text-rh-muted mt-1">Holdings + Cash</p>
             </div>
             <div className="bg-rh-card border border-rh-border rounded-lg p-4">
               <p className="text-rh-muted text-sm">Day Change</p>
-              <p className={`text-2xl font-bold ${portfolio.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatCurrency(portfolio.dayChange)} ({formatPercent(portfolio.dayChangePercent)})
+              <p className={`text-2xl font-bold ${
+                portfolio.dayChange === 0 ? '' : portfolio.dayChange > 0 ? 'text-rh-green' : 'text-rh-red'
+              }`}>
+                {portfolio.holdings.length > 0
+                  ? `${formatCurrency(portfolio.dayChange)} (${formatPercent(portfolio.dayChangePercent)})`
+                  : '—'}
               </p>
             </div>
             <div className="bg-rh-card border border-rh-border rounded-lg p-4">
               <p className="text-rh-muted text-sm">Total P/L</p>
-              <p className={`text-2xl font-bold ${portfolio.totalPL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatCurrency(portfolio.totalPL)} ({formatPercent(portfolio.totalPLPercent)})
+              <p className={`text-2xl font-bold ${
+                portfolio.totalPL === 0 ? '' : portfolio.totalPL > 0 ? 'text-rh-green' : 'text-rh-red'
+              }`}>
+                {portfolio.holdings.length > 0
+                  ? `${formatCurrency(portfolio.totalPL)} (${formatPercent(portfolio.totalPLPercent)})`
+                  : '—'}
               </p>
+            </div>
+            {/* Net Equity - shows balance after margin debt */}
+            <div className="bg-rh-card border border-rh-border rounded-lg p-4">
+              <p className="text-rh-muted text-sm">Net Equity</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(portfolio.netEquity)}
+              </p>
+              {portfolio.marginDebt > 0 ? (
+                <p className="text-xs text-rh-muted mt-1">
+                  After ${portfolio.marginDebt.toLocaleString()} margin
+                </p>
+              ) : (
+                <p className="text-xs text-rh-muted mt-1">Cash: {formatCurrency(portfolio.cashBalance)}</p>
+              )}
             </div>
           </div>
         )}
 
-        {/* Forms Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* 2. Performance Summary Cards */}
+        <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+
+        {/* 3. Holdings Table with Add Holding Form */}
+        <HoldingsTable
+          holdings={portfolio?.holdings ?? []}
+          onUpdate={handleUpdate}
+        />
+
+        {/* Add Holding Form - placed below table */}
+        <HoldingForm onUpdate={handleUpdate} />
+
+        {/* 4. Portfolio Projections */}
+        <Projections currentValue={portfolio?.netEquity ?? 0} />
+
+        {/* Account Settings - Cash & Margin */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <CashBalance
             currentBalance={portfolio?.cashBalance ?? 0}
             onUpdate={handleUpdate}
@@ -204,17 +234,7 @@ export default function App() {
             currentDebt={portfolio?.marginDebt ?? 0}
             onUpdate={handleUpdate}
           />
-          <HoldingForm onUpdate={handleUpdate} />
         </div>
-
-        {/* Holdings Table */}
-        <HoldingsTable
-          holdings={portfolio?.holdings ?? []}
-          onUpdate={handleUpdate}
-        />
-
-        {/* Projections - uses net equity */}
-        <Projections currentValue={portfolio?.netEquity ?? 0} />
       </main>
     </div>
   );
