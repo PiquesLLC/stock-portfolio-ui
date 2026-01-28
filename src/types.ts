@@ -177,8 +177,6 @@ export interface SettingsUpdateInput {
 // Current Pace Projection types (CAGR-based)
 export type PaceWindow = '1D' | '1M' | '6M' | '1Y' | 'YTD';
 
-export type YtdMode = 'holdings' | 'true';
-
 export interface CurrentPaceResponse {
   window: PaceWindow;
   windowLabel: string;
@@ -200,7 +198,6 @@ export interface CurrentPaceResponse {
   };
   note: string | null;
   // YTD-specific fields (only present when window === 'YTD')
-  ytdMode?: YtdMode;
   trueYtdAvailable?: boolean;
   ytdDetail?: Record<string, unknown>;
 }

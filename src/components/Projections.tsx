@@ -4,7 +4,6 @@ import {
   SP500ProjectionResponse,
   CurrentPaceResponse,
   PaceWindow,
-  YtdMode,
 } from '../types';
 import { getProjections, getCurrentPace, getYtdSettings, setYtdSettings } from '../api';
 
@@ -64,7 +63,6 @@ export function Projections({ currentValue }: Props) {
   const [data, setData] = useState<ProjectionResponse | null>(null);
   const [paceData, setPaceData] = useState<CurrentPaceResponse | null>(null);
   const [paceWindow, setPaceWindow] = useState<PaceWindow>('1M');
-  const [ytdMode, setYtdMode] = useState<YtdMode>('holdings');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   // YTD settings form state
@@ -78,7 +76,7 @@ export function Projections({ currentValue }: Props) {
     try {
       setLoading(true);
       if (mode === 'pace') {
-        const response = await getCurrentPace(paceWindow, paceWindow === 'YTD' ? ytdMode : undefined);
+        const response = await getCurrentPace(paceWindow);
         setPaceData(response);
       } else {
         const response = await getProjections('sp500', '1y');
@@ -90,7 +88,7 @@ export function Projections({ currentValue }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [mode, paceWindow, ytdMode]);
+  }, [mode, paceWindow]);
 
   useEffect(() => {
     fetchData();
@@ -98,10 +96,6 @@ export function Projections({ currentValue }: Props) {
 
   const handlePaceWindowChange = (w: PaceWindow) => {
     setPaceWindow(w);
-  };
-
-  const handleYtdModeChange = (m: YtdMode) => {
-    setYtdMode(m);
   };
 
   const handleOpenYtdForm = async () => {
@@ -130,7 +124,11 @@ export function Projections({ currentValue }: Props) {
     try {
       await setYtdSettings({ ytdStartEquity: equity, netContributionsYTD: contributions });
       setShowYtdForm(false);
-      setYtdMode('true');
+      // Refresh pace data to show updated True YTD
+      if (paceWindow === 'YTD') {
+        const response = await getCurrentPace('YTD');
+        setPaceData(response);
+      }
     } catch (err) {
       setYtdFormError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -274,46 +272,16 @@ export function Projections({ currentValue }: Props) {
                 </button>
               ))}
             </div>
+            {/* YTD settings button */}
+            {paceWindow === 'YTD' && (
+              <button
+                onClick={handleOpenYtdForm}
+                className="text-xs text-rh-green hover:text-rh-green/80 ml-1"
+              >
+                {paceData?.trueYtdAvailable ? 'Edit YTD Settings' : 'Setup YTD'}
+              </button>
+            )}
           </div>
-
-          {/* YTD sub-mode toggle */}
-          {paceWindow === 'YTD' && (
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-rh-light-muted dark:text-rh-muted">Mode:</span>
-              <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1">
-                <button
-                  onClick={() => handleYtdModeChange('holdings')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    ytdMode === 'holdings'
-                      ? 'bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text shadow-sm'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                  }`}
-                  title="Assumes today's holdings were held since Jan 1. Does not reflect buys/sells/deposits."
-                >
-                  Holdings YTD
-                </button>
-                <button
-                  onClick={() => handleYtdModeChange('true')}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    ytdMode === 'true'
-                      ? 'bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text shadow-sm'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                  }`}
-                  title="Modified Dietz return using your Jan 1 equity and net contributions."
-                >
-                  True YTD
-                </button>
-              </div>
-              {ytdMode === 'true' && (
-                <button
-                  onClick={handleOpenYtdForm}
-                  className="text-xs text-rh-green hover:text-rh-green/80 ml-1"
-                >
-                  {paceData?.trueYtdAvailable ? 'Edit' : 'Setup'}
-                </button>
-              )}
-            </div>
-          )}
 
           {/* YTD Settings Form */}
           {showYtdForm && (
@@ -382,12 +350,12 @@ export function Projections({ currentValue }: Props) {
                   {paceData.snapshotCount} snapshot{paceData.snapshotCount !== 1 ? 's' : ''} available
                 </p>
               )}
-              {paceWindow === 'YTD' && ytdMode === 'true' && !paceData.trueYtdAvailable && (
+              {paceWindow === 'YTD' && !paceData.trueYtdAvailable && (
                 <button
                   onClick={handleOpenYtdForm}
                   className="mt-3 px-4 py-2 text-sm font-medium rounded-lg bg-rh-green text-black hover:bg-green-600 transition-colors"
                 >
-                  Enter Jan 1 equity to match broker YTD
+                  Enter Jan 1 equity to enable True YTD
                 </button>
               )}
             </div>
@@ -398,10 +366,8 @@ export function Projections({ currentValue }: Props) {
               {/* Metrics row */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2"
-                     title={paceData.ytdMode === 'holdings' ? 'Assumes today\'s holdings were held since Jan 1. Does not reflect buys/sells/deposits.' : undefined}
-                  >
-                    {paceData.windowLabel} Return
+                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">
+                    {paceWindow === 'YTD' ? 'True YTD Return' : `${paceData.windowLabel} Return`}
                   </p>
                   <p className={`text-lg font-bold ${
                     (paceData.windowReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -464,7 +430,9 @@ export function Projections({ currentValue }: Props) {
                   <p className="text-xs text-amber-500 mb-1">{paceData.note}</p>
                 )}
                 <p className="text-xs text-rh-light-muted dark:text-rh-muted">
-                  CAGR-based projection using portfolio snapshots. Not a forecast. Past performance does not predict future results.
+                  {paceWindow === 'YTD'
+                    ? 'Calculated using the Modified Dietz method. This is the industry-standard approach when full transaction history is unavailable.'
+                    : 'CAGR-based projection using portfolio snapshots. Not a forecast. Past performance does not predict future results.'}
                 </p>
               </div>
             </>

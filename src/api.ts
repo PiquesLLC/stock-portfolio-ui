@@ -25,7 +25,6 @@ import {
   IntelligenceWindow,
   CurrentPaceResponse,
   PaceWindow,
-  YtdMode,
   YtdSettings,
   LeaderboardWindow,
   LeaderboardEntry,
@@ -212,12 +211,8 @@ export async function searchSymbols(
 }
 
 // Current Pace endpoint
-export async function getCurrentPace(window: PaceWindow = '1M', ytdMode?: YtdMode): Promise<CurrentPaceResponse> {
-  let url = `${API_BASE_URL}/portfolio/projections/current-pace?window=${window}`;
-  if (window === 'YTD' && ytdMode) {
-    url += `&mode=${ytdMode}`;
-  }
-  return fetchJson<CurrentPaceResponse>(url);
+export async function getCurrentPace(window: PaceWindow = '1M'): Promise<CurrentPaceResponse> {
+  return fetchJson<CurrentPaceResponse>(`${API_BASE_URL}/portfolio/projections/current-pace?window=${window}`);
 }
 
 // YTD Settings endpoints
