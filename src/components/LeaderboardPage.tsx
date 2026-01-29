@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LeaderboardEntry, LeaderboardWindow } from '../types';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { LeaderboardEntry, LeaderboardWindow, MarketSession } from '../types';
 import { getLeaderboard } from '../api';
 import { UserPortfolioView } from './UserPortfolioView';
 
@@ -34,20 +34,41 @@ function getNumericValue(entry: LeaderboardEntry, key: SortKey): number | null {
   }
 }
 
-export function LeaderboardPage() {
+function formatRelativeTime(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
+
+interface LeaderboardPageProps {
+  session?: MarketSession;
+}
+
+export function LeaderboardPage({ session }: LeaderboardPageProps) {
   const [window, setWindow] = useState<LeaderboardWindow>('1M');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('rank');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async () => {
+    // Skip polling if tab not focused
+    if (!document.hasFocus()) return;
+
     try {
       setError(null);
       const data = await getLeaderboard(window);
-      setEntries(data);
+      setEntries(data.entries);
+      setLastUpdated(data.lastUpdated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
     } finally {
@@ -55,12 +76,25 @@ export function LeaderboardPage() {
     }
   }, [window]);
 
+  // Initial fetch
   useEffect(() => {
     setLoading(true);
     fetchData();
   }, [fetchData]);
 
-  // Handle column header click - toggle between desc and asc (matches HoldingsTable)
+  // Polling with session-aware interval
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    const isMarketActive = session === 'REG' || session === 'PRE' || session === 'POST';
+    const pollMs = isMarketActive ? 12000 : 60000;
+
+    intervalRef.current = setInterval(fetchData, pollMs);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchData, session]);
+
   const handleSort = (key: SortKey) => {
     if (sortKey !== key) {
       setSortKey(key);
@@ -70,10 +104,8 @@ export function LeaderboardPage() {
     }
   };
 
-  // Memoized sorted entries
   const sortedEntries = useMemo(() => {
     if (sortKey === 'rank') {
-      // Default rank order is the API order (returnPct desc). Asc = 1..N, desc = N..1.
       return sortDir === 'asc' ? entries : [...entries].reverse();
     }
 
@@ -88,18 +120,16 @@ export function LeaderboardPage() {
         const aNull = aVal === null || isNaN(aVal);
         const bNull = bVal === null || isNaN(bVal);
 
-        // Push nulls to bottom regardless of direction
         if (aNull && bNull) comparison = 0;
         else if (aNull) return 1;
         else if (bNull) return -1;
         else comparison = aVal - bVal;
       }
 
-      // Tie-breakers: assets desc, user asc, id asc
       if (comparison === 0 && sortKey !== 'assets') {
         const aAssets = a.currentAssets ?? 0;
         const bAssets = b.currentAssets ?? 0;
-        comparison = bAssets - aAssets; // desc
+        comparison = bAssets - aAssets;
       }
       if (comparison === 0 && sortKey !== 'user') {
         comparison = a.displayName.localeCompare(b.displayName);
@@ -112,13 +142,11 @@ export function LeaderboardPage() {
     });
   }, [entries, sortKey, sortDir]);
 
-  // Sort indicator (matches HoldingsTable)
   const getSortIndicator = (key: SortKey) => {
     if (sortKey !== key) return null;
     return <span className="ml-1 opacity-70">{sortDir === 'desc' ? '▼' : '▲'}</span>;
   };
 
-  // Header class (matches HoldingsTable)
   const getHeaderClass = (key: SortKey, align: 'left' | 'right' = 'left') => {
     const base = 'px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap';
     const alignClass = align === 'right' ? 'text-right' : '';
@@ -126,7 +154,6 @@ export function LeaderboardPage() {
     return `${base} ${alignClass} ${activeClass}`;
   };
 
-  // If a user is selected, show their portfolio
   if (selectedUserId) {
     const entry = entries.find((e) => e.userId === selectedUserId);
     return (
@@ -135,6 +162,8 @@ export function LeaderboardPage() {
         displayName={entry?.displayName ?? 'User'}
         returnPct={entry?.returnPct ?? null}
         window={window}
+        trackingStartAt={entry?.trackingStartAt}
+        session={session}
         onBack={() => setSelectedUserId(null)}
       />
     );
@@ -142,7 +171,7 @@ export function LeaderboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
         <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1">
           {WINDOWS.map((w) => (
@@ -161,6 +190,16 @@ export function LeaderboardPage() {
         </div>
       </div>
 
+      {lastUpdated && (
+        <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">
+          Updated {formatRelativeTime(lastUpdated)}
+        </div>
+      )}
+
+      <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mb-4">
+        Leaderboard ranks performance since tracking started. Returns refresh for the selected time period as new snapshots update.
+      </p>
+
       {error && (
         <div className="text-rh-red text-sm mb-4">{error}</div>
       )}
@@ -169,7 +208,7 @@ export function LeaderboardPage() {
         <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading leaderboard...</div>
       ) : entries.length === 0 ? (
         <div className="text-rh-light-muted dark:text-rh-muted text-sm">
-          No users found. Run the seed script to add demo users.
+          No verified users found. Run the seed script to add demo users.
         </div>
       ) : (
         <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border overflow-hidden">
@@ -191,7 +230,7 @@ export function LeaderboardPage() {
                 <th className={`${getHeaderClass('assets', 'right')} text-xs`} onClick={() => handleSort('assets')}>
                   {getSortIndicator('assets')}Assets
                 </th>
-                <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right w-20">Basis</th>
+                <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right w-24">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -218,6 +257,9 @@ export function LeaderboardPage() {
                       </div>
                       <div className="text-xs text-rh-light-muted dark:text-rh-muted">
                         @{entry.username}
+                        {entry.sinceStart && (
+                          <span className="ml-2 text-rh-light-muted dark:text-rh-muted opacity-60">Since start</span>
+                        )}
                       </div>
                     </td>
                     <td className={`px-4 py-3 text-sm text-right font-medium ${returnColor}`}>
@@ -235,14 +277,12 @@ export function LeaderboardPage() {
                       {formatCurrency(entry.currentAssets)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {entry.isEstimated && (
-                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium rounded bg-yellow-500/10 text-yellow-500">
-                          EST
-                        </span>
-                      )}
-                      {entry.basis === 'none' && (
-                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium rounded bg-rh-light-muted/10 dark:bg-rh-muted/10 text-rh-light-muted dark:text-rh-muted">
-                          N/A
+                      {entry.verified && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-2.108-2.108 3 3 0 01-5.304 0 3 3 0 00-2.108 2.108 3 3 0 010 5.304 3 3 0 002.108 2.108 3 3 0 015.304 0 3 3 0 002.108-2.108zM9.293 10.707a1 1 0 011.414-1.414l1 1a1 1 0 01-1.414 1.414l-1-1z" clipRule="evenodd" />
+                          </svg>
+                          Verified
                         </span>
                       )}
                     </td>

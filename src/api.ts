@@ -27,7 +27,7 @@ import {
   PaceWindow,
   YtdSettings,
   LeaderboardWindow,
-  LeaderboardEntry,
+  LeaderboardResponse,
   UserInfo,
 } from './types';
 
@@ -243,8 +243,8 @@ export async function getPortfolioIntelligence(
 }
 
 // Leaderboard endpoints
-export async function getLeaderboard(window: LeaderboardWindow = '1M'): Promise<LeaderboardEntry[]> {
-  return fetchJson<LeaderboardEntry[]>(`${API_BASE_URL}/leaderboard?window=${window}`);
+export async function getLeaderboard(window: LeaderboardWindow = '1M'): Promise<LeaderboardResponse> {
+  return fetchJson<LeaderboardResponse>(`${API_BASE_URL}/leaderboard?window=${window}`);
 }
 
 export async function getUsers(): Promise<UserInfo[]> {

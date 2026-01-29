@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Portfolio, LeaderboardWindow } from '../types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Portfolio, LeaderboardWindow, MarketSession } from '../types';
 import { getUserPortfolio } from '../api';
 
 interface UserPortfolioViewProps {
@@ -7,6 +7,8 @@ interface UserPortfolioViewProps {
   displayName: string;
   returnPct: number | null;
   window: LeaderboardWindow;
+  trackingStartAt?: string;
+  session?: MarketSession;
   onBack: () => void;
 }
 
@@ -19,26 +21,74 @@ function formatPercent(value: number): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-export function UserPortfolioView({ userId, displayName, returnPct, window, onBack }: UserPortfolioViewProps) {
+export function UserPortfolioView({ userId, displayName, returnPct, window, trackingStartAt, session, onBack }: UserPortfolioViewProps) {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const lastValidPortfolio = useRef<Portfolio | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const data = await getUserPortfolio(userId);
-        if (!cancelled) setPortfolio(data);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load portfolio');
-      } finally {
-        if (!cancelled) setLoading(false);
+  const fetchData = useCallback(async () => {
+    // Skip if tab not focused
+    if (!document.hasFocus()) return;
+
+    try {
+      const data = await getUserPortfolio(userId);
+
+      // Validate data — keep previous if quotes are unavailable
+      const hasValidData = data.holdings.length === 0 ||
+        data.holdings.some(h => !h.priceUnavailable && h.currentPrice > 0);
+
+      if (!hasValidData && lastValidPortfolio.current) {
+        setIsStale(true);
+        return;
       }
+
+      setPortfolio(data);
+      setError(null);
+      setLastUpdate(new Date());
+
+      const dataIsRepricing = data.quotesMeta?.anyRepricing ||
+        data.quotesStale ||
+        (data.quotesUnavailableCount && data.quotesUnavailableCount > 0);
+      setIsStale(!!dataIsRepricing);
+
+      if (hasValidData) {
+        lastValidPortfolio.current = data;
+      }
+    } catch (err) {
+      // On error, keep existing data
+      if (lastValidPortfolio.current) {
+        setIsStale(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load portfolio');
+      }
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
   }, [userId]);
+
+  // Initial fetch
+  useEffect(() => {
+    setLoading(true);
+    lastValidPortfolio.current = null;
+    fetchData();
+  }, [fetchData]);
+
+  // Polling with session-aware interval (same logic as main portfolio + leaderboard)
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    const isMarketActive = session === 'REG' || session === 'PRE' || session === 'POST';
+    const pollMs = isMarketActive ? 12000 : 60000;
+
+    intervalRef.current = setInterval(fetchData, pollMs);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchData, session]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -51,7 +101,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, onBa
       </button>
 
       {/* User header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">{displayName}</h1>
         {returnPct !== null && (
           <span className={`px-2 py-0.5 text-sm font-medium rounded ${
@@ -60,11 +110,34 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, onBa
             {formatPercent(returnPct)} ({window})
           </span>
         )}
+        {trackingStartAt && (
+          <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-500/10 text-blue-400">
+            Tracking since {new Date(trackingStartAt).toLocaleDateString()}
+          </span>
+        )}
+      </div>
+
+      {/* Status line: last updated + repricing */}
+      <div className="flex items-center gap-3 mb-6">
+        {lastUpdate && (
+          <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+            Updated {lastUpdate.toLocaleTimeString()}
+          </span>
+        )}
+        {isStale && (
+          <span className="flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
+            </span>
+            <span className="text-xs text-yellow-400">Repricing...</span>
+          </span>
+        )}
       </div>
 
       {error && <div className="text-rh-red text-sm mb-4">{error}</div>}
 
-      {loading ? (
+      {loading && !portfolio ? (
         <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading portfolio...</div>
       ) : portfolio ? (
         <>
@@ -104,6 +177,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, onBa
                     <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Shares</th>
                     <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Price</th>
                     <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Value</th>
+                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Day Chg</th>
                     <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">P/L</th>
                     <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">P/L %</th>
                   </tr>
@@ -111,12 +185,16 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, onBa
                 <tbody>
                   {portfolio.holdings.map((h) => {
                     const plColor = h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red';
+                    const dayColor = h.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red';
                     return (
                       <tr key={h.id} className="border-b border-rh-light-border dark:border-rh-border last:border-b-0">
                         <td className="px-4 py-3 text-sm font-medium text-rh-light-text dark:text-rh-text">{h.ticker}</td>
                         <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{h.shares}</td>
                         <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{formatCurrency(h.currentPrice)}</td>
                         <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{formatCurrency(h.currentValue)}</td>
+                        <td className={`px-4 py-3 text-sm text-right ${dayColor}`}>
+                          {formatPercent(h.dayChangePercent)}
+                        </td>
                         <td className={`px-4 py-3 text-sm text-right ${plColor}`}>{formatCurrency(h.profitLoss)}</td>
                         <td className={`px-4 py-3 text-sm text-right ${plColor}`}>{formatPercent(h.profitLossPercent)}</td>
                       </tr>

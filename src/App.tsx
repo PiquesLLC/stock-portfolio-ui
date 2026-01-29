@@ -360,7 +360,7 @@ export default function App() {
         {activeTab === 'insights' && <InsightsPage />}
 
         {/* Leaderboard Tab */}
-        {activeTab === 'leaderboard' && <LeaderboardPage />}
+        {activeTab === 'leaderboard' && <LeaderboardPage session={portfolio?.session} />}
       </main>
     </div>
   );
