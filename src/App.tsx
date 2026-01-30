@@ -13,10 +13,14 @@ import { InsightsPage } from './components/InsightsPage';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { FeedPage } from './components/FeedPage';
 import { WatchPage } from './components/WatchPage';
+import { MiniPlayer } from './components/MiniPlayer';
 import { UserProfileView } from './components/UserProfileView';
 import { StockDetailView } from './components/StockDetailView';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { Holding } from './types';
+import Hls from 'hls.js';
+
+const STREAM_URL = '/hls/cnbc/cnbcsd.m3u8';
 
 // Theme utilities
 function getInitialTheme(): 'dark' | 'light' {
@@ -123,6 +127,133 @@ export default function App() {
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
   const [searchQuery, setSearchQuery] = useState('');
+
+  // --- Stream / PiP state ---
+  const [pipEnabled, setPipEnabled] = useState(() => {
+    const stored = localStorage.getItem('pipEnabled');
+    return stored !== null ? stored === 'true' : true; // default ON
+  });
+  const [streamActive, setStreamActive] = useState(false);
+  const [streamStatus, setStreamStatus] = useState('Loading stream...');
+  const [streamHasError, setStreamHasError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const watchVideoContainerRef = useRef<HTMLDivElement>(null);
+  const miniVideoContainerRef = useRef<HTMLDivElement>(null);
+
+  const handlePipToggle = (enabled: boolean) => {
+    setPipEnabled(enabled);
+    localStorage.setItem('pipEnabled', String(enabled));
+  };
+
+  // Activate stream when navigating to Watch tab
+  useEffect(() => {
+    if (activeTab === 'watch') {
+      setStreamActive(true);
+    } else if (!pipEnabled) {
+      setStreamActive(false);
+    }
+  }, [activeTab, pipEnabled]);
+
+  const handleMiniPlayerClose = () => {
+    setStreamActive(false);
+  };
+
+  const handleMiniPlayerExpand = () => {
+    setActiveTab('watch');
+    setViewingProfileId(null);
+    setViewingStock(null);
+    setLeaderboardUserId(null);
+  };
+
+  const showMiniPlayer = streamActive && pipEnabled && activeTab !== 'watch';
+
+  // Unified effect: move video into correct container, then init/destroy HLS
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // 1. Place video in the right container
+    if (activeTab === 'watch' && watchVideoContainerRef.current) {
+      watchVideoContainerRef.current.appendChild(video);
+      video.style.display = '';
+    } else if (showMiniPlayer && miniVideoContainerRef.current) {
+      miniVideoContainerRef.current.appendChild(video);
+      video.style.display = '';
+    } else {
+      video.style.display = 'none';
+    }
+
+    // 2. Start or stop HLS based on streamActive
+    if (!streamActive) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      setStreamStatus('Loading stream...');
+      setStreamHasError(false);
+      return;
+    }
+
+    // Already running — no need to re-init
+    if (hlsRef.current) return;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: false,
+        debug: false,
+        lowLatencyMode: true,
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = false;
+        },
+      });
+      hlsRef.current = hls;
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setStreamStatus('');
+        setStreamHasError(false);
+        video.play().catch(() => {
+          setStreamStatus('Click to play');
+        });
+      });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        console.error('HLS error:', data.type, data.details);
+        if (data.fatal) {
+          setStreamHasError(true);
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              setStreamStatus('Network error — retrying...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              setStreamStatus('Media error — recovering...');
+              hls.recoverMediaError();
+              break;
+            default:
+              setStreamStatus('Stream unavailable');
+              hls.destroy();
+              hlsRef.current = null;
+              break;
+          }
+        }
+      });
+
+      hls.loadSource(STREAM_URL);
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = STREAM_URL;
+      video.addEventListener('loadedmetadata', () => {
+        setStreamStatus('');
+        video.play().catch(() => {
+          setStreamStatus('Click to play');
+        });
+      });
+    } else {
+      setStreamStatus('HLS not supported in this browser');
+      setStreamHasError(true);
+    }
+  }, [streamActive, activeTab, showMiniPlayer]);
 
   // Fetch current user (use first user as default since no auth)
   useEffect(() => {
@@ -522,7 +653,15 @@ export default function App() {
         )}
 
         {/* Watch Tab */}
-        {activeTab === 'watch' && !viewingStock && <WatchPage />}
+        {activeTab === 'watch' && !viewingStock && (
+          <WatchPage
+            pipEnabled={pipEnabled}
+            onPipToggle={handlePipToggle}
+            status={streamStatus}
+            hasError={streamHasError}
+            videoContainerRef={watchVideoContainerRef}
+          />
+        )}
 
         {/* Feed Tab */}
         {activeTab === 'feed' && !viewingProfileId && !viewingStock && (
@@ -532,6 +671,27 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Persistent video element — always in DOM, moved between containers */}
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        autoPlay
+        muted
+        className="w-full aspect-video"
+        style={{ background: '#000', display: 'none' }}
+      />
+
+      {/* Mini Player — shown when stream active + PiP enabled + not on Watch tab */}
+      {showMiniPlayer && (
+        <MiniPlayer
+          onClose={handleMiniPlayerClose}
+          onExpand={handleMiniPlayerExpand}
+        >
+          <div ref={miniVideoContainerRef} className="aspect-video bg-black" />
+        </MiniPlayer>
+      )}
     </div>
   );
 }

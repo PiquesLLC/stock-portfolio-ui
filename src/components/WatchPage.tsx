@@ -1,85 +1,37 @@
-import { useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js';
+interface WatchPageProps {
+  pipEnabled: boolean;
+  onPipToggle: (enabled: boolean) => void;
+  status: string;
+  hasError: boolean;
+  videoContainerRef: React.Ref<HTMLDivElement>;
+}
 
-const STREAM_URL = '/hls/cnbc/cnbcsd.m3u8';
-
-export function WatchPage() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const [status, setStatus] = useState<string>('Loading stream...');
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: false,
-        debug: false,
-        lowLatencyMode: true,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = false;
-        },
-      });
-      hlsRef.current = hls;
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setStatus('');
-        video.play().catch(() => {
-          setStatus('Click to play');
-        });
-      });
-
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        console.error('HLS error:', data.type, data.details, data);
-        if (data.fatal) {
-          setHasError(true);
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              setStatus('Network error — retrying...');
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              setStatus('Media error — recovering...');
-              hls.recoverMediaError();
-              break;
-            default:
-              setStatus('Stream unavailable');
-              hls.destroy();
-              break;
-          }
-        }
-      });
-
-      hls.loadSource(STREAM_URL);
-      hls.attachMedia(video);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = STREAM_URL;
-      video.addEventListener('loadedmetadata', () => {
-        setStatus('');
-        video.play().catch(() => {
-          setStatus('Click to play');
-        });
-      });
-    } else {
-      setStatus('HLS not supported in this browser');
-      setHasError(true);
-    }
-
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-    };
-  }, []);
-
+export function WatchPage({ pipEnabled, onPipToggle, status, hasError, videoContainerRef }: WatchPageProps) {
   return (
     <div className="max-w-5xl mx-auto py-6">
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Watch</h1>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted mt-1">Live financial news</p>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Watch</h1>
+          <p className="text-sm text-rh-light-muted dark:text-rh-muted mt-1">Live financial news</p>
+        </div>
+        {/* PiP Toggle */}
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <span className="text-sm text-rh-light-muted dark:text-rh-muted">Keep playing in background</span>
+          <button
+            role="switch"
+            aria-checked={pipEnabled}
+            onClick={() => onPipToggle(!pipEnabled)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              pipEnabled ? 'bg-rh-green' : 'bg-gray-300 dark:bg-rh-dark'
+            }`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                pipEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'
+              }`}
+            />
+          </button>
+        </label>
       </div>
 
       <div className="bg-black rounded-xl overflow-hidden border border-rh-light-border dark:border-rh-border">
@@ -91,15 +43,8 @@ export function WatchPage() {
           <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">CNBC Live</span>
         </div>
         <div className="relative">
-          <video
-            ref={videoRef}
-            controls
-            playsInline
-            autoPlay
-            muted
-            className="w-full aspect-video"
-            style={{ background: '#000' }}
-          />
+          {/* Video gets moved here by App via DOM manipulation */}
+          <div ref={videoContainerRef} className="aspect-video bg-black" />
           {status && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <span className={`text-sm px-3 py-1.5 rounded-lg ${hasError ? 'bg-red-500/20 text-red-400' : 'bg-black/60 text-white/70'}`}>
