@@ -1,4 +1,4 @@
-export type TabType = 'portfolio' | 'insights' | 'leaderboard' | 'feed';
+export type TabType = 'portfolio' | 'insights' | 'leaderboard' | 'feed' | 'watch';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -11,6 +11,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: 'insights', label: 'Insights' },
     { id: 'leaderboard', label: 'Leaderboard' },
     { id: 'feed', label: 'Feed' },
+    { id: 'watch', label: 'Watch' },
   ];
 
   return (

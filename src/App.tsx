@@ -12,6 +12,7 @@ import { Navigation, TabType } from './components/Navigation';
 import { InsightsPage } from './components/InsightsPage';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { FeedPage } from './components/FeedPage';
+import { WatchPage } from './components/WatchPage';
 import { UserProfileView } from './components/UserProfileView';
 import { StockDetailView } from './components/StockDetailView';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
@@ -519,6 +520,9 @@ export default function App() {
             onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
           />
         )}
+
+        {/* Watch Tab */}
+        {activeTab === 'watch' && !viewingStock && <WatchPage />}
 
         {/* Feed Tab */}
         {activeTab === 'feed' && !viewingProfileId && !viewingStock && (
