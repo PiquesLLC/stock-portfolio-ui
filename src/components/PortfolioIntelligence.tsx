@@ -11,6 +11,7 @@ import { HeroInsights } from './HeroInsights';
 interface Props {
   initialData: PortfolioIntelligenceResponse;
   fetchFn?: (window: IntelligenceWindow) => Promise<PortfolioIntelligenceResponse>;
+  onTickerClick?: (ticker: string) => void;
 }
 
 const WINDOW_LABELS: Record<IntelligenceWindow, string> = {
@@ -28,17 +29,21 @@ function formatPct(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 }
 
-function ContributorBar({ entry, maxAbsDollar, isPositive }: {
+function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick }: {
   entry: ContributorEntry;
   maxAbsDollar: number;
   isPositive: boolean;
+  onTickerClick?: (ticker: string) => void;
 }) {
   const barWidth = maxAbsDollar > 0 ? (Math.abs(entry.contributionDollar) / maxAbsDollar) * 100 : 0;
   return (
     <div className="flex items-center gap-3 py-1.5">
-      <span className="w-14 text-sm font-mono font-medium text-rh-light-text dark:text-rh-text shrink-0">
+      <button
+        className="w-14 text-sm font-mono font-medium text-rh-light-text dark:text-rh-text shrink-0 text-left hover:text-rh-green transition-colors cursor-pointer"
+        onClick={() => onTickerClick?.(entry.ticker)}
+      >
         {entry.ticker}
-      </span>
+      </button>
       <div className="flex-1 h-5 bg-rh-light-bg dark:bg-rh-dark rounded overflow-hidden">
         <div
           className={`h-full rounded ${isPositive ? 'bg-rh-green/70' : 'bg-red-500/70'}`}
@@ -114,7 +119,7 @@ function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
   );
 }
 
-export function PortfolioIntelligence({ initialData, fetchFn }: Props) {
+export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: Props) {
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [selectedWindow, setSelectedWindow] = useState<IntelligenceWindow>(initialData.window);
@@ -191,7 +196,7 @@ export function PortfolioIntelligence({ initialData, fetchFn }: Props) {
                 <h4 className="text-sm font-medium text-rh-green mb-2">Top Contributors</h4>
                 {contributors.length > 0 ? (
                   contributors.map(c => (
-                    <ContributorBar key={c.ticker} entry={c} maxAbsDollar={maxAbsDollar} isPositive={true} />
+                    <ContributorBar key={c.ticker} entry={c} maxAbsDollar={maxAbsDollar} isPositive={true} onTickerClick={onTickerClick} />
                   ))
                 ) : (
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted">No gainers this period</p>
@@ -202,7 +207,7 @@ export function PortfolioIntelligence({ initialData, fetchFn }: Props) {
                 <h4 className="text-sm font-medium text-red-400 mb-2">Top Detractors</h4>
                 {detractors.length > 0 ? (
                   detractors.map(c => (
-                    <ContributorBar key={c.ticker} entry={c} maxAbsDollar={maxAbsDollar} isPositive={false} />
+                    <ContributorBar key={c.ticker} entry={c} maxAbsDollar={maxAbsDollar} isPositive={false} onTickerClick={onTickerClick} />
                   ))
                 ) : (
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted">No losers this period</p>

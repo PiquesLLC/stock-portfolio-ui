@@ -665,7 +665,9 @@ export default function App() {
         )}
 
         {/* Insights Tab */}
-        {activeTab === 'insights' && !viewingStock && <InsightsPage />}
+        {activeTab === 'insights' && !viewingStock && (
+          <InsightsPage onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null })} />
+        )}
 
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && (

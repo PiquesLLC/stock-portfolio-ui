@@ -30,7 +30,11 @@ const insightsCache: {
 // Cache TTL: 5 minutes before considering stale
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-export function InsightsPage() {
+interface InsightsPageProps {
+  onTickerClick?: (ticker: string) => void;
+}
+
+export function InsightsPage({ onTickerClick }: InsightsPageProps) {
   const [subTab, setSubTab] = useState<InsightsSubTab>('intelligence');
 
   // Initialize state from cache
@@ -228,7 +232,7 @@ export function InsightsPage() {
 
       {/* Portfolio Intelligence */}
       {intelligence ? (
-        <PortfolioIntelligence initialData={intelligence} />
+        <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} />
       ) : (
         <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Intelligence</h3>
@@ -239,7 +243,7 @@ export function InsightsPage() {
       {/* Attribution and Leak Detector - Side by Side - Always show both */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {attribution ? (
-          <Attribution initialData={attribution} />
+          <Attribution initialData={attribution} onTickerClick={onTickerClick} />
         ) : (
           <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
             <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Attribution</h3>

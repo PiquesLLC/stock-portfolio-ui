@@ -4,6 +4,7 @@ import { getAttribution } from '../api';
 
 interface AttributionProps {
   initialData: AttributionType;
+  onTickerClick?: (ticker: string) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -17,7 +18,7 @@ const WINDOW_LABELS: Record<AttributionWindow, string> = {
   '1m': '1 Month',
 };
 
-export function Attribution({ initialData }: AttributionProps) {
+export function Attribution({ initialData, onTickerClick }: AttributionProps) {
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [selectedWindow, setSelectedWindow] = useState<AttributionWindow>(initialData.window);
@@ -91,7 +92,7 @@ export function Attribution({ initialData }: AttributionProps) {
               <div className="space-y-2">
                 {topContributors.map((h) => (
                   <div key={h.ticker} className="flex items-center justify-between">
-                    <span className="font-medium text-rh-light-text dark:text-rh-text">{h.ticker}</span>
+                    <button className="font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
                     <div className="text-right">
                       <span className="text-rh-green text-sm font-medium">
                         {formatCurrency(h.contributionDollar)}
@@ -117,7 +118,7 @@ export function Attribution({ initialData }: AttributionProps) {
               <div className="space-y-2">
                 {topDetractors.map((h) => (
                   <div key={h.ticker} className="flex items-center justify-between">
-                    <span className="font-medium text-rh-light-text dark:text-rh-text">{h.ticker}</span>
+                    <button className="font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
                     <div className="text-right">
                       <span className="text-rh-red text-sm font-medium">
                         {formatCurrency(h.contributionDollar)}
