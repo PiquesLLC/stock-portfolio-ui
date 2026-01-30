@@ -151,9 +151,16 @@ export default function App() {
   const [streamHasError, setStreamHasError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const watchVideoContainerRef = useRef<HTMLDivElement>(null);
+  const watchVideoContainerRef = useRef<HTMLDivElement | null>(null);
   const miniVideoContainerRef = useRef<HTMLDivElement>(null);
   const loadedChannelRef = useRef<string | null>(null);
+  const [containerReady, setContainerReady] = useState(0);
+
+  // Callback ref: when WatchPage's container mounts, bump containerReady to re-trigger the effect
+  const watchContainerCallback = useCallback((node: HTMLDivElement | null) => {
+    watchVideoContainerRef.current = node;
+    if (node) setContainerReady(c => c + 1);
+  }, []);
 
   const handlePipToggle = (enabled: boolean) => {
     setPipEnabled(enabled);
@@ -187,19 +194,22 @@ export default function App() {
     const video = videoRef.current;
     if (!video) return;
 
+    // Determine if stream should be active (derive directly, don't wait for state)
+    const shouldBeActive = activeTab === 'watch' || (streamActive && pipEnabled);
+
     // 1. Place video in the right container
     if (activeTab === 'watch' && watchVideoContainerRef.current) {
       watchVideoContainerRef.current.appendChild(video);
       video.style.display = '';
-    } else if (showMiniPlayer && miniVideoContainerRef.current) {
+    } else if (shouldBeActive && activeTab !== 'watch' && miniVideoContainerRef.current) {
       miniVideoContainerRef.current.appendChild(video);
       video.style.display = '';
     } else {
       video.style.display = 'none';
     }
 
-    // 2. Start or stop HLS based on streamActive
-    if (!streamActive) {
+    // 2. Start or stop HLS
+    if (!shouldBeActive) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -280,7 +290,7 @@ export default function App() {
       setStreamStatus('HLS not supported in this browser');
       setStreamHasError(true);
     }
-  }, [streamActive, activeTab, showMiniPlayer, activeChannel]);
+  }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady]);
 
   // Fetch current user (use first user as default since no auth)
   useEffect(() => {
@@ -686,7 +696,7 @@ export default function App() {
             onPipToggle={handlePipToggle}
             status={streamStatus}
             hasError={streamHasError}
-            videoContainerRef={watchVideoContainerRef}
+            videoContainerRef={watchContainerCallback}
             channels={CHANNELS}
             activeChannel={activeChannel}
             onChannelChange={setActiveChannel}
