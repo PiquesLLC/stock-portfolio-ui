@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Portfolio, Holding, LeaderboardWindow, MarketSession, PortfolioIntelligenceResponse, IntelligenceWindow } from '../types';
-import { getUserPortfolio, getUserProfile, getUserIntelligence } from '../api';
+import { getUserPortfolio, getUserProfile, getUserIntelligence, getUserChart } from '../api';
+import { PortfolioValueChart } from './PortfolioValueChart';
 import { FollowButton } from './FollowButton';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { StockDetailView } from './StockDetailView';
@@ -53,6 +54,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
   const [sortKey, setSortKey] = useState<HoldingSortKey>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding } | null>(null);
+  const [chartRefreshCount, setChartRefreshCount] = useState(0);
   const lastValidPortfolio = useRef<Portfolio | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -126,6 +128,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       setPortfolio(data);
       setError(null);
       setLastUpdate(new Date());
+      setChartRefreshCount(c => c + 1);
 
       const dataIsRepricing = data.quotesMeta?.anyRepricing ||
         data.quotesStale ||
@@ -236,6 +239,15 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
         <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading portfolio...</div>
       ) : portfolio ? (
         <>
+          {/* Portfolio Value Chart */}
+          <PortfolioValueChart
+            currentValue={portfolio.netEquity}
+            dayChange={portfolio.dayChange}
+            dayChangePercent={portfolio.dayChangePercent}
+            refreshTrigger={chartRefreshCount}
+            fetchFn={(period) => getUserChart(userId, period)}
+          />
+
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <SummaryCard

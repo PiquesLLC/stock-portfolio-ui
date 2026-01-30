@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Holding, MarketSession } from '../types';
-import { deleteHolding, addHolding } from '../api';
+import { deleteHolding, addHolding, updateSettings } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
+import { getAcronymTitle } from './Acronym';
 
-function getSessionBadge(session?: MarketSession): { label: string; color: string } | null {
+function getSessionBadge(session?: MarketSession): { label: string; color: string; title?: string } | null {
   switch (session) {
-    case 'PRE': return { label: 'PRE', color: 'bg-blue-500/20 text-blue-400' };
-    case 'REG': return { label: 'REG', color: 'bg-green-500/20 text-green-400' };
-    case 'POST': return { label: 'AH', color: 'bg-purple-500/20 text-purple-400' };
+    case 'PRE': return { label: 'PRE', color: 'bg-blue-500/20 text-blue-400', title: getAcronymTitle('PRE') };
+    case 'REG': return { label: 'REG', color: 'bg-green-500/20 text-green-400', title: getAcronymTitle('REG') };
+    case 'POST': return { label: 'AH', color: 'bg-purple-500/20 text-purple-400', title: getAcronymTitle('AH') };
     case 'CLOSED': return { label: 'CLOSED', color: 'bg-gray-500/20 text-gray-400' };
     default: return null;
   }
@@ -18,6 +19,8 @@ interface Props {
   onUpdate: () => void;
   showExtendedHours?: boolean;
   onTickerClick?: (ticker: string, holding: Holding) => void;
+  cashBalance?: number;
+  marginDebt?: number;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
@@ -55,12 +58,17 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick }: Props) {
+export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick, cashBalance = 0, marginDebt = 0 }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCashMarginModal, setShowCashMarginModal] = useState(false);
+  const [cashValue, setCashValue] = useState(cashBalance.toString());
+  const [marginValue, setMarginValue] = useState(marginDebt.toString());
+  const [cashMarginLoading, setCashMarginLoading] = useState(false);
+  const [cashMarginError, setCashMarginError] = useState('');
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '' });
@@ -71,8 +79,38 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   // Ref for the Add Stock button to return focus after modal closes
   const addStockButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Sync cash/margin values when props change
+  useEffect(() => { setCashValue(cashBalance.toString()); }, [cashBalance]);
+  useEffect(() => { setMarginValue(marginDebt.toString()); }, [marginDebt]);
+
   // Check if any modal is open
-  const isModalOpen = showAddModal || editingHolding !== null;
+  const isModalOpen = showAddModal || editingHolding !== null || showCashMarginModal;
+
+  const handleOpenCashMargin = () => {
+    setCashValue(cashBalance.toString());
+    setMarginValue(marginDebt.toString());
+    setCashMarginError('');
+    setShowCashMarginModal(true);
+  };
+
+  const handleSaveCashMargin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCashMarginError('');
+    const cash = parseFloat(cashValue);
+    const margin = parseFloat(marginValue);
+    if (isNaN(cash) || cash < 0) { setCashMarginError('Cash balance must be non-negative'); return; }
+    if (isNaN(margin) || margin < 0) { setCashMarginError('Margin debt must be non-negative'); return; }
+    setCashMarginLoading(true);
+    try {
+      await updateSettings({ cashBalance: cash, marginDebt: margin });
+      onUpdate();
+      setShowCashMarginModal(false);
+    } catch (err) {
+      setCashMarginError(err instanceof Error ? err.message : 'Failed to update');
+    } finally {
+      setCashMarginLoading(false);
+    }
+  };
 
   const handleDelete = async (ticker: string) => {
     if (!confirm(`Delete ${ticker} from portfolio?`)) return;
@@ -315,18 +353,31 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
       <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Holdings</h2>
-          <button
-            ref={addStockButtonRef}
-            type="button"
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
-              hover:bg-green-600 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Stock
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenCashMargin}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
+                text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Cash & Margin
+            </button>
+            <button
+              ref={addStockButtonRef}
+              type="button"
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
+                hover:bg-green-600 transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Stock
+            </button>
+          </div>
         </div>
         <p className="text-rh-light-muted dark:text-rh-muted text-center py-8">No holdings yet. Add your first stock above.</p>
 
@@ -379,18 +430,31 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg overflow-hidden shadow-sm dark:shadow-none">
       <div className="p-6 pb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Holdings</h2>
-        <button
-          ref={addStockButtonRef}
-          type="button"
-          onClick={handleOpenAdd}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
-            hover:bg-green-600 transition-colors text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Stock
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleOpenCashMargin}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
+              text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Cash & Margin
+          </button>
+          <button
+            ref={addStockButtonRef}
+            type="button"
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
+              hover:bg-green-600 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Stock
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -412,13 +476,13 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                 {getSortIndicator('currentValue')}Market Value
               </th>
               <th className={getHeaderClass('dayChange', 'right')} onClick={() => handleSort('dayChange')}>
-                {getSortIndicator('dayChange')}Day P/L
+                {getSortIndicator('dayChange')}Day <span title="Profit / Loss">P/L</span>
               </th>
               <th className={getHeaderClass('dayChangePercent', 'right')} onClick={() => handleSort('dayChangePercent')}>
                 {getSortIndicator('dayChangePercent')}Day %
               </th>
               <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')}>
-                {getSortIndicator('profitLoss')}Total P/L
+                {getSortIndicator('profitLoss')}Total <span title="Profit / Loss">P/L</span>
               </th>
               <th className={getHeaderClass('profitLossPercent', 'right')} onClick={() => handleSort('profitLossPercent')}>
                 {getSortIndicator('profitLossPercent')}Total %
@@ -467,7 +531,10 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
                       {showExtendedHours && hasValidPrice && holding.session && getSessionBadge(holding.session) && (
-                        <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${getSessionBadge(holding.session)!.color}`}>
+                        <span
+                          className={`text-[10px] px-1 py-0.5 rounded font-medium ${getSessionBadge(holding.session)!.color}`}
+                          title={getSessionBadge(holding.session)!.title}
+                        >
                           {getSessionBadge(holding.session)!.label}
                         </span>
                       )}
@@ -616,6 +683,51 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               </button>
             </div>
             {renderModalContent(true)}
+          </div>
+        </div>
+      )}
+
+      {/* Cash & Margin Modal */}
+      {showCashMarginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCashMarginModal(false)} aria-hidden="true" />
+          <div className="relative bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl p-6 w-full max-w-sm shadow-xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Cash & Margin</h3>
+              <button type="button" onClick={() => setShowCashMarginModal(false)}
+                className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleSaveCashMargin} className="space-y-4">
+              <div>
+                <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Cash Balance</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted">$</span>
+                  <input type="number" step="0.01" min="0" value={cashValue} onChange={e => setCashValue(e.target.value)}
+                    className="w-full bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg px-3 py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green focus:ring-2 focus:ring-rh-green/20"
+                    placeholder="0.00" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Margin Debt</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted">$</span>
+                  <input type="number" step="0.01" min="0" value={marginValue} onChange={e => setMarginValue(e.target.value)}
+                    className="w-full bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg px-3 py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green focus:ring-2 focus:ring-rh-green/20"
+                    placeholder="0.00" />
+                </div>
+                <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">Enter your broker margin balance to calculate net equity</p>
+              </div>
+              {cashMarginError && <p className="text-rh-red text-sm">{cashMarginError}</p>}
+              <button type="submit" disabled={cashMarginLoading}
+                className="w-full bg-rh-green hover:bg-green-600 disabled:bg-gray-600 text-black font-semibold px-4 py-2 rounded-lg transition-colors">
+                {cashMarginLoading ? 'Saving...' : 'Save'}
+              </button>
+            </form>
           </div>
         </div>
       )}

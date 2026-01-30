@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { InfoTooltip } from './InfoTooltip';
+import { Acronym } from './Acronym';
 import {
   PortfolioIntelligenceResponse,
   IntelligenceWindow,
@@ -150,7 +152,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
     <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none space-y-5">
       {/* Header + window selector */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Portfolio Intelligence</h3>
+        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="Shows top contributors/detractors by dollar P&L, sector exposure by market value, and portfolio beta vs SPY (covariance of daily returns divided by SPY variance)." /></h3>
         <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1">
           {(Object.keys(WINDOW_LABELS) as IntelligenceWindow[]).map((w) => (
             <button
@@ -227,22 +229,22 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
           {/* Beta Card */}
           {beta && (
             <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-4 py-3">
-              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2">Beta vs SPY</h4>
+              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2"><Acronym label="Beta" /> vs <Acronym label="SPY" /></h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">Portfolio Beta</p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">Portfolio <Acronym label="Beta" /></p>
                   <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                     {beta.portfolioBeta.toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">Alpha (ann.)</p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted"><Acronym label="Alpha (ann.)" /></p>
                   <p className={`text-lg font-semibold ${beta.alphaPercent >= 0 ? 'text-rh-green' : 'text-red-400'}`}>
                     {formatPct(beta.alphaPercent)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">SPY Return</p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted"><Acronym label="SPY" /> Return</p>
                   <p className={`text-lg font-semibold ${beta.spyReturnPercent >= 0 ? 'text-rh-green' : 'text-red-400'}`}>
                     {formatPct(beta.spyReturnPercent)}
                   </p>

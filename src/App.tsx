@@ -2,11 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Portfolio, Settings, MarketSession } from './types';
 import { getPortfolio, getSettings, getUsers } from './api';
 import { REFRESH_INTERVAL } from './config';
-import { CashBalance } from './components/CashBalance';
-import { MarginDebt } from './components/MarginDebt';
-import { HoldingForm } from './components/HoldingForm';
 import { HoldingsTable } from './components/HoldingsTable';
-import { Projections } from './components/Projections';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { InsightsPage } from './components/InsightsPage';
@@ -16,7 +12,11 @@ import { WatchPage } from './components/WatchPage';
 import { MiniPlayer } from './components/MiniPlayer';
 import { UserProfileView } from './components/UserProfileView';
 import { StockDetailView } from './components/StockDetailView';
+import { PortfolioValueChart } from './components/PortfolioValueChart';
+import { BenchmarkWidget } from './components/BenchmarkWidget';
+import { NotificationBell } from './components/NotificationBell';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Holding } from './types';
 import Hls from 'hls.js';
 
@@ -187,7 +187,9 @@ export default function App() {
     setLeaderboardUserId(null);
   };
 
-  const showMiniPlayer = streamActive && pipEnabled && activeTab !== 'watch';
+  // When viewing a stock detail on the Watch tab, treat it like navigating away
+  const watchFullyVisible = activeTab === 'watch' && !viewingStock;
+  const showMiniPlayer = streamActive && pipEnabled && !watchFullyVisible;
 
   // Unified effect: move video into correct container, then init/destroy HLS
   useEffect(() => {
@@ -195,13 +197,13 @@ export default function App() {
     if (!video) return;
 
     // Determine if stream should be active (derive directly, don't wait for state)
-    const shouldBeActive = activeTab === 'watch' || (streamActive && pipEnabled);
+    const shouldBeActive = watchFullyVisible || (streamActive && pipEnabled);
 
     // 1. Place video in the right container
-    if (activeTab === 'watch' && watchVideoContainerRef.current) {
+    if (watchFullyVisible && watchVideoContainerRef.current) {
       watchVideoContainerRef.current.appendChild(video);
       video.style.display = '';
-    } else if (shouldBeActive && activeTab !== 'watch' && miniVideoContainerRef.current) {
+    } else if (shouldBeActive && !watchFullyVisible && miniVideoContainerRef.current) {
       miniVideoContainerRef.current.appendChild(video);
       video.style.display = '';
     } else {
@@ -290,7 +292,7 @@ export default function App() {
       setStreamStatus('HLS not supported in this browser');
       setStreamHasError(true);
     }
-  }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady]);
+  }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible]);
 
   // Fetch current user (use first user as default since no auth)
   useEffect(() => {
@@ -479,6 +481,9 @@ export default function App() {
                 compact
               />
             </div>
+            {/* Notification Bell */}
+            {currentUserId && <NotificationBell userId={currentUserId} />}
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -576,6 +581,21 @@ export default function App() {
               </div>
             )}
 
+            {/* Portfolio Value Chart */}
+            {portfolio && (
+              <PortfolioValueChart
+                currentValue={portfolio.netEquity}
+                dayChange={portfolio.dayChange}
+                dayChangePercent={portfolio.dayChangePercent}
+                refreshTrigger={portfolioRefreshCount}
+              />
+            )}
+
+            {/* Benchmark Performance Widget */}
+            {portfolio && (
+              <BenchmarkWidget refreshTrigger={portfolioRefreshCount} />
+            )}
+
             {/* 1. Top Summary Stat Cards: Total Assets, Net Equity, Day Change, Total P/L */}
             {portfolio && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -626,91 +646,86 @@ export default function App() {
               </div>
             )}
 
-            {/* 2. Add/Update Holding Form */}
-            <HoldingForm
-              onUpdate={handleUpdate}
-              heldTickers={portfolio?.holdings.map(h => h.ticker) ?? []}
-            />
-
-            {/* 3. Performance Summary Cards (Current Holdings P/L + Since Tracking Start) */}
-            <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
-
-            {/* 4. Cash Balance & Margin Debt */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <CashBalance
-                currentBalance={portfolio?.cashBalance ?? 0}
-                onUpdate={handleUpdate}
-              />
-              <MarginDebt
-                currentDebt={portfolio?.marginDebt ?? 0}
-                onUpdate={handleUpdate}
-              />
-            </div>
-
-            {/* 5. Holdings Table */}
+            {/* 2. Holdings Table */}
             <HoldingsTable
               holdings={portfolio?.holdings ?? []}
               onUpdate={handleUpdate}
               showExtendedHours={showExtendedHours}
               onTickerClick={(ticker, holding) => setViewingStock({ ticker, holding })}
+              cashBalance={portfolio?.cashBalance ?? 0}
+              marginDebt={portfolio?.marginDebt ?? 0}
             />
 
-            {/* 6. Portfolio Projections (last section) */}
-            <Projections
-              currentValue={portfolio?.netEquity ?? 0}
-              refreshTrigger={portfolioRefreshCount}
-              session={portfolio?.session}
-            />
+            {/* 3. Performance Summary Cards (Current Holdings P/L + Since Tracking Start) */}
+            <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+
           </>
         )}
 
         {/* Insights Tab */}
         {activeTab === 'insights' && !viewingStock && (
-          <InsightsPage onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null })} />
+          <ErrorBoundary>
+            <InsightsPage
+              onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null })}
+              currentValue={portfolio?.netEquity ?? 0}
+              refreshTrigger={portfolioRefreshCount}
+              session={portfolio?.session}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && (
-          <LeaderboardPage
-            session={portfolio?.session}
-            currentUserId={currentUserId}
-            onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
-            selectedUserId={leaderboardUserId}
-            onSelectedUserChange={setLeaderboardUserId}
-          />
+          <ErrorBoundary>
+            <LeaderboardPage
+              session={portfolio?.session}
+              currentUserId={currentUserId}
+              onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
+              selectedUserId={leaderboardUserId}
+              onSelectedUserChange={setLeaderboardUserId}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Profile View (overlays leaderboard or feed tab) */}
         {viewingProfileId && !viewingStock && (
-          <UserProfileView
-            userId={viewingProfileId}
-            currentUserId={currentUserId}
-            session={portfolio?.session}
-            onBack={() => setViewingProfileId(null)}
-            onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
-          />
+          <ErrorBoundary>
+            <UserProfileView
+              userId={viewingProfileId}
+              currentUserId={currentUserId}
+              session={portfolio?.session}
+              onBack={() => setViewingProfileId(null)}
+              onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
+            />
+          </ErrorBoundary>
         )}
 
-        {/* Watch Tab */}
-        {activeTab === 'watch' && !viewingStock && (
-          <WatchPage
-            pipEnabled={pipEnabled}
-            onPipToggle={handlePipToggle}
-            status={streamStatus}
-            hasError={streamHasError}
-            videoContainerRef={watchContainerCallback}
-            channels={CHANNELS}
-            activeChannel={activeChannel}
-            onChannelChange={setActiveChannel}
-          />
+        {/* Watch Tab — keep mounted (hidden) when viewing a stock so the video stream isn't interrupted */}
+        {activeTab === 'watch' && (
+          <div className={viewingStock ? 'hidden' : undefined}>
+            <ErrorBoundary>
+              <WatchPage
+                pipEnabled={pipEnabled}
+                onPipToggle={handlePipToggle}
+                status={streamStatus}
+                hasError={streamHasError}
+                videoContainerRef={watchContainerCallback}
+                channels={CHANNELS}
+                activeChannel={activeChannel}
+                onChannelChange={setActiveChannel}
+              />
+            </ErrorBoundary>
+          </div>
         )}
 
         {/* Feed Tab */}
         {activeTab === 'feed' && !viewingProfileId && !viewingStock && (
-          <FeedPage
-            currentUserId={currentUserId}
-            onUserClick={handleViewProfile}
-          />
+          <ErrorBoundary>
+            <FeedPage
+              currentUserId={currentUserId}
+              onUserClick={handleViewProfile}
+            />
+          </ErrorBoundary>
         )}
       </main>
 
@@ -724,6 +739,13 @@ export default function App() {
         className="w-full aspect-video"
         style={{ background: '#000', display: 'none' }}
       />
+
+      {/* Disclaimer Footer */}
+      <footer className="border-t border-rh-light-border dark:border-rh-border mt-8 py-4">
+        <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
+          Past performance does not guarantee future results. For informational purposes only. Not financial advice.
+        </p>
+      </footer>
 
       {/* Mini Player — shown when stream active + PiP enabled + not on Watch tab */}
       {showMiniPlayer && (

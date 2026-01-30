@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Holding, ChartPeriod, StockDetailsResponse, MarketSession } from '../types';
+import { Acronym, getAcronymTitle } from './Acronym';
 import { getStockDetails, getStockQuote, getIntradayCandles, IntradayCandle, addHolding } from '../api';
 import { StockPriceChart } from './StockPriceChart';
 
@@ -50,7 +51,7 @@ function inferExchangeLabel(ticker: string): string | null {
   return null;
 }
 
-function StatItem({ label, value }: { label: string; value: string }) {
+function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">{label}</span>
@@ -410,7 +411,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             quote.session === 'CLOSED' ? 'bg-gray-500/10 text-gray-400' :
             quote.session === 'PRE' ? 'bg-blue-500/10 text-blue-400' :
             'bg-purple-500/10 text-purple-400'
-          }`}>
+          }`} title={getAcronymTitle(quote.session === 'PRE' ? 'PRE' : quote.session === 'POST' ? 'POST' : 'CLOSED') || ''}>
             {quote.session === 'PRE' ? 'Pre-Market' : quote.session === 'POST' ? 'After Hours' : 'Market Closed'}
           </span>
         )}
@@ -467,7 +468,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <StatItem label="Market Cap" value={formatLargeNumber(profile.marketCapM)} />
             )}
             {metrics?.peRatio !== undefined && (
-              <StatItem label="P/E Ratio" value={metrics.peRatio !== null ? metrics.peRatio.toFixed(2) : 'N/A'} />
+              <StatItem label={<><Acronym label="P/E" /> Ratio</>} value={metrics.peRatio !== null ? metrics.peRatio.toFixed(2) : 'N/A'} />
             )}
             {metrics?.dividendYield !== undefined && (
               <StatItem label="Dividend Yield" value={metrics.dividendYield !== null ? `${metrics.dividendYield.toFixed(2)}%` : 'N/A'} />
@@ -486,10 +487,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <StatItem label="52 Week Low" value={metrics.week52Low !== null ? formatCurrency(metrics.week52Low) : 'N/A'} />
             )}
             {metrics?.beta !== undefined && (
-              <StatItem label="Beta" value={metrics.beta !== null ? metrics.beta.toFixed(2) : 'N/A'} />
+              <StatItem label={<Acronym label="Beta" />} value={metrics.beta !== null ? metrics.beta.toFixed(2) : 'N/A'} />
             )}
             {metrics?.eps !== undefined && (
-              <StatItem label="EPS (TTM)" value={metrics.eps !== null ? `$${metrics.eps.toFixed(2)}` : 'N/A'} />
+              <StatItem label={<><Acronym label="EPS" /> (<Acronym label="TTM" />)</>} value={metrics.eps !== null ? `$${metrics.eps.toFixed(2)}` : 'N/A'} />
             )}
           </div>
         </div>
@@ -520,7 +521,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             )}
             {profile.ipoDate && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">IPO Date</div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5"><Acronym label="IPO" /> Date</div>
                 <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.ipoDate}</div>
               </div>
             )}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Attribution as AttributionType, AttributionWindow } from '../types';
 import { getAttribution } from '../api';
+import { InfoTooltip } from './InfoTooltip';
 
 interface AttributionProps {
   initialData: AttributionType;
@@ -44,7 +45,7 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
   return (
     <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">What Moved My Portfolio?</h3>
+        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">What Moved My Portfolio? <InfoTooltip text="Attribution shows which holdings contributed most to your portfolio's gain or loss. Contribution = holding's dollar P&L over the selected window, ranked by absolute impact." /></h3>
 
         {/* Window Selector */}
         <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1">

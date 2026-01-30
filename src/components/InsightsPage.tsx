@@ -6,9 +6,11 @@ import { Attribution } from './Attribution';
 import { LeakDetector } from './LeakDetector';
 import { RiskForecast } from './RiskForecast';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
-import { GoalsPage } from './GoalsPage';
+import { ProjectionsAndGoals } from './ProjectionsAndGoals';
+import { SkeletonCard } from './SkeletonCard';
+import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'goals';
+type InsightsSubTab = 'intelligence' | 'projections-goals';
 
 // Cache for insights data - persists across component mounts
 const insightsCache: {
@@ -32,9 +34,12 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface InsightsPageProps {
   onTickerClick?: (ticker: string) => void;
+  currentValue: number;
+  refreshTrigger?: number;
+  session?: MarketSession;
 }
 
-export function InsightsPage({ onTickerClick }: InsightsPageProps) {
+export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session }: InsightsPageProps) {
   const [subTab, setSubTab] = useState<InsightsSubTab>('intelligence');
 
   // Initialize state from cache
@@ -159,11 +164,11 @@ export function InsightsPage({ onTickerClick }: InsightsPageProps) {
 
   const subTabs: { id: InsightsSubTab; label: string }[] = [
     { id: 'intelligence', label: 'Intelligence' },
-    { id: 'goals', label: 'Goals' },
+    { id: 'projections-goals', label: 'Projections & Goals' },
   ];
 
-  // Goals subtab
-  if (subTab === 'goals') {
+  // Projections & Goals subtab
+  if (subTab === 'projections-goals') {
     return (
       <div className="space-y-6">
         <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1 w-fit">
@@ -181,7 +186,11 @@ export function InsightsPage({ onTickerClick }: InsightsPageProps) {
             </button>
           ))}
         </div>
-        <GoalsPage />
+        <ProjectionsAndGoals
+          currentValue={currentValue}
+          refreshTrigger={refreshTrigger}
+          session={session}
+        />
       </div>
     );
   }
@@ -189,11 +198,14 @@ export function InsightsPage({ onTickerClick }: InsightsPageProps) {
   // Show initial loading only if we have no cached data at all
   if (!initialLoadComplete && !hasAnyData) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-rh-green border-t-transparent mx-auto mb-3"></div>
-          <p className="text-rh-light-muted dark:text-rh-muted">Analyzing your portfolio...</p>
+      <div className="space-y-6">
+        <SkeletonCard lines={4} height="180px" />
+        <SkeletonCard lines={5} height="220px" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonCard lines={3} height="160px" />
+          <SkeletonCard lines={3} height="160px" />
         </div>
+        <SkeletonCard lines={4} height="200px" />
       </div>
     );
   }
@@ -234,10 +246,7 @@ export function InsightsPage({ onTickerClick }: InsightsPageProps) {
       {intelligence ? (
         <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} />
       ) : (
-        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Intelligence</h3>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">Loading intelligence data...</p>
-        </div>
+        <SkeletonCard lines={5} height="220px" />
       )}
 
       {/* Attribution and Leak Detector - Side by Side - Always show both */}
@@ -245,18 +254,12 @@ export function InsightsPage({ onTickerClick }: InsightsPageProps) {
         {attribution ? (
           <Attribution initialData={attribution} onTickerClick={onTickerClick} />
         ) : (
-          <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Attribution</h3>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted">Loading attribution data...</p>
-          </div>
+          <SkeletonCard lines={3} height="160px" />
         )}
         {leakDetector ? (
           <LeakDetector data={leakDetector} />
         ) : (
-          <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Correlation Analysis</h3>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted">Loading correlation data...</p>
-          </div>
+          <SkeletonCard lines={3} height="160px" />
         )}
       </div>
 
@@ -268,10 +271,7 @@ export function InsightsPage({ onTickerClick }: InsightsPageProps) {
           isRefreshing={false}
         />
       ) : (
-        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Risk Forecast</h3>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">Loading risk analysis...</p>
-        </div>
+        <SkeletonCard lines={4} height="200px" />
       )}
 
       {/* Manual Refresh Button - Subtle, at the bottom */}

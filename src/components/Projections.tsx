@@ -14,6 +14,7 @@ interface Props {
   currentValue: number;
   refreshTrigger?: number;
   session?: MarketSession;
+  onPaceData?: (data: CurrentPaceResponse) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -61,7 +62,7 @@ function isSP500Response(resp: ProjectionResponse): resp is SP500ProjectionRespo
   return resp.mode === 'sp500';
 }
 
-export function Projections({ currentValue, refreshTrigger = 0, session }: Props) {
+export function Projections({ currentValue, refreshTrigger = 0, session, onPaceData }: Props) {
   const [mode, setMode] = useState<ProjectionModeSimple>('sp500');
   const [data, setData] = useState<ProjectionResponse | null>(null);
   const [paceData, setPaceData] = useState<CurrentPaceResponse | null>(null);
@@ -84,6 +85,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session }: Props
       if (mode === 'pace') {
         const response = await getCurrentPace(paceWindow);
         setPaceData(response);
+        onPaceData?.(response);
       } else {
         const response = await getProjections('sp500', '1y');
         setData(response);
@@ -138,6 +140,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session }: Props
       if (paceWindow === 'YTD') {
         const response = await getCurrentPace('YTD');
         setPaceData(response);
+        onPaceData?.(response);
       }
     } catch (err) {
       setYtdFormError(err instanceof Error ? err.message : 'Failed to save');

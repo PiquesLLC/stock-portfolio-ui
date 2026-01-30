@@ -1,33 +1,9 @@
 import { useState } from 'react';
 import { HeroStats } from '../types';
+import { InfoTooltip } from './InfoTooltip';
 
 interface Props {
   data: HeroStats;
-}
-
-function InfoTooltip({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <span className="relative inline-flex">
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
-        onBlur={() => setOpen(false)}
-        className="w-4 h-4 rounded-full border border-rh-light-border dark:border-rh-border text-rh-light-muted dark:text-rh-muted
-          hover:text-rh-light-text dark:hover:text-rh-text flex items-center justify-center text-[10px] leading-none transition-colors"
-        aria-label="Info"
-      >
-        i
-      </button>
-      {open && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-52 px-3 py-2 rounded-lg
-          bg-rh-light-card dark:bg-[#1a1a2e] border border-rh-light-border dark:border-rh-border
-          text-xs text-rh-light-muted dark:text-rh-muted shadow-lg z-20 pointer-events-none">
-          {text}
-        </div>
-      )}
-    </span>
-  );
 }
 
 function LiveBadge() {

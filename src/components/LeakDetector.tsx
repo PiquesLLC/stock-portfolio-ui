@@ -1,4 +1,5 @@
 import { LeakDetectorResult } from '../types';
+import { InfoTooltip } from './InfoTooltip';
 
 interface LeakDetectorProps {
   data: LeakDetectorResult;
@@ -58,7 +59,7 @@ function CorrelationHeatmap({ heatmapData }: { heatmapData: LeakDetectorResult['
 }
 
 export function LeakDetector({ data }: LeakDetectorProps) {
-  const { correlationClusters, summaries, heatmapData, partial } = data;
+  const { correlationClusters, summaries, heatmapData, partial, spyCorrelation, suggestedActions, hiddenConcentration } = data;
 
   const hasClusters = correlationClusters.length > 0;
   const hasHeatmap = heatmapData && heatmapData.tickers.length >= 2;
@@ -67,7 +68,7 @@ export function LeakDetector({ data }: LeakDetectorProps) {
   return (
     <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Correlation Analysis</h3>
+        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Correlation Analysis <InfoTooltip text="Pearson correlation of daily returns between holdings. Clusters show groups with correlation > 0.7, meaning they tend to move together. High correlation reduces effective diversification." /></h3>
         <div className="flex items-center gap-2">
           {partial && !hasClusters && !hasHeatmap && (
             <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
@@ -86,6 +87,29 @@ export function LeakDetector({ data }: LeakDetectorProps) {
           )}
         </div>
       </div>
+
+      {/* SPY Correlation Badge */}
+      {spyCorrelation !== null && (
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xs text-rh-light-muted dark:text-rh-muted">Portfolio vs SPY correlation:</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+            Math.abs(spyCorrelation) > 0.8
+              ? 'bg-red-500/15 text-red-400'
+              : Math.abs(spyCorrelation) > 0.5
+                ? 'bg-yellow-500/15 text-yellow-400'
+                : 'bg-green-500/15 text-rh-green'
+          }`}>
+            {spyCorrelation.toFixed(2)}
+          </span>
+          <span className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70">
+            {Math.abs(spyCorrelation) > 0.8
+              ? 'Moves closely with the market'
+              : Math.abs(spyCorrelation) > 0.5
+                ? 'Moderate market correlation'
+                : 'Low market correlation'}
+          </span>
+        </div>
+      )}
 
       {/* Correlation Clusters */}
       {hasClusters && (
@@ -137,6 +161,35 @@ export function LeakDetector({ data }: LeakDetectorProps) {
           <p className="text-sm text-rh-light-muted dark:text-rh-muted">
             Requires 60+ days of price history per holding
           </p>
+        </div>
+      )}
+
+      {/* Hidden Concentration Warning */}
+      {hiddenConcentration && (
+        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg mb-4">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-red-400">Hidden Concentration</p>
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
+                Effective diversification is less than 50% of your holding count due to correlation overlap.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suggested Actions */}
+      {suggestedActions && suggestedActions.length > 0 && (
+        <div className="mb-4 space-y-1.5">
+          {suggestedActions.map((action, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+              <span className="text-rh-light-text dark:text-rh-text mt-0.5">•</span>
+              <span>{action}</span>
+            </div>
+          ))}
         </div>
       )}
 

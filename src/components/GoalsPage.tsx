@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Goal, GoalInput } from '../types';
 import { getGoals, createGoal, updateGoal, deleteGoal } from '../api';
 
@@ -25,6 +25,38 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Unknown';
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+function calculateTimeToGoalMonths(
+  currentValue: number,
+  targetValue: number,
+  annualReturnPct: number,
+  monthlyContribution: number,
+): number | null {
+  if (currentValue >= targetValue) return 0;
+  if (annualReturnPct <= -100) return null;
+
+  const monthlyRate = Math.pow(1 + annualReturnPct / 100, 1 / 12) - 1;
+  const maxMonths = 1200; // 100 years
+
+  for (let m = 1; m <= maxMonths; m++) {
+    let fv: number;
+    if (Math.abs(monthlyRate) < 1e-10) {
+      fv = currentValue + monthlyContribution * m;
+    } else {
+      fv = currentValue * Math.pow(1 + monthlyRate, m) +
+        monthlyContribution * (Math.pow(1 + monthlyRate, m) - 1) / monthlyRate;
+    }
+    if (fv >= targetValue) return m;
+  }
+  return null;
+}
+
+function getProjectedDate(months: number | null): string | null {
+  if (months === null) return null;
+  const date = new Date();
+  date.setMonth(date.getMonth() + months);
+  return date.toISOString();
 }
 
 interface GoalFormProps {
@@ -157,9 +189,10 @@ interface GoalCardProps {
   goal: Goal;
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
+  annualizedPacePct?: number | null;
 }
 
-function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
+function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) {
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
@@ -177,13 +210,44 @@ function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
   const isAchieved = goal.currentProgress >= 100;
   const { timeToGoal, projectedDate } = goal;
 
+  // Calculate "Your Pace" scenario
+  const yourPaceMonths = annualizedPacePct != null && !isAchieved
+    ? calculateTimeToGoalMonths(goal.currentPortfolioValue, goal.targetValue, annualizedPacePct, goal.monthlyContribution)
+    : null;
+  const yourPaceDate = getProjectedDate(yourPaceMonths);
+
+  // On-track indicator
+  let trackStatus: 'ahead' | 'on-track' | 'behind' | null = null;
+  if (annualizedPacePct != null && !isAchieved && timeToGoal.base != null) {
+    if (yourPaceMonths === null || annualizedPacePct <= 0) {
+      trackStatus = 'behind';
+    } else if (yourPaceMonths < timeToGoal.base * 0.9) {
+      trackStatus = 'ahead';
+    } else if (yourPaceMonths <= timeToGoal.base * 1.1) {
+      trackStatus = 'on-track';
+    } else {
+      trackStatus = 'behind';
+    }
+  }
+
   return (
     <div className={`bg-rh-light-card dark:bg-rh-card border rounded-lg p-6 shadow-sm dark:shadow-none ${
       isAchieved ? 'border-rh-green' : 'border-rh-light-border dark:border-rh-border'
     }`}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{goal.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{goal.name}</h3>
+            {trackStatus === 'ahead' && (
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rh-green/15 text-rh-green">Ahead</span>
+            )}
+            {trackStatus === 'on-track' && (
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500/15 text-blue-400">On track</span>
+            )}
+            {trackStatus === 'behind' && (
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rh-red/15 text-rh-red">Behind</span>
+            )}
+          </div>
           <p className="text-sm text-rh-light-muted dark:text-rh-muted">
             Target: {formatCurrency(goal.targetValue)}
           </p>
@@ -257,6 +321,16 @@ function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
                 {projectedDate.pessimistic && ` (${formatDate(projectedDate.pessimistic)})`}
               </span>
             </div>
+            {annualizedPacePct != null && (
+              <div className="flex justify-between text-sm border-t border-rh-light-border dark:border-rh-border pt-1 mt-1">
+                <span className="text-amber-400">Your Pace ({annualizedPacePct > 0 ? '+' : ''}{annualizedPacePct.toFixed(1)}%)</span>
+                <span className="text-amber-400">
+                  {yourPaceMonths !== null
+                    ? `${formatMonths(yourPaceMonths)}${yourPaceDate ? ` (${formatDate(yourPaceDate)})` : ''}`
+                    : 'N/A'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -278,29 +352,57 @@ function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
   );
 }
 
-export function GoalsPage() {
+interface GoalsPageProps {
+  annualizedPacePct?: number | null;
+  refreshTrigger?: number;
+  session?: string;
+}
+
+export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsPageProps = {}) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function fetchGoals() {
+  const fetchGoals = useCallback(async (showSpinner = false) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       setError(null);
       const data = await getGoals();
       setGoals(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load goals');
+      if (goals.length === 0) {
+        setError(err instanceof Error ? err.message : 'Failed to load goals');
+      }
     } finally {
       setLoading(false);
     }
-  }
+  }, [goals.length]);
 
+  // Initial fetch
   useEffect(() => {
-    fetchGoals();
+    fetchGoals(true);
   }, []);
+
+  // Re-fetch when portfolio refreshes
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      fetchGoals();
+    }
+  }, [refreshTrigger]);
+
+  // Poll: 30s during market, 120s otherwise
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    const isMarketActive = session === 'REG' || session === 'PRE' || session === 'POST';
+    const pollMs = isMarketActive ? 30000 : 120000;
+    intervalRef.current = setInterval(() => {
+      if (document.hasFocus()) fetchGoals();
+    }, pollMs);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [fetchGoals, session]);
 
   async function handleCreateGoal(input: GoalInput) {
     await createGoal(input);
@@ -425,6 +527,7 @@ export function GoalsPage() {
               goal={goal}
               onEdit={setEditingGoal}
               onDelete={handleDeleteGoal}
+              annualizedPacePct={annualizedPacePct}
             />
           ))}
         </div>

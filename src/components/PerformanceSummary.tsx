@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PerformanceSummary as PerformanceSummaryType } from '../types';
 import { getPerformanceSummary } from '../api';
+import { Acronym } from './Acronym';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -80,9 +81,9 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
     <div className="space-y-4">
       {/* Main two-box layout: Holdings P/L (left), Since Tracking Start (right) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Box 1: Current Holdings P/L (LEFT) */}
+        {/* Box 1: Current Holdings <Acronym label="P/L" /> (LEFT) */}
         <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-4">Current Holdings P/L</h3>
+          <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-4">Current Holdings <Acronym label="P/L" /></h3>
 
           <div className="mb-3">
             <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(holdingsPL.unrealizedPL)}</p>

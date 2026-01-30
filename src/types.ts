@@ -314,6 +314,9 @@ export interface LeakDetectorResult {
     matrix: number[][];
   } | null;
   partial: boolean;
+  spyCorrelation: number | null;
+  suggestedActions: string[];
+  hiddenConcentration: boolean;
 }
 
 export interface RiskForecastBasis {
@@ -475,17 +478,23 @@ export interface SymbolSearchResponse {
 
 // Leaderboard types
 export type LeaderboardWindow = '1D' | '1W' | '1M' | 'YTD' | '1Y';
+export type LeaderboardRegion = 'world' | 'na' | 'europe' | 'apac';
 
 export interface LeaderboardEntry {
   userId: string;
   username: string;
   displayName: string;
+  region: string | null;
   window: LeaderboardWindow;
   returnPct: number | null;
   returnDollar: number | null;
+  twrPct: number | null;
   verified: boolean;
   basis: 'verified' | 'none';
   sinceStart: boolean;
+  isNew: boolean;
+  flagged: boolean;
+  flagReason: string | null;
   trackingStartAt: string;
   snapshotCount: number;
   startDateUsed: string | null;
@@ -531,12 +540,81 @@ export interface UserProfile {
   displayName: string;
   createdAt: string;
   profilePublic: boolean;
+  region: string | null;
+  showRegion: boolean;
   trackingActive: boolean;
   leaderboardEligible: boolean;
   followerCount: number;
   followingCount: number;
   viewerIsFollowing: boolean;
   recentActivity: ActivityEvent[];
+  performance: PerformanceData | null;
+  holdingsVisibility: string;
+}
+
+// Portfolio Chart types
+export type PortfolioChartPeriod = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'ALL';
+
+export interface PortfolioChartPoint {
+  time: number; // ms timestamp
+  value: number;
+}
+
+export interface PortfolioChartData {
+  points: PortfolioChartPoint[];
+  periodStartValue: number;
+  period: PortfolioChartPeriod;
+}
+
+// Benchmark Performance types
+export type PerformanceWindow = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'ALL';
+
+export interface PerformanceData {
+  window: PerformanceWindow;
+  benchmarkTicker: string;
+  twrPct: number | null;
+  mwrPct: number | null;
+  benchmarkReturnPct: number | null;
+  alphaPct: number | null;
+  beta: number | null;
+  correlation: number | null;
+  volatilityPct: number | null;
+  maxDrawdownPct: number | null;
+  bestDay: { date: string; returnPct: number } | null;
+  worstDay: { date: string; returnPct: number } | null;
+  snapshotCount: number;
+  dataStartDate: string | null;
+  dataEndDate: string | null;
+}
+
+// Transaction types
+export interface Transaction {
+  id: string;
+  userId: string | null;
+  type: 'deposit' | 'withdrawal';
+  amount: number;
+  date: string;
+  createdAt: string;
+}
+
+// Alert types
+export interface AlertConfig {
+  id: string;
+  userId: string | null;
+  type: string;
+  threshold: number | null;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface AlertEvent {
+  id: string;
+  alertId: string;
+  alert: { type: string };
+  message: string;
+  data: string | null;
+  read: boolean;
+  createdAt: string;
 }
 
 // Stock Detail types

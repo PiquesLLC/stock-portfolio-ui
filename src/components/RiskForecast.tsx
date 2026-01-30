@@ -1,4 +1,6 @@
 import { RiskForecast as RiskForecastType } from '../types';
+import { InfoTooltip } from './InfoTooltip';
+import { Acronym } from './Acronym';
 
 interface RiskForecastProps {
   data: RiskForecastType;
@@ -35,7 +37,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
     return (
       <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Risk Forecast</h3>
+          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Risk Forecast <InfoTooltip text="Uses historical daily returns to compute CAGR, annualized volatility (std dev * sqrt(252)), Sharpe ratio (return/vol), and max drawdown. 1-year scenarios use Monte Carlo simulation with 10th/50th/90th percentile outcomes." /></h3>
           {onRefresh && (
             <button
               onClick={onRefresh}
@@ -157,7 +159,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
         </div>
 
         <div className="p-4 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-1">Sharpe Ratio</p>
+          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-1"><Acronym label="Sharpe Ratio" /></p>
           <p className={`text-xl font-semibold ${sharpeColor}`}>
             {formatSharpe(metrics.sharpeRatio)}
           </p>

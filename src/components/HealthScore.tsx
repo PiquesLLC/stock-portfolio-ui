@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { HealthScore as HealthScoreType, HealthCategoryDetail, HealthScoreDetails } from '../types';
+import { InfoTooltip } from './InfoTooltip';
 
 interface HealthScoreProps {
   data: HealthScoreType;
@@ -271,7 +272,7 @@ export function HealthScore({ data }: HealthScoreProps) {
   if (partial) {
     return (
       <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Health</h3>
+        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4 flex items-center gap-2">Portfolio Health <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." /></h3>
         <p className="text-rh-light-muted dark:text-rh-muted">Add holdings to see your health score</p>
       </div>
     );
@@ -280,7 +281,7 @@ export function HealthScore({ data }: HealthScoreProps) {
   return (
     <>
       <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Health</h3>
+        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4 flex items-center gap-2">Portfolio Health <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." /></h3>
 
         <div className="flex items-center gap-6 mb-6">
           {/* Circular Score */}

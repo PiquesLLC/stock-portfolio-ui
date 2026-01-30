@@ -27,11 +27,19 @@ import {
   PaceWindow,
   YtdSettings,
   LeaderboardWindow,
+  LeaderboardRegion,
   LeaderboardResponse,
   UserInfo,
   UserProfile,
   ActivityEvent,
   StockDetailsResponse,
+  PortfolioChartData,
+  PortfolioChartPeriod,
+  PerformanceData,
+  PerformanceWindow,
+  Transaction,
+  AlertConfig,
+  AlertEvent as AlertEventType,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -246,8 +254,8 @@ export async function getPortfolioIntelligence(
 }
 
 // Leaderboard endpoints
-export async function getLeaderboard(window: LeaderboardWindow = '1M'): Promise<LeaderboardResponse> {
-  return fetchJson<LeaderboardResponse>(`${API_BASE_URL}/leaderboard?window=${window}`);
+export async function getLeaderboard(window: LeaderboardWindow = '1M', region: LeaderboardRegion = 'world'): Promise<LeaderboardResponse> {
+  return fetchJson<LeaderboardResponse>(`${API_BASE_URL}/leaderboard?window=${window}&region=${region}`);
 }
 
 export async function getUsers(): Promise<UserInfo[]> {
@@ -262,6 +270,20 @@ export async function getUserPortfolio(userId: string): Promise<Portfolio> {
 export async function getUserProfile(userId: string, viewerId?: string): Promise<UserProfile> {
   const params = viewerId ? `?viewerId=${viewerId}` : '';
   return fetchJson<UserProfile>(`${API_BASE_URL}/users/${userId}/profile${params}`);
+}
+
+export async function updateUserRegion(userId: string, region: string | null, showRegion: boolean): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/users/${userId}/region`, {
+    method: 'PUT',
+    body: JSON.stringify({ region, showRegion }),
+  });
+}
+
+export async function updateHoldingsVisibility(userId: string, holdingsVisibility: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/users/${userId}/holdings-visibility`, {
+    method: 'PUT',
+    body: JSON.stringify({ holdingsVisibility }),
+  });
 }
 
 export async function followUser(targetUserId: string, followerId: string): Promise<void> {
@@ -312,6 +334,79 @@ export interface IntradayCandle {
 export async function getIntradayCandles(ticker: string): Promise<IntradayCandle[]> {
   const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/intraday`);
   return resp.candles;
+}
+
+export interface BenchmarkCandle {
+  date: string;
+  time: number;
+  close: number;
+}
+
+export async function getBenchmarkCloses(ticker: string = 'SPY'): Promise<BenchmarkCandle[]> {
+  const resp = await fetchJson<{ ticker: string; candles: BenchmarkCandle[] }>(`${API_BASE_URL}/market/benchmark/${ticker}/closes`);
+  return resp.candles;
+}
+
+export async function getPortfolioChart(period: PortfolioChartPeriod = '1D'): Promise<PortfolioChartData> {
+  return fetchJson<PortfolioChartData>(`${API_BASE_URL}/portfolio/history/chart?period=${period}`);
+}
+
+export async function getUserChart(userId: string, period: PortfolioChartPeriod = '1D'): Promise<PortfolioChartData> {
+  return fetchJson<PortfolioChartData>(`${API_BASE_URL}/users/${userId}/chart?period=${period}`);
+}
+
+// Performance comparison endpoint
+export async function getPerformance(
+  window: PerformanceWindow = '1M',
+  benchmark: string = 'SPY'
+): Promise<PerformanceData> {
+  return fetchJson<PerformanceData>(
+    `${API_BASE_URL}/portfolio/performance?window=${window}&benchmark=${benchmark}`
+  );
+}
+
+// Transaction endpoints
+export async function getTransactions(): Promise<Transaction[]> {
+  return fetchJson<Transaction[]>(`${API_BASE_URL}/transactions`);
+}
+
+export async function addTransaction(input: { type: 'deposit' | 'withdrawal'; amount: number; date: string }): Promise<Transaction> {
+  return fetchJson<Transaction>(`${API_BASE_URL}/transactions`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/transactions/${id}`, { method: 'DELETE' });
+}
+
+// Alert endpoints
+export async function getAlerts(userId: string): Promise<AlertConfig[]> {
+  return fetchJson<AlertConfig[]>(`${API_BASE_URL}/alerts?userId=${userId}`);
+}
+
+export async function updateAlertConfig(id: string, data: { threshold?: number | null; enabled?: boolean }): Promise<AlertConfig> {
+  return fetchJson<AlertConfig>(`${API_BASE_URL}/alerts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getAlertEvents(userId: string): Promise<AlertEventType[]> {
+  return fetchJson<AlertEventType[]>(`${API_BASE_URL}/alerts/events?userId=${userId}`);
+}
+
+export async function getUnreadAlertCount(userId: string): Promise<{ count: number }> {
+  return fetchJson<{ count: number }>(`${API_BASE_URL}/alerts/events/unread-count?userId=${userId}`);
+}
+
+export async function markAlertRead(eventId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/alerts/events/${eventId}/read`, { method: 'POST' });
+}
+
+export async function markAllAlertsRead(userId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/alerts/events/read-all?userId=${userId}`, { method: 'POST' });
 }
 
 export async function getUserIntelligence(

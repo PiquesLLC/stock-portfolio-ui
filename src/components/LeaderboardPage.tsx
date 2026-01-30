@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { LeaderboardEntry, LeaderboardWindow, MarketSession } from '../types';
+import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession } from '../types';
 import { getLeaderboard } from '../api';
 import { UserPortfolioView } from './UserPortfolioView';
+import { Acronym } from './Acronym';
 
 const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
   { id: '1D', label: '1D' },
@@ -11,7 +12,14 @@ const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
   { id: '1Y', label: '1Y' },
 ];
 
-type SortKey = 'rank' | 'user' | 'returnPct' | 'returnDollar' | 'assets';
+const REGIONS: { id: LeaderboardRegion; label: string }[] = [
+  { id: 'world', label: 'World' },
+  { id: 'na', label: 'North America' },
+  { id: 'europe', label: 'Europe' },
+  { id: 'apac', label: 'Asia-Pacific' },
+];
+
+type SortKey = 'rank' | 'user' | 'twrPct' | 'returnPct' | 'returnDollar' | 'assets';
 type SortDir = 'asc' | 'desc';
 
 function formatCurrency(value: number | null): string {
@@ -27,6 +35,7 @@ function formatPercent(value: number | null): string {
 
 function getNumericValue(entry: LeaderboardEntry, key: SortKey): number | null {
   switch (key) {
+    case 'twrPct': return entry.twrPct;
     case 'returnPct': return entry.returnPct;
     case 'returnDollar': return entry.returnDollar;
     case 'assets': return entry.currentAssets;
@@ -54,6 +63,7 @@ interface LeaderboardPageProps {
 }
 
 export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange }: LeaderboardPageProps) {
+  const [region, setRegion] = useState<LeaderboardRegion>('world');
   const [window, setWindow] = useState<LeaderboardWindow>('1M');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -72,7 +82,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
 
     try {
       setError(null);
-      const data = await getLeaderboard(window);
+      const data = await getLeaderboard(window, region);
       setEntries(data.entries);
       setLastUpdated(data.lastUpdated);
     } catch (err) {
@@ -80,7 +90,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
     } finally {
       setLoading(false);
     }
-  }, [window]);
+  }, [window, region]);
 
   // Initial fetch
   useEffect(() => {
@@ -198,6 +208,22 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
         </div>
       </div>
 
+      <div className="flex gap-1 mb-3">
+        {REGIONS.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => setRegion(r.id)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+              ${region === r.id
+                ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+              }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
       {lastUpdated && (
         <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">
           Updated {formatRelativeTime(lastUpdated)}
@@ -205,7 +231,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
       )}
 
       <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mb-4">
-        Leaderboard ranks performance since tracking started. Returns refresh for the selected time period as new snapshots update.
+        Rankings based on time-weighted returns (TWR) since tracking began. TWR eliminates the effect of deposits/withdrawals for fair comparison.
       </p>
 
       {error && (
@@ -213,7 +239,19 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
       )}
 
       {loading ? (
-        <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading leaderboard...</div>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-4 animate-pulse flex items-center gap-4">
+              <div className="w-6 h-4 bg-gray-200 dark:bg-rh-border rounded" />
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4 mb-2" />
+                <div className="h-3 bg-gray-200 dark:bg-rh-border rounded w-1/6" />
+              </div>
+              <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
+              <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
+            </div>
+          ))}
+        </div>
       ) : entries.length === 0 ? (
         <div className="text-rh-light-muted dark:text-rh-muted text-sm">
           No verified users found. Run the seed script to add demo users.
@@ -229,6 +267,9 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 <th className={`${getHeaderClass('user')} text-xs`} onClick={() => handleSort('user')}>
                   User{getSortIndicator('user')}
                 </th>
+                <th className={`${getHeaderClass('twrPct', 'right')} text-xs`} onClick={() => handleSort('twrPct')}>
+                  {getSortIndicator('twrPct')}<Acronym label="TWR" />
+                </th>
                 <th className={`${getHeaderClass('returnPct', 'right')} text-xs`} onClick={() => handleSort('returnPct')}>
                   {getSortIndicator('returnPct')}Return %
                 </th>
@@ -243,32 +284,50 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
             </thead>
             <tbody>
               {sortedEntries.map((entry, index) => {
-                const isPositive = entry.returnPct !== null && entry.returnPct >= 0;
+                const twrColor = entry.twrPct === null
+                  ? 'text-rh-light-muted dark:text-rh-muted'
+                  : entry.twrPct >= 0 ? 'text-rh-green' : 'text-rh-red';
                 const returnColor = entry.returnPct === null
                   ? 'text-rh-light-muted dark:text-rh-muted'
-                  : isPositive
-                    ? 'text-rh-green'
-                    : 'text-rh-red';
+                  : entry.returnPct >= 0 ? 'text-rh-green' : 'text-rh-red';
 
                 return (
                   <tr
                     key={entry.userId}
                     onClick={() => setSelectedUserId(entry.userId)}
-                    className="border-b border-rh-light-border dark:border-rh-border last:border-b-0 hover:bg-rh-light-bg dark:hover:bg-rh-dark/50 cursor-pointer transition-colors"
+                    className={`border-b border-rh-light-border dark:border-rh-border last:border-b-0 hover:bg-rh-light-bg dark:hover:bg-rh-dark/50 cursor-pointer transition-colors ${
+                      entry.flagged ? 'opacity-50' : ''
+                    }`}
+                    title={entry.flagged ? entry.flagReason ?? 'Flagged' : undefined}
                   >
                     <td className="px-4 py-3 text-sm text-rh-light-muted dark:text-rh-muted font-medium">
                       {index + 1}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-rh-light-text dark:text-rh-text">
-                        {entry.displayName}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">
+                          {entry.displayName}
+                        </span>
+                        {entry.isNew && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                            NEW
+                          </span>
+                        )}
+                        {entry.flagged && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-500/20 text-red-400 border border-red-500/30" title={entry.flagReason ?? ''}>
+                            FLAG
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-rh-light-muted dark:text-rh-muted">
                         @{entry.username}
                         {entry.sinceStart && (
-                          <span className="ml-2 text-rh-light-muted dark:text-rh-muted opacity-60">Since start</span>
+                          <span className="ml-2 opacity-60">Since start</span>
                         )}
                       </div>
+                    </td>
+                    <td className={`px-4 py-3 text-sm text-right font-bold ${twrColor}`}>
+                      {formatPercent(entry.twrPct)}
                     </td>
                     <td className={`px-4 py-3 text-sm text-right font-medium ${returnColor}`}>
                       {formatPercent(entry.returnPct)}
@@ -285,7 +344,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                       {formatCurrency(entry.currentAssets)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {entry.verified && (
+                      {entry.verified && !entry.flagged && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-2.108-2.108 3 3 0 01-5.304 0 3 3 0 00-2.108 2.108 3 3 0 010 5.304 3 3 0 002.108 2.108 3 3 0 015.304 0 3 3 0 002.108-2.108zM9.293 10.707a1 1 0 011.414-1.414l1 1a1 1 0 01-1.414 1.414l-1-1z" clipRule="evenodd" />
