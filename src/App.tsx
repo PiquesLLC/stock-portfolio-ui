@@ -31,6 +31,7 @@ export const CHANNELS: Channel[] = [
   { id: 'cnbc', name: 'CNBC', url: '/hls/cnbc/cnbcsd.m3u8', description: 'Business News' },
   { id: 'bloomberg', name: 'Bloomberg US', url: 'https://www.bloomberg.com/media-manifest/streams/us.m3u8', description: 'Markets & Finance' },
   { id: 'cheddar', name: 'Cheddar', url: 'https://livestream.chdrstatic.com/b93e5b0d43ea306310a379971e384964acbe4990ce193c0bd50078275a9a657d/cheddar-42620/cheddarweblive/cheddar/index.m3u8', description: 'Business & Tech News' },
+  { id: 'yahoo-finance', name: 'Yahoo Finance', url: 'https://d1ewctnvcwvvvu.cloudfront.net/playlist.m3u8', description: 'Markets & Investing' },
 ];
 
 // Theme utilities
