@@ -6,9 +6,11 @@ import {
   SectorExposureEntry,
 } from '../types';
 import { getPortfolioIntelligence } from '../api';
+import { HeroInsights } from './HeroInsights';
 
 interface Props {
   initialData: PortfolioIntelligenceResponse;
+  fetchFn?: (window: IntelligenceWindow) => Promise<PortfolioIntelligenceResponse>;
 }
 
 const WINDOW_LABELS: Record<IntelligenceWindow, string> = {
@@ -57,6 +59,7 @@ function ContributorBar({ entry, maxAbsDollar, isPositive }: {
 }
 
 function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
   const colors = [
     'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500',
     'bg-rose-500', 'bg-cyan-500', 'bg-orange-500', 'bg-gray-500',
@@ -69,19 +72,41 @@ function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
         {sectors.map((s, i) => (
           <div
             key={s.sector}
-            className={`${colors[i % colors.length]} opacity-80`}
+            className={`${colors[i % colors.length]} opacity-80 cursor-pointer hover:opacity-100 transition-opacity`}
             style={{ width: `${s.exposurePercent}%` }}
             title={`${s.sector}: ${s.exposurePercent}%`}
+            onClick={() => setExpanded(expanded === s.sector ? null : s.sector)}
           />
         ))}
       </div>
       {/* Legend */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {sectors.map((s, i) => (
-          <div key={s.sector} className="flex items-center gap-2 text-sm">
-            <div className={`w-2.5 h-2.5 rounded-sm ${colors[i % colors.length]} opacity-80 shrink-0`} />
-            <span className="text-rh-light-text dark:text-rh-text truncate">{s.sector}</span>
-            <span className="ml-auto text-rh-light-muted dark:text-rh-muted">{s.exposurePercent}%</span>
+          <div key={s.sector}>
+            <button
+              onClick={() => setExpanded(expanded === s.sector ? null : s.sector)}
+              className="flex items-center gap-2 text-sm w-full hover:bg-gray-100 dark:hover:bg-rh-dark/30 rounded px-1 -mx-1 py-0.5 transition-colors"
+            >
+              <div className={`w-2.5 h-2.5 rounded-sm ${colors[i % colors.length]} opacity-80 shrink-0`} />
+              <span className="text-rh-light-text dark:text-rh-text truncate">{s.sector}</span>
+              <span className="ml-auto text-rh-light-muted dark:text-rh-muted whitespace-nowrap">
+                {s.exposurePercent}%
+                <span className="ml-1 text-[10px] opacity-60">{expanded === s.sector ? '▲' : '▼'}</span>
+              </span>
+            </button>
+            {expanded === s.sector && s.tickers && (
+              <div className="ml-5 mt-1 mb-2 space-y-0.5">
+                {s.tickers.map(t => (
+                  <div key={t.ticker} className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+                    <span className="font-medium text-rh-light-text dark:text-rh-text">{t.ticker}</span>
+                    <span className="ml-auto whitespace-nowrap">
+                      ${t.valueDollar.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      <span className="ml-1.5 opacity-70">({t.valuePercent}%)</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -89,7 +114,7 @@ function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
   );
 }
 
-export function PortfolioIntelligence({ initialData }: Props) {
+export function PortfolioIntelligence({ initialData, fetchFn }: Props) {
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [selectedWindow, setSelectedWindow] = useState<IntelligenceWindow>(initialData.window);
@@ -99,7 +124,8 @@ export function PortfolioIntelligence({ initialData }: Props) {
     setLoading(true);
     setSelectedWindow(window);
     try {
-      const newData = await getPortfolioIntelligence(window);
+      const fetcher = fetchFn || getPortfolioIntelligence;
+      const newData = await fetcher(window);
       setData(newData);
     } catch (err) {
       console.error('Failed to fetch intelligence:', err);
@@ -144,6 +170,9 @@ export function PortfolioIntelligence({ initialData }: Props) {
           <p className="text-sm text-rh-light-text dark:text-rh-text">{explanation}</p>
         </div>
       )}
+
+      {/* Hero insight stats */}
+      {data.heroStats && <HeroInsights data={data.heroStats} />}
 
       {loading && (
         <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">

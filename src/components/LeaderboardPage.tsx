@@ -47,15 +47,21 @@ function formatRelativeTime(isoDate: string): string {
 
 interface LeaderboardPageProps {
   session?: MarketSession;
+  currentUserId?: string;
+  onStockClick?: (ticker: string) => void;
+  selectedUserId?: string | null;
+  onSelectedUserChange?: (userId: string | null) => void;
 }
 
-export function LeaderboardPage({ session }: LeaderboardPageProps) {
+export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange }: LeaderboardPageProps) {
   const [window, setWindow] = useState<LeaderboardWindow>('1M');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [internalSelectedUserId, setInternalSelectedUserId] = useState<string | null>(null);
+  const selectedUserId = externalSelectedUserId ?? internalSelectedUserId;
+  const setSelectedUserId = onSelectedUserChange ?? setInternalSelectedUserId;
   const [sortKey, setSortKey] = useState<SortKey>('rank');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -164,7 +170,9 @@ export function LeaderboardPage({ session }: LeaderboardPageProps) {
         window={window}
         trackingStartAt={entry?.trackingStartAt}
         session={session}
+        currentUserId={currentUserId}
         onBack={() => setSelectedUserId(null)}
+        onStockClick={onStockClick}
       />
     );
   }

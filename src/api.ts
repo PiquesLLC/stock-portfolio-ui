@@ -29,6 +29,9 @@ import {
   LeaderboardWindow,
   LeaderboardResponse,
   UserInfo,
+  UserProfile,
+  ActivityEvent,
+  StockDetailsResponse,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -253,4 +256,69 @@ export async function getUsers(): Promise<UserInfo[]> {
 
 export async function getUserPortfolio(userId: string): Promise<Portfolio> {
   return fetchJson<Portfolio>(`${API_BASE_URL}/users/${userId}/portfolio`);
+}
+
+// Social endpoints
+export async function getUserProfile(userId: string, viewerId?: string): Promise<UserProfile> {
+  const params = viewerId ? `?viewerId=${viewerId}` : '';
+  return fetchJson<UserProfile>(`${API_BASE_URL}/users/${userId}/profile${params}`);
+}
+
+export async function followUser(targetUserId: string, followerId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/users/${targetUserId}/follow`, {
+    method: 'POST',
+    body: JSON.stringify({ followerId }),
+  });
+}
+
+export async function unfollowUser(targetUserId: string, followerId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/users/${targetUserId}/follow`, {
+    method: 'DELETE',
+    body: JSON.stringify({ followerId }),
+  });
+}
+
+export async function getFeed(userId: string, before?: string): Promise<{ events: ActivityEvent[] }> {
+  const params = new URLSearchParams({ userId });
+  if (before) params.append('before', before);
+  return fetchJson<{ events: ActivityEvent[] }>(`${API_BASE_URL}/social/feed?${params}`);
+}
+
+export async function getFollowers(userId: string): Promise<{ id: string; username: string; displayName: string }[]> {
+  return fetchJson(`${API_BASE_URL}/users/${userId}/followers`);
+}
+
+export async function getFollowingList(userId: string): Promise<{ id: string; username: string; displayName: string }[]> {
+  return fetchJson(`${API_BASE_URL}/users/${userId}/following`);
+}
+
+export async function getStockDetails(ticker: string): Promise<StockDetailsResponse> {
+  return fetchJson<StockDetailsResponse>(`${API_BASE_URL}/market/stock/${ticker}/details`);
+}
+
+export async function getStockQuote(ticker: string): Promise<StockDetailsResponse['quote']> {
+  return fetchJson<StockDetailsResponse['quote']>(`${API_BASE_URL}/market/quote/${ticker}`);
+}
+
+export interface IntradayCandle {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export async function getIntradayCandles(ticker: string): Promise<IntradayCandle[]> {
+  const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/intraday`);
+  return resp.candles;
+}
+
+export async function getUserIntelligence(
+  userId: string,
+  window: IntelligenceWindow = '1d'
+): Promise<PortfolioIntelligenceResponse> {
+  return fetchJson<PortfolioIntelligenceResponse>(
+    `${API_BASE_URL}/users/${userId}/intelligence?window=${window}`
+  );
 }

@@ -1,6 +1,25 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Portfolio, LeaderboardWindow, MarketSession } from '../types';
-import { getUserPortfolio } from '../api';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Portfolio, Holding, LeaderboardWindow, MarketSession, PortfolioIntelligenceResponse, IntelligenceWindow } from '../types';
+import { getUserPortfolio, getUserProfile, getUserIntelligence } from '../api';
+import { FollowButton } from './FollowButton';
+import { PortfolioIntelligence } from './PortfolioIntelligence';
+import { StockDetailView } from './StockDetailView';
+
+type HoldingSortKey = 'ticker' | 'shares' | 'price' | 'value' | 'dayPL' | 'dayChg' | 'pl' | 'plPct';
+type SortDir = 'asc' | 'desc';
+
+function getHoldingValue(h: Holding, key: HoldingSortKey): number | string {
+  switch (key) {
+    case 'ticker': return h.ticker;
+    case 'shares': return h.shares;
+    case 'price': return h.currentPrice;
+    case 'value': return h.currentValue;
+    case 'dayPL': return h.dayChange;
+    case 'dayChg': return h.dayChangePercent;
+    case 'pl': return h.profitLoss;
+    case 'plPct': return h.profitLossPercent;
+  }
+}
 
 interface UserPortfolioViewProps {
   userId: string;
@@ -9,7 +28,9 @@ interface UserPortfolioViewProps {
   window: LeaderboardWindow;
   trackingStartAt?: string;
   session?: MarketSession;
+  currentUserId?: string;
   onBack: () => void;
+  onStockClick?: (ticker: string) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -21,14 +42,70 @@ function formatPercent(value: number): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-export function UserPortfolioView({ userId, displayName, returnPct, window, trackingStartAt, session, onBack }: UserPortfolioViewProps) {
+export function UserPortfolioView({ userId, displayName, returnPct, window, trackingStartAt, session, currentUserId, onBack, onStockClick }: UserPortfolioViewProps) {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStale, setIsStale] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isFollowing, setIsFollowing] = useState<boolean | null>(null);
+  const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(null);
+  const [sortKey, setSortKey] = useState<HoldingSortKey>('ticker');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding } | null>(null);
   const lastValidPortfolio = useRef<Portfolio | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleSort = (key: HoldingSortKey) => {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir(key === 'ticker' ? 'asc' : 'desc');
+    } else {
+      setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
+    }
+  };
+
+  const sortedHoldings = useMemo(() => {
+    if (!portfolio) return [];
+    return [...portfolio.holdings].sort((a, b) => {
+      const aVal = getHoldingValue(a, sortKey);
+      const bVal = getHoldingValue(b, sortKey);
+      let cmp: number;
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        cmp = aVal.localeCompare(bVal);
+      } else {
+        cmp = (aVal as number) - (bVal as number);
+      }
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+  }, [portfolio, sortKey, sortDir]);
+
+  const sortIndicator = (key: HoldingSortKey) => {
+    if (sortKey !== key) return null;
+    return <span className="ml-1 opacity-70">{sortDir === 'desc' ? '▼' : '▲'}</span>;
+  };
+
+  const thClass = (key: HoldingSortKey, align: 'left' | 'right' = 'right') => {
+    const base = 'px-4 py-3 text-xs font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap';
+    const alignCls = align === 'right' ? 'text-right' : '';
+    const activeCls = sortKey === key ? 'text-rh-light-text dark:text-white' : 'text-rh-light-muted dark:text-rh-muted';
+    return `${base} ${alignCls} ${activeCls}`;
+  };
+
+  // Fetch follow status
+  useEffect(() => {
+    if (!currentUserId || currentUserId === userId) return;
+    getUserProfile(userId, currentUserId)
+      .then((p) => setIsFollowing(p.viewerIsFollowing))
+      .catch(() => {});
+  }, [userId, currentUserId]);
+
+  // Fetch intelligence for this user
+  useEffect(() => {
+    getUserIntelligence(userId, '1d')
+      .then(setIntelligence)
+      .catch(() => {});
+  }, [userId]);
 
   const fetchData = useCallback(async () => {
     // Skip if tab not focused
@@ -90,6 +167,17 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
     };
   }, [fetchData, session]);
 
+  if (viewingStock) {
+    return (
+      <StockDetailView
+        ticker={viewingStock.ticker}
+        holding={viewingStock.holding}
+        portfolioTotal={portfolio?.totalValue ?? 0}
+        onBack={() => setViewingStock(null)}
+      />
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Back button */}
@@ -114,6 +202,13 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
           <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-500/10 text-blue-400">
             Tracking since {new Date(trackingStartAt).toLocaleDateString()}
           </span>
+        )}
+        {currentUserId && isFollowing !== null && (
+          <FollowButton
+            targetUserId={userId}
+            currentUserId={currentUserId}
+            initialFollowing={isFollowing}
+          />
         )}
       </div>
 
@@ -173,25 +268,34 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-rh-light-border dark:border-rh-border text-left">
-                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted">Ticker</th>
-                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Shares</th>
-                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Price</th>
-                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Value</th>
-                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">Day Chg</th>
-                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">P/L</th>
-                    <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right">P/L %</th>
+                    <th className={thClass('ticker', 'left')} onClick={() => handleSort('ticker')}>Ticker{sortIndicator('ticker')}</th>
+                    <th className={thClass('shares')} onClick={() => handleSort('shares')}>{sortIndicator('shares')}Shares</th>
+                    <th className={thClass('price')} onClick={() => handleSort('price')}>{sortIndicator('price')}Price</th>
+                    <th className={thClass('value')} onClick={() => handleSort('value')}>{sortIndicator('value')}Value</th>
+                    <th className={thClass('dayPL')} onClick={() => handleSort('dayPL')}>{sortIndicator('dayPL')}Day P/L</th>
+                    <th className={thClass('dayChg')} onClick={() => handleSort('dayChg')}>{sortIndicator('dayChg')}Day %</th>
+                    <th className={thClass('pl')} onClick={() => handleSort('pl')}>{sortIndicator('pl')}P/L</th>
+                    <th className={thClass('plPct')} onClick={() => handleSort('plPct')}>{sortIndicator('plPct')}P/L %</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {portfolio.holdings.map((h) => {
+                  {sortedHoldings.map((h) => {
                     const plColor = h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red';
                     const dayColor = h.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red';
                     return (
                       <tr key={h.id} className="border-b border-rh-light-border dark:border-rh-border last:border-b-0">
-                        <td className="px-4 py-3 text-sm font-medium text-rh-light-text dark:text-rh-text">{h.ticker}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-rh-light-text dark:text-rh-text">
+                          <span
+                            className="cursor-pointer hover:text-rh-green hover:underline transition-colors"
+                            onClick={() => onStockClick ? onStockClick(h.ticker) : setViewingStock({ ticker: h.ticker, holding: h })}
+                          >{h.ticker}</span>
+                        </td>
                         <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{h.shares}</td>
                         <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{formatCurrency(h.currentPrice)}</td>
                         <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{formatCurrency(h.currentValue)}</td>
+                        <td className={`px-4 py-3 text-sm text-right ${dayColor}`}>
+                          {formatCurrency(h.dayChange)}
+                        </td>
                         <td className={`px-4 py-3 text-sm text-right ${dayColor}`}>
                           {formatPercent(h.dayChangePercent)}
                         </td>
@@ -202,6 +306,16 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Portfolio Intelligence */}
+          {intelligence && (
+            <div className="mt-6">
+              <PortfolioIntelligence
+                initialData={intelligence}
+                fetchFn={(w: IntelligenceWindow) => getUserIntelligence(userId, w)}
+              />
             </div>
           )}
         </>

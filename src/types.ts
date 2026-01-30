@@ -248,6 +248,29 @@ export interface FullSettings {
 }
 
 // Insights types
+export interface HealthCategoryDetail {
+  score: number;
+  maxScore: number;
+  calcBullets: string[];
+  evidenceBullets: string[];
+  drivers: { label: string; value: string; impact: string }[];
+  quickFixes: string[];
+}
+
+export interface HealthScoreDetails {
+  concentration: HealthCategoryDetail;
+  volatility: HealthCategoryDetail;
+  drawdown: HealthCategoryDetail;
+  diversification: HealthCategoryDetail;
+  margin: {
+    penalty: number;
+    calcBullets: string[];
+    evidenceBullets: string[];
+    drivers: { label: string; value: string; impact: string }[];
+    quickFixes: string[];
+  };
+}
+
 export interface HealthScore {
   overall: number; // 0-100
   breakdown: {
@@ -260,6 +283,7 @@ export interface HealthScore {
   reasons: string[];
   quickFixes: string[];
   partial: boolean;
+  details?: HealthScoreDetails;
 }
 
 export type AttributionWindow = '1d' | '5d' | '1m';
@@ -366,6 +390,7 @@ export interface SectorExposureEntry {
   sector: string;
   exposurePercent: number;
   exposureDollar: number;
+  tickers: { ticker: string; valueDollar: number; valuePercent: number }[];
 }
 
 export interface BetaResult {
@@ -376,6 +401,43 @@ export interface BetaResult {
   dataNote: string;
 }
 
+export interface HeroStats {
+  sectorDriver: {
+    sector: string | null;
+    percent: number;
+    label: string;
+  };
+  sectorDrag: {
+    sector: string | null;
+    percent: number;
+    label: string;
+  };
+  largestDrag: {
+    ticker: string | null;
+    lossDollar: number;
+    percent: number;
+    label: string;
+  };
+  largestDriver: {
+    ticker: string | null;
+    gainDollar: number;
+    percent: number;
+    label: string;
+  };
+  momentum: {
+    ticker: string | null;
+    streakDays: number;
+    streakPct: number;
+    label: string;
+  } | null;
+  deceleration: {
+    ticker: string | null;
+    streakDays: number;
+    streakPct: number;
+    label: string;
+  } | null;
+}
+
 export interface PortfolioIntelligenceResponse {
   window: IntelligenceWindow;
   contributors: ContributorEntry[];
@@ -384,6 +446,7 @@ export interface PortfolioIntelligenceResponse {
   beta: BetaResult | null;
   explanation: string;
   partial: boolean;
+  heroStats: HeroStats | null;
 }
 
 // Symbol search types
@@ -440,4 +503,98 @@ export interface UserInfo {
   username: string;
   displayName: string;
   createdAt: string;
+}
+
+// Social types
+export type ActivityType = 'holding_added' | 'holding_removed' | 'holding_updated';
+
+export interface ActivityPayload {
+  ticker: string;
+  shares?: number;
+  previousShares?: number;
+  averageCost?: number;
+}
+
+export interface ActivityEvent {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  type: ActivityType;
+  payload: ActivityPayload;
+  createdAt: string;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName: string;
+  createdAt: string;
+  profilePublic: boolean;
+  trackingActive: boolean;
+  leaderboardEligible: boolean;
+  followerCount: number;
+  followingCount: number;
+  viewerIsFollowing: boolean;
+  recentActivity: ActivityEvent[];
+}
+
+// Stock Detail types
+export type ChartPeriod = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y';
+
+export interface StockProfile {
+  ticker: string;
+  name: string;
+  description: string;
+  logo: string;
+  industry: string;
+  marketCapM: number;
+  ipoDate: string;
+  weburl: string;
+  country: string;
+  exchange: string;
+  phone: string;
+}
+
+export interface StockMetrics {
+  ticker: string;
+  peRatio: number | null;
+  week52High: number | null;
+  week52Low: number | null;
+  dividendYield: number | null;
+  avgVolume10D: number | null;
+  beta: number | null;
+  eps: number | null;
+}
+
+export interface StockCandles {
+  closes: number[];
+  dates: string[];
+  highs: number[];
+  lows: number[];
+  opens: number[];
+  volumes: number[];
+}
+
+export interface StockDetailsResponse {
+  ticker: string;
+  quote: {
+    ticker: string;
+    currentPrice: number;
+    change: number;
+    changePercent: number;
+    high: number;
+    low: number;
+    open: number;
+    previousClose: number;
+    timestamp: number;
+    session?: MarketSession;
+    regularClose?: number;
+    extendedPrice?: number;
+    extendedChange?: number;
+    extendedChangePercent?: number;
+  };
+  profile: StockProfile | null;
+  metrics: StockMetrics | null;
+  candles: StockCandles | null;
 }

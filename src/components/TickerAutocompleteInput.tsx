@@ -15,6 +15,7 @@ interface TickerAutocompleteInputProps {
   className?: string;
   autoFocus?: boolean;
   heldTickers?: string[]; // Tickers currently in portfolio
+  compact?: boolean; // Compact mode for header search bar
 }
 
 /**
@@ -117,6 +118,7 @@ export function TickerAutocompleteInput({
   className = '',
   autoFocus = false,
   heldTickers = [],
+  compact = false,
 }: TickerAutocompleteInputProps) {
   const [results, setResults] = useState<SymbolSearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -265,6 +267,11 @@ export function TickerAutocompleteInput({
   return (
     <div className="relative">
       <div className="relative">
+        {compact && (
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted dark:text-rh-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        )}
         <input
           ref={inputRef}
           type="text"
@@ -277,27 +284,32 @@ export function TickerAutocompleteInput({
             }
           }}
           disabled={disabled}
-          placeholder={placeholder}
+          placeholder={compact ? 'Search stocks...' : placeholder}
           autoFocus={autoFocus}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="characters"
           spellCheck={false}
-          className={`w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
-            bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text
-            focus:outline-none focus:ring-2 focus:ring-rh-green/50
-            disabled:opacity-50 disabled:cursor-not-allowed
-            ${className}`}
+          className={compact
+            ? `w-full pl-8 pr-3 py-1.5 rounded-lg border border-rh-light-border dark:border-rh-border
+              bg-rh-light-bg dark:bg-rh-dark text-sm text-rh-light-text dark:text-rh-text
+              focus:outline-none focus:ring-2 focus:ring-rh-green/50
+              placeholder:text-rh-light-muted dark:placeholder:text-rh-muted ${className}`
+            : `w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
+              bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text
+              focus:outline-none focus:ring-2 focus:ring-rh-green/50
+              disabled:opacity-50 disabled:cursor-not-allowed ${className}`
+          }
         />
         {isLoading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className={`absolute ${compact ? 'right-2.5' : 'right-3'} top-1/2 -translate-y-1/2`}>
             <div className="w-4 h-4 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
           </div>
         )}
       </div>
 
-      {/* Company name hint */}
-      {selectedCompany && !isOpen && (
+      {/* Company name hint (not in compact mode) */}
+      {!compact && selectedCompany && !isOpen && (
         <p className="mt-1 text-xs text-rh-light-muted dark:text-rh-muted truncate">
           {selectedCompany}
         </p>
@@ -307,9 +319,9 @@ export function TickerAutocompleteInput({
       {isOpen && results.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-rh-light-card dark:bg-rh-card
+          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card
             border border-rh-light-border dark:border-rh-border rounded-lg shadow-lg
-            max-h-64 overflow-y-auto"
+            max-h-64 overflow-y-auto ${compact ? 'w-80 right-0' : 'w-full'}`}
           role="listbox"
         >
           {results.map((result, index) => (
@@ -382,9 +394,7 @@ export function TickerAutocompleteInput({
       {isOpen && results.length === 0 && !isLoading && value.length >= 1 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-rh-light-card dark:bg-rh-card
-            border border-rh-light-border dark:border-rh-border rounded-lg shadow-lg
-            px-3 py-3 text-center text-sm text-rh-light-muted dark:text-rh-muted"
+          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg shadow-lg px-3 py-3 text-center text-sm text-rh-light-muted dark:text-rh-muted ${compact ? 'w-80 right-0' : 'w-full'}`}
         >
           No matches
         </div>

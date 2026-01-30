@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Portfolio, Settings, MarketSession } from './types';
-import { getPortfolio, getSettings } from './api';
+import { getPortfolio, getSettings, getUsers } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { CashBalance } from './components/CashBalance';
 import { MarginDebt } from './components/MarginDebt';
@@ -11,6 +11,11 @@ import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { InsightsPage } from './components/InsightsPage';
 import { LeaderboardPage } from './components/LeaderboardPage';
+import { FeedPage } from './components/FeedPage';
+import { UserProfileView } from './components/UserProfileView';
+import { StockDetailView } from './components/StockDetailView';
+import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
+import { Holding } from './types';
 
 // Theme utilities
 function getInitialTheme(): 'dark' | 'light' {
@@ -50,7 +55,52 @@ function formatPercent(value: number): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
+// Parse hash to restore navigation state on load/refresh
+interface NavState {
+  tab: TabType;
+  stock: string | null;
+  profile: string | null;
+  lbuser: string | null; // leaderboard selected user
+}
+
+function parseHash(): NavState {
+  const hash = window.location.hash.slice(1);
+  if (hash) {
+    const params = new URLSearchParams(hash);
+    const state: NavState = {
+      tab: (params.get('tab') || 'portfolio') as TabType,
+      stock: params.get('stock') || null,
+      profile: params.get('profile') || null,
+      lbuser: params.get('lbuser') || null,
+    };
+    sessionStorage.setItem('navState', JSON.stringify(state));
+    return state;
+  }
+  try {
+    const saved = sessionStorage.getItem('navState');
+    if (saved) {
+      const s = JSON.parse(saved);
+      return { tab: s.tab || 'portfolio', stock: s.stock || null, profile: s.profile || null, lbuser: s.lbuser || null };
+    }
+  } catch {}
+  return { tab: 'portfolio', stock: null, profile: null, lbuser: null };
+}
+
+function setHash(tab: TabType, stock?: string | null, profile?: string | null, lbuser?: string | null) {
+  const params = new URLSearchParams();
+  if (tab !== 'portfolio') params.set('tab', tab);
+  if (stock) params.set('stock', stock);
+  if (profile) params.set('profile', profile);
+  if (lbuser) params.set('lbuser', lbuser);
+  const str = params.toString();
+  window.location.hash = str ? str : '';
+  sessionStorage.setItem('navState', JSON.stringify({ tab, stock, profile, lbuser }));
+}
+
+const savedInitialNav = parseHash(); // Parse once at module load, before any React renders
+
 export default function App() {
+  const initialNav = savedInitialNav;
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,10 +111,59 @@ export default function App() {
   const [portfolioRefreshCount, setPortfolioRefreshCount] = useState(0);
   const [showExtendedHours, setShowExtendedHours] = useState(() => {
     const stored = localStorage.getItem('showExtendedHours');
-    return stored !== null ? stored === 'true' : true; // Default to showing extended hours
+    return stored !== null ? stored === 'true' : true;
   });
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
-  const [activeTab, setActiveTab] = useState<TabType>('portfolio');
+  const [activeTab, setActiveTab] = useState<TabType>(initialNav.tab);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
+  const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
+  const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
+    initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
+  );
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch current user (use first user as default since no auth)
+  useEffect(() => {
+    const stored = localStorage.getItem('currentUserId');
+    if (stored) {
+      setCurrentUserId(stored);
+    } else {
+      getUsers().then((users) => {
+        if (users.length > 0) {
+          setCurrentUserId(users[0].id);
+          localStorage.setItem('currentUserId', users[0].id);
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
+  const handleViewProfile = (userId: string) => {
+    setViewingProfileId(userId);
+  };
+
+  // Sync navigation state → URL hash
+  useEffect(() => {
+    const stockTicker = viewingStock?.ticker || null;
+    setHash(activeTab, stockTicker, viewingProfileId, leaderboardUserId);
+  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const onHashChange = () => {
+      const nav = parseHash();
+      setActiveTab(nav.tab);
+      setViewingProfileId(nav.profile);
+      setLeaderboardUserId(nav.lbuser);
+      if (nav.stock) {
+        setViewingStock(prev => prev?.ticker === nav.stock ? prev : { ticker: nav.stock!, holding: null });
+      } else {
+        setViewingStock(null);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   // Keep track of the last valid portfolio to avoid flickering
   const lastValidPortfolio = useRef<Portfolio | null>(null);
@@ -197,6 +296,20 @@ export default function App() {
             )}
           </div>
           <div className="flex items-center gap-4">
+            {/* Global Stock Search */}
+            <div className="w-52">
+              <TickerAutocompleteInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSelect={(result) => {
+                  const held = portfolio?.holdings.find(h => h.ticker.toUpperCase() === result.symbol.toUpperCase()) ?? null;
+                  setViewingStock({ ticker: result.symbol, holding: held });
+                  setSearchQuery('');
+                }}
+                heldTickers={portfolio?.holdings.map(h => h.ticker) ?? []}
+                compact
+              />
+            </div>
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -247,11 +360,36 @@ export default function App() {
       </header>
 
       {/* Navigation Tabs */}
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={(tab) => {
+        setActiveTab(tab);
+        setViewingProfileId(null);
+        setViewingStock(null);
+        setLeaderboardUserId(null);
+      }} />
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Stock Detail Overlay (works from any tab) */}
+        {viewingStock && (
+          <StockDetailView
+            ticker={viewingStock.ticker}
+            holding={viewingStock.holding}
+            portfolioTotal={portfolio?.totalAssets ?? 0}
+            onBack={() => setViewingStock(null)}
+            onHoldingAdded={() => {
+              fetchData();
+              // Update viewingStock to reflect the new holding after refresh
+              setTimeout(async () => {
+                const p = await getPortfolio();
+                const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
+                setViewingStock(prev => prev ? { ...prev, holding: held } : null);
+                setPortfolio(p);
+              }, 500);
+            }}
+          />
+        )}
+
         {/* Portfolio Tab */}
-        {activeTab === 'portfolio' && (
+        {activeTab === 'portfolio' && !viewingStock && (
           <>
             {/* Stale Data Banner - only show if quotes are completely unavailable */}
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
@@ -345,6 +483,7 @@ export default function App() {
               holdings={portfolio?.holdings ?? []}
               onUpdate={handleUpdate}
               showExtendedHours={showExtendedHours}
+              onTickerClick={(ticker, holding) => setViewingStock({ ticker, holding })}
             />
 
             {/* 6. Portfolio Projections (last section) */}
@@ -357,10 +496,37 @@ export default function App() {
         )}
 
         {/* Insights Tab */}
-        {activeTab === 'insights' && <InsightsPage />}
+        {activeTab === 'insights' && !viewingStock && <InsightsPage />}
 
         {/* Leaderboard Tab */}
-        {activeTab === 'leaderboard' && <LeaderboardPage session={portfolio?.session} />}
+        {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && (
+          <LeaderboardPage
+            session={portfolio?.session}
+            currentUserId={currentUserId}
+            onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
+            selectedUserId={leaderboardUserId}
+            onSelectedUserChange={setLeaderboardUserId}
+          />
+        )}
+
+        {/* Profile View (overlays leaderboard or feed tab) */}
+        {viewingProfileId && !viewingStock && (
+          <UserProfileView
+            userId={viewingProfileId}
+            currentUserId={currentUserId}
+            session={portfolio?.session}
+            onBack={() => setViewingProfileId(null)}
+            onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
+          />
+        )}
+
+        {/* Feed Tab */}
+        {activeTab === 'feed' && !viewingProfileId && !viewingStock && (
+          <FeedPage
+            currentUserId={currentUserId}
+            onUserClick={handleViewProfile}
+          />
+        )}
       </main>
     </div>
   );

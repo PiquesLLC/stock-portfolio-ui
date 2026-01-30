@@ -17,6 +17,7 @@ interface Props {
   holdings: Holding[];
   onUpdate: () => void;
   showExtendedHours?: boolean;
+  onTickerClick?: (ticker: string, holding: Holding) => void;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
@@ -54,7 +55,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: Props) {
+export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -438,7 +439,12 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true }: 
                 >
                   <td className="px-4 py-4 font-semibold text-rh-light-text dark:text-rh-text">
                     <div className="flex items-center gap-2">
-                      {holding.ticker}
+                      <span
+                        className={onTickerClick ? 'cursor-pointer hover:underline hover:text-rh-green transition-colors' : ''}
+                        onClick={onTickerClick ? () => onTickerClick(holding.ticker, holding) : undefined}
+                      >
+                        {holding.ticker}
+                      </span>
                       {isRepricing && !isUnavailable && (
                         <span
                           className="relative flex h-2 w-2"
