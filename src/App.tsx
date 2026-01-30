@@ -20,7 +20,17 @@ import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { Holding } from './types';
 import Hls from 'hls.js';
 
-const STREAM_URL = '/hls/cnbc/cnbcsd.m3u8';
+export interface Channel {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+}
+
+export const CHANNELS: Channel[] = [
+  { id: 'cnbc', name: 'CNBC', url: '/hls/cnbc/cnbcsd.m3u8', description: 'Business News' },
+  { id: 'bloomberg', name: 'Bloomberg US', url: 'https://www.bloomberg.com/media-manifest/streams/us.m3u8', description: 'Markets & Finance' },
+];
 
 // Theme utilities
 function getInitialTheme(): 'dark' | 'light' {
@@ -134,12 +144,14 @@ export default function App() {
     return stored !== null ? stored === 'true' : true; // default ON
   });
   const [streamActive, setStreamActive] = useState(false);
+  const [activeChannel, setActiveChannel] = useState<Channel>(CHANNELS[0]);
   const [streamStatus, setStreamStatus] = useState('Loading stream...');
   const [streamHasError, setStreamHasError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const watchVideoContainerRef = useRef<HTMLDivElement>(null);
   const miniVideoContainerRef = useRef<HTMLDivElement>(null);
+  const loadedChannelRef = useRef<string | null>(null);
 
   const handlePipToggle = (enabled: boolean) => {
     setPipEnabled(enabled);
@@ -189,13 +201,23 @@ export default function App() {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+        loadedChannelRef.current = null;
       }
       setStreamStatus('Loading stream...');
       setStreamHasError(false);
       return;
     }
 
-    // Already running — no need to re-init
+    // If channel changed, tear down and re-init
+    if (hlsRef.current && loadedChannelRef.current !== activeChannel.id) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+      loadedChannelRef.current = null;
+      setStreamStatus('Loading stream...');
+      setStreamHasError(false);
+    }
+
+    // Already running correct channel
     if (hlsRef.current) return;
 
     if (Hls.isSupported()) {
@@ -208,6 +230,7 @@ export default function App() {
         },
       });
       hlsRef.current = hls;
+      loadedChannelRef.current = activeChannel.id;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setStreamStatus('');
@@ -234,15 +257,17 @@ export default function App() {
               setStreamStatus('Stream unavailable');
               hls.destroy();
               hlsRef.current = null;
+              loadedChannelRef.current = null;
               break;
           }
         }
       });
 
-      hls.loadSource(STREAM_URL);
+      hls.loadSource(activeChannel.url);
       hls.attachMedia(video);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = STREAM_URL;
+      video.src = activeChannel.url;
+      loadedChannelRef.current = activeChannel.id;
       video.addEventListener('loadedmetadata', () => {
         setStreamStatus('');
         video.play().catch(() => {
@@ -253,7 +278,7 @@ export default function App() {
       setStreamStatus('HLS not supported in this browser');
       setStreamHasError(true);
     }
-  }, [streamActive, activeTab, showMiniPlayer]);
+  }, [streamActive, activeTab, showMiniPlayer, activeChannel]);
 
   // Fetch current user (use first user as default since no auth)
   useEffect(() => {
@@ -660,6 +685,9 @@ export default function App() {
             status={streamStatus}
             hasError={streamHasError}
             videoContainerRef={watchVideoContainerRef}
+            channels={CHANNELS}
+            activeChannel={activeChannel}
+            onChannelChange={setActiveChannel}
           />
         )}
 
@@ -686,6 +714,7 @@ export default function App() {
       {/* Mini Player — shown when stream active + PiP enabled + not on Watch tab */}
       {showMiniPlayer && (
         <MiniPlayer
+          channelName={activeChannel.name}
           onClose={handleMiniPlayerClose}
           onExpand={handleMiniPlayerExpand}
         >

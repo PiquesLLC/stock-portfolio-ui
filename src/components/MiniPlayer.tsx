@@ -1,10 +1,11 @@
 interface MiniPlayerProps {
+  channelName: string;
   onClose: () => void;
   onExpand: () => void;
   children: React.ReactNode;
 }
 
-export function MiniPlayer({ onClose, onExpand, children }: MiniPlayerProps) {
+export function MiniPlayer({ channelName, onClose, onExpand, children }: MiniPlayerProps) {
   return (
     <div className="fixed bottom-4 right-4 z-50 w-80 rounded-xl overflow-hidden shadow-2xl border border-rh-light-border dark:border-rh-border bg-black">
       {/* Header bar */}
@@ -17,7 +18,7 @@ export function MiniPlayer({ onClose, onExpand, children }: MiniPlayerProps) {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
           </span>
-          <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text">CNBC Live</span>
+          <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text">{channelName} Live</span>
         </button>
         <div className="flex items-center gap-1">
           {/* Expand button */}

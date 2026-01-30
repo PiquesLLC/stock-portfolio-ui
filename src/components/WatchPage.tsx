@@ -1,12 +1,20 @@
+import { Channel } from '../App';
+
 interface WatchPageProps {
   pipEnabled: boolean;
   onPipToggle: (enabled: boolean) => void;
   status: string;
   hasError: boolean;
   videoContainerRef: React.Ref<HTMLDivElement>;
+  channels: Channel[];
+  activeChannel: Channel;
+  onChannelChange: (channel: Channel) => void;
 }
 
-export function WatchPage({ pipEnabled, onPipToggle, status, hasError, videoContainerRef }: WatchPageProps) {
+export function WatchPage({
+  pipEnabled, onPipToggle, status, hasError, videoContainerRef,
+  channels, activeChannel, onChannelChange,
+}: WatchPageProps) {
   return (
     <div className="max-w-5xl mx-auto py-6">
       <div className="flex items-center justify-between mb-4">
@@ -34,16 +42,51 @@ export function WatchPage({ pipEnabled, onPipToggle, status, hasError, videoCont
         </label>
       </div>
 
+      {/* Channel selector */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+        {channels.map((ch) => (
+          <button
+            key={ch.id}
+            onClick={() => onChannelChange(ch)}
+            className={`flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-all ${
+              activeChannel.id === ch.id
+                ? 'bg-rh-light-card dark:bg-rh-card border-rh-green shadow-sm'
+                : 'bg-rh-light-bg dark:bg-rh-dark border-rh-light-border dark:border-rh-border hover:border-rh-light-text/30 dark:hover:border-rh-muted/30'
+            }`}
+          >
+            {/* Live dot for active channel */}
+            {activeChannel.id === ch.id && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+            )}
+            <div className="text-left">
+              <div className={`text-sm font-semibold ${
+                activeChannel.id === ch.id
+                  ? 'text-rh-light-text dark:text-rh-text'
+                  : 'text-rh-light-muted dark:text-rh-muted'
+              }`}>
+                {ch.name}
+              </div>
+              <div className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+                {ch.description}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Video player */}
       <div className="bg-black rounded-xl overflow-hidden border border-rh-light-border dark:border-rh-border">
         <div className="flex items-center gap-2 px-4 py-2 bg-rh-light-card dark:bg-rh-card border-b border-rh-light-border dark:border-rh-border">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
           </span>
-          <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">CNBC Live</span>
+          <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{activeChannel.name} Live</span>
         </div>
         <div className="relative">
-          {/* Video gets moved here by App via DOM manipulation */}
           <div ref={videoContainerRef} className="aspect-video bg-black" />
           {status && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
