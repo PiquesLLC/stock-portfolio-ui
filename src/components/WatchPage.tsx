@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Channel } from '../App';
 import { WatchHeadlines } from './WatchHeadlines';
-import { StocksMentionedLive } from './StocksMentionedLive';
+import { LiveHeadlines } from './LiveHeadlines';
 
 interface WatchPageProps {
   pipEnabled: boolean;
@@ -19,8 +19,6 @@ export function WatchPage({
   pipEnabled, onPipToggle, status, hasError, videoContainerRef,
   channels, activeChannel, onChannelChange, onTickerClick,
 }: WatchPageProps) {
-  const [mentionedTickers, setMentionedTickers] = useState<string[]>([]);
-
   const handleTickerClick = useCallback((ticker: string) => {
     onTickerClick?.(ticker);
   }, [onTickerClick]);
@@ -60,7 +58,7 @@ export function WatchPage({
       </div>
 
       {/* Channel bar */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 pl-1 scrollbar-hide">
         {channels.map((ch) => {
           const isActive = activeChannel.id === ch.id;
           return (
@@ -178,14 +176,16 @@ export function WatchPage({
       </div>
       </div>
 
+      {/* Live headlines under video */}
+      <LiveHeadlines
+        channel={activeChannel.id}
+        isLive={!hasError}
+        onTickerClick={handleTickerClick}
+      />
+
       {/* Headlines + Mentioned Stocks */}
       <div className="mt-6 space-y-4">
         <WatchHeadlines
-          onTickerClick={handleTickerClick}
-          onTickersExtracted={setMentionedTickers}
-        />
-        <StocksMentionedLive
-          tickers={mentionedTickers}
           onTickerClick={handleTickerClick}
         />
       </div>
