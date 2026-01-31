@@ -62,6 +62,27 @@ export interface DetectedTicker {
   count: number;
 }
 
+/** Extract tickers from a single string. Returns first match or null. */
+export function detectTickersFromText(text: string): string | null {
+  const found: string[] = [];
+
+  let m: RegExpExecArray | null;
+  const re = new RegExp(TICKER_RE.source, 'g');
+  while ((m = re.exec(text)) !== null) {
+    const t = (m[1] || m[2]).toUpperCase();
+    if (KNOWN.has(t) && !BLACKLIST.has(t)) { found.push(t); break; }
+  }
+  if (found.length > 0) return found[0];
+
+  const nameRe = new RegExp(COMPANY_RE.source, 'gi');
+  while ((m = nameRe.exec(text)) !== null) {
+    const ticker = COMPANY_MAP[m[1].toLowerCase()];
+    if (ticker) return ticker;
+  }
+
+  return null;
+}
+
 /** Extract tickers from a set of headline strings, sorted by frequency. */
 export function useTickerDetection(headlines: string[]): DetectedTicker[] {
   return useMemo(() => {

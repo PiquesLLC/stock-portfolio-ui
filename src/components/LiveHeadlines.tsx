@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useHeadlineParser } from './useHeadlineParser';
-import { useTickerDetection } from './useTickerDetection';
+import { useTickerDetection, detectTickersFromText } from './useTickerDetection';
 
 interface LiveHeadlinesProps {
   channel: string;
@@ -53,27 +53,56 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
           </p>
         ) : (
           <div className="space-y-1">
-            {visible.map((h, i) => (
-              <div
-                key={h.id}
-                className="flex items-start gap-2 pl-0.5"
-                style={{
-                  animation: 'liveHeadlineIn 180ms ease-out both',
-                  animationDelay: `${i * 40}ms`,
-                }}
-              >
-                <span className="flex-shrink-0 mt-[5px] h-1 w-1 rounded-full bg-white/20" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-[13px] text-white/60 leading-snug line-clamp-1">
-                    {h.text}
-                  </span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-medium text-white/25">{h.source}</span>
-                    <span className="text-[10px] tabular-nums text-white/20">{timeAgo(h.timestamp)}</span>
+            {visible.map((h, i) => {
+              const ticker = detectTickersFromText(h.text);
+              const handleClick = () => {
+                // Open article tab, then immediately pull focus back to our app
+                const newTab = window.open(h.url, '_blank', 'noopener,noreferrer');
+                // Refocus our window after a frame so the tab is created but we stay here
+                requestAnimationFrame(() => {
+                  window.focus();
+                  if (ticker) onTickerClick(ticker);
+                });
+              };
+              return (
+                <div
+                  key={h.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleClick}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
+                  className="flex items-start gap-2 pl-0.5 rounded-lg transition-colors duration-150
+                    cursor-pointer hover:bg-white/[0.04] -mx-1.5 px-1.5"
+                  style={{
+                    animation: 'liveHeadlineIn 180ms ease-out both',
+                    animationDelay: `${i * 40}ms`,
+                  }}
+                >
+                  <span className="flex-shrink-0 mt-[5px] h-1 w-1 rounded-full bg-white/20" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] text-white/60 leading-snug line-clamp-1">
+                      {h.text}
+                    </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] font-medium text-white/25">{h.source}</span>
+                      <span className="text-[10px] tabular-nums text-white/20">{timeAgo(h.timestamp)}</span>
+                      <a
+                        href={h.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-white/20 hover:text-white/50 transition-colors"
+                        title="Read article"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

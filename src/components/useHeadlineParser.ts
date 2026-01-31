@@ -4,32 +4,33 @@ export interface LiveHeadline {
   id: string;
   text: string;
   source: string;
+  url: string;
   timestamp: number; // unix ms
 }
 
 // Mock transcript headlines — structured so this can be swapped with
 // live captions API, speech-to-text, or CNBC transcript feed later.
-const MOCK_HEADLINES: { text: string; source: string }[] = [
-  { text: 'Treasury yields rise as Fed officials signal higher-for-longer rates', source: 'CNBC' },
-  { text: 'Nvidia surges on data center demand as AI spending accelerates', source: 'Bloomberg' },
-  { text: 'Oil prices climb after OPEC+ signals deeper production cuts', source: 'CNBC' },
-  { text: 'Apple announces $110B share buyback, largest in corporate history', source: 'Bloomberg' },
-  { text: 'Regional banks under pressure as commercial real estate concerns mount', source: 'CNBC' },
-  { text: 'Fed Chair Powell: "We need greater confidence inflation is moving toward 2%"', source: 'CNBC' },
-  { text: 'Semiconductor stocks rally on strong TSMC earnings beat', source: 'Bloomberg' },
-  { text: 'Bitcoin crosses $100K as institutional inflows hit record levels', source: 'Yahoo' },
-  { text: 'Tesla shares volatile after mixed Q4 delivery numbers', source: 'CNBC' },
-  { text: 'Goldman Sachs raises S&P 500 year-end target to 6,500', source: 'Bloomberg' },
-  { text: 'China tariff escalation rattles markets, Dow drops 400 points', source: 'CNBC' },
-  { text: 'Microsoft Azure revenue beats estimates, cloud growth accelerates', source: 'Bloomberg' },
-  { text: 'CPI comes in hotter than expected at 3.5%, markets sell off', source: 'CNBC' },
-  { text: 'Amazon expands same-day delivery network, logistics costs decline', source: 'Yahoo' },
-  { text: 'Palantir wins $480M Pentagon contract, shares jump 12%', source: 'Bloomberg' },
-  { text: 'Retail sales stronger than forecast, consumer spending resilient', source: 'CNBC' },
-  { text: 'Broadcom guidance lifts chip sector, SOXX up 3%', source: 'Bloomberg' },
-  { text: 'JPMorgan CEO Jamie Dimon warns of persistent inflation risks', source: 'CNBC' },
-  { text: 'Meta AI investments weigh on margins but revenue tops estimates', source: 'Bloomberg' },
-  { text: 'Crude oil spikes on Middle East supply disruption fears', source: 'Yahoo' },
+const MOCK_HEADLINES: { text: string; source: string; url: string }[] = [
+  { text: 'Treasury yields rise as Fed officials signal higher-for-longer rates', source: 'CNBC', url: 'https://www.cnbc.com/bonds/' },
+  { text: 'Nvidia surges on data center demand as AI spending accelerates', source: 'Bloomberg', url: 'https://www.bloomberg.com/quote/NVDA:US' },
+  { text: 'Oil prices climb after OPEC+ signals deeper production cuts', source: 'CNBC', url: 'https://www.cnbc.com/energy/' },
+  { text: 'Apple announces $110B share buyback, largest in corporate history', source: 'Bloomberg', url: 'https://www.bloomberg.com/quote/AAPL:US' },
+  { text: 'Regional banks under pressure as commercial real estate concerns mount', source: 'CNBC', url: 'https://www.cnbc.com/finance/' },
+  { text: 'Fed Chair Powell: "We need greater confidence inflation is moving toward 2%"', source: 'CNBC', url: 'https://www.cnbc.com/federal-reserve/' },
+  { text: 'Semiconductor stocks rally on strong TSMC earnings beat', source: 'Bloomberg', url: 'https://www.bloomberg.com/markets/sectors/technology' },
+  { text: 'Bitcoin crosses $100K as institutional inflows hit record levels', source: 'Yahoo', url: 'https://finance.yahoo.com/crypto/' },
+  { text: 'Tesla shares volatile after mixed Q4 delivery numbers', source: 'CNBC', url: 'https://www.cnbc.com/quotes/TSLA' },
+  { text: 'Goldman Sachs raises S&P 500 year-end target to 6,500', source: 'Bloomberg', url: 'https://www.bloomberg.com/markets' },
+  { text: 'China tariff escalation rattles markets, Dow drops 400 points', source: 'CNBC', url: 'https://www.cnbc.com/world-markets/' },
+  { text: 'Microsoft Azure revenue beats estimates, cloud growth accelerates', source: 'Bloomberg', url: 'https://www.bloomberg.com/quote/MSFT:US' },
+  { text: 'CPI comes in hotter than expected at 3.5%, markets sell off', source: 'CNBC', url: 'https://www.cnbc.com/economy/' },
+  { text: 'Amazon expands same-day delivery network, logistics costs decline', source: 'Yahoo', url: 'https://finance.yahoo.com/quote/AMZN/' },
+  { text: 'Palantir wins $480M Pentagon contract, shares jump 12%', source: 'Bloomberg', url: 'https://www.bloomberg.com/quote/PLTR:US' },
+  { text: 'Retail sales stronger than forecast, consumer spending resilient', source: 'CNBC', url: 'https://www.cnbc.com/economy/' },
+  { text: 'Broadcom guidance lifts chip sector, SOXX up 3%', source: 'Bloomberg', url: 'https://www.bloomberg.com/markets/sectors/technology' },
+  { text: 'JPMorgan CEO Jamie Dimon warns of persistent inflation risks', source: 'CNBC', url: 'https://www.cnbc.com/quotes/JPM' },
+  { text: 'Meta AI investments weigh on margins but revenue tops estimates', source: 'Bloomberg', url: 'https://www.bloomberg.com/quote/META:US' },
+  { text: 'Crude oil spikes on Middle East supply disruption fears', source: 'Yahoo', url: 'https://finance.yahoo.com/commodities/' },
 ];
 
 const HEADLINE_TTL = 60_000; // keep headlines for 60 seconds
@@ -54,6 +55,7 @@ export function useHeadlineParser(channel: string, isLive: boolean) {
       id: `lh-${++idCounter}`,
       text: mock.text,
       source: mock.source,
+      url: mock.url,
       timestamp: Date.now(),
     };
 
