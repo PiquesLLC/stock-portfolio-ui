@@ -47,6 +47,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
       ...options?.headers,
     },
   });
@@ -333,6 +334,11 @@ export interface IntradayCandle {
 
 export async function getIntradayCandles(ticker: string): Promise<IntradayCandle[]> {
   const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/intraday`);
+  return resp.candles;
+}
+
+export async function getHourlyCandles(ticker: string, period: '1W' | '1M'): Promise<IntradayCandle[]> {
+  const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/hourly?period=${period}`);
   return resp.candles;
 }
 

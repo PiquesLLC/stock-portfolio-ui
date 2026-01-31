@@ -5,6 +5,7 @@ import { IntradayCandle } from '../api';
 interface Props {
   candles: StockCandles | null;
   intradayCandles?: IntradayCandle[];
+  hourlyCandles?: IntradayCandle[];
   livePrices: { time: string; price: number }[];
   selectedPeriod: ChartPeriod;
   onPeriodChange: (period: ChartPeriod) => void;
@@ -24,6 +25,7 @@ interface DataPoint {
 function buildPoints(
   candles: StockCandles | null,
   intradayCandles: IntradayCandle[] | undefined,
+  hourlyCandles: IntradayCandle[] | undefined,
   livePrices: { time: string; price: number }[],
   period: ChartPeriod,
   currentPrice: number,
@@ -39,18 +41,14 @@ function buildPoints(
           price: c.close,
         };
       });
-      // Prepend midnight point using previous close so chart starts at 12:00 AM
+      // Prepend a point at previous close just before the first candle
+      // so the chart starts with a flat line from the open
       if (pts.length > 0) {
-        const midnight = new Date(pts[0].time);
-        midnight.setHours(0, 0, 0, 0);
-        const midnightMs = midnight.getTime();
-        if (pts[0].time - midnightMs > 60000) {
-          pts.unshift({
-            time: midnightMs,
-            label: '12:00 AM',
-            price: previousClose,
-          });
-        }
+        pts.unshift({
+          time: pts[0].time - 1000,
+          label: pts[0].label,
+          price: previousClose,
+        });
       }
       return pts;
     }
@@ -70,6 +68,21 @@ function buildPoints(
     return pts;
   }
 
+  // Use hourly candles for 1W/1M if available; return empty while waiting to avoid flash
+  if (period === '1W' || period === '1M') {
+    if (hourlyCandles && hourlyCandles.length > 0) {
+      return hourlyCandles.map(c => {
+        const d = new Date(c.time);
+        return {
+          time: d.getTime(),
+          label: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+          price: c.close,
+        };
+      });
+    }
+    return []; // Don't fall through to daily data
+  }
+
   if (!candles || candles.closes.length === 0) return [];
 
   const now = new Date();
@@ -81,12 +94,13 @@ function buildPoints(
     case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
     case '1Y': default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
   }
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
 
   const pts: DataPoint[] = [];
   for (let i = 0; i < candles.dates.length; i++) {
     if (candles.dates[i] >= cutoffStr) {
-      const d = new Date(candles.dates[i]);
+      // Parse as local noon to avoid UTC date-shift in western timezones
+      const d = new Date(candles.dates[i] + 'T12:00:00');
       pts.push({
         time: d.getTime(),
         label: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
@@ -97,22 +111,62 @@ function buildPoints(
   return pts;
 }
 
+// ── SMA calculation ──────────────────────────────────────────────
+const MA_PERIODS = [5, 10, 50, 100, 200] as const;
+type MAPeriod = typeof MA_PERIODS[number];
+
+const MA_COLORS: Record<MAPeriod, string> = {
+  5: '#F59E0B',   // amber
+  10: '#8B5CF6',  // violet
+  50: '#3B82F6',  // blue
+  100: '#EC4899', // pink
+  200: '#10B981', // emerald
+};
+
+function calcSMA(prices: number[], period: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  let sum = 0;
+  for (let i = 0; i < prices.length; i++) {
+    sum += prices[i];
+    if (i >= period) sum -= prices[i - period];
+    result.push(i >= period - 1 ? sum / period : null);
+  }
+  return result;
+}
+
 const CHART_W = 800;
 const CHART_H = 280;
 const PAD_TOP = 20;
 const PAD_BOTTOM = 30;
-const PAD_LEFT = 40;
-const PAD_RIGHT = 10;
+const PAD_LEFT = 0;
+const PAD_RIGHT = 0;
 
-export function StockPriceChart({ candles, intradayCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, onHoverPrice }: Props) {
+export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, onHoverPrice }: Props) {
   const points = useMemo(
-    () => buildPoints(candles, intradayCandles, livePrices, selectedPeriod, currentPrice, previousClose),
-    [candles, intradayCandles, livePrices, selectedPeriod, currentPrice, previousClose],
+    () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
+    [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
   );
 
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [enabledMAs, setEnabledMAs] = useState<Set<MAPeriod>>(() => {
+    try {
+      const saved = localStorage.getItem('stockChartMAs');
+      if (saved) return new Set(JSON.parse(saved) as MAPeriod[]);
+    } catch { /* ignore */ }
+    return new Set();
+  });
   const svgRef = useRef<SVGSVGElement>(null);
   const yRangeRef = useRef<{ min: number; max: number; period: string } | null>(null);
+
+  const toggleMA = useCallback((period: MAPeriod) => {
+    setEnabledMAs(prev => {
+      const next = new Set(prev);
+      if (next.has(period)) next.delete(period);
+      else next.add(period);
+      localStorage.setItem('stockChartMAs', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   const referencePrice = selectedPeriod === '1D' ? previousClose : (points.length > 0 ? points[0].price : currentPrice);
   const hoverPrice = hoverIndex !== null ? points[hoverIndex]?.price : null;
@@ -120,25 +174,84 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
   const isGain = effectivePrice >= referencePrice;
   const lineColor = isGain ? '#00C805' : '#FF3B30';
 
-  // Compute stable Y-axis range
+  // Pre-compute visible MA values — computed on the ACTUAL displayed candles per timeframe
+  const visibleMaData = useMemo(() => {
+    const result: { period: MAPeriod; values: (number | null)[] }[] = [];
+
+    if (selectedPeriod === '1D') {
+      // Short MAs (5, 10): compute on intraday candles for a flowing line
+      // Long MAs (50, 100, 200): use daily history → flat horizontal line (like Robinhood)
+      const hasIntraday = intradayCandles && intradayCandles.length > 0;
+      const hasDaily = candles && candles.closes.length > 0;
+
+      for (const ma of MA_PERIODS) {
+        if (ma <= 10 && hasIntraday) {
+          const prices = intradayCandles!.map(c => c.close);
+          const sma = calcSMA(prices, ma);
+          result.push({ period: ma, values: [null, ...sma] });
+        } else if (hasDaily) {
+          // Flat line from latest daily SMA value
+          const sma = calcSMA(candles!.closes, ma);
+          let latest: number | null = null;
+          for (let i = sma.length - 1; i >= 0; i--) {
+            if (sma[i] !== null) { latest = sma[i]; break; }
+          }
+          result.push({ period: ma, values: points.map(() => latest) });
+        } else {
+          result.push({ period: ma, values: points.map(() => null) });
+        }
+      }
+      return result;
+    }
+
+    // For all non-1D timeframes: compute MA on full daily candle history,
+    // then map each visible point to its daily MA value by date.
+    // This ensures MA50/100/200 start from the left edge (years of history behind them).
+    if (!candles || candles.closes.length === 0) return [];
+    const dateToFullIdx = new Map<string, number>();
+    for (let i = 0; i < candles.dates.length; i++) {
+      dateToFullIdx.set(candles.dates[i], i);
+    }
+    const pointFullIndices = points.map(p => {
+      const d = new Date(p.time);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return dateToFullIdx.get(dateStr);
+    });
+    for (const ma of MA_PERIODS) {
+      const sma = calcSMA(candles.closes, ma);
+      const values: (number | null)[] = pointFullIndices.map(fullIdx =>
+        fullIdx !== undefined ? sma[fullIdx] : null
+      );
+      result.push({ period: ma, values });
+    }
+    return result;
+  }, [candles, intradayCandles, hourlyCandles, points, selectedPeriod]);
+
+  // Compute stable Y-axis range (includes enabled MA values)
   const { paddedMin, paddedMax } = useMemo(() => {
     const prices = points.map(p => p.price);
     let minP = Math.min(...prices, referencePrice);
     let maxP = Math.max(...prices, referencePrice);
+
+    // Include enabled MA values in Y range so MA lines are visible
+    if (enabledMAs.size > 0) {
+      for (const ma of visibleMaData) {
+        if (!enabledMAs.has(ma.period)) continue;
+        for (const val of ma.values) {
+          if (val !== null) { minP = Math.min(minP, val); maxP = Math.max(maxP, val); }
+        }
+      }
+    }
+
     if (maxP === minP) { maxP += 1; minP -= 1; }
 
     if (selectedPeriod === '1D') {
-      // Minimum 3% range around reference to prevent tiny moves from rescaling
-      const minRange = referencePrice * 0.03;
+      // Minimum 0.5% range to prevent flat-line appearance, but tight enough for dramatic moves
+      const minRange = referencePrice * 0.005;
       if (maxP - minP < minRange) {
         const mid = (maxP + minP) / 2;
         minP = mid - minRange / 2;
         maxP = mid + minRange / 2;
-      }
-      // Only expand Y range, never shrink within session
-      if (yRangeRef.current?.period === '1D') {
-        minP = Math.min(minP, yRangeRef.current.min);
-        maxP = Math.max(maxP, yRangeRef.current.max);
       }
       yRangeRef.current = { min: minP, max: maxP, period: '1D' };
     } else {
@@ -146,20 +259,33 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
     }
     const range = maxP - minP;
     return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
-  }, [points, referencePrice, selectedPeriod]);
+  }, [points, referencePrice, selectedPeriod, visibleMaData, enabledMAs]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
   const plotH = CHART_H - PAD_TOP - PAD_BOTTOM;
 
-  // For 1D, use time-based x positioning anchored to midnight-to-midnight
+  // For 1D, use time-based x positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   const is1D = selectedPeriod === '1D' && points.length > 1;
   let dayStartMs = 0;
   let dayEndMs = 0;
   if (is1D) {
-    const d = new Date(points[0].time);
-    d.setHours(0, 0, 0, 0);
-    dayStartMs = d.getTime();
-    dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
+    // Get the date in ET timezone (YYYY-MM-DD)
+    const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+      .format(new Date(points[0].time));
+    // Create dates at the ET times we want, using America/New_York
+    // Pre-market opens at 4:00 AM ET = 09:00 UTC (EST) or 08:00 UTC (EDT)
+    // AH closes at 8:00 PM ET = 01:00+1 UTC (EST) or 00:00+1 UTC (EDT)
+    // We can compute this by creating a UTC noon date and measuring the ET offset
+    const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+    const noonEtStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+    }).format(noonUtc);
+    const noonEtH = parseInt(noonEtStr.split(':')[0]);
+    // ET offset from UTC in ms: if noonEtH=7, offset is -5h (EST); if 8, offset is -4h (EDT)
+    const etOffsetMs = (noonEtH - 12) * 3600000;
+    // 4 AM ET in UTC: etDateStr 04:00 ET = etDateStr 04:00 - etOffsetMs (etOffset is negative, so subtracting adds)
+    dayStartMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs;
+    dayEndMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;
   }
   const dayRangeMs = dayEndMs - dayStartMs;
   const toX = (i: number) => {
@@ -178,6 +304,138 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
     + ` L${toX(points.length - 1).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`
     + ` L${toX(0).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)} Z`;
 
+  // Monotone cubic interpolation (Fritsch–Carlson) — handles non-uniform x-spacing,
+  // never overshoots, never pulls back at endpoints, always passes through every point.
+  const monotonePath = (pts: { x: number; y: number }[]): string => {
+    if (pts.length === 0) return '';
+    if (pts.length === 1) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    if (pts.length === 2) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)}`;
+
+    const n = pts.length;
+    // Step 1: compute secants (deltas)
+    const dx: number[] = [];
+    const dy: number[] = [];
+    const m: number[] = []; // slopes of secant lines
+    for (let i = 0; i < n - 1; i++) {
+      dx.push(pts[i + 1].x - pts[i].x);
+      dy.push(pts[i + 1].y - pts[i].y);
+      m.push(dx[i] === 0 ? 0 : dy[i] / dx[i]);
+    }
+
+    // Step 2: compute tangent slopes using Fritsch–Carlson
+    const tangent: number[] = new Array(n);
+    tangent[0] = m[0];
+    tangent[n - 1] = m[n - 2];
+    for (let i = 1; i < n - 1; i++) {
+      if (m[i - 1] * m[i] <= 0) {
+        tangent[i] = 0; // sign change → flat tangent (monotone constraint)
+      } else {
+        tangent[i] = (m[i - 1] + m[i]) / 2;
+      }
+    }
+
+    // Step 3: enforce monotonicity (Fritsch–Carlson §4)
+    for (let i = 0; i < n - 1; i++) {
+      if (m[i] === 0) {
+        tangent[i] = 0;
+        tangent[i + 1] = 0;
+      } else {
+        const alpha = tangent[i] / m[i];
+        const beta = tangent[i + 1] / m[i];
+        // Restrict to circle of radius 3 to prevent overshoot
+        const s = alpha * alpha + beta * beta;
+        if (s > 9) {
+          const tau = 3 / Math.sqrt(s);
+          tangent[i] = tau * alpha * m[i];
+          tangent[i + 1] = tau * beta * m[i];
+        }
+      }
+    }
+
+    // Step 4: build cubic bezier path
+    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < n - 1; i++) {
+      const seg = dx[i] / 3;
+      const cp1x = pts[i].x + seg;
+      const cp1y = pts[i].y + tangent[i] * seg;
+      const cp2x = pts[i + 1].x - seg;
+      const cp2y = pts[i + 1].y - tangent[i + 1] * seg;
+      d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pts[i + 1].x.toFixed(1)},${pts[i + 1].y.toFixed(1)}`;
+    }
+    return d;
+  };
+
+  // For hourly views, build interpolated MA values so the line transitions smoothly between days
+  const useHourly = (selectedPeriod === '1W' || selectedPeriod === '1M') && hourlyCandles && hourlyCandles.length > 0;
+
+  const interpolatedMaData = useMemo(() => {
+    if (!useHourly || visibleMaData.length === 0) return null;
+    // Build day boundaries: for each day, find first/last point index and the daily MA value
+    const dayInfos: { key: string; first: number; last: number; maVal: (number | null) }[][] = [];
+    for (const ma of visibleMaData) {
+      const days: { key: string; first: number; last: number; maVal: number | null }[] = [];
+      const dayMap = new Map<string, { first: number; last: number; val: number | null }>();
+      for (let i = 0; i < ma.values.length; i++) {
+        const d = new Date(points[i].time);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const existing = dayMap.get(key);
+        if (!existing) {
+          dayMap.set(key, { first: i, last: i, val: ma.values[i] });
+        } else {
+          existing.last = i;
+        }
+      }
+      for (const [key, info] of dayMap) {
+        days.push({ key, first: info.first, last: info.last, maVal: info.val });
+      }
+      dayInfos.push(days);
+    }
+
+    // For each MA, interpolate values across hourly points
+    return visibleMaData.map((ma, maIdx) => {
+      const days = dayInfos[maIdx];
+      const interp = new Array<number | null>(ma.values.length).fill(null);
+      for (let di = 0; di < days.length; di++) {
+        const day = days[di];
+        if (day.maVal === null) continue;
+        const prevVal = di > 0 && days[di - 1].maVal !== null ? days[di - 1].maVal! : day.maVal;
+        const nextVal = di < days.length - 1 && days[di + 1].maVal !== null ? days[di + 1].maVal! : day.maVal;
+        // Interpolate from prevVal→thisVal over first half, thisVal→nextVal over second half
+        for (let i = day.first; i <= day.last; i++) {
+          const t = day.last > day.first ? (i - day.first) / (day.last - day.first) : 0.5;
+          // Smooth blend: first half transitions from previous day's value, second half toward next
+          if (t <= 0.5) {
+            const blend = t * 2; // 0→1 over first half
+            interp[i] = prevVal + (day.maVal - prevVal) * (0.5 + blend * 0.5);
+          } else {
+            const blend = (t - 0.5) * 2; // 0→1 over second half
+            interp[i] = day.maVal + (nextVal - day.maVal) * blend * 0.5;
+          }
+        }
+      }
+      return { period: ma.period, values: interp };
+    });
+  }, [useHourly, visibleMaData, points]);
+
+  // MA SVG paths — monotone cubic interpolation for all timeframes
+  const maPaths = useMemo(() => {
+    const result: { period: MAPeriod; d: string; lastPt?: { x: number; y: number } }[] = [];
+    const maSource = useHourly && interpolatedMaData ? interpolatedMaData : visibleMaData;
+    for (const ma of maSource) {
+      if (!enabledMAs.has(ma.period)) continue;
+      const pts: { x: number; y: number }[] = [];
+      for (let i = 0; i < ma.values.length; i++) {
+        const val = ma.values[i];
+        if (val === null) continue;
+        pts.push({ x: toX(i), y: toY(val) });
+      }
+      const d = monotonePath(pts);
+      const lastPt = pts.length > 0 ? pts[pts.length - 1] : undefined;
+      if (d) result.push({ period: ma.period, d, lastPt });
+    }
+    return result;
+  }, [visibleMaData, interpolatedMaData, enabledMAs, points, selectedPeriod, useHourly]);
+
   // Reference line (previous close for 1D, first price for others)
   const refY = toY(referencePrice);
 
@@ -185,18 +443,28 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
   const timeLabels: { label: string; x: number }[] = [];
   if (points.length > 1) {
     if (selectedPeriod === '1D') {
-      // Fixed time markers for 1D chart (midnight-to-midnight)
-      const fixedHours = [
-        { h: 4, m: 0, label: '4 AM' },
-        { h: 9, m: 30, label: '9:30 AM' },
-        { h: 12, m: 0, label: '12 PM' },
-        { h: 16, m: 0, label: '4 PM' },
-        { h: 20, m: 0, label: '8 PM' },
+      // Session boundaries in ET, positioned using dayStartMs/dayEndMs
+      const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+        .format(new Date(points[0].time));
+      const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+      const noonEtStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+      }).format(noonUtc);
+      const noonEtH = parseInt(noonEtStr.split(':')[0]);
+      const etOffsetMs = (noonEtH - 12) * 3600000;
+
+      const etSessions = [
+        { etH: 4, etM: 0 },   // Pre-market opens
+        { etH: 9, etM: 30 },  // Market opens
+        { etH: 16, etM: 0 },  // Market closes
+        { etH: 20, etM: 0 },  // After-hours closes
       ];
-      for (const fh of fixedHours) {
-        const ratio = (fh.h * 60 + fh.m) / (24 * 60);
+      for (const s of etSessions) {
+        const ms = new Date(`${etDateStr}T${String(s.etH).padStart(2, '0')}:${String(s.etM).padStart(2, '0')}:00Z`).getTime() - etOffsetMs;
+        const ratio = (ms - dayStartMs) / dayRangeMs;
         const x = PAD_LEFT + ratio * plotW;
-        timeLabels.push({ label: fh.label, x });
+        const label = new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        timeLabels.push({ label, x });
       }
     } else {
       const maxTimeLabels = 5;
@@ -249,13 +517,27 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
   const hoverY = hoverIndex !== null ? toY(points[hoverIndex].price) : null;
   const hoverLabel = hoverIndex !== null ? points[hoverIndex].label : null;
 
+  // MA values at hovered point
+  const hoverMaValues = useMemo(() => {
+    if (hoverIndex === null || enabledMAs.size === 0) return [];
+    const result: { period: MAPeriod; value: number; color: string }[] = [];
+    for (const ma of visibleMaData) {
+      if (!enabledMAs.has(ma.period)) continue;
+      const val = ma.values[hoverIndex];
+      if (val !== null) {
+        result.push({ period: ma.period, value: val, color: MA_COLORS[ma.period] });
+      }
+    }
+    return result;
+  }, [hoverIndex, enabledMAs, visibleMaData]);
+
   return (
     <div>
       <div className="relative w-full" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-          className="w-full h-full cursor-crosshair"
+          className="w-full h-full overflow-visible"
           preserveAspectRatio="none"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
@@ -274,16 +556,10 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
           )}
 
           {/* Market open/close session dividers for 1D */}
-          {hasData && is1D && [
-            { h: 9, m: 30 }, // Market open
-            { h: 16, m: 0 }, // Market close
-          ].map(({ h, m }) => {
-            const x = PAD_LEFT + ((h * 60 + m) / (24 * 60)) * plotW;
-            return (
-              <line key={`session-${h}`} x1={x} y1={PAD_TOP} x2={x} y2={CHART_H - PAD_BOTTOM}
-                stroke="#6B7280" strokeWidth="0.5" strokeDasharray="3,3" opacity="0.4" />
-            );
-          })}
+          {hasData && is1D && timeLabels.map((tl, i) => (
+            <line key={`session-${i}`} x1={tl.x} y1={PAD_TOP} x2={tl.x} y2={CHART_H - PAD_BOTTOM}
+              stroke="#6B7280" strokeWidth="0.5" strokeDasharray="3,3" opacity="0.4" />
+          ))}
 
           {/* Area fill */}
           {hasData && (
@@ -294,6 +570,12 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
           {hasData && (
             <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           )}
+
+          {/* Moving average lines */}
+          {maPaths.map(({ period, d }) => (
+            <path key={`ma-${period}`} d={d} fill="none" stroke={MA_COLORS[period]}
+              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+          ))}
 
           {/* Current price dot with pulse (only when not hovering) */}
           {hasData && selectedPeriod === '1D' && hoverIndex === null && (
@@ -332,13 +614,39 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
           )}
 
           {/* Time labels on bottom */}
-          {timeLabels.map((tl, i) => (
-            <text key={i} x={tl.x} y={CHART_H - 8}
-              className="fill-gray-500" fontSize="10" textAnchor="middle">
-              {tl.label}
-            </text>
-          ))}
+          {timeLabels.map((tl, i) => {
+            const anchor = i === 0 ? 'start' : i === timeLabels.length - 1 ? 'end' : 'middle';
+            return (
+              <text key={i} x={tl.x} y={CHART_H - 8}
+                className="fill-gray-500" fontSize="10" textAnchor={anchor}>
+                {tl.label}
+              </text>
+            );
+          })}
         </svg>
+
+        {/* MA tooltip on hover */}
+        {hoverIndex !== null && hoverMaValues.length > 0 && (
+          <div
+            className="absolute pointer-events-none bg-rh-light-card/95 dark:bg-rh-card/95 border border-rh-light-border dark:border-rh-border rounded-lg px-3 py-2 shadow-lg"
+            style={{
+              left: `${((hoverX ?? 0) / CHART_W) * 100}%`,
+              top: `${(PAD_TOP / CHART_H) * 100}%`,
+              transform: (hoverX ?? 0) > CHART_W * 0.7 ? 'translateX(-110%)' : 'translateX(10%)',
+            }}
+          >
+            <div className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text mb-1">
+              Price: ${points[hoverIndex].price.toFixed(2)}
+            </div>
+            {hoverMaValues.map(ma => (
+              <div key={ma.period} className="flex items-center gap-1.5 text-[11px]">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: ma.color }} />
+                <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}:</span>
+                <span className="font-semibold text-rh-light-text dark:text-rh-text">${ma.value.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* No data overlay */}
         {!hasData && (
@@ -370,27 +678,49 @@ export function StockPriceChart({ candles, intradayCandles, livePrices, selected
         )}
       </div>
 
-      {/* Period selector */}
-      <div className="flex gap-1 mt-3">
-        {PERIODS.map(period => {
-          const disabled = period !== '1D' && (!candles || candles.closes.length === 0);
-          return (
-            <button
-              key={period}
-              onClick={() => !disabled && onPeriodChange(period)}
-              disabled={disabled}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
-                selectedPeriod === period
-                  ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
-                  : disabled
-                    ? 'text-rh-light-muted/30 dark:text-rh-muted/30 cursor-not-allowed'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-              }`}
-            >
-              {period}
-            </button>
-          );
-        })}
+      {/* Period selector + MA toggles */}
+      <div className="flex items-center justify-between mt-3">
+        <div className="flex gap-1">
+          {PERIODS.map(period => {
+            const disabled = period !== '1D' && (!candles || candles.closes.length === 0);
+            return (
+              <button
+                key={period}
+                onClick={() => !disabled && onPeriodChange(period)}
+                disabled={disabled}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
+                  selectedPeriod === period
+                    ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
+                    : disabled
+                      ? 'text-rh-light-muted/30 dark:text-rh-muted/30 cursor-not-allowed'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+              >
+                {period}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-1.5">
+          {MA_PERIODS.map(ma => {
+            const active = enabledMAs.has(ma);
+            return (
+              <button
+                key={ma}
+                onClick={() => toggleMA(ma)}
+                className={`px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+                  active
+                    ? 'text-white border-transparent'
+                    : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+                style={active ? { backgroundColor: MA_COLORS[ma], borderColor: MA_COLORS[ma] } : undefined}
+              >
+                MA{ma}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

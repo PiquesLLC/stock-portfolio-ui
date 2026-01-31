@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Holding, ChartPeriod, StockDetailsResponse, MarketSession } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getIntradayCandles, IntradayCandle, addHolding } from '../api';
+import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding } from '../api';
 import { StockPriceChart } from './StockPriceChart';
 
 interface Props {
@@ -161,20 +161,38 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [data, setData] = useState<StockDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1D');
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(() => {
+    const saved = localStorage.getItem('stockChartPeriod');
+    return (saved as ChartPeriod) || '1D';
+  });
+  const handlePeriodChange = useCallback((period: ChartPeriod) => {
+    setChartPeriod(period);
+    localStorage.setItem('stockChartPeriod', period);
+  }, []);
   // Intraday candles for 1D chart (from Yahoo Finance via API)
   const [intradayCandles, setIntradayCandles] = useState<IntradayCandle[]>([]);
+  // Hourly candles for 1W/1M (finer-grained than daily)
+  const [hourlyCandles, setHourlyCandles] = useState<IntradayCandle[]>([]);
   // Legacy live prices kept as fallback
   const [livePrices, setLivePrices] = useState<{ time: string; price: number }[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Initial fetch — full details (profile, metrics, candles, quote) + intraday
+  // Cache for prefetched hourly data
+  const hourlyCache = useRef<Record<string, IntradayCandle[]>>({});
+
+  // Initial fetch — full details (profile, metrics, candles, quote) + intraday + prefetch hourly
   const fetchInitial = useCallback(async () => {
     try {
-      const [result, intraday] = await Promise.all([
+      const [result, intraday, hourly1W, hourly1M] = await Promise.all([
         getStockDetails(ticker),
         getIntradayCandles(ticker).catch(() => []),
+        getHourlyCandles(ticker, '1W').catch(() => []),
+        getHourlyCandles(ticker, '1M').catch(() => []),
       ]);
+      hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
+      // Set hourly candles immediately if current period needs them
+      if (chartPeriod === '1W') setHourlyCandles(hourly1W);
+      else if (chartPeriod === '1M') setHourlyCandles(hourly1M);
       setData(result);
       setIntradayCandles(intraday);
       setError(null);
@@ -222,6 +240,15 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     setIntradayCandles([]);
     fetchInitial();
   }, [fetchInitial]);
+
+  // Set hourly candles from prefetched cache — instant switch
+  useEffect(() => {
+    if (chartPeriod === '1W' || chartPeriod === '1M') {
+      setHourlyCandles(hourlyCache.current[chartPeriod] || []);
+    } else {
+      setHourlyCandles([]);
+    }
+  }, [chartPeriod]);
 
   // Polling interval — 12s during market, 60s when closed
   useEffect(() => {
@@ -422,9 +449,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         <StockPriceChart
           candles={data.candles}
           intradayCandles={intradayCandles}
+          hourlyCandles={hourlyCandles}
           livePrices={livePrices}
           selectedPeriod={chartPeriod}
-          onPeriodChange={setChartPeriod}
+          onPeriodChange={handlePeriodChange}
           currentPrice={quote.currentPrice}
           previousClose={quote.previousClose}
           onHoverPrice={handleHoverPrice}
