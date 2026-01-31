@@ -32,6 +32,15 @@ const insightsCache: {
 // Cache TTL: 5 minutes before considering stale
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+function formatTimeAgo(timestamp: number): string {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
+
 interface InsightsPageProps {
   onTickerClick?: (ticker: string) => void;
   currentValue: number;
@@ -176,7 +185,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -212,32 +221,42 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   return (
     <div className="space-y-6">
-      {/* Sub-navigation: Intelligence / Goals */}
-      <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1 w-fit">
-        {subTabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setSubTab(t.id)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors
-              ${subTab === t.id
-                ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-              }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Subtle refresh indicator - only show when manually refreshing */}
-      {isRefreshing && hasAnyData && (
-        <div className="flex items-center justify-end">
-          <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
-            <div className="w-3 h-3 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin"></div>
-            <span>Updating...</span>
-          </div>
+      {/* Header: sub-tabs left, refresh + timestamp right */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-      )}
+        <div className="flex items-center gap-3">
+          {insightsCache.lastFetchTime && (
+            <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 tabular-nums min-w-[90px] text-right">
+              Updated {formatTimeAgo(insightsCache.lastFetchTime)}
+            </span>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+              hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors disabled:opacity-50"
+            title="Refresh insights"
+          >
+            <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
       {/* Health Score - Always show if we have data */}
       {healthScore && <HealthScore data={healthScore} />}
@@ -274,22 +293,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         <SkeletonCard lines={4} height="200px" />
       )}
 
-      {/* Manual Refresh Button - Subtle, at the bottom */}
-      {hasAnyData && (
-        <div className="flex justify-center pt-4">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-rh-light-muted dark:text-rh-muted
-              hover:text-rh-light-text dark:hover:text-rh-text transition-colors disabled:opacity-50"
-          >
-            <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {isRefreshing ? 'Refreshing...' : 'Refresh Insights'}
-          </button>
-        </div>
-      )}
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (

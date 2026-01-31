@@ -42,9 +42,14 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
 
   const { topContributors, topDetractors, partial } = data;
 
+  const allEntries = [...topContributors, ...topDetractors];
+  const maxAbsDollar = allEntries.length > 0
+    ? Math.max(...allEntries.map(e => Math.abs(e.contributionDollar)))
+    : 0;
+
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">What Moved My Portfolio? <InfoTooltip text="Attribution shows which holdings contributed most to your portfolio's gain or loss. Contribution = holding's dollar P&L over the selected window, ranked by absolute impact." /></h3>
 
         {/* Window Selector */}
@@ -53,9 +58,9 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
             <button
               key={w}
               onClick={() => handleWindowChange(w)}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                 selectedWindow === w
-                  ? 'bg-rh-green text-black'
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
@@ -74,59 +79,53 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
         </div>
       )}
       {partial && topContributors.length === 0 && topDetractors.length === 0 ? (
-        <p className="text-rh-light-muted dark:text-rh-muted text-center py-8">
-          Add holdings to see attribution
+        <p className="text-sm text-rh-light-muted/60 dark:text-rh-muted/60 italic">
+          Add holdings to see what's driving your returns.
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Top Contributors */}
           <div>
-            <h4 className="text-sm font-medium text-rh-green mb-3 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              Top Contributors
-            </h4>
+            <h4 className="text-xs font-medium uppercase tracking-wider text-rh-green/80 mb-2">Contributors</h4>
             {topContributors.length === 0 ? (
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">No gains this period</p>
+              <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 italic">No gains this period</p>
             ) : (
-              <div className="space-y-2">
-                {topContributors.map((h) => (
-                  <div key={h.ticker} className="flex items-center justify-between">
-                    <button className="font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
-                    <div className="text-right">
-                      <span className="text-rh-green text-sm font-medium">
-                        {formatCurrency(h.contributionDollar)}
-                      </span>
+              <div className="space-y-1.5">
+                {topContributors.map((h) => {
+                  const barWidth = maxAbsDollar > 0 ? (Math.abs(h.contributionDollar) / maxAbsDollar) * 100 : 0;
+                  return (
+                    <div key={h.ticker} className="flex items-center gap-2">
+                      <button className="w-12 text-sm font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer text-left shrink-0" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
+                      <div className="flex-1 h-3 bg-rh-light-bg dark:bg-rh-dark rounded-sm overflow-hidden">
+                        <div className="h-full bg-rh-green/50 rounded-sm" style={{ width: `${Math.max(barWidth, 3)}%` }} />
+                      </div>
+                      <span className="text-rh-green text-xs font-medium w-16 text-right shrink-0 tabular-nums">{formatCurrency(h.contributionDollar)}</span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
           {/* Top Detractors */}
           <div>
-            <h4 className="text-sm font-medium text-rh-red mb-3 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-              </svg>
-              Top Detractors
-            </h4>
+            <h4 className="text-xs font-medium uppercase tracking-wider text-rh-red/80 mb-2">Detractors</h4>
             {topDetractors.length === 0 ? (
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">No losses this period</p>
+              <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 italic">No losses this period</p>
             ) : (
-              <div className="space-y-2">
-                {topDetractors.map((h) => (
-                  <div key={h.ticker} className="flex items-center justify-between">
-                    <button className="font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
-                    <div className="text-right">
-                      <span className="text-rh-red text-sm font-medium">
-                        {formatCurrency(h.contributionDollar)}
-                      </span>
+              <div className="space-y-1.5">
+                {topDetractors.map((h) => {
+                  const barWidth = maxAbsDollar > 0 ? (Math.abs(h.contributionDollar) / maxAbsDollar) * 100 : 0;
+                  return (
+                    <div key={h.ticker} className="flex items-center gap-2">
+                      <button className="w-12 text-sm font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer text-left shrink-0" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
+                      <div className="flex-1 h-3 bg-rh-light-bg dark:bg-rh-dark rounded-sm overflow-hidden">
+                        <div className="h-full bg-rh-red/40 rounded-sm" style={{ width: `${Math.max(barWidth, 3)}%` }} />
+                      </div>
+                      <span className="text-rh-red text-xs font-medium w-16 text-right shrink-0 tabular-nums">{formatCurrency(h.contributionDollar)}</span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

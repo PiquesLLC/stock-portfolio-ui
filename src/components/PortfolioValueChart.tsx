@@ -223,7 +223,8 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const displayChangePct = showDayChange ? dayChangePercent : changePctVsPeriodStart;
 
   const isGain = displayChange >= 0;
-  const lineColor = isGain ? '#00C805' : '#FF3B30';
+  // Chart line colors — muted. Full-bright reserved for hero number only.
+  const lineColor = isGain ? '#0A9E10' : '#B87872';
 
   // Chart geometry
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
@@ -369,7 +370,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   }, [measurement, benchmarkCandles]);
 
   const measureIsGain = measurement ? measurement.dollarChange >= 0 : true;
-  const measureColor = measureIsGain ? '#00C805' : '#FF3B30';
+  const measureColor = measureIsGain ? '#00C805' : '#E8544E';
 
   // ── SVG coordinates for measurement markers ────────────────────
 
@@ -405,20 +406,24 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const lastY = points.length > 0 ? toY(points[points.length - 1].value) : CHART_H / 2;
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-      {/* Hero value display */}
+    <div className={`relative px-6 pt-8 pb-3 ${
+      isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
+    }`}>
+      {/* Hero value display — FOREGROUND: highest visual weight */}
       {!hasMeasurement && (
-        <div className="mb-2">
-          <p className="text-3xl font-bold text-rh-light-text dark:text-rh-text">
+        <div className="mb-5 relative z-10">
+          <p className={`text-5xl md:text-6xl font-black tracking-tighter text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
+            isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
+          }`}>
             {formatCurrency(displayValue)}
           </p>
-          <p className={`text-sm font-medium ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
+          <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
             {formatChange(displayChange)} ({formatPct(displayChangePct)})
             {hoverIndex !== null && hoverLabel && (
-              <span className="text-rh-light-muted dark:text-rh-muted ml-2">{hoverLabel}</span>
+              <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
             )}
             {hoverIndex === null && selectedPeriod === '1D' && (
-              <span className="text-rh-light-muted dark:text-rh-muted ml-2">Today</span>
+              <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
             )}
           </p>
         </div>
@@ -503,8 +508,8 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
         </div>
       )}
 
-      {/* Chart */}
-      <div className="relative w-full" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
+      {/* Chart — MIDGROUND: recessed, context only */}
+      <div className="relative w-full chart-layer chart-fade-in" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
         {loading && (
           <div className="absolute inset-0 z-10">
             <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full h-full" preserveAspectRatio="none">
@@ -544,6 +549,25 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           onClick={handleClick}
         >
           <defs>
+            {/* Stroke brightness gradient — dimmer at left history, brighter at latest */}
+            <linearGradient id="stroke-fade" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor={lineColor} stopOpacity="0" />
+              <stop offset="4%" stopColor={lineColor} stopOpacity="0.45" />
+              <stop offset="50%" stopColor={lineColor} stopOpacity="0.7" />
+              <stop offset="96%" stopColor={lineColor} stopOpacity="1" />
+              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </linearGradient>
+            {/* Hover dot glow */}
+            <radialGradient id="dot-glow">
+              <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
+              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </radialGradient>
+            {/* Area fill gradient under line — extremely subtle */}
+            <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={lineColor} stopOpacity="0.06" />
+              <stop offset="80%" stopColor={lineColor} stopOpacity="0.01" />
+              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </linearGradient>
             {/* Measurement shading gradient */}
             <linearGradient id="measure-grad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={measureColor} stopOpacity="0.20" />
@@ -554,14 +578,20 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           {/* Reference line */}
           {hasData && (
             <line x1={PAD_LEFT} y1={refY} x2={CHART_W - PAD_RIGHT} y2={refY}
-              stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.4" />
+              stroke="#6B7280" strokeWidth="0.6" strokeDasharray="5,5" opacity="0.25" />
           )}
 
-          {/* No area fill — clean line only, like Robinhood */}
-
-          {/* Price line */}
+          {/* Subtle area fill — barely visible gradient under line */}
           {hasData && (
-            <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d={`${pathD} L${toX(points.length - 1).toFixed(1)},${(CHART_H - PAD_BOTTOM)} L${toX(0).toFixed(1)},${(CHART_H - PAD_BOTTOM)} Z`}
+              fill="url(#area-fill)"
+            />
+          )}
+
+          {/* Price line — gradient stroke, thinner */}
+          {hasData && (
+            <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* ── Measurement overlays ───────────────────────── */}
@@ -628,20 +658,25 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           {/* Live dot */}
           {hasData && selectedPeriod === '1D' && hoverIndex === null && !isMeasuring && (
             <>
-              <circle cx={lastX} cy={lastY} r="6" fill={lineColor} opacity="0.2">
-                <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
+              {/* Soft glow halo — no size change */}
+              <circle cx={lastX} cy={lastY} r="7" fill={lineColor} opacity="0.12">
+                <animate attributeName="opacity" values="0.08;0.18;0.08" dur="2.5s" repeatCount="indefinite" />
               </circle>
-              <circle cx={lastX} cy={lastY} r="3" fill={lineColor} />
+              {/* Solid dot */}
+              <circle cx={lastX} cy={lastY} r="3" fill={lineColor}>
+                <animate attributeName="opacity" values="0.7;1;0.7" dur="2.5s" repeatCount="indefinite" />
+              </circle>
             </>
           )}
 
-          {/* Hover crosshair (suppress when measurement complete to avoid clutter) */}
+          {/* Hover crosshair with glow (suppress when measurement complete) */}
           {hasData && hoverX !== null && hoverY !== null && !hasMeasurement && (
             <>
               <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
-                stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6" />
-              <circle cx={hoverX} cy={hoverY} r="4" fill={lineColor} stroke="#fff" strokeWidth="1.5" />
+                stroke="#9CA3AF" strokeWidth="1" strokeDasharray="4,3" opacity="0.3" />
+              {/* Glow under hover dot */}
+              <circle cx={hoverX} cy={hoverY} r="12" fill="url(#dot-glow)" />
+              <circle cx={hoverX} cy={hoverY} r="3.5" fill={lineColor} stroke="#fff" strokeWidth="1.2" />
             </>
           )}
 
@@ -671,16 +706,16 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
       </div>
 
       {/* Hint + Period selector */}
-      <div className="flex items-center gap-3 mt-3">
-        <div className="flex gap-1">
+      <div className="flex items-center gap-3 mt-2">
+        <div className="flex gap-0.5">
         {PERIODS.map(period => (
           <button
             key={period}
             onClick={() => handlePeriodChange(period)}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 ${
               selectedPeriod === period
-                ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                ? `${isGain ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'}`
+                : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted hover:bg-gray-100/50 dark:hover:bg-white/[0.02]'
             }`}
           >
             {period}

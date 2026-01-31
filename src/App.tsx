@@ -454,10 +454,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black text-rh-light-text dark:text-rh-text">
-      <header className="border-b border-rh-light-border dark:border-rh-border bg-rh-light-card dark:bg-rh-black">
+      <header className="border-b border-rh-light-border/40 dark:border-rh-border/40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Stock Portfolio</h1>
+            <h1 className="text-lg font-bold tracking-tight text-rh-light-text dark:text-rh-text">My Stock Trends</h1>
             {portfolio?.session && (
               <span
                 className={`text-xs px-2 py-1 rounded border font-medium ${getSessionDisplay(portfolio.session).color}`}
@@ -526,8 +526,8 @@ export default function App() {
               </span>
             )}
             {lastUpdate && (
-              <span className="text-sm text-rh-light-muted dark:text-rh-muted">
-                Last updated: {lastUpdate.toLocaleTimeString()}
+              <span className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                {lastUpdate.toLocaleTimeString()}
               </span>
             )}
           </div>
@@ -542,7 +542,7 @@ export default function App() {
         setLeaderboardUserId(null);
       }} />
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         {/* Stock Detail Overlay (works from any tab) */}
         {viewingStock && (
           <StockDetailView
@@ -582,84 +582,99 @@ export default function App() {
               </div>
             )}
 
-            {/* Portfolio Value Chart */}
+            {/* Portfolio Value Chart + Benchmark — seamless foreground+midground */}
             {portfolio && (
-              <PortfolioValueChart
-                currentValue={portfolio.netEquity}
-                dayChange={portfolio.dayChange}
-                dayChangePercent={portfolio.dayChangePercent}
-                refreshTrigger={portfolioRefreshCount}
-                onPeriodChange={setChartPeriod}
-              />
+              <div className="space-y-0">
+                <PortfolioValueChart
+                  currentValue={portfolio.netEquity}
+                  dayChange={portfolio.dayChange}
+                  dayChangePercent={portfolio.dayChangePercent}
+                  refreshTrigger={portfolioRefreshCount}
+                  onPeriodChange={setChartPeriod}
+                />
+                <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} />
+              </div>
             )}
 
-            {/* Benchmark Performance Widget */}
-            {portfolio && (
-              <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} />
-            )}
+            {/* Separator */}
+            <div className="section-separator" />
 
-            {/* 1. Top Summary Stat Cards: Total Assets, Net Equity, Day Change, Total P/L */}
+            {/* Key Metrics — BACKGROUND LAYER: recessed, supporting */}
             {portfolio && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* 1. Total Assets - used for performance tracking (no margin debt) */}
-                <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-4 shadow-sm dark:shadow-none">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm">Total Assets</p>
-                  <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 background-layer background-fade-in">
+                <div className="rounded-xl p-4 kpi-card">
+                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Total Assets</p>
+                  <p className="text-lg font-bold text-rh-light-text/80 dark:text-rh-text/80">
                     {portfolio.totalAssets > 0 ? formatCurrency(portfolio.totalAssets) : '—'}
                   </p>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">Holdings + Cash</p>
+                  <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mt-0.5">Holdings + Cash</p>
                 </div>
-                {/* 2. Net Equity - shows balance after margin debt */}
-                <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-4 shadow-sm dark:shadow-none">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm">Net Equity</p>
-                  <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">
+                <div className="rounded-xl p-4 kpi-card">
+                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Net Equity</p>
+                  <p className="text-lg font-bold text-rh-light-text/80 dark:text-rh-text/80">
                     {formatCurrency(portfolio.netEquity)}
                   </p>
                   {portfolio.marginDebt > 0 ? (
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+                    <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mt-0.5">
                       After ${portfolio.marginDebt.toLocaleString()} margin
                     </p>
                   ) : (
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">Cash: {formatCurrency(portfolio.cashBalance)}</p>
+                    <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mt-0.5">Cash: {formatCurrency(portfolio.cashBalance)}</p>
                   )}
                 </div>
-                {/* 3. Day Change */}
-                <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-4 shadow-sm dark:shadow-none">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm">Day Change</p>
-                  <p className={`text-2xl font-bold ${
-                    portfolio.dayChange === 0 ? 'text-rh-light-text dark:text-rh-text' : portfolio.dayChange > 0 ? 'text-rh-green' : 'text-rh-red'
+                <div className={`rounded-xl p-4 kpi-card border-t-2 ${
+                  portfolio.dayChange === 0 ? 'border-transparent' : portfolio.dayChange > 0 ? 'border-rh-green/20' : 'border-rh-red/20'
+                }`}>
+                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Day Change</p>
+                  <p className={`text-lg font-bold ${
+                    portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green/80' : 'text-rh-red/80'
                   }`}>
                     {portfolio.holdings.length > 0
-                      ? `${formatCurrency(portfolio.dayChange)} (${formatPercent(portfolio.dayChangePercent)})`
+                      ? `${formatCurrency(portfolio.dayChange)}`
                       : '—'}
                   </p>
+                  {portfolio.holdings.length > 0 && (
+                    <p className={`text-[10px] mt-0.5 ${portfolio.dayChange >= 0 ? 'text-rh-green/50' : 'text-rh-red/50'}`}>
+                      {formatPercent(portfolio.dayChangePercent)}
+                    </p>
+                  )}
                 </div>
-                {/* 4. Total P/L */}
-                <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-4 shadow-sm dark:shadow-none">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm">Total P/L</p>
-                  <p className={`text-2xl font-bold ${
-                    portfolio.totalPL === 0 ? 'text-rh-light-text dark:text-rh-text' : portfolio.totalPL > 0 ? 'text-rh-green' : 'text-rh-red'
+                <div className={`rounded-xl p-4 kpi-card border-t-2 ${
+                  portfolio.totalPL === 0 ? 'border-transparent' : portfolio.totalPL > 0 ? 'border-rh-green/20' : 'border-rh-red/20'
+                }`}>
+                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Total P/L</p>
+                  <p className={`text-lg font-extrabold ${
+                    portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green/85' : 'text-rh-red/85'
                   }`}>
                     {portfolio.holdings.length > 0
-                      ? `${formatCurrency(portfolio.totalPL)} (${formatPercent(portfolio.totalPLPercent)})`
+                      ? `${formatCurrency(portfolio.totalPL)}`
                       : '—'}
                   </p>
+                  {portfolio.holdings.length > 0 && (
+                    <p className={`text-[10px] mt-0.5 ${portfolio.totalPL >= 0 ? 'text-rh-green/50' : 'text-rh-red/50'}`}>
+                      {formatPercent(portfolio.totalPLPercent)}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* 2. Holdings Table */}
-            <HoldingsTable
-              holdings={portfolio?.holdings ?? []}
-              onUpdate={handleUpdate}
-              showExtendedHours={showExtendedHours}
-              onTickerClick={(ticker, holding) => setViewingStock({ ticker, holding })}
-              cashBalance={portfolio?.cashBalance ?? 0}
-              marginDebt={portfolio?.marginDebt ?? 0}
-            />
+            {/* Separator */}
+            <div className="section-separator" />
 
-            {/* 3. Performance Summary Cards (Current Holdings P/L + Since Tracking Start) */}
-            <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+            {/* Holdings + Performance — BACKGROUND LAYER: furthest depth */}
+            <div className="background-layer background-fade-in space-y-8">
+              <HoldingsTable
+                holdings={portfolio?.holdings ?? []}
+                onUpdate={handleUpdate}
+                showExtendedHours={showExtendedHours}
+                onTickerClick={(ticker, holding) => setViewingStock({ ticker, holding })}
+                cashBalance={portfolio?.cashBalance ?? 0}
+                marginDebt={portfolio?.marginDebt ?? 0}
+              />
+
+              <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+            </div>
 
           </>
         )}
@@ -715,6 +730,7 @@ export default function App() {
                 channels={CHANNELS}
                 activeChannel={activeChannel}
                 onChannelChange={setActiveChannel}
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker === ticker) ?? null })}
               />
             </ErrorBoundary>
           </div>
@@ -743,7 +759,7 @@ export default function App() {
       />
 
       {/* Disclaimer Footer */}
-      <footer className="border-t border-rh-light-border dark:border-rh-border mt-8 py-4">
+      <footer className="border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
         <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
         </p>

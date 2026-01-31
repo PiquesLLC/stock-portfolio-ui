@@ -266,8 +266,10 @@ function BreakdownRow({
 export function HealthScore({ data }: HealthScoreProps) {
   const { overall, breakdown, reasons, quickFixes, partial, details } = data;
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null);
+  const [showAllReasons, setShowAllReasons] = useState(false);
 
   const hasDetails = !!details;
+  const visibleReasons = showAllReasons ? reasons : reasons.slice(0, 2);
 
   if (partial) {
     return (
@@ -280,73 +282,38 @@ export function HealthScore({ data }: HealthScoreProps) {
 
   return (
     <>
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4 flex items-center gap-2">Portfolio Health <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." /></h3>
-
-        <div className="flex items-center gap-6 mb-6">
-          {/* Circular Score */}
-          <div className="relative w-24 h-24">
-            <svg className="w-24 h-24 transform -rotate-90">
-              <circle
-                cx="48"
-                cy="48"
-                r="40"
-                stroke="currentColor"
-                strokeWidth="8"
-                fill="none"
-                className="text-rh-light-border dark:text-rh-border"
-              />
-              <circle
-                cx="48"
-                cy="48"
-                r="40"
-                stroke="currentColor"
-                strokeWidth="8"
-                fill="none"
-                strokeDasharray={251.2}
-                strokeDashoffset={251.2 - (251.2 * overall) / 100}
+      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none">
+        {/* Compact header: score circle + label + title on one row */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative w-16 h-16 shrink-0">
+            <svg className="w-16 h-16 transform -rotate-90">
+              <circle cx="32" cy="32" r="26" stroke="currentColor" strokeWidth="6" fill="none" className="text-rh-light-border dark:text-rh-border" />
+              <circle cx="32" cy="32" r="26" stroke="currentColor" strokeWidth="6" fill="none"
+                strokeDasharray={163.4}
+                strokeDashoffset={163.4 - (163.4 * overall) / 100}
                 strokeLinecap="round"
                 className={getScoreColor(overall)}
               />
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-2xl font-bold ${getScoreColor(overall)}`}>{overall}</span>
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted">/100</span>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={`text-lg font-bold ${getScoreColor(overall)}`}>{overall}</span>
             </div>
           </div>
-
-          <div>
-            <p className={`text-xl font-semibold ${getScoreColor(overall)}`}>{getScoreLabel(overall)}</p>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted">Portfolio Health Score</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Portfolio Health</h3>
+              <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." />
+            </div>
+            <p className={`text-sm font-medium ${getScoreColor(overall)}`}>{getScoreLabel(overall)} — {overall}/100</p>
           </div>
         </div>
 
-        {/* Breakdown */}
-        <div className="space-y-1 mb-6">
-          <BreakdownRow
-            label="Concentration"
-            value={breakdown.concentration}
-            hasDetail={hasDetails}
-            onClick={() => setSelectedCategory('concentration')}
-          />
-          <BreakdownRow
-            label="Volatility"
-            value={breakdown.volatility}
-            hasDetail={hasDetails}
-            onClick={() => setSelectedCategory('volatility')}
-          />
-          <BreakdownRow
-            label="Drawdown"
-            value={breakdown.drawdown}
-            hasDetail={hasDetails}
-            onClick={() => setSelectedCategory('drawdown')}
-          />
-          <BreakdownRow
-            label="Diversification"
-            value={breakdown.diversification}
-            hasDetail={hasDetails}
-            onClick={() => setSelectedCategory('diversification')}
-          />
+        {/* Breakdown bars */}
+        <div className="space-y-1 mb-4">
+          <BreakdownRow label="Concentration" value={breakdown.concentration} hasDetail={hasDetails} onClick={() => setSelectedCategory('concentration')} />
+          <BreakdownRow label="Volatility" value={breakdown.volatility} hasDetail={hasDetails} onClick={() => setSelectedCategory('volatility')} />
+          <BreakdownRow label="Drawdown" value={breakdown.drawdown} hasDetail={hasDetails} onClick={() => setSelectedCategory('drawdown')} />
+          <BreakdownRow label="Diversification" value={breakdown.diversification} hasDetail={hasDetails} onClick={() => setSelectedCategory('diversification')} />
           {breakdown.margin > 0 && (
             <button
               onClick={() => hasDetails && setSelectedCategory('margin')}
@@ -368,36 +335,47 @@ export function HealthScore({ data }: HealthScoreProps) {
           )}
         </div>
 
-        {/* Reasons */}
+        {/* Reasons — show top 2, expandable */}
         {reasons.length > 0 && (
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2">What's Affecting Your Score</h4>
+            <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">Key Drivers</h4>
             <ul className="space-y-1">
-              {reasons.map((reason, i) => (
+              {visibleReasons.map((reason, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-rh-light-muted dark:text-rh-muted">
                   <span className="text-yellow-500 mt-0.5">•</span>
                   {reason}
                 </li>
               ))}
             </ul>
+            {reasons.length > 2 && (
+              <button
+                onClick={() => setShowAllReasons(!showAllReasons)}
+                className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text mt-1 transition-colors"
+              >
+                {showAllReasons ? 'Show less' : `+${reasons.length - 2} more`}
+              </button>
+            )}
           </div>
         )}
 
-        {/* Quick Fixes */}
+        {/* Quick Fixes — collapsed into summary */}
         {quickFixes.length > 0 && (
-          <div className="pt-4 border-t border-rh-light-border dark:border-rh-border">
-            <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2">Quick Fixes</h4>
-            <ul className="space-y-1">
+          <details className="pt-3 border-t border-rh-light-border dark:border-rh-border">
+            <summary className="text-xs font-medium text-rh-green cursor-pointer hover:text-rh-green/80 transition-colors flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {quickFixes.length} quick fix{quickFixes.length > 1 ? 'es' : ''} available
+            </summary>
+            <ul className="space-y-1 mt-2">
               {quickFixes.map((fix, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-rh-green">
-                  <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <span className="mt-0.5">→</span>
                   {fix}
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         )}
       </div>
 

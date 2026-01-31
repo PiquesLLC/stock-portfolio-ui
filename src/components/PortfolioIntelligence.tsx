@@ -52,10 +52,10 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick }: {
           style={{ width: `${Math.max(barWidth, 2)}%` }}
         />
       </div>
-      <span className={`w-20 text-right text-sm font-mono ${isPositive ? 'text-rh-green' : 'text-red-400'}`}>
+      <span className={`w-20 text-right text-sm font-mono tabular-nums ${isPositive ? 'text-rh-green' : 'text-red-400'}`}>
         {formatDollar(entry.contributionDollar)}
       </span>
-      <span className={`w-14 text-right text-xs ${
+      <span className={`w-14 text-right text-xs tabular-nums ${
         entry.percentReturn === null ? 'text-rh-light-muted dark:text-rh-muted' :
         isPositive ? 'text-rh-green' : 'text-red-400'
       }`}>
@@ -87,7 +87,7 @@ function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
         ))}
       </div>
       {/* Legend */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
         {sectors.map((s, i) => (
           <div key={s.sector}>
             <button
@@ -96,7 +96,7 @@ function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
             >
               <div className={`w-2.5 h-2.5 rounded-sm ${colors[i % colors.length]} opacity-80 shrink-0`} />
               <span className="text-rh-light-text dark:text-rh-text truncate">{s.sector}</span>
-              <span className="ml-auto text-rh-light-muted dark:text-rh-muted whitespace-nowrap">
+              <span className="ml-auto text-rh-light-muted dark:text-rh-muted whitespace-nowrap tabular-nums">
                 {s.exposurePercent}%
                 <span className="ml-1 text-[10px] opacity-60">{expanded === s.sector ? '▲' : '▼'}</span>
               </span>
@@ -149,7 +149,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
     : 0;
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none space-y-5">
+    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none space-y-4">
       {/* Header + window selector */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="Shows top contributors/detractors by dollar P&L, sector exposure by market value, and portfolio beta vs SPY (covariance of daily returns divided by SPY variance)." /></h3>
@@ -171,10 +171,17 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
         </div>
       </div>
 
-      {/* Explanation banner */}
+      {/* Explanation banner — bold tickers and dollar values */}
       {explanation && (
         <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-4 py-3">
-          <p className="text-sm text-rh-light-text dark:text-rh-text">{explanation}</p>
+          <p className="text-sm text-rh-light-text dark:text-rh-text">
+            {explanation.split(/(\$[\d,.]+|\b[A-Z]{2,5}\b)/g).map((part, i) => {
+              if (/^\$[\d,.]+$/.test(part) || /^[A-Z]{2,5}$/.test(part)) {
+                return <span key={i} className="font-semibold">{part}</span>;
+              }
+              return part;
+            })}
+          </p>
         </div>
       )}
 

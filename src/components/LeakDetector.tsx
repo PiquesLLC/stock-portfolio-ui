@@ -66,13 +66,13 @@ export function LeakDetector({ data }: LeakDetectorProps) {
   const hasSummaries = summaries.length > 0;
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Correlation Analysis <InfoTooltip text="Pearson correlation of daily returns between holdings. Clusters show groups with correlation > 0.7, meaning they tend to move together. High correlation reduces effective diversification." /></h3>
         <div className="flex items-center gap-2">
           {partial && !hasClusters && !hasHeatmap && (
-            <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
-              Building data
+            <span className="text-xs px-2 py-1 rounded-full bg-rh-light-muted/10 dark:bg-white/10 text-rh-light-muted dark:text-rh-muted">
+              Data limited
             </span>
           )}
           {!hasClusters && !partial && (
@@ -99,7 +99,7 @@ export function LeakDetector({ data }: LeakDetectorProps) {
                 ? 'bg-yellow-500/15 text-yellow-400'
                 : 'bg-green-500/15 text-rh-green'
           }`}>
-            {spyCorrelation.toFixed(2)}
+            <span className="tabular-nums">{spyCorrelation.toFixed(2)}</span>
           </span>
           <span className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70">
             {Math.abs(spyCorrelation) > 0.8
@@ -151,16 +151,22 @@ export function LeakDetector({ data }: LeakDetectorProps) {
         </div>
       )}
 
-      {/* Building Data State - Show useful info instead of spinner */}
+      {/* Data Limited State - Show what we CAN compute */}
       {!hasClusters && !hasHeatmap && partial && (
-        <div className="text-center py-4">
-          <svg className="w-10 h-10 mx-auto mb-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p className="text-rh-light-text dark:text-rh-text font-medium">Building Correlation Data</p>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">
-            Requires 60+ days of price history per holding
-          </p>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            {spyCorrelation === null && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-rh-light-muted dark:text-rh-muted">Holdings tracked</span>
+                <span className="text-rh-light-text dark:text-rh-text font-medium">
+                  {correlationClusters.length > 0 ? 'Analyzing...' : 'Collecting data'}
+                </span>
+              </div>
+            )}
+            <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
+              Full correlation matrix needs 60+ days of history. Collecting daily price data.
+            </p>
+          </div>
         </div>
       )}
 

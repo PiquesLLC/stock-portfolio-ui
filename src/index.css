@@ -4,15 +4,291 @@
 
 /* Light mode (default when no .dark class) */
 body {
-  background-color: #f5f5f7;
-  color: #1a1a1a;
+  background-color: #F7F7F8;
+  color: #111111;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Dark mode (when .dark class is on html) */
 .dark body {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: #050505;
+  color: #f5f5f7;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HERO — FOREGROUND LAYER (Z-level 1)
+   Portfolio value and today's change dominate all else.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Text glow — sharper, concentrated, not foggy */
+.hero-glow-green {
+  text-shadow:
+    0 0 16px rgba(0, 200, 5, 0.22),
+    0 0 40px rgba(0, 200, 5, 0.08);
+}
+.hero-glow-red {
+  text-shadow:
+    0 0 16px rgba(232, 84, 78, 0.20),
+    0 0 40px rgba(232, 84, 78, 0.06);
+}
+.hero-glow-neutral {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.04);
+}
+
+/* Ambient radial glow — origin offset up-left for natural "overhead light" feel.
+   Asymmetric ellipse, extends down into chart area. */
+.hero-ambient-green {
+  background:
+    radial-gradient(ellipse 100% 90% at 35% 18%, rgba(0, 200, 5, 0.08) 0%, rgba(0, 200, 5, 0.025) 35%, transparent 70%);
+}
+.hero-ambient-red {
+  background:
+    radial-gradient(ellipse 100% 90% at 35% 18%, rgba(232, 84, 78, 0.06) 0%, rgba(232, 84, 78, 0.018) 35%, transparent 70%);
+}
+.hero-ambient-neutral {
+  background:
+    radial-gradient(ellipse 100% 90% at 35% 18%, rgba(255, 255, 255, 0.015) 0%, transparent 65%);
+}
+
+/* Light mode — reduce ambient intensity */
+:root:not(.dark) .hero-ambient-green {
+  background:
+    radial-gradient(ellipse 100% 90% at 35% 18%, rgba(0, 200, 5, 0.05) 0%, rgba(0, 200, 5, 0.012) 35%, transparent 70%);
+}
+:root:not(.dark) .hero-ambient-red {
+  background:
+    radial-gradient(ellipse 100% 90% at 35% 18%, rgba(232, 84, 78, 0.04) 0%, transparent 65%);
+}
+:root:not(.dark) .hero-ambient-neutral {
+  background: none;
+}
+
+/* Light mode — disable text glow (ineffective on bright backgrounds) */
+:root:not(.dark) .hero-glow-green,
+:root:not(.dark) .hero-glow-red,
+:root:not(.dark) .hero-glow-neutral {
+  text-shadow: none;
+}
+:root:not(.dark) .alpha-glow-green,
+:root:not(.dark) .alpha-glow-red {
+  text-shadow: none;
+}
+
+/* Hero-to-chart depth bridge — soft vertical fade seam */
+.hero-chart-bridge {
+  height: 24px;
+  margin-top: -12px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.03), transparent);
+  pointer-events: none;
+}
+:root:not(.dark) .hero-chart-bridge {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.015), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MIDGROUND LAYER (Z-level 2) — Chart + Benchmark
+   Recessed, supportive. Never competes with hero.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Chart line desaturation — reduce stroke presence */
+.chart-layer {
+  opacity: 0.85;
+}
+:root:not(.dark) .chart-layer {
+  opacity: 0.95;
+}
+
+/* Benchmark ambient glow when outperforming */
+.benchmark-ambient-green {
+  background:
+    radial-gradient(ellipse 80% 100% at 50% 0%, rgba(0, 200, 5, 0.04) 0%, transparent 60%);
+}
+:root:not(.dark) .benchmark-ambient-green {
+  background:
+    radial-gradient(ellipse 80% 100% at 50% 0%, rgba(0, 200, 5, 0.025) 0%, transparent 60%);
+}
+
+/* Benchmark alpha glow */
+.alpha-glow-green {
+  text-shadow: 0 0 24px rgba(0, 200, 5, 0.2);
+}
+.alpha-glow-red {
+  text-shadow: 0 0 24px rgba(232, 84, 78, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKGROUND LAYER (Z-level 3) — Holdings, Metrics
+   Furthest from user. Dimmed, recessed.
+   ═══════════════════════════════════════════════════════════════ */
+
+.background-layer {
+  opacity: 0.85;
+  transition: opacity 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.background-layer:hover {
+  opacity: 0.95;
+}
+:root:not(.dark) .background-layer {
+  opacity: 0.96;
+}
+:root:not(.dark) .background-layer:hover {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOTION — reinforces hierarchy
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Staggered fade-in delays */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.1s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.2s; }
+
+/* Chart fade-in — appears after hero */
+.chart-fade-in {
+  animation: chartReveal 200ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+}
+@keyframes chartReveal {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Benchmark entrance — appears after chart */
+.benchmark-fade-in {
+  animation: benchmarkReveal 180ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+}
+@keyframes benchmarkReveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Background section entrance — latest to appear */
+.background-fade-in {
+  animation: bgReveal 220ms cubic-bezier(0.22, 1, 0.36, 1) 260ms both;
+}
+@keyframes bgReveal {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Nav underline animation */
+.nav-underline {
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms;
+  transform-origin: center;
+}
+
+/* Section divider — atmospheric separation, not a line */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(155, 155, 155, 0.06) 30%, rgba(155, 155, 155, 0.06) 70%, transparent 100%);
+}
+.dark .section-divider {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.025) 30%, rgba(255, 255, 255, 0.025) 70%, transparent 100%);
+}
+
+/* Smooth number transitions + tabular figures for aligned columns */
+.value-transition {
+  transition: color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* KPI card — glass highlight + hover */
+.kpi-card {
+  position: relative;
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root:not(.dark) .kpi-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.04) 50%, transparent 90%);
+  border-radius: inherit;
+}
+:root:not(.dark) .kpi-card::before {
+  background: linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.8) 50%, transparent 90%);
+}
+.kpi-card:hover {
+  transform: translateY(-1px);
+}
+:root:not(.dark) .kpi-card:hover {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+}
+.dark .kpi-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Holdings row hover — soft lift without clutter */
+.holding-row {
+  transition: all 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.holding-row:nth-child(even) {
+  background: rgba(0, 0, 0, 0.018);
+}
+.dark .holding-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.008);
+}
+.holding-row:hover {
+  transform: translateY(-1px);
+}
+.dark .holding-row:hover {
+  background: rgba(255, 255, 255, 0.015);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+:root:not(.dark) .holding-row:hover {
+  background: rgba(0, 0, 0, 0.025);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Button press micro-interaction */
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Section separator — gradient fade, not a hard line */
+.section-separator {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(0, 0, 0, 0.06) 30%, rgba(0, 0, 0, 0.06) 70%, transparent 95%);
+}
+.dark .section-separator {
+  background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.03) 30%, rgba(255, 255, 255, 0.03) 70%, transparent 95%);
+}
+
+/* Modal — light mode premium overlay + container */
+:root:not(.dark) .modal-overlay {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+:root:not(.dark) .modal-container {
+  border-radius: 18px;
+  border: 0 !important;
+  border-style: none !important;
+  outline: 0 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 12px 28px rgba(0, 0, 0, 0.10), 0 36px 80px rgba(0, 0, 0, 0.14) !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+/* Modal — dark mode premium overlay + container */
+.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dark .modal-container {
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65), 0 2px 12px rgba(0, 0, 0, 0.35) !important;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

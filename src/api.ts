@@ -423,3 +423,33 @@ export async function getUserIntelligence(
     `${API_BASE_URL}/users/${userId}/intelligence?window=${window}`
   );
 }
+
+export interface MarketNewsItem {
+  id: number;
+  headline: string;
+  source: string;
+  url: string;
+  summary: string;
+  image: string;
+  datetime: number;
+  related: string;
+  category: string;
+}
+
+export async function getMarketNews(limit = 20): Promise<MarketNewsItem[]> {
+  return fetchJson<MarketNewsItem[]>(`${API_BASE_URL}/market/news?limit=${limit}`);
+}
+
+export interface PriceData {
+  price: number;
+  change: number;
+  changePercent: number;
+  previousClose: number;
+}
+
+export async function getPrices(tickers: string[]): Promise<Record<string, PriceData>> {
+  const resp = await fetchJson<{ prices: Record<string, PriceData> }>(
+    `${API_BASE_URL}/market/prices?tickers=${tickers.join(',')}`
+  );
+  return resp.prices;
+}

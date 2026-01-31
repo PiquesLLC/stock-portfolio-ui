@@ -55,7 +55,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 animate-pulse shadow-sm dark:shadow-none">
+          <div key={i} className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl p-6 shadow-sm shadow-black/[0.03] dark:shadow-none animate-pulse">
             <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/3 mb-4"></div>
             <div className="h-8 bg-gray-200 dark:bg-rh-border rounded w-1/2 mb-2"></div>
             <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4"></div>
@@ -67,7 +67,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
 
   if (error && !data) {
     return (
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl p-6 shadow-sm shadow-black/[0.03] dark:shadow-none">
         <p className="text-rh-red text-center">{error}</p>
       </div>
     );
@@ -81,9 +81,10 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
     <div className="space-y-4">
       {/* Main two-box layout: Holdings P/L (left), Since Tracking Start (right) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Box 1: Current Holdings <Acronym label="P/L" /> (LEFT) */}
-        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-4">Current Holdings <Acronym label="P/L" /></h3>
+        {/* Box 1: Current Holdings P/L (LEFT) */}
+        <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl p-6 shadow-sm shadow-black/[0.03] dark:shadow-none">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rh-light-muted/70 dark:text-rh-muted/70 mb-1">Current Holdings <Acronym label="P/L" /></h3>
+          <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mb-4">Unrealized gains only</p>
 
           <div className="mb-3">
             <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(holdingsPL.unrealizedPL)}</p>
@@ -96,31 +97,29 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
             </p>
           </div>
 
-          <div className="flex justify-between text-sm text-rh-light-muted dark:text-rh-muted border-t border-rh-light-border dark:border-rh-border pt-3 mt-3">
+          <div className="flex justify-between text-sm text-rh-light-muted/60 dark:text-rh-muted/60 border-t border-rh-light-border/20 dark:border-white/[0.03] pt-3 mt-3">
             <div>
-              <p className="text-xs">Total Cost</p>
-              <p className="text-rh-light-text dark:text-white">{formatCurrency(holdingsPL.totalCost)}</p>
+              <p className="text-[10px] uppercase tracking-wider">Total Cost</p>
+              <p className="text-rh-light-text/80 dark:text-white/80">{formatCurrency(holdingsPL.totalCost)}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs">Market Value</p>
-              <p className="text-rh-light-text dark:text-white">{formatCurrency(holdingsPL.currentValue)}</p>
+              <p className="text-[10px] uppercase tracking-wider">Market Value</p>
+              <p className="text-rh-light-text/80 dark:text-white/80">{formatCurrency(holdingsPL.currentValue)}</p>
             </div>
           </div>
-
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">Unrealized gains/losses only</p>
         </div>
 
         {/* Box 2: Since Tracking Start (RIGHT) */}
-        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+        <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl p-6 shadow-sm shadow-black/[0.03] dark:shadow-none">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">Since Tracking Start</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rh-light-muted/70 dark:text-rh-muted/70">Since Tracking Start</h3>
             {sinceTracking.startDate && (
               <span className="text-xs text-rh-light-muted dark:text-rh-muted">
                 {formatDate(sinceTracking.startDate)}
               </span>
             )}
           </div>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-4">Asset performance only — excludes margin</p>
+          <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mb-4">Asset performance only — excludes margin</p>
 
           {sinceTracking.hasBaseline ? (
             <>
@@ -141,24 +140,20 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
                 </p>
               </div>
 
-              <div className="flex justify-between text-sm text-rh-light-muted dark:text-rh-muted border-t border-rh-light-border dark:border-rh-border pt-3 mt-3">
+              <div className="flex justify-between text-sm text-rh-light-muted/60 dark:text-rh-muted/60 border-t border-rh-light-border/20 dark:border-white/[0.03] pt-3 mt-3">
                 <div>
-                  <p className="text-xs">Starting Assets</p>
-                  <p className="text-rh-light-text dark:text-white">
+                  <p className="text-[10px] uppercase tracking-wider">Starting Assets</p>
+                  <p className="text-rh-light-text/80 dark:text-white/80">
                     {sinceTracking.startingValue !== null
                       ? formatCurrency(sinceTracking.startingValue)
                       : '—'}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs">Current Assets</p>
-                  <p className="text-rh-light-text dark:text-white">{formatCurrency(sinceTracking.currentValue)}</p>
+                  <p className="text-[10px] uppercase tracking-wider">Current Assets</p>
+                  <p className="text-rh-light-text/80 dark:text-white/80">{formatCurrency(sinceTracking.currentValue)}</p>
                 </div>
               </div>
-
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">
-                Tracking asset value independent of leverage
-              </p>
             </>
           ) : (
             <div className="text-center py-4">
@@ -173,9 +168,9 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
 
       {/* Optional Box 3: Broker Lifetime (if data exists) */}
       {brokerLifetime && brokerLifetime.hasData && (
-        <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+        <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl p-6 shadow-sm shadow-black/[0.03] dark:shadow-none">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">Broker Lifetime Performance</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rh-light-muted/70 dark:text-rh-muted/70">Broker Lifetime Performance</h3>
             {brokerLifetime.asOf && (
               <span className="text-xs text-rh-light-muted dark:text-rh-muted">
                 as of {formatDate(brokerLifetime.asOf)}

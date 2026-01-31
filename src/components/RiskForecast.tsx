@@ -33,41 +33,47 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
   // Completely empty / insufficient state (no scenarios available)
   if (!scenarios) {
     const isCaching = status === 'caching';
+    const hasAnyMetric = metrics.annualReturn !== null || metrics.annualVolatility !== null || metrics.maxDrawdown !== null || metrics.sharpeRatio !== null;
 
     return (
       <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Risk Forecast <InfoTooltip text="Uses historical daily returns to compute CAGR, annualized volatility (std dev * sqrt(252)), Sharpe ratio (return/vol), and max drawdown. 1-year scenarios use Monte Carlo simulation with 10th/50th/90th percentile outcomes." /></h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Risk Forecast <InfoTooltip text="Uses historical daily returns to compute CAGR, annualized volatility (std dev * sqrt(252)), Sharpe ratio (return/vol), and max drawdown. 1-year scenarios use Monte Carlo simulation with 10th/50th/90th percentile outcomes." /></h3>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-rh-light-muted/10 dark:bg-white/10 text-rh-light-muted dark:text-rh-muted">
+              {isCaching ? 'Loading' : 'Estimate'}
+            </span>
+          </div>
           {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="text-sm text-rh-green hover:text-rh-green/80 disabled:opacity-50"
-            >
+            <button onClick={onRefresh} disabled={isRefreshing} className="text-sm text-rh-green hover:text-rh-green/80 disabled:opacity-50">
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          {isCaching ? (
-            <div className="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin flex-shrink-0"></div>
-          ) : (
-            <div className="w-5 h-5 flex items-center justify-center text-blue-400 flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          )}
-          <div>
-            <p className="text-sm text-blue-400 font-medium">
-              {isCaching ? 'Caching historical data...' : 'Insufficient data'}
-            </p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">
-              {basis.note || 'Monte Carlo simulation requires at least 60 days of price history.'}
-            </p>
+        {/* Show available metrics even without scenarios */}
+        {hasAnyMetric && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {metrics.annualVolatility !== null && (
+              <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+                <p className="text-xs text-rh-light-muted dark:text-rh-muted">Volatility</p>
+                <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{formatPercent(metrics.annualVolatility)}</p>
+              </div>
+            )}
+            {metrics.maxDrawdown !== null && (
+              <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+                <p className="text-xs text-rh-light-muted dark:text-rh-muted">Max Drawdown</p>
+                <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">-{(metrics.maxDrawdown * 100).toFixed(1)}%</p>
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
+          {isCaching
+            ? 'Caching historical price data for Monte Carlo simulation...'
+            : (basis.note || 'Full projections need 60+ days of history. Collecting daily data.')}
+        </p>
       </div>
     );
   }
@@ -95,8 +101,8 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
     : 'text-rh-light-text dark:text-rh-text';
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Risk Forecast</h3>
         <div className="flex items-center gap-3">
           {status === 'caching' && (
@@ -120,50 +126,50 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
       </div>
 
       {/* Volatility Badge */}
-      <div className="mb-6">
+      <div className="mb-4">
         <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${volColors[volLevel]}`}>
           {volLevel.charAt(0).toUpperCase() + volLevel.slice(1)} Volatility
         </span>
       </div>
 
       {/* Metrics Grid - 2x2 */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="p-4 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-1">Annual Return</p>
-          <p className={`text-xl font-semibold ${returnColor}`}>
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">Annual Return</p>
+          <p className={`text-lg font-semibold tabular-nums ${returnColor}`}>
             {metrics.annualReturn !== null ? `${metrics.annualReturn >= 0 ? '+' : ''}${formatPercent(metrics.annualReturn)}` : '--'}
           </p>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+          <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
             Historical CAGR
           </p>
         </div>
 
-        <div className="p-4 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-1">Annual Volatility</p>
-          <p className="text-xl font-semibold text-rh-light-text dark:text-rh-text">
+        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">Annual Volatility</p>
+          <p className="text-lg font-semibold tabular-nums text-rh-light-text dark:text-rh-text">
             {formatPercent(metrics.annualVolatility)}
           </p>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+          <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
             Price fluctuation
           </p>
         </div>
 
-        <div className="p-4 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-1">Max Drawdown</p>
-          <p className={`text-xl font-semibold ${metrics.maxDrawdown !== null && metrics.maxDrawdown > 0.15 ? 'text-rh-red' : 'text-rh-light-text dark:text-rh-text'}`}>
+        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">Max Drawdown</p>
+          <p className={`text-lg font-semibold tabular-nums ${metrics.maxDrawdown !== null && metrics.maxDrawdown > 0.15 ? 'text-rh-red' : 'text-rh-light-text dark:text-rh-text'}`}>
             {metrics.maxDrawdown !== null ? `-${(metrics.maxDrawdown * 100).toFixed(1)}%` : '--'}
           </p>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+          <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
             Largest decline
           </p>
         </div>
 
-        <div className="p-4 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-1"><Acronym label="Sharpe Ratio" /></p>
-          <p className={`text-xl font-semibold ${sharpeColor}`}>
+        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1"><Acronym label="Sharpe Ratio" /></p>
+          <p className={`text-lg font-semibold tabular-nums ${sharpeColor}`}>
             {formatSharpe(metrics.sharpeRatio)}
           </p>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+          <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
             Risk-adjusted return
           </p>
         </div>
@@ -183,7 +189,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
                 <div className="w-3 h-3 rounded-full bg-rh-green"></div>
                 <span className="text-sm text-rh-light-muted dark:text-rh-muted">Optimistic</span>
               </div>
-              <span className="font-medium text-rh-green">{formatCurrency(scenarios.optimistic)}</span>
+              <span className="font-medium text-rh-green tabular-nums">{formatCurrency(scenarios.optimistic)}</span>
             </div>
 
             {/* Base Case */}
@@ -192,7 +198,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                 <span className="text-sm text-rh-light-muted dark:text-rh-muted">Base Case</span>
               </div>
-              <span className="font-medium text-blue-400">{formatCurrency(scenarios.baseCase)}</span>
+              <span className="font-medium text-blue-400 tabular-nums">{formatCurrency(scenarios.baseCase)}</span>
             </div>
 
             {/* Pessimistic */}
@@ -201,7 +207,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
                 <div className="w-3 h-3 rounded-full bg-rh-red"></div>
                 <span className="text-sm text-rh-light-muted dark:text-rh-muted">Pessimistic</span>
               </div>
-              <span className="font-medium text-rh-red">{formatCurrency(scenarios.pessimistic)}</span>
+              <span className="font-medium text-rh-red tabular-nums">{formatCurrency(scenarios.pessimistic)}</span>
             </div>
           </div>
 
