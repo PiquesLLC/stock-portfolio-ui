@@ -8,6 +8,7 @@ interface Props {
   dayChangePercent: number;
   refreshTrigger: number;
   fetchFn?: (period: PortfolioChartPeriod) => Promise<PortfolioChartData>;
+  onPeriodChange?: (period: PortfolioChartPeriod) => void;
 }
 
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
@@ -110,7 +111,7 @@ function snapToNearest(
 // Component
 // ════════════════════════════════════════════════════════════════════
 
-export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, refreshTrigger, fetchFn }: Props) {
+export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, refreshTrigger, fetchFn, onPeriodChange }: Props) {
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
@@ -191,6 +192,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     setMeasureA(null);
     setMeasureB(null);
     setSelectedPeriod(period);
+    onPeriodChange?.(period);
   };
 
   // ── ESC clears measurement ─────────────────────────────────────
@@ -238,11 +240,14 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   }, [points, periodStartValue]);
 
   // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
+  // Derive the trading day from the data points (not "today") so it works after hours / weekends
   const is1D = selectedPeriod === '1D' && points.length > 1;
   let dayStartMs = 0, dayEndMs = 0;
   if (is1D) {
+    // Use the first data point's date to determine which trading day this is
+    const refDate = new Date(points[0].time);
     const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
-      .format(new Date());
+      .format(refDate);
     const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
     const noonEtStr = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',

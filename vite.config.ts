@@ -5,8 +5,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: parseInt(process.env.VITE_PORT || '5173'),
-    host: '127.0.0.1',
+    host: '0.0.0.0',
+    allowedHosts: ['.loca.lt', '.ngrok-free.dev'],
     proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
       '/hls': {
         target: 'https://stream.livenewsplay.com:9443',
         changeOrigin: true,

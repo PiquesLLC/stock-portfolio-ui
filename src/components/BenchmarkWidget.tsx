@@ -3,16 +3,6 @@ import { PerformanceData, PerformanceWindow } from '../types';
 import { getPerformance } from '../api';
 import { Acronym } from './Acronym';
 
-const WINDOWS: { value: PerformanceWindow; label: string }[] = [
-  { value: '1D', label: '1D' },
-  { value: '1W', label: '1W' },
-  { value: '1M', label: '1M' },
-  { value: '3M', label: '3M' },
-  { value: 'YTD', label: 'YTD' },
-  { value: '1Y', label: '1Y' },
-  { value: 'ALL', label: 'ALL' },
-];
-
 const BENCHMARKS = ['SPY', 'QQQ', 'DIA'];
 
 function fmt(val: number | null, suffix = '%'): string {
@@ -23,10 +13,11 @@ function fmt(val: number | null, suffix = '%'): string {
 
 interface Props {
   refreshTrigger?: number;
+  window?: PerformanceWindow;
 }
 
-export function BenchmarkWidget({ refreshTrigger }: Props) {
-  const [window, setWindow] = useState<PerformanceWindow>('1M');
+export function BenchmarkWidget({ refreshTrigger, window: externalWindow }: Props) {
+  const [window, setWindow] = useState<PerformanceWindow>(externalWindow || '1M');
   const [benchmark, setBenchmark] = useState('SPY');
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +34,11 @@ export function BenchmarkWidget({ refreshTrigger }: Props) {
       setLoading(false);
     }
   }, [window, benchmark]);
+
+  // Sync window when portfolio chart period changes
+  useEffect(() => {
+    if (externalWindow) setWindow(externalWindow);
+  }, [externalWindow]);
 
   useEffect(() => {
     fetchData();
@@ -76,22 +72,8 @@ export function BenchmarkWidget({ refreshTrigger }: Props) {
             ))}
           </div>
         </div>
-        {/* Window selector */}
-        <div className="flex gap-1">
-          {WINDOWS.map(w => (
-            <button
-              key={w.value}
-              onClick={() => setWindow(w.value)}
-              className={`text-xs px-2 py-0.5 rounded transition-colors ${
-                window === w.value
-                  ? 'bg-rh-green/20 text-rh-green font-medium'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-              }`}
-            >
-              <Acronym label={w.label} />
-            </button>
-          ))}
-        </div>
+        {/* Window synced from portfolio chart period */}
+        <span className="text-xs text-rh-light-muted dark:text-rh-muted">{window}</span>
       </div>
 
       {loading && !data ? (

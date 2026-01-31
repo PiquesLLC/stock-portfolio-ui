@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Portfolio, Settings, MarketSession } from './types';
+import { Portfolio, Settings, MarketSession, PortfolioChartPeriod } from './types';
 import { getPortfolio, getSettings, getUsers } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable } from './components/HoldingsTable';
@@ -119,6 +119,7 @@ const savedInitialNav = parseHash(); // Parse once at module load, before any Re
 export default function App() {
   const initialNav = savedInitialNav;
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
   const [, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -588,12 +589,13 @@ export default function App() {
                 dayChange={portfolio.dayChange}
                 dayChangePercent={portfolio.dayChangePercent}
                 refreshTrigger={portfolioRefreshCount}
+                onPeriodChange={setChartPeriod}
               />
             )}
 
             {/* Benchmark Performance Widget */}
             {portfolio && (
-              <BenchmarkWidget refreshTrigger={portfolioRefreshCount} />
+              <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} />
             )}
 
             {/* 1. Top Summary Stat Cards: Total Assets, Net Equity, Day Change, Total P/L */}
