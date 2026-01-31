@@ -116,7 +116,9 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const [loading, setLoading] = useState(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const fetchingRef = useRef(false);
+
+  // ── Per-period cache for instant switching ──────────────────────
+  const chartCacheRef = useRef<Map<PortfolioChartPeriod, PortfolioChartData>>(new Map());
 
   // ── Measurement state ──────────────────────────────────────────
   const [measureA, setMeasureA] = useState<number | null>(null); // index of first click
@@ -129,25 +131,38 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
   // ── Data fetching ──────────────────────────────────────────────
 
+  const fetchIdRef = useRef(0);
   const fetchChart = useCallback(async (period: PortfolioChartPeriod, silent = false) => {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
+    const id = ++fetchIdRef.current;
     if (!silent) setLoading(true);
     try {
       const fetcher = fetchFn || getPortfolioChart;
       const data = await fetcher(period);
-      setChartData(data);
+      // Only apply if this is still the latest request (ignore stale responses)
+      if (id === fetchIdRef.current) {
+        setChartData(data);
+        chartCacheRef.current.set(period, data);
+      }
     } catch (e) {
       console.error('Chart fetch error:', e);
     } finally {
-      fetchingRef.current = false;
-      setLoading(false);
+      if (id === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
-  // Initial load + period change
+  // Initial load + period change — use cache if available for instant switch
   useEffect(() => {
-    fetchChart(selectedPeriod);
+    const cached = chartCacheRef.current.get(selectedPeriod);
+    if (cached) {
+      setChartData(cached);
+      setLoading(false);
+      // Still fetch fresh data in background
+      fetchChart(selectedPeriod, true);
+    } else {
+      fetchChart(selectedPeriod);
+    }
   }, [selectedPeriod, fetchChart]);
 
   // Silent refresh when portfolio updates
@@ -222,14 +237,20 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
   }, [points, periodStartValue]);
 
-  // For 1D, use time-based positioning across the full 24-hour day (today)
+  // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   const is1D = selectedPeriod === '1D' && points.length > 1;
   let dayStartMs = 0, dayEndMs = 0;
   if (is1D) {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    dayStartMs = d.getTime();
-    dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
+    const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+      .format(new Date());
+    const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+    const noonEtStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+    }).format(noonUtc);
+    const noonEtH = parseInt(noonEtStr.split(':')[0]);
+    const etOffsetMs = (noonEtH - 12) * 3600000;
+    dayStartMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs;
+    dayEndMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;
   }
   const dayRangeMs = dayEndMs - dayStartMs;
 
@@ -246,9 +267,6 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
   // Build SVG path
   const pathD = hasData ? points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ') : '';
-  const areaD = hasData ? pathD
-    + ` L${toX(points.length - 1).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`
-    + ` L${toX(0).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)} Z` : '';
 
   const refY = hasData ? toY(periodStartValue) : 0;
 
@@ -482,25 +500,45 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
       {/* Chart */}
       <div className="relative w-full" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
-        {loading && !hasData && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading chart...</div>
+        {loading && (
+          <div className="absolute inset-0 z-10">
+            <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full h-full" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="shimmer" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="currentColor" stopOpacity="0.06" />
+                  <stop offset="40%" stopColor="currentColor" stopOpacity="0.12" />
+                  <stop offset="50%" stopColor="currentColor" stopOpacity="0.18" />
+                  <stop offset="60%" stopColor="currentColor" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="currentColor" stopOpacity="0.06" />
+                  <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="2 0" dur="1.8s" repeatCount="indefinite" />
+                </linearGradient>
+              </defs>
+              {/* Skeleton wave path — smooth sine-like curve */}
+              <path
+                d={`M0,${CHART_H * 0.5} C${CHART_W * 0.08},${CHART_H * 0.35} ${CHART_W * 0.15},${CHART_H * 0.6} ${CHART_W * 0.22},${CHART_H * 0.45} C${CHART_W * 0.29},${CHART_H * 0.3} ${CHART_W * 0.35},${CHART_H * 0.55} ${CHART_W * 0.42},${CHART_H * 0.38} C${CHART_W * 0.5},${CHART_H * 0.2} ${CHART_W * 0.58},${CHART_H * 0.5} ${CHART_W * 0.65},${CHART_H * 0.35} C${CHART_W * 0.72},${CHART_H * 0.2} ${CHART_W * 0.8},${CHART_H * 0.55} ${CHART_W * 0.88},${CHART_H * 0.4} C${CHART_W * 0.94},${CHART_H * 0.3} ${CHART_W * 0.97},${CHART_H * 0.45} ${CHART_W},${CHART_H * 0.42} L${CHART_W},${CHART_H} L0,${CHART_H} Z`}
+                fill="url(#shimmer)"
+                className="text-gray-400 dark:text-gray-500"
+              />
+              <path
+                d={`M0,${CHART_H * 0.5} C${CHART_W * 0.08},${CHART_H * 0.35} ${CHART_W * 0.15},${CHART_H * 0.6} ${CHART_W * 0.22},${CHART_H * 0.45} C${CHART_W * 0.29},${CHART_H * 0.3} ${CHART_W * 0.35},${CHART_H * 0.55} ${CHART_W * 0.42},${CHART_H * 0.38} C${CHART_W * 0.5},${CHART_H * 0.2} ${CHART_W * 0.58},${CHART_H * 0.5} ${CHART_W * 0.65},${CHART_H * 0.35} C${CHART_W * 0.72},${CHART_H * 0.2} ${CHART_W * 0.8},${CHART_H * 0.55} ${CHART_W * 0.88},${CHART_H * 0.4} C${CHART_W * 0.94},${CHART_H * 0.3} ${CHART_W * 0.97},${CHART_H * 0.45} ${CHART_W},${CHART_H * 0.42}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-gray-400/30 dark:text-gray-600/40"
+              />
+            </svg>
           </div>
         )}
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-          className={`w-full h-full ${hasData ? 'cursor-crosshair' : 'cursor-default'}`}
+          className={`w-full h-full overflow-visible transition-opacity duration-200 ${loading ? 'opacity-0' : 'opacity-100'}`}
           preserveAspectRatio="none"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
         >
           <defs>
-            <linearGradient id="portfolio-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
-              <stop offset="100%" stopColor={lineColor} stopOpacity="0.02" />
-            </linearGradient>
             {/* Measurement shading gradient */}
             <linearGradient id="measure-grad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={measureColor} stopOpacity="0.20" />
@@ -514,12 +552,11 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.4" />
           )}
 
-          {/* Area fill */}
-          {hasData && <path d={areaD} fill="url(#portfolio-grad)" />}
+          {/* No area fill — clean line only, like Robinhood */}
 
           {/* Price line */}
           {hasData && (
-            <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* ── Measurement overlays ───────────────────────── */}
@@ -606,7 +643,8 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           {/* Time labels — non-1D only */}
           {timeLabels.map((tl, i) => (
             <text key={i} x={tl.x} y={CHART_H - 2}
-              className="fill-gray-500" fontSize="10" textAnchor="middle">
+              className="fill-gray-500" fontSize="10"
+              textAnchor={i === 0 ? 'start' : i === timeLabels.length - 1 ? 'end' : 'middle'}>
               {tl.label}
             </text>
           ))}
@@ -625,18 +663,11 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           </div>
         )}
 
-        {/* Tooltip hint */}
-        {showHint && hasData && !isMeasuring && (
-          <div className="absolute left-0 bottom-0 pointer-events-none">
-            <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
-              Click chart to measure gains between two dates
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Period selector */}
-      <div className="flex gap-1 mt-3">
+      {/* Hint + Period selector */}
+      <div className="flex items-center gap-3 mt-3">
+        <div className="flex gap-1">
         {PERIODS.map(period => (
           <button
             key={period}
@@ -650,6 +681,12 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             {period}
           </button>
         ))}
+        </div>
+        {showHint && hasData && !isMeasuring && (
+          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 ml-auto">
+            Click chart to measure gains between two dates
+          </span>
+        )}
       </div>
     </div>
   );
