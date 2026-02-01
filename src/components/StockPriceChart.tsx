@@ -259,6 +259,13 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     });
   }, []);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
+  const [measureA, setMeasureA] = useState<number | null>(null);
+  const [measureB, setMeasureB] = useState<number | null>(null);
+  const [showMeasureHint, setShowMeasureHint] = useState(true);
+  const [cardDragPos, setCardDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingCard, setIsDraggingCard] = useState(false);
+  const isMeasuring = measureA !== null;
+  const hasMeasurement = measureA !== null && measureB !== null;
   const svgRef = useRef<SVGSVGElement>(null);
   const yRangeRef = useRef<{ min: number; max: number; period: string } | null>(null);
 
@@ -272,8 +279,55 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     });
   }, []);
 
-  // Clear breach state when period or data changes
-  useEffect(() => { setHoveredBreachIndex(null); }, [selectedPeriod, points.length]);
+  // Clear state when period or data changes
+  useEffect(() => { setHoveredBreachIndex(null); setMeasureA(null); setMeasureB(null); }, [selectedPeriod, points.length]);
+
+  // ESC clears measurement
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setMeasureA(null); setMeasureB(null); setCardDragPos(null); setIsDraggingCard(false); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Click outside chart clears measurement
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isMeasuring) return;
+    const handler = (e: MouseEvent) => {
+      if (chartContainerRef.current && !chartContainerRef.current.contains(e.target as Node)) {
+        setMeasureA(null);
+        setMeasureB(null);
+        setCardDragPos(null);
+        setIsDraggingCard(false);
+      }
+    };
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  }, [isMeasuring]);
+
+  // Track mouse for card dragging (hold-and-drag)
+  useEffect(() => {
+    if (!isDraggingCard || !chartContainerRef.current) return;
+    const container = chartContainerRef.current;
+    const moveHandler = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      setCardDragPos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    };
+    const upHandler = () => {
+      setIsDraggingCard(false);
+    };
+    window.addEventListener('mousemove', moveHandler);
+    window.addEventListener('mouseup', upHandler);
+    return () => {
+      window.removeEventListener('mousemove', moveHandler);
+      window.removeEventListener('mouseup', upHandler);
+    };
+  }, [isDraggingCard]);
 
   const referencePrice = selectedPeriod === '1D' ? previousClose : (points.length > 0 ? points[0].price : currentPrice);
   const hoverPrice = hoverIndex !== null ? points[hoverIndex]?.price : null;
@@ -642,6 +696,98 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     onHoverPrice?.(null, null);
   }, [onHoverPrice]);
 
+  // Find nearest index from SVG x coordinate
+  const findNearestIndex = useCallback((svgX: number): number => {
+    if (is1D && dayRangeMs > 0) {
+      const ratio = (svgX - PAD_LEFT) / plotW;
+      const mouseTime = dayStartMs + ratio * dayRangeMs;
+      let best = 0;
+      let bestDist = Math.abs(points[0].time - mouseTime);
+      for (let i = 1; i < points.length; i++) {
+        const dist = Math.abs(points[i].time - mouseTime);
+        if (dist < bestDist) { best = i; bestDist = dist; }
+      }
+      return best;
+    }
+    const ratio = (svgX - PAD_LEFT) / plotW;
+    return Math.max(0, Math.min(points.length - 1, Math.round(ratio * (points.length - 1))));
+  }, [points, plotW, is1D, dayStartMs, dayRangeMs]);
+
+  // Click handler for measurement — on container div so clicks above/below chart register
+  const handleChartClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!chartContainerRef.current || points.length < 2) return;
+    const rect = chartContainerRef.current.getBoundingClientRect();
+    const relX = e.clientX - rect.left;
+    const relXRatio = relX / rect.width;
+
+    // Ignore clicks to the left or right of the plot area
+    const leftRatio = PAD_LEFT / CHART_W;
+    const rightRatio = (CHART_W - PAD_RIGHT) / CHART_W;
+    if (relXRatio < leftRatio - 0.02 || relXRatio > rightRatio + 0.02) return;
+
+    const svgX = relXRatio * CHART_W;
+    const idx = findNearestIndex(svgX);
+
+    setShowMeasureHint(false);
+
+    if (hasMeasurement) {
+      setMeasureA(null);
+      setMeasureB(null);
+      setCardDragPos(null);
+      setIsDraggingCard(false);
+      return;
+    } else if (measureA === null) {
+      setMeasureA(idx);
+    } else {
+      setMeasureB(idx);
+    }
+  }, [points, findNearestIndex, measureA, hasMeasurement]);
+
+  // Measurement computation
+  const measurement = useMemo(() => {
+    if (measureA === null || measureB === null) return null;
+    const a = Math.min(measureA, measureB);
+    const b = Math.max(measureA, measureB);
+    if (!points[a] || !points[b]) return null;
+    const startPrice = points[a].price;
+    const endPrice = points[b].price;
+    if (startPrice === 0) return null;
+    return {
+      startPrice,
+      endPrice,
+      startTime: points[a].time,
+      endTime: points[b].time,
+      startLabel: points[a].label,
+      endLabel: points[b].label,
+      dollarChange: endPrice - startPrice,
+      percentChange: ((endPrice - startPrice) / startPrice) * 100,
+      daysBetween: Math.round(Math.abs(points[b].time - points[a].time) / 86400000),
+    };
+  }, [measureA, measureB, points]);
+
+  const measureIsGain = measurement ? measurement.dollarChange >= 0 : true;
+  const measureColor = measureIsGain ? '#00C805' : '#E8544E';
+
+  // SVG coordinates for measurement markers
+  const mAx = measureA !== null ? toX(measureA) : null;
+  const mAy = measureA !== null && points[measureA] ? toY(points[measureA].price) : null;
+  const mBx = measureB !== null ? toX(measureB) : null;
+  const mBy = measureB !== null && points[measureB] ? toY(points[measureB].price) : null;
+
+  // Shaded region between A and B
+  const shadedPath = useMemo(() => {
+    if (measureA === null || measureB === null) return '';
+    const lo = Math.min(measureA, measureB);
+    const hi = Math.max(measureA, measureB);
+    const pts = [];
+    for (let i = lo; i <= hi; i++) {
+      pts.push(`${i === lo ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(points[i].price).toFixed(1)}`);
+    }
+    pts.push(`L${toX(hi).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`);
+    pts.push(`L${toX(lo).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)} Z`);
+    return pts.join(' ');
+  }, [measureA, measureB, points]);
+
   // Hover crosshair data
   const hoverX = hoverIndex !== null ? toX(hoverIndex) : null;
   const hoverY = hoverIndex !== null ? toY(points[hoverIndex].price) : null;
@@ -685,23 +831,25 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
   return (
     <div>
-      {/* MA values bar — shown above chart on hover, never overlaps */}
-      {hoverIndex !== null && hoverMaValues.length > 0 && (
-        <div className="flex items-center gap-4 mb-1 min-h-[20px]">
-          <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
-            ${points[hoverIndex].price.toFixed(2)}
-          </span>
-          {hoverMaValues.map(ma => (
-            <span key={ma.period} className="flex items-center gap-1 text-[11px]">
-              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ma.color }} />
-              <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}</span>
-              <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${ma.value.toFixed(2)}</span>
+      {/* MA values bar — fixed height so chart never shifts */}
+      <div className="h-[20px] mb-1">
+        {hoverIndex !== null && hoverMaValues.length > 0 && !hasMeasurement && (
+          <div className="flex items-center gap-4 h-full">
+            <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              ${points[hoverIndex].price.toFixed(2)}
             </span>
-          ))}
-        </div>
-      )}
+            {hoverMaValues.map(ma => (
+              <span key={ma.period} className="flex items-center gap-1 text-[11px]">
+                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ma.color }} />
+                <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}</span>
+                <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${ma.value.toFixed(2)}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <div className="relative w-full" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
+      <div ref={chartContainerRef} className="relative w-full" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }} onClick={handleChartClick}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CHART_W} ${CHART_H}`}
@@ -714,6 +862,10 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             <linearGradient id={`grad-${selectedPeriod}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={lineColor} stopOpacity="0.15" />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="measure-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={measureColor} stopOpacity="0.15" />
+              <stop offset="100%" stopColor={measureColor} stopOpacity="0.02" />
             </linearGradient>
           </defs>
           <style>{`
@@ -803,8 +955,63 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             </text>
           )}
 
+          {/* ── Measurement overlays ───────────────────────── */}
+
+          {/* Shaded region between A and B */}
+          {hasMeasurement && shadedPath && (
+            <path d={shadedPath} fill="url(#measure-grad)">
+              <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" />
+            </path>
+          )}
+
+          {/* Vertical dashed line A */}
+          {mAx !== null && (
+            <line x1={mAx} y1={PAD_TOP} x2={mAx} y2={CHART_H - PAD_BOTTOM}
+              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
+              <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
+            </line>
+          )}
+
+          {/* Vertical dashed line B */}
+          {mBx !== null && (
+            <line x1={mBx} y1={PAD_TOP} x2={mBx} y2={CHART_H - PAD_BOTTOM}
+              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
+              <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
+            </line>
+          )}
+
+          {/* Dot marker A */}
+          {mAx !== null && mAy !== null && (
+            <>
+              <circle cx={mAx} cy={mAy} r="5" fill={measureColor} opacity="0.25">
+                {!hasMeasurement && (
+                  <animate attributeName="r" values="4;7;4" dur="1.5s" repeatCount="indefinite" />
+                )}
+              </circle>
+              <circle cx={mAx} cy={mAy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+            </>
+          )}
+
+          {/* Dot marker B */}
+          {mBx !== null && mBy !== null && (
+            <>
+              <circle cx={mBx} cy={mBy} r="5" fill={measureColor} opacity="0.25" />
+              <circle cx={mBx} cy={mBy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+            </>
+          )}
+
+          {/* Connecting line between dots */}
+          {hasMeasurement && mAx !== null && mAy !== null && mBx !== null && mBy !== null && (
+            <line x1={mAx} y1={mAy} x2={mBx} y2={mBy}
+              stroke={measureColor} strokeWidth="1" strokeDasharray="3,3" opacity="0.6">
+              <animate attributeName="opacity" from="0" to="0.6" dur="0.3s" fill="freeze" />
+            </line>
+          )}
+
+          {/* ── End measurement overlays ───────────────────── */}
+
           {/* Current price dot with pulse */}
-          {hasData && selectedPeriod === '1D' && hoverIndex === null && (
+          {hasData && selectedPeriod === '1D' && hoverIndex === null && !isMeasuring && (
             <>
               <circle cx={lastX} cy={lastY} r="6" fill={lineColor} opacity="0.2">
                 <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" />
@@ -814,8 +1021,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             </>
           )}
 
-          {/* Hover crosshair */}
-          {hasData && hoverX !== null && hoverY !== null && (
+          {/* Hover crosshair (suppress when measurement complete) */}
+          {hasData && hoverX !== null && hoverY !== null && !hasMeasurement && (
             <>
               <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
                 stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6" />
@@ -836,6 +1043,128 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             );
           })}
         </svg>
+
+        {/* Measurement HUD — positioned in empty space above price action */}
+        {hasMeasurement && measurement && mAx !== null && mBx !== null && mAy !== null && mBy !== null && (() => {
+          // Center horizontally between A and B
+          const midXPct = ((Math.min(mAx, mBx) + Math.max(mAx, mBx)) / 2 / CHART_W) * 100;
+          // Find the highest price point in the selected range to place card above it
+          const lo = Math.min(measureA!, measureB!);
+          const hi = Math.max(measureA!, measureB!);
+          let minYInRange = CHART_H;
+          for (let i = lo; i <= hi; i++) {
+            const y = toY(points[i].price);
+            if (y < minYInRange) minYInRange = y;
+          }
+          // Also check enabled MA values in the range for the true visual top
+          for (const ma of visibleMaData) {
+            if (!enabledMAs.has(ma.period)) continue;
+            for (let i = lo; i <= hi; i++) {
+              const v = ma.values[i];
+              if (v !== null) {
+                const y = toY(v);
+                if (y < minYInRange) minYInRange = y;
+              }
+            }
+          }
+          // Position card so its BOTTOM edge is above the highest visible point
+          // This way the card can be any height and still never overlap the chart lines
+          // minYInRange is SVG y (0 = top). Convert to % from bottom of container.
+          const highestPointFromBottomPct = 100 - (minYInRange / CHART_H) * 100;
+          // Card bottom = highest point + 8% gap (≈22px on a 280px chart)
+          const bottomPct = highestPointFromBottomPct + 8;
+          // Clamp horizontal so card doesn't overflow
+          const leftPct = Math.max(2, Math.min(60, midXPct - 12));
+          const posStyle = cardDragPos
+            ? { top: cardDragPos.y, left: cardDragPos.x, transform: 'translate(-50%, -50%)' }
+            : { bottom: `${bottomPct}%`, left: `${leftPct}%` };
+          return (
+            <div
+              className={`absolute z-10 rounded-xl border border-white/[0.08] px-3.5 py-2.5 ${isDraggingCard ? 'cursor-grabbing' : 'cursor-grab'}`}
+              style={{
+                ...posStyle,
+                background: 'rgba(15, 15, 20, 0.55)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                pointerEvents: 'auto',
+                userSelect: 'none',
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const rect = chartContainerRef.current?.getBoundingClientRect();
+                if (rect) {
+                  setCardDragPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                }
+                setIsDraggingCard(true);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="inline-flex flex-col gap-0.5">
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>{measurement.startLabel}</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                  <span>{measurement.endLabel}</span>
+                  {measurement.daysBetween > 0 && (
+                    <span className="text-white/30">· {measurement.daysBetween}d</span>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    ${measurement.startPrice.toFixed(2)}
+                  </span>
+                  <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                  <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    ${measurement.endPrice.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-2xl font-bold ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {measurement.percentChange >= 0 ? '+' : ''}{measurement.percentChange.toFixed(2)}%
+                  </span>
+                  <span className={`text-sm font-medium ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {measurement.dollarChange >= 0 ? '+' : ''}${measurement.dollarChange.toFixed(2)}
+                  </span>
+                </div>
+                <div className="text-[9px] text-white/25 mt-0.5">
+                  Hold to drag · Click chart to remeasure · ESC to clear
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Single-point indicator — above the selected point */}
+        {isMeasuring && !hasMeasurement && measureA !== null && points[measureA] && mAx !== null && mAy !== null && (() => {
+          const leftPct = Math.max(2, Math.min(70, (mAx / CHART_W) * 100 - 5));
+          const topPct = Math.max(0, (mAy / CHART_H) * 100 - 14);
+          return (
+            <div
+              className="absolute pointer-events-none z-10 rounded-lg border border-white/[0.08] px-3 py-1.5"
+              style={{
+                top: `${topPct}%`,
+                left: `${leftPct}%`,
+                background: 'rgba(15, 15, 20, 0.55)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
+                <span className="text-xs text-white/70">
+                  {points[measureA].label} · ${points[measureA].price.toFixed(2)}
+                </span>
+                <span className="text-[10px] text-white/30">
+                  — click another point
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Signal HUD — bottom-left corner, pointer-events disabled, fades in/out */}
         <div
@@ -983,12 +1312,19 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
         </div>
       </div>
 
-      {/* Micro legend */}
-      {signalsEnabled && enabledMAs.size > 0 && breachClusters.length > 0 && (
-        <div className="mt-1.5 text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
-          B = MA breach signal
-        </div>
-      )}
+      {/* Micro legend + measure hint */}
+      <div className="flex items-center justify-between mt-1.5">
+        {signalsEnabled && enabledMAs.size > 0 && breachClusters.length > 0 ? (
+          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+            B = MA breach signal
+          </span>
+        ) : <span />}
+        {showMeasureHint && hasData && !isMeasuring && (
+          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+            Click chart to measure gains between two dates
+          </span>
+        )}
+      </div>
     </div>
   );
 }
