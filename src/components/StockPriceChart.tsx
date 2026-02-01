@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { ChartPeriod, StockCandles } from '../types';
 import { IntradayCandle } from '../api';
 
@@ -134,6 +134,95 @@ function calcSMA(prices: number[], period: number): (number | null)[] {
   return result;
 }
 
+// ── MA Breach Signal Detection ────────────────────────────────────
+
+interface BreachEvent {
+  index: number;
+  maPeriods: MAPeriod[];       // which MAs were breached on this candle
+  price: number;
+  maValues: Partial<Record<MAPeriod, number>>; // MA values at breach point
+}
+
+function detectAllBreaches(
+  prices: number[],
+  maData: { period: MAPeriod; values: (number | null)[] }[],
+): BreachEvent[] {
+  const wasAbove = new Map<MAPeriod, boolean>();
+  for (const ma of maData) wasAbove.set(ma.period, true);
+
+  const events: BreachEvent[] = [];
+  for (let i = 0; i < prices.length; i++) {
+    const p = prices[i];
+    const breached: MAPeriod[] = [];
+    const vals: Partial<Record<MAPeriod, number>> = {};
+
+    for (const ma of maData) {
+      const v = ma.values[i] ?? null;
+      if (v === null) continue;
+      vals[ma.period] = v;
+      const isAbove = p >= v;
+      if (!isAbove && wasAbove.get(ma.period)) breached.push(ma.period);
+      wasAbove.set(ma.period, isAbove);
+    }
+
+    if (breached.length > 0) {
+      events.push({ index: i, maPeriods: breached, price: p, maValues: vals });
+    }
+  }
+  return events;
+}
+
+// Only these MAs generate signals (short MAs are too noisy)
+const SIGNAL_MA_PERIODS: MAPeriod[] = [50, 100, 200];
+
+interface BreachCluster {
+  index: number;          // representative index (first event in cluster)
+  events: BreachEvent[];  // all events in this cluster
+  price: number;
+}
+
+function clusterBreaches(events: BreachEvent[], minGap: number): BreachCluster[] {
+  if (events.length === 0) return [];
+  const clusters: BreachCluster[] = [];
+  let current: BreachCluster = { index: events[0].index, events: [events[0]], price: events[0].price };
+  for (let i = 1; i < events.length; i++) {
+    if (events[i].index - current.events[current.events.length - 1].index <= minGap) {
+      current.events.push(events[i]);
+    } else {
+      clusters.push(current);
+      current = { index: events[i].index, events: [events[i]], price: events[i].price };
+    }
+  }
+  clusters.push(current);
+  return clusters;
+}
+
+function clusterColor(cluster: BreachCluster): string {
+  // Use highest-priority MA color (200 > 100 > 50)
+  const allPeriods = new Set(cluster.events.flatMap(e => e.maPeriods));
+  if (allPeriods.has(200)) return MA_COLORS[200];
+  if (allPeriods.has(100)) return MA_COLORS[100];
+  if (allPeriods.has(50)) return MA_COLORS[50];
+  const first = allPeriods.values().next().value;
+  return first ? MA_COLORS[first] : '#F59E0B';
+}
+
+// Signal hierarchy: MA200 > MA100 > MA50
+function clusterPillSize(cluster: BreachCluster): number {
+  const allPeriods = new Set(cluster.events.flatMap(e => e.maPeriods));
+  if (allPeriods.has(200)) return 18;
+  if (allPeriods.has(100)) return 15;
+  return 13;
+}
+
+function clusterGlowOpacity(cluster: BreachCluster): number {
+  const allPeriods = new Set(cluster.events.flatMap(e => e.maPeriods));
+  if (allPeriods.has(200)) return 0.25;
+  if (allPeriods.has(100)) return 0.18;
+  return 0.12;
+}
+
+
 const CHART_W = 800;
 const CHART_H = 280;
 const PAD_TOP = 20;
@@ -155,6 +244,21 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     } catch { /* ignore */ }
     return new Set();
   });
+  const [signalsEnabled, setSignalsEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('stockChartSignals');
+      if (saved !== null) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return true;
+  });
+  const toggleSignals = useCallback(() => {
+    setSignalsEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem('stockChartSignals', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const yRangeRef = useRef<{ min: number; max: number; period: string } | null>(null);
 
@@ -167,6 +271,9 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       return next;
     });
   }, []);
+
+  // Clear breach state when period or data changes
+  useEffect(() => { setHoveredBreachIndex(null); }, [selectedPeriod, points.length]);
 
   const referencePrice = selectedPeriod === '1D' ? previousClose : (points.length > 0 ? points[0].price : currentPrice);
   const hoverPrice = hoverIndex !== null ? points[hoverIndex]?.price : null;
@@ -436,6 +543,29 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     return result;
   }, [visibleMaData, interpolatedMaData, enabledMAs, points, selectedPeriod, useHourly]);
 
+  // ── Breach signal events ──────────────────────────────────────────
+  const breachClusters = useMemo<BreachCluster[]>(() => {
+    if (!signalsEnabled || points.length === 0 || enabledMAs.size === 0) return [];
+
+    const maSource = useHourly && interpolatedMaData ? interpolatedMaData : visibleMaData;
+    const prices = points.map(p => p.price);
+
+    const pad = (arr: (number | null)[]) => {
+      if (arr.length >= prices.length) return arr;
+      return [...arr, ...new Array(prices.length - arr.length).fill(null)];
+    };
+
+    // Only detect for MA50/100/200 — short MAs are too noisy
+    const signalMaData = maSource
+      .filter(m => enabledMAs.has(m.period) && SIGNAL_MA_PERIODS.includes(m.period))
+      .map(m => ({ period: m.period, values: pad(m.values) }));
+
+    if (signalMaData.length === 0) return [];
+    const events = detectAllBreaches(prices, signalMaData);
+    // Cluster events within 5 candles of each other
+    return clusterBreaches(events, 5);
+  }, [signalsEnabled, points, enabledMAs, visibleMaData, interpolatedMaData, useHourly]);
+
   // Reference line (previous close for 1D, first price for others)
   const refY = toY(referencePrice);
 
@@ -531,8 +661,46 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     return result;
   }, [hoverIndex, enabledMAs, visibleMaData]);
 
+  // HUD data for hovered breach
+  const hoveredCluster = hoveredBreachIndex !== null
+    ? breachClusters.find(c => c.index === hoveredBreachIndex) ?? null
+    : null;
+
+  const hudData = hoveredCluster ? (() => {
+    const color = clusterColor(hoveredCluster);
+    const allPeriods = [...new Set(hoveredCluster.events.flatMap(e => e.maPeriods))].sort((a, b) => a - b);
+    const firstEvt = hoveredCluster.events[0];
+    const lastEvt = hoveredCluster.events[hoveredCluster.events.length - 1];
+    const dateLabel = hoveredCluster.events.length === 1
+      ? points[firstEvt.index]?.label
+      : `${points[firstEvt.index]?.label} – ${points[lastEvt.index]?.label}`;
+    // Distance % from each breached MA
+    const distances = allPeriods.map(mp => {
+      const maVal = firstEvt.maValues[mp];
+      const dist = maVal ? ((firstEvt.price - maVal) / maVal) * 100 : null;
+      return { period: mp, dist };
+    });
+    return { color, allPeriods, firstEvt, dateLabel, distances };
+  })() : null;
+
   return (
     <div>
+      {/* MA values bar — shown above chart on hover, never overlaps */}
+      {hoverIndex !== null && hoverMaValues.length > 0 && (
+        <div className="flex items-center gap-4 mb-1 min-h-[20px]">
+          <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            ${points[hoverIndex].price.toFixed(2)}
+          </span>
+          {hoverMaValues.map(ma => (
+            <span key={ma.period} className="flex items-center gap-1 text-[11px]">
+              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ma.color }} />
+              <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}</span>
+              <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${ma.value.toFixed(2)}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="relative w-full" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
         <svg
           ref={svgRef}
@@ -548,23 +716,25 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
           </defs>
+          <style>{`
+            .breach-pill { cursor: default; }
+            .breach-pill:hover .breach-pill-glow { opacity: 0.4; }
+          `}</style>
 
-          {/* Reference line (previous close / first price) */}
+          {/* Reference line */}
           {hasData && (
             <line x1={PAD_LEFT} y1={refY} x2={CHART_W - PAD_RIGHT} y2={refY}
               stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.5" />
           )}
 
-          {/* Market open/close session dividers for 1D */}
+          {/* Session dividers for 1D */}
           {hasData && is1D && timeLabels.map((tl, i) => (
             <line key={`session-${i}`} x1={tl.x} y1={PAD_TOP} x2={tl.x} y2={CHART_H - PAD_BOTTOM}
               stroke="#6B7280" strokeWidth="0.5" strokeDasharray="3,3" opacity="0.4" />
           ))}
 
           {/* Area fill */}
-          {hasData && (
-            <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />
-          )}
+          {hasData && <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />}
 
           {/* Price line */}
           {hasData && (
@@ -577,7 +747,63 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
           ))}
 
-          {/* Current price dot with pulse (only when not hovering) */}
+          {/* MA Breach signal markers — hover only, no click */}
+          {breachClusters.map((cluster) => {
+            const cx = toX(cluster.index);
+            const cy = toY(cluster.price);
+            const isActive = hoveredBreachIndex === cluster.index;
+            const color = clusterColor(cluster);
+            const count = cluster.events.length;
+            const size = clusterPillSize(cluster);
+            const baseGlow = clusterGlowOpacity(cluster);
+            const label = count > 1 ? `B\u00d7${count}` : 'B';
+            const pillW = count > 1 ? size + 12 : size;
+            const pillH = size;
+            const pillY = cy - size - 4;
+            const fontSize = size >= 18 ? 10 : size >= 15 ? 9 : 8;
+            return (
+              <g
+                key={`breach-${cluster.index}`}
+                className="breach-pill"
+                onMouseEnter={() => setHoveredBreachIndex(cluster.index)}
+                onMouseLeave={() => setHoveredBreachIndex(null)}
+              >
+                <rect
+                  className="breach-pill-glow"
+                  x={cx - pillW / 2 - 2} y={pillY - pillH / 2 - 2}
+                  width={pillW + 4} height={pillH + 4}
+                  rx={pillH / 2 + 2} fill={color}
+                  opacity={isActive ? baseGlow + 0.2 : baseGlow}
+                  style={{ transition: 'opacity 180ms ease' }}
+                />
+                <rect
+                  x={cx - pillW / 2} y={pillY - pillH / 2}
+                  width={pillW} height={pillH} rx={pillH / 2}
+                  fill={color}
+                />
+                <text
+                  x={cx} y={pillY + fontSize * 0.35}
+                  textAnchor="middle"
+                  fontSize={fontSize} fontWeight="700" fill="#fff"
+                  style={{ pointerEvents: 'none', userSelect: 'none' }}
+                >{label}</text>
+                <rect
+                  x={cx - 22} y={pillY - 22}
+                  width="44" height="44"
+                  fill="transparent"
+                />
+              </g>
+            );
+          })}
+
+          {/* Disclaimer badge */}
+          {signalsEnabled && enabledMAs.size > 0 && (
+            <text x={8} y={CHART_H - 6} fontSize="9" fill="rgba(255,255,255,0.2)" fontWeight="400">
+              Signal only — Not financial advice
+            </text>
+          )}
+
+          {/* Current price dot with pulse */}
           {hasData && selectedPeriod === '1D' && hoverIndex === null && (
             <>
               <circle cx={lastX} cy={lastY} r="6" fill={lineColor} opacity="0.2">
@@ -591,62 +817,84 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           {/* Hover crosshair */}
           {hasData && hoverX !== null && hoverY !== null && (
             <>
-              {/* Vertical line */}
-              <line
-                x1={hoverX} y1={PAD_TOP}
-                x2={hoverX} y2={CHART_H - PAD_BOTTOM}
-                stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6"
-              />
-              {/* Dot on the line */}
+              <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
+                stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6" />
               <circle cx={hoverX} cy={hoverY} r="4" fill={lineColor} stroke="#fff" strokeWidth="1.5" />
-              {/* Time label above */}
-              <text
-                x={hoverX}
-                y={PAD_TOP - 6}
-                textAnchor="middle"
-                className="fill-gray-400"
-                fontSize="11"
-                fontWeight="600"
-              >
+              <text x={hoverX} y={PAD_TOP - 6} textAnchor="middle" className="fill-gray-400" fontSize="11" fontWeight="600">
                 {hoverLabel}
               </text>
             </>
           )}
 
-          {/* Time labels on bottom */}
+          {/* Time labels */}
           {timeLabels.map((tl, i) => {
             const anchor = i === 0 ? 'start' : i === timeLabels.length - 1 ? 'end' : 'middle';
             return (
-              <text key={i} x={tl.x} y={CHART_H - 8}
-                className="fill-gray-500" fontSize="10" textAnchor={anchor}>
+              <text key={i} x={tl.x} y={CHART_H - 8} className="fill-gray-500" fontSize="10" textAnchor={anchor}>
                 {tl.label}
               </text>
             );
           })}
         </svg>
 
-        {/* MA tooltip on hover */}
-        {hoverIndex !== null && hoverMaValues.length > 0 && (
-          <div
-            className="absolute pointer-events-none bg-rh-light-card/95 dark:bg-rh-card/95 border border-rh-light-border dark:border-rh-border rounded-lg px-3 py-2 shadow-lg"
-            style={{
-              left: `${((hoverX ?? 0) / CHART_W) * 100}%`,
-              top: `${(PAD_TOP / CHART_H) * 100}%`,
-              transform: (hoverX ?? 0) > CHART_W * 0.7 ? 'translateX(-110%)' : 'translateX(10%)',
-            }}
-          >
-            <div className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text mb-1">
-              Price: ${points[hoverIndex].price.toFixed(2)}
-            </div>
-            {hoverMaValues.map(ma => (
-              <div key={ma.period} className="flex items-center gap-1.5 text-[11px]">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: ma.color }} />
-                <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}:</span>
-                <span className="font-semibold text-rh-light-text dark:text-rh-text">${ma.value.toFixed(2)}</span>
+        {/* Signal HUD — bottom-left corner, pointer-events disabled, fades in/out */}
+        <div
+          className="absolute bottom-8 left-2 pointer-events-none transition-opacity duration-150"
+          style={{ opacity: hudData ? 1 : 0 }}
+        >
+          {hudData && (
+            <div
+              className="rounded-xl border border-white/[0.08] px-3.5 py-2.5 min-w-[180px] max-w-[220px]"
+              style={{
+                background: 'rgba(15, 15, 20, 0.38)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md text-[8px] font-bold text-white"
+                  style={{ backgroundColor: hudData.color }}
+                >B</span>
+                <span className="text-[11px] font-semibold text-white/90 tracking-wide">MA Breach Signal</span>
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Body stats */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[9px] text-white/40 uppercase tracking-widest">Date</span>
+                  <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>{hudData.dateLabel}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[9px] text-white/40 uppercase tracking-widest">Price</span>
+                  <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>${hudData.firstEvt.price.toFixed(2)}</span>
+                </div>
+                {hudData.distances.map(({ period: mp, dist }) => {
+                  const maVal = hudData.firstEvt.maValues[mp];
+                  return maVal != null ? (
+                    <div key={mp} className="flex justify-between items-baseline">
+                      <span className="text-[9px] uppercase tracking-widest" style={{ color: MA_COLORS[mp] }}>MA{mp}</span>
+                      <span className="flex items-baseline gap-1.5">
+                        <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>${maVal.toFixed(2)}</span>
+                        {dist !== null && (
+                          <span className={`text-[9px] font-semibold ${dist < 0 ? 'text-rh-red' : 'text-rh-green'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {dist > 0 ? '+' : ''}{dist.toFixed(1)}%
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-2 pt-1.5 border-t border-white/[0.06]">
+                <span className="text-[8px] text-white/25 italic">Signal only — not financial advice.</span>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* No data overlay */}
         {!hasData && (
@@ -720,8 +968,27 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               </button>
             );
           })}
+          <span className="w-px bg-rh-light-border dark:bg-rh-border mx-0.5" />
+          <button
+            onClick={toggleSignals}
+            className={`px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+              signalsEnabled
+                ? 'text-white border-transparent'
+                : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+            style={signalsEnabled ? { backgroundColor: '#F59E0B', borderColor: '#F59E0B' } : undefined}
+          >
+            Signals
+          </button>
         </div>
       </div>
+
+      {/* Micro legend */}
+      {signalsEnabled && enabledMAs.size > 0 && breachClusters.length > 0 && (
+        <div className="mt-1.5 text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+          B = MA breach signal
+        </div>
+      )}
     </div>
   );
 }
