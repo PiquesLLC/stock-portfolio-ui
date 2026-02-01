@@ -264,10 +264,13 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const [showMeasureHint, setShowMeasureHint] = useState(true);
   const [cardDragPos, setCardDragPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingCard, setIsDraggingCard] = useState(false);
+  const [signalDragPos, setSignalDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingSignal, setIsDraggingSignal] = useState(false);
   const isMeasuring = measureA !== null;
   const hasMeasurement = measureA !== null && measureB !== null;
   const svgRef = useRef<SVGSVGElement>(null);
   const yRangeRef = useRef<{ min: number; max: number; period: string } | null>(null);
+  const measureCardPos = useRef<{ bottomPct: number; leftPct: number } | null>(null);
 
   const toggleMA = useCallback((period: MAPeriod) => {
     setEnabledMAs(prev => {
@@ -309,17 +312,18 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
   // Track mouse for card dragging (hold-and-drag)
   useEffect(() => {
-    if (!isDraggingCard || !chartContainerRef.current) return;
+    const active = isDraggingCard || isDraggingSignal;
+    if (!active || !chartContainerRef.current) return;
     const container = chartContainerRef.current;
     const moveHandler = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect();
-      setCardDragPos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
+      const pos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      if (isDraggingCard) setCardDragPos(pos);
+      if (isDraggingSignal) setSignalDragPos(pos);
     };
     const upHandler = () => {
-      setIsDraggingCard(false);
+      if (isDraggingCard) setIsDraggingCard(false);
+      if (isDraggingSignal) setIsDraggingSignal(false);
     };
     window.addEventListener('mousemove', moveHandler);
     window.addEventListener('mouseup', upHandler);
@@ -327,7 +331,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       window.removeEventListener('mousemove', moveHandler);
       window.removeEventListener('mouseup', upHandler);
     };
-  }, [isDraggingCard]);
+  }, [isDraggingCard, isDraggingSignal]);
 
   const referencePrice = selectedPeriod === '1D' ? previousClose : (points.length > 0 ? points[0].price : currentPrice);
   const hoverPrice = hoverIndex !== null ? points[hoverIndex]?.price : null;
@@ -917,8 +921,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               <g
                 key={`breach-${cluster.index}`}
                 className="breach-pill"
-                onMouseEnter={() => setHoveredBreachIndex(cluster.index)}
-                onMouseLeave={() => setHoveredBreachIndex(null)}
+                onMouseEnter={() => { setHoveredBreachIndex(cluster.index); setSignalDragPos(null); setIsDraggingSignal(false); }}
+                onMouseLeave={() => { if (!isDraggingSignal && !signalDragPos) setHoveredBreachIndex(null); }}
               >
                 <rect
                   className="breach-pill-glow"
@@ -1068,13 +1072,12 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             }
           }
           // Position card so its BOTTOM edge is above the highest visible point
-          // This way the card can be any height and still never overlap the chart lines
-          // minYInRange is SVG y (0 = top). Convert to % from bottom of container.
           const highestPointFromBottomPct = 100 - (minYInRange / CHART_H) * 100;
-          // Card bottom = highest point + 8% gap (≈22px on a 280px chart)
           const bottomPct = highestPointFromBottomPct + 8;
-          // Clamp horizontal so card doesn't overflow
-          const leftPct = Math.max(2, Math.min(60, midXPct - 12));
+          // Measurement card sits right of center — signal card will go to its left
+          const leftPct = Math.max(30, Math.min(60, midXPct - 12));
+          // Store position for signal card alignment
+          measureCardPos.current = { bottomPct, leftPct };
           const posStyle = cardDragPos
             ? { top: cardDragPos.y, left: cardDragPos.x, transform: 'translate(-50%, -50%)' }
             : { bottom: `${bottomPct}%`, left: `${leftPct}%` };
@@ -1166,19 +1169,56 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           );
         })()}
 
-        {/* Signal HUD — bottom-left corner, pointer-events disabled, fades in/out */}
-        <div
-          className="absolute bottom-8 left-2 pointer-events-none transition-opacity duration-150"
-          style={{ opacity: hudData ? 1 : 0 }}
-        >
-          {hudData && (
+        {/* Signal HUD — positioned above chart lines, to the left of measurement card when both visible */}
+        {hudData && hoveredCluster && (() => {
+          const breachX = toX(hoveredCluster.index);
+          const breachY = toY(hoveredCluster.price);
+
+          let signalBottomPct: number;
+          let signalLeftPct: number;
+
+          if (hasMeasurement && measureCardPos.current && !cardDragPos) {
+            // Both visible: same row as measurement card
+            signalBottomPct = measureCardPos.current.bottomPct;
+            const leftOfCard = measureCardPos.current.leftPct - 30;
+            if (leftOfCard < 1) {
+              // Not enough room on the left — place to the right instead
+              signalLeftPct = measureCardPos.current.leftPct + 32;
+            } else {
+              signalLeftPct = leftOfCard;
+            }
+          } else {
+            // Solo: position above the breach point
+            const breachFromBottomPct = 100 - (breachY / CHART_H) * 100;
+            signalBottomPct = breachFromBottomPct + 12;
+            signalLeftPct = Math.max(1, Math.min(70, (breachX / CHART_W) * 100 - 12));
+          }
+
+          const signalPosStyle = signalDragPos
+            ? { top: signalDragPos.y, left: signalDragPos.x, transform: 'translate(-50%, -50%)' } as React.CSSProperties
+            : { bottom: `${signalBottomPct}%`, left: `${signalLeftPct}%` } as React.CSSProperties;
+
+          return (
             <div
-              className="rounded-xl border border-white/[0.08] px-3.5 py-2.5 min-w-[180px] max-w-[220px]"
+              className={`absolute z-10 rounded-xl border border-white/[0.08] px-3.5 py-2.5 min-w-[180px] max-w-[220px] ${isDraggingSignal ? 'cursor-grabbing' : 'cursor-grab'}`}
               style={{
-                background: 'rgba(15, 15, 20, 0.38)',
+                ...signalPosStyle,
+                background: 'rgba(15, 15, 20, 0.55)',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
+                pointerEvents: 'auto',
+                userSelect: 'none',
               }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const rect = chartContainerRef.current?.getBoundingClientRect();
+                if (rect) {
+                  setSignalDragPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                }
+                setIsDraggingSignal(true);
+              }}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center gap-2 mb-2">
@@ -1219,11 +1259,11 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
               {/* Footer */}
               <div className="mt-2 pt-1.5 border-t border-white/[0.06]">
-                <span className="text-[8px] text-white/25 italic">Signal only — not financial advice.</span>
+                <span className="text-[8px] text-white/25 italic">Hold to drag · Signal only — not financial advice.</span>
               </div>
             </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* No data overlay */}
         {!hasData && (
