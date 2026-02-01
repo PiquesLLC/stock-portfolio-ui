@@ -175,11 +175,11 @@ export default function App() {
     <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black text-rh-light-text dark:text-rh-text">
       <header className="border-b border-rh-light-border dark:border-rh-border bg-rh-light-card dark:bg-rh-black">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Stock Portfolio</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text whitespace-nowrap">Stock Portfolio</h1>
             {portfolio?.session && (
               <span
-                className={`text-xs px-2 py-1 rounded border font-medium ${getSessionDisplay(portfolio.session).color}`}
+                className={`text-xs px-2 py-1 rounded border font-medium whitespace-nowrap ${getSessionDisplay(portfolio.session).color}`}
                 title={getSessionDisplay(portfolio.session).description}
               >
                 {getSessionDisplay(portfolio.session).label}
