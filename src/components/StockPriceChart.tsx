@@ -197,6 +197,50 @@ function clusterBreaches(events: BreachEvent[], minGap: number): BreachCluster[]
   return clusters;
 }
 
+// ── Golden / Death Cross Detection ───────────────────────────────
+
+interface CrossEvent {
+  index: number;
+  type: 'golden' | 'death';
+  ma100: number;
+  ma200: number;
+  price: number;
+}
+
+const CROSS_EPSILON = 0.0001;
+
+const CROSS_COLORS = {
+  golden: '#FFD700',  // gold
+  death: '#9CA3AF',   // gray
+} as const;
+
+function detectCrosses(
+  prices: number[],
+  ma100Values: (number | null)[],
+  ma200Values: (number | null)[],
+): CrossEvent[] {
+  const events: CrossEvent[] = [];
+  let prevDiff: number | null = null;
+
+  for (let i = 0; i < prices.length; i++) {
+    const ma100 = ma100Values[i];
+    const ma200 = ma200Values[i];
+    if (ma100 === null || ma200 === null) { prevDiff = null; continue; }
+
+    const currDiff = ma100 - ma200;
+
+    if (prevDiff !== null) {
+      if (prevDiff <= CROSS_EPSILON && currDiff > CROSS_EPSILON) {
+        events.push({ index: i, type: 'golden', ma100, ma200, price: prices[i] });
+      } else if (prevDiff >= -CROSS_EPSILON && currDiff < -CROSS_EPSILON) {
+        events.push({ index: i, type: 'death', ma100, ma200, price: prices[i] });
+      }
+    }
+    prevDiff = currDiff;
+  }
+  return events;
+}
+
 function clusterColor(cluster: BreachCluster): string {
   // Use highest-priority MA color (200 > 100 > 50)
   const allPeriods = new Set(cluster.events.flatMap(e => e.maPeriods));
@@ -259,6 +303,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     });
   }, []);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
+  const [hoveredCrossIndex, setHoveredCrossIndex] = useState<number | null>(null);
   const [measureA, setMeasureA] = useState<number | null>(null);
   const [measureB, setMeasureB] = useState<number | null>(null);
   const [showMeasureHint, setShowMeasureHint] = useState(true);
@@ -628,6 +673,16 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     return clusterBreaches(events, 5);
   }, [signalsEnabled, points, enabledMAs, visibleMaData, interpolatedMaData, useHourly]);
 
+  // Golden / Death Cross detection
+  const crossEvents = useMemo<CrossEvent[]>(() => {
+    if (!signalsEnabled || points.length === 0) return [];
+    const ma100 = visibleMaData.find(m => m.period === 100);
+    const ma200 = visibleMaData.find(m => m.period === 200);
+    if (!ma100 || !ma200) return [];
+    const prices = points.map(p => p.price);
+    return detectCrosses(prices, ma100.values, ma200.values);
+  }, [signalsEnabled, points, visibleMaData]);
+
   // Reference line (previous close for 1D, first price for others)
   const refY = toY(referencePrice);
 
@@ -663,6 +718,11 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       const step = Math.max(1, Math.floor(points.length / maxTimeLabels));
       for (let i = 0; i < points.length; i += step) {
         timeLabels.push({ label: points[i].label, x: toX(i) });
+      }
+      // Always include the last data point so today's date shows at the right edge
+      const lastIdx = points.length - 1;
+      if (lastIdx > 0 && (lastIdx % step !== 0)) {
+        timeLabels.push({ label: points[lastIdx].label, x: toX(lastIdx) });
       }
     }
   }
@@ -891,6 +951,51 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
         </div>
       )}
 
+      {/* Cross HUD — Golden/Death Cross tooltip */}
+      {hoveredCrossIndex !== null && (() => {
+        const cross = crossEvents.find(c => c.index === hoveredCrossIndex);
+        if (!cross) return null;
+        const isGolden = cross.type === 'golden';
+        const color = CROSS_COLORS[cross.type];
+        const dateLabel = points[cross.index]?.label ?? '';
+        return (
+          <div
+            className="absolute right-0 z-30 rounded-xl border border-white/[0.08] px-3.5 py-2.5 min-w-[180px] max-w-[220px]"
+            style={{ top: -120, background: 'rgba(15, 15, 20, 0.75)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', pointerEvents: 'auto', userSelect: 'none' }}
+            onMouseEnter={() => { if (hoverClearTimer.current) { clearTimeout(hoverClearTimer.current); hoverClearTimer.current = null; } }}
+            onMouseLeave={() => { hoverClearTimer.current = setTimeout(() => { setHoveredCrossIndex(null); hoverClearTimer.current = null; }, 500); }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md text-[10px] font-bold text-white" style={{ backgroundColor: color }}>
+                {isGolden ? '✦' : '✕'}
+              </span>
+              <span className="text-[11px] font-semibold text-white/90 tracking-wide">{isGolden ? 'Golden Cross' : 'Death Cross'}</span>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[9px] text-white/40 uppercase tracking-widest">Date</span>
+                <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>{dateLabel}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-[9px] text-white/40 uppercase tracking-widest">Price</span>
+                <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>${cross.price.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-[9px] uppercase tracking-widest" style={{ color: MA_COLORS[100] }}>MA100</span>
+                <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>${cross.ma100.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-[9px] uppercase tracking-widest" style={{ color: MA_COLORS[200] }}>MA200</span>
+                <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>${cross.ma200.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="mt-2 pt-1.5 border-t border-white/[0.06]">
+              <span className="text-[8px] text-white/25 italic">Signal only — not financial advice.</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* MA values bar — fixed height so chart never shifts */}
       <div className="h-[20px] mb-1">
         {hoverIndex !== null && hoverMaValues.length > 0 && !hasMeasurement && (
@@ -927,6 +1032,9 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               <stop offset="0%" stopColor={measureColor} stopOpacity="0.15" />
               <stop offset="100%" stopColor={measureColor} stopOpacity="0.02" />
             </linearGradient>
+            <clipPath id="plot-clip">
+              <rect x={PAD_LEFT} y={PAD_TOP} width={CHART_W - PAD_LEFT - PAD_RIGHT} height={CHART_H - PAD_TOP - PAD_BOTTOM} />
+            </clipPath>
           </defs>
           <style>{`
             .breach-pill { cursor: default; }
@@ -953,11 +1061,13 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
-          {/* Moving average lines */}
-          {maPaths.map(({ period, d }) => (
-            <path key={`ma-${period}`} d={d} fill="none" stroke={MA_COLORS[period]}
-              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
-          ))}
+          {/* Moving average lines — clipped to plot area */}
+          <g clipPath="url(#plot-clip)">
+            {maPaths.map(({ period, d }) => (
+              <path key={`ma-${period}`} d={d} fill="none" stroke={MA_COLORS[period]}
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+            ))}
+          </g>
 
           {/* MA Breach signals — dynamically positioned above local chart contour */}
           {(() => {
@@ -996,7 +1106,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               }
             }
 
-            return pillPositions.map(({ cluster, cx, cy, localMinY, allPeriods, isPrimary }, idx) => {
+            return pillPositions.map(({ cluster, cx, cy, allPeriods, isPrimary }, idx) => {
               const isActive = hoveredBreachIndex === cluster.index;
               const fillColor = clusterColor(cluster);
               const baseSize = clusterPillSize(cluster);
@@ -1004,9 +1114,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               const size = baseSize * scale;
               const baseGlow = clusterGlowOpacity(cluster);
               const r = size / 2;
-              // Dynamic placement: above the local highest line + padding + stagger
-              const padding = 18;
-              const pillY = Math.max(r + 2, localMinY - padding + staggerOffset[idx]);
+              // Place pill just above the price point, following the price contour
+              const pillY = Math.max(PAD_TOP + r + 2, cy - r - 10 + staggerOffset[idx]);
               const fontSize = (size >= 16 ? 10 : size >= 13 ? 9 : 8);
 
               const hierarchyOpacity = isPrimary ? 1 : 0.75;
@@ -1025,7 +1134,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
                 <g
                   key={`breach-${cluster.index}`}
                   opacity={finalOpacity}
-                  onMouseEnter={() => { if (hoverClearTimer.current) { clearTimeout(hoverClearTimer.current); hoverClearTimer.current = null; } setHoveredBreachIndex(cluster.index); setSignalDragPos(null); setIsDraggingSignal(false); }}
+                  onMouseEnter={() => { if (hoverClearTimer.current) { clearTimeout(hoverClearTimer.current); hoverClearTimer.current = null; } setHoveredBreachIndex(cluster.index); setHoveredCrossIndex(null); setSignalDragPos(null); setIsDraggingSignal(false); }}
                   onMouseLeave={() => { if (!isDraggingSignal && !signalDragPos) { hoverClearTimer.current = setTimeout(() => { setHoveredBreachIndex(null); hoverClearTimer.current = null; }, 3000); } }}
                 >
                   {/* Tether line from pill to price point */}
@@ -1090,12 +1199,53 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             });
           })()}
 
-          {/* Disclaimer badge */}
-          {signalsEnabled && enabledMAs.size > 0 && (
-            <text x={8} y={CHART_H - 6} fontSize="9" fill="rgba(255,255,255,0.2)" fontWeight="400">
-              Signal only — Not financial advice
-            </text>
-          )}
+          {/* Golden / Death Cross markers */}
+          {crossEvents.map((cross) => {
+            const cx = toX(cross.index);
+            const cy = toY(cross.price);
+            const isActive = hoveredCrossIndex === cross.index;
+            const color = CROSS_COLORS[cross.type];
+            const r = 7;
+            const pillY = Math.max(PAD_TOP + r + 2, cy - r - 10);
+
+            return (
+              <g
+                key={`cross-${cross.index}`}
+                opacity={isActive ? 1 : 0.85}
+                onMouseEnter={() => {
+                  if (hoverClearTimer.current) { clearTimeout(hoverClearTimer.current); hoverClearTimer.current = null; }
+                  setHoveredCrossIndex(cross.index);
+                  setHoveredBreachIndex(null);
+                }}
+                onMouseLeave={() => {
+                  hoverClearTimer.current = setTimeout(() => { setHoveredCrossIndex(null); hoverClearTimer.current = null; }, 3000);
+                }}
+              >
+                {/* Tether line */}
+                <line x1={cx} y1={pillY + r} x2={cx} y2={cy}
+                  stroke={color} strokeWidth="0.75" opacity={isActive ? 0.45 : 0.15}
+                  strokeDasharray="3 3" style={{ transition: 'opacity 180ms ease' }} />
+                {/* Dot at price */}
+                <circle cx={cx} cy={cy} r="2.5" fill={color} opacity={isActive ? 0.6 : 0.2}
+                  style={{ transition: 'opacity 180ms ease' }} />
+                {/* Halo cutout */}
+                <circle cx={cx} cy={pillY} r={r + 4} fill="#0f0f14" />
+                {/* Glow */}
+                <circle cx={cx} cy={pillY} r={r + 2} fill={color}
+                  opacity={isActive ? 0.35 : 0.12} style={{ transition: 'opacity 180ms ease' }} />
+                {/* Main circle */}
+                <circle cx={cx} cy={pillY} r={r} fill={color} />
+                {/* Glyph */}
+                <text x={cx} y={pillY + 3.5} textAnchor="middle" fontSize="9" fontWeight="700"
+                  fill={cross.type === 'golden' ? '#000' : '#fff'}
+                  style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                  {cross.type === 'golden' ? '✦' : '✕'}
+                </text>
+                {/* Hit area */}
+                <rect x={cx - 16} y={pillY - 12} width="32" height="24" fill="transparent" />
+              </g>
+            );
+          })}
 
           {/* ── Measurement overlays ───────────────────────── */}
 

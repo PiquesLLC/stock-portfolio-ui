@@ -316,6 +316,19 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     return { change, changePct, label: labels[chartPeriod] || chartPeriod };
   }, [chartPeriod, data]);
 
+  // Golden Cross detection: MA100 currently above MA200
+  const goldenCrossActive = useMemo(() => {
+    const candles = data?.candles;
+    if (!candles || candles.closes.length < 200) return false;
+    const closes = candles.closes;
+    // Compute latest MA100 and MA200
+    let sum100 = 0, sum200 = 0;
+    const n = closes.length;
+    for (let i = n - 100; i < n; i++) sum100 += closes[i];
+    for (let i = n - 200; i < n; i++) sum200 += closes[i];
+    return (sum100 / 100) > (sum200 / 200);
+  }, [data?.candles]);
+
   if (loading) {
     return (
       <div className="py-6">
@@ -385,6 +398,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           {exchangeLabel && (
             <span className="text-xs px-1.5 py-0.5 rounded bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted font-medium">
               {exchangeLabel}
+            </span>
+          )}
+          {goldenCrossActive && (
+            <span className="text-xs px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(255, 215, 0, 0.15)', color: '#FFD700' }}
+              title="Golden Cross active (MA100 > MA200). Not financial advice.">
+              ✦ Golden Cross
             </span>
           )}
         </div>
