@@ -395,12 +395,14 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
   // Compute stable Y-axis range (includes enabled MA values)
   const { paddedMin, paddedMax } = useMemo(() => {
+    if (points.length === 0) return { paddedMin: referencePrice - 1, paddedMax: referencePrice + 1 };
     const prices = points.map(p => p.price);
     let minP = Math.min(...prices, referencePrice);
     let maxP = Math.max(...prices, referencePrice);
 
     // Include enabled MA values in Y range so MA lines are visible
-    if (enabledMAs.size > 0) {
+    // On 1D/1W, skip this — MAs far from price flatten the chart; let them clip
+    if (enabledMAs.size > 0 && selectedPeriod !== '1D' && selectedPeriod !== '1W') {
       for (const ma of visibleMaData) {
         if (!enabledMAs.has(ma.period)) continue;
         for (const val of ma.values) {
@@ -455,6 +457,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   }
   const dayRangeMs = dayEndMs - dayStartMs;
   const toX = (i: number) => {
+    if (i < 0 || i >= points.length) return PAD_LEFT;
     if (is1D && dayRangeMs > 0) {
       return PAD_LEFT + ((points[i].time - dayStartMs) / dayRangeMs) * plotW;
     }
