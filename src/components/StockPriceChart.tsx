@@ -12,6 +12,7 @@ interface Props {
   currentPrice: number;
   previousClose: number;
   onHoverPrice?: (price: number | null, label: string | null) => void;
+  goldenCrossDate?: string | null; // ISO date string of golden cross within timeframe
 }
 
 const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
@@ -227,7 +228,6 @@ function detectCrosses(
 ): CrossEvent[] {
   const events: CrossEvent[] = [];
   let prevDiff: number | null = null;
-  let firstValidIdx: number | null = null;
 
   for (let i = 0; i < prices.length; i++) {
     const ma100 = ma100Values[i];
@@ -236,15 +236,8 @@ function detectCrosses(
 
     const currDiff = ma100 - ma200;
 
-    if (firstValidIdx === null) {
-      firstValidIdx = i;
-      // If the first valid pair already shows a cross state, mark it at the start
-      if (currDiff > CROSS_EPSILON) {
-        events.push({ index: i, type: 'golden', ma100, ma200, price: prices[i] });
-      } else if (currDiff < -CROSS_EPSILON) {
-        events.push({ index: i, type: 'death', ma100, ma200, price: prices[i] });
-      }
-    } else if (prevDiff !== null) {
+    // Only mark actual crossover transitions — not inherited state from before the visible range
+    if (prevDiff !== null) {
       if (prevDiff <= CROSS_EPSILON && currDiff > CROSS_EPSILON) {
         events.push({ index: i, type: 'golden', ma100, ma200, price: prices[i] });
       } else if (prevDiff >= -CROSS_EPSILON && currDiff < -CROSS_EPSILON) {
@@ -289,7 +282,7 @@ const PAD_BOTTOM = 30;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
 
-export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, onHoverPrice }: Props) {
+export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, onHoverPrice, goldenCrossDate }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],

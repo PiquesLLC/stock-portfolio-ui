@@ -355,39 +355,24 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // Build SVG path
   const pathD = hasData ? points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ') : '';
 
-  // Market-open segmentation: split path at 9:30 AM ET today
-  const { preMarketPathD, livePathD } = useMemo(() => {
-    if (!hasData || !isMarketOpen) return { preMarketPathD: '', livePathD: '' };
+  // Session split index: first data point at or after 9:30 AM ET today
+  const sessionSplitIdx = useMemo(() => {
+    if (!hasData || !is1D) return null;
 
-    // Compute 9:30 AM ET today as UTC ms
-    // Get today's date in ET timezone
-    const etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-    const etNow = new Date(etStr);
-    const etDateStr = `${etNow.getFullYear()}-${String(etNow.getMonth() + 1).padStart(2, '0')}-${String(etNow.getDate()).padStart(2, '0')}`;
-    // Determine ET→UTC offset: format a known time and compare
-    const etHour = Number(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }));
-    const utcHour = new Date().getUTCHours();
-    const etOffsetHours = utcHour - etHour; // positive = ET is behind UTC (e.g. 5 for EST, 4 for EDT)
-    // 9:30 AM ET = (9:30 + offset) UTC
-    const openMs = new Date(`${etDateStr}T${String(9 + etOffsetHours).padStart(2, '0')}:30:00Z`).getTime();
+    // Derive trading day from data points (works after hours / weekends)
+    const refDate = new Date(points[0].time);
+    const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
+    const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+    const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+    }).format(noonUtc).split(':')[0]);
+    const etOffsetMs = (noonEtH - 12) * 3600000;
+    const openMs = new Date(`${etDateStr}T09:30:00Z`).getTime() - etOffsetMs;
 
-    // Find split index: first point at or after market open
-    const splitIdx = points.findIndex(p => p.time >= openMs);
-    if (splitIdx <= 0 || splitIdx >= points.length) return { preMarketPathD: '', livePathD: '' };
-
-    // Pre-market: points 0..splitIdx (inclusive, so paths connect)
-    const pre = points.slice(0, splitIdx + 1).map((p, i) =>
-      `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`
-    ).join(' ');
-
-    // Live: points splitIdx..end (start with M at split point for continuity)
-    const live = points.slice(splitIdx).map((p, j) => {
-      const idx = splitIdx + j;
-      return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.value).toFixed(1)}`;
-    }).join(' ');
-
-    return { preMarketPathD: pre, livePathD: live };
-  }, [hasData, isMarketOpen, points, toX, toY]);
+    const idx = points.findIndex(p => p.time >= openMs);
+    if (idx <= 0 || idx >= points.length) return null;
+    return idx;
+  }, [hasData, is1D, points]);
 
   const refY = hasData ? toY(periodStartValue) : 0;
 
@@ -705,22 +690,76 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               stroke="#6B7280" strokeWidth="0.6" strokeDasharray="5,5" opacity="0.25" />
           )}
 
-          {/* Subtle area fill — barely visible gradient under line */}
-          {hasData && (
+          {/* Area fill — split at market open when applicable */}
+          {hasData && sessionSplitIdx !== null ? (
+            <>
+              {/* Pre-open fill — muted */}
+              <path
+                d={(() => {
+                  const bottom = CHART_H - PAD_BOTTOM;
+                  const splitX = toX(sessionSplitIdx).toFixed(1);
+                  const seg = points.slice(0, sessionSplitIdx + 1)
+                    .map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`)
+                    .join(' ');
+                  return `${seg} L${splitX},${bottom} L${toX(0).toFixed(1)},${bottom} Z`;
+                })()}
+                fill={lineColor} opacity="0.04"
+              />
+              {/* Post-open fill — stronger */}
+              <path
+                d={(() => {
+                  const bottom = CHART_H - PAD_BOTTOM;
+                  const lastIdx = points.length - 1;
+                  const seg = points.slice(sessionSplitIdx)
+                    .map((p, j) => {
+                      const idx = sessionSplitIdx + j;
+                      return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.value).toFixed(1)}`;
+                    })
+                    .join(' ');
+                  return `${seg} L${toX(lastIdx).toFixed(1)},${bottom} L${toX(sessionSplitIdx).toFixed(1)},${bottom} Z`;
+                })()}
+                fill={lineColor} opacity="0.11"
+              />
+            </>
+          ) : hasData && (
             <path
               d={`${pathD} L${toX(points.length - 1).toFixed(1)},${(CHART_H - PAD_BOTTOM)} L${toX(0).toFixed(1)},${(CHART_H - PAD_BOTTOM)} Z`}
               fill="url(#area-fill)"
             />
           )}
 
-          {/* Price line — segmented when market open */}
-          {hasData && preMarketPathD && livePathD ? (
-            <>
-              <path d={preMarketPathD} fill="none" stroke={lineColor} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" opacity="0.4" />
-              <path d={livePathD} fill="none" stroke={lineColor} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="1" />
-            </>
-          ) : hasData && (
-            <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth={isMarketOpen ? 1.6 : 1.1} strokeLinecap="round" strokeLinejoin="round" />
+          {/* Session veil — soft vertical gradient at market open */}
+          {hasData && sessionSplitIdx !== null && (() => {
+            const veilX = toX(sessionSplitIdx);
+            const veilW = 3;
+            const priceY = toY(points[sessionSplitIdx].value);
+            const gradId = 'session-veil';
+            const frac = (priceY - PAD_TOP) / plotH;
+            return (
+              <>
+                <defs>
+                  <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={lineColor} stopOpacity="0" />
+                    <stop offset={`${Math.max(5, frac * 100 - 12)}%`} stopColor={lineColor} stopOpacity="0.04" />
+                    <stop offset={`${frac * 100}%`} stopColor={lineColor} stopOpacity="0.14" />
+                    <stop offset={`${Math.min(95, frac * 100 + 12)}%`} stopColor={lineColor} stopOpacity="0.04" />
+                    <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <rect
+                  x={veilX - veilW / 2}
+                  y={PAD_TOP}
+                  width={veilW}
+                  height={plotH}
+                  fill={`url(#${gradId})`}
+                />
+              </>
+            );
+          })()}
+
+          {/* Base price line — full dataset, single continuous stroke */}
+          {hasData && (
+            <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* ── Measurement overlays ───────────────────────── */}
