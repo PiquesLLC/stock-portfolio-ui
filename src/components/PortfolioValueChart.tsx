@@ -765,8 +765,52 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             );
           })())}
 
-          {/* Base price line — full dataset, single continuous stroke */}
-          {hasData && (
+          {/* Price line — on 1D with session splits, render 3 segments with hover highlighting */}
+          {hasData && sessionSplitIdx !== null ? (() => {
+            const closeIdx = sessionCloseIdx ?? points.length - 1;
+            const hasAH = sessionCloseIdx !== null && sessionCloseIdx < points.length - 1;
+
+            // Determine which session the hover is in
+            let hoveredSession: 'pre' | 'market' | 'after' | null = null;
+            if (hoverIndex !== null) {
+              if (hoverIndex < sessionSplitIdx) hoveredSession = 'pre';
+              else if (hoverIndex < closeIdx) hoveredSession = 'market';
+              else hoveredSession = 'after';
+            }
+
+            const buildSeg = (from: number, to: number) =>
+              points.slice(from, to + 1).map((p, j) => {
+                const idx = from + j;
+                return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.value).toFixed(1)}`;
+              }).join(' ');
+
+            const dimOpacity = hoveredSession !== null ? 0.25 : 0.45;
+            const activeOpacity = 1;
+            const dimWidth = 1.1;
+            const activeWidth = 1.6;
+
+            return (
+              <>
+                <path d={buildSeg(0, sessionSplitIdx)} fill="none" stroke={lineColor}
+                  strokeWidth={hoveredSession === 'pre' ? activeWidth : dimWidth}
+                  strokeLinecap="round" strokeLinejoin="round"
+                  opacity={hoveredSession === 'pre' ? activeOpacity : dimOpacity}
+                  style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }} />
+                <path d={buildSeg(sessionSplitIdx, closeIdx)} fill="none" stroke={lineColor}
+                  strokeWidth={hoveredSession === 'market' ? activeWidth : dimWidth}
+                  strokeLinecap="round" strokeLinejoin="round"
+                  opacity={hoveredSession === 'market' ? activeOpacity : (hoveredSession === null ? 0.7 : dimOpacity)}
+                  style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }} />
+                {hasAH && (
+                  <path d={buildSeg(closeIdx, points.length - 1)} fill="none" stroke={lineColor}
+                    strokeWidth={hoveredSession === 'after' ? activeWidth : dimWidth}
+                    strokeLinecap="round" strokeLinejoin="round"
+                    opacity={hoveredSession === 'after' ? activeOpacity : dimOpacity}
+                    style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }} />
+                )}
+              </>
+            );
+          })() : hasData && (
             <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
