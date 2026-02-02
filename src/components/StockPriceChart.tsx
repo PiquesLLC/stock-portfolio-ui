@@ -876,8 +876,14 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   }, [hoverIndex, enabledMAs, visibleMaData]);
 
   // HUD data for hovered breach
-  const hoveredCluster = hoveredBreachIndex !== null
-    ? breachClusters.find(c => c.index === hoveredBreachIndex) ?? null
+  // Also trigger HUD when the chart crosshair hovers near a signal's index
+  const effectiveBreachIndex = hoveredBreachIndex
+    ?? (hoverIndex !== null && hoveredCrossIndex === null ? breachClusters.find(c => Math.abs(c.index - hoverIndex) <= 1)?.index ?? null : null);
+  const effectiveCrossIndex = hoveredCrossIndex
+    ?? (hoverIndex !== null && hoveredBreachIndex === null && effectiveBreachIndex === null ? crossEvents.find(c => Math.abs(c.index - hoverIndex) <= 1)?.index ?? null : null);
+
+  const hoveredCluster = effectiveBreachIndex !== null
+    ? breachClusters.find(c => c.index === effectiveBreachIndex) ?? null
     : null;
 
   const hudData = hoveredCluster ? (() => {
@@ -952,8 +958,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       )}
 
       {/* Cross HUD — Golden/Death Cross tooltip */}
-      {hoveredCrossIndex !== null && (() => {
-        const cross = crossEvents.find(c => c.index === hoveredCrossIndex);
+      {effectiveCrossIndex !== null && (() => {
+        const cross = crossEvents.find(c => c.index === effectiveCrossIndex);
         if (!cross) return null;
         const isGolden = cross.type === 'golden';
         const color = CROSS_COLORS[cross.type];
@@ -1107,7 +1113,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             }
 
             return pillPositions.map(({ cluster, cx, cy, allPeriods, isPrimary }, idx) => {
-              const isActive = hoveredBreachIndex === cluster.index;
+              const isActive = effectiveBreachIndex === cluster.index;
               const fillColor = clusterColor(cluster);
               const baseSize = clusterPillSize(cluster);
               const scale = isPrimary ? 1 : 0.85;
@@ -1135,7 +1141,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
                   key={`breach-${cluster.index}`}
                   opacity={finalOpacity}
                   onMouseEnter={() => { if (hoverClearTimer.current) { clearTimeout(hoverClearTimer.current); hoverClearTimer.current = null; } setHoveredBreachIndex(cluster.index); setHoveredCrossIndex(null); setSignalDragPos(null); setIsDraggingSignal(false); }}
-                  onMouseLeave={() => { if (!isDraggingSignal && !signalDragPos) { hoverClearTimer.current = setTimeout(() => { setHoveredBreachIndex(null); hoverClearTimer.current = null; }, 3000); } }}
+                  onMouseLeave={() => { if (!isDraggingSignal && !signalDragPos) { hoverClearTimer.current = setTimeout(() => { setHoveredBreachIndex(null); hoverClearTimer.current = null; }, 300); } }}
                 >
                   {/* Tether line from pill to price point */}
                   <line x1={cx} y1={pillY + r} x2={cx} y2={cy}
@@ -1188,11 +1194,11 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
                     fontSize={fontSize} fontWeight="700" fill="#fff"
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >B</text>
-                  {/* Hit area */}
+                  {/* Hit area — extra wide for preserveAspectRatio="none" */}
                   <rect
-                    x={cx - 22} y={pillY - 14}
-                    width="44" height="28"
-                    fill="transparent"
+                    x={cx - 30} y={pillY - 20}
+                    width="60" height="40"
+                    fill="transparent" style={{ cursor: 'pointer' }}
                   />
                 </g>
               );
@@ -1203,7 +1209,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           {crossEvents.map((cross) => {
             const cx = toX(cross.index);
             const cy = toY(cross.price);
-            const isActive = hoveredCrossIndex === cross.index;
+            const isActive = effectiveCrossIndex === cross.index;
             const color = CROSS_COLORS[cross.type];
             const r = 7;
             const pillY = Math.max(PAD_TOP + r + 2, cy - r - 10);
@@ -1218,7 +1224,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
                   setHoveredBreachIndex(null);
                 }}
                 onMouseLeave={() => {
-                  hoverClearTimer.current = setTimeout(() => { setHoveredCrossIndex(null); hoverClearTimer.current = null; }, 3000);
+                  hoverClearTimer.current = setTimeout(() => { setHoveredCrossIndex(null); hoverClearTimer.current = null; }, 300);
                 }}
               >
                 {/* Tether line */}
@@ -1241,8 +1247,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
                   style={{ pointerEvents: 'none', userSelect: 'none' }}>
                   {cross.type === 'golden' ? '✦' : '✕'}
                 </text>
-                {/* Hit area */}
-                <rect x={cx - 16} y={pillY - 12} width="32" height="24" fill="transparent" />
+                {/* Hit area — extra wide to compensate for preserveAspectRatio="none" stretching */}
+                <rect x={cx - 30} y={pillY - 20} width="60" height="40" fill="transparent" style={{ cursor: 'pointer' }} />
               </g>
             );
           })}
