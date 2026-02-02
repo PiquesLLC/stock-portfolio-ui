@@ -14,7 +14,7 @@ interface Props {
   onHoverPrice?: (price: number | null, label: string | null) => void;
 }
 
-const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y'];
+const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
 
 interface DataPoint {
   time: number; // ms timestamp
@@ -75,7 +75,9 @@ function buildPoints(
         const d = new Date(c.time);
         return {
           time: d.getTime(),
-          label: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+          label: d.getFullYear() !== now.getFullYear()
+          ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+          : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
           price: c.close,
         };
       });
@@ -92,7 +94,9 @@ function buildPoints(
     case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
     case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
     case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
-    case '1Y': default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+    case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+    case 'MAX': cutoff = new Date(1970, 0, 1); break;
+    default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
   }
   const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
 
@@ -103,7 +107,9 @@ function buildPoints(
       const d = new Date(candles.dates[i] + 'T12:00:00');
       pts.push({
         time: d.getTime(),
-        label: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+        label: d.getFullYear() !== now.getFullYear()
+          ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+          : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
         price: candles.closes[i],
       });
     }
@@ -221,6 +227,7 @@ function detectCrosses(
 ): CrossEvent[] {
   const events: CrossEvent[] = [];
   let prevDiff: number | null = null;
+  let firstValidIdx: number | null = null;
 
   for (let i = 0; i < prices.length; i++) {
     const ma100 = ma100Values[i];
@@ -229,7 +236,15 @@ function detectCrosses(
 
     const currDiff = ma100 - ma200;
 
-    if (prevDiff !== null) {
+    if (firstValidIdx === null) {
+      firstValidIdx = i;
+      // If the first valid pair already shows a cross state, mark it at the start
+      if (currDiff > CROSS_EPSILON) {
+        events.push({ index: i, type: 'golden', ma100, ma200, price: prices[i] });
+      } else if (currDiff < -CROSS_EPSILON) {
+        events.push({ index: i, type: 'death', ma100, ma200, price: prices[i] });
+      }
+    } else if (prevDiff !== null) {
       if (prevDiff <= CROSS_EPSILON && currDiff > CROSS_EPSILON) {
         events.push({ index: i, type: 'golden', ma100, ma200, price: prices[i] });
       } else if (prevDiff >= -CROSS_EPSILON && currDiff < -CROSS_EPSILON) {
@@ -329,7 +344,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   }, []);
 
   // Clear state when period or data changes
-  useEffect(() => { setHoveredBreachIndex(null); setMeasureA(null); setMeasureB(null); }, [selectedPeriod, points.length]);
+  useEffect(() => { setHoveredBreachIndex(null); setHoveredCrossIndex(null); setHoverIndex(null); setMeasureA(null); setMeasureB(null); }, [selectedPeriod, points.length]);
 
   // ESC clears measurement
   useEffect(() => {
@@ -445,16 +460,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     let minP = Math.min(...prices, referencePrice);
     let maxP = Math.max(...prices, referencePrice);
 
-    // Include enabled MA values in Y range so MA lines are visible
-    // On 1D/1W, skip this — MAs far from price flatten the chart; let them clip
-    if (enabledMAs.size > 0 && selectedPeriod !== '1D' && selectedPeriod !== '1W') {
-      for (const ma of visibleMaData) {
-        if (!enabledMAs.has(ma.period)) continue;
-        for (const val of ma.values) {
-          if (val !== null) { minP = Math.min(minP, val); maxP = Math.max(maxP, val); }
-        }
-      }
-    }
+    // Never include MAs in Y range — scale chart to price action only.
+    // MAs that are far from price will clip at the plot boundary (Robinhood-style).
 
     if (maxP === minP) { maxP += 1; minP -= 1; }
 
@@ -891,6 +898,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     const allPeriods = [...new Set(hoveredCluster.events.flatMap(e => e.maPeriods))].sort((a, b) => a - b);
     const firstEvt = hoveredCluster.events[0];
     const lastEvt = hoveredCluster.events[hoveredCluster.events.length - 1];
+    if (!points[firstEvt.index] || !points[lastEvt.index]) return null;
     const dateLabel = hoveredCluster.events.length === 1
       ? points[firstEvt.index]?.label
       : `${points[firstEvt.index]?.label} – ${points[lastEvt.index]?.label}`;

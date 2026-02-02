@@ -300,7 +300,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
       case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
       case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
-      case '1Y': default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+      case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+      case 'MAX': cutoff = new Date(1970, 0, 1); break;
+      default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
     }
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     let startPrice = candles.closes[0];
@@ -312,7 +314,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     }
     const change = quote.currentPrice - startPrice;
     const changePct = startPrice !== 0 ? (change / startPrice) * 100 : 0;
-    const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', 'YTD': 'Year to Date', '1Y': 'Past Year' };
+    const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', 'YTD': 'Year to Date', '1Y': 'Past Year', 'MAX': 'All Time' };
     return { change, changePct, label: labels[chartPeriod] || chartPeriod };
   }, [chartPeriod, data]);
 

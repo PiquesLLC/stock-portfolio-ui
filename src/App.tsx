@@ -17,6 +17,7 @@ import { BenchmarkWidget } from './components/BenchmarkWidget';
 import { NotificationBell } from './components/NotificationBell';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { FuturesBanner } from './components/FuturesBanner';
 import { Holding } from './types';
 import Hls from 'hls.js';
 
@@ -593,6 +594,7 @@ export default function App() {
                   onPeriodChange={setChartPeriod}
                 />
                 <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} />
+                <FuturesBanner session={portfolio.session} refreshTrigger={portfolioRefreshCount} />
               </div>
             )}
 
