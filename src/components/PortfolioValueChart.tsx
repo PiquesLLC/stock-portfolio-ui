@@ -9,6 +9,7 @@ interface Props {
   refreshTrigger: number;
   fetchFn?: (period: PortfolioChartPeriod) => Promise<PortfolioChartData>;
   onPeriodChange?: (period: PortfolioChartPeriod) => void;
+  onReturnChange?: (returnPct: number | null) => void;
 }
 
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
@@ -139,7 +140,7 @@ function snapToNearest(
 // Component
 // ════════════════════════════════════════════════════════════════════
 
-export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, refreshTrigger, fetchFn, onPeriodChange }: Props) {
+export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange }: Props) {
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
@@ -275,6 +276,14 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const showDayChange = selectedPeriod === '1D' && hoverIndex === null;
   const displayChange = showDayChange ? dayChange : changeVsPeriodStart;
   const displayChangePct = showDayChange ? dayChangePercent : changePctVsPeriodStart;
+
+  // Emit period return to parent (for benchmark widget consistency)
+  const periodReturnPct = periodStartValue > 0
+    ? ((currentValue - periodStartValue) / periodStartValue) * 100
+    : null;
+  useEffect(() => {
+    onReturnChange?.(periodReturnPct != null ? Math.round(periodReturnPct * 100) / 100 : null);
+  }, [periodReturnPct, onReturnChange]);
 
   const isGain = displayChange >= 0;
   // Chart line colors — muted. Full-bright reserved for hero number only.

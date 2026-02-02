@@ -14,9 +14,10 @@ function fmt(val: number | null, suffix = '%'): string {
 interface Props {
   refreshTrigger?: number;
   window?: PerformanceWindow;
+  chartReturnPct?: number | null; // from portfolio chart, overrides API return for consistency
 }
 
-export function BenchmarkWidget({ refreshTrigger, window: externalWindow }: Props) {
+export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartReturnPct }: Props) {
   const [window, setWindow] = useState<PerformanceWindow>(externalWindow || '1M');
   const [benchmark, setBenchmark] = useState('SPY');
   const [data, setData] = useState<PerformanceData | null>(null);
@@ -44,8 +45,14 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow }: Prop
     fetchData();
   }, [fetchData, refreshTrigger]);
 
-  const beating = data?.alphaPct !== null && data?.alphaPct !== undefined && data.alphaPct >= 0;
-  const alphaColor = data?.alphaPct === null || data?.alphaPct === undefined
+  // Use chart return when available so "You" matches the chart exactly
+  const youPct = chartReturnPct != null ? Math.round(chartReturnPct * 100) / 100 : (data?.simpleReturnPct ?? data?.twrPct ?? null);
+  const effectiveAlpha = (youPct !== null && data?.benchmarkReturnPct != null)
+    ? Math.round((youPct - data.benchmarkReturnPct) * 100) / 100
+    : data?.alphaPct ?? null;
+
+  const beating = effectiveAlpha !== null && effectiveAlpha >= 0;
+  const alphaColor = effectiveAlpha === null
     ? 'text-rh-light-muted dark:text-rh-muted'
     : beating ? 'text-rh-green' : 'text-rh-red';
 
@@ -95,16 +102,16 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow }: Prop
           {/* Alpha number + inline comparison */}
           <div className="flex items-baseline gap-3 mb-2">
             <span className={`text-3xl font-bold tracking-tight ${alphaColor} ${
-              beating ? 'alpha-glow-green animate-glow-pulse' : data.alphaPct !== null && data.alphaPct < 0 ? 'alpha-glow-red' : ''
+              beating ? 'alpha-glow-green animate-glow-pulse' : effectiveAlpha !== null && effectiveAlpha < 0 ? 'alpha-glow-red' : ''
             }`}>
-              {fmt(data.alphaPct)}
+              {fmt(effectiveAlpha)}
             </span>
             <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider cursor-help" title="Alpha = your return minus benchmark return">alpha vs {benchmark}</span>
           </div>
 
           {/* Inline comparison — instant clarity */}
           <div className="flex items-center gap-6 text-xs text-rh-light-muted/40 dark:text-rh-muted/40 mb-1">
-            <span>You: <span className={`font-semibold ${(data.twrPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{fmt(data.twrPct)}</span></span>
+            <span>You: <span className={`font-semibold ${(youPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{fmt(youPct)}</span></span>
             <span>{benchmark}: <span className={`font-semibold ${(data.benchmarkReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{fmt(data.benchmarkReturnPct)}</span></span>
           </div>
 

@@ -572,6 +572,7 @@ export type PerformanceWindow = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'ALL'
 export interface PerformanceData {
   window: PerformanceWindow;
   benchmarkTicker: string;
+  simpleReturnPct: number | null;
   twrPct: number | null;
   mwrPct: number | null;
   benchmarkReturnPct: number | null;
