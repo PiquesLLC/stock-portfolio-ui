@@ -14,6 +14,7 @@ import { UserProfileView } from './components/UserProfileView';
 import { StockDetailView } from './components/StockDetailView';
 import { PortfolioValueChart } from './components/PortfolioValueChart';
 import { BenchmarkWidget } from './components/BenchmarkWidget';
+import { DividendsSection } from './components/DividendsSection';
 import { NotificationBell } from './components/NotificationBell';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -596,6 +597,7 @@ export default function App() {
                 />
                 <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
                 <FuturesBanner session={portfolio.session} refreshTrigger={portfolioRefreshCount} />
+                <DividendsSection refreshTrigger={portfolioRefreshCount} holdings={portfolio.holdings} />
               </div>
             )}
 

@@ -14,6 +14,17 @@ interface Props {
 
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
 
+// ── Market status (US equities, America/New_York) ────────────────
+function getMarketStatus(): { isOpen: boolean } {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = et.getDay(); // 0=Sun, 6=Sat
+  if (day === 0 || day === 6) return { isOpen: false };
+  const mins = et.getHours() * 60 + et.getMinutes();
+  // 9:30 AM = 570, 4:00 PM = 960
+  return { isOpen: mins >= 570 && mins < 960 };
+}
+
 const CHART_W = 800;
 const CHART_H = 260;
 const PAD_TOP = 16;
@@ -289,6 +300,13 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // Chart line colors — muted. Full-bright reserved for hero number only.
   const lineColor = isGain ? '#0A9E10' : '#B87872';
 
+  // Market open status — refresh every 30s
+  const [isMarketOpen, setIsMarketOpen] = useState(() => getMarketStatus().isOpen);
+  useEffect(() => {
+    const id = setInterval(() => setIsMarketOpen(getMarketStatus().isOpen), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   // Chart geometry
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
   const plotH = CHART_H - PAD_TOP - PAD_BOTTOM;
@@ -336,6 +354,40 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
   // Build SVG path
   const pathD = hasData ? points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ') : '';
+
+  // Market-open segmentation: split path at 9:30 AM ET today
+  const { preMarketPathD, livePathD } = useMemo(() => {
+    if (!hasData || !isMarketOpen) return { preMarketPathD: '', livePathD: '' };
+
+    // Compute 9:30 AM ET today as UTC ms
+    // Get today's date in ET timezone
+    const etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const etNow = new Date(etStr);
+    const etDateStr = `${etNow.getFullYear()}-${String(etNow.getMonth() + 1).padStart(2, '0')}-${String(etNow.getDate()).padStart(2, '0')}`;
+    // Determine ET→UTC offset: format a known time and compare
+    const etHour = Number(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }));
+    const utcHour = new Date().getUTCHours();
+    const etOffsetHours = utcHour - etHour; // positive = ET is behind UTC (e.g. 5 for EST, 4 for EDT)
+    // 9:30 AM ET = (9:30 + offset) UTC
+    const openMs = new Date(`${etDateStr}T${String(9 + etOffsetHours).padStart(2, '0')}:30:00Z`).getTime();
+
+    // Find split index: first point at or after market open
+    const splitIdx = points.findIndex(p => p.time >= openMs);
+    if (splitIdx <= 0 || splitIdx >= points.length) return { preMarketPathD: '', livePathD: '' };
+
+    // Pre-market: points 0..splitIdx (inclusive, so paths connect)
+    const pre = points.slice(0, splitIdx + 1).map((p, i) =>
+      `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`
+    ).join(' ');
+
+    // Live: points splitIdx..end (start with M at split point for continuity)
+    const live = points.slice(splitIdx).map((p, j) => {
+      const idx = splitIdx + j;
+      return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.value).toFixed(1)}`;
+    }).join(' ');
+
+    return { preMarketPathD: pre, livePathD: live };
+  }, [hasData, isMarketOpen, points, toX, toY]);
 
   const refY = hasData ? toY(periodStartValue) : 0;
 
@@ -621,12 +673,12 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           onClick={handleClick}
         >
           <defs>
-            {/* Stroke brightness gradient — dimmer at left history, brighter at latest */}
+            {/* Stroke brightness gradient — boosted when market open */}
             <linearGradient id="stroke-fade" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor={lineColor} stopOpacity="0" />
-              <stop offset="4%" stopColor={lineColor} stopOpacity="0.45" />
-              <stop offset="50%" stopColor={lineColor} stopOpacity="0.7" />
-              <stop offset="96%" stopColor={lineColor} stopOpacity="1" />
+              <stop offset="4%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.6 : 0.45} />
+              <stop offset="50%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.85 : 0.7} />
+              <stop offset="96%" stopColor={lineColor} stopOpacity={isMarketOpen ? 1 : 1} />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
             {/* Hover dot glow */}
@@ -634,10 +686,10 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </radialGradient>
-            {/* Area fill gradient under line — extremely subtle */}
+            {/* Area fill gradient under line — slightly stronger when market open */}
             <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lineColor} stopOpacity="0.06" />
-              <stop offset="80%" stopColor={lineColor} stopOpacity="0.01" />
+              <stop offset="0%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.12 : 0.06} />
+              <stop offset="80%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.03 : 0.01} />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
             {/* Measurement shading gradient */}
@@ -661,9 +713,14 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             />
           )}
 
-          {/* Price line — gradient stroke, thinner */}
-          {hasData && (
-            <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Price line — segmented when market open */}
+          {hasData && preMarketPathD && livePathD ? (
+            <>
+              <path d={preMarketPathD} fill="none" stroke={lineColor} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" opacity="0.4" />
+              <path d={livePathD} fill="none" stroke={lineColor} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="1" />
+            </>
+          ) : hasData && (
+            <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth={isMarketOpen ? 1.6 : 1.1} strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* ── Measurement overlays ───────────────────────── */}
@@ -727,17 +784,32 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
           {/* ── End measurement overlays ───────────────────── */}
 
-          {/* Live dot */}
-          {hasData && selectedPeriod === '1D' && hoverIndex === null && !isMeasuring && (
+          {/* Live dot — breathing when market open, static when closed */}
+          {hasData && hoverIndex === null && !isMeasuring && (
             <>
-              {/* Soft glow halo — no size change */}
-              <circle cx={lastX} cy={lastY} r="7" fill={lineColor} opacity="0.12">
-                <animate attributeName="opacity" values="0.08;0.18;0.08" dur="2.5s" repeatCount="indefinite" />
-              </circle>
-              {/* Solid dot */}
-              <circle cx={lastX} cy={lastY} r="3" fill={lineColor}>
-                <animate attributeName="opacity" values="0.7;1;0.7" dur="2.5s" repeatCount="indefinite" />
-              </circle>
+              {isMarketOpen ? (
+                <>
+                  {/* Outer glow — breathing */}
+                  <circle cx={lastX} cy={lastY} r="10" fill={lineColor} opacity="0.08">
+                    <animate attributeName="opacity" values="0.05;0.16;0.05" dur="2.5s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="8;11;8" dur="2.5s" repeatCount="indefinite" />
+                  </circle>
+                  {/* Inner glow halo */}
+                  <circle cx={lastX} cy={lastY} r="5.5" fill={lineColor} opacity="0.15">
+                    <animate attributeName="opacity" values="0.1;0.22;0.1" dur="2.5s" repeatCount="indefinite" />
+                  </circle>
+                  {/* Solid dot */}
+                  <circle cx={lastX} cy={lastY} r="3" fill={lineColor}>
+                    <animate attributeName="opacity" values="0.85;1;0.85" dur="2.5s" repeatCount="indefinite" />
+                  </circle>
+                </>
+              ) : selectedPeriod === '1D' ? (
+                <>
+                  {/* Closed — subtle static dot on 1D only */}
+                  <circle cx={lastX} cy={lastY} r="7" fill={lineColor} opacity="0.12" />
+                  <circle cx={lastX} cy={lastY} r="3" fill={lineColor} opacity="0.7" />
+                </>
+              ) : null}
             </>
           )}
 
@@ -762,16 +834,22 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           ))}
         </svg>
 
-        {/* Live badge */}
-        {selectedPeriod === '1D' && hasData && (
+        {/* Live / Closed badge */}
+        {hasData && (
           <div className="absolute right-0 top-0">
-            <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-60" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rh-green" />
+            {isMarketOpen ? (
+              <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-rh-green/80 font-medium">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-60" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rh-green" />
+                </span>
+                Live
               </span>
-              Live
-            </span>
+            ) : (
+              <span className="text-[10px] uppercase tracking-wider text-rh-light-muted/40 dark:text-rh-muted/40 font-medium">
+                Closed
+              </span>
+            )}
           </div>
         )}
 

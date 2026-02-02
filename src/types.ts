@@ -57,15 +57,45 @@ export interface HoldingInput {
 export interface DividendEvent {
   id: string;
   ticker: string;
-  amount: number;
-  date: string;
+  exDate: string;
+  recordDate: string | null;
+  payDate: string;
+  amountPerShare: number;
+  currency: string;
+  dividendType: string;
+  source: string;
+  status: string;
   createdAt: string;
+  updatedAt: string;
 }
 
-export interface DividendInput {
+export interface DividendEventInput {
   ticker: string;
-  amount: number;
-  date: string;
+  exDate: string;
+  payDate: string;
+  amountPerShare: number;
+  recordDate?: string;
+  dividendType?: string;
+}
+
+export interface DividendCredit {
+  id: string;
+  userId: string | null;
+  ticker: string;
+  dividendEventId: string;
+  sharesEligible: number;
+  amountGross: number;
+  currency: string;
+  creditedAt: string;
+  status: string;
+  createdAt: string;
+  dividendEvent?: DividendEvent;
+}
+
+export interface DividendSummary {
+  totalYTD: number;
+  totalAllTime: number;
+  byTicker: { ticker: string; total: number; count: number }[];
 }
 
 // Projection types

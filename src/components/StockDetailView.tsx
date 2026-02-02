@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Holding, ChartPeriod, StockDetailsResponse, MarketSession } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding } from '../api';
+import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits } from '../api';
+import { DividendEvent, DividendCredit } from '../types';
 import { StockPriceChart } from './StockPriceChart';
+import { WarningPanel } from './WarningPanel';
 
 interface Props {
   ticker: string;
@@ -177,6 +179,15 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [livePrices, setLivePrices] = useState<{ time: string; price: number }[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Dividend data for this ticker
+  const [tickerDividends, setTickerDividends] = useState<DividendEvent[]>([]);
+  const [tickerCredits, setTickerCredits] = useState<DividendCredit[]>([]);
+
+  useEffect(() => {
+    getDividendEvents(ticker).then(setTickerDividends).catch(() => {});
+    getDividendCredits(undefined, ticker).then(setTickerCredits).catch(() => {});
+  }, [ticker]);
+
   // Cache for prefetched hourly data
   const hourlyCache = useRef<Record<string, IntradayCandle[]>>({});
 
@@ -318,18 +329,60 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     return { change, changePct, label: labels[chartPeriod] || chartPeriod };
   }, [chartPeriod, data]);
 
-  // Golden Cross detection: MA100 currently above MA200
-  const goldenCrossActive = useMemo(() => {
+  // Golden Cross detection: only show badge if a cross EVENT occurs within the visible timeframe
+  const goldenCrossInfo = useMemo<{ active: false } | { active: true; date: string; dateFormatted: string; ma100: number; ma200: number }>(() => {
     const candles = data?.candles;
-    if (!candles || candles.closes.length < 200) return false;
+    if (!candles || candles.closes.length < 200) return { active: false };
     const closes = candles.closes;
-    // Compute latest MA100 and MA200
-    let sum100 = 0, sum200 = 0;
+    const dates = candles.dates;
     const n = closes.length;
-    for (let i = n - 100; i < n; i++) sum100 += closes[i];
-    for (let i = n - 200; i < n; i++) sum200 += closes[i];
-    return (sum100 / 100) > (sum200 / 200);
-  }, [data?.candles]);
+
+    const now = new Date();
+    let cutoff: Date;
+    switch (chartPeriod) {
+      case '1D': case '1W': return { active: false };
+      case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
+      case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
+      case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
+      case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+      case 'MAX': cutoff = new Date(1970, 0, 1); break;
+      default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+    }
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+    let windowStart = 0;
+    for (let i = 0; i < n; i++) {
+      if (dates[i] >= cutoffStr) { windowStart = i; break; }
+    }
+    const scanStart = Math.max(windowStart, 200);
+
+    let lastCrossDate: string | null = null;
+    let lastMa100 = 0, lastMa200 = 0;
+    for (let i = scanStart; i < n; i++) {
+      let s100 = 0, s100prev = 0, s200 = 0, s200prev = 0;
+      for (let j = i - 100; j < i; j++) s100 += closes[j];
+      for (let j = i - 101; j < i - 1; j++) s100prev += closes[j];
+      for (let j = i - 200; j < i; j++) s200 += closes[j];
+      for (let j = i - 201; j < i - 1; j++) s200prev += closes[j];
+      const ma100 = s100 / 100;
+      const ma100prev = s100prev / 100;
+      const ma200 = s200 / 200;
+      const ma200prev = s200prev / 200;
+
+      if ((ma100prev - ma200prev) <= 0 && (ma100 - ma200) > 0 && dates[i] >= cutoffStr) {
+        lastCrossDate = dates[i];
+        lastMa100 = ma100;
+        lastMa200 = ma200;
+      }
+    }
+
+    if (lastCrossDate) {
+      const d = new Date(lastCrossDate + 'T00:00:00');
+      const dateFormatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return { active: true, date: lastCrossDate, dateFormatted, ma100: lastMa100, ma200: lastMa200 };
+    }
+    return { active: false };
+  }, [data?.candles, chartPeriod]);
 
   if (loading) {
     return (
@@ -402,10 +455,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               {exchangeLabel}
             </span>
           )}
-          {goldenCrossActive && (
+          {goldenCrossInfo.active && (
             <span className="text-xs px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(255, 215, 0, 0.15)', color: '#FFD700' }}
-              title="Golden Cross active (MA100 > MA200). Not financial advice.">
-              ✦ Golden Cross
+              title={`Golden Cross on ${goldenCrossInfo.date} — MA100: $${goldenCrossInfo.ma100.toFixed(2)}, MA200: $${goldenCrossInfo.ma200.toFixed(2)}. Signal only — not financial advice.`}>
+              ✦ Golden Cross · {goldenCrossInfo.dateFormatted}
             </span>
           )}
         </div>
@@ -477,8 +530,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           currentPrice={quote.currentPrice}
           previousClose={quote.previousClose}
           onHoverPrice={handleHoverPrice}
+          goldenCrossDate={goldenCrossInfo.active ? goldenCrossInfo.date : null}
         />
       </div>
+
+      {/* WARNING Risk Dashboard */}
+      <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />
 
       {/* Your Position */}
       {holding && (
@@ -542,6 +599,62 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <StatItem label={<><Acronym label="EPS" /> (<Acronym label="TTM" />)</>} value={metrics.eps !== null ? `$${metrics.eps.toFixed(2)}` : 'N/A'} />
             )}
           </div>
+        </div>
+      )}
+
+      {/* Dividends */}
+      {tickerDividends.length > 0 && (
+        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
+          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-4">Dividends</h2>
+          {/* Next upcoming */}
+          {(() => {
+            const now = new Date();
+            const next = tickerDividends.find(d => new Date(d.payDate) >= now);
+            if (next && holding) {
+              const est = holding.shares * next.amountPerShare;
+              return (
+                <div className="mb-4 p-3 bg-rh-green/5 rounded-lg">
+                  <p className="text-sm text-rh-light-text dark:text-rh-text">
+                    Next payout: <span className="font-semibold text-rh-green">{formatCurrency(est)}</span>
+                    <span className="text-rh-light-muted dark:text-rh-muted ml-2">
+                      (${next.amountPerShare.toFixed(4)}/sh &times; {holding.shares}) on {new Date(next.payDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+          {/* Recent history */}
+          <div className="space-y-2">
+            {tickerDividends.slice(0, 8).map(d => (
+              <div key={d.id} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-rh-light-muted dark:text-rh-muted">
+                    Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-rh-green">${d.amountPerShare.toFixed(4)}/sh</span>
+                  <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/50">{d.source}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Credits received */}
+          {tickerCredits.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Received</p>
+              {tickerCredits.map(c => (
+                <div key={c.id} className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-rh-light-muted dark:text-rh-muted">
+                    {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                  <span className="font-medium text-rh-green">{formatCurrency(c.amountGross)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

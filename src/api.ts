@@ -5,7 +5,9 @@ import {
   MetricsResponse,
   HoldingInput,
   DividendEvent,
-  DividendInput,
+  DividendEventInput,
+  DividendCredit,
+  DividendSummary,
   ProjectionMode,
   LookbackPeriod,
   PerformanceSummary,
@@ -104,20 +106,45 @@ export async function deleteHolding(ticker: string): Promise<void> {
 }
 
 // Dividend endpoints
-export async function getDividends(): Promise<DividendEvent[]> {
-  return fetchJson<DividendEvent[]>(`${API_BASE_URL}/dividends`);
+export async function getDividendEvents(ticker?: string): Promise<DividendEvent[]> {
+  const params = ticker ? `?ticker=${encodeURIComponent(ticker)}` : '';
+  return fetchJson<DividendEvent[]>(`${API_BASE_URL}/dividends/events${params}`);
 }
 
-export async function addDividend(dividend: DividendInput): Promise<DividendEvent> {
-  return fetchJson<DividendEvent>(`${API_BASE_URL}/dividends`, {
+export async function getUpcomingDividends(): Promise<DividendEvent[]> {
+  return fetchJson<DividendEvent[]>(`${API_BASE_URL}/dividends/events/upcoming`);
+}
+
+export async function addDividendEvent(input: DividendEventInput): Promise<DividendEvent> {
+  return fetchJson<DividendEvent>(`${API_BASE_URL}/dividends/events`, {
     method: 'POST',
-    body: JSON.stringify(dividend),
+    body: JSON.stringify(input),
   });
 }
 
-export async function deleteDividend(id: string): Promise<void> {
-  await fetchJson(`${API_BASE_URL}/dividends/${id}`, {
+export async function deleteDividendEvent(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/dividends/events/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export async function getDividendCredits(userId?: string, ticker?: string): Promise<DividendCredit[]> {
+  const params = new URLSearchParams();
+  if (userId) params.set('userId', userId);
+  if (ticker) params.set('ticker', ticker);
+  const qs = params.toString();
+  return fetchJson<DividendCredit[]>(`${API_BASE_URL}/dividends/credits${qs ? `?${qs}` : ''}`);
+}
+
+export async function getDividendSummary(userId?: string): Promise<DividendSummary> {
+  const params = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+  return fetchJson<DividendSummary>(`${API_BASE_URL}/dividends/summary${params}`);
+}
+
+export async function syncDividends(ticker?: string): Promise<any> {
+  return fetchJson(`${API_BASE_URL}/dividends/sync`, {
+    method: 'POST',
+    body: JSON.stringify(ticker ? { ticker } : {}),
   });
 }
 
