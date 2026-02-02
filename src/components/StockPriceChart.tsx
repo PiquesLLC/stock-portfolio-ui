@@ -68,6 +68,8 @@ function buildPoints(
     return pts;
   }
 
+  const now = new Date();
+
   // Use hourly candles for 1W/1M if available; return empty while waiting to avoid flash
   if (period === '1W' || period === '1M') {
     if (hourlyCandles && hourlyCandles.length > 0) {
@@ -86,8 +88,6 @@ function buildPoints(
   }
 
   if (!candles || candles.closes.length === 0) return [];
-
-  const now = new Date();
   let cutoff: Date;
   switch (period) {
     case '1W': cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7); break;
@@ -321,6 +321,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const [hoveredCrossIndex, setHoveredCrossIndex] = useState<number | null>(null);
   const [measureA, setMeasureA] = useState<number | null>(null);
   const [measureB, setMeasureB] = useState<number | null>(null);
+  const [measureC, setMeasureC] = useState<number | null>(null);
   const [showMeasureHint, setShowMeasureHint] = useState(true);
   const [cardDragPos, setCardDragPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingCard, setIsDraggingCard] = useState(false);
@@ -328,6 +329,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const [isDraggingSignal, setIsDraggingSignal] = useState(false);
   const isMeasuring = measureA !== null;
   const hasMeasurement = measureA !== null && measureB !== null;
+  const hasFullMeasurement = hasMeasurement && measureC !== null;
   const svgRef = useRef<SVGSVGElement>(null);
   const yRangeRef = useRef<{ min: number; max: number; period: string } | null>(null);
   const measureCardPos = useRef<{ bottomPct: number; leftPct: number } | null>(null);
@@ -344,12 +346,12 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   }, []);
 
   // Clear state when period or data changes
-  useEffect(() => { setHoveredBreachIndex(null); setHoveredCrossIndex(null); setHoverIndex(null); setMeasureA(null); setMeasureB(null); }, [selectedPeriod, points.length]);
+  useEffect(() => { setHoveredBreachIndex(null); setHoveredCrossIndex(null); setHoverIndex(null); setMeasureA(null); setMeasureB(null); setMeasureC(null); }, [selectedPeriod, points.length]);
 
   // ESC clears measurement
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setMeasureA(null); setMeasureB(null); setCardDragPos(null); setIsDraggingCard(false); }
+      if (e.key === 'Escape') { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -363,6 +365,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       if (chartContainerRef.current && !chartContainerRef.current.contains(e.target as Node)) {
         setMeasureA(null);
         setMeasureB(null);
+        setMeasureC(null);
         setCardDragPos(null);
         setIsDraggingCard(false);
       }
@@ -805,42 +808,59 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
     setShowMeasureHint(false);
 
-    if (hasMeasurement) {
+    if (hasFullMeasurement) {
       setMeasureA(null);
       setMeasureB(null);
+      setMeasureC(null);
       setCardDragPos(null);
       setIsDraggingCard(false);
       return;
     } else if (measureA === null) {
       setMeasureA(idx);
-    } else {
+    } else if (measureB === null) {
       setMeasureB(idx);
+    } else {
+      setMeasureC(idx);
     }
-  }, [points, findNearestIndex, measureA, hasMeasurement]);
+  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement]);
 
   // Measurement computation
   const measurement = useMemo(() => {
     if (measureA === null || measureB === null) return null;
-    const a = Math.min(measureA, measureB);
-    const b = Math.max(measureA, measureB);
-    if (!points[a] || !points[b]) return null;
-    const startPrice = points[a].price;
-    const endPrice = points[b].price;
-    if (startPrice === 0) return null;
-    return {
-      startPrice,
-      endPrice,
-      startTime: points[a].time,
-      endTime: points[b].time,
-      startLabel: points[a].label,
-      endLabel: points[b].label,
-      dollarChange: endPrice - startPrice,
-      percentChange: ((endPrice - startPrice) / startPrice) * 100,
-      daysBetween: Math.round(Math.abs(points[b].time - points[a].time) / 86400000),
+    if (!points[measureA] || !points[measureB]) return null;
+    const pA = points[measureA];
+    const pB = points[measureB];
+    if (pA.price === 0) return null;
+    const ab = {
+      startPrice: pA.price, endPrice: pB.price,
+      startLabel: pA.label, endLabel: pB.label,
+      dollarChange: pB.price - pA.price,
+      percentChange: ((pB.price - pA.price) / pA.price) * 100,
+      daysBetween: Math.round(Math.abs(pB.time - pA.time) / 86400000),
     };
-  }, [measureA, measureB, points]);
+    let bc: typeof ab | null = null;
+    let ac: typeof ab | null = null;
+    if (measureC !== null && points[measureC]) {
+      const pC = points[measureC];
+      bc = {
+        startPrice: pB.price, endPrice: pC.price,
+        startLabel: pB.label, endLabel: pC.label,
+        dollarChange: pC.price - pB.price,
+        percentChange: pB.price !== 0 ? ((pC.price - pB.price) / pB.price) * 100 : 0,
+        daysBetween: Math.round(Math.abs(pC.time - pB.time) / 86400000),
+      };
+      ac = {
+        startPrice: pA.price, endPrice: pC.price,
+        startLabel: pA.label, endLabel: pC.label,
+        dollarChange: pC.price - pA.price,
+        percentChange: ((pC.price - pA.price) / pA.price) * 100,
+        daysBetween: Math.round(Math.abs(pC.time - pA.time) / 86400000),
+      };
+    }
+    return { ab, bc, ac };
+  }, [measureA, measureB, measureC, points]);
 
-  const measureIsGain = measurement ? measurement.dollarChange >= 0 : true;
+  const measureIsGain = measurement ? measurement.ab.dollarChange >= 0 : true;
   const measureColor = measureIsGain ? '#00C805' : '#E8544E';
 
   // SVG coordinates for measurement markers
@@ -848,12 +868,16 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const mAy = measureA !== null && points[measureA] ? toY(points[measureA].price) : null;
   const mBx = measureB !== null ? toX(measureB) : null;
   const mBy = measureB !== null && points[measureB] ? toY(points[measureB].price) : null;
+  const mCx = measureC !== null ? toX(measureC) : null;
+  const mCy = measureC !== null && points[measureC] ? toY(points[measureC].price) : null;
 
-  // Shaded region between A and B
+  // Shaded region — covers full range from A to C (or A to B if no C)
   const shadedPath = useMemo(() => {
     if (measureA === null || measureB === null) return '';
-    const lo = Math.min(measureA, measureB);
-    const hi = Math.max(measureA, measureB);
+    const indices = [measureA, measureB];
+    if (measureC !== null) indices.push(measureC);
+    const lo = Math.min(...indices);
+    const hi = Math.max(...indices);
     const pts = [];
     for (let i = lo; i <= hi; i++) {
       pts.push(`${i === lo ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(points[i].price).toFixed(1)}`);
@@ -861,7 +885,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     pts.push(`L${toX(hi).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`);
     pts.push(`L${toX(lo).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)} Z`);
     return pts.join(' ');
-  }, [measureA, measureB, points]);
+  }, [measureA, measureB, measureC, points]);
 
   // Hover crosshair data
   const hoverX = hoverIndex !== null ? toX(hoverIndex) : null;
@@ -1043,9 +1067,10 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
             const idx = findNearestIndex(svgX);
             setShowMeasureHint(false);
-            if (hasMeasurement) { setMeasureA(null); setMeasureB(null); setCardDragPos(null); setIsDraggingCard(false); }
+            if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
             else if (measureA === null) { setMeasureA(idx); }
-            else { setMeasureB(idx); }
+            else if (measureB === null) { setMeasureB(idx); }
+            else { setMeasureC(idx); }
           }}
         >
           <defs>
@@ -1301,7 +1326,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           {mAx !== null && mAy !== null && (
             <>
               <circle cx={mAx} cy={mAy} r="5" fill={measureColor} opacity="0.25">
-                {!hasMeasurement && (
+                {!hasFullMeasurement && !hasMeasurement && (
                   <animate attributeName="r" values="4;7;4" dur="1.5s" repeatCount="indefinite" />
                 )}
               </circle>
@@ -1317,9 +1342,33 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             </>
           )}
 
-          {/* Connecting line between dots */}
+          {/* Vertical dashed line C */}
+          {mCx !== null && (
+            <line x1={mCx} y1={PAD_TOP} x2={mCx} y2={CHART_H - PAD_BOTTOM}
+              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
+              <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
+            </line>
+          )}
+
+          {/* Dot marker C */}
+          {mCx !== null && mCy !== null && (
+            <>
+              <circle cx={mCx} cy={mCy} r="5" fill={measureColor} opacity="0.25" />
+              <circle cx={mCx} cy={mCy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+            </>
+          )}
+
+          {/* Connecting line A→B */}
           {hasMeasurement && mAx !== null && mAy !== null && mBx !== null && mBy !== null && (
             <line x1={mAx} y1={mAy} x2={mBx} y2={mBy}
+              stroke={measureColor} strokeWidth="1" strokeDasharray="3,3" opacity="0.6">
+              <animate attributeName="opacity" from="0" to="0.6" dur="0.3s" fill="freeze" />
+            </line>
+          )}
+
+          {/* Connecting line B→C */}
+          {hasFullMeasurement && mBx !== null && mBy !== null && mCx !== null && mCy !== null && (
+            <line x1={mBx} y1={mBy} x2={mCx} y2={mCy}
               stroke={measureColor} strokeWidth="1" strokeDasharray="3,3" opacity="0.6">
               <animate attributeName="opacity" from="0" to="0.6" dur="0.3s" fill="freeze" />
             </line>
@@ -1339,7 +1388,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           )}
 
           {/* Hover crosshair (suppress when measurement complete) */}
-          {hasData && hoverX !== null && hoverY !== null && !hasMeasurement && (
+          {hasData && hoverX !== null && hoverY !== null && !hasFullMeasurement && (
             <>
               <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
                 stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6" />
@@ -1363,11 +1412,13 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
         {/* Measurement HUD — positioned in empty space above price action */}
         {hasMeasurement && measurement && mAx !== null && mBx !== null && mAy !== null && mBy !== null && (() => {
-          // Center horizontally between A and B
-          const midXPct = ((Math.min(mAx, mBx) + Math.max(mAx, mBx)) / 2 / CHART_W) * 100;
+          // Center horizontally between all measure points
+          const allXs = [mAx, mBx, ...(mCx !== null ? [mCx] : [])];
+          const midXPct = ((Math.min(...allXs) + Math.max(...allXs)) / 2 / CHART_W) * 100;
           // Find the highest price point in the selected range to place card above it
-          const lo = Math.min(measureA!, measureB!);
-          const hi = Math.max(measureA!, measureB!);
+          const indices = [measureA!, measureB!, ...(measureC !== null ? [measureC] : [])];
+          const lo = Math.min(...indices);
+          const hi = Math.max(...indices);
           let minYInRange = CHART_H;
           for (let i = lo; i <= hi; i++) {
             const y = toY(points[i].price);
@@ -1417,37 +1468,91 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               onClick={(e) => e.stopPropagation()}
             >
               <div className="inline-flex flex-col gap-0.5">
-                <div className="flex items-center gap-2 text-xs text-white/50">
-                  <span>{measurement.startLabel}</span>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                  <span>{measurement.endLabel}</span>
-                  {measurement.daysBetween > 0 && (
-                    <span className="text-white/30">· {measurement.daysBetween}d</span>
-                  )}
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    ${measurement.startPrice.toFixed(2)}
-                  </span>
-                  <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                  <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    ${measurement.endPrice.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-2xl font-bold ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
-                    {measurement.percentChange >= 0 ? '+' : ''}{measurement.percentChange.toFixed(2)}%
-                  </span>
-                  <span className={`text-sm font-medium ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {measurement.dollarChange >= 0 ? '+' : ''}${measurement.dollarChange.toFixed(2)}
-                  </span>
-                </div>
+                {/* Segment A → B */}
+                {(() => {
+                  const s = measurement.ab;
+                  const gain = s.dollarChange >= 0;
+                  return (
+                    <div>
+                      <div className="flex items-center gap-2 text-xs text-white/50">
+                        <span>{s.startLabel}</span>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <span>{s.endLabel}</span>
+                        {s.daysBetween > 0 && <span className="text-white/30">· {s.daysBetween}d</span>}
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
+                        <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.endPrice.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xl font-bold ${gain ? 'text-rh-green' : 'text-rh-red'}`}>
+                          {s.percentChange >= 0 ? '+' : ''}{s.percentChange.toFixed(2)}%
+                        </span>
+                        <span className={`text-sm font-medium ${gain ? 'text-rh-green' : 'text-rh-red'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {s.dollarChange >= 0 ? '+' : ''}${s.dollarChange.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Segment B → C */}
+                {measurement.bc && (() => {
+                  const s = measurement.bc!;
+                  const gain = s.dollarChange >= 0;
+                  return (
+                    <div className="mt-1.5 pt-1.5 border-t border-white/[0.06]">
+                      <div className="flex items-center gap-2 text-xs text-white/50">
+                        <span>{s.startLabel}</span>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <span>{s.endLabel}</span>
+                        {s.daysBetween > 0 && <span className="text-white/30">· {s.daysBetween}d</span>}
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
+                        <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.endPrice.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xl font-bold ${gain ? 'text-rh-green' : 'text-rh-red'}`}>
+                          {s.percentChange >= 0 ? '+' : ''}{s.percentChange.toFixed(2)}%
+                        </span>
+                        <span className={`text-sm font-medium ${gain ? 'text-rh-green' : 'text-rh-red'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {s.dollarChange >= 0 ? '+' : ''}${s.dollarChange.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Total A → C */}
+                {measurement.ac && (() => {
+                  const s = measurement.ac!;
+                  const gain = s.dollarChange >= 0;
+                  return (
+                    <div className="mt-1.5 pt-1.5 border-t border-white/[0.12]">
+                      <div className="flex items-center gap-2 text-[10px] text-white/40 uppercase tracking-wider font-semibold">Total</div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
+                        <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.endPrice.toFixed(2)}</span>
+                        {s.daysBetween > 0 && <span className="text-xs text-white/30 ml-1">· {s.daysBetween}d</span>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-2xl font-bold ${gain ? 'text-rh-green' : 'text-rh-red'}`}>
+                          {s.percentChange >= 0 ? '+' : ''}{s.percentChange.toFixed(2)}%
+                        </span>
+                        <span className={`text-sm font-medium ${gain ? 'text-rh-green' : 'text-rh-red'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {s.dollarChange >= 0 ? '+' : ''}${s.dollarChange.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="text-[9px] text-white/25 mt-0.5">
-                  Hold to drag · Click chart to remeasure · ESC to clear
+                  {hasFullMeasurement ? 'Click chart to remeasure · ESC to clear' : 'Click a 3rd point for total · ESC to clear'}
                 </div>
               </div>
             </div>
@@ -1455,7 +1560,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
         })()}
 
         {/* Single-point indicator — above the selected point */}
-        {isMeasuring && !hasMeasurement && measureA !== null && points[measureA] && mAx !== null && mAy !== null && (() => {
+        {isMeasuring && !hasFullMeasurement && !(hasMeasurement) && measureA !== null && points[measureA] && mAx !== null && mAy !== null && (() => {
           const leftPct = Math.max(2, Math.min(70, (mAx / CHART_W) * 100 - 5));
           const topPct = Math.max(0, (mAy / CHART_H) * 100 - 14);
           return (
