@@ -1110,11 +1110,28 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.5" />
           )}
 
-          {/* Session dividers for 1D */}
-          {hasData && is1D && timeLabels.map((tl, i) => (
-            <line key={`session-${i}`} x1={tl.x} y1={PAD_TOP} x2={tl.x} y2={CHART_H - PAD_BOTTOM}
-              stroke="#6B7280" strokeWidth="0.5" strokeDasharray="3,3" opacity="0.4" />
-          ))}
+          {/* Session veils at market open/close for 1D */}
+          {hasData && is1D && [stockOpenIdx, stockCloseIdx].map((idx, i) => idx !== null && (() => {
+            const veilX = toX(idx);
+            const veilW = 3;
+            const priceY = toY(points[idx].price);
+            const frac = (priceY - PAD_TOP) / plotH;
+            const id = `stock-veil-${i}`;
+            return (
+              <g key={id}>
+                <defs>
+                  <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={lineColor} stopOpacity="0" />
+                    <stop offset={`${Math.max(5, frac * 100 - 12)}%`} stopColor={lineColor} stopOpacity="0.04" />
+                    <stop offset={`${frac * 100}%`} stopColor={lineColor} stopOpacity="0.14" />
+                    <stop offset={`${Math.min(95, frac * 100 + 12)}%`} stopColor={lineColor} stopOpacity="0.04" />
+                    <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <rect x={veilX - veilW / 2} y={PAD_TOP} width={veilW} height={plotH} fill={`url(#${id})`} />
+              </g>
+            );
+          })())}
 
           {/* Area fill */}
           {hasData && <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />}
