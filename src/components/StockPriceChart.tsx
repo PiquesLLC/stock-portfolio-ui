@@ -1036,6 +1036,17 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           preserveAspectRatio="none"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!svgRef.current || points.length < 2) return;
+            const rect = svgRef.current.getBoundingClientRect();
+            const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
+            const idx = findNearestIndex(svgX);
+            setShowMeasureHint(false);
+            if (hasMeasurement) { setMeasureA(null); setMeasureB(null); setCardDragPos(null); setIsDraggingCard(false); }
+            else if (measureA === null) { setMeasureA(idx); }
+            else { setMeasureB(idx); }
+          }}
         >
           <defs>
             <linearGradient id={`grad-${selectedPeriod}`} x1="0" y1="0" x2="0" y2="1">
