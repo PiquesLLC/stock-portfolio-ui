@@ -516,6 +516,26 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   // Build SVG path
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.price).toFixed(1)}`).join(' ');
 
+  // Session split indices for 1D: market open (9:30 AM ET) and close (4:00 PM ET)
+  const { stockOpenIdx, stockCloseIdx } = useMemo(() => {
+    if (!is1D || points.length < 2) return { stockOpenIdx: null, stockCloseIdx: null };
+    const refDate = new Date(points[0].time);
+    const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
+    const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+    const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+    }).format(noonUtc).split(':')[0]);
+    const etOffsetMs = (noonEtH - 12) * 3600000;
+    const openMs = new Date(`${etDateStr}T09:30:00Z`).getTime() - etOffsetMs;
+    const closeMs = new Date(`${etDateStr}T16:00:00Z`).getTime() - etOffsetMs;
+    const oIdx = points.findIndex(p => p.time >= openMs);
+    const cIdx = points.findIndex(p => p.time >= closeMs);
+    return {
+      stockOpenIdx: (oIdx > 0 && oIdx < points.length) ? oIdx : null,
+      stockCloseIdx: (cIdx > 0 && cIdx < points.length) ? cIdx : null,
+    };
+  }, [is1D, points]);
+
   // Gradient fill path (area under line to bottom)
   const areaD = pathD
     + ` L${toX(points.length - 1).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`
@@ -1099,8 +1119,51 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           {/* Area fill */}
           {hasData && <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />}
 
-          {/* Price line */}
-          {hasData && (
+          {/* Price line — segmented with hover highlighting on 1D */}
+          {hasData && stockOpenIdx !== null ? (() => {
+            const closeIdx = stockCloseIdx ?? points.length - 1;
+            const hasAH = stockCloseIdx !== null && stockCloseIdx < points.length - 1;
+
+            let hoveredSession: 'pre' | 'market' | 'after' | null = null;
+            if (hoverIndex !== null) {
+              if (hoverIndex < stockOpenIdx) hoveredSession = 'pre';
+              else if (hoverIndex < closeIdx) hoveredSession = 'market';
+              else hoveredSession = 'after';
+            }
+
+            const buildSeg = (from: number, to: number) =>
+              points.slice(from, to + 1).map((p, j) => {
+                const idx = from + j;
+                return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.price).toFixed(1)}`;
+              }).join(' ');
+
+            const dimOpacity = hoveredSession !== null ? 0.25 : 0.45;
+            const activeOpacity = 1;
+            const dimWidth = 2;
+            const activeWidth = 2.5;
+
+            return (
+              <>
+                <path d={buildSeg(0, stockOpenIdx)} fill="none" stroke={lineColor}
+                  strokeWidth={hoveredSession === 'pre' ? activeWidth : dimWidth}
+                  strokeLinecap="round" strokeLinejoin="round"
+                  opacity={hoveredSession === 'pre' ? activeOpacity : dimOpacity}
+                  style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }} />
+                <path d={buildSeg(stockOpenIdx, closeIdx)} fill="none" stroke={lineColor}
+                  strokeWidth={hoveredSession === 'market' ? activeWidth : dimWidth}
+                  strokeLinecap="round" strokeLinejoin="round"
+                  opacity={hoveredSession === 'market' ? activeOpacity : (hoveredSession === null ? 0.7 : dimOpacity)}
+                  style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }} />
+                {hasAH && (
+                  <path d={buildSeg(closeIdx, points.length - 1)} fill="none" stroke={lineColor}
+                    strokeWidth={hoveredSession === 'after' ? activeWidth : dimWidth}
+                    strokeLinecap="round" strokeLinejoin="round"
+                    opacity={hoveredSession === 'after' ? activeOpacity : dimOpacity}
+                    style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }} />
+                )}
+              </>
+            );
+          })() : hasData && (
             <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
