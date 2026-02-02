@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PortfolioChartData, PortfolioChartPeriod } from '../types';
-import { getPortfolioChart, getBenchmarkCloses, BenchmarkCandle } from '../api';
+import { getPortfolioChart, getBenchmarkCloses, getIntradayCandles, getHourlyCandles, BenchmarkCandle, IntradayCandle } from '../api';
 
 interface Props {
   currentValue: number;
@@ -78,7 +78,8 @@ function computeMeasurement(
 
 // ── Benchmark lookup ───────────────────────────────────────────────
 
-function findBenchmarkClose(candles: BenchmarkCandle[], targetMs: number): number | null {
+/** Find the index of the nearest candle to a given timestamp */
+function findBenchmarkIndex(candles: BenchmarkCandle[], targetMs: number): number | null {
   if (candles.length === 0) return null;
   let best = 0;
   let bestDist = Math.abs(candles[0].time - targetMs);
@@ -88,7 +89,34 @@ function findBenchmarkClose(candles: BenchmarkCandle[], targetMs: number): numbe
   }
   // Only match if within 3 days
   if (bestDist > 3 * 86400000) return null;
-  return candles[best].close;
+  return best;
+}
+
+/**
+ * Compute benchmark (SPY) return between two timestamps.
+ * Uses the previous trading day's close as the baseline for the start date,
+ * matching how brokerages calculate daily returns. This avoids the bug where
+ * same-day or adjacent-day measurements both snap to the same daily candle
+ * and produce 0% return.
+ */
+function computeBenchmarkReturn(
+  candles: BenchmarkCandle[],
+  startMs: number,
+  endMs: number,
+): { spyReturn: number } | null {
+  const startIdx = findBenchmarkIndex(candles, startMs);
+  const endIdx = findBenchmarkIndex(candles, endMs);
+  if (startIdx === null || endIdx === null) return null;
+
+  // Use the close BEFORE the start date as baseline (previous trading day)
+  const baseIdx = startIdx > 0 ? startIdx - 1 : startIdx;
+  const baseClose = candles[baseIdx].close;
+  const endClose = candles[endIdx].close;
+  if (baseClose === 0) return null;
+
+  // If start and end resolve to the same candle, use prev close → that close
+  // This gives the actual daily return for that trading day
+  return { spyReturn: ((endClose - baseClose) / baseClose) * 100 };
 }
 
 // ── Snap-to-nearest helper ─────────────────────────────────────────
@@ -125,6 +153,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const [measureA, setMeasureA] = useState<number | null>(null); // index of first click
   const [measureB, setMeasureB] = useState<number | null>(null); // index of second click
   const [benchmarkCandles, setBenchmarkCandles] = useState<BenchmarkCandle[]>([]);
+  const [intradayBenchmark, setIntradayBenchmark] = useState<BenchmarkCandle[]>([]);
   const [showHint, setShowHint] = useState(true);
 
   const isMeasuring = measureA !== null;
@@ -180,10 +209,35 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     return () => clearInterval(interval);
   }, [selectedPeriod, fetchChart]);
 
-  // Fetch benchmark candles once (for measurement comparison)
+  // Fetch daily benchmark candles once (for longer periods)
   useEffect(() => {
     getBenchmarkCloses('SPY').then(setBenchmarkCandles).catch(() => {});
   }, []);
+
+  // Fetch intraday benchmark candles matching the chart period
+  useEffect(() => {
+    const fetchIntraday = async () => {
+      try {
+        let candles: IntradayCandle[];
+        if (selectedPeriod === '1D') {
+          candles = await getIntradayCandles('SPY');
+        } else if (selectedPeriod === '1W' || selectedPeriod === '1M') {
+          candles = await getHourlyCandles('SPY', selectedPeriod);
+        } else {
+          setIntradayBenchmark([]);
+          return;
+        }
+        setIntradayBenchmark(candles.map(c => ({
+          date: c.time.slice(0, 10),
+          time: new Date(c.time).getTime(),
+          close: c.close,
+        })));
+      } catch {
+        setIntradayBenchmark([]);
+      }
+    };
+    fetchIntraday();
+  }, [selectedPeriod]);
 
   // ── Period change clears measurement ───────────────────────────
   const handlePeriodChange = (period: PortfolioChartPeriod) => {
@@ -356,18 +410,27 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     );
   }, [measureA, measureB, points]);
 
-  // Benchmark comparison
+  // Benchmark comparison — use intraday candles when available for precise matching
+  const activeBenchmarkCandles = intradayBenchmark.length > 0 ? intradayBenchmark : benchmarkCandles;
   const benchmarkResult = useMemo(() => {
-    if (!measurement || benchmarkCandles.length === 0) return null;
-    const spyStart = findBenchmarkClose(benchmarkCandles, measurement.startTime);
-    const spyEnd = findBenchmarkClose(benchmarkCandles, measurement.endTime);
-    if (spyStart === null || spyEnd === null || spyStart === 0) return null;
-    const spyReturn = ((spyEnd - spyStart) / spyStart) * 100;
-    return {
-      spyReturn,
-      outperformance: measurement.percentChange - spyReturn,
-    };
-  }, [measurement, benchmarkCandles]);
+    if (!measurement || activeBenchmarkCandles.length === 0) return null;
+    // With intraday data, use direct start/end matching (no previous-day baseline needed)
+    const useIntraday = intradayBenchmark.length > 0;
+    if (useIntraday) {
+      const startIdx = findBenchmarkIndex(activeBenchmarkCandles, measurement.startTime);
+      const endIdx = findBenchmarkIndex(activeBenchmarkCandles, measurement.endTime);
+      if (startIdx === null || endIdx === null) return null;
+      const startClose = activeBenchmarkCandles[startIdx].close;
+      const endClose = activeBenchmarkCandles[endIdx].close;
+      if (startClose === 0) return null;
+      const spyReturn = ((endClose - startClose) / startClose) * 100;
+      return { spyReturn, outperformance: measurement.percentChange - spyReturn };
+    }
+    // Fall back to daily candles with previous-day baseline
+    const result = computeBenchmarkReturn(activeBenchmarkCandles, measurement.startTime, measurement.endTime);
+    if (!result) return null;
+    return { spyReturn: result.spyReturn, outperformance: measurement.percentChange - result.spyReturn };
+  }, [measurement, activeBenchmarkCandles, intradayBenchmark.length]);
 
   const measureIsGain = measurement ? measurement.dollarChange >= 0 : true;
   const measureColor = measureIsGain ? '#00C805' : '#E8544E';
