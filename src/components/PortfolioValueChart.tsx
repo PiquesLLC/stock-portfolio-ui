@@ -355,9 +355,9 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // Build SVG path
   const pathD = hasData ? points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ') : '';
 
-  // Session split index: first data point at or after 9:30 AM ET today
-  const sessionSplitIdx = useMemo(() => {
-    if (!hasData || !is1D) return null;
+  // Session split indices: market open (9:30 AM ET) and close (4:00 PM ET)
+  const { sessionSplitIdx, sessionCloseIdx } = useMemo(() => {
+    if (!hasData || !is1D) return { sessionSplitIdx: null, sessionCloseIdx: null };
 
     // Derive trading day from data points (works after hours / weekends)
     const refDate = new Date(points[0].time);
@@ -368,10 +368,15 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     }).format(noonUtc).split(':')[0]);
     const etOffsetMs = (noonEtH - 12) * 3600000;
     const openMs = new Date(`${etDateStr}T09:30:00Z`).getTime() - etOffsetMs;
+    const closeMs = new Date(`${etDateStr}T16:00:00Z`).getTime() - etOffsetMs;
 
-    const idx = points.findIndex(p => p.time >= openMs);
-    if (idx <= 0 || idx >= points.length) return null;
-    return idx;
+    const oIdx = points.findIndex(p => p.time >= openMs);
+    const cIdx = points.findIndex(p => p.time >= closeMs);
+
+    return {
+      sessionSplitIdx: (oIdx > 0 && oIdx < points.length) ? oIdx : null,
+      sessionCloseIdx: (cIdx > 0 && cIdx < points.length) ? cIdx : null,
+    };
   }, [hasData, is1D, points]);
 
   const refY = hasData ? toY(periodStartValue) : 0;
@@ -693,33 +698,34 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           {/* Area fill — split at market open when applicable */}
           {hasData && sessionSplitIdx !== null ? (
             <>
-              {/* Pre-open fill — muted */}
-              <path
-                d={(() => {
-                  const bottom = CHART_H - PAD_BOTTOM;
-                  const splitX = toX(sessionSplitIdx).toFixed(1);
-                  const seg = points.slice(0, sessionSplitIdx + 1)
-                    .map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`)
-                    .join(' ');
-                  return `${seg} L${splitX},${bottom} L${toX(0).toFixed(1)},${bottom} Z`;
-                })()}
-                fill={lineColor} opacity="0.04"
-              />
-              {/* Post-open fill — stronger */}
-              <path
-                d={(() => {
-                  const bottom = CHART_H - PAD_BOTTOM;
-                  const lastIdx = points.length - 1;
-                  const seg = points.slice(sessionSplitIdx)
+              {/* Area fills split into pre-market / market hours / after-hours */}
+              {(() => {
+                const bottom = CHART_H - PAD_BOTTOM;
+                const closeIdx = sessionCloseIdx ?? points.length - 1;
+                const hasAH = sessionCloseIdx !== null && sessionCloseIdx < points.length - 1;
+
+                const buildFill = (from: number, to: number) => {
+                  const seg = points.slice(from, to + 1)
                     .map((p, j) => {
-                      const idx = sessionSplitIdx + j;
+                      const idx = from + j;
                       return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.value).toFixed(1)}`;
-                    })
-                    .join(' ');
-                  return `${seg} L${toX(lastIdx).toFixed(1)},${bottom} L${toX(sessionSplitIdx).toFixed(1)},${bottom} Z`;
-                })()}
-                fill={lineColor} opacity="0.11"
-              />
+                    }).join(' ');
+                  return `${seg} L${toX(to).toFixed(1)},${bottom} L${toX(from).toFixed(1)},${bottom} Z`;
+                };
+
+                return (
+                  <>
+                    {/* Pre-open — muted */}
+                    <path d={buildFill(0, sessionSplitIdx)} fill={lineColor} opacity="0.04" />
+                    {/* Market hours — stronger */}
+                    <path d={buildFill(sessionSplitIdx, closeIdx)} fill={lineColor} opacity="0.11" />
+                    {/* After hours — muted */}
+                    {hasAH && (
+                      <path d={buildFill(closeIdx, points.length - 1)} fill={lineColor} opacity="0.04" />
+                    )}
+                  </>
+                );
+              })()}
             </>
           ) : hasData && (
             <path
@@ -728,17 +734,19 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             />
           )}
 
-          {/* Session veil — soft vertical gradient at market open */}
-          {hasData && sessionSplitIdx !== null && (() => {
-            const veilX = toX(sessionSplitIdx);
+          {/* Session veils — soft vertical gradients at market open and close */}
+          {hasData && [
+            { idx: sessionSplitIdx, id: 'session-veil-open' },
+            { idx: sessionCloseIdx, id: 'session-veil-close' },
+          ].map(({ idx, id }) => idx !== null && (() => {
+            const veilX = toX(idx);
             const veilW = 3;
-            const priceY = toY(points[sessionSplitIdx].value);
-            const gradId = 'session-veil';
+            const priceY = toY(points[idx].value);
             const frac = (priceY - PAD_TOP) / plotH;
             return (
-              <>
+              <g key={id}>
                 <defs>
-                  <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={lineColor} stopOpacity="0" />
                     <stop offset={`${Math.max(5, frac * 100 - 12)}%`} stopColor={lineColor} stopOpacity="0.04" />
                     <stop offset={`${frac * 100}%`} stopColor={lineColor} stopOpacity="0.14" />
@@ -751,11 +759,11 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                   y={PAD_TOP}
                   width={veilW}
                   height={plotH}
-                  fill={`url(#${gradId})`}
+                  fill={`url(#${id})`}
                 />
-              </>
+              </g>
             );
-          })()}
+          })())}
 
           {/* Base price line — full dataset, single continuous stroke */}
           {hasData && (
