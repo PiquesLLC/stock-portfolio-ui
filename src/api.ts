@@ -47,6 +47,7 @@ import {
   IncomeInsightsResponse,
   IncomeWindow,
   ETFHoldingsData,
+  AssetAbout,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -390,6 +391,14 @@ export async function getStockDetails(ticker: string): Promise<StockDetailsRespo
 export async function getETFHoldings(ticker: string): Promise<ETFHoldingsData | null> {
   try {
     return await fetchJson<ETFHoldingsData>(`${API_BASE_URL}/market/stock/${ticker}/etf-holdings`);
+  } catch {
+    return null;
+  }
+}
+
+export async function getAssetAbout(ticker: string): Promise<AssetAbout | null> {
+  try {
+    return await fetchJson<AssetAbout>(`${API_BASE_URL}/market/stock/${ticker}/about`);
   } catch {
     return null;
   }

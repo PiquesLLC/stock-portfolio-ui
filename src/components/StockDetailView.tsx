@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData } from '../types';
+import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings } from '../api';
+import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout } from '../api';
 import { DividendEvent, DividendCredit } from '../types';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
@@ -188,6 +188,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // ETF holdings data
   const [etfHoldings, setEtfHoldings] = useState<ETFHoldingsData | null>(null);
 
+  // About data (description, category, etc.)
+  const [about, setAbout] = useState<AssetAbout | null>(null);
+
   useEffect(() => {
     getDividendEvents(ticker).then(setTickerDividends).catch(() => {});
     getDividendCredits(undefined, ticker).then(setTickerCredits).catch(() => {});
@@ -195,6 +198,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     getETFHoldings(ticker)
       .then(data => setEtfHoldings(data))
       .catch(() => setEtfHoldings(null));
+    // Fetch about data
+    getAssetAbout(ticker)
+      .then(data => setAbout(data))
+      .catch(() => setAbout(null));
   }, [ticker]);
 
   // Cache for prefetched hourly data
@@ -574,6 +581,107 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>
       )}
 
+      {/* About Section - Robinhood style */}
+      {(about?.description || profile?.name) && (
+        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
+          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-3">About</h2>
+
+          {/* Description */}
+          {about?.description && (
+            <p className="text-sm text-rh-light-text dark:text-rh-text leading-relaxed mb-4">
+              {about.description}
+            </p>
+          )}
+
+          {/* Horizontal divider */}
+          {about?.description && (about?.category || about?.numberOfHoldings || about?.inceptionDate || about?.fundFamily || profile?.industry || about?.headquarters) && (
+            <div className="border-t border-rh-light-border/50 dark:border-rh-border/50 mb-4" />
+          )}
+
+          {/* Metadata grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            {/* ETF-specific fields first */}
+            {about?.category && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Category</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.category}</div>
+              </div>
+            )}
+            {about?.numberOfHoldings && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Number of Holdings</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.numberOfHoldings.toLocaleString()}</div>
+              </div>
+            )}
+            {about?.inceptionDate && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Inception Date</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.inceptionDate}</div>
+              </div>
+            )}
+            {about?.fundFamily && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Fund Family</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.fundFamily}</div>
+              </div>
+            )}
+
+            {/* Stock-specific fields */}
+            {!about?.category && (about?.sector || profile?.industry) && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Industry</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{about?.industry || profile?.industry}</div>
+              </div>
+            )}
+            {about?.headquarters && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Headquarters</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.headquarters}</div>
+              </div>
+            )}
+            {about?.fullTimeEmployees && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Employees</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.fullTimeEmployees.toLocaleString()}</div>
+              </div>
+            )}
+
+            {/* Common fields */}
+            {profile?.country && !about?.headquarters && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Country</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.country}</div>
+              </div>
+            )}
+            {profile?.exchange && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Exchange</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.exchange}</div>
+              </div>
+            )}
+            {!about?.inceptionDate && profile?.ipoDate && (
+              <div>
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5"><Acronym label="IPO" /> Date</div>
+                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.ipoDate}</div>
+              </div>
+            )}
+            {profile?.weburl && (
+              <div className="col-span-2 md:col-span-1">
+                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Website</div>
+                <a
+                  href={profile.weburl.startsWith('http') ? profile.weburl : `https://${profile.weburl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-rh-green hover:underline font-medium truncate block"
+                >
+                  {profile.weburl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Key Statistics */}
       {(metrics || quote) && (
         <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
@@ -648,18 +756,13 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               return null;
             })()}
             {/* Recent history */}
-            <div className="space-y-2">
-              {tickerDividends.slice(0, 8).map(d => (
+            <div className="space-y-1.5">
+              {tickerDividends.slice(0, 4).map(d => (
                 <div key={d.id} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-rh-light-muted dark:text-rh-muted">
-                      Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-rh-green">${d.amountPerShare.toFixed(4)}/sh</span>
-                    <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/50">{d.source}</span>
-                  </div>
+                  <span className="text-rh-light-muted dark:text-rh-muted">
+                    Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                  </span>
+                  <span className="font-medium text-rh-green">${d.amountPerShare.toFixed(2)}/sh</span>
                 </div>
               ))}
             </div>
@@ -667,10 +770,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {tickerCredits.length > 0 && (
               <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
                 <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Received</p>
-                {tickerCredits.map(c => (
+                {tickerCredits.slice(0, 4).map(c => (
                   <div key={c.id} className="flex items-center justify-between text-sm mb-1">
                     <span className="text-rh-light-muted dark:text-rh-muted">
-                      {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                     </span>
                     <span className="font-medium text-rh-green">{formatCurrency(c.amountGross)}</span>
                   </div>
@@ -679,52 +782,6 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             )}
           </div>
         )
-      )}
-
-      {/* About */}
-      {profile && (profile.industry || profile.country || profile.ipoDate || profile.weburl) && (
-        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
-          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-4">About</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            {profile.industry && (
-              <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Industry</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.industry}</div>
-              </div>
-            )}
-            {profile.country && (
-              <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Country</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.country}</div>
-              </div>
-            )}
-            {profile.exchange && (
-              <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Exchange</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.exchange}</div>
-              </div>
-            )}
-            {profile.ipoDate && (
-              <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5"><Acronym label="IPO" /> Date</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.ipoDate}</div>
-              </div>
-            )}
-            {profile.weburl && (
-              <div className="col-span-2">
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Website</div>
-                <a
-                  href={profile.weburl.startsWith('http') ? profile.weburl : `https://${profile.weburl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-rh-green hover:underline font-medium"
-                >
-                  {profile.weburl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
       )}
 
       {/* Add / Update Holding */}

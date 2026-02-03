@@ -745,7 +745,15 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       // Always include the last data point so today's date shows at the right edge
       const lastIdx = points.length - 1;
       if (lastIdx > 0 && (lastIdx % step !== 0)) {
-        timeLabels.push({ label: points[lastIdx].label, x: toX(lastIdx) });
+        const lastX = toX(lastIdx);
+        const prevX = timeLabels.length > 0 ? timeLabels[timeLabels.length - 1].x : 0;
+        // Only add last label if it won't overlap with previous (need ~70px minimum gap)
+        if (lastX - prevX > 70) {
+          timeLabels.push({ label: points[lastIdx].label, x: lastX });
+        } else {
+          // Replace the previous label with the last one (prefer showing current date)
+          timeLabels[timeLabels.length - 1] = { label: points[lastIdx].label, x: lastX };
+        }
       }
     }
   }
