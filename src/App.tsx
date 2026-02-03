@@ -479,7 +479,9 @@ export default function App() {
             {portfolio?.session && (
               <span
                 className={`text-xs px-2 py-1 rounded border font-medium cursor-default
-                  ${portfolio.session === 'CLOSED' ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' : getSessionDisplay(portfolio.session).color}`}
+                  ${portfolio.session === 'CLOSED' ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' : ''}
+                  ${portfolio.session === 'REG' ? 'bg-green-500/20 text-green-400 border-green-500/30 animate-[breathing_1.2s_ease-in-out_infinite]' : ''}
+                  ${portfolio.session !== 'CLOSED' && portfolio.session !== 'REG' ? getSessionDisplay(portfolio.session).color : ''}`}
                 title={getSessionDisplay(portfolio.session).description}
               >
                 {getSessionDisplay(portfolio.session).label}

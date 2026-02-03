@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Energetic pulse animation for OPEN badge */
+@keyframes breathing {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
 /* Notification bell swing animation */
 @keyframes bell-swing {
   0% { transform: rotate(0deg); }
