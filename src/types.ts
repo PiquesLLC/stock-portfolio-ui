@@ -94,6 +94,37 @@ export interface DividendCredit {
   status: string;
   createdAt: string;
   dividendEvent?: DividendEvent;
+  reinvestment?: DividendReinvestment;
+}
+
+export interface DividendReinvestment {
+  id: string;
+  dividendCreditId: string;
+  ticker: string;
+  sharesPurchased: number;
+  pricePerShare: number;
+  totalAmount: number;
+  fillDate: string;
+  status: 'pending' | 'completed' | 'failed';
+  createdAt?: string;
+}
+
+export interface DividendTimeline {
+  creditId: string;
+  ticker: string;
+  sharesEligible: number;
+  amountPerShare: number;
+  totalAmount: number;
+  steps: {
+    announced: { date: string; completed: boolean };
+    payment: { date: string; completed: boolean };
+    reinvestment: {
+      date: string | null;
+      completed: boolean;
+      sharesPurchased: number | null;
+      pricePerShare: number | null;
+    } | null;
+  };
 }
 
 export interface DividendSummary {
@@ -654,6 +685,102 @@ export interface AlertEvent {
   createdAt: string;
 }
 
+// Income Insights types
+export type IncomeWindow = 'today' | '5d' | '1m';
+
+export interface IncomeHealthBreakdown {
+  stability: number;
+  growth: number;
+  coverage: number;
+  diversification: number;
+}
+
+export interface IncomeCategoryDetail {
+  score: number;
+  maxScore: number;
+  calcBullets: string[];
+  evidenceBullets: string[];
+  drivers: { label: string; value: string; impact: string }[];
+  quickFixes: string[];
+}
+
+export interface IncomeHealthDetails {
+  stability: IncomeCategoryDetail;
+  growth: IncomeCategoryDetail;
+  coverage: IncomeCategoryDetail;
+  diversification: IncomeCategoryDetail;
+}
+
+export interface IncomeHealthScore {
+  overall: number;
+  breakdown: IncomeHealthBreakdown;
+  grade: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+  details: IncomeHealthDetails;
+}
+
+export interface IncomeCashFlow {
+  annualIncome: number;
+  monthlyIncome: number;
+  dailyIncome: number;
+  projectedNextMonth: number;
+}
+
+export interface IncomeMomentum {
+  yoyChangePct: number | null;
+  holdingsRaisedPayout: string[];
+  trend: 'growing' | 'stable' | 'declining' | 'unknown';
+}
+
+export interface IncomeReliability {
+  classification: 'stable' | 'moderate' | 'volatile';
+  monthlyStdDev: number | null;
+  consecutiveMonths: number;
+}
+
+export interface IncomeContributor {
+  ticker: string;
+  dividendDollar: number;
+  yieldPct: number | null;
+  percentOfTotal: number;
+  paymentCount: number;
+}
+
+export interface IncomeConcentration {
+  top1Percent: number;
+  top3Percent: number;
+  top1Ticker: string | null;
+  top3Tickers: string[];
+  isConcentrated: boolean;
+}
+
+export interface IncomeTimelineEvent {
+  ticker: string;
+  eventType: 'paid' | 'declared';
+  date: string;
+  amountReceived: number;
+  dateEstimated: boolean;
+}
+
+export interface IncomeLiveIntelligence {
+  window: IncomeWindow;
+  statement: string;
+  amountInWindow: number;
+}
+
+export interface IncomeInsightsResponse {
+  healthScore: IncomeHealthScore;
+  keyDrivers: string[];
+  liveIntelligence: IncomeLiveIntelligence;
+  signals: {
+    cashFlow: IncomeCashFlow;
+    momentum: IncomeMomentum;
+    reliability: IncomeReliability;
+  };
+  contributors: IncomeContributor[];
+  concentration: IncomeConcentration;
+  timeline: IncomeTimelineEvent[];
+}
+
 // Stock Detail types
 export type ChartPeriod = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'MAX';
 
@@ -712,4 +839,24 @@ export interface StockDetailsResponse {
   profile: StockProfile | null;
   metrics: StockMetrics | null;
   candles: StockCandles | null;
+}
+
+// ETF Holdings types
+export interface ETFHolding {
+  symbol: string;
+  holdingName: string;
+  holdingPercent: number;
+}
+
+export interface ETFSectorWeighting {
+  sector: string;
+  weight: number;
+}
+
+export interface ETFHoldingsData {
+  topHoldings: ETFHolding[];
+  sectorWeightings: ETFSectorWeighting[];
+  totalHoldingsPercent: number;
+  asOfDate: string | null;
+  isETF: boolean;
 }

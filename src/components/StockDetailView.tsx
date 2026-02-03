@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Holding, ChartPeriod, StockDetailsResponse, MarketSession } from '../types';
+import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits } from '../api';
+import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings } from '../api';
 import { DividendEvent, DividendCredit } from '../types';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
+import { ETFDetailsPanel } from './ETFDetailsPanel';
 
 interface Props {
   ticker: string;
@@ -78,6 +79,7 @@ function PositionCard({ label, value, valueColor, sub }: {
     </div>
   );
 }
+
 
 function AddToPortfolioForm({ ticker, currentPrice, onAdded, holding }: { ticker: string; currentPrice: number; onAdded?: () => void; holding?: Holding | null }) {
   const [shares, setShares] = useState('');
@@ -183,9 +185,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [tickerDividends, setTickerDividends] = useState<DividendEvent[]>([]);
   const [tickerCredits, setTickerCredits] = useState<DividendCredit[]>([]);
 
+  // ETF holdings data
+  const [etfHoldings, setEtfHoldings] = useState<ETFHoldingsData | null>(null);
+
   useEffect(() => {
     getDividendEvents(ticker).then(setTickerDividends).catch(() => {});
     getDividendCredits(undefined, ticker).then(setTickerCredits).catch(() => {});
+    // Fetch ETF holdings
+    getETFHoldings(ticker)
+      .then(data => setEtfHoldings(data))
+      .catch(() => setEtfHoldings(null));
   }, [ticker]);
 
   // Cache for prefetched hourly data
@@ -602,60 +611,74 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>
       )}
 
-      {/* Dividends */}
-      {tickerDividends.length > 0 && (
-        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
-          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-4">Dividends</h2>
-          {/* Next upcoming */}
-          {(() => {
-            const now = new Date();
-            const next = tickerDividends.find(d => new Date(d.payDate) >= now);
-            if (next && holding) {
-              const est = holding.shares * next.amountPerShare;
-              return (
-                <div className="mb-4 p-3 bg-rh-green/5 rounded-lg">
-                  <p className="text-sm text-rh-light-text dark:text-rh-text">
-                    Next payout: <span className="font-semibold text-rh-green">{formatCurrency(est)}</span>
-                    <span className="text-rh-light-muted dark:text-rh-muted ml-2">
-                      (${next.amountPerShare.toFixed(4)}/sh &times; {holding.shares}) on {new Date(next.payDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+      {/* ETF Details Panel - consolidated dividends + holdings for ETFs */}
+      {etfHoldings?.isETF ? (
+        <ETFDetailsPanel
+          ticker={ticker}
+          dividendEvents={tickerDividends}
+          dividendCredits={tickerCredits}
+          etfHoldings={etfHoldings}
+          holding={holding}
+          onTickerClick={(t) => {
+            window.location.hash = `#stock/${t}`;
+          }}
+        />
+      ) : (
+        /* Dividends - for non-ETF stocks */
+        tickerDividends.length > 0 && (
+          <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
+            <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-4">Dividends</h2>
+            {/* Next upcoming */}
+            {(() => {
+              const now = new Date();
+              const next = tickerDividends.find(d => new Date(d.payDate) >= now);
+              if (next && holding) {
+                const est = holding.shares * next.amountPerShare;
+                return (
+                  <div className="mb-4 p-3 bg-rh-green/5 rounded-lg">
+                    <p className="text-sm text-rh-light-text dark:text-rh-text">
+                      Next payout: <span className="font-semibold text-rh-green">{formatCurrency(est)}</span>
+                      <span className="text-rh-light-muted dark:text-rh-muted ml-2">
+                        (${next.amountPerShare.toFixed(4)}/sh &times; {holding.shares}) on {new Date(next.payDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            {/* Recent history */}
+            <div className="space-y-2">
+              {tickerDividends.slice(0, 8).map(d => (
+                <div key={d.id} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-rh-light-muted dark:text-rh-muted">
+                      Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
-                  </p>
-                </div>
-              );
-            }
-            return null;
-          })()}
-          {/* Recent history */}
-          <div className="space-y-2">
-            {tickerDividends.slice(0, 8).map(d => (
-              <div key={d.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-rh-light-muted dark:text-rh-muted">
-                    Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-medium text-rh-green">${d.amountPerShare.toFixed(4)}/sh</span>
-                  <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/50">{d.source}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Credits received */}
-          {tickerCredits.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Received</p>
-              {tickerCredits.map(c => (
-                <div key={c.id} className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-rh-light-muted dark:text-rh-muted">
-                    {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                  <span className="font-medium text-rh-green">{formatCurrency(c.amountGross)}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-rh-green">${d.amountPerShare.toFixed(4)}/sh</span>
+                    <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/50">{d.source}</span>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+            {/* Credits received */}
+            {tickerCredits.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
+                <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Received</p>
+                {tickerCredits.map(c => (
+                  <div key={c.id} className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-rh-light-muted dark:text-rh-muted">
+                      {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <span className="font-medium text-rh-green">{formatCurrency(c.amountGross)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
       )}
 
       {/* About */}

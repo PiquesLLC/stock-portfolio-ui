@@ -7,10 +7,11 @@ import { LeakDetector } from './LeakDetector';
 import { RiskForecast } from './RiskForecast';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
+import { IncomeInsights } from './IncomeInsights';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'projections-goals';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals';
 
 // Cache for insights data - persists across component mounts
 const insightsCache: {
@@ -173,8 +174,33 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   const subTabs: { id: InsightsSubTab; label: string }[] = [
     { id: 'intelligence', label: 'Intelligence' },
+    { id: 'income', label: 'Income' },
     { id: 'projections-goals', label: 'Projections & Goals' },
   ];
+
+  // Income subtab
+  if (subTab === 'income') {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1 w-fit">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <IncomeInsights refreshTrigger={refreshTrigger} />
+      </div>
+    );
+  }
 
   // Projections & Goals subtab
   if (subTab === 'projections-goals') {

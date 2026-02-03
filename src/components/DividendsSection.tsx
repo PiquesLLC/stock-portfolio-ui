@@ -6,7 +6,10 @@ import {
   getDividendCredits,
   addDividendEvent,
   syncDividends,
+  getDripSettings,
+  updateDripSettings,
 } from '../api';
+import { DividendDetailDrawer } from './DividendDetailDrawer';
 
 function formatCurrency(val: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
@@ -30,24 +33,41 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
   const [showHistory, setShowHistory] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState('');
+  const [dripEnabled, setDripEnabled] = useState(false);
+  const [dripLoading, setDripLoading] = useState(false);
+  const [selectedCredit, setSelectedCredit] = useState<DividendCredit | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [sum, upcom, creds] = await Promise.all([
+      const [sum, upcom, creds, drip] = await Promise.all([
         getDividendSummary(),
         getUpcomingDividends(),
         getDividendCredits(),
+        getDripSettings(),
       ]);
       setSummary(sum);
       setUpcoming(upcom);
       setCredits(creds);
+      setDripEnabled(drip.enabled);
     } catch {
       setError('Failed to load dividend data');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleDripToggle = async () => {
+    setDripLoading(true);
+    try {
+      const result = await updateDripSettings(!dripEnabled);
+      setDripEnabled(result.enabled);
+    } catch {
+      setError('Failed to update DRIP setting');
+    } finally {
+      setDripLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -84,9 +104,25 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
     <div className="px-6 py-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
-          Dividends
-        </h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
+            Dividends
+          </h3>
+          {/* DRIP Toggle */}
+          <button
+            onClick={handleDripToggle}
+            disabled={dripLoading}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+              dripEnabled
+                ? 'bg-rh-green/10 text-rh-green'
+                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+            title={dripEnabled ? 'DRIP enabled - dividends will be auto-reinvested' : 'Enable DRIP to auto-reinvest dividends'}
+          >
+            <span className={`w-2 h-2 rounded-full ${dripEnabled ? 'bg-rh-green' : 'bg-rh-light-muted/40 dark:bg-rh-muted/40'}`} />
+            DRIP {dripEnabled ? 'On' : 'Off'}
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAddModal(true)}
@@ -196,20 +232,40 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
           {showHistory && credits.length > 0 && (
             <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
               <div className="space-y-1.5">
-                {credits.map(c => (
-                  <div key={c.id} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-rh-light-text dark:text-rh-text">{c.ticker}</span>
-                      <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
-                        {c.sharesEligible} sh
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-rh-green font-medium">{formatCurrency(c.amountGross)}</span>
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{shortDate(c.creditedAt)}</span>
-                    </div>
-                  </div>
-                ))}
+                {credits.map(c => {
+                  const isReinvested = c.reinvestment != null;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedCredit(c)}
+                      className="w-full flex items-center justify-between text-xs py-1 px-1 -mx-1 rounded hover:bg-rh-light-bg dark:hover:bg-rh-dark/50 transition-colors cursor-pointer text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-rh-light-text dark:text-rh-text">{c.ticker}</span>
+                        <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
+                          {c.sharesEligible} sh
+                        </span>
+                        {isReinvested && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium">
+                            Reinvested
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-rh-green font-medium">{formatCurrency(c.amountGross)}</span>
+                        {isReinvested && c.reinvestment && (
+                          <span className="text-rh-green/70 text-[10px]">
+                            +{c.reinvestment.sharesPurchased.toFixed(4)} sh
+                          </span>
+                        )}
+                        <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{shortDate(c.creditedAt)}</span>
+                        <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
               {credits.length === 0 && (
                 <p className="text-xs text-rh-light-muted dark:text-rh-muted text-center py-2">
@@ -246,6 +302,14 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
           onAdded={() => { setShowAddModal(false); fetchData(); }}
         />
       )}
+
+      {/* Dividend detail drawer */}
+      <DividendDetailDrawer
+        credit={selectedCredit}
+        open={selectedCredit !== null}
+        onClose={() => setSelectedCredit(null)}
+        onReinvested={fetchData}
+      />
 
       <p className="text-[9px] text-rh-light-muted/30 dark:text-rh-muted/30 mt-3">
         Dividend info may be updated by issuers. Not financial advice.

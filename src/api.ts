@@ -8,6 +8,8 @@ import {
   DividendEventInput,
   DividendCredit,
   DividendSummary,
+  DividendReinvestment,
+  DividendTimeline,
   ProjectionMode,
   LookbackPeriod,
   PerformanceSummary,
@@ -42,6 +44,9 @@ import {
   Transaction,
   AlertConfig,
   AlertEvent as AlertEventType,
+  IncomeInsightsResponse,
+  IncomeWindow,
+  ETFHoldingsData,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -148,6 +153,38 @@ export async function syncDividends(ticker?: string): Promise<any> {
   });
 }
 
+// DRIP (Dividend Reinvestment) endpoints
+export async function getDividendTimeline(creditId: string): Promise<DividendTimeline> {
+  return fetchJson<DividendTimeline>(`${API_BASE_URL}/dividends/credits/${creditId}/timeline`);
+}
+
+export async function reinvestDividend(creditId: string, userId?: string): Promise<DividendReinvestment> {
+  return fetchJson<DividendReinvestment>(`${API_BASE_URL}/dividends/credits/${creditId}/reinvest`, {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+}
+
+export async function getDividendReinvestments(userId?: string, ticker?: string): Promise<DividendReinvestment[]> {
+  const params = new URLSearchParams();
+  if (userId) params.set('userId', userId);
+  if (ticker) params.set('ticker', ticker);
+  const qs = params.toString();
+  return fetchJson<DividendReinvestment[]>(`${API_BASE_URL}/dividends/reinvestments${qs ? `?${qs}` : ''}`);
+}
+
+export async function getDripSettings(userId?: string): Promise<{ enabled: boolean }> {
+  const params = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+  return fetchJson<{ enabled: boolean }>(`${API_BASE_URL}/dividends/drip${params}`);
+}
+
+export async function updateDripSettings(enabled: boolean, userId?: string): Promise<{ enabled: boolean }> {
+  return fetchJson<{ enabled: boolean }>(`${API_BASE_URL}/dividends/drip`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled, userId }),
+  });
+}
+
 // Settings endpoints
 export async function getSettings(): Promise<Settings> {
   return fetchJson<Settings>(`${API_BASE_URL}/settings`);
@@ -200,6 +237,10 @@ export async function getLeakDetector(): Promise<LeakDetectorResult> {
 
 export async function getRiskForecast(): Promise<RiskForecast> {
   return fetchJson<RiskForecast>(`${API_BASE_URL}/insights/risk-forecast`);
+}
+
+export async function getIncomeInsights(window: IncomeWindow = 'today'): Promise<IncomeInsightsResponse> {
+  return fetchJson<IncomeInsightsResponse>(`${API_BASE_URL}/insights/income?window=${window}`);
 }
 
 // Goals endpoints
@@ -344,6 +385,14 @@ export async function getFollowingList(userId: string): Promise<{ id: string; us
 
 export async function getStockDetails(ticker: string): Promise<StockDetailsResponse> {
   return fetchJson<StockDetailsResponse>(`${API_BASE_URL}/market/stock/${ticker}/details`);
+}
+
+export async function getETFHoldings(ticker: string): Promise<ETFHoldingsData | null> {
+  try {
+    return await fetchJson<ETFHoldingsData>(`${API_BASE_URL}/market/stock/${ticker}/etf-holdings`);
+  } catch {
+    return null;
+  }
 }
 
 export async function getStockQuote(ticker: string): Promise<StockDetailsResponse['quote']> {
