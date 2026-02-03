@@ -79,16 +79,16 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   // Ref for the Add Stock button to return focus after modal closes
   const addStockButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Sync cash/margin values when props change
-  useEffect(() => { setCashValue(cashBalance.toString()); }, [cashBalance]);
-  useEffect(() => { setMarginValue(marginDebt.toString()); }, [marginDebt]);
+  // Sync cash/margin values when props change (round to 2 decimals to avoid floating point noise)
+  useEffect(() => { setCashValue(parseFloat(cashBalance.toFixed(2)).toString()); }, [cashBalance]);
+  useEffect(() => { setMarginValue(parseFloat(marginDebt.toFixed(2)).toString()); }, [marginDebt]);
 
   // Check if any modal is open
   const isModalOpen = showAddModal || editingHolding !== null || showCashMarginModal;
 
   const handleOpenCashMargin = () => {
-    setCashValue(cashBalance.toString());
-    setMarginValue(marginDebt.toString());
+    setCashValue(parseFloat(cashBalance.toFixed(2)).toString());
+    setMarginValue(parseFloat(marginDebt.toFixed(2)).toString());
     setCashMarginError('');
     setShowCashMarginModal(true);
   };
