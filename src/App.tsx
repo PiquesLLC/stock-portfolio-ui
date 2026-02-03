@@ -463,7 +463,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-4">
             {/* Global Stock Search */}
-            <div className="w-52">
+            <div className="w-[270px]">
               <TickerAutocompleteInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -478,7 +478,8 @@ export default function App() {
             </div>
             {portfolio?.session && (
               <span
-                className={`text-xs px-2 py-1 rounded border font-medium ${getSessionDisplay(portfolio.session).color}`}
+                className={`text-xs px-2 py-1 rounded border font-medium cursor-default
+                  ${portfolio.session === 'CLOSED' ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' : getSessionDisplay(portfolio.session).color}`}
                 title={getSessionDisplay(portfolio.session).description}
               >
                 {getSessionDisplay(portfolio.session).label}
@@ -490,13 +491,13 @@ export default function App() {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
+              className="group flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
                 bg-gray-100 dark:bg-rh-dark hover:bg-gray-200 dark:hover:bg-rh-border
                 text-rh-light-muted dark:text-rh-muted"
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 group-hover:text-yellow-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               ) : (
