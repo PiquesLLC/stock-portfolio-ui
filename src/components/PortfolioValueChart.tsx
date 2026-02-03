@@ -529,7 +529,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     }`}>
       {/* Hero value display — FOREGROUND: highest visual weight */}
       {!hasMeasurement && (
-        <div className="mb-5 relative z-10">
+        <div className="mb-5 relative z-10" style={{ minHeight: '120px' }}>
           <p className={`text-5xl md:text-6xl font-black tracking-tighter text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
             isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
           }`}>
