@@ -30,7 +30,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`group flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-all duration-200 relative
+              className={`group flex items-center gap-1.5 px-2 sm:px-4 py-3 text-sm font-medium transition-all duration-200 relative
                 ${activeTab === tab.id
                   ? 'text-rh-green'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -39,7 +39,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               <span className={`transition-opacity duration-200 ${activeTab === tab.id ? 'opacity-100' : 'opacity-40 group-hover:opacity-70'}`}>
                 {TAB_ICONS[tab.id]}
               </span>
-              {tab.label}
+              <span className="hidden sm:inline">{tab.label}</span>
               {/* Active underline — animated */}
               <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
                 activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
