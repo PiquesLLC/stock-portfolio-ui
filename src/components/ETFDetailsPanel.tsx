@@ -51,97 +51,35 @@ function getSectorColorHex(sector: string): { main: string; light: string; dark:
   return SECTOR_COLOR_HEX[sector] || { main: '#9ca3af', light: '#d1d5db', dark: '#6b7280' };
 }
 
-// 3D Isometric Block Component
-interface IsometricBlockProps {
-  sector: string;
-  weight: number;
-  maxWeight: number;
-  index: number;
-  isHovered: boolean;
-  onHover: (sector: string | null) => void;
-}
-
-function IsometricBlock({ sector, weight, maxWeight, index, isHovered, onHover }: IsometricBlockProps) {
-  const colors = getSectorColorHex(sector);
-
-  // Scale depth based on weight (larger weight = deeper block)
-  const depth = Math.max(12, (weight / maxWeight) * 50);
-  const width = Math.max(20, (weight / maxWeight) * 80);
-
-  return (
-    <div
-      className="relative cursor-pointer transition-all duration-300 ease-out"
-      style={{
-        transform: `translateX(${index * 2}px) ${isHovered ? 'translateY(-8px) scale(1.05)' : ''}`,
-        zIndex: isHovered ? 50 : 10 - index,
-      }}
-      onMouseEnter={() => onHover(sector)}
-      onMouseLeave={() => onHover(null)}
-    >
-      {/* 3D Block using CSS */}
-      <div
-        className="relative transition-all duration-300"
-        style={{
-          width: `${width}px`,
-          height: '40px',
-          transformStyle: 'preserve-3d',
-          transform: 'rotateX(-20deg) rotateY(-30deg)',
-        }}
-      >
-        {/* Front face */}
-        <div
-          className="absolute inset-0 transition-all duration-300"
-          style={{
-            background: colors.main,
-            transform: `translateZ(${depth / 2}px)`,
-            boxShadow: isHovered ? `0 0 20px ${colors.main}80` : 'none',
-          }}
-        />
-        {/* Top face */}
-        <div
-          className="absolute w-full transition-all duration-300"
-          style={{
-            height: `${depth}px`,
-            background: colors.light,
-            transform: `rotateX(90deg) translateZ(20px) translateY(-${depth / 2}px)`,
-          }}
-        />
-        {/* Right face */}
-        <div
-          className="absolute h-full transition-all duration-300"
-          style={{
-            width: `${depth}px`,
-            background: colors.dark,
-            right: 0,
-            transform: `rotateY(90deg) translateZ(${width - depth / 2}px) translateX(${depth / 2}px)`,
-          }}
-        />
-      </div>
-
-      {/* Shadow */}
-      <div
-        className="absolute transition-all duration-300"
-        style={{
-          width: `${width + depth * 0.5}px`,
-          height: '8px',
-          background: 'radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%)',
-          bottom: '-15px',
-          left: '5px',
-          transform: 'rotateX(90deg)',
-          opacity: isHovered ? 0.6 : 0.3,
-        }}
-      />
-    </div>
-  );
-}
 
 // Interactive Sector List for Drawer
 function SectorDrawerList({ sectors }: { sectors: Array<{ sector: string; weight: number }> }) {
   const [hoveredSector, setHoveredSector] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const maxWeight = Math.max(...sectors.map(s => s.weight));
 
+  const handleMouseEnter = (sector: string, e: React.MouseEvent) => {
+    setHoveredSector(sector);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (containerRect) {
+      setTooltipPos({
+        x: rect.left - containerRect.left + rect.width / 2,
+        y: rect.bottom - containerRect.top + 8,
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredSector(null);
+    setTooltipPos(null);
+  };
+
+  const hoveredData = sectors.find(s => s.sector === hoveredSector);
+
   return (
-    <div className="mb-6">
+    <div className="mb-6 relative" ref={containerRef}>
       <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">Sectors</h3>
 
       {/* Stacked bar chart with animation */}
@@ -162,8 +100,8 @@ function SectorDrawerList({ sectors }: { sectors: Array<{ sector: string; weight
               style={{
                 animationDelay: `${i * 50}ms`,
               }}
-              onMouseEnter={() => setHoveredSector(s.sector)}
-              onMouseLeave={() => setHoveredSector(null)}
+              onMouseEnter={(e) => handleMouseEnter(s.sector, e)}
+              onMouseLeave={handleMouseLeave}
             >
               {/* Header row */}
               <div className="flex items-center justify-between mb-2">
@@ -202,117 +140,152 @@ function SectorDrawerList({ sectors }: { sectors: Array<{ sector: string; weight
                   }}
                 />
               </div>
-
-              {/* Description on hover */}
-              <div
-                className={`
-                  overflow-hidden transition-all duration-200
-                  ${isHovered ? 'max-h-20 opacity-100 mt-2' : 'max-h-0 opacity-0'}
-                `}
-              >
-                <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
-                  {SECTOR_DESCRIPTIONS[s.sector] || 'Sector allocation in the fund.'}
-                </p>
-              </div>
             </div>
           );
         })}
       </div>
+
+      {/* Tooltip overlay - absolute positioned, no layout shift */}
+      {hoveredData && tooltipPos && (
+        <div
+          className="absolute z-50 w-56 bg-rh-light-card dark:bg-rh-card rounded-lg px-3 py-2
+            border border-rh-light-border dark:border-rh-border shadow-lg
+            pointer-events-none transition-opacity duration-150"
+          style={{
+            left: Math.min(Math.max(tooltipPos.x - 112, 8), (containerRef.current?.offsetWidth || 300) - 232),
+            top: tooltipPos.y,
+          }}
+        >
+          <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
+            {SECTOR_DESCRIPTIONS[hoveredData.sector] || 'Sector allocation in the fund.'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-// 3D Sector Visualization Component
-interface Sector3DProps {
+// Sector Visualization Component - Clean stacked bar with hover effects
+interface SectorVisualizationProps {
   sectors: Array<{ sector: string; weight: number }>;
 }
 
-function Sector3DVisualization({ sectors }: Sector3DProps) {
+function Sector3DVisualization({ sectors }: SectorVisualizationProps) {
   const [hoveredSector, setHoveredSector] = useState<string | null>(null);
-
-  const maxWeight = Math.max(...sectors.map(s => s.weight));
   const hoveredData = sectors.find(s => s.sector === hoveredSector);
 
   return (
-    <div className="mb-5">
-      {/* 3D Blocks Container */}
-      <div
-        className="relative flex items-end justify-center gap-1 py-6 px-4"
-        style={{
-          perspective: '800px',
-          perspectiveOrigin: '50% 50%',
-          minHeight: '100px',
-        }}
-      >
-        {sectors.slice(0, 8).map((s, i) => (
-          <IsometricBlock
-            key={s.sector}
-            sector={s.sector}
-            weight={s.weight}
-            maxWeight={maxWeight}
-            index={i}
-            isHovered={hoveredSector === s.sector}
-            onHover={setHoveredSector}
-          />
-        ))}
-      </div>
+    <div className="mb-4">
+      {/* Stacked horizontal bar */}
+      <div className="relative mb-4">
+        <div className="flex h-10 rounded-lg overflow-hidden shadow-inner bg-rh-light-bg/50 dark:bg-rh-dark/50">
+          {sectors.map((s) => {
+            const colors = getSectorColorHex(s.sector);
+            const isHovered = hoveredSector === s.sector;
 
-      {/* Hover tooltip */}
-      <div
-        className={`
-          mx-auto max-w-xs bg-rh-light-bg dark:bg-rh-dark rounded-lg px-4 py-3
-          border border-rh-light-border/50 dark:border-rh-border/50
-          transition-all duration-200
-          ${hoveredSector ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}
-        `}
-      >
-        {hoveredData && (
-          <>
-            <div className="flex items-center gap-2 mb-1">
+            return (
               <div
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: getSectorColorHex(hoveredData.sector).main }}
-              />
-              <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-                {hoveredData.sector}
-              </span>
-              <span className="text-sm font-bold text-rh-green ml-auto">
-                {hoveredData.weight.toFixed(2)}%
-              </span>
-            </div>
-            <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
-              {SECTOR_DESCRIPTIONS[hoveredData.sector] || 'Sector allocation in the fund.'}
-            </p>
-          </>
-        )}
+                key={s.sector}
+                className="relative h-full cursor-pointer transition-all duration-200"
+                style={{
+                  width: `${s.weight}%`,
+                  background: isHovered
+                    ? `linear-gradient(180deg, ${colors.light} 0%, ${colors.main} 50%, ${colors.dark} 100%)`
+                    : `linear-gradient(180deg, ${colors.light}90 0%, ${colors.main} 100%)`,
+                  transform: isHovered ? 'scaleY(1.1)' : 'scaleY(1)',
+                  transformOrigin: 'bottom',
+                  zIndex: isHovered ? 10 : 1,
+                  boxShadow: isHovered ? `0 -4px 12px ${colors.main}60, inset 0 1px 0 ${colors.light}` : 'none',
+                }}
+                onMouseEnter={() => setHoveredSector(s.sector)}
+                onMouseLeave={() => setHoveredSector(null)}
+              >
+                {/* Highlight line on top when hovered */}
+                {isHovered && (
+                  <div
+                    className="absolute inset-x-0 top-0 h-1"
+                    style={{ background: colors.light }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Tooltip - absolute positioned */}
+        <div
+          className={`
+            absolute left-1/2 -translate-x-1/2 top-full mt-2
+            w-64 max-w-[calc(100%-1rem)] bg-rh-light-card dark:bg-rh-card rounded-lg px-4 py-3
+            border border-rh-light-border dark:border-rh-border
+            shadow-xl pointer-events-none z-50
+            transition-all duration-150
+            ${hoveredSector ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}
+          `}
+        >
+          {hoveredData && (
+            <>
+              <div className="flex items-center gap-2 mb-1.5">
+                <div
+                  className="w-3 h-3 rounded-sm flex-shrink-0"
+                  style={{ backgroundColor: getSectorColorHex(hoveredData.sector).main }}
+                />
+                <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+                  {hoveredData.sector}
+                </span>
+                <span className="text-sm font-bold text-rh-green ml-auto">
+                  {hoveredData.weight.toFixed(2)}%
+                </span>
+              </div>
+              <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
+                {SECTOR_DESCRIPTIONS[hoveredData.sector] || 'Sector allocation in the fund.'}
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Legend - top sectors */}
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3">
-        {sectors.slice(0, 4).map(s => (
-          <button
-            key={s.sector}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-200 ${
-              hoveredSector === s.sector
-                ? 'bg-rh-light-bg dark:bg-rh-dark scale-105'
-                : 'hover:bg-rh-light-bg/50 dark:hover:bg-rh-dark/50'
-            }`}
-            onMouseEnter={() => setHoveredSector(s.sector)}
-            onMouseLeave={() => setHoveredSector(null)}
-          >
-            <div
-              className="w-2 h-2 rounded-sm transition-transform duration-200"
+      {/* Legend - top 4 sectors */}
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
+        {sectors.slice(0, 4).map(s => {
+          const colors = getSectorColorHex(s.sector);
+          const isHovered = hoveredSector === s.sector;
+
+          return (
+            <button
+              key={s.sector}
+              className={`
+                flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px]
+                transition-all duration-200 border
+                ${isHovered
+                  ? 'border-current scale-105 shadow-sm'
+                  : 'border-transparent hover:bg-rh-light-bg/50 dark:hover:bg-rh-dark/50'
+                }
+              `}
               style={{
-                backgroundColor: getSectorColorHex(s.sector).main,
-                transform: hoveredSector === s.sector ? 'scale(1.3)' : 'scale(1)',
+                color: isHovered ? colors.main : undefined,
+                backgroundColor: isHovered ? `${colors.main}15` : undefined,
               }}
-            />
-            <span className="text-[11px] text-rh-light-text dark:text-rh-text">{s.sector}</span>
-            <span className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted">
-              {s.weight.toFixed(1)}%
-            </span>
-          </button>
-        ))}
+              onMouseEnter={() => setHoveredSector(s.sector)}
+              onMouseLeave={() => setHoveredSector(null)}
+            >
+              <div
+                className="w-2 h-2 rounded-full transition-transform duration-200"
+                style={{
+                  backgroundColor: colors.main,
+                  transform: isHovered ? 'scale(1.3)' : 'scale(1)',
+                  boxShadow: isHovered ? `0 0 6px ${colors.main}` : 'none',
+                }}
+              />
+              <span className={isHovered ? 'font-medium' : 'text-rh-light-text dark:text-rh-text'}>
+                {s.sector}
+              </span>
+              <span className={isHovered ? 'font-semibold' : 'text-rh-light-muted dark:text-rh-muted'}>
+                {s.weight.toFixed(1)}%
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
