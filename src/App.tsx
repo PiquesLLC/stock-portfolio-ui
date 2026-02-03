@@ -459,8 +459,7 @@ export default function App() {
       <header className="border-b border-rh-light-border/40 dark:border-rh-border/40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/north-signal-logo.png" alt="North Signal" className="h-7 w-7 rounded" />
-            <h1 className="text-lg font-bold tracking-tight text-rh-light-text dark:text-rh-text">North Signal</h1>
+            <img src="/north-signal-logo.png" alt="North Signal" className="h-[42px] w-[42px] cursor-pointer" onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }} />
             {portfolio?.session && (
               <span
                 className={`text-xs px-2 py-1 rounded border font-medium ${getSessionDisplay(portfolio.session).color}`}
