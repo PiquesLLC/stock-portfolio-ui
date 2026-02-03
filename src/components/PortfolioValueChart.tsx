@@ -165,7 +165,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // ── Idle animation state ─────────────────────────────────────────
   const [isIdle, setIsIdle] = useState(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const IDLE_TIMEOUT = 5000; // 5 seconds (testing)
+  const IDLE_TIMEOUT = 600000; // 10 minutes
   const [rippleKey, setRippleKey] = useState(0);
   const [showRipple, setShowRipple] = useState(false);
   const [idleDotPos, setIdleDotPos] = useState<{ x: number; y: number } | null>(null);
