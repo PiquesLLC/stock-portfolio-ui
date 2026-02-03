@@ -165,7 +165,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // ── Idle animation state ─────────────────────────────────────────
   const [isIdle, setIsIdle] = useState(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const IDLE_TIMEOUT = 600000; // 10 minutes
+  const IDLE_TIMEOUT = 5000; // 5 seconds (testing)
   const [rippleKey, setRippleKey] = useState(0);
   const [showRipple, setShowRipple] = useState(false);
   const [idleDotPos, setIdleDotPos] = useState<{ x: number; y: number } | null>(null);
@@ -553,7 +553,6 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // ── Manual idle dot animation + collision detection ──────────────
   // Uses getPointAtLength() on a hidden <path> to know exact dot position
   // every frame. When the dot is close to (lastX, lastY), trigger ripple.
-  const IDLE_CYCLE_MS = 10800;
   const lastXRef = useRef(lastX);
   const lastYRef = useRef(lastY);
   lastXRef.current = lastX;
@@ -564,6 +563,9 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     const path = idlePathRef.current;
     const totalLen = path.getTotalLength();
     if (totalLen === 0) return;
+    // Scale duration to path length so dot speed is consistent across all timeframes
+    // ~7px per second feels smooth; clamp between 8s and 18s
+    const IDLE_CYCLE_MS = Math.max(8000, Math.min(18000, totalLen * 7));
 
     let rafId: number;
     let startTime: number | null = null;
@@ -991,13 +993,13 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                     <animate attributeName="opacity" values="0.85;1;0.85" dur="2.5s" repeatCount="indefinite" />
                   </circle>
                 </>
-              ) : selectedPeriod === '1D' ? (
+              ) : (
                 <>
-                  {/* Closed — subtle static dot on 1D only */}
+                  {/* Closed — subtle static dot */}
                   <circle cx={lastX} cy={lastY} r="7" fill={lineColor} opacity="0.12" />
                   <circle cx={lastX} cy={lastY} r="3" fill={lineColor} opacity="0.7" />
                 </>
-              ) : null}
+              )}
             </>
           )}
 
