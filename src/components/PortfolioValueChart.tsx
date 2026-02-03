@@ -6,6 +6,10 @@ interface Props {
   currentValue: number;
   dayChange: number;
   dayChangePercent: number;
+  regularDayChange?: number;
+  regularDayChangePercent?: number;
+  afterHoursChange?: number;
+  afterHoursChangePercent?: number;
   refreshTrigger: number;
   fetchFn?: (period: PortfolioChartPeriod) => Promise<PortfolioChartData>;
   onPeriodChange?: (period: PortfolioChartPeriod) => void;
@@ -151,7 +155,7 @@ function snapToNearest(
 // Component
 // ════════════════════════════════════════════════════════════════════
 
-export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange }: Props) {
+export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange }: Props) {
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
@@ -531,15 +535,29 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           }`}>
             {formatCurrency(displayValue)}
           </p>
-          <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
-            {formatChange(displayChange)} ({formatPct(displayChangePct)})
-            {hoverIndex !== null && hoverLabel && (
-              <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
-            )}
-            {hoverIndex === null && selectedPeriod === '1D' && (
-              <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
-            )}
-          </p>
+          {/* Show separate regular + after-hours lines when applicable */}
+          {showDayChange && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 ? (
+            <>
+              <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
+                <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+              </p>
+              <p className={`text-xs mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
+                <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-[10px] ml-1.5">After hours</span>
+              </p>
+            </>
+          ) : (
+            <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
+              {formatChange(displayChange)} ({formatPct(displayChangePct)})
+              {hoverIndex !== null && hoverLabel && (
+                <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
+              )}
+              {hoverIndex === null && selectedPeriod === '1D' && (
+                <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+              )}
+            </p>
+          )}
         </div>
       )}
 

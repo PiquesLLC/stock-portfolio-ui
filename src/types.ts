@@ -40,6 +40,10 @@ export interface Portfolio {
   totalPLPercent: number;
   dayChange: number;
   dayChangePercent: number;
+  regularDayChange?: number;
+  regularDayChangePercent?: number;
+  afterHoursChange?: number;
+  afterHoursChangePercent?: number;
   quotesStale?: boolean;
   quotesUnavailableCount?: number;
   quotesMeta?: QuotesMeta;

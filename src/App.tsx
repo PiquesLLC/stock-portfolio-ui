@@ -591,6 +591,10 @@ export default function App() {
                   currentValue={portfolio.netEquity}
                   dayChange={portfolio.dayChange}
                   dayChangePercent={portfolio.dayChangePercent}
+                  regularDayChange={portfolio.regularDayChange}
+                  regularDayChangePercent={portfolio.regularDayChangePercent}
+                  afterHoursChange={portfolio.afterHoursChange}
+                  afterHoursChangePercent={portfolio.afterHoursChangePercent}
                   refreshTrigger={portfolioRefreshCount}
                   onPeriodChange={setChartPeriod}
                   onReturnChange={setChartReturnPct}
