@@ -79,7 +79,6 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
             ))}
           </div>
         </div>
-        <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">{window}</span>
       </div>
 
       {loading && !data ? (
