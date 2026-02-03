@@ -558,24 +558,44 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   lastXRef.current = lastX;
   lastYRef.current = lastY;
 
+  // Persistent animation start time - survives pathD changes
+  const idleAnimStartRef = useRef<number | null>(null);
+  const idleRafRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (!isIdle || !idlePathRef.current) return;
+    if (!isIdle) {
+      // Reset start time when exiting idle so next idle starts fresh
+      idleAnimStartRef.current = null;
+      if (idleRafRef.current) {
+        cancelAnimationFrame(idleRafRef.current);
+        idleRafRef.current = null;
+      }
+      return;
+    }
+
+    if (!idlePathRef.current) return;
     const path = idlePathRef.current;
     const totalLen = path.getTotalLength();
     if (totalLen === 0) return;
+
     // Scale duration to path length so dot speed is consistent across all timeframes
     // ~7px per second feels smooth; clamp between 8s and 18s
     const IDLE_CYCLE_MS = Math.max(8000, Math.min(18000, totalLen * 7));
 
-    let rafId: number;
-    let startTime: number | null = null;
-
     const tick = (now: number) => {
-      if (startTime === null) startTime = now;
-      const elapsed = (now - startTime) % IDLE_CYCLE_MS;
+      // Use persistent start time so animation doesn't reset on data updates
+      if (idleAnimStartRef.current === null) idleAnimStartRef.current = now;
+
+      // Re-get path in case it changed
+      const currentPath = idlePathRef.current;
+      if (!currentPath) return;
+      const currentLen = currentPath.getTotalLength();
+      if (currentLen === 0) return;
+
+      const elapsed = (now - idleAnimStartRef.current) % IDLE_CYCLE_MS;
       const progress = elapsed / IDLE_CYCLE_MS; // 0→1
-      const len = progress * totalLen;
-      const pt = path.getPointAtLength(len);
+      const len = progress * currentLen;
+      const pt = currentPath.getPointAtLength(len);
 
       setIdleDotPos({ x: pt.x, y: pt.y });
 
@@ -592,12 +612,14 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
         setTimeout(() => { rippleCooldownRef.current = false; }, 2000);
       }
 
-      rafId = requestAnimationFrame(tick);
+      idleRafRef.current = requestAnimationFrame(tick);
     };
 
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [isIdle, pathD]);
+    idleRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (idleRafRef.current) cancelAnimationFrame(idleRafRef.current);
+    };
+  }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
     <div className={`relative px-6 pt-8 pb-3 ${

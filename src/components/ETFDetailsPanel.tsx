@@ -165,122 +165,305 @@ function SectorDrawerList({ sectors }: { sectors: Array<{ sector: string; weight
   );
 }
 
-// Sector Visualization Component - Clean stacked bar with hover effects
+// Sector Visualization Component - Interactive expanding sectors like Robinhood
 interface SectorVisualizationProps {
   sectors: Array<{ sector: string; weight: number }>;
 }
 
 function Sector3DVisualization({ sectors }: SectorVisualizationProps) {
   const [hoveredSector, setHoveredSector] = useState<string | null>(null);
-  const hoveredData = sectors.find(s => s.sector === hoveredSector);
+  const [selectedSector, setSelectedSector] = useState<string | null>(null);
+
+  const selectedData = sectors.find(s => s.sector === selectedSector);
+  const activeData = selectedData || sectors.find(s => s.sector === hoveredSector);
+
+  const handleSectorClick = (sector: string) => {
+    setSelectedSector(prev => prev === sector ? null : sector);
+  };
+
+  // Find selected index for calculating spread
+  const selectedIndex = selectedSector ? sectors.findIndex(s => s.sector === selectedSector) : -1;
 
   return (
     <div className="mb-4">
-      {/* Stacked horizontal bar */}
-      <div className="relative mb-4">
-        <div className="flex h-10 rounded-lg overflow-hidden shadow-inner bg-rh-light-bg/50 dark:bg-rh-dark/50">
-          {sectors.map((s) => {
+      {/* Container with extra space for floating sector */}
+      <div
+        className="relative"
+        style={{
+          paddingTop: selectedSector ? '28px' : '0',
+          transition: 'padding-top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}
+      >
+
+        {/* Shadow/ghost of selected sector in original position */}
+        {selectedSector && (
+          <div
+            className="absolute bottom-0 left-0 right-0 flex h-10 rounded-lg overflow-hidden pointer-events-none"
+          >
+            {sectors.map((s, index) => {
+              const isSelected = selectedSector === s.sector;
+              return (
+                <div
+                  key={`ghost-${s.sector}`}
+                  style={{
+                    width: `${s.weight}%`,
+                    height: '100%',
+                    background: isSelected ? 'rgba(0,0,0,0.1)' : 'transparent',
+                    borderRadius: isSelected ? '8px' : undefined,
+                    transition: 'all 0.3s ease-out',
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Main stacked bar */}
+        <div className="relative flex h-10 rounded-lg bg-rh-light-bg/50 dark:bg-rh-dark/50">
+          {sectors.map((s, index) => {
             const colors = getSectorColorHex(s.sector);
             const isHovered = hoveredSector === s.sector;
+            const isSelected = selectedSector === s.sector;
+            const isActive = isSelected || (isHovered && !selectedSector);
+
+            // Calculate horizontal spread when a sector is selected
+            // Only spread sectors INWARD (toward selected), don't spread outward to avoid clipping
+            let spreadX = 0;
+            if (selectedSector && !isSelected) {
+              const distance = index - selectedIndex;
+              const baseSpread = 6;
+
+              // Only spread the immediate neighbors, and only inward
+              if (distance === -1) {
+                // Immediate left neighbor - push slightly left
+                spreadX = -baseSpread;
+              } else if (distance === 1) {
+                // Immediate right neighbor - push slightly right
+                spreadX = baseSpread;
+              }
+              // Sectors further away don't spread (prevents edge clipping)
+            }
+
+            // Calculate lift for selected sector
+            const liftY = isSelected ? -24 : 0;
+            const scale = isSelected ? 1.08 : isActive ? 1.02 : 1;
 
             return (
               <div
                 key={s.sector}
-                className="relative h-full cursor-pointer transition-all duration-200"
+                className="relative cursor-pointer"
                 style={{
                   width: `${s.weight}%`,
-                  background: isHovered
-                    ? `linear-gradient(180deg, ${colors.light} 0%, ${colors.main} 50%, ${colors.dark} 100%)`
-                    : `linear-gradient(180deg, ${colors.light}90 0%, ${colors.main} 100%)`,
-                  transform: isHovered ? 'scaleY(1.1)' : 'scaleY(1)',
-                  transformOrigin: 'bottom',
-                  zIndex: isHovered ? 10 : 1,
-                  boxShadow: isHovered ? `0 -4px 12px ${colors.main}60, inset 0 1px 0 ${colors.light}` : 'none',
+                  height: '40px',
+                  zIndex: isSelected ? 30 : isActive ? 10 : 1,
                 }}
+                onClick={() => handleSectorClick(s.sector)}
                 onMouseEnter={() => setHoveredSector(s.sector)}
                 onMouseLeave={() => setHoveredSector(null)}
               >
-                {/* Highlight line on top when hovered */}
-                {isHovered && (
+                {/* Animated sector block */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    transform: `translateX(${spreadX}px) translateY(${liftY}px) scale(${scale})`,
+                    transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    transformOrigin: 'center center',
+                  }}
+                >
+                  {/* Main colored block */}
                   <div
-                    className="absolute inset-x-0 top-0 h-1"
-                    style={{ background: colors.light }}
-                  />
-                )}
+                    className="absolute inset-0"
+                    style={{
+                      background: isSelected
+                        ? `linear-gradient(135deg, ${colors.light} 0%, ${colors.main} 50%, ${colors.dark} 100%)`
+                        : isActive
+                        ? `linear-gradient(180deg, ${colors.light} 0%, ${colors.main} 60%, ${colors.dark} 100%)`
+                        : `linear-gradient(180deg, ${colors.light}90 0%, ${colors.main} 100%)`,
+                      borderRadius: isSelected
+                        ? '12px'
+                        : index === 0
+                        ? '8px 0 0 8px'
+                        : index === sectors.length - 1
+                        ? '0 8px 8px 0'
+                        : '0',
+                      boxShadow: isSelected
+                        ? `0 16px 32px ${colors.main}40, 0 8px 16px ${colors.dark}30, 0 0 0 2px ${colors.light}40, inset 0 2px 4px ${colors.light}60`
+                        : isActive
+                        ? `0 4px 12px ${colors.main}40, inset 0 1px 2px ${colors.light}`
+                        : 'none',
+                      transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    }}
+                  >
+                    {/* Shine effect on selected */}
+                    {isSelected && (
+                      <div
+                        className="absolute inset-0 rounded-xl overflow-hidden"
+                        style={{
+                          background: `linear-gradient(135deg, ${colors.light}50 0%, transparent 50%)`,
+                        }}
+                      />
+                    )}
+
+                    {/* Floating percentage badge */}
+                    {isSelected && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center"
+                        style={{
+                          animation: 'fadeInUp 0.3s ease-out forwards',
+                        }}
+                      >
+                        <div
+                          className="px-3 py-1 rounded-full text-white text-sm font-bold"
+                          style={{
+                            background: `linear-gradient(135deg, ${colors.dark}90, ${colors.main})`,
+                            boxShadow: `0 2px 8px ${colors.dark}60`,
+                          }}
+                        >
+                          {s.weight.toFixed(1)}%
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pulse ring animation on selection */}
+                    {isSelected && (
+                      <div
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          border: `2px solid ${colors.light}`,
+                          animation: 'pulseRing 1s ease-out',
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Connection line to original position */}
+                  {isSelected && (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 top-full h-4"
+                      style={{
+                        width: '2px',
+                        background: `linear-gradient(180deg, ${colors.main}60, transparent)`,
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* Tooltip - absolute positioned */}
+        {/* Info card - shows when sector is selected or hovered */}
         <div
           className={`
-            absolute left-1/2 -translate-x-1/2 top-full mt-2
-            w-64 max-w-[calc(100%-1rem)] bg-rh-light-card dark:bg-rh-card rounded-lg px-4 py-3
+            absolute left-1/2 -translate-x-1/2 w-72 max-w-[calc(100%-1rem)]
+            bg-rh-light-card dark:bg-rh-card rounded-xl px-4 py-3
             border border-rh-light-border dark:border-rh-border
-            shadow-xl pointer-events-none z-50
-            transition-all duration-150
-            ${hoveredSector ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}
+            shadow-xl z-40
+            transition-all duration-400 ease-out
+            ${activeData ? 'opacity-100' : 'opacity-0 pointer-events-none'}
           `}
+          style={{
+            top: selectedSector ? 'calc(100% + 16px)' : 'calc(100% + 8px)',
+            transform: `translateX(-50%) translateY(${activeData ? '0' : '-8px'})`,
+          }}
         >
-          {hoveredData && (
+          {activeData && (
             <>
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-3 mb-2">
                 <div
-                  className="w-3 h-3 rounded-sm flex-shrink-0"
-                  style={{ backgroundColor: getSectorColorHex(hoveredData.sector).main }}
+                  className="w-5 h-5 rounded-lg flex-shrink-0 transition-all duration-300"
+                  style={{
+                    backgroundColor: getSectorColorHex(activeData.sector).main,
+                    boxShadow: `0 4px 12px ${getSectorColorHex(activeData.sector).main}50`,
+                    transform: selectedSector === activeData.sector ? 'scale(1.15) rotate(-3deg)' : 'scale(1)',
+                  }}
                 />
-                <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-                  {hoveredData.sector}
+                <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text flex-1">
+                  {activeData.sector}
                 </span>
-                <span className="text-sm font-bold text-rh-green ml-auto">
-                  {hoveredData.weight.toFixed(2)}%
+                <span
+                  className="text-xl font-bold transition-all duration-300"
+                  style={{
+                    color: getSectorColorHex(activeData.sector).main,
+                    transform: selectedSector === activeData.sector ? 'scale(1.1)' : 'scale(1)',
+                  }}
+                >
+                  {activeData.weight.toFixed(2)}%
                 </span>
               </div>
-              <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
-                {SECTOR_DESCRIPTIONS[hoveredData.sector] || 'Sector allocation in the fund.'}
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted leading-relaxed">
+                {SECTOR_DESCRIPTIONS[activeData.sector] || 'Sector allocation in the fund.'}
               </p>
+              {selectedSector === activeData.sector && (
+                <div className="mt-3 pt-2 border-t border-rh-light-border/30 dark:border-rh-border/30 flex items-center justify-between">
+                  <p className="text-[10px] text-rh-light-muted/70 dark:text-rh-muted/70">
+                    Click again to collapse
+                  </p>
+                  <div
+                    className="w-6 h-1 rounded-full"
+                    style={{ backgroundColor: getSectorColorHex(activeData.sector).main + '40' }}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Legend - top 4 sectors */}
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
-        {sectors.slice(0, 4).map(s => {
+      {/* CSS Keyframes */}
+      <style>{`
+        @keyframes pulseRing {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1.15); opacity: 0; }
+        }
+        @keyframes fadeInUp {
+          0% { opacity: 0; transform: translateY(8px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      {/* Legend - all sectors, clickable */}
+      <div className="flex flex-wrap justify-center gap-x-2 gap-y-1.5 mt-6">
+        {sectors.map(s => {
           const colors = getSectorColorHex(s.sector);
+          const isSelected = selectedSector === s.sector;
           const isHovered = hoveredSector === s.sector;
+          const isActive = isSelected || isHovered;
 
           return (
             <button
               key={s.sector}
               className={`
                 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px]
-                transition-all duration-200 border
-                ${isHovered
+                transition-all duration-300 border
+                ${isSelected
+                  ? 'border-current scale-110 shadow-lg'
+                  : isHovered
                   ? 'border-current scale-105 shadow-sm'
                   : 'border-transparent hover:bg-rh-light-bg/50 dark:hover:bg-rh-dark/50'
                 }
               `}
               style={{
-                color: isHovered ? colors.main : undefined,
-                backgroundColor: isHovered ? `${colors.main}15` : undefined,
+                color: isActive ? colors.main : undefined,
+                backgroundColor: isActive ? `${colors.main}20` : undefined,
+                boxShadow: isSelected ? `0 4px 12px ${colors.main}30` : undefined,
               }}
+              onClick={() => handleSectorClick(s.sector)}
               onMouseEnter={() => setHoveredSector(s.sector)}
               onMouseLeave={() => setHoveredSector(null)}
             >
               <div
-                className="w-2 h-2 rounded-full transition-transform duration-200"
+                className="w-2.5 h-2.5 rounded-full transition-all duration-300"
                 style={{
                   backgroundColor: colors.main,
-                  transform: isHovered ? 'scale(1.3)' : 'scale(1)',
-                  boxShadow: isHovered ? `0 0 6px ${colors.main}` : 'none',
+                  transform: isSelected ? 'scale(1.4)' : isActive ? 'scale(1.2)' : 'scale(1)',
+                  boxShadow: isActive ? `0 0 8px ${colors.main}` : 'none',
                 }}
               />
-              <span className={isHovered ? 'font-medium' : 'text-rh-light-text dark:text-rh-text'}>
+              <span className={isActive ? 'font-semibold' : 'text-rh-light-text dark:text-rh-text'}>
                 {s.sector}
               </span>
-              <span className={isHovered ? 'font-semibold' : 'text-rh-light-muted dark:text-rh-muted'}>
+              <span className={isActive ? 'font-bold' : 'text-rh-light-muted dark:text-rh-muted'}>
                 {s.weight.toFixed(1)}%
               </span>
             </button>
