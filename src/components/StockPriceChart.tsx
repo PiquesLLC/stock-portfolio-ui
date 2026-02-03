@@ -1693,7 +1693,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       </div>
 
       {/* Period selector + MA toggles */}
-      <div className="flex items-center justify-between mt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
         <div className="flex gap-1">
           {PERIODS.map(period => {
             const disabled = period !== '1D' && (!candles || candles.closes.length === 0);
@@ -1702,7 +1702,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
                 key={period}
                 onClick={() => !disabled && onPeriodChange(period)}
                 disabled={disabled}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
+                className={`px-2 sm:px-3 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
                   selectedPeriod === period
                     ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
                     : disabled
@@ -1716,14 +1716,14 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           })}
         </div>
 
-        <div className="flex gap-1.5">
+        <div className="flex gap-1 sm:gap-1.5">
           {MA_PERIODS.map(ma => {
             const active = enabledMAs.has(ma);
             return (
               <button
                 key={ma}
                 onClick={() => toggleMA(ma)}
-                className={`px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+                className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
                   active
                     ? 'text-white border-transparent'
                     : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
@@ -1734,10 +1734,10 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               </button>
             );
           })}
-          <span className="w-px bg-rh-light-border dark:bg-rh-border mx-0.5" />
+          <span className="hidden sm:block w-px bg-rh-light-border dark:bg-rh-border mx-0.5" />
           <button
             onClick={toggleSignals}
-            className={`px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+            className={`hidden sm:block px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
               signalsEnabled
                 ? 'text-white border-transparent'
                 : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
