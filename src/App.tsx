@@ -459,15 +459,7 @@ export default function App() {
       <header className="border-b border-rh-light-border/40 dark:border-rh-border/40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/north-signal-logo.png" alt="North Signal" className="h-[42px] w-[42px] cursor-pointer" onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }} />
-            {portfolio?.session && (
-              <span
-                className={`text-xs px-2 py-1 rounded border font-medium ${getSessionDisplay(portfolio.session).color}`}
-                title={getSessionDisplay(portfolio.session).description}
-              >
-                {getSessionDisplay(portfolio.session).label}
-              </span>
-            )}
+            <img src="/north-signal-logo.png" alt="Nala" className="h-[42px] w-[42px] cursor-pointer" onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }} />
           </div>
           <div className="flex items-center gap-4">
             {/* Global Stock Search */}
@@ -484,6 +476,14 @@ export default function App() {
                 compact
               />
             </div>
+            {portfolio?.session && (
+              <span
+                className={`text-xs px-2 py-1 rounded border font-medium ${getSessionDisplay(portfolio.session).color}`}
+                title={getSessionDisplay(portfolio.session).description}
+              >
+                {getSessionDisplay(portfolio.session).label}
+              </span>
+            )}
             {/* Notification Bell */}
             {currentUserId && <NotificationBell userId={currentUserId} />}
 
