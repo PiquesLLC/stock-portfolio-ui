@@ -162,6 +162,33 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // ── Idle animation state ─────────────────────────────────────────
+  const [isIdle, setIsIdle] = useState(false);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const IDLE_TIMEOUT = 5000; // 5 seconds (testing)
+  const [rippleKey, setRippleKey] = useState(0);
+  const [showRipple, setShowRipple] = useState(false);
+  const [idleDotPos, setIdleDotPos] = useState<{ x: number; y: number } | null>(null);
+  const idlePathRef = useRef<SVGPathElement | null>(null);
+  const rippleCooldownRef = useRef(false);
+
+  const resetIdleTimer = useCallback(() => {
+    setIsIdle(false);
+    setIdleDotPos(null);
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => setIsIdle(true), IDLE_TIMEOUT);
+  }, []);
+
+  useEffect(() => {
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, resetIdleTimer));
+    idleTimerRef.current = setTimeout(() => setIsIdle(true), IDLE_TIMEOUT);
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetIdleTimer));
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [resetIdleTimer]);
+
   // ── Per-period cache for instant switching ──────────────────────
   const chartCacheRef = useRef<Map<PortfolioChartPeriod, PortfolioChartData>>(new Map());
 
@@ -523,6 +550,53 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const lastX = points.length > 0 ? toX(points.length - 1) : CHART_W / 2;
   const lastY = points.length > 0 ? toY(points[points.length - 1].value) : CHART_H / 2;
 
+  // ── Manual idle dot animation + collision detection ──────────────
+  // Uses getPointAtLength() on a hidden <path> to know exact dot position
+  // every frame. When the dot is close to (lastX, lastY), trigger ripple.
+  const IDLE_CYCLE_MS = 10800;
+  const lastXRef = useRef(lastX);
+  const lastYRef = useRef(lastY);
+  lastXRef.current = lastX;
+  lastYRef.current = lastY;
+
+  useEffect(() => {
+    if (!isIdle || !idlePathRef.current) return;
+    const path = idlePathRef.current;
+    const totalLen = path.getTotalLength();
+    if (totalLen === 0) return;
+
+    let rafId: number;
+    let startTime: number | null = null;
+
+    const tick = (now: number) => {
+      if (startTime === null) startTime = now;
+      const elapsed = (now - startTime) % IDLE_CYCLE_MS;
+      const progress = elapsed / IDLE_CYCLE_MS; // 0→1
+      const len = progress * totalLen;
+      const pt = path.getPointAtLength(len);
+
+      setIdleDotPos({ x: pt.x, y: pt.y });
+
+      // Collision check against end-of-day dot
+      const dx = pt.x - lastXRef.current;
+      const dy = pt.y - lastYRef.current;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 12 && !rippleCooldownRef.current) {
+        rippleCooldownRef.current = true;
+        setShowRipple(true);
+        setRippleKey(k => k + 1);
+        setTimeout(() => setShowRipple(false), 3200);
+        setTimeout(() => { rippleCooldownRef.current = false; }, 2000);
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [isIdle, pathD]);
+
   return (
     <div className={`relative px-6 pt-8 pb-3 ${
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
@@ -689,6 +763,11 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               <stop offset="96%" stopColor={lineColor} stopOpacity={isMarketOpen ? 1 : 1} />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
+            {/* Water ripple distortion filter */}
+            <filter id="ripple-warp" x="-30%" y="-30%" width="160%" height="160%">
+              <feTurbulence type="turbulence" baseFrequency="0.03 0.06" numOctaves="3" seed="2" result="turb" />
+              <feDisplacementMap in="SourceGraphic" in2="turb" scale="8" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
             {/* Hover dot glow */}
             <radialGradient id="dot-glow">
               <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
@@ -922,6 +1001,46 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             </>
           )}
 
+          {/* Hidden path for getPointAtLength() — idle dot animation */}
+          {hasData && pathD && (
+            <path ref={idlePathRef} d={pathD} fill="none" stroke="none" />
+          )}
+
+          {/* Idle animation — dot manually positioned along the path */}
+          {isIdle && idleDotPos && (
+            <>
+              <circle cx={idleDotPos.x} cy={idleDotPos.y} r="12" fill="url(#dot-glow)" />
+              <circle cx={idleDotPos.x} cy={idleDotPos.y} r="3.5" fill={lineColor} stroke="#fff" strokeWidth="1.2" />
+            </>
+          )}
+
+          {/* Water ripple effect when idle dot hits end-of-day dot */}
+          {showRipple && (
+            <foreignObject key={rippleKey} x={lastX - 120} y={lastY - 120} width="240" height="240"
+              style={{ pointerEvents: 'none', overflow: 'visible' }}>
+              <div style={{ position: 'relative', width: 240, height: 240 }}>
+                {[
+                  { delay: '0s',    dur: '1.2s', peak: '0.35', scale: '4',  border: 1.2 },
+                  { delay: '0.15s', dur: '1.4s', peak: '0.25', scale: '7',  border: 1.0 },
+                  { delay: '0.3s',  dur: '1.6s', peak: '0.18', scale: '11', border: 0.8 },
+                  { delay: '0.5s',  dur: '1.9s', peak: '0.10', scale: '16', border: 0.6 },
+                  { delay: '0.7s',  dur: '2.2s', peak: '0.05', scale: '22', border: 0.5 },
+                ].map((r, i) => (
+                  <div key={i} style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    width: 6, height: 6, marginLeft: -3, marginTop: -3,
+                    borderRadius: '50%',
+                    border: `${r.border}px solid ${lineColor}`,
+                    opacity: 0,
+                    '--ripple-peak': r.peak,
+                    '--ripple-scale': r.scale,
+                    animation: `ripple-ring ${r.dur} ease-out ${r.delay} forwards`,
+                  } as React.CSSProperties} />
+                ))}
+              </div>
+            </foreignObject>
+          )}
+
           {/* Hover crosshair with glow (suppress when measurement complete) */}
           {hasData && hoverX !== null && hoverY !== null && !hasMeasurement && (
             <>
@@ -941,26 +1060,9 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               {tl.label}
             </text>
           ))}
+
         </svg>
 
-        {/* Live / Closed badge */}
-        {hasData && (
-          <div className="absolute right-0 top-0">
-            {isMarketOpen ? (
-              <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-rh-green/80 font-medium">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-60" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rh-green" />
-                </span>
-                Live
-              </span>
-            ) : (
-              <span className="text-[10px] uppercase tracking-wider text-rh-light-muted/40 dark:text-rh-muted/40 font-medium">
-                Closed
-              </span>
-            )}
-          </div>
-        )}
 
       </div>
 

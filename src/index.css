@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Water ripple animation for idle screensaver */
+@keyframes ripple-ring {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+    border-radius: 50% 45% 55% 48%;
+  }
+  8% {
+    opacity: var(--ripple-peak);
+  }
+  25% {
+    border-radius: 47% 52% 48% 53%;
+  }
+  50% {
+    border-radius: 53% 46% 52% 47%;
+    opacity: calc(var(--ripple-peak) * 0.6);
+  }
+  75% {
+    border-radius: 48% 53% 46% 51%;
+  }
+  100% {
+    transform: scale(var(--ripple-scale)) rotate(8deg);
+    opacity: 0;
+    border-radius: 52% 47% 53% 48%;
+  }
+}
+
 /* Light mode (default when no .dark class) */
 body {
   background-color: #F7F7F8;
