@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useHeadlineParser } from './useHeadlineParser';
 import { useTickerDetection, detectTickersFromText } from './useTickerDetection';
 
@@ -15,19 +15,52 @@ function timeAgo(ms: number): string {
   return `${Math.floor(secs / 60)}m ago`;
 }
 
+const CYCLE_INTERVAL = 8000; // Cycle every 8 seconds
+
 const KEYFRAMES = `
 @keyframes liveHeadlineIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes liveHeadlineFade {
+  0% { opacity: 0; transform: translateY(8px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-8px); }
 }`;
 
 export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesProps) {
   const headlines = useHeadlineParser(channel, isLive);
   const headlineTexts = useMemo(() => headlines.map(h => h.text), [headlines]);
   const detectedTickers = useTickerDetection(headlineTexts);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Show most recent 3
-  const visible = headlines.slice(-3).reverse();
+  // Get available headlines (most recent first)
+  const available = useMemo(() => headlines.slice(-10).reverse(), [headlines]);
+
+  // Auto-cycle through headlines
+  useEffect(() => {
+    if (available.length <= 1) return;
+
+    cycleRef.current = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % available.length);
+    }, CYCLE_INTERVAL);
+
+    return () => {
+      if (cycleRef.current) clearInterval(cycleRef.current);
+    };
+  }, [available.length]);
+
+  // Reset index when headlines change significantly
+  useEffect(() => {
+    if (currentIndex >= available.length) {
+      setCurrentIndex(0);
+    }
+  }, [available.length, currentIndex]);
+
+  // Show single cycling headline
+  const visible = available.length > 0 ? [available[currentIndex]] : [];
 
   if (!isLive) return null;
 
@@ -37,14 +70,33 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
 
       {/* Live headlines section */}
       <div className="px-1">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rh-green" />
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-rh-green/80">
-            Live headlines
-          </span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rh-green" />
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-rh-green/80">
+              Live headlines
+            </span>
+          </div>
+          {available.length > 1 && (
+            <div className="flex items-center gap-1">
+              {available.slice(0, Math.min(available.length, 5)).map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                    i === currentIndex % Math.min(available.length, 5)
+                      ? 'bg-rh-green scale-110'
+                      : 'bg-white/20'
+                  }`}
+                />
+              ))}
+              {available.length > 5 && (
+                <span className="text-[9px] text-white/30 ml-1">+{available.length - 5}</span>
+              )}
+            </div>
+          )}
         </div>
 
         {visible.length === 0 ? (
@@ -66,7 +118,7 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
               };
               return (
                 <div
-                  key={h.id}
+                  key={`${h.id}-${currentIndex}`}
                   role="button"
                   tabIndex={0}
                   onClick={handleClick}
@@ -74,8 +126,7 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
                   className="flex items-start gap-2 pl-0.5 rounded-lg transition-colors duration-150
                     cursor-pointer hover:bg-white/[0.04] -mx-1.5 px-1.5"
                   style={{
-                    animation: 'liveHeadlineIn 180ms ease-out both',
-                    animationDelay: `${i * 40}ms`,
+                    animation: 'liveHeadlineIn 300ms ease-out both',
                   }}
                 >
                   <span className="flex-shrink-0 mt-[5px] h-1 w-1 rounded-full bg-white/20" />
