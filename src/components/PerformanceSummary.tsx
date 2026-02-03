@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PerformanceSummary as PerformanceSummaryType } from '../types';
 import { getPerformanceSummary } from '../api';
 import { Acronym } from './Acronym';
+import { TransactionManager } from './TransactionManager';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -129,15 +130,40 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
                     ? formatCurrency(sinceTracking.absoluteReturn)
                     : '—'}
                 </p>
-                <p
-                  className={`text-lg font-semibold ${
-                    (sinceTracking.percentReturn ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
-                  }`}
-                >
-                  {sinceTracking.percentReturn !== null
-                    ? formatPercent(sinceTracking.percentReturn)
-                    : '—'}
-                </p>
+                {/* Show TWR when transactions exist, otherwise show simple return */}
+                {sinceTracking.transactionCount > 0 && sinceTracking.twrPercent !== null ? (
+                  <div className="flex items-center gap-2">
+                    <p
+                      className={`text-lg font-semibold ${
+                        sinceTracking.twrPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
+                      }`}
+                    >
+                      {formatPercent(sinceTracking.twrPercent)}
+                    </p>
+                    <span className="group relative">
+                      <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-rh-muted/40 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-white/[0.08] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 w-56 text-left">
+                        <p className="text-[10px] font-medium text-rh-light-text dark:text-rh-text mb-1">Time-Weighted Return (TWR)</p>
+                        <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
+                          Accounts for {sinceTracking.transactionCount} deposit{sinceTracking.transactionCount !== 1 ? 's' : ''}/withdrawal{sinceTracking.transactionCount !== 1 ? 's' : ''}.
+                          Simple return: {sinceTracking.percentReturn !== null ? formatPercent(sinceTracking.percentReturn) : '—'}
+                        </p>
+                      </div>
+                    </span>
+                  </div>
+                ) : (
+                  <p
+                    className={`text-lg font-semibold ${
+                      (sinceTracking.percentReturn ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
+                    }`}
+                  >
+                    {sinceTracking.percentReturn !== null
+                      ? formatPercent(sinceTracking.percentReturn)
+                      : '—'}
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-between text-sm text-rh-light-muted/60 dark:text-rh-muted/60 border-t border-rh-light-border/20 dark:border-white/[0.03] pt-3 mt-3">
@@ -154,6 +180,9 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
                   <p className="text-rh-light-text/80 dark:text-white/80">{formatCurrency(sinceTracking.currentValue)}</p>
                 </div>
               </div>
+
+              {/* Transaction Manager - inline expandable section */}
+              <TransactionManager onTransactionChange={fetchData} />
             </>
           ) : (
             <div className="text-center py-4">
