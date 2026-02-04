@@ -55,14 +55,23 @@ import {
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem('authToken');
+
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options?.headers,
     },
   });
+
+  // Handle 401 - clear token (session expired)
+  if (response.status === 401) {
+    localStorage.removeItem('authToken');
+    // Don't redirect here - let the app handle auth state
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
@@ -74,6 +83,41 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   }
 
   return response.json();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Authentication API
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    username: string;
+    displayName: string;
+  };
+}
+
+export async function login(username: string, password: string): Promise<LoginResponse> {
+  return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function getCurrentUser(): Promise<{ id: string; username: string; displayName: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/me`);
+}
+
+export async function setPassword(username: string, password: string): Promise<{ message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/set-password`, {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function checkHasPassword(username: string): Promise<{ hasPassword: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/has-password/${encodeURIComponent(username)}`);
 }
 
 export async function getPortfolio(userId?: string): Promise<Portfolio> {

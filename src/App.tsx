@@ -21,6 +21,8 @@ import { AccountSettingsModal } from './components/AccountSettingsModal';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FuturesBanner } from './components/FuturesBanner';
+import { LoginPage } from './components/LoginPage';
+import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
 import Hls from 'hls.js';
 
@@ -120,6 +122,7 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
 const savedInitialNav = parseHash(); // Parse once at module load, before any React renders
 
 export default function App() {
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const initialNav = savedInitialNav;
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
@@ -137,8 +140,9 @@ export default function App() {
   });
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
   const [activeTab, setActiveTab] = useState<TabType>(initialNav.tab);
-  const [currentUserId, setCurrentUserId] = useState<string>('');
-  const [currentUserName, setCurrentUserName] = useState<string>('');
+  // Use authenticated user from auth context
+  const currentUserId = user?.id || '';
+  const currentUserName = user?.displayName || user?.username || '';
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
@@ -301,43 +305,7 @@ export default function App() {
     }
   }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible]);
 
-  // Fetch current user (use first user as default since no auth)
-  // Supports ?userId=xxx URL parameter to switch users (useful for mobile testing)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlUserId = urlParams.get('userId');
-
-    if (urlUserId) {
-      // URL parameter takes priority - set and persist it
-      setCurrentUserId(urlUserId);
-      localStorage.setItem('currentUserId', urlUserId);
-      // Clean up URL
-      window.history.replaceState({}, '', window.location.pathname + window.location.hash);
-    } else {
-      const stored = localStorage.getItem('currentUserId');
-      if (stored) {
-        setCurrentUserId(stored);
-      } else {
-        getUsers().then((users) => {
-          if (users.length > 0) {
-            setCurrentUserId(users[0].id);
-            localStorage.setItem('currentUserId', users[0].id);
-          }
-        }).catch(() => {});
-      }
-    }
-  }, []);
-
-  // Fetch current user's display name
-  useEffect(() => {
-    if (!currentUserId) return;
-    getUsers().then((users) => {
-      const user = users.find(u => u.id === currentUserId);
-      if (user) {
-        setCurrentUserName(user.displayName || user.username);
-      }
-    }).catch(() => {});
-  }, [currentUserId]);
+  // User ID now comes from auth context - no manual fetching needed
 
   const handleViewProfile = (userId: string) => {
     setViewingProfileId(userId);
@@ -454,6 +422,23 @@ export default function App() {
   const isExtendedHours = portfolio?.session === 'PRE' || portfolio?.session === 'POST';
 
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-rh-green border-t-transparent mx-auto mb-4"></div>
+          <p className="text-rh-light-muted dark:text-rh-muted">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   if (loading && !portfolio) {
     return (
       <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
@@ -524,7 +509,7 @@ export default function App() {
                 onProfileClick={() => { setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
                 onAlertsClick={() => { /* TODO: Open alerts/notifications panel */ }}
                 onSettingsClick={() => setSettingsModalOpen(true)}
-                onLogoutClick={() => { /* TODO: Implement logout */ }}
+                onLogoutClick={logout}
               />
             )}
             {/* Notification Bell */}
