@@ -1056,7 +1056,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       })()}
 
       {/* MA values bar — fixed height so chart never shifts */}
-      <div className="h-[20px] mb-1">
+      <div className="h-[20px] min-h-[20px] mb-1 flex items-center">
         {hoverIndex !== null && hoverMaValues.length > 0 && !hasMeasurement && (
           <div className="flex items-center gap-4 h-full">
             <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>

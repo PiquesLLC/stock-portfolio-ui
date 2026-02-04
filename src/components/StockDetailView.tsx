@@ -493,47 +493,37 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       </div>
 
       {/* Price hero — fixed height to prevent layout shift on hover */}
-      <div className="mb-6" style={{ minHeight: hasExtended ? '130px' : '100px' }}>
+      <div className="mb-6" style={{ minHeight: hasExtended ? '160px' : '130px' }}>
         <div className="text-4xl font-bold text-rh-light-text dark:text-rh-text tracking-tight">
           {formatCurrency(displayPrice)}
         </div>
-        {/* Show hover time label or regular change */}
-        {isHovering ? (
-          <div className={`flex items-center gap-2 mt-1 ${changeColor}`}>
-            <span className="text-lg font-semibold">
-              {activeChange >= 0 ? '+' : ''}{formatCurrency(activeChange).replace('$', '').replace('-$', '-$')}
+        {/* Change line - shows hover data or regular change */}
+        <div className={`flex items-center gap-2 mt-1 ${changeColor}`}>
+          <span className="text-lg font-semibold">
+            {activeChange >= 0 ? '+' : ''}{formatCurrency(activeChange).replace('$', '').replace('-$', '-$')}
+          </span>
+          <span className="text-base">
+            ({formatPercent(activeChangePct)})
+          </span>
+          <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">
+            {isHovering ? hoverLabel : periodChange.label}
+          </span>
+        </div>
+        {/* Extended hours price change line - always rendered when hasExtended to prevent layout shift */}
+        {hasExtended && (
+          <div className={`flex items-center gap-2 mt-1 h-[22px] transition-opacity duration-100 ${
+            isHovering ? 'opacity-0' : (quote.extendedChange! >= 0 ? 'text-rh-green' : 'text-rh-red')
+          }`}>
+            <span className="text-sm font-medium">
+              {quote.extendedChange! >= 0 ? '+' : ''}{formatCurrency(quote.extendedChange!).replace('$', '').replace('-$', '-$')}
             </span>
-            <span className="text-base">
-              ({formatPercent(activeChangePct)})
+            <span className="text-sm">
+              ({formatPercent(quote.extendedChangePercent!)})
             </span>
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">{hoverLabel}</span>
+            <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">
+              {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}
+            </span>
           </div>
-        ) : (
-          <>
-            <div className={`flex items-center gap-2 mt-1 ${changeColor}`}>
-              <span className="text-lg font-semibold">
-                {activeChange >= 0 ? '+' : ''}{formatCurrency(activeChange).replace('$', '').replace('-$', '-$')}
-              </span>
-              <span className="text-base">
-                ({formatPercent(activeChangePct)})
-              </span>
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">{periodChange.label}</span>
-            </div>
-            {/* Extended hours price change line */}
-            {hasExtended && (
-              <div className={`flex items-center gap-2 mt-1 ${quote.extendedChange! >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                <span className="text-sm font-medium">
-                  {quote.extendedChange! >= 0 ? '+' : ''}{formatCurrency(quote.extendedChange!).replace('$', '').replace('-$', '-$')}
-                </span>
-                <span className="text-sm">
-                  ({formatPercent(quote.extendedChangePercent!)})
-                </span>
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">
-                  {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}
-                </span>
-              </div>
-            )}
-          </>
         )}
         {quote.session && quote.session !== 'REG' && (
           <span className={`inline-block mt-1.5 px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider ${
