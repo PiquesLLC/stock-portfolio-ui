@@ -345,3 +345,34 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Modern minimal scrollbar */
+.scrollbar-minimal {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-minimal:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+:root:not(.dark) .scrollbar-minimal:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* Webkit scrollbar (Chrome, Safari, Edge) */
+.scrollbar-minimal::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-minimal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-minimal::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+.scrollbar-minimal:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+:root:not(.dark) .scrollbar-minimal:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}

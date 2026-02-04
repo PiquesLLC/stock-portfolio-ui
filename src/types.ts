@@ -876,3 +876,52 @@ export interface ETFHoldingsData {
   asOfDate: string | null;
   isETF: boolean;
 }
+
+// Price Alert types
+export type PriceAlertCondition = 'above' | 'below' | 'pct_up' | 'pct_down';
+
+export interface PriceAlert {
+  id: string;
+  userId: string | null;
+  ticker: string;
+  condition: PriceAlertCondition;
+  targetPrice: number | null;
+  percentChange: number | null;
+  referencePrice: number | null;
+  enabled: boolean;
+  triggered: boolean;
+  triggeredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  events?: PriceAlertEvent[];
+}
+
+export interface PriceAlertEvent {
+  id: string;
+  priceAlertId: string;
+  triggerPrice: number;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  priceAlert?: {
+    ticker: string;
+    condition: PriceAlertCondition;
+    targetPrice: number | null;
+    percentChange: number | null;
+  };
+}
+
+export interface CreatePriceAlertInput {
+  ticker: string;
+  condition: PriceAlertCondition;
+  targetPrice?: number;
+  percentChange?: number;
+  referencePrice?: number;
+  userId?: string;
+}
+
+export interface UpdatePriceAlertInput {
+  targetPrice?: number;
+  percentChange?: number;
+  enabled?: boolean;
+}

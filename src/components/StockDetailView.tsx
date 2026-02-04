@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout } from '../types';
+import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout, PriceAlert } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout } from '../api';
+import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts } from '../api';
 import { DividendEvent, DividendCredit } from '../types';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
 import { ETFDetailsPanel } from './ETFDetailsPanel';
+import { CreatePriceAlertModal } from './CreatePriceAlertModal';
+import { PriceAlertsList } from './PriceAlertsList';
 
 interface Props {
   ticker: string;
@@ -191,6 +193,14 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // About data (description, category, etc.)
   const [about, setAbout] = useState<AssetAbout | null>(null);
 
+  // Price alerts
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+
+  const fetchPriceAlerts = useCallback(() => {
+    getPriceAlerts(ticker).then(setPriceAlerts).catch(() => setPriceAlerts([]));
+  }, [ticker]);
+
   useEffect(() => {
     getDividendEvents(ticker).then(setTickerDividends).catch(() => {});
     getDividendCredits(undefined, ticker).then(setTickerCredits).catch(() => {});
@@ -202,7 +212,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     getAssetAbout(ticker)
       .then(data => setAbout(data))
       .catch(() => setAbout(null));
-  }, [ticker]);
+    // Fetch price alerts
+    fetchPriceAlerts();
+  }, [ticker, fetchPriceAlerts]);
 
   // Cache for prefetched hourly data
   const hourlyCache = useRef<Record<string, IntradayCandle[]>>({});
@@ -532,6 +544,24 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {quote.session === 'PRE' ? 'Pre-Market' : quote.session === 'POST' ? 'After Hours' : 'Market Closed'}
           </span>
         )}
+
+        {/* Set Alert button */}
+        <div className="mt-3">
+          <button
+            onClick={() => setShowAlertModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-rh-light-border dark:border-rh-border text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            Set Alert
+            {priceAlerts.filter(a => a.enabled && !a.triggered).length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-rh-green/20 text-rh-green">
+                {priceAlerts.filter(a => a.enabled && !a.triggered).length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Price Chart */}
@@ -784,8 +814,34 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         )
       )}
 
+      {/* Price Alerts */}
+      {priceAlerts.length > 0 && (
+        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Price Alerts</h2>
+            <button
+              onClick={() => setShowAlertModal(true)}
+              className="text-sm text-rh-green hover:text-green-600 font-medium transition-colors"
+            >
+              + Add Alert
+            </button>
+          </div>
+          <PriceAlertsList alerts={priceAlerts} onRefresh={fetchPriceAlerts} />
+        </div>
+      )}
+
       {/* Add / Update Holding */}
       <AddToPortfolioForm ticker={ticker} currentPrice={quote.currentPrice} onAdded={onHoldingAdded} holding={holding} />
+
+      {/* Create Price Alert Modal */}
+      {showAlertModal && (
+        <CreatePriceAlertModal
+          ticker={ticker}
+          currentPrice={quote.currentPrice}
+          onClose={() => setShowAlertModal(false)}
+          onCreated={fetchPriceAlerts}
+        />
+      )}
     </div>
   );
 }

@@ -48,6 +48,10 @@ import {
   IncomeWindow,
   ETFHoldingsData,
   AssetAbout,
+  PriceAlert,
+  PriceAlertEvent,
+  CreatePriceAlertInput,
+  UpdatePriceAlertInput,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -537,4 +541,52 @@ export async function getPrices(tickers: string[]): Promise<Record<string, Price
     `${API_BASE_URL}/market/prices?tickers=${tickers.join(',')}`
   );
   return resp.prices;
+}
+
+// Price Alert endpoints
+export async function getPriceAlerts(ticker?: string, userId?: string): Promise<PriceAlert[]> {
+  const params = new URLSearchParams();
+  if (ticker) params.set('ticker', ticker);
+  if (userId) params.set('userId', userId);
+  const qs = params.toString();
+  return fetchJson<PriceAlert[]>(`${API_BASE_URL}/price-alerts${qs ? `?${qs}` : ''}`);
+}
+
+export async function getPriceAlert(id: string): Promise<PriceAlert> {
+  return fetchJson<PriceAlert>(`${API_BASE_URL}/price-alerts/${id}`);
+}
+
+export async function createPriceAlert(input: CreatePriceAlertInput): Promise<PriceAlert> {
+  return fetchJson<PriceAlert>(`${API_BASE_URL}/price-alerts`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePriceAlert(id: string, data: UpdatePriceAlertInput): Promise<PriceAlert> {
+  return fetchJson<PriceAlert>(`${API_BASE_URL}/price-alerts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePriceAlert(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/price-alerts/${id}`, { method: 'DELETE' });
+}
+
+export async function getPriceAlertEvents(userId?: string, limit?: number): Promise<PriceAlertEvent[]> {
+  const params = new URLSearchParams();
+  if (userId) params.set('userId', userId);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  return fetchJson<PriceAlertEvent[]>(`${API_BASE_URL}/price-alerts/events${qs ? `?${qs}` : ''}`);
+}
+
+export async function markPriceAlertEventRead(eventId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/price-alerts/events/${eventId}/read`, { method: 'POST' });
+}
+
+export async function getUnreadPriceAlertCount(userId?: string): Promise<{ count: number }> {
+  const params = userId ? `?userId=${userId}` : '';
+  return fetchJson<{ count: number }>(`${API_BASE_URL}/price-alerts/events/unread-count${params}`);
 }

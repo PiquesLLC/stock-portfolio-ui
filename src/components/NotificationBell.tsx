@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertEvent as AlertEventType } from '../types';
-import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead } from '../api';
+import { AlertEvent as AlertEventType, PriceAlertEvent } from '../types';
+import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
@@ -10,6 +10,17 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   '52w_high': '52W High',
   '52w_low': '52W Low',
 };
+
+// Unified notification type for display
+interface UnifiedNotification {
+  id: string;
+  type: 'alert' | 'price_alert';
+  label: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  ticker?: string;
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -29,40 +40,110 @@ interface Props {
 export function NotificationBell({ userId }: Props) {
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [events, setEvents] = useState<AlertEventType[]>([]);
+  const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('notificationsEnabled');
+    return saved !== 'false'; // Default to true
+  });
   const ref = useRef<HTMLDivElement>(null);
 
+  const toggleNotifications = () => {
+    const newValue = !notificationsEnabled;
+    setNotificationsEnabled(newValue);
+    localStorage.setItem('notificationsEnabled', String(newValue));
+    if (!newValue) {
+      setUnreadCount(0); // Hide badge when disabled
+    } else {
+      fetchCount(); // Refresh count when enabled
+    }
+  };
+
   const fetchCount = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !notificationsEnabled) return;
     try {
-      const { count } = await getUnreadAlertCount(userId);
-      setUnreadCount(count);
+      const [alertCount, priceAlertCount] = await Promise.all([
+        getUnreadAlertCount(userId),
+        getUnreadPriceAlertCount(userId),
+      ]);
+      setUnreadCount(alertCount.count + priceAlertCount.count);
     } catch {}
-  }, [userId]);
+  }, [userId, notificationsEnabled]);
 
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
     try {
-      const data = await getAlertEvents(userId);
-      setEvents(data);
-      // Refresh count too
-      const { count } = await getUnreadAlertCount(userId);
-      setUnreadCount(count);
+      const [alertEvents, priceAlertEvents] = await Promise.all([
+        getAlertEvents(userId),
+        getPriceAlertEvents(userId, 50),
+      ]);
+
+      // Convert alert events to unified format
+      const unifiedAlerts: UnifiedNotification[] = alertEvents.map((e: AlertEventType) => ({
+        id: e.id,
+        type: 'alert' as const,
+        label: ALERT_TYPE_LABELS[e.alert.type] || e.alert.type,
+        message: e.message,
+        read: e.read,
+        createdAt: e.createdAt,
+      }));
+
+      // Convert price alert events to unified format
+      const unifiedPriceAlerts: UnifiedNotification[] = priceAlertEvents.map((e: PriceAlertEvent) => ({
+        id: e.id,
+        type: 'price_alert' as const,
+        label: 'Price Alert',
+        message: e.message,
+        read: e.read,
+        createdAt: e.createdAt,
+        ticker: e.priceAlert?.ticker,
+      }));
+
+      // Merge and sort by date (newest first)
+      const merged = [...unifiedAlerts, ...unifiedPriceAlerts].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setNotifications(merged);
+
+      // Refresh count
+      const [alertCount, priceAlertCount] = await Promise.all([
+        getUnreadAlertCount(userId),
+        getUnreadPriceAlertCount(userId),
+      ]);
+      setUnreadCount(alertCount.count + priceAlertCount.count);
     } catch {}
   }, [userId]);
 
-  // Poll unread count every 30s
+  // Poll unread count every 30s (but not while dropdown is open)
   useEffect(() => {
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchCount]);
+    if (!open) {
+      fetchCount();
+      const interval = setInterval(fetchCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchCount, open]);
 
-  // Load events when dropdown opens
+  // Track if we're in the process of marking as read
+  const markingReadRef = useRef(false);
+
+  // Load events when dropdown opens, mark as read instantly
   useEffect(() => {
-    if (open) fetchEvents();
-  }, [open, fetchEvents]);
+    if (open) {
+      fetchEvents();
+      // Clear badge immediately for instant feedback
+      if (unreadCount > 0) {
+        setUnreadCount(0);
+        // Then mark as read on server in background
+        if (!markingReadRef.current) {
+          markingReadRef.current = true;
+          handleMarkAllRead().finally(() => {
+            markingReadRef.current = false;
+          });
+        }
+      }
+    }
+  }, [open]);
 
   // Close on outside click
   useEffect(() => {
@@ -76,16 +157,31 @@ export function NotificationBell({ userId }: Props) {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const handleMarkRead = async (eventId: string) => {
-    await markAlertRead(eventId);
-    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, read: true } : e));
+  const handleMarkRead = async (notification: UnifiedNotification) => {
+    if (notification.type === 'alert') {
+      await markAlertRead(notification.id);
+    } else {
+      await markPriceAlertEventRead(notification.id);
+    }
+    setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   const handleMarkAllRead = async () => {
-    await markAllAlertsRead(userId);
-    setEvents(prev => prev.map(e => ({ ...e, read: true })));
-    setUnreadCount(0);
+    try {
+      // Mark all portfolio alerts as read
+      await markAllAlertsRead(userId);
+
+      // Fetch current price alert events and mark them as read
+      const priceAlertEvents = await getPriceAlertEvents(userId, 50);
+      const unreadPriceAlerts = priceAlertEvents.filter(e => !e.read);
+      await Promise.all(unreadPriceAlerts.map(e => markPriceAlertEventRead(e.id)));
+
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark notifications as read:', err);
+    }
   };
 
   return (
@@ -100,17 +196,20 @@ export function NotificationBell({ userId }: Props) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
-        {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rh-red text-white text-[10px] font-bold flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
+        {/* Badge always rendered to prevent layout shift, visibility controlled by opacity */}
+        <span
+          className={`absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rh-red text-white text-[10px] font-bold flex items-center justify-center transition-opacity duration-150 ${
+            unreadCount > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          {unreadCount > 9 ? '9+' : unreadCount || '0'}
+        </span>
       </button>
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
           bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border
-          rounded-xl shadow-xl z-50"
+          rounded-xl shadow-xl z-50 scrollbar-minimal"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
@@ -136,33 +235,62 @@ export function NotificationBell({ userId }: Props) {
             </div>
           </div>
 
-          {events.length === 0 ? (
+          {/* Notifications toggle */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-rh-light-border dark:border-rh-border bg-rh-light-bg/50 dark:bg-rh-dark/50">
+            <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+              Notifications {notificationsEnabled ? 'on' : 'off'}
+            </span>
+            <button
+              onClick={toggleNotifications}
+              className={`relative w-9 h-5 rounded-full transition-colors ${
+                notificationsEnabled ? 'bg-rh-green' : 'bg-rh-light-border dark:bg-rh-border'
+              }`}
+              title={notificationsEnabled ? 'Turn off notifications' : 'Turn on notifications'}
+            >
+              <span
+                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                  notificationsEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
+
+          {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-rh-light-muted dark:text-rh-muted">
               No notifications yet
             </div>
           ) : (
             <div>
-              {events.slice(0, 20).map(event => (
+              {notifications.slice(0, 20).map(notification => (
                 <div
-                  key={event.id}
-                  onClick={() => !event.read && handleMarkRead(event.id)}
+                  key={`${notification.type}-${notification.id}`}
+                  onClick={() => !notification.read && handleMarkRead(notification)}
                   className={`px-4 py-3 border-b border-rh-light-border dark:border-rh-border last:border-b-0
                     hover:bg-rh-light-bg dark:hover:bg-rh-dark/50 transition-colors cursor-pointer
-                    ${!event.read ? 'bg-blue-500/5' : ''}`}
+                    ${!notification.read ? 'bg-blue-500/5' : ''}`}
                 >
                   <div className="flex items-start gap-2">
-                    {!event.read && (
+                    {!notification.read && (
                       <span className="mt-1.5 w-2 h-2 rounded-full bg-rh-green flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">
-                        {ALERT_TYPE_LABELS[event.alert.type] || event.alert.type}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-medium uppercase tracking-wider ${
+                          notification.type === 'price_alert' ? 'text-rh-green' : 'text-rh-light-muted dark:text-rh-muted'
+                        }`}>
+                          {notification.label}
+                        </span>
+                        {notification.ticker && (
+                          <span className="text-[10px] font-semibold text-rh-light-text dark:text-rh-text">
+                            {notification.ticker}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-rh-light-text dark:text-rh-text mt-0.5 leading-relaxed">
-                        {event.message}
+                        {notification.message}
                       </p>
                       <p className="text-[10px] text-rh-light-muted dark:text-rh-muted mt-1">
-                        {timeAgo(event.createdAt)}
+                        {timeAgo(notification.createdAt)}
                       </p>
                     </div>
                   </div>
