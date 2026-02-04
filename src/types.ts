@@ -911,12 +911,17 @@ export interface PriceAlertEvent {
   };
 }
 
+export type ReferencePriceType = 'current' | 'open' | 'avgCost';
+
 export interface CreatePriceAlertInput {
   ticker: string;
   condition: PriceAlertCondition;
   targetPrice?: number;
   percentChange?: number;
   referencePrice?: number;
+  referencePriceType?: ReferencePriceType;
+  repeatAlert?: boolean;
+  expiresAt?: string; // ISO date string
   userId?: string;
 }
 
@@ -924,4 +929,30 @@ export interface UpdatePriceAlertInput {
   targetPrice?: number;
   percentChange?: number;
   enabled?: boolean;
+}
+
+// Analyst events
+export interface AnalystEvent {
+  id: string;
+  ticker: string;
+  eventType: 'target_change' | 'rating_change';
+  message: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changePct: number | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface MilestoneEvent {
+  id: string;
+  userId: string;
+  ticker: string;
+  eventType: '52w_high' | '52w_low' | 'ath' | 'atl';
+  message: string;
+  currentPrice: number;
+  thresholdPrice: number;
+  isNewRecord: boolean;
+  read: boolean;
+  createdAt: string;
 }

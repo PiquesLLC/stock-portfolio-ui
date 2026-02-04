@@ -16,6 +16,8 @@ import { PortfolioValueChart } from './components/PortfolioValueChart';
 import { BenchmarkWidget } from './components/BenchmarkWidget';
 import { DividendsSection } from './components/DividendsSection';
 import { NotificationBell } from './components/NotificationBell';
+import { UserMenu } from './components/UserMenu';
+import { AccountSettingsModal } from './components/AccountSettingsModal';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FuturesBanner } from './components/FuturesBanner';
@@ -136,12 +138,14 @@ export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
   const [activeTab, setActiveTab] = useState<TabType>(initialNav.tab);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUserName, setCurrentUserName] = useState<string>('');
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   // --- Stream / PiP state ---
   const [pipEnabled, setPipEnabled] = useState(() => {
@@ -311,6 +315,17 @@ export default function App() {
       }).catch(() => {});
     }
   }, []);
+
+  // Fetch current user's display name
+  useEffect(() => {
+    if (!currentUserId) return;
+    getUsers().then((users) => {
+      const user = users.find(u => u.id === currentUserId);
+      if (user) {
+        setCurrentUserName(user.displayName || user.username);
+      }
+    }).catch(() => {});
+  }, [currentUserId]);
 
   const handleViewProfile = (userId: string) => {
     setViewingProfileId(userId);
@@ -486,6 +501,17 @@ export default function App() {
               >
                 {getSessionDisplay(portfolio.session).label}
               </span>
+            )}
+            {/* User Menu */}
+            {currentUserName && currentUserId && (
+              <UserMenu
+                userName={currentUserName}
+                userId={currentUserId}
+                onProfileClick={() => { setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
+                onAlertsClick={() => { /* TODO: Open alerts/notifications panel */ }}
+                onSettingsClick={() => setSettingsModalOpen(true)}
+                onLogoutClick={() => { /* TODO: Implement logout */ }}
+              />
             )}
             {/* Notification Bell */}
             {currentUserId && <NotificationBell userId={currentUserId} />}
@@ -787,6 +813,17 @@ export default function App() {
           <div ref={miniVideoContainerRef} className="aspect-video bg-black" />
         </MiniPlayer>
       )}
+
+      {/* Account Settings Modal */}
+      <AccountSettingsModal
+        userId={currentUserId}
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        onSave={() => {
+          // Refresh user data after settings change
+          fetchData();
+        }}
+      />
     </div>
   );
 }

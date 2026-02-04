@@ -360,6 +360,38 @@ export async function updateHoldingsVisibility(userId: string, holdingsVisibilit
   });
 }
 
+// User Settings
+export interface UserSettings {
+  id: string;
+  username: string;
+  displayName: string;
+  profilePublic: boolean;
+  region: string | null;
+  showRegion: boolean;
+  holdingsVisibility: 'all' | 'top5' | 'sectors' | 'hidden';
+  dripEnabled: boolean;
+}
+
+export interface UserSettingsUpdate {
+  displayName?: string;
+  profilePublic?: boolean;
+  region?: string | null;
+  showRegion?: boolean;
+  holdingsVisibility?: 'all' | 'top5' | 'sectors' | 'hidden';
+  dripEnabled?: boolean;
+}
+
+export async function getUserSettings(userId: string): Promise<UserSettings> {
+  return fetchJson<UserSettings>(`${API_BASE_URL}/users/${userId}/settings`);
+}
+
+export async function updateUserSettings(userId: string, settings: UserSettingsUpdate): Promise<UserSettings> {
+  return fetchJson<UserSettings>(`${API_BASE_URL}/users/${userId}/settings`, {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+}
+
 export async function followUser(targetUserId: string, followerId: string): Promise<void> {
   await fetchJson(`${API_BASE_URL}/users/${targetUserId}/follow`, {
     method: 'POST',
@@ -589,4 +621,45 @@ export async function markPriceAlertEventRead(eventId: string): Promise<void> {
 export async function getUnreadPriceAlertCount(userId?: string): Promise<{ count: number }> {
   const params = userId ? `?userId=${userId}` : '';
   return fetchJson<{ count: number }>(`${API_BASE_URL}/price-alerts/events/unread-count${params}`);
+}
+
+// Analyst events
+import { AnalystEvent } from './types';
+
+export async function getAnalystEvents(limit?: number): Promise<AnalystEvent[]> {
+  const params = limit ? `?limit=${limit}` : '';
+  return fetchJson<AnalystEvent[]>(`${API_BASE_URL}/analyst/events${params}`);
+}
+
+export async function markAnalystEventRead(eventId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/analyst/events/${eventId}/read`, { method: 'POST' });
+}
+
+export async function markAllAnalystEventsRead(): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/analyst/events/read-all`, { method: 'POST' });
+}
+
+export async function getUnreadAnalystCount(): Promise<{ count: number }> {
+  return fetchJson<{ count: number }>(`${API_BASE_URL}/analyst/events/unread-count`);
+}
+
+// Milestone events (52-week high/low, all-time high/low)
+import { MilestoneEvent } from './types';
+
+export async function getMilestoneEvents(userId: string, limit?: number): Promise<MilestoneEvent[]> {
+  const params = new URLSearchParams({ userId });
+  if (limit) params.set('limit', String(limit));
+  return fetchJson<MilestoneEvent[]>(`${API_BASE_URL}/milestones/events?${params}`);
+}
+
+export async function getUnreadMilestoneCount(userId: string): Promise<{ count: number }> {
+  return fetchJson<{ count: number }>(`${API_BASE_URL}/milestones/events/unread-count?userId=${userId}`);
+}
+
+export async function markMilestoneEventRead(eventId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/milestones/events/${eventId}/read`, { method: 'POST' });
+}
+
+export async function markAllMilestoneEventsRead(userId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/milestones/events/read-all?userId=${userId}`, { method: 'POST' });
 }

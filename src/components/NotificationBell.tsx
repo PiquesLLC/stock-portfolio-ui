@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertEvent as AlertEventType, PriceAlertEvent } from '../types';
-import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead } from '../api';
+import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent } from '../types';
+import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAnalystEventRead, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
@@ -9,12 +9,14 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   underperform_spy: 'Underperformance',
   '52w_high': '52W High',
   '52w_low': '52W Low',
+  'ath': 'All-Time High',
+  'atl': 'All-Time Low',
 };
 
 // Unified notification type for display
 interface UnifiedNotification {
   id: string;
-  type: 'alert' | 'price_alert';
+  type: 'alert' | 'price_alert' | 'analyst' | 'milestone';
   label: string;
   message: string;
   read: boolean;
@@ -62,20 +64,24 @@ export function NotificationBell({ userId }: Props) {
   const fetchCount = useCallback(async () => {
     if (!userId || !notificationsEnabled) return;
     try {
-      const [alertCount, priceAlertCount] = await Promise.all([
+      const [alertCount, priceAlertCount, analystCount, milestoneCount] = await Promise.all([
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
+        getUnreadAnalystCount(),
+        getUnreadMilestoneCount(userId),
       ]);
-      setUnreadCount(alertCount.count + priceAlertCount.count);
+      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count);
     } catch {}
   }, [userId, notificationsEnabled]);
 
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
     try {
-      const [alertEvents, priceAlertEvents] = await Promise.all([
+      const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents] = await Promise.all([
         getAlertEvents(userId),
         getPriceAlertEvents(userId, 50),
+        getAnalystEvents(50),
+        getMilestoneEvents(userId, 50),
       ]);
 
       // Convert alert events to unified format
@@ -99,19 +105,43 @@ export function NotificationBell({ userId }: Props) {
         ticker: e.priceAlert?.ticker,
       }));
 
+      // Convert analyst events to unified format
+      const unifiedAnalyst: UnifiedNotification[] = analystEvents.map((e: AnalystEvent) => ({
+        id: e.id,
+        type: 'analyst' as const,
+        label: e.eventType === 'target_change' ? 'Price Target' : 'Rating Change',
+        message: e.message,
+        read: e.read,
+        createdAt: e.createdAt,
+        ticker: e.ticker,
+      }));
+
+      // Convert milestone events to unified format
+      const unifiedMilestones: UnifiedNotification[] = milestoneEvents.map((e: MilestoneEvent) => ({
+        id: e.id,
+        type: 'milestone' as const,
+        label: ALERT_TYPE_LABELS[e.eventType] || e.eventType,
+        message: e.message,
+        read: e.read,
+        createdAt: e.createdAt,
+        ticker: e.ticker,
+      }));
+
       // Merge and sort by date (newest first)
-      const merged = [...unifiedAlerts, ...unifiedPriceAlerts].sort(
+      const merged = [...unifiedAlerts, ...unifiedPriceAlerts, ...unifiedAnalyst, ...unifiedMilestones].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       setNotifications(merged);
 
       // Refresh count
-      const [alertCount, priceAlertCount] = await Promise.all([
+      const [alertCount, priceAlertCount, analystCount, milestoneCount] = await Promise.all([
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
+        getUnreadAnalystCount(),
+        getUnreadMilestoneCount(userId),
       ]);
-      setUnreadCount(alertCount.count + priceAlertCount.count);
+      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count);
     } catch {}
   }, [userId]);
 
@@ -160,8 +190,12 @@ export function NotificationBell({ userId }: Props) {
   const handleMarkRead = async (notification: UnifiedNotification) => {
     if (notification.type === 'alert') {
       await markAlertRead(notification.id);
-    } else {
+    } else if (notification.type === 'price_alert') {
       await markPriceAlertEventRead(notification.id);
+    } else if (notification.type === 'analyst') {
+      await markAnalystEventRead(notification.id);
+    } else if (notification.type === 'milestone') {
+      await markMilestoneEventRead(notification.id);
     }
     setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
@@ -176,6 +210,12 @@ export function NotificationBell({ userId }: Props) {
       const priceAlertEvents = await getPriceAlertEvents(userId, 50);
       const unreadPriceAlerts = priceAlertEvents.filter(e => !e.read);
       await Promise.all(unreadPriceAlerts.map(e => markPriceAlertEventRead(e.id)));
+
+      // Mark all analyst events as read
+      await markAllAnalystEventsRead();
+
+      // Mark all milestone events as read
+      await markAllMilestoneEventsRead(userId);
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
@@ -242,15 +282,14 @@ export function NotificationBell({ userId }: Props) {
             </span>
             <button
               onClick={toggleNotifications}
-              className={`relative w-9 h-5 rounded-full transition-colors ${
-                notificationsEnabled ? 'bg-rh-green' : 'bg-rh-light-border dark:bg-rh-border'
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                notificationsEnabled ? 'bg-rh-green' : 'bg-gray-600'
               }`}
               title={notificationsEnabled ? 'Turn off notifications' : 'Turn on notifications'}
             >
               <span
-                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                  notificationsEnabled ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
+                className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200"
+                style={{ left: notificationsEnabled ? '22px' : '2px' }}
               />
             </button>
           </div>
@@ -276,7 +315,11 @@ export function NotificationBell({ userId }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-medium uppercase tracking-wider ${
-                          notification.type === 'price_alert' ? 'text-rh-green' : 'text-rh-light-muted dark:text-rh-muted'
+                          notification.type === 'price_alert' ? 'text-rh-green' :
+                          notification.type === 'analyst' ? 'text-amber-500' :
+                          notification.label === '52W High' || notification.label === 'All-Time High' ? 'text-emerald-500' :
+                          notification.label === '52W Low' || notification.label === 'All-Time Low' ? 'text-rose-500' :
+                          'text-rh-light-muted dark:text-rh-muted'
                         }`}>
                           {notification.label}
                         </span>

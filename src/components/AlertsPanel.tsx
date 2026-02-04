@@ -33,6 +33,16 @@ const ALERT_LABELS: Record<string, { name: string; description: string; unit: st
     description: 'Triggers when any holding hits a 52-week low',
     unit: '',
   },
+  'ath': {
+    name: 'All-Time High',
+    description: 'Triggers when any holding hits an all-time high',
+    unit: '',
+  },
+  'atl': {
+    name: 'All-Time Low',
+    description: 'Triggers when any holding hits an all-time low',
+    unit: '',
+  },
 };
 
 export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
@@ -85,7 +95,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
           <div className="space-y-4">
             {alerts.map(alert => {
               const meta = ALERT_LABELS[alert.type] || { name: alert.type, description: '', unit: '' };
-              const hasThreshold = alert.type !== '52w_high' && alert.type !== '52w_low';
+              const hasThreshold = !['52w_high', '52w_low', 'ath', 'atl'].includes(alert.type);
 
               return (
                 <div

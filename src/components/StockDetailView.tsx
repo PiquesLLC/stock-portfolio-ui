@@ -828,6 +828,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         <CreatePriceAlertModal
           ticker={ticker}
           currentPrice={quote.currentPrice}
+          openPrice={quote.open > 0 ? quote.open : undefined}
+          averageCost={holding?.averageCost}
           onClose={() => setShowAlertModal(false)}
           onCreated={fetchPriceAlerts}
         />
