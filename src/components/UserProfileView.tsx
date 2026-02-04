@@ -356,7 +356,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   </li>
                 </ul>
                 <p className="text-[9px] text-rh-muted/50 mt-2.5 pt-2 border-t border-rh-border/30">
-                  Stable signal
+                  Stable signal (30d)
                 </p>
               </div>
             )}
@@ -372,7 +372,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-xs text-rh-muted/60">
                 <span className="w-1.5 h-1.5 rounded-full bg-rh-green/50 animate-pulse" />
-                <span>New account — be the first to follow</span>
+                <span>Performance tracking started — be the first to follow</span>
               </div>
               <p className="text-[10px] text-rh-muted/40 pl-3.5">
                 Followers get notified when risk posture or signal changes
