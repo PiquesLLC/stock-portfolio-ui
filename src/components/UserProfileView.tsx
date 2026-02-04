@@ -355,6 +355,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                     Market correlation
                   </li>
                 </ul>
+                <p className="text-[9px] text-rh-muted/50 mt-2.5 pt-2 border-t border-rh-border/30">
+                  Stable signal
+                </p>
               </div>
             )}
           </div>
@@ -541,45 +544,33 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          6. REGION (Owner only - metadata style)
+          6. REGION (Owner only - passive metadata)
           ═══════════════════════════════════════════════════════════════ */}
       {isOwner && (
-        <div className="bg-rh-dark/30 border border-rh-border/30 rounded-lg px-4 py-2.5 mb-3 opacity-60 hover:opacity-80 transition-opacity">
+        <div className="px-4 py-2 mb-3 opacity-50">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] text-rh-muted/50 uppercase tracking-wider">Region</span>
-            <div className="flex items-center gap-2">
-              <select
-                value={profile.region ?? ''}
-                onChange={async (e) => {
-                  const newRegion = e.target.value || null;
-                  setProfile((p) => p ? { ...p, region: newRegion } : p);
-                  await updateUserRegion(userId, newRegion, profile.showRegion);
-                }}
-                className="px-2 py-0.5 text-[11px] rounded bg-transparent border border-rh-border/40 text-rh-muted focus:outline-none focus:border-rh-muted/50"
-              >
-                <option value="">Not set</option>
-                {REGION_OPTIONS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.short}</option>
-                ))}
-              </select>
-              <span className={`text-[9px] px-1.5 py-0.5 rounded ${
-                profile.showRegion
-                  ? 'text-rh-muted/60'
-                  : 'text-rh-muted/40'
-              }`}>
-                {profile.showRegion ? 'shown' : 'hidden'}
-              </span>
-              <button
-                onClick={async () => {
-                  const newShow = !profile.showRegion;
-                  setProfile((p) => p ? { ...p, showRegion: newShow } : p);
-                  await updateUserRegion(userId, profile.region, newShow);
-                }}
-                className="text-[9px] text-rh-muted/40 hover:text-rh-muted/60 transition-colors"
-              >
-                toggle
-              </button>
-            </div>
+            <span className="text-[10px] text-rh-muted/40">
+              Region: {profile.region ? (profile.showRegion ? regionShort(profile.region) : 'Not disclosed') : 'Not set'}
+            </span>
+            <select
+              value={`${profile.region ?? ''}|${profile.showRegion ? '1' : '0'}`}
+              onChange={async (e) => {
+                const [region, show] = e.target.value.split('|');
+                const newRegion = region || null;
+                const newShow = show === '1';
+                setProfile((p) => p ? { ...p, region: newRegion, showRegion: newShow } : p);
+                await updateUserRegion(userId, newRegion, newShow);
+              }}
+              className="text-[9px] text-rh-muted/40 bg-transparent border-none focus:outline-none cursor-pointer hover:text-rh-muted/60 transition-colors"
+            >
+              <option value="|0">Not set</option>
+              {REGION_OPTIONS.map((r) => (
+                <option key={`${r.value}-hidden`} value={`${r.value}|0`}>{r.short} (private)</option>
+              ))}
+              {REGION_OPTIONS.map((r) => (
+                <option key={`${r.value}-shown`} value={`${r.value}|1`}>{r.short} (public)</option>
+              ))}
+            </select>
           </div>
         </div>
       )}
@@ -631,7 +622,7 @@ function MetricCard({ label, value, accent }: {
 
   return (
     <div className="bg-rh-card border border-rh-border/50 rounded-lg p-2.5 hover:border-rh-border transition-colors">
-      <p className="text-[9px] text-rh-muted/50 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-[9px] text-rh-muted/35 uppercase tracking-wide mb-0.5">{label}</p>
       <p className={`text-xs font-medium ${valueColor}`}>{value}</p>
     </div>
   );
