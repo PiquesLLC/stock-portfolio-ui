@@ -1,11 +1,11 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { setPassword, checkHasPassword } from '../api';
+import { setPassword as apiSetPassword, checkHasPassword } from '../api';
 
 export function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPasswordValue] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'login' | 'set-password'>('login');
@@ -30,10 +30,10 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        await setPassword(username, password);
+        await apiSetPassword(username, password);
         setSuccessMessage('Password set successfully! You can now log in.');
         setMode('login');
-        setPassword('');
+        setPasswordValue('');
         setConfirmPassword('');
       } else {
         await login(username, password);
@@ -123,7 +123,7 @@ export function LoginPage() {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => setPasswordValue(e.target.value)}
                   className="w-full px-3 py-2.5 bg-white dark:bg-rh-dark border border-gray-200 dark:border-rh-border rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green focus:border-transparent"
                   placeholder={mode === 'set-password' ? 'Create a password' : 'Enter your password'}
                   autoComplete={mode === 'set-password' ? 'new-password' : 'current-password'}

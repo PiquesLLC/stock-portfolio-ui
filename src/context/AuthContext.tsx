@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, getCurrentUser } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser } from '../api';
 
 interface User {
   id: string;
@@ -9,7 +9,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -20,37 +19,32 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem('authToken')
-  );
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore session on mount
+  // Check if user is authenticated on mount (cookie-based auth)
   useEffect(() => {
-    if (token) {
-      getCurrentUser()
-        .then(setUser)
-        .catch(() => {
-          // Token invalid or expired
-          localStorage.removeItem('authToken');
-          setToken(null);
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    getCurrentUser()
+      .then(setUser)
+      .catch(() => {
+        // Cookie invalid or not present - user not authenticated
+        setUser(null);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
+    // Login sets httpOnly cookie automatically
     const response = await apiLogin(username, password);
-    localStorage.setItem('authToken', response.token);
-    setToken(response.token);
     setUser(response.user);
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('authToken');
-    setToken(null);
+  const logout = useCallback(async () => {
+    try {
+      // Call logout endpoint to clear cookie server-side
+      await apiLogout();
+    } catch {
+      // Even if logout request fails, clear local state
+    }
     setUser(null);
   }, []);
 
@@ -58,7 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
         isAuthenticated: !!user,
         isLoading,
         login,

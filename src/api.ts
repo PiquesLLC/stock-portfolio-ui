@@ -55,21 +55,18 @@ import {
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('authToken');
-
   const response = await fetch(url, {
     ...options,
+    credentials: 'include', // Send cookies with every request
     headers: {
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options?.headers,
     },
   });
 
-  // Handle 401 - clear token (session expired)
+  // Handle 401 - session expired, app will handle auth state via context
   if (response.status === 401) {
-    localStorage.removeItem('authToken');
     // Don't redirect here - let the app handle auth state
   }
 
@@ -90,7 +87,6 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface LoginResponse {
-  token: string;
   user: {
     id: string;
     username: string;
@@ -99,9 +95,16 @@ export interface LoginResponse {
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
+  // Login sets httpOnly cookie automatically - no token in response body
   return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function logout(): Promise<void> {
+  await fetchJson<{ message: string }>(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
   });
 }
 
