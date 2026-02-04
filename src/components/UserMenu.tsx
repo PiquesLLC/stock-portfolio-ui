@@ -44,29 +44,29 @@ export function UserMenu({
     <div ref={menuRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer
+        className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-2 py-1.5 rounded-lg cursor-pointer
           transition-all duration-150 ease-out
           hover:bg-gray-100 dark:hover:bg-rh-dark/80
           hover:brightness-110
           group"
       >
         {/* Avatar */}
-        <div className="w-[18px] h-[18px] rounded-full bg-gradient-to-br from-rh-green/80 to-rh-green
-          flex items-center justify-center text-[10px] font-bold text-black/90
+        <div className="w-[22px] h-[22px] sm:w-[18px] sm:h-[18px] rounded-full bg-gradient-to-br from-rh-green/80 to-rh-green
+          flex items-center justify-center text-[11px] sm:text-[10px] font-bold text-black/90
           ring-1 ring-white/10 dark:ring-white/5">
           {initial}
         </div>
 
-        {/* Username */}
-        <span className="text-sm font-semibold text-rh-light-text/90 dark:text-rh-text/90
+        {/* Username - hidden on mobile */}
+        <span className="hidden sm:inline text-sm font-semibold text-rh-light-text/90 dark:text-rh-text/90
           group-hover:text-rh-light-text dark:group-hover:text-rh-text
           transition-colors">
           {userName}
         </span>
 
-        {/* Chevron */}
+        {/* Chevron - hidden on mobile */}
         <svg
-          className={`w-3 h-3 text-rh-light-muted dark:text-rh-muted transition-transform duration-150
+          className={`hidden sm:block w-3 h-3 text-rh-light-muted dark:text-rh-muted transition-transform duration-150
             ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"

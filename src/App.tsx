@@ -302,17 +302,29 @@ export default function App() {
   }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible]);
 
   // Fetch current user (use first user as default since no auth)
+  // Supports ?userId=xxx URL parameter to switch users (useful for mobile testing)
   useEffect(() => {
-    const stored = localStorage.getItem('currentUserId');
-    if (stored) {
-      setCurrentUserId(stored);
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlUserId = urlParams.get('userId');
+
+    if (urlUserId) {
+      // URL parameter takes priority - set and persist it
+      setCurrentUserId(urlUserId);
+      localStorage.setItem('currentUserId', urlUserId);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     } else {
-      getUsers().then((users) => {
-        if (users.length > 0) {
-          setCurrentUserId(users[0].id);
-          localStorage.setItem('currentUserId', users[0].id);
-        }
-      }).catch(() => {});
+      const stored = localStorage.getItem('currentUserId');
+      if (stored) {
+        setCurrentUserId(stored);
+      } else {
+        getUsers().then((users) => {
+          if (users.length > 0) {
+            setCurrentUserId(users[0].id);
+            localStorage.setItem('currentUserId', users[0].id);
+          }
+        }).catch(() => {});
+      }
     }
   }, []);
 
@@ -476,9 +488,9 @@ export default function App() {
           <div className="flex items-center gap-3">
             <img src="/north-signal-logo.png" alt="Nala" className="h-[42px] w-[42px] cursor-pointer" onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }} />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Global Stock Search */}
-            <div className="w-[270px]">
+            <div className="w-[140px] sm:w-[270px]">
               <TickerAutocompleteInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -516,10 +528,10 @@ export default function App() {
             {/* Notification Bell */}
             {currentUserId && <NotificationBell userId={currentUserId} />}
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle - hidden on mobile */}
             <button
               onClick={toggleTheme}
-              className="group flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
+              className="hidden sm:flex group items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
                 bg-gray-100 dark:bg-rh-dark hover:bg-gray-200 dark:hover:bg-rh-border
                 text-rh-light-muted dark:text-rh-muted"
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -535,9 +547,9 @@ export default function App() {
               )}
               <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
-            {/* Extended Hours Toggle - only show during extended hours sessions */}
+            {/* Extended Hours Toggle - only show during extended hours sessions, hidden on mobile */}
             {isExtendedHours && (
-              <label className="flex items-center gap-2 cursor-pointer select-none">
+              <label className="hidden sm:flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={showExtendedHours}
@@ -548,7 +560,7 @@ export default function App() {
               </label>
             )}
             {isStale && (
-              <span className="flex items-center gap-2" title="Repricing quotes…">
+              <span className="hidden sm:flex items-center gap-2" title="Repricing quotes…">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
@@ -557,7 +569,7 @@ export default function App() {
               </span>
             )}
             {lastUpdate && (
-              <span className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
+              <span className="hidden sm:inline text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
                 {lastUpdate.toLocaleTimeString()}
               </span>
             )}
