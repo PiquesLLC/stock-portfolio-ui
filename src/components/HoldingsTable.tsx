@@ -21,6 +21,7 @@ interface Props {
   onTickerClick?: (ticker: string, holding: Holding) => void;
   cashBalance?: number;
   marginDebt?: number;
+  userId?: string;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
@@ -58,7 +59,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick, cashBalance = 0, marginDebt = 0 }: Props) {
+export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick, cashBalance = 0, marginDebt = 0, userId }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -102,7 +103,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     if (isNaN(margin) || margin < 0) { setCashMarginError('Margin debt must be non-negative'); return; }
     setCashMarginLoading(true);
     try {
-      await updateSettings({ cashBalance: cash, marginDebt: margin });
+      await updateSettings({ cashBalance: cash, marginDebt: margin }, userId);
       onUpdate();
       setShowCashMarginModal(false);
     } catch (err) {

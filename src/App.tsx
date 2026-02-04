@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Portfolio, Settings, MarketSession, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getUsers } from './api';
+import { getPortfolio, getSettings, getUsers, getPortfolioChart } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable } from './components/HoldingsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
@@ -372,9 +372,10 @@ export default function App() {
   const lastTotalAssets = useRef<number | null>(null);
 
   const fetchData = useCallback(async () => {
+    if (!currentUserId) return; // Wait for user to be set
     try {
-      const portfolioData = await getPortfolio();
-      const settingsData = await getSettings();
+      const portfolioData = await getPortfolio(currentUserId);
+      const settingsData = await getSettings(currentUserId);
 
       // Check if the new data is valid (not showing -100% P/L for all holdings)
       const hasValidData = portfolioData.holdings.length === 0 ||
@@ -423,13 +424,14 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [portfolio]);
+  }, [portfolio, currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     fetchData();
     const interval = setInterval(fetchData, REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, currentUserId]);
 
   const handleUpdate = () => {
     fetchData();
@@ -597,7 +599,7 @@ export default function App() {
               fetchData();
               // Update viewingStock to reflect the new holding after refresh
               setTimeout(async () => {
-                const p = await getPortfolio();
+                const p = await getPortfolio(currentUserId);
                 const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
                 setViewingStock(prev => prev ? { ...prev, holding: held } : null);
                 setPortfolio(p);
@@ -637,6 +639,7 @@ export default function App() {
                   afterHoursChange={portfolio.afterHoursChange}
                   afterHoursChangePercent={portfolio.afterHoursChangePercent}
                   refreshTrigger={portfolioRefreshCount}
+                  fetchFn={(period) => getPortfolioChart(period, currentUserId)}
                   onPeriodChange={setChartPeriod}
                   onReturnChange={setChartReturnPct}
                 />
@@ -721,6 +724,7 @@ export default function App() {
                 onTickerClick={(ticker, holding) => setViewingStock({ ticker, holding })}
                 cashBalance={portfolio?.cashBalance ?? 0}
                 marginDebt={portfolio?.marginDebt ?? 0}
+                userId={currentUserId}
               />
 
               <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />

@@ -76,8 +76,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
-export async function getPortfolio(): Promise<Portfolio> {
-  return fetchJson<Portfolio>(`${API_BASE_URL}/portfolio`);
+export async function getPortfolio(userId?: string): Promise<Portfolio> {
+  const url = userId
+    ? `${API_BASE_URL}/portfolio?userId=${encodeURIComponent(userId)}`
+    : `${API_BASE_URL}/portfolio`;
+  return fetchJson<Portfolio>(url);
 }
 
 export async function getProjections(
@@ -191,12 +194,18 @@ export async function updateDripSettings(enabled: boolean, userId?: string): Pro
 }
 
 // Settings endpoints
-export async function getSettings(): Promise<Settings> {
-  return fetchJson<Settings>(`${API_BASE_URL}/settings`);
+export async function getSettings(userId?: string): Promise<Settings> {
+  const url = userId
+    ? `${API_BASE_URL}/settings?userId=${encodeURIComponent(userId)}`
+    : `${API_BASE_URL}/settings`;
+  return fetchJson<Settings>(url);
 }
 
-export async function updateSettings(input: SettingsUpdateInput): Promise<Settings> {
-  return fetchJson<Settings>(`${API_BASE_URL}/settings`, {
+export async function updateSettings(input: SettingsUpdateInput, userId?: string): Promise<Settings> {
+  const url = userId
+    ? `${API_BASE_URL}/settings?userId=${encodeURIComponent(userId)}`
+    : `${API_BASE_URL}/settings`;
+  return fetchJson<Settings>(url, {
     method: 'PUT',
     body: JSON.stringify(input),
   });
@@ -474,8 +483,10 @@ export async function getBenchmarkCloses(ticker: string = 'SPY'): Promise<Benchm
   return resp.candles;
 }
 
-export async function getPortfolioChart(period: PortfolioChartPeriod = '1D'): Promise<PortfolioChartData> {
-  return fetchJson<PortfolioChartData>(`${API_BASE_URL}/portfolio/history/chart?period=${period}`);
+export async function getPortfolioChart(period: PortfolioChartPeriod = '1D', userId?: string): Promise<PortfolioChartData> {
+  const params = new URLSearchParams({ period });
+  if (userId) params.append('userId', userId);
+  return fetchJson<PortfolioChartData>(`${API_BASE_URL}/portfolio/history/chart?${params}`);
 }
 
 export async function getUserChart(userId: string, period: PortfolioChartPeriod = '1D'): Promise<PortfolioChartData> {
