@@ -31,7 +31,7 @@ function getMarketStatus(): { isOpen: boolean } {
 
 const CHART_W = 800;
 const CHART_H = 260;
-const PAD_TOP = 16;
+const PAD_TOP = 24;
 const PAD_BOTTOM = 12;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
@@ -1068,6 +1068,19 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           {/* Hover crosshair with glow (suppress when measurement complete) */}
           {hasData && hoverX !== null && hoverY !== null && !hasMeasurement && (
             <>
+              {/* Time label above crosshair */}
+              {hoverLabel && (
+                <text
+                  x={hoverX}
+                  y={PAD_TOP - 4}
+                  textAnchor="middle"
+                  className="fill-rh-light-muted dark:fill-rh-muted"
+                  fontSize="11"
+                  fontWeight="500"
+                >
+                  {hoverLabel}
+                </text>
+              )}
               <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
                 stroke="#9CA3AF" strokeWidth="1" strokeDasharray="4,3" opacity="0.3" />
               {/* Glow under hover dot */}
