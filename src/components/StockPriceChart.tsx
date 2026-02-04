@@ -394,7 +394,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const hoverPrice = hoverIndex !== null ? points[hoverIndex]?.price : null;
   const effectivePrice = hoverPrice ?? currentPrice;
   const isGain = effectivePrice >= referencePrice;
-  const lineColor = isGain ? '#00C805' : '#FF3B30';
+  // Chart line colors — muted (same as portfolio chart so fill intensity matches)
+  const lineColor = isGain ? '#0A9E10' : '#B87872';
 
   // Pre-compute visible MA values — computed on the ACTUAL displayed candles per timeframe
   const visibleMaData = useMemo(() => {
@@ -1141,10 +1142,38 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             );
           })())}
 
-          {/* Area fill */}
-          {hasData && <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />}
+          {/* Area fill — segmented for 1D to highlight market hours (matches portfolio chart) */}
+          {hasData && stockOpenIdx !== null ? (() => {
+            const closeIdx = stockCloseIdx ?? points.length - 1;
+            const hasAH = stockCloseIdx !== null && stockCloseIdx < points.length - 1;
+            const bottomY = CHART_H - PAD_BOTTOM;
 
-          {/* Price line — segmented with hover highlighting on 1D */}
+            // Build area path for a segment
+            const buildAreaSeg = (from: number, to: number) => {
+              const pts = points.slice(from, to + 1).map((p, j) => {
+                const idx = from + j;
+                return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.price).toFixed(1)}`;
+              }).join(' ');
+              return pts + ` L${toX(to).toFixed(1)},${bottomY.toFixed(1)} L${toX(from).toFixed(1)},${bottomY.toFixed(1)} Z`;
+            };
+
+            return (
+              <>
+                {/* Pre-open — muted */}
+                <path d={buildAreaSeg(0, stockOpenIdx)} fill={lineColor} opacity="0.04" />
+                {/* Market hours — stronger */}
+                <path d={buildAreaSeg(stockOpenIdx, closeIdx)} fill={lineColor} opacity="0.11" />
+                {/* After hours — muted */}
+                {hasAH && (
+                  <path d={buildAreaSeg(closeIdx, points.length - 1)} fill={lineColor} opacity="0.04" />
+                )}
+              </>
+            );
+          })() : hasData && (
+            <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />
+          )}
+
+          {/* Price line — segmented with hover highlighting on 1D (matches portfolio) */}
           {hasData && stockOpenIdx !== null ? (() => {
             const closeIdx = stockCloseIdx ?? points.length - 1;
             const hasAH = stockCloseIdx !== null && stockCloseIdx < points.length - 1;
@@ -1164,8 +1193,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
             const dimOpacity = hoveredSession !== null ? 0.25 : 0.45;
             const activeOpacity = 1;
-            const dimWidth = 2;
-            const activeWidth = 2.5;
+            const dimWidth = 1.1;
+            const activeWidth = 1.6;
 
             return (
               <>
@@ -1189,7 +1218,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               </>
             );
           })() : hasData && (
-            <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* Moving average lines — clipped to plot area */}
