@@ -115,12 +115,12 @@ export function WatchPage({
           </div>
           {/* Open in new tab */}
           <a
-            href={activeChannel.url}
+            href={activeChannel.website}
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
               hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
-            title="Open stream"
+            title="Watch on website"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
