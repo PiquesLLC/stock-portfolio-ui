@@ -63,8 +63,13 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        if (password.length < 6) {
-          setError('Password must be at least 6 characters');
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters');
+          setIsLoading(false);
+          return;
+        }
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+          setError('Password must include uppercase, lowercase, and a number');
           setIsLoading(false);
           return;
         }
@@ -75,8 +80,13 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        if (password.length < 6) {
-          setError('Password must be at least 6 characters');
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters');
+          setIsLoading(false);
+          return;
+        }
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+          setError('Password must include uppercase, lowercase, and a number');
           setIsLoading(false);
           return;
         }
@@ -240,7 +250,7 @@ export function LoginPage() {
                     value={password}
                     onChange={(e) => setPasswordValue(e.target.value)}
                     className={`${inputClasses} pr-11`}
-                    placeholder={mode === 'login' ? '••••••••' : 'Min. 6 characters'}
+                    placeholder={mode === 'login' ? '••••••••' : 'Min. 8 chars, upper/lower/number'}
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                     required
                   />

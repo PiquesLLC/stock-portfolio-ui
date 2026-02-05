@@ -551,7 +551,7 @@ export function WatchHeadlines({ onTickerClick, onTickersExtracted }: WatchHeadl
 
   return (
     <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl p-5">
-      <style dangerouslySetInnerHTML={{ __html: HEADLINE_KEYFRAMES }} />
+      <style>{HEADLINE_KEYFRAMES}</style>
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setExpanded(!expanded)}

@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: parseInt(process.env.VITE_PORT || '5173'),
-    host: '0.0.0.0',
+    host: '127.0.0.1', // Localhost only - prevents network exposure
     allowedHosts: ['.loca.lt', '.ngrok-free.dev'],
     proxy: {
       '/api': {

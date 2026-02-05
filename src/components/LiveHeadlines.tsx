@@ -66,7 +66,7 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
 
   return (
     <div className="mt-3 space-y-2.5">
-      <style dangerouslySetInnerHTML={{ __html: KEYFRAMES }} />
+      <style>{KEYFRAMES}</style>
 
       {/* Live headlines section */}
       <div className="px-1">
