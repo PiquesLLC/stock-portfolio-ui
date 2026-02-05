@@ -21,6 +21,8 @@ import { UserMenu } from './components/UserMenu';
 import { AccountSettingsModal } from './components/AccountSettingsModal';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
+import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { FuturesBanner } from './components/FuturesBanner';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
@@ -156,6 +158,21 @@ export default function App() {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+
+  // --- Keyboard shortcuts ---
+  const searchRef = useRef<{ focus: () => void } | null>(null);
+  const focusSearch = useCallback(() => searchRef.current?.focus(), []);
+  const clearNavigationState = useCallback(() => {
+    setViewingProfileId(null);
+    setViewingStock(null);
+    setLeaderboardUserId(null);
+  }, []);
+  const { toastMessage, isCheatSheetOpen, closeCheatSheet } = useKeyboardShortcuts({
+    activeTab,
+    setActiveTab,
+    focusSearch,
+    clearNavigationState,
+  });
 
   // --- Stream / PiP state ---
   const [pipEnabled, setPipEnabled] = useState(() => {
@@ -508,6 +525,7 @@ export default function App() {
                   setSearchQuery('');
                 }}
                 heldTickers={portfolio?.holdings.map(h => h.ticker) ?? []}
+                externalRef={searchRef}
                 compact
               />
             </div>
@@ -832,6 +850,8 @@ export default function App() {
           fetchData();
         }}
       />
+      <ShortcutToast message={toastMessage} />
+      <KeyboardCheatSheet isOpen={isCheatSheetOpen} onClose={closeCheatSheet} />
     </div>
   );
 }

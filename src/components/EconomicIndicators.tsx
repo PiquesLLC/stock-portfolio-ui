@@ -150,26 +150,30 @@ function FullChart({ indicator }: { indicator: EconomicIndicator }) {
   // Reference line at first value
   const refY = pad.top + (1 - (values[0] - min) / range) * chartH;
 
-  // X-axis: ~6 labels
+  // X-axis: ~6 labels (detect annual data — dates like "2024" vs "2024-01-01")
+  const isAnnual = history.length > 0 && /^\d{4}$/.test(history[0].date);
   const xLabels = useMemo(() => {
     const count = Math.min(6, history.length);
     const step = Math.max(1, Math.floor((history.length - 1) / (count - 1)));
     const labels: { x: number; label: string }[] = [];
+    const fmt = (dateStr: string) => {
+      if (isAnnual) return dateStr; // "2024" → "2024"
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    };
     for (let i = 0; i < history.length; i += step) {
-      const d = new Date(history[i].date + 'T00:00:00');
       labels.push({
         x: pad.left + (i / (history.length - 1)) * chartW,
-        label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        label: fmt(history[i].date),
       });
     }
     const lastIdx = history.length - 1;
     const lastX = pad.left + chartW;
     if (!labels.length || Math.abs(labels[labels.length - 1].x - lastX) > chartW * 0.08) {
-      const d = new Date(history[lastIdx].date + 'T00:00:00');
-      labels.push({ x: lastX, label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) });
+      labels.push({ x: lastX, label: fmt(history[lastIdx].date) });
     }
     return labels;
-  }, [history, chartW]);
+  }, [history, chartW, isAnnual]);
 
   // Y-axis: 4 evenly spaced ticks
   const yTicks = useMemo(() => {
@@ -271,11 +275,11 @@ function FullChart({ indicator }: { indicator: EconomicIndicator }) {
   const displayValue = hasMeasure
     ? measureB!.value
     : hover ? hover.value : values[values.length - 1];
+  const fmtLong = (ds: string) => isAnnual ? ds : new Date(ds + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const fmtShort = (ds: string) => isAnnual ? ds : new Date(ds + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   const displayDate = hasMeasure
-    ? new Date(measureB!.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : hover
-      ? new Date(hover.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : new Date(history[history.length - 1].date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    ? fmtLong(measureB!.date)
+    : hover ? fmtLong(hover.date) : fmtLong(history[history.length - 1].date);
 
   // Change line: measurement or from-start
   const changeFromStart = hover ? hover.value - values[0] : values[values.length - 1] - values[0];
@@ -302,9 +306,9 @@ function FullChart({ indicator }: { indicator: EconomicIndicator }) {
           </span>
           {hasMeasure ? (
             <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-              {new Date(measureA!.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              {fmtShort(measureA!.date)}
               {' '}&rarr;{' '}
-              {new Date(measureB!.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              {fmtShort(measureB!.date)}
             </span>
           ) : (
             <span className="text-xs text-rh-light-muted dark:text-rh-muted">{displayDate}</span>
@@ -1053,7 +1057,7 @@ export function EconomicIndicators() {
       <PortfolioImpactCard />
 
       {/* ── United States ── */}
-      <div className="space-y-3">
+      <div id="macro-region-us" className="space-y-3 scroll-mt-4">
         <div className="flex flex-wrap items-center justify-between gap-y-1">
           <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
             <span className="text-base">$</span> United States
@@ -1096,7 +1100,7 @@ export function EconomicIndicators() {
 
       {/* ── European Union ── */}
       {euIndicatorList.length > 0 && (
-        <div className="space-y-3">
+        <div id="macro-region-eu" className="space-y-3 scroll-mt-4">
           <div className="flex flex-wrap items-center justify-between gap-y-1">
             <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
               <span className="text-base">&#8364;</span> European Union
@@ -1136,7 +1140,7 @@ export function EconomicIndicators() {
 
       {/* ── Japan ── */}
       {jpnIndicatorList.length > 0 && (
-        <div className="space-y-3">
+        <div id="macro-region-japan" className="space-y-3 scroll-mt-4">
           <div className="flex flex-wrap items-center justify-between gap-y-1">
             <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
               <span className="text-base">&#165;</span> Japan

@@ -29,6 +29,7 @@ interface TickerAutocompleteInputProps {
   autoFocus?: boolean;
   heldTickers?: string[]; // Tickers currently in portfolio
   compact?: boolean; // Compact mode for header search bar
+  externalRef?: React.MutableRefObject<{ focus: () => void } | null>; // External focus control
 }
 
 /**
@@ -132,6 +133,7 @@ export function TickerAutocompleteInput({
   autoFocus = false,
   heldTickers = [],
   compact = false,
+  externalRef,
 }: TickerAutocompleteInputProps) {
   const [results, setResults] = useState<SymbolSearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -142,6 +144,14 @@ export function TickerAutocompleteInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Expose focus to parent via externalRef
+  useEffect(() => {
+    if (externalRef) {
+      externalRef.current = { focus: () => inputRef.current?.focus() };
+    }
+    return () => { if (externalRef) externalRef.current = null; };
+  }, [externalRef]);
 
   // Debounced search function
   const performSearch = useCallback(async (query: string) => {
