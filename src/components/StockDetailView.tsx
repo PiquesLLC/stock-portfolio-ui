@@ -8,6 +8,8 @@ import { WarningPanel } from './WarningPanel';
 import { ETFDetailsPanel } from './ETFDetailsPanel';
 import { CreatePriceAlertModal } from './CreatePriceAlertModal';
 import { PriceAlertsList } from './PriceAlertsList';
+import { FundamentalsSection } from './FundamentalsSection';
+import { EarningsSection } from './EarningsSection';
 
 interface Props {
   ticker: string;
@@ -785,6 +787,14 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             )}
           </div>
         </div>
+      )}
+
+      {/* Financials & Earnings - for non-ETF stocks only */}
+      {!etfHoldings?.isETF && (
+        <>
+          <FundamentalsSection ticker={ticker} />
+          <EarningsSection ticker={ticker} />
+        </>
       )}
 
       {/* ETF Details Panel - consolidated dividends + holdings for ETFs */}

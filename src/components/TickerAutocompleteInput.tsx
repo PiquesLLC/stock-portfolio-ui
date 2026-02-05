@@ -202,7 +202,8 @@ export function TickerAutocompleteInput({
     addRecentTicker(result.symbol);
 
     onSelect?.(result);
-    inputRef.current?.focus();
+    // Don't call focus() here - it causes a race condition where onFocus
+    // sees stale results and reopens the dropdown showing "No matches"
   };
 
   // Handle keyboard navigation

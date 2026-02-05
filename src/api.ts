@@ -735,6 +735,25 @@ export async function getUnreadAnalystCount(): Promise<{ count: number }> {
   return fetchJson<{ count: number }>(`${API_BASE_URL}/analyst/events/unread-count`);
 }
 
+// Alpha Vantage Fundamentals / Earnings / Economic endpoints
+import { EconomicDashboardResponse, InternationalEconomicResponse, FundamentalsResponse, EarningsResponse } from './types';
+
+export async function getEconomicDashboard(): Promise<EconomicDashboardResponse> {
+  return fetchJson<EconomicDashboardResponse>(`${API_BASE_URL}/fundamentals/economic`);
+}
+
+export async function getInternationalEconomic(): Promise<InternationalEconomicResponse> {
+  return fetchJson<InternationalEconomicResponse>(`${API_BASE_URL}/fundamentals/economic/international`);
+}
+
+export async function getFundamentals(ticker: string): Promise<FundamentalsResponse> {
+  return fetchJson<FundamentalsResponse>(`${API_BASE_URL}/fundamentals/${encodeURIComponent(ticker)}`);
+}
+
+export async function getEarnings(ticker: string): Promise<EarningsResponse> {
+  return fetchJson<EarningsResponse>(`${API_BASE_URL}/fundamentals/${encodeURIComponent(ticker)}/earnings`);
+}
+
 // Milestone events (52-week high/low, all-time high/low)
 import { MilestoneEvent } from './types';
 

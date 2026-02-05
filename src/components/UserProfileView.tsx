@@ -192,13 +192,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     getUserIntelligence(userId, '1m')
       .then((data) => {
         const topContributor = data.contributors?.[0]
-          ? { ticker: data.contributors[0].ticker, pct: data.contributors[0].contributionPct }
+          ? { ticker: data.contributors[0].ticker, pct: data.contributors[0].percentReturn ?? 0 }
           : null;
         const largestDrag = data.detractors?.[0]
-          ? { ticker: data.detractors[0].ticker, pct: data.detractors[0].contributionPct }
+          ? { ticker: data.detractors[0].ticker, pct: data.detractors[0].percentReturn ?? 0 }
           : null;
         // Calculate top holding weight from sector exposure or contributors
-        const topWeight = data.sectorExposure?.[0]?.exposurePct ?? null;
+        const topWeight = data.sectorExposure?.[0]?.exposurePercent ?? null;
         const topTicker = data.contributors?.[0]?.ticker ?? null;
         setIntelligence({
           topContributor,
@@ -557,10 +557,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           6. REGION (Owner only - passive metadata)
           ═══════════════════════════════════════════════════════════════ */}
       {isOwner && (
-        <div className="px-4 py-2 mb-3 opacity-50">
+        <div className="bg-rh-card border border-rh-border rounded-xl p-4 mb-3">
+          <h3 className="text-[10px] font-semibold text-rh-muted/60 uppercase tracking-wider mb-3">Region</h3>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-rh-muted/40">
-              Region: {profile.region ? (profile.showRegion ? regionShort(profile.region) : 'Not disclosed') : 'Not set'}
+            <span className="text-xs text-rh-muted">
+              {profile.region ? (profile.showRegion ? regionShort(profile.region) : 'Not disclosed') : 'Not set'}
             </span>
             <select
               value={`${profile.region ?? ''}|${profile.showRegion ? '1' : '0'}`}
@@ -571,7 +572,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 setProfile((p) => p ? { ...p, region: newRegion, showRegion: newShow } : p);
                 await updateUserRegion(userId, newRegion, newShow);
               }}
-              className="text-[9px] text-rh-muted/40 bg-transparent border-none focus:outline-none cursor-pointer hover:text-rh-muted/60 transition-colors"
+              className="text-xs text-rh-text bg-rh-dark border border-rh-border rounded-lg px-3 py-1.5 focus:outline-none focus:border-rh-green/50 cursor-pointer hover:border-rh-muted transition-colors"
             >
               <option value="|0">Not set</option>
               {REGION_OPTIONS.map((r) => (

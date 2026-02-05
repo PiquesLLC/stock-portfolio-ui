@@ -944,6 +944,153 @@ export interface AnalystEvent {
   createdAt: string;
 }
 
+// Economic Indicator types (Alpha Vantage)
+export interface EconomicIndicator {
+  name: string;
+  unit: string;
+  latestValue: number | null;
+  latestDate: string;
+  previousValue: number | null;
+  previousDate: string;
+  change: number | null;
+  changePercent: number | null;
+  history: { date: string; value: number }[];
+}
+
+export interface EconomicDashboardResponse {
+  indicators: {
+    cpi: EconomicIndicator | null;
+    fedFundsRate: EconomicIndicator | null;
+    treasuryYield10Y: EconomicIndicator | null;
+    unemployment: EconomicIndicator | null;
+    gdp: EconomicIndicator | null;
+  };
+  lastUpdated: string;
+  dataAge: 'fresh' | 'cached' | 'stale';
+}
+
+// International Economic Indicators (World Bank API)
+export interface InternationalEconomicResponse {
+  regions: {
+    us: {
+      name: string;
+      indicators: {
+        gdpGrowth: EconomicIndicator | null;
+      };
+    };
+    eu: {
+      name: string;
+      indicators: {
+        gdpGrowth: EconomicIndicator | null;
+        inflation: EconomicIndicator | null;
+        unemployment: EconomicIndicator | null;
+        gdp: EconomicIndicator | null;
+      };
+    };
+    japan: {
+      name: string;
+      indicators: {
+        gdpGrowth: EconomicIndicator | null;
+        inflation: EconomicIndicator | null;
+        unemployment: EconomicIndicator | null;
+        gdp: EconomicIndicator | null;
+      };
+    };
+  };
+  lastUpdated: string;
+  dataAge: 'fresh' | 'cached' | 'stale';
+}
+
+// Company Fundamentals types (Alpha Vantage)
+export interface ParsedOverview {
+  name: string;
+  description: string;
+  sector: string;
+  industry: string;
+  marketCap: number | null;
+  peRatio: number | null;
+  pegRatio: number | null;
+  eps: number | null;
+  forwardPE: number | null;
+  profitMargin: number | null;
+  returnOnEquity: number | null;
+  revenueTTM: number | null;
+  dividendYield: number | null;
+  beta: number | null;
+  analystTargetPrice: number | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  bookValue: number | null;
+  sharesOutstanding: number | null;
+}
+
+export interface ParsedIncomeStatement {
+  fiscalDateEnding: string;
+  period: 'annual' | 'quarterly';
+  totalRevenue: number | null;
+  grossProfit: number | null;
+  operatingIncome: number | null;
+  netIncome: number | null;
+  ebitda: number | null;
+  researchAndDevelopment: number | null;
+}
+
+export interface ParsedBalanceSheet {
+  fiscalDateEnding: string;
+  period: 'annual' | 'quarterly';
+  totalAssets: number | null;
+  totalLiabilities: number | null;
+  totalShareholderEquity: number | null;
+  cashAndEquivalents: number | null;
+  longTermDebt: number | null;
+  currentDebt: number | null;
+}
+
+export interface ParsedCashFlow {
+  fiscalDateEnding: string;
+  period: 'annual' | 'quarterly';
+  operatingCashflow: number | null;
+  capitalExpenditures: number | null;
+  freeCashFlow: number | null;
+  dividendPayout: number | null;
+  netIncome: number | null;
+}
+
+export interface FundamentalsResponse {
+  ticker: string;
+  overview: ParsedOverview | null;
+  incomeStatements: { annual: ParsedIncomeStatement[]; quarterly: ParsedIncomeStatement[] };
+  balanceSheets: { annual: ParsedBalanceSheet[]; quarterly: ParsedBalanceSheet[] };
+  cashFlows: { annual: ParsedCashFlow[]; quarterly: ParsedCashFlow[] };
+  lastUpdated: string;
+  dataAge: 'fresh' | 'cached' | 'stale';
+}
+
+// Earnings types (Alpha Vantage)
+export interface ParsedQuarterlyEarning {
+  fiscalDateEnding: string;
+  reportedDate: string;
+  reportedEPS: number | null;
+  estimatedEPS: number | null;
+  surprise: number | null;
+  surprisePercentage: number | null;
+  reportTime: string;
+  beat: boolean | null;
+}
+
+export interface ParsedAnnualEarning {
+  fiscalDateEnding: string;
+  reportedEPS: number | null;
+}
+
+export interface EarningsResponse {
+  ticker: string;
+  quarterly: ParsedQuarterlyEarning[];
+  annual: ParsedAnnualEarning[];
+  lastUpdated: string;
+  dataAge: 'fresh' | 'cached' | 'stale';
+}
+
 export interface MilestoneEvent {
   id: string;
   userId: string;

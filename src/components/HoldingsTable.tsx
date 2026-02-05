@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Holding, MarketSession } from '../types';
-import { deleteHolding, addHolding, updateSettings } from '../api';
+import { deleteHolding, addHolding, updateSettings, getPortfolio } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { getAcronymTitle } from './Acronym';
 
@@ -72,7 +72,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   const [cashMarginError, setCashMarginError] = useState('');
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
-  const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '' });
+  const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin' });
 
   // Extract held tickers for autocomplete boost
   const heldTickers = useMemo(() => holdings.map(h => h.ticker), [holdings]);
@@ -190,6 +190,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
       ticker: holding.ticker,
       shares: String(holding.shares),
       averageCost: String(holding.averageCost),
+      fundingSource: 'cash', // Not used for edits, but needed for type
     });
     setModalError('');
   };
@@ -197,7 +198,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   // Open add modal
   const handleOpenAdd = () => {
     setShowAddModal(true);
-    setFormData({ ticker: '', shares: '', averageCost: '' });
+    setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' });
     setModalError('');
   };
 
@@ -206,7 +207,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     setEditingHolding(null);
     setShowAddModal(false);
     setModalError('');
-    setFormData({ ticker: '', shares: '', averageCost: '' });
+    setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' });
     // Return focus to the Add Stock button for accessibility
     setTimeout(() => {
       addStockButtonRef.current?.focus();
@@ -233,6 +234,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     const ticker = formData.ticker.trim().toUpperCase();
     const shares = parseFloat(formData.shares);
     const averageCost = parseFloat(formData.averageCost);
+    const isEditing = editingHolding !== null;
 
     if (!ticker) {
       setModalError('Ticker is required');
@@ -251,7 +253,25 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     setModalError('');
 
     try {
+      // Calculate current net equity BEFORE adding the holding
+      // so we can keep it unchanged for margin purchases
+      const oldHoldingsValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
+      const oldNetEquity = oldHoldingsValue + cashBalance - marginDebt;
+
       await addHolding({ ticker, shares, averageCost });
+
+      // If buying on margin, adjust margin debt to keep net equity unchanged.
+      // We fetch the fresh portfolio to get the actual new totalAssets at MARKET prices,
+      // then set marginDebt = newTotalAssets - oldNetEquity. This prevents the bug where
+      // cost basis != market value caused phantom portfolio value changes.
+      if (formData.fundingSource === 'margin' && !isEditing) {
+        const freshPortfolio = await getPortfolio(userId);
+        const newMarginDebt = freshPortfolio.totalAssets - oldNetEquity;
+        if (newMarginDebt > 0) {
+          await updateSettings({ marginDebt: newMarginDebt }, userId);
+        }
+      }
+
       handleCloseModal();
       onUpdate();
     } catch (err) {
@@ -316,6 +336,38 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
             focus:outline-none focus:ring-2 focus:ring-rh-green/20 focus:border-rh-green/40"
         />
       </div>
+      {!isEditing && (
+        <div>
+          <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-2">Funding Source</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, fundingSource: 'cash' })}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                formData.fundingSource === 'cash'
+                  ? 'bg-rh-green/10 text-rh-green border border-rh-green/40'
+                  : 'bg-rh-light-bg dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-white/[0.08] hover:border-rh-green/30'
+              }`}
+            >
+              Cash
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, fundingSource: 'margin' })}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                formData.fundingSource === 'margin'
+                  ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/40'
+                  : 'bg-rh-light-bg dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-white/[0.08] hover:border-yellow-500/30'
+              }`}
+            >
+              Margin
+            </button>
+          </div>
+          {formData.fundingSource === 'margin' && (
+            <p className="text-xs text-yellow-500/70 mt-1.5">Margin debt will increase by the purchase amount</p>
+          )}
+        </div>
+      )}
       {modalError && (
         <p className="text-rh-red text-sm">{modalError}</p>
       )}

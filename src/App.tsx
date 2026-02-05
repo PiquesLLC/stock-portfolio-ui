@@ -6,6 +6,7 @@ import { HoldingsTable } from './components/HoldingsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { InsightsPage } from './components/InsightsPage';
+import { EconomicIndicators } from './components/EconomicIndicators';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { FeedPage } from './components/FeedPage';
 import { WatchPage } from './components/WatchPage';
@@ -87,7 +88,7 @@ interface NavState {
 }
 
 // Valid tab names for URL parameter validation
-const VALID_TABS = new Set<TabType>(['portfolio', 'insights', 'leaderboard', 'feed', 'watch']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'insights', 'macro', 'leaderboard', 'feed', 'watch']);
 
 function parseHash(): NavState {
   const hash = window.location.hash.slice(1);
@@ -354,9 +355,24 @@ export default function App() {
       const hasValidData = portfolioData.holdings.length === 0 ||
         portfolioData.holdings.some(h => !h.priceUnavailable && h.currentPrice > 0);
 
-      // If we have unavailable quotes, keep the previous valid state if available
-      if (!hasValidData && lastValidPortfolio.current) {
-        console.log('New data has unavailable quotes, keeping previous valid state');
+      // Check if holdings structure changed (new stock added/removed)
+      const holdingsChanged = !lastValidPortfolio.current ||
+        portfolioData.holdings.length !== lastValidPortfolio.current.holdings.length ||
+        portfolioData.holdings.some(h => !lastValidPortfolio.current!.holdings.find(old => old.ticker === h.ticker));
+
+      // If we have unavailable quotes but holdings structure changed, we MUST accept the new data
+      // Otherwise the new holding or settings won't be reflected
+      if (!hasValidData && lastValidPortfolio.current && !holdingsChanged) {
+        console.log('New data has unavailable quotes, keeping previous price data but updating settings');
+        // Merge: keep old price-related data but use new settings (cashBalance, marginDebt)
+        setPortfolio({
+          ...lastValidPortfolio.current,
+          cashBalance: portfolioData.cashBalance,
+          marginDebt: portfolioData.marginDebt,
+          // Recalculate netEquity with new margin debt but old holdings value
+          netEquity: lastValidPortfolio.current.totalAssets - portfolioData.marginDebt,
+        });
+        setSettings(settingsData);
         setIsStale(true);
         return;
       }
@@ -731,6 +747,13 @@ export default function App() {
               refreshTrigger={portfolioRefreshCount}
               session={portfolio?.session}
             />
+          </ErrorBoundary>
+        )}
+
+        {/* Macro Tab */}
+        {activeTab === 'macro' && !viewingStock && (
+          <ErrorBoundary>
+            <EconomicIndicators />
           </ErrorBoundary>
         )}
 
