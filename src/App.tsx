@@ -86,12 +86,16 @@ interface NavState {
   lbuser: string | null; // leaderboard selected user
 }
 
+// Valid tab names for URL parameter validation
+const VALID_TABS = new Set<TabType>(['portfolio', 'insights', 'leaderboard', 'feed', 'watch']);
+
 function parseHash(): NavState {
   const hash = window.location.hash.slice(1);
   if (hash) {
     const params = new URLSearchParams(hash);
+    const rawTab = params.get('tab') || 'portfolio';
     const state: NavState = {
-      tab: (params.get('tab') || 'portfolio') as TabType,
+      tab: VALID_TABS.has(rawTab as TabType) ? (rawTab as TabType) : 'portfolio',
       stock: params.get('stock') || null,
       profile: params.get('profile') || null,
       lbuser: params.get('lbuser') || null,
