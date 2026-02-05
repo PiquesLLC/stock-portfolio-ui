@@ -466,8 +466,11 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const { quote, profile, metrics } = data;
 
   // Extended hours pricing from Yahoo Finance (returned by API)
+  // For non-1D periods during extended hours, show regular close price (like Robinhood)
+  // This ensures the displayed price matches the period change calculation
   const hasExtended = quote.extendedPrice != null && quote.extendedPrice !== quote.currentPrice;
-  const basePrice = hasExtended ? quote.extendedPrice! : quote.currentPrice;
+  const showExtendedPrice = hasExtended && chartPeriod === '1D';
+  const basePrice = showExtendedPrice ? quote.extendedPrice! : quote.currentPrice;
   const displayPrice = hoverPrice ?? basePrice;
   const isHovering = hoverPrice !== null;
 
@@ -515,7 +518,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       </div>
 
       {/* Price hero — fixed height to prevent layout shift on hover */}
-      <div className="mb-6" style={{ minHeight: hasExtended ? '160px' : '130px' }}>
+      <div className="mb-6" style={{ minHeight: showExtendedPrice ? '160px' : '130px' }}>
         <div className="text-4xl font-bold text-rh-light-text dark:text-rh-text tracking-tight">
           {formatCurrency(displayPrice)}
         </div>
@@ -531,8 +534,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {isHovering ? hoverLabel : periodChange.label}
           </span>
         </div>
-        {/* Extended hours price change line - always rendered when hasExtended to prevent layout shift */}
-        {hasExtended && (
+        {/* Extended hours price change line - only shown for 1D period to prevent layout shift */}
+        {showExtendedPrice && (
           <div className={`flex items-center gap-2 mt-1 h-[22px] transition-opacity duration-100 ${
             isHovering ? 'opacity-0' : (quote.extendedChange! >= 0 ? 'text-rh-green' : 'text-rh-red')
           }`}>
@@ -587,6 +590,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           onPeriodChange={handlePeriodChange}
           currentPrice={quote.currentPrice}
           previousClose={quote.previousClose}
+          regularClose={quote.regularClose}
           onHoverPrice={handleHoverPrice}
           goldenCrossDate={goldenCrossInfo.active ? goldenCrossInfo.date : null}
           session={quote.session}

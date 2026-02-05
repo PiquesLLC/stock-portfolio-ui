@@ -11,6 +11,7 @@ interface Props {
   onPeriodChange: (period: ChartPeriod) => void;
   currentPrice: number;
   previousClose: number;
+  regularClose?: number; // Regular market close price (used for non-1D periods during extended hours)
   onHoverPrice?: (price: number | null, label: string | null) => void;
   goldenCrossDate?: string | null; // ISO date string of golden cross within timeframe
   session?: string; // Market session: 'REG', 'PRE', 'POST', 'CLOSED'
@@ -283,7 +284,7 @@ const PAD_BOTTOM = 30;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
 
-export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, onHoverPrice, goldenCrossDate, session }: Props) {
+export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -393,7 +394,11 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
   const referencePrice = selectedPeriod === '1D' ? previousClose : (points.length > 0 ? points[0].price : currentPrice);
   const hoverPrice = hoverIndex !== null ? points[hoverIndex]?.price : null;
-  const effectivePrice = hoverPrice ?? currentPrice;
+  // For non-1D periods during extended hours (PRE/POST), use regular close price instead of extended price
+  // This matches Robinhood behavior where longer timeframes don't show extended hours movement
+  const isExtendedSession = session === 'PRE' || session === 'POST';
+  const chartEndPrice = (selectedPeriod !== '1D' && isExtendedSession && regularClose != null) ? regularClose : currentPrice;
+  const effectivePrice = hoverPrice ?? chartEndPrice;
   const isGain = effectivePrice >= referencePrice;
   // Chart line colors — muted (same as portfolio chart so fill intensity matches)
   const lineColor = isGain ? '#0A9E10' : '#B87872';
