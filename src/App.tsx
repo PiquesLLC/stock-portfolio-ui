@@ -786,6 +786,7 @@ export default function App() {
             <FeedPage
               currentUserId={currentUserId}
               onUserClick={handleViewProfile}
+              onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker === ticker) ?? null })}
             />
           </ErrorBoundary>
         )}
