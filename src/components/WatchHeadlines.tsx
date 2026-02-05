@@ -652,12 +652,16 @@ export function WatchHeadlines({ onTickerClick, onTickersExtracted }: WatchHeadl
                 </div>
 
                 {/* Headline with inline ticker + company name highlights */}
-                <span
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="block text-sm font-semibold text-rh-light-text dark:text-rh-text
-                    group-hover:text-rh-light-text dark:group-hover:text-rh-text leading-snug line-clamp-2"
+                    hover:text-rh-green leading-snug line-clamp-2 transition-colors"
                 >
                   {highlightHeadline(item.headline, tickerResults, onTickerClick)}
-                </span>
+                </a>
 
                 {/* Source */}
                 <span className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/50 mt-1 block">

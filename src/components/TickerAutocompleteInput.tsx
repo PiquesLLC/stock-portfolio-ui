@@ -1,6 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { searchSymbols } from '../api';
+import { searchSymbols, getStockDetails } from '../api';
 import { SymbolSearchResult } from '../types';
+
+// Pre-fetch cache to avoid duplicate requests
+const prefetchedTickers = new Set<string>();
+
+/**
+ * Pre-fetch stock details for top search results to warm the cache
+ */
+function prefetchTopResults(results: SymbolSearchResult[]): void {
+  // Pre-fetch top 3 results that haven't been fetched yet
+  const toPrefetch = results
+    .slice(0, 3)
+    .map(r => r.symbol.toUpperCase())
+    .filter(ticker => !prefetchedTickers.has(ticker));
+
+  toPrefetch.forEach(ticker => {
+    prefetchedTickers.add(ticker);
+    // Fire and forget - don't await, just warm the cache
+    getStockDetails(ticker).catch(() => {
+      // Remove from set on error so it can be retried
+      prefetchedTickers.delete(ticker);
+    });
+  });
+}
 
 // LocalStorage key for recent selections
 const RECENT_TICKERS_KEY = 'recentTickerSelections';
@@ -145,6 +168,9 @@ export function TickerAutocompleteInput({
       // Apply local boosts for recent selections
       const recentTickers = getRecentTickers();
       const boostedResults = applyLocalBoosts(response.results, heldTickers, recentTickers);
+
+      // Pre-fetch top results to warm the cache (non-blocking)
+      prefetchTopResults(boostedResults);
 
       setResults(boostedResults);
       setIsOpen(boostedResults.length > 0);
