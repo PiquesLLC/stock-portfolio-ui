@@ -123,6 +123,17 @@ export async function checkHasPassword(username: string): Promise<{ hasPassword:
   return fetchJson(`${API_BASE_URL}/auth/has-password/${encodeURIComponent(username)}`);
 }
 
+export async function signup(username: string, displayName: string, password: string): Promise<LoginResponse> {
+  return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/signup`, {
+    method: 'POST',
+    body: JSON.stringify({ username, displayName, password }),
+  });
+}
+
+export async function checkUsernameAvailable(username: string): Promise<{ available: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/check-username/${encodeURIComponent(username)}`);
+}
+
 export async function getPortfolio(userId?: string): Promise<Portfolio> {
   const url = userId
     ? `${API_BASE_URL}/portfolio?userId=${encodeURIComponent(userId)}`

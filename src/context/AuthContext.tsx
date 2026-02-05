@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup } from '../api';
 
 interface User {
   id: string;
@@ -12,6 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  signup: (username: string, displayName: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -38,6 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   }, []);
 
+  const signup = useCallback(async (username: string, displayName: string, password: string) => {
+    // Signup sets httpOnly cookie automatically (auto-login)
+    const response = await apiSignup(username, displayName, password);
+    setUser(response.user);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       // Call logout endpoint to clear cookie server-side
@@ -55,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        signup,
         logout,
       }}
     >
