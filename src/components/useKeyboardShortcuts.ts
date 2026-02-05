@@ -123,6 +123,12 @@ export function useKeyboardShortcuts({
         const el = document.getElementById(region.id);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Brief highlight flash on the region header
+          const header = el.querySelector('h3');
+          if (header) {
+            header.classList.add('shortcut-highlight');
+            setTimeout(() => header.classList.remove('shortcut-highlight'), 1200);
+          }
           showToast(region.label);
         }
         return;

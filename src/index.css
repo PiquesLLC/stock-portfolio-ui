@@ -187,6 +187,22 @@ body {
    MOTION — reinforces hierarchy
    ═══════════════════════════════════════════════════════════════ */
 
+/* Macro region header — highlight flash (keyboard shortcut + hover) */
+@keyframes shortcutFlash {
+  0% { color: inherit; }
+  15% { color: #00C805; }
+  100% { color: inherit; }
+}
+.shortcut-highlight {
+  animation: shortcutFlash 1.2s ease-out;
+}
+[id^="macro-region-"] > div:first-child > h3 {
+  transition: color 300ms ease;
+}
+[id^="macro-region-"] > div:first-child:hover > h3 {
+  color: #00C805;
+}
+
 /* Staggered fade-in delays */
 .delay-1 { animation-delay: 0.05s; }
 .delay-2 { animation-delay: 0.1s; }
