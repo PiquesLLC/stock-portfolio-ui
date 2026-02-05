@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, changePassword } from '../api';
+import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, changePassword, deleteAccount, getPortfolio } from '../api';
 
 interface AccountSettingsModalProps {
   userId: string;
@@ -41,6 +41,23 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+
+  // Notification preferences (localStorage)
+  const [notifyPriceAlerts, setNotifyPriceAlerts] = useState(() => {
+    return localStorage.getItem('notifyPriceAlerts') !== 'false';
+  });
+  const [notifyFollowedActivity, setNotifyFollowedActivity] = useState(() => {
+    return localStorage.getItem('notifyFollowedActivity') !== 'false';
+  });
+
+  // Delete account state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Export state
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -131,6 +148,8 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
         document.documentElement.classList.remove('dark');
       }
       localStorage.setItem('showExtendedHours', String(extendedHours));
+      localStorage.setItem('notifyPriceAlerts', String(notifyPriceAlerts));
+      localStorage.setItem('notifyFollowedActivity', String(notifyFollowedActivity));
 
       // Only call API if there are server-side changes
       if (Object.keys(updates).length > 0) {
@@ -143,6 +162,61 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
       setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError('Password is required to confirm deletion');
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError('');
+
+    try {
+      await deleteAccount(deletePassword);
+      // Redirect to login page after deletion
+      window.location.href = '/';
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleExportPortfolio = async () => {
+    setExporting(true);
+    try {
+      const portfolio = await getPortfolio(userId);
+
+      // Generate CSV
+      const headers = ['Ticker', 'Shares', 'Average Cost', 'Current Price', 'Current Value', 'Total Cost', 'Profit/Loss', 'Profit/Loss %'];
+      const rows = portfolio.holdings.map(h => [
+        h.ticker,
+        h.shares,
+        h.averageCost?.toFixed(2) ?? '',
+        h.currentPrice?.toFixed(2) ?? '',
+        h.currentValue?.toFixed(2) ?? '',
+        h.totalCost?.toFixed(2) ?? '',
+        h.profitLoss?.toFixed(2) ?? '',
+        h.profitLossPercent?.toFixed(2) ?? '',
+      ]);
+
+      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError('Failed to export portfolio');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -226,6 +300,16 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
                         bg-gray-50 dark:bg-rh-border/20 text-rh-light-muted dark:text-rh-muted cursor-not-allowed"
                     />
                   </div>
+
+                  {/* Member Since */}
+                  {settings?.createdAt && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-rh-light-muted dark:text-rh-muted">Member since</span>
+                      <span className="text-rh-light-text dark:text-rh-text">
+                        {new Date(settings.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -462,6 +546,135 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
                             disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {changingPassword ? 'Changing...' : 'Change Password'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Notifications Section */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+                  Notifications
+                </h3>
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Price Alerts</span>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted">Get notified when price targets are hit</p>
+                    </div>
+                    <ToggleSwitch checked={notifyPriceAlerts} onChange={setNotifyPriceAlerts} />
+                  </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Activity from Followed Users</span>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted">Get notified when users you follow make trades</p>
+                    </div>
+                    <ToggleSwitch checked={notifyFollowedActivity} onChange={setNotifyFollowedActivity} />
+                  </label>
+                </div>
+              </section>
+
+              {/* Data & Export Section */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+                  Data & Export
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleExportPortfolio}
+                    disabled={exporting}
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
+                      bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-rh-text
+                      hover:bg-gray-200 dark:hover:bg-rh-border/80 transition-colors
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                      flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      <span>{exporting ? 'Exporting...' : 'Export Portfolio (CSV)'}</span>
+                    </div>
+                  </button>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted px-1">
+                    Download your holdings, cost basis, and current values
+                  </p>
+                </div>
+              </section>
+
+              {/* Danger Zone */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-red/80 mb-3">
+                  Danger Zone
+                </h3>
+                <div className="space-y-3">
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
+                        bg-rh-red/10 text-rh-red border border-rh-red/30
+                        hover:bg-rh-red/20 transition-colors
+                        flex items-center justify-between"
+                    >
+                      <span>Delete Account</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <div className="p-4 bg-rh-red/5 border border-rh-red/30 rounded-lg space-y-3">
+                      <p className="text-sm text-rh-red font-medium">
+                        Are you sure? This action cannot be undone.
+                      </p>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+                        All your data including portfolio history, follows, and settings will be permanently deleted.
+                      </p>
+                      {deleteError && (
+                        <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-red-500 text-xs">
+                          {deleteError}
+                        </div>
+                      )}
+                      <div>
+                        <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                          Enter your password to confirm
+                        </label>
+                        <input
+                          type="password"
+                          value={deletePassword}
+                          onChange={(e) => setDeletePassword(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-rh-red/30
+                            bg-white dark:bg-rh-black text-rh-light-text dark:text-rh-text text-sm
+                            focus:ring-2 focus:ring-rh-red/50 focus:border-rh-red outline-none transition-colors"
+                          placeholder="Your password"
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDeleteConfirm(false);
+                            setDeletePassword('');
+                            setDeleteError('');
+                          }}
+                          className="flex-1 px-3 py-2 rounded-lg text-xs font-medium
+                            text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                            hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDeleteAccount}
+                          disabled={deleting}
+                          className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold
+                            bg-rh-red text-white hover:bg-red-600
+                            disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {deleting ? 'Deleting...' : 'Delete My Account'}
                         </button>
                       </div>
                     </div>

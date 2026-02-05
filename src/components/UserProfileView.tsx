@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry } from '../types';
+import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent } from '../types';
 import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence } from '../api';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
@@ -528,7 +528,17 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          5. HOLDINGS VISIBILITY (Owner only)
+          5. LATEST MOVES
+          ═══════════════════════════════════════════════════════════════ */}
+      {profile.profilePublic && profile.recentActivity && profile.recentActivity.length > 0 && (
+        <LatestMovesSection
+          events={profile.recentActivity.slice(0, 5)}
+          onTickerClick={onStockClick}
+        />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          6. HOLDINGS VISIBILITY (Owner only)
           ═══════════════════════════════════════════════════════════════ */}
       {isOwner && (
         <div className="bg-rh-card border border-rh-border rounded-xl p-4 mb-3">
@@ -664,6 +674,103 @@ function HoldingsVisibilityToggle({ value, onChange }: {
         })}
       </div>
       <p className="text-[10px] text-rh-muted/50 mt-2 pl-1">{selected.desc}</p>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LATEST MOVES SECTION
+// ═══════════════════════════════════════════════════════════════════════
+function getActionInfo(type: string, payload: { shares?: number; previousShares?: number }): {
+  verb: string;
+  isSell: boolean;
+} {
+  if (type === 'holding_added') return { verb: 'Bought', isSell: false };
+  if (type === 'holding_removed') return { verb: 'Sold', isSell: true };
+  if (type === 'holding_updated' && payload.previousShares && payload.shares) {
+    return payload.shares > payload.previousShares
+      ? { verb: 'Added', isSell: false }
+      : { verb: 'Sold', isSell: true };
+  }
+  return { verb: 'Updated', isSell: false };
+}
+
+function formatValue(value: number): string {
+  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+  return `$${value.toFixed(0)}`;
+}
+
+function formatRelativeTime(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return 'now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
+function LatestMovesSection({ events, onTickerClick }: {
+  events: ActivityEvent[];
+  onTickerClick?: (ticker: string) => void;
+}) {
+  return (
+    <div className="bg-rh-card border border-rh-border rounded-xl p-4 mb-3">
+      <h3 className="text-xs font-semibold text-rh-muted uppercase tracking-wider mb-3">
+        Latest Moves
+      </h3>
+      <div className="space-y-2.5">
+        {events.map((event) => {
+          const { verb, isSell } = getActionInfo(event.type, event.payload);
+          const notionalValue = event.payload.shares && event.payload.averageCost
+            ? event.payload.shares * event.payload.averageCost
+            : null;
+
+          let details = '';
+          if (event.type === 'holding_added' && event.payload.shares) {
+            details = `${event.payload.shares} shares`;
+          } else if (event.type === 'holding_updated' && event.payload.previousShares && event.payload.shares) {
+            const diff = event.payload.shares - event.payload.previousShares;
+            details = diff > 0
+              ? `+${diff} → ${event.payload.shares} total`
+              : `−${Math.abs(diff)} → ${event.payload.shares} total`;
+          } else if (event.type === 'holding_removed') {
+            details = 'closed';
+          }
+
+          return (
+            <div key={event.id} className="flex items-center justify-between gap-3 py-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`text-sm font-semibold ${isSell ? 'text-rh-red' : 'text-rh-green'}`}>
+                  {verb}
+                </span>
+                <button
+                  onClick={() => onTickerClick?.(event.payload.ticker)}
+                  className="text-sm font-bold text-rh-text hover:text-rh-green transition-colors"
+                >
+                  {event.payload.ticker}
+                </button>
+                {details && (
+                  <span className="text-sm text-rh-muted">{details}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2.5 flex-shrink-0">
+                {notionalValue && notionalValue >= 1000 && (
+                  <span className="text-sm text-rh-text/70 tabular-nums font-medium">
+                    {formatValue(notionalValue)}
+                  </span>
+                )}
+                <span className="text-xs text-rh-muted tabular-nums">
+                  {formatRelativeTime(event.createdAt)}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -141,6 +141,13 @@ export async function changePassword(currentPassword: string, newPassword: strin
   });
 }
 
+export async function deleteAccount(password: string): Promise<{ message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/delete-account`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
+  });
+}
+
 export async function getPortfolio(userId?: string): Promise<Portfolio> {
   const url = userId
     ? `${API_BASE_URL}/portfolio?userId=${encodeURIComponent(userId)}`
@@ -444,6 +451,7 @@ export interface UserSettings {
   showRegion: boolean;
   holdingsVisibility: 'all' | 'top5' | 'sectors' | 'hidden';
   dripEnabled: boolean;
+  createdAt: string;
 }
 
 export interface UserSettingsUpdate {

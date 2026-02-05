@@ -511,8 +511,7 @@ export default function App() {
               <UserMenu
                 userName={currentUserName}
                 userId={currentUserId}
-                onProfileClick={() => { setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
-                onAlertsClick={() => { /* TODO: Open alerts/notifications panel */ }}
+                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
                 onSettingsClick={() => setSettingsModalOpen(true)}
                 onLogoutClick={logout}
               />
