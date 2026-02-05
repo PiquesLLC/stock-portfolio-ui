@@ -518,6 +518,14 @@ export async function getStockQuote(ticker: string): Promise<StockDetailsRespons
   return fetchJson<StockDetailsResponse['quote']>(`${API_BASE_URL}/market/quote/${ticker}`);
 }
 
+/**
+ * Fast quote using Yahoo Finance directly - no queue delays.
+ * Used for progressive loading to show price immediately.
+ */
+export async function getFastQuote(ticker: string): Promise<StockDetailsResponse['quote']> {
+  return fetchJson<StockDetailsResponse['quote']>(`${API_BASE_URL}/market/fast-quote/${ticker}`);
+}
+
 export interface IntradayCandle {
   time: string;
   open: number;

@@ -7,22 +7,12 @@ const prefetchedTickers = new Set<string>();
 
 /**
  * Pre-fetch stock details for top search results to warm the cache
+ * DISABLED: Pre-fetching was causing queue congestion, slowing down actual stock loads
  */
-function prefetchTopResults(results: SymbolSearchResult[]): void {
-  // Pre-fetch top 5 results that haven't been fetched yet
-  const toPrefetch = results
-    .slice(0, 5)
-    .map(r => r.symbol.toUpperCase())
-    .filter(ticker => !prefetchedTickers.has(ticker));
-
-  toPrefetch.forEach(ticker => {
-    prefetchedTickers.add(ticker);
-    // Fire and forget - don't await, just warm the cache
-    getStockDetails(ticker).catch(() => {
-      // Remove from set on error so it can be retried
-      prefetchedTickers.delete(ticker);
-    });
-  });
+function prefetchTopResults(_results: SymbolSearchResult[]): void {
+  // Disabled - the Finnhub queue gets congested by pre-fetches,
+  // causing the actual stock detail load to be slow
+  return;
 }
 
 // LocalStorage key for recent selections
@@ -361,12 +351,7 @@ export function TickerAutocompleteInput({
               }}
               onMouseEnter={() => {
                 setSelectedIndex(index);
-                // Pre-fetch on hover for faster loading when clicked
-                const ticker = result.symbol.toUpperCase();
-                if (!prefetchedTickers.has(ticker)) {
-                  prefetchedTickers.add(ticker);
-                  getStockDetails(ticker).catch(() => prefetchedTickers.delete(ticker));
-                }
+                // Pre-fetch disabled - was causing queue congestion
               }}
               role="option"
               aria-selected={selectedIndex === index}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout, PriceAlert } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts } from '../api';
+import { getStockDetails, getFastQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts } from '../api';
 import { DividendEvent, DividendCredit } from '../types';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
@@ -166,6 +166,7 @@ function AddToPortfolioForm({ ticker, currentPrice, onAdded, holding }: { ticker
 export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded }: Props) {
   const [data, setData] = useState<StockDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quickLoaded, setQuickLoaded] = useState(false); // Price loaded, details pending
   const [error, setError] = useState<string | null>(null);
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(() => {
     const saved = localStorage.getItem('stockChartPeriod');
@@ -219,25 +220,44 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // Cache for prefetched hourly data
   const hourlyCache = useRef<Record<string, IntradayCandle[]>>({});
 
-  // Initial fetch — full details (profile, metrics, candles, quote) + intraday + prefetch hourly
+  // Initial fetch — progressive loading: quote + chart first (fast), then full details
   const fetchInitial = useCallback(async () => {
     try {
-      const [result, intraday, hourly1W, hourly1M] = await Promise.all([
-        getStockDetails(ticker),
+      // PHASE 1: Quick load - quote + chart candles via Yahoo Finance (all fast, no queue)
+      const [quoteResult, intraday, hourly1W, hourly1M] = await Promise.all([
+        getFastQuote(ticker).catch(() => null),
         getIntradayCandles(ticker).catch(() => []),
         getHourlyCandles(ticker, '1W').catch(() => []),
         getHourlyCandles(ticker, '1M').catch(() => []),
       ]);
-      hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
-      // Set hourly candles immediately if current period needs them
-      if (chartPeriod === '1W') setHourlyCandles(hourly1W);
-      else if (chartPeriod === '1M') setHourlyCandles(hourly1M);
+
+      // If fast quote succeeded, show it immediately
+      if (quoteResult) {
+        setData({
+          ticker,
+          quote: quoteResult,
+          profile: null,
+          metrics: null,
+          candles: null,
+        });
+        setIntradayCandles(intraday);
+        hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
+        if (chartPeriod === '1W') setHourlyCandles(hourly1W);
+        else if (chartPeriod === '1M') setHourlyCandles(hourly1M);
+        setQuickLoaded(true);
+
+        // Seed live prices with current price
+        const now = new Date().toISOString();
+        setLivePrices([{ time: now, price: quoteResult.currentPrice }]);
+      }
+
+      // PHASE 2: Full load - profile, metrics, historical candles (slower - Finnhub queue)
+      const result = await getStockDetails(ticker);
+
       setData(result);
-      setIntradayCandles(intraday);
+      setIntradayCandles(intraday.length > 0 ? intraday : intradayCandles);
+      setQuickLoaded(true);
       setError(null);
-      // Seed live prices with current price
-      const now = new Date().toISOString();
-      setLivePrices([{ time: now, price: result.quote.currentPrice }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load stock details');
     } finally {
@@ -274,6 +294,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
   useEffect(() => {
     setLoading(true);
+    setQuickLoaded(false);
     setData(null);
     setLivePrices([]);
     setIntradayCandles([]);
@@ -412,7 +433,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     return { active: false };
   }, [data?.candles, chartPeriod]);
 
-  if (loading) {
+  // Full skeleton only when we don't even have the quick quote yet
+  if (!quickLoaded) {
     return (
       <div className="py-6">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
@@ -554,7 +576,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>
       </div>
 
-      {/* Price Chart */}
+      {/* Price Chart - shows as soon as we have intraday candles (Phase 1) */}
       <div className="mb-8">
         <StockPriceChart
           candles={data.candles}
@@ -567,11 +589,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           previousClose={quote.previousClose}
           onHoverPrice={handleHoverPrice}
           goldenCrossDate={goldenCrossInfo.active ? goldenCrossInfo.date : null}
+          session={quote.session}
         />
       </div>
 
       {/* WARNING Risk Dashboard */}
-      <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />
+      {!loading && <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />}
 
       {/* Your Position */}
       {holding && (
@@ -602,7 +625,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       )}
 
       {/* About Section - Robinhood style */}
-      {(about?.description || profile?.name) && (
+      {loading ? (
+        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6 animate-pulse">
+          <div className="h-5 w-16 bg-rh-light-bg dark:bg-rh-dark rounded mb-3" />
+          <div className="space-y-2">
+            <div className="h-4 w-full bg-rh-light-bg dark:bg-rh-dark rounded" />
+            <div className="h-4 w-full bg-rh-light-bg dark:bg-rh-dark rounded" />
+            <div className="h-4 w-3/4 bg-rh-light-bg dark:bg-rh-dark rounded" />
+          </div>
+        </div>
+      ) : (about?.description || profile?.name) && (
         <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
           <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-3">About</h2>
 
@@ -703,7 +735,19 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       )}
 
       {/* Key Statistics */}
-      {(metrics || quote) && (
+      {loading ? (
+        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6 animate-pulse">
+          <div className="h-5 w-28 bg-rh-light-bg dark:bg-rh-dark rounded mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
+            {[1,2,3,4,5,6,7,8].map(i => (
+              <div key={i}>
+                <div className="h-3 w-16 bg-rh-light-bg dark:bg-rh-dark rounded mb-1.5" />
+                <div className="h-5 w-20 bg-rh-light-bg dark:bg-rh-dark rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (metrics || quote) && (
         <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
           <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-4">Key Statistics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">

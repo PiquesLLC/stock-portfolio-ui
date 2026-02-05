@@ -13,6 +13,7 @@ interface Props {
   previousClose: number;
   onHoverPrice?: (price: number | null, label: string | null) => void;
   goldenCrossDate?: string | null; // ISO date string of golden cross within timeframe
+  session?: string; // Market session: 'REG', 'PRE', 'POST', 'CLOSED'
 }
 
 const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
@@ -282,7 +283,7 @@ const PAD_BOTTOM = 30;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
 
-export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, onHoverPrice, goldenCrossDate }: Props) {
+export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, onHoverPrice, goldenCrossDate, session }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -1715,8 +1716,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           </div>
         )}
 
-        {/* Live badge */}
-        {selectedPeriod === '1D' && hasData && (
+        {/* Live badge - only show when market is actively trading */}
+        {selectedPeriod === '1D' && hasData && session && session !== 'CLOSED' && (
           <div className="absolute right-0 top-0">
             <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium">
               <span className="relative flex h-1.5 w-1.5">
