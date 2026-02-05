@@ -134,6 +134,13 @@ export async function checkUsernameAvailable(username: string): Promise<{ availa
   return fetchJson(`${API_BASE_URL}/auth/check-username/${encodeURIComponent(username)}`);
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/change-password`, {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
 export async function getPortfolio(userId?: string): Promise<Portfolio> {
   const url = userId
     ? `${API_BASE_URL}/portfolio?userId=${encodeURIComponent(userId)}`
