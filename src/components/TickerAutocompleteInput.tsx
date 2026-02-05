@@ -9,9 +9,9 @@ const prefetchedTickers = new Set<string>();
  * Pre-fetch stock details for top search results to warm the cache
  */
 function prefetchTopResults(results: SymbolSearchResult[]): void {
-  // Pre-fetch top 3 results that haven't been fetched yet
+  // Pre-fetch top 5 results that haven't been fetched yet
   const toPrefetch = results
-    .slice(0, 3)
+    .slice(0, 5)
     .map(r => r.symbol.toUpperCase())
     .filter(ticker => !prefetchedTickers.has(ticker));
 
@@ -359,7 +359,15 @@ export function TickerAutocompleteInput({
                 e.stopPropagation();
                 handleSelect(result);
               }}
-              onMouseEnter={() => setSelectedIndex(index)}
+              onMouseEnter={() => {
+                setSelectedIndex(index);
+                // Pre-fetch on hover for faster loading when clicked
+                const ticker = result.symbol.toUpperCase();
+                if (!prefetchedTickers.has(ticker)) {
+                  prefetchedTickers.add(ticker);
+                  getStockDetails(ticker).catch(() => prefetchedTickers.delete(ticker));
+                }
+              }}
               role="option"
               aria-selected={selectedIndex === index}
               className={`px-3 py-2 cursor-pointer transition-colors
