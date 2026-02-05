@@ -304,6 +304,18 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
+  // ── Click outside chart clears measurement ────────────────────
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (svgRef.current && !svgRef.current.contains(e.target as Node)) {
+        setMeasureA(null);
+        setMeasureB(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // ── Chart data ─────────────────────────────────────────────────
 
   const points = chartData?.points ?? [];
@@ -717,7 +729,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
             {/* Clear hint */}
             <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">
-              Click chart to remeasure · ESC to clear
+              Click chart to remeasure · Click outside to clear
             </div>
           </div>
         </div>
