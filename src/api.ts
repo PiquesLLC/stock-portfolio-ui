@@ -736,7 +736,7 @@ export async function getUnreadAnalystCount(): Promise<{ count: number }> {
 }
 
 // Alpha Vantage Fundamentals / Earnings / Economic endpoints
-import { EconomicDashboardResponse, InternationalEconomicResponse, FundamentalsResponse, EarningsResponse } from './types';
+import { EconomicDashboardResponse, InternationalEconomicResponse, PortfolioMacroImpactResponse, FundamentalsResponse, EarningsResponse } from './types';
 
 export async function getEconomicDashboard(): Promise<EconomicDashboardResponse> {
   return fetchJson<EconomicDashboardResponse>(`${API_BASE_URL}/fundamentals/economic`);
@@ -744,6 +744,10 @@ export async function getEconomicDashboard(): Promise<EconomicDashboardResponse>
 
 export async function getInternationalEconomic(): Promise<InternationalEconomicResponse> {
   return fetchJson<InternationalEconomicResponse>(`${API_BASE_URL}/fundamentals/economic/international`);
+}
+
+export async function getPortfolioMacroImpact(): Promise<PortfolioMacroImpactResponse> {
+  return fetchJson<PortfolioMacroImpactResponse>(`${API_BASE_URL}/fundamentals/economic/portfolio-impact`);
 }
 
 export async function getFundamentals(ticker: string): Promise<FundamentalsResponse> {

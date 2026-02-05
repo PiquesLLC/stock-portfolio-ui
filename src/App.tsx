@@ -554,27 +554,6 @@ export default function App() {
               )}
               <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
-            {/* Extended Hours Toggle - only show during extended hours sessions, hidden on mobile */}
-            {isExtendedHours && (
-              <label className="hidden sm:flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showExtendedHours}
-                  onChange={toggleExtendedHours}
-                  className="w-4 h-4 rounded border-rh-border dark:border-rh-border bg-rh-dark dark:bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-0"
-                />
-                <span className="text-xs text-rh-muted dark:text-rh-muted">Extended hours</span>
-              </label>
-            )}
-            {isStale && (
-              <span className="hidden sm:flex items-center gap-2" title="Repricing quotes…">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
-                </span>
-                <span className="text-xs text-yellow-400">Repricing…</span>
-              </span>
-            )}
             {lastUpdate && (
               <span className="hidden sm:inline text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
                 {lastUpdate.toLocaleTimeString()}

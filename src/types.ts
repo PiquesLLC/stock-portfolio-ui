@@ -1001,6 +1001,29 @@ export interface InternationalEconomicResponse {
   dataAge: 'fresh' | 'cached' | 'stale';
 }
 
+// Portfolio Macro Impact types
+export interface MacroInsight {
+  id: 'sector_sensitivity' | 'cross_border' | 'regime' | 'ticker_macro';
+  icon: string;
+  headline: string;
+  detail: string;
+  sentiment: 'healthy' | 'caution' | 'concern' | 'neutral';
+}
+
+export interface FedSentiment {
+  score: number;       // -100 (dovish) to +100 (hawkish)
+  label: string;
+  rationale: string;
+}
+
+export interface PortfolioMacroImpactResponse {
+  insights: MacroInsight[];
+  fedSentiment: FedSentiment | null;
+  projectedQuarter: string;
+  generatedAt: string;
+  dataAge: 'fresh' | 'cached' | 'stale';
+}
+
 // Company Fundamentals types (Alpha Vantage)
 export interface ParsedOverview {
   name: string;
