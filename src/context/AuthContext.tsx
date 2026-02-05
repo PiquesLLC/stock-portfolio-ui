@@ -18,12 +18,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Dev mode: set VITE_DEV_USER_ID in .env.local to skip login
+const DEV_USER = import.meta.env.VITE_DEV_USER_ID ? {
+  id: import.meta.env.VITE_DEV_USER_ID as string,
+  username: (import.meta.env.VITE_DEV_USERNAME as string) || 'DevUser',
+  displayName: (import.meta.env.VITE_DEV_DISPLAY_NAME as string) || 'Dev User',
+} : null;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is authenticated on mount (cookie-based auth)
   useEffect(() => {
+    // Dev mode bypass - skip login entirely
+    if (DEV_USER) {
+      setUser(DEV_USER);
+      setIsLoading(false);
+      return;
+    }
+
     getCurrentUser()
       .then(setUser)
       .catch(() => {
