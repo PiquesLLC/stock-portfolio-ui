@@ -1157,12 +1157,14 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     }
   }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement]);
 
-  // Measurement computation
+  // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
     if (measureA === null || measureB === null) return null;
     if (!points[measureA] || !points[measureB]) return null;
-    const pA = points[measureA];
-    const pB = points[measureB];
+    // Sort by index so A is always the earlier point in time
+    const [idxA, idxB] = measureA <= measureB ? [measureA, measureB] : [measureB, measureA];
+    const pA = points[idxA];
+    const pB = points[idxB];
     if (pA.price === 0) return null;
     const ab = {
       startPrice: pA.price, endPrice: pB.price,
@@ -2056,6 +2058,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           return (
             <div
               className="absolute z-40 pointer-events-auto"
+              onMouseEnter={() => { if (pinnedEventIdx === null) setHoveredEventIdx(activeEventCluster); }}
+              onMouseLeave={() => { if (pinnedEventIdx === null) setHoveredEventIdx(null); }}
               style={{
                 top: showAbove ? `${((priceY - 14) / CHART_H) * 100}%` : `${((priceY + 14) / CHART_H) * 100}%`,
                 left: `${leftPct}%`,
@@ -2063,37 +2067,33 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               }}
             >
               <div
-                className="rounded-xl px-4 py-3 text-left shadow-2xl"
+                className="rounded-xl px-4 py-3 text-left shadow-2xl bg-gray-50/95 dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200/60 dark:border-white/[0.08]"
                 style={{
-                  background: 'rgba(20, 20, 25, 0.92)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255,255,255,0.08)',
                   minWidth: '200px',
                   maxWidth: '280px',
                 }}
               >
                 {/* Header: date + close button */}
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-white/40">{dateStr}</span>
+                  <span className="text-[11px] text-rh-light-muted/50 dark:text-white/40">{dateStr}</span>
                   {isPinned && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPinnedEventIdx(null); }}
-                      className="text-white/30 hover:text-white/70 transition-colors ml-3 -mr-1 -mt-1"
+                      className="text-rh-light-muted/40 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 transition-colors ml-3 -mr-1 -mt-1"
                       style={{ fontSize: '14px', lineHeight: 1 }}
                     >&times;</button>
                   )}
                 </div>
 
                 {items.map((item, ii) => (
-                  <div key={ii} className={ii > 0 ? 'mt-3 pt-3 border-t border-white/[0.06]' : ''}>
+                  <div key={ii} className={ii > 0 ? 'mt-3 pt-3 border-t border-gray-200/20 dark:border-white/[0.06]' : ''}>
                     {/* Title */}
-                    <div className="text-[13px] font-semibold text-white leading-tight mb-1.5">{item.title}</div>
+                    <div className="text-[13px] font-semibold text-rh-light-text dark:text-white leading-tight mb-1.5">{item.title}</div>
 
                     {/* Badges row */}
                     <div className="flex items-center gap-1.5 mb-2">
                       {item.typeBadge && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 font-medium">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-200/50 dark:bg-white/10 text-rh-light-muted dark:text-white/60 font-medium">
                           {item.typeBadge.toLowerCase()}
                         </span>
                       )}
@@ -2106,7 +2106,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
                     {/* Detail text */}
                     {item.detail && (
-                      <p className="text-[11px] text-white/60 leading-relaxed">{item.detail}</p>
+                      <p className="text-[11px] text-rh-light-text/70 dark:text-white/60 leading-relaxed">{item.detail}</p>
                     )}
 
                     {/* Source link */}
