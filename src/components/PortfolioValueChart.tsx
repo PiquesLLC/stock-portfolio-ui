@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PortfolioChartData, PortfolioChartPeriod } from '../types';
 import { getPortfolioChart, getBenchmarkCloses, getIntradayCandles, getHourlyCandles, BenchmarkCandle, IntradayCandle } from '../api';
 
+type MarketSessionProp = 'PRE' | 'REG' | 'POST' | 'CLOSED';
+
 export interface ChartMeasurement {
   startTime: number;
   endTime: number;
@@ -27,6 +29,7 @@ interface Props {
   onPeriodChange?: (period: PortfolioChartPeriod) => void;
   onReturnChange?: (returnPct: number | null) => void;
   onMeasurementChange?: (measurement: ChartMeasurement | null) => void;
+  session?: MarketSessionProp;
 }
 
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
@@ -168,7 +171,7 @@ function snapToNearest(
 // Component
 // ════════════════════════════════════════════════════════════════════
 
-export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange }: Props) {
+export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session }: Props) {
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
@@ -679,7 +682,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             {formatCurrency(displayValue)}
           </p>
           {/* Show separate regular + after-hours lines when applicable */}
-          {showDayChange && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 ? (
+          {showDayChange && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST' ? (
             <>
               <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                 {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})

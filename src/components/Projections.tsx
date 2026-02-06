@@ -151,7 +151,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
   if (loading && !data && !paceData) {
     return (
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Projections</h2>
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent"></div>
@@ -162,7 +162,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
   if (error && !data && !paceData) {
     return (
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Projections</h2>
         <p className="text-rh-red text-center py-8">{error}</p>
       </div>
@@ -172,7 +172,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
   const sp500Data = data && isSP500Response(data) ? data : null;
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
       {/* Header with mode toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Portfolio Projections</h2>
@@ -209,7 +209,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
       {/* S&P 500 Mode */}
       {mode === 'sp500' && (
         <>
-          <div className="bg-gray-100 dark:bg-rh-dark/50 rounded-lg p-3 mb-6 text-sm">
+          <div className="bg-white/[0.03] dark:bg-white/[0.03] rounded-lg p-3 mb-6 text-sm">
             {sp500Data && (
               <p className="text-rh-light-muted dark:text-rh-muted">
                 Assuming S&P 500 historical total return of{' '}
@@ -236,7 +236,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   data.currentValue > 0 ? (gain / data.currentValue) * 100 : 0;
 
                 return (
-                  <div key={horizon} className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
+                  <div key={horizon} className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4">
                     <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">{horizonLabels[horizon]}</p>
                     <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(projected)}</p>
                     <p
@@ -269,7 +269,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
           {/* Window selector */}
           <div className="flex items-center gap-2 mb-6">
             <span className="text-sm text-rh-light-muted dark:text-rh-muted">Window:</span>
-            <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1">
+            <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1">
               {PACE_WINDOWS.map((w) => (
                 <button
                   key={w.value}
@@ -298,7 +298,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
           {/* YTD Settings Form */}
           {showYtdForm && (
-            <div className="bg-rh-light-bg dark:bg-rh-dark/50 rounded-lg p-4 mb-4 border border-rh-light-border dark:border-rh-border">
+            <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4 mb-4 border border-rh-light-border dark:border-rh-border">
               <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-3">True YTD Settings</h4>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
@@ -309,7 +309,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     value={ytdEquity}
                     onChange={(e) => setYtdEquity(e.target.value)}
                     placeholder="e.g. 50000"
-                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
+                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-rh-light-border dark:border-rh-border bg-white/[0.04] dark:bg-white/[0.04] text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
                   />
                 </div>
                 <div>
@@ -320,7 +320,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     value={ytdContributions}
                     onChange={(e) => setYtdContributions(e.target.value)}
                     placeholder="deposits - withdrawals"
-                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
+                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-rh-light-border dark:border-rh-border bg-white/[0.04] dark:bg-white/[0.04] text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
                   />
                 </div>
               </div>
@@ -378,7 +378,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
             <>
               {/* Metrics row */}
               <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
+                <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4">
                   <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Window Return</p>
                   <p className={`text-lg font-bold ${
                     (paceData.windowReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -389,7 +389,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     )}
                   </p>
                 </div>
-                <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
+                <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4">
                   <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Annualized Pace (Linear)</p>
                   <p className={`text-lg font-bold ${
                     (paceData.annualizedPacePct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -403,7 +403,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     )}
                   </p>
                 </div>
-                <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
+                <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4">
                   <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Current Assets</p>
                   <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">
                     {formatCurrency(paceData.currentAssets)}
@@ -419,7 +419,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     const proj = paceData.projections[horizon];
 
                     return (
-                      <div key={horizon} className="bg-rh-light-bg dark:bg-rh-dark rounded-lg p-4">
+                      <div key={horizon} className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4">
                         <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">
                           {paceHorizonLabels[horizon]}
                         </p>

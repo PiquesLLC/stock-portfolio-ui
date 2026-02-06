@@ -675,6 +675,7 @@ export default function App() {
                   onPeriodChange={setChartPeriod}
                   onReturnChange={setChartReturnPct}
                   onMeasurementChange={setChartMeasurement}
+                  session={portfolio.session}
                 />
                 <FuturesBanner session={portfolio.session} refreshTrigger={portfolioRefreshCount} />
               </div>

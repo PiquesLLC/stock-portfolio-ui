@@ -34,7 +34,7 @@ export function HeroInsights({ data }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {/* Sector Driver / Drag (toggleable) */}
-      <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px]">
+      <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <button
@@ -72,7 +72,7 @@ export function HeroInsights({ data }: Props) {
       </div>
 
       {/* Largest Drag / Driver (toggleable) */}
-      <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px]">
+      <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <button
@@ -114,7 +114,7 @@ export function HeroInsights({ data }: Props) {
       </div>
 
       {/* Momentum / Deceleration (toggleable) */}
-      <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px]">
+      <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             {hasEither ? (
