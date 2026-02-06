@@ -598,7 +598,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   <td className={`px-4 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
-                      {showExtendedHours && hasValidPrice && holding.session && holding.session !== 'CLOSED' && getSessionBadge(holding.session) && (
+                      {showExtendedHours && hasValidPrice && holding.session && holding.session !== 'CLOSED' && holding.session !== 'PRE' && getSessionBadge(holding.session) && (
                         <span
                           className={`text-[10px] px-1 py-0.5 rounded font-medium ${getSessionBadge(holding.session)!.color}`}
                           title={getSessionBadge(holding.session)!.title}

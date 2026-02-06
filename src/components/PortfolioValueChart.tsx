@@ -2,6 +2,18 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PortfolioChartData, PortfolioChartPeriod } from '../types';
 import { getPortfolioChart, getBenchmarkCloses, getIntradayCandles, getHourlyCandles, BenchmarkCandle, IntradayCandle } from '../api';
 
+export interface ChartMeasurement {
+  startTime: number;
+  endTime: number;
+  startValue: number;
+  endValue: number;
+  dollarChange: number;
+  percentChange: number;
+  daysBetween: number;
+  benchmarkReturn: number | null;
+  outperformance: number | null;
+}
+
 interface Props {
   currentValue: number;
   dayChange: number;
@@ -14,6 +26,7 @@ interface Props {
   fetchFn?: (period: PortfolioChartPeriod) => Promise<PortfolioChartData>;
   onPeriodChange?: (period: PortfolioChartPeriod) => void;
   onReturnChange?: (returnPct: number | null) => void;
+  onMeasurementChange?: (measurement: ChartMeasurement | null) => void;
 }
 
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
@@ -47,7 +60,7 @@ function formatCurrency(value: number): string {
 }
 
 function formatChange(value: number): string {
-  const sign = value >= 0 ? '+' : '';
+  const sign = value >= 0 ? '+' : '-';
   return `${sign}$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -155,7 +168,7 @@ function snapToNearest(
 // Component
 // ════════════════════════════════════════════════════════════════════
 
-export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange }: Props) {
+export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange }: Props) {
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
@@ -528,6 +541,26 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
   const measureIsGain = measurement ? measurement.dollarChange >= 0 : true;
   const measureColor = measureIsGain ? '#00C805' : '#E8544E';
+
+  // ── Notify parent of measurement changes ───────────────────────
+  useEffect(() => {
+    if (!onMeasurementChange) return;
+    if (!measurement) {
+      onMeasurementChange(null);
+    } else {
+      onMeasurementChange({
+        startTime: measurement.startTime,
+        endTime: measurement.endTime,
+        startValue: measurement.startValue,
+        endValue: measurement.endValue,
+        dollarChange: measurement.dollarChange,
+        percentChange: measurement.percentChange,
+        daysBetween: measurement.daysBetween,
+        benchmarkReturn: benchmarkResult?.spyReturn ?? null,
+        outperformance: benchmarkResult?.outperformance ?? null,
+      });
+    }
+  }, [measurement, benchmarkResult, onMeasurementChange]);
 
   // ── SVG coordinates for measurement markers ────────────────────
 

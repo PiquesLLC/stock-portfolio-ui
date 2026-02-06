@@ -14,7 +14,7 @@ import { WatchPage } from './components/WatchPage';
 import { MiniPlayer } from './components/MiniPlayer';
 import { UserProfileView } from './components/UserProfileView';
 import { StockDetailView } from './components/StockDetailView';
-import { PortfolioValueChart } from './components/PortfolioValueChart';
+import { PortfolioValueChart, ChartMeasurement } from './components/PortfolioValueChart';
 import { BenchmarkWidget } from './components/BenchmarkWidget';
 import { DividendsSection } from './components/DividendsSection';
 import { NotificationBell } from './components/NotificationBell';
@@ -137,6 +137,7 @@ export default function App() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
+  const [chartMeasurement, setChartMeasurement] = useState<ChartMeasurement | null>(null);
   const [, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -651,6 +652,7 @@ export default function App() {
                   fetchFn={(period) => getPortfolioChart(period, currentUserId)}
                   onPeriodChange={setChartPeriod}
                   onReturnChange={setChartReturnPct}
+                  onMeasurementChange={setChartMeasurement}
                 />
                 <FuturesBanner session={portfolio.session} refreshTrigger={portfolioRefreshCount} />
               </div>
@@ -679,33 +681,65 @@ export default function App() {
                 </div>
                 {/* Divider — separates capital from performance */}
                 <div className="hidden md:block w-px h-5 bg-white/[0.08] dark:bg-white/[0.08] bg-gray-300/40 mr-10" />
-                {/* Performance group */}
-                <div className="flex items-baseline gap-1.5 mr-8">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Day</span>
-                  <span className={`text-sm font-bold ${
-                    portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
-                  }`}>
-                    {portfolio.holdings.length > 0 ? formatCurrency(portfolio.dayChange) : '—'}
-                  </span>
-                  {portfolio.holdings.length > 0 && (
-                    <span className={`text-[10px] ${portfolio.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                      {formatPercent(portfolio.dayChangePercent)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Total P/L</span>
-                  <span className={`text-sm font-extrabold ${
-                    portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
-                  }`}>
-                    {portfolio.holdings.length > 0 ? formatCurrency(portfolio.totalPL) : '—'}
-                  </span>
-                  {portfolio.holdings.length > 0 && (
-                    <span className={`text-[10px] ${portfolio.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                      {formatPercent(portfolio.totalPLPercent)}
-                    </span>
-                  )}
-                </div>
+                {/* Performance group — swaps to measurement data when active */}
+                {chartMeasurement ? (
+                  <>
+                    <div className="flex items-baseline gap-1.5 mr-8">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">
+                        {new Date(chartMeasurement.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        {' → '}
+                        {new Date(chartMeasurement.endTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      </span>
+                      <span className={`text-sm font-extrabold ${
+                        chartMeasurement.dollarChange >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
+                      }`}>
+                        {chartMeasurement.dollarChange >= 0 ? '+' : '-'}${Math.abs(chartMeasurement.dollarChange).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className={`text-[10px] ${chartMeasurement.percentChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                        {chartMeasurement.percentChange >= 0 ? '+' : ''}{chartMeasurement.percentChange.toFixed(2)}%
+                      </span>
+                    </div>
+                    {chartMeasurement.outperformance !== null && (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">vs SPY</span>
+                        <span className={`text-sm font-bold ${
+                          chartMeasurement.outperformance >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
+                        }`}>
+                          {chartMeasurement.outperformance >= 0 ? '+' : ''}{chartMeasurement.outperformance.toFixed(2)}%
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline gap-1.5 mr-8">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Day</span>
+                      <span className={`text-sm font-bold ${
+                        portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
+                      }`}>
+                        {portfolio.holdings.length > 0 ? formatCurrency(portfolio.dayChange) : '—'}
+                      </span>
+                      {portfolio.holdings.length > 0 && (
+                        <span className={`text-[10px] ${portfolio.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                          {formatPercent(portfolio.dayChangePercent)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Total P/L</span>
+                      <span className={`text-sm font-extrabold ${
+                        portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
+                      }`}>
+                        {portfolio.holdings.length > 0 ? formatCurrency(portfolio.totalPL) : '—'}
+                      </span>
+                      {portfolio.holdings.length > 0 && (
+                        <span className={`text-[10px] ${portfolio.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                          {formatPercent(portfolio.totalPLPercent)}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
                 {/* Action buttons — pushed right */}
                 <div className="flex items-center gap-2 ml-auto">
                   <button
