@@ -196,6 +196,13 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const handlePeriodChange = useCallback((period: ChartPeriod) => {
     setChartPeriod(period);
     localStorage.setItem('stockChartPeriod', period);
+    // Synchronously set hourly candles to avoid a blank-frame flash
+    // when auto-zoom-switch changes to 1W/1M before the useEffect runs
+    if (period === '1W' || period === '1M') {
+      setHourlyCandles(hourlyCache.current[period] || []);
+    } else {
+      setHourlyCandles([]);
+    }
   }, []);
   // Intraday candles for 1D chart (from Yahoo Finance via API)
   const [intradayCandles, setIntradayCandles] = useState<IntradayCandle[]>([]);
@@ -399,9 +406,11 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // Hover state for chart crosshair (must be before ALL conditional returns — Rules of Hooks)
   const [hoverPrice, setHoverPrice] = useState<number | null>(null);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
-  const handleHoverPrice = useCallback((price: number | null, label: string | null) => {
+  const [hoverRefPrice, setHoverRefPrice] = useState<number | null>(null);
+  const handleHoverPrice = useCallback((price: number | null, label: string | null, refPrice?: number) => {
     setHoverPrice(price);
     setHoverLabel(label);
+    setHoverRefPrice(refPrice ?? null);
   }, []);
 
   // Compute period-specific change (must be before ALL conditional returns — Rules of Hooks)
@@ -537,11 +546,13 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const displayPrice = hoverPrice ?? basePrice;
   const isHovering = hoverPrice !== null;
 
-  // When hovering, compute change from the period's start price
+  // When hovering, compute change from the chart's reference price (first visible point)
+  // This ensures correct change when zoomed into historical data
   const periodStartPrice = basePrice - periodChange.change;
-  const activeChange = isHovering ? displayPrice - periodStartPrice : periodChange.change;
+  const hoverRef = isHovering && hoverRefPrice !== null ? hoverRefPrice : periodStartPrice;
+  const activeChange = isHovering ? displayPrice - hoverRef : periodChange.change;
   const activeChangePct = isHovering
-    ? (periodStartPrice !== 0 ? (activeChange / periodStartPrice) * 100 : 0)
+    ? (hoverRef !== 0 ? (activeChange / hoverRef) * 100 : 0)
     : periodChange.changePct;
 
   const isGain = activeChange >= 0;
