@@ -73,7 +73,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -105,7 +105,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex items-center gap-3"
+        className="flex items-center gap-3 max-w-3xl"
       >
         {/* Orbital hub — always visible, reacts to loading state */}
         <div className="relative w-8 h-8 flex-shrink-0">
