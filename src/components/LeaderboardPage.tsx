@@ -164,7 +164,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   };
 
   const getHeaderClass = (key: SortKey, align: 'left' | 'right' = 'left') => {
-    const base = 'px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-white/[0.04] transition-colors select-none whitespace-nowrap';
+    const base = 'px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors select-none whitespace-nowrap';
     const alignClass = align === 'right' ? 'text-right' : '';
     const activeClass = sortKey === key ? 'text-rh-light-text dark:text-white' : '';
     return `${base} ${alignClass} ${activeClass}`;
@@ -191,14 +191,14 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
-        <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
           {WINDOWS.map((w) => (
             <button
               key={w.id}
               onClick={() => setWindow(w.id)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
                 ${window === w.id
-                  ? 'bg-white/[0.06] dark:bg-white/[0.06] text-rh-green shadow-sm'
+                  ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
                 }`}
             >
@@ -215,7 +215,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
             onClick={() => setRegion(r.id)}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
               ${region === r.id
-                ? 'bg-white/[0.06] dark:bg-white/[0.06] text-rh-green shadow-sm'
+                ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
                 : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
           >
@@ -241,7 +241,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 animate-pulse flex items-center gap-4">
+            <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 animate-pulse flex items-center gap-4">
               <div className="w-6 h-4 bg-gray-200 dark:bg-rh-border rounded" />
               <div className="flex-1">
                 <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4 mb-2" />
@@ -257,10 +257,10 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
           No verified users found. Run the seed script to add demo users.
         </div>
       ) : (
-        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden">
+        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-left">
+              <tr className="border-b border-gray-200/50 dark:border-white/[0.06] text-left">
                 <th className={`${getHeaderClass('rank')} w-12 text-xs`} onClick={() => handleSort('rank')}>
                   #{getSortIndicator('rank')}
                 </th>
@@ -295,7 +295,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                   <tr
                     key={entry.userId}
                     onClick={() => setSelectedUserId(entry.userId)}
-                    className={`border-b border-white/[0.06] last:border-b-0 hover:bg-white/[0.04] cursor-pointer transition-colors ${
+                    className={`border-b border-gray-200/50 dark:border-white/[0.06] last:border-b-0 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] cursor-pointer transition-colors ${
                       entry.flagged ? 'opacity-50' : ''
                     }`}
                     title={entry.flagged ? entry.flagReason ?? 'Flagged' : undefined}

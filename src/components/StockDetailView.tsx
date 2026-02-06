@@ -76,7 +76,7 @@ function PositionCard({ label, value, valueColor, sub }: {
   sub?: string;
 }) {
   return (
-    <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl px-4 py-3">
+    <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl px-4 py-3">
       <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">{label}</div>
       <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-white/90'}`}>{value}</div>
       {sub && (
@@ -703,7 +703,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* About Section */}
       {(about?.description || profile?.name) && (
-        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-3">About</h2>
 
           {/* Description */}
@@ -804,7 +804,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Key Statistics */}
       {!loading && (metrics || quote) && (
-        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Key Statistics</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
             {profile && profile.marketCapM > 0 && (
@@ -854,18 +854,18 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         )}
       </div>
 
+      {/* Financials & Earnings - for non-ETF stocks only */}
+      {!etfHoldings?.isETF && (
+        <>
+          <EarningsSection ticker={ticker} />
+          <FundamentalsSection ticker={ticker} />
+        </>
+      )}
+
       {/* AI Research Q&A */}
       <div className="mb-6">
         <StockQAPanel ticker={ticker} />
       </div>
-
-      {/* Financials & Earnings - for non-ETF stocks only */}
-      {!etfHoldings?.isETF && (
-        <>
-          <FundamentalsSection ticker={ticker} />
-          <EarningsSection ticker={ticker} />
-        </>
-      )}
 
       {/* ETF Details Panel - consolidated dividends + holdings for ETFs */}
       {etfHoldings?.isETF ? (
@@ -883,7 +883,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Price Alerts */}
       {priceAlerts.length > 0 && (
-        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">Price Alerts</h2>
             <button

@@ -566,7 +566,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               return (
                 <tr
                   key={holding.id}
-                  className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-white/[0.03] dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''}`}
+                  className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''}`}
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
                 >
                   <td className="px-4 py-3 font-semibold text-rh-light-text dark:text-rh-text">

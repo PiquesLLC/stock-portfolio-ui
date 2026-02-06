@@ -18,6 +18,22 @@
   100% { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
 }
 
+/* Nala AI — shimmer skeleton */
+@keyframes nala-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.nala-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.04) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: nala-shimmer 1.8s ease-in-out infinite;
+}
+:root:not(.dark) .nala-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(0,0,0,0.03) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: nala-shimmer 1.8s ease-in-out infinite;
+}
+
 /* Nala AI — glowing border pulse */
 @keyframes nala-glow-pulse {
   0%, 100% { box-shadow: 0 0 6px 0 rgba(0, 200, 5, 0.25), inset 0 0 6px 0 rgba(0, 200, 5, 0.05); }

@@ -160,7 +160,7 @@ export default function EventFeed({ events }: EventFeedProps) {
                     <span className="text-[10px] font-mono font-semibold tracking-[0.18em] text-rh-light-muted/40 dark:text-white/20">
                       {TYPE_LABELS[event.type] || event.type}
                     </span>
-                    <span className="text-[10px] font-mono text-rh-light-muted/25 dark:text-white/12 tabular-nums">
+                    <span className="text-[10px] font-mono text-rh-light-muted/40 dark:text-white/25 tabular-nums">
                       {formatEventDate(event.date)}
                     </span>
                   </div>
@@ -191,7 +191,7 @@ export default function EventFeed({ events }: EventFeedProps) {
                       {getDomainFromUrl(event.source_url)} &#8599;
                     </a>
                   ) : (
-                    <span className="text-[10px] font-mono text-rh-light-muted/20 dark:text-white/10">
+                    <span className="text-[10px] font-mono text-rh-light-muted/35 dark:text-white/25">
                       perplexity.ai
                     </span>
                   )}

@@ -52,7 +52,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
   };
 
   return (
-    <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5">
+    <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <span className="relative flex h-2 w-2">
@@ -72,10 +72,10 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
               key={s}
               onClick={() => handleAsk(s)}
               className="px-3 py-1.5 text-[11px] rounded-full
-                bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60
+                bg-gray-50/60 dark:bg-white/[0.03]
                 text-rh-light-muted/70 dark:text-white/30
                 hover:text-rh-light-text dark:hover:text-white/60
-                border border-white/[0.06] dark:border-white/[0.06] border-gray-200/40
+                border border-gray-200/40 dark:border-white/[0.06]
                 hover:border-rh-green/30 hover:shadow-md hover:shadow-green-500/5
                 transition-all duration-200"
             >
@@ -97,11 +97,11 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
           disabled={loading}
           maxLength={500}
           className="flex-1 px-4 py-2.5 text-sm rounded-xl
-            bg-white/[0.04] dark:bg-white/[0.04] bg-gray-50/80
+            bg-gray-50/80 dark:bg-white/[0.04]
             backdrop-blur-xl
             text-rh-light-text dark:text-white
             placeholder:text-rh-light-muted/40 dark:placeholder:text-white/20
-            border border-white/[0.08] dark:border-white/[0.08] border-gray-200/60
+            border border-gray-200/60 dark:border-white/[0.08]
             focus:border-rh-green/50 focus:shadow-lg focus:shadow-green-500/10
             focus:outline-none
             disabled:opacity-50
@@ -152,7 +152,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
       {/* Answer */}
       {response && !loading && (
         <div className="mt-4 space-y-3">
-          <div className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-md rounded-xl border border-white/[0.05] dark:border-white/[0.05] border-gray-200/30 p-4">
+          <div className="bg-gray-50/60 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/30 dark:border-white/[0.05] p-4">
             <p className="text-[12px] leading-[1.6] text-rh-light-text/80 dark:text-white/60 whitespace-pre-wrap">
               {response.answer}
             </p>
@@ -161,7 +161,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
           {/* Citations */}
           {response.citations.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15 uppercase tracking-widest font-medium">Sources</span>
+              <span className="text-[10px] text-rh-light-muted/40 dark:text-white/30 uppercase tracking-widest font-medium">Sources</span>
               {response.citations.slice(0, 5).map((url, i) => {
                 let domain = '';
                 try { domain = new URL(url).hostname.replace('www.', ''); } catch { domain = 'source'; }
@@ -172,8 +172,8 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] px-2.5 py-1 rounded-lg
-                      bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60
-                      border border-white/[0.06] dark:border-white/[0.06] border-gray-200/40
+                      bg-gray-50/60 dark:bg-white/[0.03]
+                      border border-gray-200/40 dark:border-white/[0.06]
                       text-rh-green/60 hover:text-rh-green hover:border-rh-green/30
                       transition-all duration-200"
                   >

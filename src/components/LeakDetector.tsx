@@ -66,7 +66,7 @@ export function LeakDetector({ data }: LeakDetectorProps) {
   const hasSummaries = summaries.length > 0;
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Correlation Analysis <InfoTooltip text="Pearson correlation of daily returns between holdings. Clusters show groups with correlation > 0.7, meaning they tend to move together. High correlation reduces effective diversification." /></h3>
         <div className="flex items-center gap-2">
@@ -201,7 +201,7 @@ export function LeakDetector({ data }: LeakDetectorProps) {
 
       {/* Summary Messages */}
       {hasSummaries && (
-        <div className={`${hasClusters ? 'pt-3 border-t border-white/[0.04]' : ''}`}>
+        <div className={`${hasClusters ? 'pt-3 border-t border-gray-200/30 dark:border-white/[0.04]' : ''}`}>
           {summaries.map((summary, i) => (
             <p key={i} className="text-sm text-rh-light-muted dark:text-rh-muted">
               {summary}

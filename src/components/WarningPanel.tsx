@@ -654,7 +654,7 @@ function WarningCard({ id, title, metric }: { id: string; title: string; metric:
       </div>
       {/* Gradient bar for Risk Temperature */}
       {isTemp && (
-        <div className="relative h-1.5 rounded-full bg-white/[0.06] mt-1.5 mb-1.5 overflow-hidden">
+        <div className="relative h-1.5 rounded-full bg-gray-100/60 dark:bg-white/[0.06] mt-1.5 mb-1.5 overflow-hidden">
           <div
             className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
             style={{

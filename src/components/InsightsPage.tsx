@@ -163,7 +163,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'ai-briefing') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
           {subTabs.map((t) => (
             <button
               key={t.id}
@@ -187,7 +187,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'ai-behavior') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
           {subTabs.map((t) => (
             <button
               key={t.id}
@@ -211,7 +211,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'income') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
           {subTabs.map((t) => (
             <button
               key={t.id}
@@ -235,7 +235,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'projections-goals') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
           {subTabs.map((t) => (
             <button
               key={t.id}
@@ -277,7 +277,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     <div className="space-y-6">
       {/* Header: sub-tabs left, refresh + timestamp right */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
           {subTabs.map((t) => (
             <button
               key={t.id}
@@ -338,7 +338,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (
-        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-12 text-center">
+        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-12 text-center">
           <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>

@@ -193,8 +193,8 @@ function MetricCell({ label, value }: { label: string; value: string }) {
   const isNA = value === '--';
   return (
     <div>
-      <div className={`text-[9px] uppercase tracking-widest font-medium ${isNA ? 'text-rh-light-muted/20 dark:text-white/10' : 'text-rh-light-muted/60 dark:text-white/25'}`}>{label}</div>
-      <div className={`font-mono text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-muted/15 dark:text-white/[0.06]' : 'text-rh-light-text dark:text-white/80'}`}>
+      <div className={`text-[9px] uppercase tracking-widest font-medium ${isNA ? 'text-rh-light-muted/35 dark:text-white/20' : 'text-rh-light-muted/60 dark:text-white/25'}`}>{label}</div>
+      <div className={`font-mono text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-muted/25 dark:text-white/15' : 'text-rh-light-text dark:text-white/80'}`}>
         {isNA ? '·' : value}
       </div>
     </div>

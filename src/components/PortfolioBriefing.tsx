@@ -4,7 +4,7 @@ import { getPortfolioBriefing, PortfolioBriefingResponse } from '../api';
 function SentimentBorder({ sentiment }: { sentiment?: string }) {
   if (sentiment === 'positive') return 'border-l-4 border-rh-green';
   if (sentiment === 'negative') return 'border-l-4 border-rh-red';
-  return 'border-l-4 border-white/[0.04]';
+  return 'border-l-4 border-gray-200/30 dark:border-white/[0.04]';
 }
 
 export default function PortfolioBriefing() {
@@ -30,12 +30,12 @@ export default function PortfolioBriefing() {
   if (loading && !briefing) {
     return (
       <div className="space-y-4">
-        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 animate-pulse">
-          <div className="h-4 bg-white/[0.06] dark:bg-white/[0.06] rounded w-1/3 mb-4" />
-          <div className="h-6 bg-white/[0.06] dark:bg-white/[0.06] rounded w-3/4 mb-3" />
+        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 animate-pulse">
+          <div className="h-4 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/3 mb-4" />
+          <div className="h-6 bg-gray-100/60 dark:bg-white/[0.06] rounded w-3/4 mb-3" />
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 bg-white/[0.06] dark:bg-white/[0.06] rounded" />
+              <div key={i} className="h-20 bg-gray-100/60 dark:bg-white/[0.06] rounded" />
             ))}
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function PortfolioBriefing() {
 
   if (error && !briefing) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
         <p className="text-sm text-rh-red">{error}</p>
         <button
           onClick={fetchBriefing}
@@ -59,7 +59,7 @@ export default function PortfolioBriefing() {
 
   if (!briefing || briefing.holdingCount === 0) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
         <p className="text-sm text-rh-light-muted dark:text-rh-muted">
           Add holdings to your portfolio to receive an AI-powered briefing.
         </p>
@@ -74,7 +74,7 @@ export default function PortfolioBriefing() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-rh-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -105,12 +105,12 @@ export default function PortfolioBriefing() {
           ? 'border-l-4 border-rh-green'
           : section.sentiment === 'negative'
             ? 'border-l-4 border-rh-red'
-            : 'border-l-4 border-white/[0.04]';
+            : 'border-l-4 border-gray-200/30 dark:border-white/[0.04]';
 
         return (
           <div
             key={i}
-            className={`bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5 ${borderClass}`}
+            className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5 ${borderClass}`}
           >
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-2">
               {section.title}

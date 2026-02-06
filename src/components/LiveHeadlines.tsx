@@ -124,7 +124,7 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
                   onClick={handleClick}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
                   className="flex items-start gap-2 pl-0.5 rounded-lg transition-colors duration-150
-                    cursor-pointer hover:bg-white/[0.04] -mx-1.5 px-1.5"
+                    cursor-pointer hover:bg-gray-100/60 dark:hover:bg-white/[0.04] -mx-1.5 px-1.5"
                   style={{
                     animation: 'liveHeadlineIn 300ms ease-out both',
                   }}

@@ -21,6 +21,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
   const [suggestions, setSuggestions] = useState<NalaSuggestion[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const cacheRef = useRef<Map<string, NalaResearchResponse>>(new Map());
 
   useEffect(() => {
     getNalaSuggestions()
@@ -32,6 +33,15 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
     const query = (q || question).trim();
     if (!query || query.length < 5 || loading) return;
 
+    const cacheKey = query.toLowerCase();
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      setQuestion(query);
+      setError(null);
+      setResponse({ ...cached, cached: true });
+      return;
+    }
+
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -42,6 +52,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
 
     try {
       const data = await askNala(query, controller.signal);
+      cacheRef.current.set(cacheKey, data);
       setResponse(data);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
@@ -159,7 +170,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
             maxLength={500}
             className="w-full px-1 py-3 text-lg bg-transparent
               text-rh-light-text dark:text-white
-              placeholder:text-rh-light-muted/30 dark:placeholder:text-white/15
+              placeholder:text-rh-light-muted/40 dark:placeholder:text-white/25
               border-b border-white/[0.12]
               focus:border-b-2 focus:border-rh-green focus:shadow-[0_2px_15px_-3px_rgba(0,200,5,0.4)]
               focus:outline-none
@@ -236,48 +247,101 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-[30px] rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-10 text-center"
+            className="space-y-5"
           >
-            {/* Orbital data trails */}
-            <div className="relative w-16 h-16 mx-auto mb-4">
-              {/* Center glow */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-rh-green/20 twinkle-glow" />
-              </div>
-              {/* Orbiting stars */}
-              {[0, 1, 2].map(i => (
-                <div
-                  key={i}
-                  className="absolute inset-0"
-                  style={{
-                    animation: 'nala-orbit 2.4s linear infinite',
-                    animationDelay: `${-i * 0.8}s`,
-                  }}
-                >
-                  <span
-                    className="block w-2 h-2 rounded-full bg-rh-green"
-                    style={{
-                      opacity: 1 - i * 0.3,
-                      boxShadow: `0 0 8px 2px rgba(0, 200, 5, ${0.3 - i * 0.1})`,
-                    }}
-                  />
+            {/* Orbital + status */}
+            <div className="bg-gray-50/60 dark:bg-white/[0.03] backdrop-blur-[30px] rounded-[20px] border border-gray-200/40 dark:border-white/[0.08] p-10 text-center">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rh-green/20 twinkle-glow" />
                 </div>
+                {[0, 1, 2].map(i => (
+                  <div
+                    key={i}
+                    className="absolute inset-0"
+                    style={{
+                      animation: 'nala-orbit 2.4s linear infinite',
+                      animationDelay: `${-i * 0.8}s`,
+                    }}
+                  >
+                    <span
+                      className="block w-2 h-2 rounded-full bg-rh-green"
+                      style={{
+                        opacity: 1 - i * 0.3,
+                        boxShadow: `0 0 8px 2px rgba(0, 200, 5, ${0.3 - i * 0.1})`,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="font-mono text-sm font-medium text-rh-green">Researching...</p>
+              <p className="font-mono text-[11px] text-rh-light-muted/50 dark:text-white/30 mt-1">This may take 15-30 seconds</p>
+              <button
+                onClick={handleStop}
+                className="mt-4 text-[11px] font-medium px-3 py-1 rounded-lg
+                  bg-transparent border border-gray-200/40 dark:border-white/[0.1]
+                  text-rh-light-muted/50 dark:text-white/30
+                  hover:text-rh-red hover:border-rh-red/40
+                  transition-all duration-200"
+              >
+                Stop
+              </button>
+            </div>
+
+            {/* Shimmer skeleton cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {[0, 1, 2, 3].map(i => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 + i * 0.12 }}
+                  className="relative bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-[30px]
+                    border border-gray-200/40 dark:border-white/[0.08]
+                    rounded-[20px] p-5 overflow-hidden"
+                >
+                  {/* Shimmer overlay */}
+                  <div className="absolute inset-0 nala-shimmer rounded-[20px]" />
+
+                  {/* Header: ticker + price */}
+                  <div className="flex items-start justify-between mb-3 pt-1">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="h-4 w-12 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                        <div className="h-3.5 w-28 rounded bg-gray-200/40 dark:bg-white/[0.04]" />
+                      </div>
+                      <div className="h-3 w-20 rounded-full bg-gray-200/40 dark:bg-white/[0.04]" />
+                    </div>
+                    <div className="h-4 w-16 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                  </div>
+
+                  {/* Confidence bar */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-1.5 rounded-full bg-gray-200/40 dark:bg-white/[0.04]" />
+                    <div className="h-3 w-6 rounded bg-gray-200/40 dark:bg-white/[0.04]" />
+                  </div>
+
+                  {/* Metrics grid */}
+                  <div className="bg-gray-100/40 dark:bg-white/[0.02] rounded-2xl p-3 mb-4">
+                    <div className="grid grid-cols-4 gap-x-3 gap-y-2.5">
+                      {Array.from({ length: 8 }).map((_, j) => (
+                        <div key={j}>
+                          <div className="h-2 w-8 rounded bg-gray-200/40 dark:bg-white/[0.04] mb-1" />
+                          <div className="h-3 w-10 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Explanation lines */}
+                  <div className="space-y-2 mb-3">
+                    <div className="h-3 w-full rounded bg-gray-200/40 dark:bg-white/[0.04]" />
+                    <div className="h-3 w-[90%] rounded bg-gray-200/40 dark:bg-white/[0.04]" />
+                    <div className="h-3 w-[75%] rounded bg-gray-200/40 dark:bg-white/[0.04]" />
+                  </div>
+                </motion.div>
               ))}
             </div>
-            <p className="font-mono text-sm font-medium text-rh-green">
-              Researching...
-            </p>
-            <p className="font-mono text-[11px] text-rh-light-muted/40 dark:text-white/20 mt-1">This may take 15-30 seconds</p>
-            <button
-              onClick={handleStop}
-              className="mt-4 text-[11px] font-medium px-3 py-1 rounded-lg
-                bg-transparent border border-white/[0.1]
-                text-rh-light-muted/50 dark:text-white/30
-                hover:text-rh-red hover:border-rh-red/40
-                transition-all duration-200"
-            >
-              Stop
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -286,15 +350,47 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
       <AnimatePresence>
         {error && !loading && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="bg-red-500/[0.05] backdrop-blur-[30px] rounded-[20px] border border-red-500/20 p-6"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-red-500/[0.04] dark:bg-red-500/[0.05] backdrop-blur-[30px] rounded-[20px] border border-red-500/15 p-6"
           >
-            <p className="text-sm text-red-400 mb-2">{error}</p>
-            <button onClick={() => handleAsk()} className="text-xs text-rh-green hover:text-rh-green/80 transition-colors">
-              Try again
-            </button>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400 mb-1">Something went wrong</p>
+                <p className="font-mono text-xs text-rh-light-muted/50 dark:text-white/25 mb-3">{error}</p>
+                <div className="space-y-1.5 mb-4">
+                  <p className="text-[11px] text-rh-light-muted/50 dark:text-white/30">Things to try:</p>
+                  <ul className="text-[11px] text-rh-light-muted/50 dark:text-white/30 space-y-0.5 pl-3">
+                    <li>- Check your internet connection</li>
+                    <li>- Try a simpler or more specific query</li>
+                    <li>- Wait a moment and try again</li>
+                  </ul>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleAsk()}
+                    className="text-[11px] font-medium px-3 py-1 rounded-lg
+                      bg-transparent border border-rh-green/30
+                      text-rh-green/60 hover:text-rh-green hover:border-rh-green/60
+                      transition-all duration-200"
+                  >
+                    Try again
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="text-[11px] text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-muted dark:hover:text-white/40 transition-colors"
+                  >
+                    Ask something else
+                  </button>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -374,7 +470,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
                 transition={{ delay: 0.4 }}
                 className="flex flex-wrap items-center gap-2 px-1"
               >
-                <span className="font-mono text-[10px] text-rh-light-muted/30 dark:text-white/15 uppercase tracking-widest font-medium">Sources</span>
+                <span className="font-mono text-[10px] text-rh-light-muted/40 dark:text-white/30 uppercase tracking-widest font-medium">Sources</span>
                 {response.citations.slice(0, 6).map((url, i) => {
                   let domain = '';
                   try { domain = new URL(url).hostname.replace('www.', ''); } catch { domain = 'source'; }
@@ -399,7 +495,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
 
             {/* Footer */}
             <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[10px] text-rh-light-muted/30 dark:text-white/15">
+              <span className="font-mono text-[10px] text-rh-light-muted/40 dark:text-white/30">
                 Powered by AI {response.cached ? '(cached)' : ''}
               </span>
               <button
@@ -415,7 +511,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
             </div>
 
             {/* Disclaimer */}
-            <p className="font-mono text-[9px] text-rh-light-muted/25 dark:text-white/10 px-1 leading-relaxed">
+            <p className="font-mono text-[9px] text-rh-light-muted/40 dark:text-white/25 px-1 leading-relaxed">
               For informational and educational purposes only. Not financial advice.
               All data sourced from public financial databases. Past performance does not guarantee future results.
             </p>

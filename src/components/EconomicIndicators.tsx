@@ -668,7 +668,7 @@ function IndicatorCard({ indicator, isSelected, onClick }: { indicator: Economic
       className={`w-full text-left border rounded-lg p-4 transition-all cursor-pointer
         ${isSelected
           ? 'border-rh-green ring-1 ring-rh-green/30'
-          : 'border-white/[0.06] hover:border-white/[0.12]'
+          : 'border-gray-200/50 dark:border-white/[0.06] hover:border-white/[0.12]'
         }`}
       style={{
         borderLeftWidth: sentiment !== 'neutral' ? '3px' : undefined,
@@ -687,7 +687,7 @@ function IndicatorCard({ indicator, isSelected, onClick }: { indicator: Economic
                 <svg className="w-3 h-3 text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-white/[0.08] dark:bg-white/[0.08] backdrop-blur-md border border-white/[0.06] px-3 py-2.5 text-[11px] leading-relaxed text-rh-light-text dark:text-rh-text shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-gray-100/80 dark:bg-white/[0.08] backdrop-blur-md border border-gray-200/50 dark:border-white/[0.06] px-3 py-2.5 text-[11px] leading-relaxed text-rh-light-text dark:text-rh-text shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
                   {tooltip}
                 </span>
               </span>
@@ -760,7 +760,7 @@ function InsightPill({ insight }: { insight: MacroInsight }) {
       {/* Tooltip overlay — doesn't affect layout */}
       {insight.detail && (
         <div className="pointer-events-none absolute left-0 right-0 bottom-full mb-1.5 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <div className="mx-2 rounded-lg bg-white/[0.08] dark:bg-white/[0.08] backdrop-blur-md border border-white/[0.06] px-3 py-2 shadow-lg">
+          <div className="mx-2 rounded-lg bg-gray-100/80 dark:bg-white/[0.08] backdrop-blur-md border border-gray-200/50 dark:border-white/[0.06] px-3 py-2 shadow-lg">
             <p className="text-[11px] leading-relaxed text-rh-light-text dark:text-rh-text">
               {insight.detail}
             </p>
@@ -847,7 +847,7 @@ function FedSentimentGauge({ sentiment }: { sentiment: FedSentiment }) {
 
 function PortfolioImpactSkeleton() {
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 mb-6 animate-pulse">
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 mb-6 animate-pulse">
       <div className="h-3 bg-gray-200 dark:bg-rh-border rounded w-24 mb-3" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {[1, 2, 3, 4].map(i => (
@@ -889,7 +889,7 @@ function PortfolioImpactCard() {
   if (!data || data.insights.length === 0) return null;
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 mb-2">
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 mb-2">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-medium text-rh-light-muted dark:text-rh-muted uppercase tracking-wide">
           Portfolio Impact
@@ -909,7 +909,7 @@ function PortfolioImpactCard() {
         </div>
         {/* Fed Sentiment Gauge — right side */}
         {data.fedSentiment && (
-          <div className="hidden md:flex flex-shrink-0 items-center border-l border-white/[0.06] pl-4">
+          <div className="hidden md:flex flex-shrink-0 items-center border-l border-gray-200/50 dark:border-white/[0.06] pl-4">
             <FedSentimentGauge sentiment={data.fedSentiment} />
           </div>
         )}
@@ -1043,7 +1043,7 @@ export function EconomicIndicators() {
 
   if (error || !data || usIndicatorList.length === 0) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-8 text-center">
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-8 text-center">
         <p className="text-sm text-rh-light-muted dark:text-rh-muted">
           {error || 'Economic indicators data not yet available. Data refreshes daily.'}
         </p>
@@ -1095,7 +1095,7 @@ export function EconomicIndicators() {
 
       {/* Divider */}
       {euIndicatorList.length > 0 && (
-        <div className="border-t border-white/[0.06]" />
+        <div className="border-t border-gray-200/50 dark:border-white/[0.06]" />
       )}
 
       {/* ── European Union ── */}
@@ -1135,7 +1135,7 @@ export function EconomicIndicators() {
 
       {/* Divider */}
       {jpnIndicatorList.length > 0 && (
-        <div className="border-t border-white/[0.06]" />
+        <div className="border-t border-gray-200/50 dark:border-white/[0.06]" />
       )}
 
       {/* ── Japan ── */}
@@ -1184,7 +1184,7 @@ export function EconomicIndicators() {
       )}
 
       {/* ── Last Sync Footer ── */}
-      <div className="border-t border-white/[0.04] pt-4 mt-2">
+      <div className="border-t border-gray-200/30 dark:border-white/[0.04] pt-4 mt-2">
         <div className="flex items-center justify-between text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
           <div className="flex items-center gap-1">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1208,7 +1208,7 @@ export function EconomicIndicators() {
 
 function ChartPanel({ indicator, regionLabel, onClose }: { indicator: EconomicIndicator; regionLabel: string; onClose: () => void }) {
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
       <div className="flex items-start justify-between">
         <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1 uppercase tracking-wide font-medium">
           {regionLabel} &middot; {indicator.name}

@@ -46,7 +46,7 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick }: {
       >
         {entry.ticker}
       </button>
-      <div className="flex-1 h-5 bg-white/[0.02] dark:bg-white/[0.02] rounded overflow-hidden">
+      <div className="flex-1 h-5 bg-gray-50/40 dark:bg-white/[0.02] rounded overflow-hidden">
         <div
           className={`h-full rounded ${isPositive ? 'bg-rh-green/70' : 'bg-red-500/70'}`}
           style={{ width: `${Math.max(barWidth, 2)}%` }}
@@ -92,7 +92,7 @@ function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
           <div key={s.sector}>
             <button
               onClick={() => setExpanded(expanded === s.sector ? null : s.sector)}
-              className="flex items-center gap-2 text-sm w-full hover:bg-white/[0.04] dark:hover:bg-white/[0.04] rounded px-1 -mx-1 py-0.5 transition-colors"
+              className="flex items-center gap-2 text-sm w-full hover:bg-gray-100/60 dark:hover:bg-white/[0.04] rounded px-1 -mx-1 py-0.5 transition-colors"
             >
               <div className={`w-2.5 h-2.5 rounded-sm ${colors[i % colors.length]} opacity-80 shrink-0`} />
               <span className="text-rh-light-text dark:text-rh-text truncate">{s.sector}</span>
@@ -149,11 +149,11 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
     : 0;
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none space-y-4">
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none space-y-4">
       {/* Header + window selector */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="Shows top contributors/detractors by dollar P&L, sector exposure by market value, and portfolio beta vs SPY (covariance of daily returns divided by SPY variance)." /></h3>
-        <div className="flex gap-1 bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
           {(Object.keys(WINDOW_LABELS) as IntelligenceWindow[]).map((w) => (
             <button
               key={w}
@@ -173,7 +173,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
 
       {/* Explanation banner — bold tickers and dollar values */}
       {explanation && (
-        <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg px-4 py-3">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3">
           <p className="text-sm text-rh-light-text dark:text-rh-text">
             {explanation.split(/(\$[\d,.]+|\b[A-Z]{2,5}\b)/g).map((part, i) => {
               if (/^\$[\d,.]+$/.test(part) || /^[A-Z]{2,5}$/.test(part)) {
@@ -235,7 +235,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
 
           {/* Beta Card */}
           {beta && (
-            <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg px-4 py-3">
+            <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3">
               <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2"><Acronym label="Beta" /> vs <Acronym label="SPY" /></h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
