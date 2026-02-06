@@ -1196,23 +1196,28 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const measureIsGain = measurement ? measurement.ab.dollarChange >= 0 : true;
   const measureColor = measureIsGain ? '#00C805' : '#E8544E';
 
-  // SVG coordinates for measurement markers
-  const mAx = measureA !== null ? toX(measureA) : null;
+  // SVG coordinates for measurement markers (guard against stale indices after period change)
+  const mAx = measureA !== null && measureA < points.length ? toX(measureA) : null;
   const mAy = measureA !== null && points[measureA] ? toY(points[measureA].price) : null;
-  const mBx = measureB !== null ? toX(measureB) : null;
+  const mBx = measureB !== null && measureB < points.length ? toX(measureB) : null;
   const mBy = measureB !== null && points[measureB] ? toY(points[measureB].price) : null;
-  const mCx = measureC !== null ? toX(measureC) : null;
+  const mCx = measureC !== null && measureC < points.length ? toX(measureC) : null;
   const mCy = measureC !== null && points[measureC] ? toY(points[measureC].price) : null;
 
   // Shaded region — covers full range from A to C (or A to B if no C)
   const shadedPath = useMemo(() => {
     if (measureA === null || measureB === null) return '';
+    // Bail if indices are out of bounds (e.g. after period change)
+    if (measureA >= points.length || measureB >= points.length) return '';
+    if (measureC !== null && measureC >= points.length) return '';
     const indices = [measureA, measureB];
     if (measureC !== null) indices.push(measureC);
     const lo = Math.min(...indices);
     const hi = Math.max(...indices);
+    if (hi >= points.length) return '';
     const pts = [];
     for (let i = lo; i <= hi; i++) {
+      if (!points[i]) return '';
       pts.push(`${i === lo ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(points[i].price).toFixed(1)}`);
     }
     pts.push(`L${toX(hi).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`);

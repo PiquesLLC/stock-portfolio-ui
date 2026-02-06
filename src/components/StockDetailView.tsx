@@ -329,7 +329,11 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       ]);
       setData(prev => {
         if (!prev) return prev;
-        return { ...prev, quote };
+        // Preserve the best high/low/open across poll updates (Yahoo initial + Finnhub polls)
+        const high = Math.max(quote.high || 0, prev.quote.high || 0) || quote.high;
+        const low = (quote.low > 0 && prev.quote.low > 0) ? Math.min(quote.low, prev.quote.low) : (quote.low || prev.quote.low);
+        const open = quote.open > 0 ? quote.open : prev.quote.open;
+        return { ...prev, quote: { ...quote, high, low, open } };
       });
       if (intraday && intraday.length > 0) {
         setIntradayCandles(intraday);
@@ -810,30 +814,36 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {profile && profile.marketCapM > 0 && (
               <StatItem label="Mkt Cap" value={formatLargeNumber(profile.marketCapM)} />
             )}
-            {metrics?.peRatio !== undefined && (
-              <StatItem label={<><Acronym label="P/E" /></>} value={metrics.peRatio !== null ? metrics.peRatio.toFixed(2) : '—'} />
+            {metrics?.peRatio != null && (
+              <StatItem label={<><Acronym label="P/E" /></>} value={metrics.peRatio.toFixed(2)} />
             )}
-            {metrics?.dividendYield !== undefined && (
-              <StatItem label="Div Yield" value={metrics.dividendYield !== null ? `${metrics.dividendYield.toFixed(2)}%` : '—'} />
+            {metrics?.dividendYield != null && (
+              <StatItem label="Div Yield" value={`${metrics.dividendYield.toFixed(2)}%`} />
             )}
-            {metrics?.avgVolume10D !== undefined && (
+            {metrics?.avgVolume10D != null && (
               <StatItem label="Vol (10D)" value={formatVolume(metrics.avgVolume10D)} />
             )}
             <StatItem label="Open" value={quote.open > 0 ? formatCurrency(quote.open) : '—'} />
             <StatItem label="High" value={quote.high > 0 ? formatCurrency(quote.high) : '—'} />
             <StatItem label="Low" value={quote.low > 0 ? formatCurrency(quote.low) : '—'} />
             <StatItem label="Prev Close" value={formatCurrency(quote.previousClose)} />
-            {metrics?.week52High !== undefined && (
-              <StatItem label="52W High" value={metrics.week52High !== null ? formatCurrency(metrics.week52High) : '—'} />
+            {metrics?.week52High != null && (
+              <StatItem label="52W High" value={formatCurrency(metrics.week52High)} />
             )}
-            {metrics?.week52Low !== undefined && (
-              <StatItem label="52W Low" value={metrics.week52Low !== null ? formatCurrency(metrics.week52Low) : '—'} />
+            {metrics?.week52Low != null && (
+              <StatItem label="52W Low" value={formatCurrency(metrics.week52Low)} />
             )}
-            {metrics?.beta !== undefined && (
-              <StatItem label={<Acronym label="Beta" />} value={metrics.beta !== null ? metrics.beta.toFixed(2) : '—'} />
+            {metrics?.beta != null && (
+              <StatItem label={<Acronym label="Beta" />} value={metrics.beta.toFixed(2)} />
             )}
-            {metrics?.eps !== undefined && (
-              <StatItem label={<><Acronym label="EPS" /></>} value={metrics.eps !== null ? `$${metrics.eps.toFixed(2)}` : '—'} />
+            {metrics?.eps !== undefined && metrics.eps !== null && (
+              <StatItem label={<><Acronym label="EPS" /></>} value={`$${metrics.eps.toFixed(2)}`} />
+            )}
+            {metrics?.aumB != null && (
+              <StatItem label={<><Acronym label="AUM" /></>} value={`$${metrics.aumB.toFixed(0)}B`} />
+            )}
+            {metrics?.expenseRatio != null && (
+              <StatItem label="Expense Ratio" value={`${metrics.expenseRatio.toFixed(2)}%`} />
             )}
           </div>
         </div>

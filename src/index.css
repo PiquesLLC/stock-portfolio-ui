@@ -353,6 +353,37 @@ button:active:not(:disabled) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   STARFIELD — Warp-speed canvas background (dark mode only)
+   ═══════════════════════════════════════════════════════════════ */
+.starfield-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Vignette overlay — dims stars at edges for readability */
+.starfield-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 50%,
+    transparent 0%,
+    rgba(5, 5, 5, 0.3) 50%,
+    rgba(5, 5, 5, 0.75) 80%,
+    rgba(5, 5, 5, 0.95) 100%
+  );
+}
+
+/* Hide starfield in light mode */
+:root:not(.dark) .starfield-canvas,
+:root:not(.dark) .starfield-vignette {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    GRAIN TEXTURE — Premium tactile feel
    ═══════════════════════════════════════════════════════════════ */
 .grain-overlay {

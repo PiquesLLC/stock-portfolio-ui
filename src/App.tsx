@@ -29,6 +29,7 @@ import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
 import Hls from 'hls.js';
+import Starfield from './components/Starfield';
 
 export interface Channel {
   id: string;
@@ -480,8 +481,9 @@ export default function App() {
 
   if (loading && !portfolio) {
     return (
-      <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
+        <Starfield />
+        <div className="relative z-10 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-rh-green border-t-transparent mx-auto mb-4"></div>
           <p className="text-rh-light-muted dark:text-rh-muted">Loading portfolio...</p>
         </div>
@@ -491,8 +493,9 @@ export default function App() {
 
   if (error && !portfolio) {
     return (
-      <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
+      <div className="min-h-screen bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
+        <Starfield />
+        <div className="relative z-10 text-center max-w-md mx-auto p-6">
           <div className="text-rh-red text-6xl mb-4">!</div>
           <h1 className="text-xl font-semibold text-rh-light-text dark:text-rh-text mb-2">Connection Error</h1>
           <p className="text-rh-light-muted dark:text-rh-muted mb-4">{error}</p>
@@ -508,9 +511,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black text-rh-light-text dark:text-rh-text">
+    <div className="min-h-screen bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text">
+      <Starfield />
       <div className="grain-overlay" />
-      <header className="border-b border-rh-light-border/40 dark:border-rh-border/40">
+      <header className="relative z-30 border-b border-rh-light-border/40 dark:border-rh-border/40 dark:bg-black/30 dark:backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/north-signal-logo.png" alt="Nala" className="h-[42px] w-[42px] cursor-pointer" onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }} />
@@ -591,7 +595,7 @@ export default function App() {
         setLeaderboardUserId(null);
       }} />
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 py-6 space-y-8">
         {/* Stock Detail Overlay (works from any tab) */}
         {viewingStock && (
           <StockDetailView
@@ -834,7 +838,7 @@ export default function App() {
       />
 
       {/* Disclaimer Footer */}
-      <footer className="border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
+      <footer className="relative z-10 border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
         <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
         </p>
