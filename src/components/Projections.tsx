@@ -151,7 +151,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
   if (loading && !data && !paceData) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Projections</h2>
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent"></div>
@@ -162,7 +162,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
   if (error && !data && !paceData) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Portfolio Projections</h2>
         <p className="text-rh-red text-center py-8">{error}</p>
       </div>
@@ -172,14 +172,14 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
   const sp500Data = data && isSP500Response(data) ? data : null;
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
       {/* Header with mode toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Portfolio Projections</h2>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Mode toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-rh-light-border dark:border-rh-border">
+          <div className="flex rounded-lg overflow-hidden">
             <button
               type="button"
               onClick={() => setMode('sp500')}
@@ -253,7 +253,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
           </div>
 
           {sp500Data && (
-            <div className="border-t border-rh-light-border dark:border-rh-border pt-4">
+            <div className="border-t border-white/[0.04] pt-4">
               <p className="text-xs text-rh-light-muted dark:text-rh-muted">
                 S&P 500 historical average includes dividends reinvested. Past performance does
                 not guarantee future results.
@@ -298,7 +298,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
           {/* YTD Settings Form */}
           {showYtdForm && (
-            <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4 mb-4 border border-rh-light-border dark:border-rh-border">
+            <div className="bg-white/[0.02] dark:bg-white/[0.02] rounded-lg p-4 mb-4">
               <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-3">True YTD Settings</h4>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
@@ -309,7 +309,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     value={ytdEquity}
                     onChange={(e) => setYtdEquity(e.target.value)}
                     placeholder="e.g. 50000"
-                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-rh-light-border dark:border-rh-border bg-white/[0.04] dark:bg-white/[0.04] text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
+                    className="w-full px-3 py-1.5 text-sm rounded-lg bg-white/[0.04] dark:bg-white/[0.04] text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
                   />
                 </div>
                 <div>
@@ -320,7 +320,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     value={ytdContributions}
                     onChange={(e) => setYtdContributions(e.target.value)}
                     placeholder="deposits - withdrawals"
-                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-rh-light-border dark:border-rh-border bg-white/[0.04] dark:bg-white/[0.04] text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
+                    className="w-full px-3 py-1.5 text-sm rounded-lg bg-white/[0.04] dark:bg-white/[0.04] text-rh-light-text dark:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-green/50"
                   />
                 </div>
               </div>
@@ -335,7 +335,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                 </button>
                 <button
                   onClick={() => setShowYtdForm(false)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-rh-light-border dark:border-rh-border text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
                 >
                   Cancel
                 </button>
@@ -438,7 +438,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
               </div>
 
               {/* Footer */}
-              <div className="border-t border-rh-light-border dark:border-rh-border pt-4">
+              <div className="border-t border-white/[0.04] pt-4">
                 <div className="flex justify-between text-sm text-rh-light-muted dark:text-rh-muted mb-2">
                   <span>
                     {paceData.snapshotCount > 0

@@ -96,10 +96,10 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
         tabIndex={-1}
         role="dialog"
         aria-label={`${title} explanation`}
-        className="fixed top-0 right-0 h-full w-full max-w-md bg-black/80 dark:bg-black/80 backdrop-blur-xl border-l border-rh-light-border dark:border-rh-border
+        className="fixed top-0 right-0 h-full w-full max-w-md bg-black/80 dark:bg-black/80 backdrop-blur-xl border-l border-white/[0.04]
           shadow-xl z-50 overflow-y-auto outline-none animate-slide-in-right"
       >
-        <div className="sticky top-0 bg-black/80 dark:bg-black/80 backdrop-blur-xl border-b border-rh-light-border dark:border-rh-border px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-black/80 dark:bg-black/80 backdrop-blur-xl border-b border-white/[0.04] px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
             <p className={`text-sm font-medium ${getScoreColor(catDetail.score, catDetail.maxScore)}`}>
@@ -226,7 +226,7 @@ function IncomeHealthScore({ data }: { data: IncomeInsightsResponse['healthScore
 
   return (
     <>
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-1">
@@ -272,7 +272,7 @@ function IncomeKeyDrivers({ drivers }: { drivers: string[] }) {
   if (drivers.length === 0) return null;
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
       <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
         Key Income Drivers
       </h3>
@@ -308,7 +308,7 @@ function IncomeSignalCards({ signals }: { signals: IncomeInsightsResponse['signa
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Cash Flow */}
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-4">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2">
           <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -325,7 +325,7 @@ function IncomeSignalCards({ signals }: { signals: IncomeInsightsResponse['signa
       </div>
 
       {/* Momentum */}
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-4">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2">
           <svg className={`w-4 h-4 ${trendColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -348,7 +348,7 @@ function IncomeSignalCards({ signals }: { signals: IncomeInsightsResponse['signa
       </div>
 
       {/* Reliability */}
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-4">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2">
           <svg className={`w-4 h-4 ${reliabilityColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -379,7 +379,7 @@ function IncomeContributors({
 }) {
   if (contributors.length === 0) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
           Top Income Contributors
         </h3>
@@ -393,7 +393,7 @@ function IncomeContributors({
   const maxDividend = Math.max(...contributors.map(c => c.dividendDollar));
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
       <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">
         Top Income Contributors
       </h3>
@@ -438,7 +438,7 @@ function IncomeConcentration({ data }: { data: IncomeInsightsResponse['concentra
 
   return (
     <div className={`bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-5 ${
-      data.isConcentrated ? 'border-orange-400/50' : 'border-rh-light-border dark:border-rh-border'
+      data.isConcentrated ? 'border-orange-400/50' : 'border-white/[0.04]'
     }`}>
       <div className="flex items-center gap-2 mb-3">
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
@@ -491,7 +491,7 @@ function IncomeDividendTimeline({
 }) {
   if (events.length === 0) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
           Dividend Timeline
         </h3>
@@ -505,7 +505,7 @@ function IncomeDividendTimeline({
   const hasEstimatedDates = events.some(e => e.dateEstimated);
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
       <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">
         Dividend Timeline
       </h3>
@@ -576,11 +576,11 @@ export function IncomeInsights({ refreshTrigger }: Props) {
   if (loading && !data) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse bg-white/[0.06] dark:bg-white/[0.06] border border-rh-light-border dark:border-rh-border rounded-lg h-48" />
-        <div className="animate-pulse bg-white/[0.06] dark:bg-white/[0.06] border border-rh-light-border dark:border-rh-border rounded-lg h-24" />
+        <div className="animate-pulse bg-white/[0.06] dark:bg-white/[0.06] rounded-lg h-48" />
+        <div className="animate-pulse bg-white/[0.06] dark:bg-white/[0.06] rounded-lg h-24" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="animate-pulse bg-white/[0.06] dark:bg-white/[0.06] border border-rh-light-border dark:border-rh-border rounded-lg h-24" />
+            <div key={i} className="animate-pulse bg-white/[0.06] dark:bg-white/[0.06] rounded-lg h-24" />
           ))}
         </div>
       </div>
@@ -589,7 +589,7 @@ export function IncomeInsights({ refreshTrigger }: Props) {
 
   if (!data) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-12 text-center">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-12 text-center">
         <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>

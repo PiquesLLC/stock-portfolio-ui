@@ -149,7 +149,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
     : 0;
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none space-y-4">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none space-y-4">
       {/* Header + window selector */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="Shows top contributors/detractors by dollar P&L, sector exposure by market value, and portfolio beta vs SPY (covariance of daily returns divided by SPY variance)." /></h3>

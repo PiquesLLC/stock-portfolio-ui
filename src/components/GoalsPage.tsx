@@ -127,7 +127,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Retirement, House Down Payment"
-          className="w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+          className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
         />
       </div>
 
@@ -143,7 +143,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="1000000"
             min="1"
             step="any"
-            className="w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+            className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
           />
         </div>
 
@@ -158,7 +158,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="500"
             min="0"
             step="any"
-            className="w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+            className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
           />
         </div>
       </div>
@@ -175,7 +175,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg border border-rh-light-border dark:border-rh-border text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+            className="px-4 py-2 rounded-lg text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
           >
             Cancel
           </button>
@@ -232,7 +232,7 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
 
   return (
     <div className={`bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-6 shadow-sm dark:shadow-none ${
-      isAchieved ? 'border-rh-green' : 'border-rh-light-border dark:border-rh-border'
+      isAchieved ? 'border-rh-green' : 'border-white/[0.04]'
     }`}>
       <div className="flex items-start justify-between mb-4">
         <div>
@@ -322,7 +322,7 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
               </span>
             </div>
             {annualizedPacePct != null && (
-              <div className="flex justify-between text-sm border-t border-rh-light-border dark:border-rh-border pt-1 mt-1">
+              <div className="flex justify-between text-sm border-t border-white/[0.04] pt-1 mt-1">
                 <span className="text-amber-400">Your Pace ({annualizedPacePct > 0 ? '+' : ''}{annualizedPacePct.toFixed(1)}%)</span>
                 <span className="text-amber-400">
                   {yourPaceMonths !== null
@@ -473,7 +473,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
 
       {/* Add Goal Form */}
       {showForm && (
-        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Add New Goal</h3>
           <GoalForm
             onSubmit={handleCreateGoal}
@@ -484,7 +484,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
 
       {/* Edit Goal Form */}
       {editingGoal && (
-        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Edit Goal</h3>
           <GoalForm
             onSubmit={handleUpdateGoal}
@@ -502,7 +502,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
 
       {/* Goals List */}
       {goals.length === 0 ? (
-        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-12 text-center">
+        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-12 text-center">
           <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>

@@ -516,16 +516,16 @@ export function WatchHeadlines({ onTickerClick, onTickersExtracted }: WatchHeadl
 
   if (loading) {
     return (
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl p-5">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5">
         <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-rh-light-bg dark:bg-rh-dark rounded w-1/3" />
+          <div className="h-4 bg-white/[0.06] dark:bg-white/[0.06] rounded w-1/3" />
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex gap-3">
-              <div className="w-1 rounded-full bg-rh-light-bg dark:bg-rh-dark" />
+              <div className="w-1 rounded-full bg-white/[0.06] dark:bg-white/[0.06]" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 bg-rh-light-bg dark:bg-rh-dark rounded w-full" />
-                <div className="h-3 bg-rh-light-bg dark:bg-rh-dark rounded w-3/4" />
-                <div className="h-2 bg-rh-light-bg dark:bg-rh-dark rounded w-1/4" />
+                <div className="h-3 bg-white/[0.06] dark:bg-white/[0.06] rounded w-full" />
+                <div className="h-3 bg-white/[0.06] dark:bg-white/[0.06] rounded w-3/4" />
+                <div className="h-2 bg-white/[0.06] dark:bg-white/[0.06] rounded w-1/4" />
               </div>
             </div>
           ))}
@@ -550,7 +550,7 @@ export function WatchHeadlines({ onTickerClick, onTickersExtracted }: WatchHeadl
   const visible = expanded ? filtered : filtered.slice(0, 3);
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl p-5">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5">
       <style>{HEADLINE_KEYFRAMES}</style>
       <div className="flex items-center justify-between mb-4">
         <button
@@ -619,10 +619,10 @@ export function WatchHeadlines({ onTickerClick, onTickersExtracted }: WatchHeadl
                 }
               }}
               className="group flex gap-0 rounded-xl cursor-pointer
-                bg-rh-light-bg/60 dark:bg-white/[0.02]
-                border border-rh-light-border/60 dark:border-white/[0.04]
-                hover:border-rh-light-border dark:hover:border-white/[0.08]
-                hover:bg-rh-light-bg dark:hover:bg-white/[0.04]
+                bg-white/[0.02]
+                border border-white/[0.04]
+                hover:border-white/[0.08]
+                hover:bg-white/[0.04]
                 hover:-translate-y-[3px] hover:shadow-md hover:shadow-black/[0.04] dark:hover:shadow-black/20
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/30 focus-visible:ring-offset-1
                 transition-all duration-150 overflow-hidden"

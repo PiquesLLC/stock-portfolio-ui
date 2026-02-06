@@ -95,11 +95,11 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
         tabIndex={-1}
         role="dialog"
         aria-label={`${title} explanation`}
-        className="fixed top-0 right-0 h-full w-full max-w-md bg-black/80 dark:bg-black/80 backdrop-blur-xl border-l border-rh-light-border dark:border-rh-border
+        className="fixed top-0 right-0 h-full w-full max-w-md bg-black/80 dark:bg-black/80 backdrop-blur-xl border-l border-white/[0.04]
           shadow-xl z-50 overflow-y-auto outline-none animate-slide-in-right"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-black/80 dark:bg-black/80 backdrop-blur-xl border-b border-rh-light-border dark:border-rh-border px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-black/80 dark:bg-black/80 backdrop-blur-xl border-b border-white/[0.04] px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
             <p className={`text-sm font-medium ${isMargin ? (marginDetail.penalty > 0 ? 'text-rh-red' : 'text-rh-green') : getBarColor(catDetail!.score, catDetail!.maxScore)}`}>
@@ -273,7 +273,7 @@ export function HealthScore({ data }: HealthScoreProps) {
 
   if (partial) {
     return (
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4 flex items-center gap-2">Portfolio Health <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." /></h3>
         <p className="text-rh-light-muted dark:text-rh-muted">Add holdings to see your health score</p>
       </div>
@@ -282,7 +282,7 @@ export function HealthScore({ data }: HealthScoreProps) {
 
   return (
     <>
-      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
         {/* Compact header: score circle + label + title on one row */}
         <div className="flex items-center gap-4 mb-4">
           <div className="relative w-16 h-16 shrink-0">
@@ -360,7 +360,7 @@ export function HealthScore({ data }: HealthScoreProps) {
 
         {/* Quick Fixes — collapsed into summary */}
         {quickFixes.length > 0 && (
-          <details className="pt-3 border-t border-rh-light-border dark:border-rh-border">
+          <details className="pt-3 border-t border-white/[0.04]">
             <summary className="text-xs font-medium text-rh-green cursor-pointer hover:text-rh-green/80 transition-colors flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

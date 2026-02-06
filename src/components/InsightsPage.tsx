@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { HealthScore as HealthScoreType, Attribution as AttributionType, LeakDetectorResult, RiskForecast as RiskForecastType, PortfolioIntelligenceResponse } from '../types';
-import { getHealthScore, getAttribution, getLeakDetector, getRiskForecast, getPortfolioIntelligence } from '../api';
+import { HealthScore as HealthScoreType, Attribution as AttributionType, LeakDetectorResult, PortfolioIntelligenceResponse } from '../types';
+import { getHealthScore, getAttribution, getLeakDetector, getPortfolioIntelligence } from '../api';
 import { HealthScore } from './HealthScore';
 import { Attribution } from './Attribution';
 import { LeakDetector } from './LeakDetector';
-import { RiskForecast } from './RiskForecast';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
@@ -20,14 +19,12 @@ const insightsCache: {
   healthScore: HealthScoreType | null;
   attribution: AttributionType | null;
   leakDetector: LeakDetectorResult | null;
-  riskForecast: RiskForecastType | null;
   intelligence: PortfolioIntelligenceResponse | null;
   lastFetchTime: number | null;
 } = {
   healthScore: null,
   attribution: null,
   leakDetector: null,
-  riskForecast: null,
   intelligence: null,
   lastFetchTime: null,
 };
@@ -58,7 +55,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const [healthScore, setHealthScore] = useState<HealthScoreType | null>(insightsCache.healthScore);
   const [attribution, setAttribution] = useState<AttributionType | null>(insightsCache.attribution);
   const [leakDetector, setLeakDetector] = useState<LeakDetectorResult | null>(insightsCache.leakDetector);
-  const [riskForecast, setRiskForecast] = useState<RiskForecastType | null>(insightsCache.riskForecast);
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(insightsCache.intelligence);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(insightsCache.lastFetchTime !== null);
@@ -78,10 +74,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   useEffect(() => {
     insightsCache.leakDetector = leakDetector;
   }, [leakDetector]);
-
-  useEffect(() => {
-    insightsCache.riskForecast = riskForecast;
-  }, [riskForecast]);
 
   useEffect(() => {
     insightsCache.intelligence = intelligence;
@@ -107,9 +99,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         getLeakDetector()
           .then(data => { if (mountedRef.current) setLeakDetector(data); })
           .catch(e => console.error('Leak detector error:', e)),
-        getRiskForecast()
-          .then(data => { if (mountedRef.current) setRiskForecast(data); })
-          .catch(e => console.error('Risk forecast error:', e)),
         getPortfolioIntelligence('1d')
           .then(data => { if (mountedRef.current) setIntelligence(data); })
           .catch(e => console.error('Intelligence error:', e)),
@@ -139,7 +128,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
     const cacheIsStale = cacheAge > CACHE_TTL_MS;
     const hasNoData = !insightsCache.healthScore && !insightsCache.attribution &&
-      !insightsCache.leakDetector && !insightsCache.riskForecast && !insightsCache.intelligence;
+      !insightsCache.leakDetector && !insightsCache.intelligence;
 
     if (hasNoData) {
       // No data at all - do a visible fetch
@@ -159,20 +148,8 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     fetchInsights(false);
   };
 
-  const handleRiskForecastRefresh = async () => {
-    try {
-      const data = await getRiskForecast();
-      if (mountedRef.current) {
-        setRiskForecast(data);
-        insightsCache.riskForecast = data;
-      }
-    } catch (e) {
-      console.error('Risk forecast refresh error:', e);
-    }
-  };
-
   // Check if we have any data to show
-  const hasAnyData = healthScore || attribution || leakDetector || riskForecast || intelligence;
+  const hasAnyData = healthScore || attribution || leakDetector || intelligence;
 
   const subTabs: { id: InsightsSubTab; label: string }[] = [
     { id: 'intelligence', label: 'Intelligence' },
@@ -292,7 +269,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           <SkeletonCard lines={3} height="160px" />
           <SkeletonCard lines={3} height="160px" />
         </div>
-        <SkeletonCard lines={4} height="200px" />
       </div>
     );
   }
@@ -360,21 +336,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         )}
       </div>
 
-      {/* Risk Forecast - Always show */}
-      {riskForecast ? (
-        <RiskForecast
-          data={riskForecast}
-          onRefresh={handleRiskForecastRefresh}
-          isRefreshing={false}
-        />
-      ) : (
-        <SkeletonCard lines={4} height="200px" />
-      )}
-
-
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (
-        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-12 text-center">
+        <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-12 text-center">
           <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>

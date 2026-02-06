@@ -4,7 +4,7 @@ import { getPortfolioBriefing, PortfolioBriefingResponse } from '../api';
 function SentimentBorder({ sentiment }: { sentiment?: string }) {
   if (sentiment === 'positive') return 'border-l-4 border-rh-green';
   if (sentiment === 'negative') return 'border-l-4 border-rh-red';
-  return 'border-l-4 border-rh-light-border dark:border-rh-border';
+  return 'border-l-4 border-white/[0.04]';
 }
 
 export default function PortfolioBriefing() {
@@ -105,7 +105,7 @@ export default function PortfolioBriefing() {
           ? 'border-l-4 border-rh-green'
           : section.sentiment === 'negative'
             ? 'border-l-4 border-rh-red'
-            : 'border-l-4 border-rh-light-border dark:border-rh-border';
+            : 'border-l-4 border-white/[0.04]';
 
         return (
           <div

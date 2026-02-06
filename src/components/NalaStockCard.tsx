@@ -55,7 +55,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08, ease: 'easeOut' }}
       whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
-      className={`relative bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/80 backdrop-blur-xl
+      className={`relative bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/80 backdrop-blur-[30px]
         border border-white/[0.08] dark:border-white/[0.08] border-gray-200/60
         rounded-[20px] p-5 transition-shadow duration-300
         hover:shadow-lg hover:${getConfidenceGlow(stock.confidenceScore)}
@@ -88,7 +88,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
           </span>
         </div>
         <div className="text-right">
-          <div className="text-base font-bold text-rh-light-text dark:text-white tabular-nums tracking-tight">
+          <div className="font-mono text-base font-bold text-rh-light-text dark:text-white tabular-nums tracking-tight">
             {formatPrice(stock.currentPrice)}
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
             className={`h-full rounded-full bg-gradient-to-r ${getConfidenceGradient(stock.confidenceScore)}`}
           />
         </div>
-        <span className={`text-xs font-bold tabular-nums ${getConfidenceText(stock.confidenceScore)}`}>
+        <span className={`font-mono text-xs font-bold tabular-nums ${getConfidenceText(stock.confidenceScore)}`}>
           {stock.confidenceScore}
         </span>
       </div>
@@ -124,7 +124,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
       </div>
 
       {/* AI Explanation — gradient text */}
-      <p className="text-sm leading-relaxed mb-3 text-rh-light-text/90 dark:text-white/60">
+      <p className="font-mono text-sm leading-relaxed mb-3 text-rh-light-text/90 dark:text-white/60">
         {stock.explanation}
       </p>
 
@@ -154,7 +154,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="text-xs text-rh-light-muted/70 dark:text-white/30 mt-1.5 pl-4 leading-relaxed overflow-hidden"
+                className="font-mono text-xs text-rh-light-muted/70 dark:text-white/30 mt-1.5 pl-4 leading-relaxed overflow-hidden"
               >
                 {stock.risks}
               </motion.p>
@@ -175,7 +175,12 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
         )}
         <button
           onClick={() => onTickerClick?.(stock.ticker)}
-          className="text-[10px] font-semibold uppercase tracking-wider text-rh-green/60 hover:text-rh-green transition-colors"
+          className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md
+            bg-transparent border border-rh-green/25
+            text-rh-green/60 hover:text-rh-green hover:border-rh-green/50
+            transition-all duration-200"
+          onMouseEnter={e => (e.currentTarget.style.animation = 'nala-glow-pulse 2s ease-in-out infinite')}
+          onMouseLeave={e => (e.currentTarget.style.animation = 'none')}
         >
           View Details
         </button>
@@ -188,9 +193,9 @@ function MetricCell({ label, value }: { label: string; value: string }) {
   const isNA = value === '--';
   return (
     <div>
-      <div className="text-[9px] text-rh-light-muted/60 dark:text-white/25 uppercase tracking-widest font-medium">{label}</div>
-      <div className={`text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-muted/30 dark:text-white/15' : 'text-rh-light-text dark:text-white/80'}`}>
-        {value}
+      <div className={`text-[9px] uppercase tracking-widest font-medium ${isNA ? 'text-rh-light-muted/20 dark:text-white/10' : 'text-rh-light-muted/60 dark:text-white/25'}`}>{label}</div>
+      <div className={`font-mono text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-muted/15 dark:text-white/[0.06]' : 'text-rh-light-text dark:text-white/80'}`}>
+        {isNA ? '·' : value}
       </div>
     </div>
   );

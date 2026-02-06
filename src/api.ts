@@ -935,10 +935,11 @@ export interface NalaSuggestionsResponse {
   suggestions: NalaSuggestion[];
 }
 
-export async function askNala(question: string): Promise<NalaResearchResponse> {
+export async function askNala(question: string, signal?: AbortSignal): Promise<NalaResearchResponse> {
   return fetchJson<NalaResearchResponse>(`${API_BASE_URL}/nala/ask`, {
     method: 'POST',
     body: JSON.stringify({ question }),
+    signal,
   });
 }
 

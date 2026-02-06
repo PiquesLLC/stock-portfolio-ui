@@ -20,6 +20,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<NalaSuggestion[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     getNalaSuggestions()
@@ -31,18 +32,30 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
     const query = (q || question).trim();
     if (!query || query.length < 5 || loading) return;
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError(null);
     setQuestion(query);
 
     try {
-      const data = await askNala(query);
+      const data = await askNala(query, controller.signal);
       setResponse(data);
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setError(err.message || 'Failed to get research results');
     } finally {
+      abortRef.current = null;
       setLoading(false);
     }
+  };
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -87,13 +100,53 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
         </div>
       </motion.div>
 
-      {/* Search bar — glassmorphic */}
+      {/* Search bar with orbital hub */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex gap-2"
+        className="flex items-center gap-3"
       >
+        {/* Orbital hub — always visible, reacts to loading state */}
+        <div className="relative w-8 h-8 flex-shrink-0">
+          {/* Center dot */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className={`rounded-full transition-all duration-500 ${
+              loading
+                ? 'w-2 h-2 bg-rh-green/40'
+                : 'w-1 h-1 bg-rh-green/15 twinkle-glow'
+            }`} />
+          </div>
+          {/* 3 orbiting stars */}
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="absolute inset-0 flex items-center justify-center"
+              style={{
+                animation: loading
+                  ? 'nala-orbit-fast 1.6s linear infinite'
+                  : 'nala-orbit-idle 8s linear infinite',
+                animationDelay: `${-i * (loading ? 0.53 : 2.67)}s`,
+                transition: 'animation-duration 0.6s ease',
+              }}
+            >
+              <span
+                className="block rounded-full transition-all duration-500"
+                style={{
+                  width: loading ? '5px' : '3px',
+                  height: loading ? '5px' : '3px',
+                  backgroundColor: '#00C805',
+                  opacity: loading ? 1 - i * 0.25 : 0.3 - i * 0.08,
+                  boxShadow: loading
+                    ? `0 0 10px 3px rgba(0, 200, 5, ${0.4 - i * 0.12})`
+                    : `0 0 4px 1px rgba(0, 200, 5, ${0.15 - i * 0.04})`,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Input line */}
         <div className="flex-1 relative">
           <input
             ref={inputRef}
@@ -104,28 +157,33 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
             placeholder="Ask anything about investing..."
             disabled={loading}
             maxLength={500}
-            className="w-full px-5 py-3.5 text-sm rounded-2xl
-              bg-white/[0.04] dark:bg-white/[0.04] bg-gray-50/80
-              backdrop-blur-xl
+            className="w-full px-1 py-3 text-lg bg-transparent
               text-rh-light-text dark:text-white
-              placeholder:text-rh-light-muted/40 dark:placeholder:text-white/20
-              border border-white/[0.08] dark:border-white/[0.08] border-gray-200/60
-              focus:border-rh-green/50 focus:shadow-lg focus:shadow-green-500/10
+              placeholder:text-rh-light-muted/30 dark:placeholder:text-white/15
+              border-b border-white/[0.12]
+              focus:border-b-2 focus:border-rh-green focus:shadow-[0_2px_15px_-3px_rgba(0,200,5,0.4)]
               focus:outline-none
               disabled:opacity-50
               transition-all duration-300"
           />
         </div>
+
+        {/* Submit — glow border button */}
         <button
           onClick={() => handleAsk()}
           disabled={loading || question.trim().length < 5}
-          className="px-5 py-3.5 rounded-2xl font-medium
-            bg-rh-green
-            text-white shadow-lg shadow-green-500/25
-            hover:shadow-xl hover:shadow-green-500/30 hover:scale-[1.02]
-            disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
-            active:scale-[0.98]
+          className="px-4 py-3 rounded-xl font-medium
+            bg-transparent border border-rh-green/50
+            text-rh-green
+            hover:border-rh-green hover:text-white
+            disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-rh-green/50
+            active:scale-[0.96]
             transition-all duration-200"
+          style={{
+            animation: !loading && question.trim().length >= 5
+              ? 'nala-glow-pulse 2.5s ease-in-out infinite'
+              : 'none',
+          }}
         >
           {loading ? (
             <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -178,22 +236,48 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-xl rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-10 text-center"
+            className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-[30px] rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-10 text-center"
           >
-            <div className="flex justify-center gap-2 mb-4">
+            {/* Orbital data trails */}
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              {/* Center glow */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-rh-green/20 twinkle-glow" />
+              </div>
+              {/* Orbiting stars */}
               {[0, 1, 2].map(i => (
-                <motion.span
+                <div
                   key={i}
-                  animate={{ y: [-2, 2, -2] }}
-                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                  className="w-2.5 h-2.5 rounded-full bg-rh-green"
-                />
+                  className="absolute inset-0"
+                  style={{
+                    animation: 'nala-orbit 2.4s linear infinite',
+                    animationDelay: `${-i * 0.8}s`,
+                  }}
+                >
+                  <span
+                    className="block w-2 h-2 rounded-full bg-rh-green"
+                    style={{
+                      opacity: 1 - i * 0.3,
+                      boxShadow: `0 0 8px 2px rgba(0, 200, 5, ${0.3 - i * 0.1})`,
+                    }}
+                  />
+                </div>
               ))}
             </div>
-            <p className="text-sm font-medium text-rh-green">
+            <p className="font-mono text-sm font-medium text-rh-green">
               Researching...
             </p>
-            <p className="text-[11px] text-rh-light-muted/40 dark:text-white/20 mt-1">This may take 15-30 seconds</p>
+            <p className="font-mono text-[11px] text-rh-light-muted/40 dark:text-white/20 mt-1">This may take 15-30 seconds</p>
+            <button
+              onClick={handleStop}
+              className="mt-4 text-[11px] font-medium px-3 py-1 rounded-lg
+                bg-transparent border border-white/[0.1]
+                text-rh-light-muted/50 dark:text-white/30
+                hover:text-rh-red hover:border-rh-red/40
+                transition-all duration-200"
+            >
+              Stop
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -205,7 +289,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-red-500/[0.05] backdrop-blur-xl rounded-[20px] border border-red-500/20 p-6"
+            className="bg-red-500/[0.05] backdrop-blur-[30px] rounded-[20px] border border-red-500/20 p-6"
           >
             <p className="text-sm text-red-400 mb-2">{error}</p>
             <button onClick={() => handleAsk()} className="text-xs text-rh-green hover:text-rh-green/80 transition-colors">
@@ -230,7 +314,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-xl rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-5 flex items-center gap-4"
+                className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-[30px] rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-5 flex items-center gap-4"
               >
                 <span className="text-3xl">{response.strategy.icon}</span>
                 <div className="flex-1">
@@ -242,7 +326,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
                       {response.strategy.riskLevel}
                     </span>
                   </div>
-                  <p className="text-xs text-rh-light-muted/60 dark:text-white/35 leading-relaxed">
+                  <p className="font-mono text-xs text-rh-light-muted/60 dark:text-white/35 leading-relaxed">
                     {response.strategy.description}
                   </p>
                 </div>
@@ -255,7 +339,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
-                className="text-sm text-rh-light-muted/70 dark:text-white/35 px-1 leading-relaxed"
+                className="font-mono text-sm text-rh-light-muted/70 dark:text-white/35 px-1 leading-relaxed"
               >
                 {response.strategyExplanation}
               </motion.p>
@@ -275,7 +359,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
                 ))}
               </div>
             ) : (
-              <div className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-xl rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-10 text-center">
+              <div className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-[30px] rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-10 text-center">
                 <p className="text-sm text-rh-light-muted/60 dark:text-white/30">
                   No matching stocks found. Try rephrasing your question.
                 </p>
@@ -290,7 +374,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
                 transition={{ delay: 0.4 }}
                 className="flex flex-wrap items-center gap-2 px-1"
               >
-                <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15 uppercase tracking-widest font-medium">Sources</span>
+                <span className="font-mono text-[10px] text-rh-light-muted/30 dark:text-white/15 uppercase tracking-widest font-medium">Sources</span>
                 {response.citations.slice(0, 6).map((url, i) => {
                   let domain = '';
                   try { domain = new URL(url).hostname.replace('www.', ''); } catch { domain = 'source'; }
@@ -300,7 +384,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] px-2.5 py-1 rounded-lg
+                      className="font-mono text-[10px] px-2.5 py-1 rounded-lg
                         bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60
                         border border-white/[0.06] dark:border-white/[0.06] border-gray-200/40
                         text-rh-green/60 hover:text-rh-green hover:border-rh-green/30
@@ -315,19 +399,23 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
 
             {/* Footer */}
             <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15">
+              <span className="font-mono text-[10px] text-rh-light-muted/30 dark:text-white/15">
                 Powered by AI {response.cached ? '(cached)' : ''}
               </span>
               <button
                 onClick={handleReset}
-                className="text-[11px] font-medium text-rh-green/50 hover:text-rh-green transition-colors"
+                className="text-[11px] font-medium px-3 py-1 rounded-lg
+                  bg-transparent border border-rh-green/30
+                  text-rh-green/60 hover:text-rh-green hover:border-rh-green/60
+                  transition-all duration-200"
+                style={{ animation: 'nala-glow-pulse 3s ease-in-out infinite' }}
               >
                 Ask another question
               </button>
             </div>
 
             {/* Disclaimer */}
-            <p className="text-[9px] text-rh-light-muted/25 dark:text-white/10 px-1 leading-relaxed">
+            <p className="font-mono text-[9px] text-rh-light-muted/25 dark:text-white/10 px-1 leading-relaxed">
               For informational and educational purposes only. Not financial advice.
               All data sourced from public financial databases. Past performance does not guarantee future results.
             </p>

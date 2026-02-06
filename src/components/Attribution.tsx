@@ -48,7 +48,7 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
     : 0;
 
   return (
-    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none">
+    <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">What Moved My Portfolio? <InfoTooltip text="Attribution shows which holdings contributed most to your portfolio's gain or loss. Contribution = holding's dollar P&L over the selected window, ranked by absolute impact." /></h3>
 

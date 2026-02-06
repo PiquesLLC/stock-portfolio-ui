@@ -37,8 +37,8 @@ export function WatchPage({
 
         {/* Background toggle chip */}
         <label className="flex items-center gap-2.5 cursor-pointer select-none px-3 py-1.5 rounded-lg
-          bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border
-          hover:border-rh-light-text/20 dark:hover:border-rh-muted/30 transition-colors">
+          bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm border border-white/[0.06]
+          hover:border-white/[0.12] transition-colors">
           <span className="text-xs text-rh-light-muted dark:text-rh-muted whitespace-nowrap">Background playback</span>
           <button
             role="switch"
@@ -67,8 +67,8 @@ export function WatchPage({
               onClick={() => onChannelChange(ch)}
               className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all
                 ${isActive
-                  ? 'bg-rh-light-card dark:bg-rh-card border-rh-green/50 dark:border-rh-green/30 shadow-sm shadow-rh-green/5 dark:shadow-rh-green/10 scale-[1.02]'
-                  : 'bg-rh-light-bg dark:bg-rh-dark border-rh-light-border dark:border-rh-border hover:border-rh-light-text/20 dark:hover:border-rh-muted/50 hover:bg-rh-light-card dark:hover:bg-white/[0.06] duration-150'
+                  ? 'bg-white/[0.06] dark:bg-white/[0.06] border-rh-green/50 dark:border-rh-green/30 shadow-sm shadow-rh-green/5 dark:shadow-rh-green/10 scale-[1.02]'
+                  : 'bg-white/[0.02] dark:bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.06] duration-150'
                 }`}
             >
               {/* Live/idle dot */}
@@ -101,9 +101,9 @@ export function WatchPage({
 
       {/* Player card — subtle dark gradient anchor behind */}
       <div className="dark:bg-gradient-to-b dark:from-white/[0.03] dark:to-transparent rounded-xl p-px">
-      <div className="bg-rh-light-card dark:bg-rh-card rounded-xl overflow-hidden border border-rh-light-border dark:border-rh-border shadow-sm dark:shadow-none">
+      <div className="bg-white/[0.04] dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden shadow-sm dark:shadow-none">
         {/* Player header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-rh-light-border/50 dark:border-rh-border/50">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
