@@ -88,19 +88,19 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
                   className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
                     i === currentIndex % Math.min(available.length, 5)
                       ? 'bg-rh-green scale-110'
-                      : 'bg-white/20'
+                      : 'bg-rh-light-muted/40 dark:bg-white/20'
                   }`}
                 />
               ))}
               {available.length > 5 && (
-                <span className="text-[9px] text-white/30 ml-1">+{available.length - 5}</span>
+                <span className="text-[9px] text-rh-light-muted/50 dark:text-white/30 ml-1">+{available.length - 5}</span>
               )}
             </div>
           )}
         </div>
 
         {visible.length === 0 ? (
-          <p className="text-xs text-white/30 italic pl-3.5">
+          <p className="text-xs text-rh-light-muted/50 dark:text-white/30 italic pl-3.5">
             Listening for market headlines…
           </p>
         ) : (
@@ -129,20 +129,20 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
                     animation: 'liveHeadlineIn 300ms ease-out both',
                   }}
                 >
-                  <span className="flex-shrink-0 mt-[5px] h-1 w-1 rounded-full bg-white/20" />
+                  <span className="flex-shrink-0 mt-[5px] h-1 w-1 rounded-full bg-rh-light-muted/40 dark:bg-white/20" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[13px] text-white/60 leading-snug line-clamp-1">
+                    <span className="text-[13px] text-rh-light-muted/80 dark:text-white/60 leading-snug line-clamp-1">
                       {h.text}
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] font-medium text-white/25">{h.source}</span>
-                      <span className="text-[10px] tabular-nums text-white/20">{timeAgo(h.timestamp)}</span>
+                      <span className="text-[10px] font-medium text-rh-light-muted/45 dark:text-white/25">{h.source}</span>
+                      <span className="text-[10px] tabular-nums text-rh-light-muted/40 dark:text-white/20">{timeAgo(h.timestamp)}</span>
                       <a
                         href={h.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-white/20 hover:text-white/50 transition-colors"
+                        className="text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted/70 dark:hover:text-white/50 transition-colors"
                         title="Read article"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,7 +161,7 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
       {/* Detected tickers row */}
       {detectedTickers.length > 0 && (
         <div className="px-1">
-          <span className="text-[10px] text-white/25 mb-1.5 block">Symbols mentioned</span>
+          <span className="text-[10px] text-rh-light-muted/45 dark:text-white/25 mb-1.5 block">Symbols mentioned</span>
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
             {detectedTickers.map(({ ticker }) => (
               <button

@@ -55,11 +55,11 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08, ease: 'easeOut' }}
       whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
-      className={`relative bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/80 backdrop-blur-[30px]
-        border border-white/[0.08] dark:border-white/[0.08] border-gray-200/60
+      className={`relative bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-[30px]
+        border border-gray-200/60 dark:border-white/[0.08]
         rounded-[20px] p-5 transition-shadow duration-300
         hover:shadow-lg hover:${getConfidenceGlow(stock.confidenceScore)}
-        hover:border-white/[0.15] dark:hover:border-white/[0.15]`}
+        hover:border-gray-300 dark:hover:border-white/[0.15]`}
     >
       {/* Rank badge */}
       <div className="absolute -top-2.5 -left-2.5 w-7 h-7 rounded-full bg-rh-green flex items-center justify-center shadow-lg shadow-green-500/30">
@@ -81,8 +81,8 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
             </span>
           </div>
           <span className="text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-full
-            bg-white/[0.06] dark:bg-white/[0.06] bg-gray-100
-            border border-white/[0.08] dark:border-white/[0.08] border-gray-200/50
+            bg-gray-100 dark:bg-white/[0.06]
+            border border-gray-200/50 dark:border-white/[0.08]
             text-rh-light-muted dark:text-white/40 tracking-wider">
             {stock.sector}
           </span>
@@ -96,7 +96,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
 
       {/* Confidence bar */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1 h-1.5 bg-white/[0.06] dark:bg-white/[0.06] bg-gray-200/50 rounded-full overflow-hidden">
+        <div className="flex-1 h-1.5 bg-gray-200/50 dark:bg-white/[0.06] rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, Math.max(0, confidenceWidth))}%` }}
@@ -110,7 +110,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
       </div>
 
       {/* Metrics grid — glassmorphic inner card */}
-      <div className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 rounded-2xl border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 p-3 mb-4">
+      <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-2xl border border-gray-200/40 dark:border-white/[0.05] p-3 mb-4">
         <div className="grid grid-cols-4 gap-x-3 gap-y-2.5">
           <MetricCell label="P/E" value={formatMetric(m.peRatio)} />
           <MetricCell label="ROE" value={formatMetric(m.roe, '%')} />
@@ -133,7 +133,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
         <div className="mb-3">
           <button
             onClick={() => setShowRisks(!showRisks)}
-            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/50 transition-colors"
           >
             <motion.svg
               animate={{ rotate: showRisks ? 90 : 0 }}
@@ -164,7 +164,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-white/[0.05] dark:border-white/[0.05] border-gray-200/30">
+      <div className="flex items-center justify-between pt-3 border-t border-gray-200/30 dark:border-white/[0.05]">
         {stock.localData ? (
           <span className="flex items-center gap-1.5 text-[10px] font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -193,8 +193,8 @@ function MetricCell({ label, value }: { label: string; value: string }) {
   const isNA = value === '--';
   return (
     <div>
-      <div className={`text-[9px] uppercase tracking-widest font-medium ${isNA ? 'text-rh-light-muted/35 dark:text-white/20' : 'text-rh-light-muted/60 dark:text-white/25'}`}>{label}</div>
-      <div className={`font-mono text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-muted/25 dark:text-white/15' : 'text-rh-light-text dark:text-white/80'}`}>
+      <div className={`text-[9px] uppercase tracking-widest font-medium ${isNA ? 'text-rh-light-muted/50 dark:text-white/20' : 'text-rh-light-muted/60 dark:text-white/25'}`}>{label}</div>
+      <div className={`font-mono text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-muted/40 dark:text-white/15' : 'text-rh-light-text dark:text-white/80'}`}>
         {isNA ? '·' : value}
       </div>
     </div>

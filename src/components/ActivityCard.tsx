@@ -101,24 +101,24 @@ function TradeRow({
         </span>
         <button
           onClick={() => onTickerClick?.(payload.ticker)}
-          className="text-[15px] font-bold text-white hover:text-rh-green transition-colors"
+          className="text-[15px] font-bold text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
         >
           {payload.ticker}
         </button>
         {details && (
           <>
-            <span className="text-white/30">·</span>
-            <span className="text-[14px] text-white/50">{details}</span>
+            <span className="text-rh-light-muted/50 dark:text-white/30">·</span>
+            <span className="text-[14px] text-rh-light-muted/70 dark:text-white/50">{details}</span>
           </>
         )}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {notionalValue && notionalValue >= 1000 && (
-          <span className="text-[13px] text-white/40 tabular-nums">
+          <span className="text-[13px] text-rh-light-muted/60 dark:text-white/40 tabular-nums">
             {formatValue(notionalValue)}
           </span>
         )}
-        <span className="text-[13px] text-white/30 tabular-nums">
+        <span className="text-[13px] text-rh-light-muted/50 dark:text-white/30 tabular-nums">
           · {formatRelativeTime(event.createdAt)}
         </span>
       </div>
@@ -147,7 +147,7 @@ export function ActivityCard({ events, onUserClick, onTickerClick }: ActivityCar
   if (isMixed) {
     // Split color - gradient from green to red
     avatarStyle = 'bg-gradient-to-br from-rh-green/30 via-transparent to-rh-red/30 border-white/20';
-    avatarTextColor = 'text-white/80';
+    avatarTextColor = 'text-rh-light-text/80 dark:text-white/80';
   } else if (hasSells) {
     avatarStyle = 'bg-gradient-to-br from-rh-red/25 to-rh-red/10 border-rh-red/30';
     avatarTextColor = 'text-rh-red/90';
@@ -178,7 +178,7 @@ export function ActivityCard({ events, onUserClick, onTickerClick }: ActivityCar
           {/* User name */}
           <button
             onClick={() => onUserClick?.(firstEvent.userId)}
-            className="font-semibold text-[15px] text-white hover:underline"
+            className="font-semibold text-[15px] text-rh-light-text dark:text-white hover:underline"
           >
             {firstEvent.displayName}
           </button>
@@ -200,8 +200,8 @@ export function ActivityCard({ events, onUserClick, onTickerClick }: ActivityCar
               onClick={() => setIsExpanded(!isExpanded)}
               className={`mt-2 text-[13px] flex items-center gap-1 transition-colors ${
                 isExpanded
-                  ? 'text-white/25 hover:text-white/40'
-                  : 'text-white/40 hover:text-white/60'
+                  ? 'text-rh-light-muted/45 dark:text-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/40'
+                  : 'text-rh-light-muted/60 dark:text-white/40 hover:text-rh-light-muted/80 dark:hover:text-white/60'
               }`}
             >
               {isExpanded ? (

@@ -191,7 +191,7 @@ export default function EventFeed({ events }: EventFeedProps) {
                       {getDomainFromUrl(event.source_url)} &#8599;
                     </a>
                   ) : (
-                    <span className="text-[10px] font-mono text-rh-light-muted/35 dark:text-white/25">
+                    <span className="text-[10px] font-mono text-rh-light-muted/50 dark:text-white/25">
                       perplexity.ai
                     </span>
                   )}

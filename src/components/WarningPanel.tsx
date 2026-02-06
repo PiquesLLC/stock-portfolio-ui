@@ -524,8 +524,8 @@ function computeRiskTemperature(metrics: {
 
     let label = 'Low';
     let level: MetricResult['level'] = 'low';
-    if (score > 70) { label = 'High'; level = 'high'; }
-    else if (score > 45) { label = 'Elevated'; level = 'elevated'; }
+    if (score >= 70) { label = 'High'; level = 'high'; }
+    else if (score >= 50) { label = 'Elevated'; level = 'elevated'; }
 
     const explanation = level === 'low'
       ? 'Most risk metrics are within normal historical ranges.'
@@ -612,7 +612,7 @@ function RiskChip({ label, value, level, tooltip }: { label: string; value: stri
   const c = LEVEL_COLORS[level];
   const chip = (
     <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${c.border} ${c.bg} text-sm cursor-default`}>
-      <span className="text-white/50 font-medium">{label}</span>
+      <span className="text-rh-light-muted dark:text-white/50 font-medium">{label}</span>
       <span className={`font-bold ${c.text}`}>{value}</span>
     </div>
   );
@@ -644,11 +644,11 @@ function WarningCard({ id, title, metric }: { id: string; title: string; metric:
     >
       <div className="flex items-start justify-between mb-2">
         <span className="text-xl">{ICONS[id] || '📊'}</span>
-        <div className={`text-[10px] font-semibold uppercase tracking-wider ${c.text} opacity-80`}>
+        <div className={`text-[10px] font-semibold uppercase tracking-wider ${c.text}`}>
           {metric.level}
         </div>
       </div>
-      <h3 className="text-xs font-medium text-white/50 mb-1">{title}</h3>
+      <h3 className="text-xs font-medium text-rh-light-muted dark:text-white/50 mb-1">{title}</h3>
       <div className={`text-xl font-bold ${c.text} mb-0.5 leading-tight break-words`} style={{ fontVariantNumeric: 'tabular-nums', wordBreak: 'break-word' }}>
         {isTemp ? `${metric.value} / 100` : metric.value}
       </div>
@@ -664,10 +664,10 @@ function WarningCard({ id, title, metric }: { id: string; title: string; metric:
           />
         </div>
       )}
-      <p className="text-[11px] text-white/40 leading-snug break-words">{metric.context}</p>
+      <p className="text-[11px] text-rh-light-muted/70 dark:text-white/40 leading-snug break-words">{metric.context}</p>
       {/* Explanation — always visible, replaces hover tooltip */}
       {metric.explanation && (
-        <p className="text-[10px] text-white/30 mt-1.5 leading-snug italic break-words" style={{ wordBreak: 'break-word' }}>{metric.explanation}</p>
+        <p className="text-[10px] text-rh-light-muted/60 dark:text-white/30 mt-1.5 leading-snug italic break-words" style={{ wordBreak: 'break-word' }}>{metric.explanation}</p>
       )}
     </div>
   );
@@ -758,24 +758,64 @@ export function WarningPanel({ candles }: WarningPanelProps) {
 
   const tempColor = riskTemperature ? LEVEL_COLORS[riskTemperature.level] : LEVEL_COLORS.low;
 
-  // Dynamic header based on risk state
-  const elevatedCount = cards.filter(c => c.metric.level === 'elevated').length;
-  const highCount = cards.filter(c => c.metric.level === 'high').length;
-  let headerIcon = '📊';
-  let headerLabel = 'RISK DASHBOARD';
-  if (highCount >= 2 || (highCount >= 1 && elevatedCount >= 2)) {
-    headerIcon = '🔥';
-    headerLabel = 'HIGH RISK CONTEXT';
-  } else if (elevatedCount >= 1 || highCount >= 1) {
-    headerIcon = '⚠️';
-    headerLabel = 'ELEVATED RISK CONTEXT';
-  }
+  // Dynamic header based on risk temperature score
+  const tempScore = riskTemperature ? parseFloat(riskTemperature.value) : 0;
+  const isHighRisk = tempScore >= 50;
+  const headerLabel = isHighRisk ? 'ELEVATED RISK' : 'FAVORABLE RISK';
 
   return (
     <div className="mb-6">
       <style>{`
         @keyframes fadeInRight { from { opacity: 0; transform: translateY(-50%) translateX(-4px); } to { opacity: 1; transform: translateY(-50%) translateX(0); } }
         @keyframes fadeInDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fire-text {
+          0%   { background-position: 0% 80%; }
+          50%  { background-position: 100% 20%; }
+          100% { background-position: 0% 80%; }
+        }
+        @keyframes fire-glow {
+          0%, 100% { text-shadow: 0 0 4px rgba(239,68,68,0.3), 0 0 8px rgba(251,146,60,0.15); }
+          50%      { text-shadow: 0 0 8px rgba(239,68,68,0.5), 0 0 16px rgba(251,146,60,0.25), 0 0 24px rgba(234,179,8,0.1); }
+        }
+        .fire-text {
+          background: linear-gradient(
+            0deg,
+            #EF4444 0%,
+            #F97316 25%,
+            #FBBF24 50%,
+            #F97316 75%,
+            #EF4444 100%
+          );
+          background-size: 200% 200%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: fire-text 3s ease-in-out infinite, fire-glow 2s ease-in-out infinite;
+        }
+        @keyframes money-text {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes money-glow {
+          0%, 100% { text-shadow: 0 0 4px rgba(0,200,5,0.3), 0 0 8px rgba(16,185,129,0.15); }
+          50%      { text-shadow: 0 0 8px rgba(0,200,5,0.5), 0 0 16px rgba(16,185,129,0.25), 0 0 24px rgba(52,211,153,0.1); }
+        }
+        .money-text {
+          background: linear-gradient(
+            90deg,
+            #00c805 0%,
+            #10B981 30%,
+            #34D399 50%,
+            #10B981 70%,
+            #00c805 100%
+          );
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: money-text 4s ease-in-out infinite, money-glow 2s ease-in-out infinite;
+        }
       `}</style>
       {/* Header */}
       <button
@@ -783,8 +823,9 @@ export function WarningPanel({ candles }: WarningPanelProps) {
         className="w-full flex items-center justify-between group mb-3"
       >
         <div className="flex items-center gap-2">
-          <span className="text-base">{headerIcon}</span>
-          <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">
+          <span className={`text-sm font-bold tracking-wide ${
+            isHighRisk ? 'fire-text' : 'money-text'
+          }`}>
             {headerLabel}
           </span>
         </div>
@@ -795,7 +836,7 @@ export function WarningPanel({ candles }: WarningPanelProps) {
             </div>
           )}
           <svg
-            className={`w-4 h-4 text-white/40 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-rh-light-muted/50 dark:text-white/40 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -823,7 +864,7 @@ export function WarningPanel({ candles }: WarningPanelProps) {
       )}
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-white/20 leading-relaxed">
+      <p className="text-[10px] text-rh-light-muted/40 dark:text-white/20 leading-relaxed">
         Historical risk context — not a prediction. Not financial advice.
       </p>
     </div>

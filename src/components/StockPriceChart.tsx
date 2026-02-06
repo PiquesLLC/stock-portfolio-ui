@@ -742,7 +742,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
   // ── Breach signal events ──────────────────────────────────────────
   const breachClusters = useMemo<BreachCluster[]>(() => {
-    if (!signalsEnabled || points.length === 0 || enabledMAs.size === 0) return [];
+    if (!signalsEnabled || points.length === 0) return [];
 
     const maSource = useHourly && interpolatedMaData ? interpolatedMaData : visibleMaData;
     const prices = points.map(p => p.price);
@@ -752,18 +752,18 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       return [...arr, ...new Array(prices.length - arr.length).fill(null)];
     };
 
-    // Only detect for MA50/100/200 — short MAs are too noisy
+    // Detect for all signal-capable MAs regardless of which MA lines are visible
     const signalMaData = maSource
-      .filter(m => enabledMAs.has(m.period) && SIGNAL_MA_PERIODS.includes(m.period))
+      .filter(m => SIGNAL_MA_PERIODS.includes(m.period))
       .map(m => ({ period: m.period, values: pad(m.values) }));
 
     if (signalMaData.length === 0) return [];
     const events = detectAllBreaches(prices, signalMaData);
     // Cluster events within 5 candles of each other
     return clusterBreaches(events, 5);
-  }, [signalsEnabled, points, enabledMAs, visibleMaData, interpolatedMaData, useHourly]);
+  }, [signalsEnabled, points, visibleMaData, interpolatedMaData, useHourly]);
 
-  // Golden / Death Cross detection
+  // Golden / Death Cross detection — independent of which MA lines are visible
   const crossEvents = useMemo<CrossEvent[]>(() => {
     if (!signalsEnabled || points.length === 0) return [];
     const ma100 = visibleMaData.find(m => m.period === 100);

@@ -311,7 +311,7 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
         onReinvested={fetchData}
       />
 
-      <p className="text-[9px] text-rh-light-muted/30 dark:text-rh-muted/30 mt-3">
+      <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/30 mt-3">
         Dividend info may be updated by issuers. Not financial advice.
       </p>
     </div>
