@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { ChartPeriod, StockCandles } from '../types';
+import { ChartPeriod, StockCandles, ParsedQuarterlyEarning, DividendEvent, DividendCredit, ActivityEvent, AnalystEvent } from '../types';
+import { AIEvent } from '../api';
 import { IntradayCandle } from '../api';
 
 interface Props {
@@ -15,6 +16,13 @@ interface Props {
   onHoverPrice?: (price: number | null, label: string | null) => void;
   goldenCrossDate?: string | null; // ISO date string of golden cross within timeframe
   session?: string; // Market session: 'REG', 'PRE', 'POST', 'CLOSED'
+  // Events layer data
+  earnings?: ParsedQuarterlyEarning[];
+  dividendEvents?: DividendEvent[];
+  dividendCredits?: DividendCredit[];
+  tradeEvents?: ActivityEvent[];
+  analystEvents?: AnalystEvent[];
+  aiEvents?: AIEvent[];
 }
 
 const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
@@ -23,6 +31,7 @@ interface DataPoint {
   time: number; // ms timestamp
   label: string;
   price: number;
+  volume?: number;
 }
 
 function buildPoints(
@@ -42,6 +51,7 @@ function buildPoints(
           time: d.getTime(),
           label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           price: c.close,
+          volume: c.volume,
         };
       });
       // Prepend a point at previous close just before the first candle
@@ -51,6 +61,7 @@ function buildPoints(
           time: pts[0].time - 1000,
           label: pts[0].label,
           price: previousClose,
+          volume: 0,
         });
       }
       return pts;
@@ -84,6 +95,7 @@ function buildPoints(
           ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
           : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
           price: c.close,
+          volume: c.volume,
         };
       });
     }
@@ -114,10 +126,18 @@ function buildPoints(
           ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
           : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
         price: candles.closes[i],
+        volume: candles.volumes[i],
       });
     }
   }
   return pts;
+}
+
+function formatVolume(v: number): string {
+  if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+  return v.toFixed(0);
 }
 
 // ── SMA calculation ──────────────────────────────────────────────
@@ -284,7 +304,7 @@ const PAD_BOTTOM = 30;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
 
-export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session }: Props) {
+export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -312,6 +332,36 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       return next;
     });
   }, []);
+  const [eventsEnabled, setEventsEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('stockChartEvents');
+      if (saved !== null) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return true;
+  });
+  const toggleEvents = useCallback(() => {
+    setEventsEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem('stockChartEvents', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  const [volumeEnabled, setVolumeEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('stockChartVolume');
+      if (saved !== null) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return false;
+  });
+  const toggleVolume = useCallback(() => {
+    setVolumeEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem('stockChartVolume', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
+  const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
   const [hoveredCrossIndex, setHoveredCrossIndex] = useState<number | null>(null);
   const [measureA, setMeasureA] = useState<number | null>(null);
@@ -341,23 +391,24 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   }, []);
 
   // Clear state when period or data changes
-  useEffect(() => { setHoveredBreachIndex(null); setHoveredCrossIndex(null); setHoverIndex(null); setMeasureA(null); setMeasureB(null); setMeasureC(null); }, [selectedPeriod, points.length]);
+  useEffect(() => { setHoveredBreachIndex(null); setHoveredCrossIndex(null); setHoveredEventIdx(null); setPinnedEventIdx(null); setExpandedClusterIdx(null); setHoverIndex(null); setMeasureA(null); setMeasureB(null); setMeasureC(null); }, [selectedPeriod, points.length]);
 
-  // ESC clears measurement
+  // ESC clears measurement and pinned events
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
+      if (e.key === 'Escape') { setPinnedEventIdx(null); setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Click outside chart clears measurement
+  // Click outside chart clears measurement and pinned events
   const chartContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!isMeasuring) return;
+    if (!isMeasuring && pinnedEventIdx === null) return;
     const handler = (e: MouseEvent) => {
       if (chartContainerRef.current && !chartContainerRef.current.contains(e.target as Node)) {
+        setPinnedEventIdx(null);
         setMeasureA(null);
         setMeasureB(null);
         setMeasureC(null);
@@ -367,7 +418,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     };
     window.addEventListener('click', handler);
     return () => window.removeEventListener('click', handler);
-  }, [isMeasuring]);
+  }, [isMeasuring, pinnedEventIdx]);
 
   // Track mouse for card dragging (hold-and-drag)
   useEffect(() => {
@@ -519,6 +570,15 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     return PAD_LEFT + (points.length > 1 ? (i / (points.length - 1)) * plotW : plotW / 2);
   };
   const toY = (price: number) => PAD_TOP + plotH - ((price - paddedMin) / (paddedMax - paddedMin)) * plotH;
+
+  // Volume bar scaling
+  const VOL_MAX_H = plotH * 0.22; // max bar height = 22% of plot
+  const volMax = useMemo(() => {
+    if (!volumeEnabled) return 0;
+    let mx = 0;
+    for (const p of points) if (p.volume && p.volume > mx) mx = p.volume;
+    return mx;
+  }, [volumeEnabled, points]);
 
   // Build SVG path
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.price).toFixed(1)}`).join(' ');
@@ -712,6 +772,251 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     const prices = points.map(p => p.price);
     return detectCrosses(prices, ma100.values, ma200.values);
   }, [signalsEnabled, points, visibleMaData]);
+
+  // ── Chart Event markers (earnings, dividends, trades) ──────────────
+  interface ChartEvent {
+    type: 'earnings' | 'dividend' | 'dividend_credit' | 'buy' | 'sell' | 'update' | 'analyst_target' | 'analyst_rating' | 'ai_earnings' | 'ai_analyst' | 'ai_dividend';
+    index: number; // index into points[]
+    color: string; // marker color
+    glyph: string; // single char label
+    shape: 'circle' | 'chevron-up' | 'chevron-down' | 'diamond'; // marker shape
+    data: Record<string, unknown>;
+  }
+
+  const chartEvents = useMemo<ChartEvent[]>(() => {
+    if (!eventsEnabled || points.length === 0) return [];
+
+    // Build date→index map from chart points (YYYY-MM-DD → closest index)
+    const dateToIdx = new Map<string, number>();
+    for (let i = 0; i < points.length; i++) {
+      const d = new Date(points[i].time);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      // Keep last index for each day (end-of-day is more representative)
+      dateToIdx.set(key, i);
+    }
+
+    // Helper: find exact date or nearest trading day (±3 days) for weekends/holidays
+    const findIdx = (dateKey: string): number | undefined => {
+      const exact = dateToIdx.get(dateKey);
+      if (exact !== undefined) return exact;
+      // Try ±1, ±2, ±3 days
+      const base = new Date(dateKey + 'T12:00:00');
+      for (let offset = 1; offset <= 3; offset++) {
+        for (const dir of [1, -1]) {
+          const d = new Date(base.getTime() + dir * offset * 86400000);
+          const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const idx = dateToIdx.get(k);
+          if (idx !== undefined) return idx;
+        }
+      }
+      return undefined;
+    };
+
+    const firstDate = points[0].time;
+    const lastDate = points[points.length - 1].time;
+    const events: ChartEvent[] = [];
+
+    // Earnings events
+    if (earnings) {
+      for (const e of earnings) {
+        if (!e.reportedDate) continue;
+        const idx = findIdx(e.reportedDate);
+        if (idx === undefined) continue;
+        events.push({
+          type: 'earnings',
+          index: idx,
+          color: e.beat === true ? '#00C805' : e.beat === false ? '#E8544E' : '#6B7280',
+          glyph: 'E',
+          shape: 'circle',
+          data: {
+            reportedDate: e.reportedDate,
+            beat: e.beat,
+            reportedEPS: e.reportedEPS,
+            estimatedEPS: e.estimatedEPS,
+            surprise: e.surprise,
+            surprisePercentage: e.surprisePercentage,
+            fiscalDateEnding: e.fiscalDateEnding,
+          },
+        });
+      }
+    }
+
+    // Dividend ex-date events
+    if (dividendEvents) {
+      for (const d of dividendEvents) {
+        if (!d.exDate) continue;
+        const exD = new Date(d.exDate);
+        const exKey = `${exD.getFullYear()}-${String(exD.getMonth() + 1).padStart(2, '0')}-${String(exD.getDate()).padStart(2, '0')}`;
+        const idx = findIdx(exKey);
+        if (idx === undefined) continue;
+        events.push({
+          type: 'dividend',
+          index: idx,
+          color: '#6B7280',
+          glyph: '$',
+          shape: 'circle',
+          data: {
+            exDate: d.exDate,
+            payDate: d.payDate,
+            amountPerShare: d.amountPerShare,
+          },
+        });
+      }
+    }
+
+    // Dividend credits (received)
+    if (dividendCredits) {
+      for (const c of dividendCredits) {
+        if (!c.creditedAt) continue;
+        const cDate = new Date(c.creditedAt);
+        const key = `${cDate.getFullYear()}-${String(cDate.getMonth() + 1).padStart(2, '0')}-${String(cDate.getDate()).padStart(2, '0')}`;
+        const idx = findIdx(key);
+        if (idx === undefined) continue;
+        events.push({
+          type: 'dividend_credit',
+          index: idx,
+          color: '#3B82F6', // blue for personal
+          glyph: 'D',
+          shape: 'circle',
+          data: {
+            creditedAt: c.creditedAt,
+            amountGross: c.amountGross,
+            sharesEligible: c.sharesEligible,
+            ticker: c.ticker,
+          },
+        });
+      }
+    }
+
+    // Trade events (buy/sell/update)
+    if (tradeEvents) {
+      for (const t of tradeEvents) {
+        const tDate = new Date(t.createdAt);
+        if (tDate.getTime() < firstDate || tDate.getTime() > lastDate) continue;
+        const key = `${tDate.getFullYear()}-${String(tDate.getMonth() + 1).padStart(2, '0')}-${String(tDate.getDate()).padStart(2, '0')}`;
+        const idx = findIdx(key);
+        if (idx === undefined) continue;
+        const isBuy = t.type === 'holding_added';
+        const isSell = t.type === 'holding_removed';
+        events.push({
+          type: isBuy ? 'buy' : isSell ? 'sell' : 'update',
+          index: idx,
+          color: '#3B82F6', // blue for personal
+          glyph: isBuy ? '▲' : isSell ? '▼' : '◆',
+          shape: isBuy ? 'chevron-up' : isSell ? 'chevron-down' : 'diamond',
+          data: {
+            type: t.type,
+            shares: t.payload.shares,
+            previousShares: t.payload.previousShares,
+            averageCost: t.payload.averageCost,
+            createdAt: t.createdAt,
+          },
+        });
+      }
+    }
+
+    // Analyst events (target changes, rating changes)
+    if (analystEvents) {
+      for (const a of analystEvents) {
+        const aDate = new Date(a.createdAt);
+        if (aDate.getTime() < firstDate || aDate.getTime() > lastDate) continue;
+        const key = `${aDate.getFullYear()}-${String(aDate.getMonth() + 1).padStart(2, '0')}-${String(aDate.getDate()).padStart(2, '0')}`;
+        const idx = findIdx(key);
+        if (idx === undefined) continue;
+        const isTarget = a.eventType === 'target_change';
+        const isPositive = a.changePct != null && a.changePct > 0;
+        events.push({
+          type: isTarget ? 'analyst_target' : 'analyst_rating',
+          index: idx,
+          color: isTarget ? (isPositive ? '#00C805' : '#E8544E') : '#A855F7',
+          glyph: isTarget ? 'T' : 'R',
+          shape: 'circle',
+          data: {
+            eventType: a.eventType,
+            message: a.message,
+            oldValue: a.oldValue,
+            newValue: a.newValue,
+            changePct: a.changePct,
+            createdAt: a.createdAt,
+          },
+        });
+      }
+    }
+
+    // AI-powered events (Perplexity) — earnings, analyst, dividends only (no news)
+    if (aiEvents) {
+      for (const ai of aiEvents) {
+        if (!ai.date) continue;
+        if (ai.type === 'NEWS') continue; // skip news — too noisy for chart
+        const idx = findIdx(ai.date);
+        if (idx === undefined) continue;
+        const typeMap: Record<string, ChartEvent['type']> = {
+          EARNINGS: 'ai_earnings',
+          ANALYST: 'ai_analyst',
+          DIVIDEND: 'ai_dividend',
+        };
+        const evtType = typeMap[ai.type];
+        if (!evtType) continue;
+        const sentimentColor = ai.type === 'DIVIDEND' ? '#3B82F6'
+          : ai.sentiment > 0.3 ? '#00C805' : ai.sentiment < -0.3 ? '#E8544E' : '#F59E0B';
+        const glyphMap: Record<string, string> = { EARNINGS: 'E', ANALYST: 'A', DIVIDEND: '$' };
+        events.push({
+          type: evtType,
+          index: idx,
+          color: sentimentColor,
+          glyph: glyphMap[ai.type] || 'AI',
+          shape: 'diamond',
+          data: {
+            label: ai.label,
+            insight: ai.insight,
+            sentiment: ai.sentiment,
+            source_url: ai.source_url,
+            aiType: ai.type,
+          },
+        });
+      }
+    }
+
+    // Sort by index
+    events.sort((a, b) => a.index - b.index);
+    return events;
+  }, [eventsEnabled, points, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents]);
+
+  // Cluster events by pixel proximity (not just same index)
+  interface EventCluster {
+    index: number;
+    events: ChartEvent[];
+  }
+  const eventClusters = useMemo<EventCluster[]>(() => {
+    if (chartEvents.length === 0 || points.length < 2) return [];
+    const MIN_PX_GAP = 16; // minimum pixels between separate markers
+    const pxPerIdx = (CHART_W - PAD_LEFT - PAD_RIGHT) / (points.length - 1);
+    const minIdxGap = Math.max(1, Math.ceil(MIN_PX_GAP / pxPerIdx));
+
+    const clusters: EventCluster[] = [];
+    for (const evt of chartEvents) {
+      const last = clusters[clusters.length - 1];
+      if (last && Math.abs(evt.index - last.index) < minIdxGap) {
+        last.events.push(evt);
+      } else {
+        clusters.push({ index: evt.index, events: [evt] });
+      }
+    }
+    return clusters;
+  }, [chartEvents, points.length]);
+
+  const [expandedClusterIdx, setExpandedClusterIdx] = useState<number | null>(null);
+
+  // Animated entry for events toggle
+  const [eventsVisible, setEventsVisible] = useState(eventsEnabled);
+  useEffect(() => {
+    if (eventsEnabled) {
+      const t = setTimeout(() => setEventsVisible(true), 10);
+      return () => clearTimeout(t);
+    } else {
+      setEventsVisible(false);
+    }
+  }, [eventsEnabled]);
 
   // Reference line (previous close for 1D, first price for others)
   const refY = toY(referencePrice);
@@ -915,6 +1220,18 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     return pts.join(' ');
   }, [measureA, measureB, measureC, points]);
 
+  // Snap-to-event: when chart crosshair is near an event, highlight it
+  const snappedEventIdx = useMemo(() => {
+    if (hoverIndex === null || !eventsEnabled || eventClusters.length === 0) return null;
+    for (let i = 0; i < eventClusters.length; i++) {
+      if (Math.abs(eventClusters[i].index - hoverIndex) <= 2) return i;
+    }
+    return null;
+  }, [hoverIndex, eventsEnabled, eventClusters]);
+
+  // Effective hovered event: pinned takes priority, then explicit hover, then snap
+  const activeEventCluster = pinnedEventIdx ?? hoveredEventIdx ?? snappedEventIdx;
+
   // Hover crosshair data
   const hoverX = hoverIndex !== null ? toX(hoverIndex) : null;
   const hoverY = hoverIndex !== null ? toY(points[hoverIndex].price) : null;
@@ -1064,7 +1381,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
       {/* MA values bar — fixed height so chart never shifts */}
       <div className="h-[20px] min-h-[20px] mb-1 flex items-center">
-        {hoverIndex !== null && hoverMaValues.length > 0 && !hasMeasurement && (
+        {hoverIndex !== null && (hoverMaValues.length > 0 || volumeEnabled) && !hasMeasurement && (
           <div className="flex items-center gap-4 h-full">
             <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
               ${points[hoverIndex].price.toFixed(2)}
@@ -1076,6 +1393,12 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
                 <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${ma.value.toFixed(2)}</span>
               </span>
             ))}
+            {volumeEnabled && points[hoverIndex].volume != null && points[hoverIndex].volume! > 0 && (
+              <span className="flex items-center gap-1 text-[11px]">
+                <span className="text-rh-light-muted dark:text-rh-muted">Vol</span>
+                <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatVolume(points[hoverIndex].volume!)}</span>
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -1090,6 +1413,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           onMouseLeave={handleMouseLeave}
           onClick={(e) => {
             e.stopPropagation();
+            // Dismiss pinned event card on background click
+            if (pinnedEventIdx !== null) { setPinnedEventIdx(null); return; }
             if (!svgRef.current || points.length < 2) return;
             const rect = svgRef.current.getBoundingClientRect();
             const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
@@ -1177,6 +1502,32 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             );
           })() : hasData && (
             <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />
+          )}
+
+          {/* Volume bars */}
+          {volumeEnabled && hasData && volMax > 0 && (
+            <g clipPath="url(#plot-clip)" opacity="0.35">
+              {points.map((p, i) => {
+                if (!p.volume || p.volume <= 0) return null;
+                const barH = (p.volume / volMax) * VOL_MAX_H;
+                const bottomY = CHART_H - PAD_BOTTOM;
+                const x = toX(i);
+                const barW = Math.max(1, plotW / points.length * 0.7);
+                const isUp = i === 0 ? p.price >= (previousClose || p.price) : p.price >= points[i - 1].price;
+                const barColor = isUp ? '#00C805' : '#E8544E';
+                return (
+                  <rect
+                    key={i}
+                    x={x - barW / 2}
+                    y={bottomY - barH}
+                    width={barW}
+                    height={barH}
+                    fill={barColor}
+                    opacity={hoverIndex === i ? 1 : 0.6}
+                  />
+                );
+              })}
+            </g>
           )}
 
           {/* Price line — segmented with hover highlighting on 1D (matches portfolio) */}
@@ -1413,6 +1764,66 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             );
           })}
 
+          {/* ── Event markers (on price line, with dashed drop lines) ─── */}
+          <g
+            opacity={eventsVisible ? 1 : 0}
+            style={{ transition: 'opacity 300ms ease' }}
+          >
+          {eventClusters.map((cluster, ci) => {
+            const ex = toX(cluster.index);
+            const priceY = toY(points[cluster.index]?.price ?? 0);
+            const bottomY = CHART_H - PAD_BOTTOM;
+            const isActive = activeEventCluster === ci;
+            const isPinned = pinnedEventIdx === ci;
+            const isMulti = cluster.events.length > 1;
+            const r = 4.5;
+            const primaryEvt = cluster.events[0];
+
+            return (
+              <g
+                key={`cluster-${ci}`}
+                onMouseEnter={() => { if (pinnedEventIdx === null) setHoveredEventIdx(ci); }}
+                onMouseLeave={() => { if (pinnedEventIdx === null) setHoveredEventIdx(null); }}
+                onClick={(e) => { e.stopPropagation(); setPinnedEventIdx(isPinned ? null : ci); setHoveredEventIdx(null); }}
+                style={{ cursor: 'pointer' }}
+              >
+                {/* Marker on the price line */}
+                {isMulti ? (
+                  <>
+                    {/* Cluster count badge */}
+                    <circle cx={ex} cy={priceY} r={r + 2}
+                      fill={isActive ? primaryEvt.color : '#3B82F6'}
+                      opacity={isActive ? 1 : 0.7}
+                      style={{ transition: 'opacity 200ms ease' }} />
+                    <text
+                      x={ex} y={priceY + 3.5}
+                      textAnchor="middle" fontSize="9" fontWeight="700" fill="#fff"
+                      style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    >{cluster.events.length}</text>
+                  </>
+                ) : (
+                  <>
+                    {/* Glow ring on active */}
+                    {isActive && (
+                      <circle cx={ex} cy={priceY} r={r + 3}
+                        fill="none" stroke={primaryEvt.color} strokeWidth="1.5" opacity="0.4" />
+                    )}
+                    {/* Main dot */}
+                    <circle cx={ex} cy={priceY} r={r}
+                      fill={primaryEvt.color}
+                      opacity={isActive ? 1 : 0.7}
+                      style={{ transition: 'opacity 200ms ease' }} />
+                  </>
+                )}
+
+                {/* Hit area */}
+                <rect x={ex - 16} y={Math.min(priceY - r - 8, priceY - 12)} width="32" height={bottomY - priceY + r + 16}
+                  fill="transparent" />
+              </g>
+            );
+          })}
+          </g>
+
           {/* ── Measurement overlays ───────────────────────── */}
 
           {/* Shaded region between A and B */}
@@ -1525,6 +1936,187 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             );
           })}
         </svg>
+
+        {/* Event popup card — rich card like reference design */}
+        {activeEventCluster !== null && eventClusters[activeEventCluster] && (() => {
+          const cluster = eventClusters[activeEventCluster];
+          const ex = toX(cluster.index);
+          const priceY = toY(points[cluster.index]?.price ?? 0);
+          const leftPct = (ex / CHART_W) * 100;
+          // Position card to the right of marker, flip to left if near right edge
+          const flipLeft = leftPct > 65;
+          const isPinned = pinnedEventIdx !== null;
+
+          // Format date from chart point
+          const pointDate = new Date(points[cluster.index]?.time);
+          const dateStr = pointDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+          const formatEvent = (evt: ChartEvent) => {
+            let title = '';
+            let detail = '';
+            let typeBadge = '';
+            let sentimentBadge = '';
+            let sentimentColor = '';
+            let sourceUrl: string | undefined;
+
+            if (evt.type === 'earnings') {
+              const fd = evt.data.fiscalDateEnding as string | undefined;
+              const quarter = fd ? (() => {
+                const m = new Date(fd + 'T12:00:00').getMonth();
+                return `Q${Math.floor(m / 3) + 1} ${fd.slice(0, 4)}`;
+              })() : '';
+              title = `${quarter} Earnings`;
+              typeBadge = 'earnings';
+              const beat = evt.data.beat as boolean | null;
+              const surprise = evt.data.surprise as number | null;
+              const surprisePct = evt.data.surprisePercentage as number | null;
+              if (beat === true) {
+                sentimentBadge = 'Positive';
+                sentimentColor = 'bg-rh-green';
+                detail = `Beat by $${Math.abs(surprise!).toFixed(2)}${surprisePct != null ? ` (+${surprisePct.toFixed(1)}%)` : ''}`;
+              } else if (beat === false) {
+                sentimentBadge = 'Negative';
+                sentimentColor = 'bg-rh-red';
+                detail = `Missed by $${Math.abs(surprise!).toFixed(2)}${surprisePct != null ? ` (${surprisePct.toFixed(1)}%)` : ''}`;
+              } else {
+                detail = `EPS: $${(evt.data.reportedEPS as number | null)?.toFixed(2) ?? 'N/A'}`;
+              }
+            } else if (evt.type === 'dividend') {
+              title = 'Ex-Dividend';
+              typeBadge = 'dividend';
+              detail = `$${(evt.data.amountPerShare as number).toFixed(2)}/share`;
+              const payDate = evt.data.payDate as string;
+              if (payDate) {
+                const pd = new Date(payDate + 'T12:00:00');
+                detail += ` \u2022 Pay ${pd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+              }
+            } else if (evt.type === 'dividend_credit') {
+              title = 'Dividend Received';
+              typeBadge = 'dividend';
+              sentimentBadge = 'Positive';
+              sentimentColor = 'bg-rh-green';
+              detail = `$${(evt.data.amountGross as number).toFixed(2)} on ${evt.data.sharesEligible} shares`;
+            } else if (evt.type === 'buy') {
+              title = 'Bought';
+              typeBadge = 'trade';
+              sentimentBadge = 'Buy';
+              sentimentColor = 'bg-rh-green';
+              const shares = evt.data.shares as number | undefined;
+              const cost = evt.data.averageCost as number | undefined;
+              detail = shares ? `${shares} shares${cost ? ` @ $${cost.toFixed(2)}` : ''}` : '';
+            } else if (evt.type === 'sell') {
+              title = 'Sold';
+              typeBadge = 'trade';
+              sentimentBadge = 'Sell';
+              sentimentColor = 'bg-rh-red';
+              detail = '';
+            } else if (evt.type === 'analyst_target') {
+              title = 'Price Target Change';
+              typeBadge = 'analyst';
+              const pct = evt.data.changePct as number | null;
+              if (pct != null && pct > 0) { sentimentBadge = 'Positive'; sentimentColor = 'bg-rh-green'; }
+              else if (pct != null && pct < 0) { sentimentBadge = 'Negative'; sentimentColor = 'bg-rh-red'; }
+              detail = (evt.data.message as string) || '';
+            } else if (evt.type === 'analyst_rating') {
+              title = 'Rating Change';
+              typeBadge = 'analyst';
+              sentimentBadge = '';
+              sentimentColor = 'bg-purple-500';
+              detail = (evt.data.message as string) || '';
+            } else if (evt.type === 'ai_earnings' || evt.type === 'ai_analyst' || evt.type === 'ai_dividend') {
+              title = (evt.data.label as string) || evt.type.replace('ai_', '');
+              const aiTypeLabel = (evt.data.aiType as string || '').toLowerCase();
+              typeBadge = aiTypeLabel === 'dividend' ? 'dividend' : aiTypeLabel === 'earnings' ? 'earnings' : 'analyst';
+              const s = evt.data.sentiment as number;
+              if (s > 0.3) { sentimentBadge = 'Positive'; sentimentColor = 'bg-rh-green'; }
+              else if (s < -0.3) { sentimentBadge = 'Negative'; sentimentColor = 'bg-rh-red'; }
+              else { sentimentBadge = 'Neutral'; sentimentColor = 'bg-yellow-500'; }
+              detail = (evt.data.insight as string) || '';
+              sourceUrl = evt.data.source_url as string | undefined;
+            } else {
+              title = 'Position Update';
+              typeBadge = 'trade';
+              const shares = evt.data.shares as number | undefined;
+              detail = shares ? `${shares} shares` : '';
+            }
+            return { title, detail, typeBadge, sentimentBadge, sentimentColor, sourceUrl, evt };
+          };
+
+          const items = cluster.events.map(formatEvent);
+
+          // Card vertical position: above the marker if room, below if near top
+          const cardTopPct = ((priceY - 10) / CHART_H) * 100;
+          const showAbove = cardTopPct > 30;
+
+          return (
+            <div
+              className="absolute z-40 pointer-events-auto"
+              style={{
+                top: showAbove ? `${((priceY - 14) / CHART_H) * 100}%` : `${((priceY + 14) / CHART_H) * 100}%`,
+                left: `${leftPct}%`,
+                transform: `translate(${flipLeft ? 'calc(-100% - 12px)' : '12px'}, ${showAbove ? '-100%' : '0'})`,
+              }}
+            >
+              <div
+                className="rounded-xl px-4 py-3 text-left shadow-2xl"
+                style={{
+                  background: 'rgba(20, 20, 25, 0.92)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  minWidth: '200px',
+                  maxWidth: '280px',
+                }}
+              >
+                {/* Header: date + close button */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-white/40">{dateStr}</span>
+                  {isPinned && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPinnedEventIdx(null); }}
+                      className="text-white/30 hover:text-white/70 transition-colors ml-3 -mr-1 -mt-1"
+                      style={{ fontSize: '14px', lineHeight: 1 }}
+                    >&times;</button>
+                  )}
+                </div>
+
+                {items.map((item, ii) => (
+                  <div key={ii} className={ii > 0 ? 'mt-3 pt-3 border-t border-white/[0.06]' : ''}>
+                    {/* Title */}
+                    <div className="text-[13px] font-semibold text-white leading-tight mb-1.5">{item.title}</div>
+
+                    {/* Badges row */}
+                    <div className="flex items-center gap-1.5 mb-2">
+                      {item.typeBadge && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 font-medium">
+                          {item.typeBadge.toLowerCase()}
+                        </span>
+                      )}
+                      {item.sentimentBadge && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full text-white font-semibold ${item.sentimentColor}`}>
+                          {item.sentimentBadge}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Detail text */}
+                    {item.detail && (
+                      <p className="text-[11px] text-white/60 leading-relaxed">{item.detail}</p>
+                    )}
+
+                    {/* Source link */}
+                    {item.sourceUrl && (
+                      <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-block mt-1.5 text-[10px] text-rh-green/60 hover:text-rh-green">
+                        View Source &rarr;
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Measurement HUD — positioned in empty space above price action */}
         {hasMeasurement && measurement && mAx !== null && mBx !== null && mAy !== null && mBy !== null && (() => {
@@ -1779,6 +2371,17 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           })}
           <span className="hidden sm:block w-px bg-rh-light-border dark:bg-rh-border mx-0.5" />
           <button
+            onClick={toggleVolume}
+            className={`hidden sm:block px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+              volumeEnabled
+                ? 'text-white border-transparent'
+                : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+            style={volumeEnabled ? { backgroundColor: '#6B7280', borderColor: '#6B7280' } : undefined}
+          >
+            Vol
+          </button>
+          <button
             onClick={toggleSignals}
             className={`hidden sm:block px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
               signalsEnabled
@@ -1788,6 +2391,17 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             style={signalsEnabled ? { backgroundColor: '#F59E0B', borderColor: '#F59E0B' } : undefined}
           >
             Signals
+          </button>
+          <button
+            onClick={toggleEvents}
+            className={`hidden sm:block px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+              eventsEnabled
+                ? 'text-white border-transparent'
+                : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+            style={eventsEnabled ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' } : undefined}
+          >
+            Events
           </button>
         </div>
       </div>

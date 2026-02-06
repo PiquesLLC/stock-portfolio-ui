@@ -6,6 +6,7 @@ import { HoldingsTable } from './components/HoldingsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { InsightsPage } from './components/InsightsPage';
+import NalaAIPage from './components/NalaAIPage';
 import { EconomicIndicators } from './components/EconomicIndicators';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { FeedPage } from './components/FeedPage';
@@ -90,7 +91,7 @@ interface NavState {
 }
 
 // Valid tab names for URL parameter validation
-const VALID_TABS = new Set<TabType>(['portfolio', 'insights', 'macro', 'leaderboard', 'feed', 'watch']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'macro', 'leaderboard', 'feed', 'watch']);
 
 function parseHash(): NavState {
   const hash = window.location.hash.slice(1);
@@ -508,6 +509,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black text-rh-light-text dark:text-rh-text">
+      <div className="grain-overlay" />
       <header className="border-b border-rh-light-border/40 dark:border-rh-border/40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -733,6 +735,15 @@ export default function App() {
             </div>
 
           </>
+        )}
+
+        {/* Nala AI Tab */}
+        {activeTab === 'nala' && !viewingStock && (
+          <ErrorBoundary>
+            <NalaAIPage
+              onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null })}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Insights Tab */}

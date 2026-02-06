@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout, PriceAlert } from '../types';
+import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout, PriceAlert, EarningsResponse, ActivityEvent, AnalystEvent } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getFastQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts } from '../api';
+import { getStockDetails, getStockQuote, getFastQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, addHolding, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts, getEarnings, getTickerActivity, getTickerNews, getAnalystEvents, getAIEvents, AIEventsResponse, MarketNewsItem } from '../api';
 import { DividendEvent, DividendCredit } from '../types';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
@@ -10,6 +10,8 @@ import { CreatePriceAlertModal } from './CreatePriceAlertModal';
 import { PriceAlertsList } from './PriceAlertsList';
 import { FundamentalsSection } from './FundamentalsSection';
 import { EarningsSection } from './EarningsSection';
+import StockQAPanel from './StockQAPanel';
+import EventFeed from './EventFeed';
 
 interface Props {
   ticker: string;
@@ -61,8 +63,8 @@ function inferExchangeLabel(ticker: string): string | null {
 function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">{label}</span>
-      <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{value}</span>
+      <span className="text-[11px] font-medium text-rh-light-muted/60 dark:text-white/25">{label}</span>
+      <span className="text-sm font-semibold text-rh-light-text dark:text-white/85">{value}</span>
     </div>
   );
 }
@@ -74,18 +76,18 @@ function PositionCard({ label, value, valueColor, sub }: {
   sub?: string;
 }) {
   return (
-    <div className="bg-rh-light-bg dark:bg-rh-dark rounded-xl px-4 py-3">
-      <div className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">{label}</div>
-      <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>{value}</div>
+    <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl px-4 py-3">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">{label}</div>
+      <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-white/90'}`}>{value}</div>
       {sub && (
-        <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted dark:text-rh-muted'}`}>{sub}</div>
+        <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted/60 dark:text-white/30'}`}>{sub}</div>
       )}
     </div>
   );
 }
 
 
-function AddToPortfolioForm({ ticker, currentPrice, onAdded, holding }: { ticker: string; currentPrice: number; onAdded?: () => void; holding?: Holding | null }) {
+function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClose }: { ticker: string; currentPrice: number; onAdded?: () => void; holding?: Holding | null; onClose: () => void }) {
   const [shares, setShares] = useState('');
   const [avgCost, setAvgCost] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -107,6 +109,7 @@ function AddToPortfolioForm({ ticker, currentPrice, onAdded, holding }: { ticker
       setShares('');
       setAvgCost('');
       onAdded?.();
+      setTimeout(onClose, 800);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to add holding');
     } finally {
@@ -115,52 +118,68 @@ function AddToPortfolioForm({ ticker, currentPrice, onAdded, holding }: { ticker
   };
 
   return (
-    <div className="mb-8 bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5">
-      {holding && (
-        <div className="mb-3 text-sm text-rh-light-muted dark:text-rh-muted">
-          Currently holding <span className="font-semibold text-rh-light-text dark:text-rh-text">{holding.shares}</span> shares at <span className="font-semibold text-rh-light-text dark:text-rh-text">${holding.averageCost.toFixed(2)}</span> avg cost
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-sm bg-white dark:bg-[#0a0a0b] rounded-xl border border-gray-200/60 dark:border-white/[0.08] p-5 modal-container backdrop-blur-xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">
+            {holding ? 'Update Holding' : 'Add to Portfolio'}
+          </h2>
+          <button onClick={onClose} className="text-rh-light-muted/60 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      )}
-      {success && (
-        <div className="mb-3 bg-rh-green/10 border border-rh-green/30 rounded-lg p-3 text-center">
-          <div className="text-rh-green font-semibold text-sm">Added to Portfolio</div>
-        </div>
-      )}
-      <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-3">{holding ? 'Update Holding' : 'Add to Portfolio'}</h2>
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
-          <input
-            type="number"
-            step="any"
-            min="0.001"
-            value={shares}
-            onChange={e => setShares(e.target.value)}
-            placeholder="10"
-            className="w-28 px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/50"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1">Avg Cost per Share</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={avgCost}
-            onChange={e => setAvgCost(e.target.value)}
-            placeholder={currentPrice.toFixed(2)}
-            className="w-32 px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/50"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="px-5 py-2 rounded-lg bg-rh-green hover:bg-green-600 text-black font-semibold text-sm transition-colors disabled:opacity-50"
-        >
-          {submitting ? 'Adding...' : holding ? 'Update' : 'Add to Portfolio'}
-        </button>
-      </form>
-      {formError && <p className="text-rh-red text-xs mt-2">{formError}</p>}
+        {holding && (
+          <div className="mb-3 text-sm text-rh-light-muted dark:text-rh-muted">
+            Holding <span className="font-semibold text-rh-light-text dark:text-rh-text">{holding.shares}</span> shares at <span className="font-semibold text-rh-light-text dark:text-rh-text">${holding.averageCost.toFixed(2)}</span> avg
+          </div>
+        )}
+        {success && (
+          <div className="mb-3 bg-rh-green/10 border border-rh-green/30 rounded-lg p-3 text-center">
+            <div className="text-rh-green font-semibold text-sm">Added to Portfolio</div>
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">Shares</label>
+            <input
+              type="number"
+              step="any"
+              min="0.001"
+              value={shares}
+              onChange={e => setShares(e.target.value)}
+              placeholder="10"
+              autoFocus
+              className="w-full px-3 py-2 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/60 dark:bg-white/[0.04] text-rh-light-text dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/30 focus:border-rh-green/40 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">Avg Cost per Share</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={avgCost}
+              onChange={e => setAvgCost(e.target.value)}
+              placeholder={currentPrice.toFixed(2)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/60 dark:bg-white/[0.04] text-rh-light-text dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/30 focus:border-rh-green/40 transition-all"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full px-5 py-2.5 rounded-lg bg-rh-green hover:bg-green-600 text-black font-semibold text-sm transition-colors disabled:opacity-50"
+          >
+            {submitting ? 'Saving...' : holding ? 'Update' : 'Add to Portfolio'}
+          </button>
+        </form>
+        {formError && <p className="text-rh-red text-xs mt-2">{formError}</p>}
+      </div>
     </div>
   );
 }
@@ -196,9 +215,25 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // About data (description, category, etc.)
   const [about, setAbout] = useState<AssetAbout | null>(null);
 
+  // Earnings data for chart events
+  const [earnings, setEarnings] = useState<EarningsResponse | null>(null);
+
+  // Trade events for chart events
+  const [tradeEvents, setTradeEvents] = useState<ActivityEvent[]>([]);
+
+  // News and analyst events for chart events
+  const [newsEvents, setNewsEvents] = useState<MarketNewsItem[]>([]);
+  const [analystEvents, setAnalystEvents] = useState<AnalystEvent[]>([]);
+
+  // AI-powered events from Perplexity
+  const [aiEvents, setAiEvents] = useState<AIEventsResponse | null>(null);
+
+
+
   // Price alerts
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [showAlertModal, setShowAlertModal] = useState(false);
+  const [showAddHolding, setShowAddHolding] = useState(false);
 
   const fetchPriceAlerts = useCallback(() => {
     getPriceAlerts(ticker).then(setPriceAlerts).catch(() => setPriceAlerts([]));
@@ -207,6 +242,13 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   useEffect(() => {
     getDividendEvents(ticker).then(setTickerDividends).catch(() => {});
     getDividendCredits(undefined, ticker).then(setTickerCredits).catch(() => {});
+    // Fetch earnings for chart events
+    getEarnings(ticker).then(setEarnings).catch(() => setEarnings(null));
+    // Fetch trade events for chart events
+    getTickerActivity(ticker).then(setTradeEvents).catch(() => setTradeEvents([]));
+    // Fetch news and analyst events for chart events
+    getTickerNews(ticker).then(setNewsEvents).catch(() => setNewsEvents([]));
+    getAnalystEvents(50, ticker).then(setAnalystEvents).catch(() => setAnalystEvents([]));
     // Fetch ETF holdings
     getETFHoldings(ticker)
       .then(data => setEtfHoldings(data))
@@ -218,6 +260,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     // Fetch price alerts
     fetchPriceAlerts();
   }, [ticker, fetchPriceAlerts]);
+
+  // Fetch AI-powered events (Perplexity) — period-aware
+  useEffect(() => {
+    const periodDays: Record<string, number> = {
+      '1D': 0, '1W': 14, '1M': 45, '3M': 100, 'YTD': 365, '1Y': 400, 'MAX': 7300,
+    };
+    const days = periodDays[chartPeriod] || 90;
+    if (days === 0) { setAiEvents(null); return; } // skip 1D
+    getAIEvents(ticker, days).then(setAiEvents).catch(() => setAiEvents(null));
+  }, [ticker, chartPeriod]);
 
   // Cache for prefetched hourly data
   const hourlyCache = useRef<Record<string, IntradayCandle[]>>({});
@@ -374,7 +426,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         break;
       }
     }
-    const change = quote.currentPrice - startPrice;
+    // Use the most recent price (extended/after-hours if available) for period change
+    const latestPrice = quote.extendedPrice ?? quote.currentPrice;
+    const change = latestPrice - startPrice;
     const changePct = startPrice !== 0 ? (change / startPrice) * 100 : 0;
     const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', 'YTD': 'Year to Date', '1Y': 'Past Year', 'MAX': 'All Time' };
     return { change, changePct, label: labels[chartPeriod] || chartPeriod };
@@ -443,11 +497,11 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           <span>&larr;</span> Back
         </button>
         <div className="space-y-4 animate-pulse">
-          <div className="h-8 w-48 bg-rh-light-bg dark:bg-rh-dark rounded-lg" />
-          <div className="h-12 w-32 bg-rh-light-bg dark:bg-rh-dark rounded-lg" />
-          <div className="h-[300px] bg-rh-light-bg dark:bg-rh-dark rounded-xl" />
+          <div className="h-8 w-48 bg-gray-200/30 dark:bg-white/[0.04] rounded-lg" />
+          <div className="h-12 w-32 bg-gray-200/30 dark:bg-white/[0.04] rounded-lg" />
+          <div className="h-[300px] bg-gray-200/30 dark:bg-white/[0.04] rounded-xl" />
           <div className="grid grid-cols-3 gap-4">
-            {[1,2,3].map(i => <div key={i} className="h-20 bg-rh-light-bg dark:bg-rh-dark rounded-xl" />)}
+            {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-200/30 dark:bg-white/[0.04] rounded-xl" />)}
           </div>
         </div>
       </div>
@@ -468,11 +522,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const { quote, profile, metrics } = data;
 
   // Extended hours pricing from Yahoo Finance (returned by API)
-  // For non-1D periods during extended hours, show regular close price (like Robinhood)
-  // This ensures the displayed price matches the period change calculation
+  // Always show the most recent price (extended if available) on all timeframes
   const hasExtended = quote.extendedPrice != null && quote.extendedPrice !== quote.currentPrice;
-  const showExtendedPrice = hasExtended && chartPeriod === '1D';
-  const basePrice = showExtendedPrice ? quote.extendedPrice! : quote.currentPrice;
+  const showExtendedLine = hasExtended && chartPeriod === '1D'; // sub-line only on 1D
+  const basePrice = hasExtended ? quote.extendedPrice! : quote.currentPrice;
   const displayPrice = hoverPrice ?? basePrice;
   const isHovering = hoverPrice !== null;
 
@@ -492,96 +545,99 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   return (
     <div className="py-6">
       {/* Back button */}
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors">
-        <span>&larr;</span> Back to Portfolio
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+        <span>&larr;</span> Back
       </button>
 
-      {/* Header: Company name + ticker */}
-      <div className="mb-1">
-        <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">
-          {profile?.name || ticker}
-        </h1>
-        <div className="flex items-center gap-2">
+      {/* Header: Company name + ticker + actions */}
+      <div className="mb-2">
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text">
+            {profile?.name || ticker}
+          </h1>
           {profile?.name && (
-            <span className="text-sm text-rh-light-muted dark:text-rh-muted">{ticker}</span>
+            <span className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">{ticker}</span>
           )}
           {exchangeLabel && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted font-medium">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-gray-50/60 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.06] text-rh-light-muted/60 dark:text-white/25">
               {exchangeLabel}
             </span>
           )}
-          {goldenCrossInfo.active && (
-            <span className="text-xs px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(255, 215, 0, 0.15)', color: '#FFD700' }}
-              title={`Golden Cross on ${goldenCrossInfo.date} — MA100: $${goldenCrossInfo.ma100.toFixed(2)}, MA200: $${goldenCrossInfo.ma200.toFixed(2)}. Signal only — not financial advice.`}>
-              ✦ Golden Cross · {goldenCrossInfo.dateFormatted}
-            </span>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => setShowAddHolding(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-rh-green/25 text-rh-green hover:bg-rh-green/10 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              {holding ? 'Edit' : 'Add'}
+            </button>
+            <button
+              onClick={() => setShowAlertModal(true)}
+              className="relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              Alert
+              {priceAlerts.filter(a => a.enabled && !a.triggered).length > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
+              )}
+            </button>
+          </div>
         </div>
+        {goldenCrossInfo.active && (
+          <span className="inline-block text-[10px] px-2 py-0.5 rounded-lg font-semibold tracking-wider" style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)', color: '#FFD700', border: '1px solid rgba(255, 215, 0, 0.15)' }}
+            title={`Golden Cross on ${goldenCrossInfo.date} — MA100: $${goldenCrossInfo.ma100.toFixed(2)}, MA200: $${goldenCrossInfo.ma200.toFixed(2)}. Signal only — not financial advice.`}>
+            ✦ GOLDEN CROSS · {goldenCrossInfo.dateFormatted}
+          </span>
+        )}
       </div>
 
-      {/* Price hero — fixed height to prevent layout shift on hover */}
-      <div className="mb-6" style={{ minHeight: showExtendedPrice ? '160px' : '130px' }}>
-        <div className="text-4xl font-bold text-rh-light-text dark:text-rh-text tracking-tight">
+      {/* Price hero */}
+      <div className="mb-4" style={{ minHeight: showExtendedLine ? '110px' : '85px' }}>
+        <div className="text-4xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">
           {formatCurrency(displayPrice)}
         </div>
-        {/* Change line - shows hover data or regular change */}
         <div className={`flex items-center gap-2 mt-1 ${changeColor}`}>
-          <span className="text-lg font-semibold">
+          <span className="text-lg font-semibold tabular-nums">
             {activeChange >= 0 ? '+' : ''}{formatCurrency(activeChange).replace('$', '').replace('-$', '-$')}
           </span>
-          <span className="text-base">
+          <span className="text-sm tabular-nums">
             ({formatPercent(activeChangePct)})
           </span>
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">
+          <span className="text-xs text-rh-light-muted dark:text-rh-muted">
             {isHovering ? hoverLabel : periodChange.label}
           </span>
         </div>
-        {/* Extended hours price change line - only shown for 1D period to prevent layout shift */}
-        {showExtendedPrice && (
-          <div className={`flex items-center gap-2 mt-1 h-[22px] transition-opacity duration-100 ${
+        {showExtendedLine && (
+          <div className={`flex items-center gap-2 mt-1 h-[20px] transition-opacity duration-100 ${
             isHovering ? 'opacity-0' : (quote.extendedChange! >= 0 ? 'text-rh-green' : 'text-rh-red')
           }`}>
-            <span className="text-sm font-medium">
+            <span className="text-xs font-medium tabular-nums">
               {quote.extendedChange! >= 0 ? '+' : ''}{formatCurrency(quote.extendedChange!).replace('$', '').replace('-$', '-$')}
             </span>
-            <span className="text-sm">
+            <span className="text-xs tabular-nums">
               ({formatPercent(quote.extendedChangePercent!)})
             </span>
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted font-medium">
+            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
               {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}
             </span>
           </div>
         )}
         {quote.session && quote.session !== 'REG' && (
-          <span className={`inline-block mt-1.5 px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider ${
-            quote.session === 'CLOSED' ? 'bg-gray-500/10 text-gray-400' :
-            quote.session === 'PRE' ? 'bg-blue-500/10 text-blue-400' :
-            'bg-purple-500/10 text-purple-400'
+          <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${
+            quote.session === 'CLOSED' ? 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-rh-border' :
+            quote.session === 'PRE' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20' :
+            'bg-purple-400/10 text-purple-400 border border-purple-400/20'
           }`} title={getAcronymTitle(quote.session === 'PRE' ? 'PRE' : quote.session === 'POST' ? 'POST' : 'CLOSED') || ''}>
-            {quote.session === 'PRE' ? 'Pre-Market' : quote.session === 'POST' ? 'After Hours' : 'Market Closed'}
+            {quote.session === 'PRE' ? 'Pre-Market' : quote.session === 'POST' ? 'After Hours' : 'Closed'}
           </span>
         )}
-
-        {/* Set Alert button */}
-        <div className="mt-3">
-          <button
-            onClick={() => setShowAlertModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-rh-light-border dark:border-rh-border text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            Set Alert
-            {priceAlerts.filter(a => a.enabled && !a.triggered).length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-rh-green/20 text-rh-green">
-                {priceAlerts.filter(a => a.enabled && !a.triggered).length}
-              </span>
-            )}
-          </button>
-        </div>
       </div>
 
-      {/* Price Chart - shows as soon as we have intraday candles (Phase 1) */}
+      {/* Chart */}
       <div className="mb-8">
         <StockPriceChart
           candles={data.candles}
@@ -596,16 +652,22 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           onHoverPrice={handleHoverPrice}
           goldenCrossDate={goldenCrossInfo.active ? goldenCrossInfo.date : null}
           session={quote.session}
+          earnings={earnings?.quarterly}
+          dividendEvents={tickerDividends}
+          dividendCredits={tickerCredits}
+          tradeEvents={tradeEvents}
+          analystEvents={analystEvents}
+          aiEvents={aiEvents?.events}
         />
       </div>
 
-      {/* WARNING Risk Dashboard */}
+      {/* Warning Panel */}
       {!loading && <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />}
 
       {/* Your Position */}
       {holding && (
         <div className="mb-8">
-          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-3">Your Position</h2>
+          <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Your Position</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <PositionCard label="Market Value" value={formatCurrency(holding.currentValue)} />
             <PositionCard label="Average Cost" value={formatCurrency(holding.averageCost)} />
@@ -630,30 +692,30 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>
       )}
 
-      {/* About Section - Robinhood style */}
+      {/* About Section */}
       {loading ? (
-        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6 animate-pulse">
-          <div className="h-5 w-16 bg-rh-light-bg dark:bg-rh-dark rounded mb-3" />
+        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6 animate-pulse">
+          <div className="h-4 w-16 bg-gray-200/30 dark:bg-white/[0.04] rounded mb-3" />
           <div className="space-y-2">
-            <div className="h-4 w-full bg-rh-light-bg dark:bg-rh-dark rounded" />
-            <div className="h-4 w-full bg-rh-light-bg dark:bg-rh-dark rounded" />
-            <div className="h-4 w-3/4 bg-rh-light-bg dark:bg-rh-dark rounded" />
+            <div className="h-3 w-full bg-gray-200/30 dark:bg-white/[0.04] rounded" />
+            <div className="h-3 w-full bg-gray-200/30 dark:bg-white/[0.04] rounded" />
+            <div className="h-3 w-3/4 bg-gray-200/30 dark:bg-white/[0.04] rounded" />
           </div>
         </div>
       ) : (about?.description || profile?.name) && (
-        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
-          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-3">About</h2>
+        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6">
+          <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-3">About</h2>
 
           {/* Description */}
           {about?.description && (
-            <p className="text-sm text-rh-light-text dark:text-rh-text leading-relaxed mb-4">
+            <p className="text-[12px] leading-[1.6] text-rh-light-text/80 dark:text-white/50 mb-4">
               {about.description}
             </p>
           )}
 
           {/* Horizontal divider */}
           {about?.description && (about?.category || about?.numberOfHoldings || about?.inceptionDate || about?.fundFamily || profile?.industry || about?.headquarters) && (
-            <div className="border-t border-rh-light-border/50 dark:border-rh-border/50 mb-4" />
+            <div className="border-t border-gray-200/20 dark:border-white/[0.03] mb-4" />
           )}
 
           {/* Metadata grid */}
@@ -661,71 +723,71 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {/* ETF-specific fields first */}
             {about?.category && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Category</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.category}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Category</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.category}</div>
               </div>
             )}
             {about?.numberOfHoldings && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Number of Holdings</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.numberOfHoldings.toLocaleString()}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Number of Holdings</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.numberOfHoldings.toLocaleString()}</div>
               </div>
             )}
             {about?.inceptionDate && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Inception Date</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.inceptionDate}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Inception Date</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.inceptionDate}</div>
               </div>
             )}
             {about?.fundFamily && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Fund Family</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.fundFamily}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Fund Family</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.fundFamily}</div>
               </div>
             )}
 
             {/* Stock-specific fields */}
             {!about?.category && (about?.sector || profile?.industry) && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Industry</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{about?.industry || profile?.industry}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Industry</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{about?.industry || profile?.industry}</div>
               </div>
             )}
             {about?.headquarters && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Headquarters</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.headquarters}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Headquarters</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.headquarters}</div>
               </div>
             )}
             {about?.fullTimeEmployees && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Employees</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{about.fullTimeEmployees.toLocaleString()}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Employees</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.fullTimeEmployees.toLocaleString()}</div>
               </div>
             )}
 
             {/* Common fields */}
             {profile?.country && !about?.headquarters && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Country</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.country}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Country</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.country}</div>
               </div>
             )}
             {profile?.exchange && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Exchange</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.exchange}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Exchange</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.exchange}</div>
               </div>
             )}
             {!about?.inceptionDate && profile?.ipoDate && (
               <div>
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5"><Acronym label="IPO" /> Date</div>
-                <div className="text-rh-light-text dark:text-rh-text font-medium">{profile.ipoDate}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5"><Acronym label="IPO" /> Date</div>
+                <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.ipoDate}</div>
               </div>
             )}
             {profile?.weburl && (
               <div className="col-span-2 md:col-span-1">
-                <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">Website</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Website</div>
                 <a
                   href={profile.weburl.startsWith('http') ? profile.weburl : `https://${profile.weburl}`}
                   target="_blank"
@@ -741,53 +803,53 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       )}
 
       {/* Key Statistics */}
-      {loading ? (
-        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6 animate-pulse">
-          <div className="h-5 w-28 bg-rh-light-bg dark:bg-rh-dark rounded mb-4" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
-            {[1,2,3,4,5,6,7,8].map(i => (
-              <div key={i}>
-                <div className="h-3 w-16 bg-rh-light-bg dark:bg-rh-dark rounded mb-1.5" />
-                <div className="h-5 w-20 bg-rh-light-bg dark:bg-rh-dark rounded" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (metrics || quote) && (
-        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
-          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-4">Key Statistics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
+      {!loading && (metrics || quote) && (
+        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6">
+          <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Key Statistics</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
             {profile && profile.marketCapM > 0 && (
-              <StatItem label="Market Cap" value={formatLargeNumber(profile.marketCapM)} />
+              <StatItem label="Mkt Cap" value={formatLargeNumber(profile.marketCapM)} />
             )}
             {metrics?.peRatio !== undefined && (
-              <StatItem label={<><Acronym label="P/E" /> Ratio</>} value={metrics.peRatio !== null ? metrics.peRatio.toFixed(2) : 'N/A'} />
+              <StatItem label={<><Acronym label="P/E" /></>} value={metrics.peRatio !== null ? metrics.peRatio.toFixed(2) : '—'} />
             )}
             {metrics?.dividendYield !== undefined && (
-              <StatItem label="Dividend Yield" value={metrics.dividendYield !== null ? `${metrics.dividendYield.toFixed(2)}%` : 'N/A'} />
+              <StatItem label="Div Yield" value={metrics.dividendYield !== null ? `${metrics.dividendYield.toFixed(2)}%` : '—'} />
             )}
             {metrics?.avgVolume10D !== undefined && (
-              <StatItem label="Avg Volume (10D)" value={formatVolume(metrics.avgVolume10D)} />
+              <StatItem label="Vol (10D)" value={formatVolume(metrics.avgVolume10D)} />
             )}
-            <StatItem label="Open" value={quote.open > 0 ? formatCurrency(quote.open) : 'N/A'} />
-            <StatItem label="High Today" value={quote.high > 0 ? formatCurrency(quote.high) : 'N/A'} />
-            <StatItem label="Low Today" value={quote.low > 0 ? formatCurrency(quote.low) : 'N/A'} />
+            <StatItem label="Open" value={quote.open > 0 ? formatCurrency(quote.open) : '—'} />
+            <StatItem label="High" value={quote.high > 0 ? formatCurrency(quote.high) : '—'} />
+            <StatItem label="Low" value={quote.low > 0 ? formatCurrency(quote.low) : '—'} />
             <StatItem label="Prev Close" value={formatCurrency(quote.previousClose)} />
             {metrics?.week52High !== undefined && (
-              <StatItem label="52 Week High" value={metrics.week52High !== null ? formatCurrency(metrics.week52High) : 'N/A'} />
+              <StatItem label="52W High" value={metrics.week52High !== null ? formatCurrency(metrics.week52High) : '—'} />
             )}
             {metrics?.week52Low !== undefined && (
-              <StatItem label="52 Week Low" value={metrics.week52Low !== null ? formatCurrency(metrics.week52Low) : 'N/A'} />
+              <StatItem label="52W Low" value={metrics.week52Low !== null ? formatCurrency(metrics.week52Low) : '—'} />
             )}
             {metrics?.beta !== undefined && (
-              <StatItem label={<Acronym label="Beta" />} value={metrics.beta !== null ? metrics.beta.toFixed(2) : 'N/A'} />
+              <StatItem label={<Acronym label="Beta" />} value={metrics.beta !== null ? metrics.beta.toFixed(2) : '—'} />
             )}
             {metrics?.eps !== undefined && (
-              <StatItem label={<><Acronym label="EPS" /> (<Acronym label="TTM" />)</>} value={metrics.eps !== null ? `$${metrics.eps.toFixed(2)}` : 'N/A'} />
+              <StatItem label={<><Acronym label="EPS" /></>} value={metrics.eps !== null ? `$${metrics.eps.toFixed(2)}` : '—'} />
             )}
           </div>
         </div>
       )}
+
+      {/* Intelligence Feed */}
+      {aiEvents?.events && aiEvents.events.length > 0 && (
+        <div className="mb-6">
+          <EventFeed events={aiEvents.events} ticker={ticker} />
+        </div>
+      )}
+
+      {/* AI Research Q&A */}
+      <div className="mb-6">
+        <StockQAPanel ticker={ticker} />
+      </div>
 
       {/* Financials & Earnings - for non-ETF stocks only */}
       {!etfHoldings?.isETF && (
@@ -809,67 +871,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             window.location.hash = `#stock/${t}`;
           }}
         />
-      ) : (
-        /* Dividends - for non-ETF stocks */
-        tickerDividends.length > 0 && (
-          <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
-            <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-4">Dividends</h2>
-            {/* Next upcoming */}
-            {(() => {
-              const now = new Date();
-              const next = tickerDividends.find(d => new Date(d.payDate) >= now);
-              if (next && holding) {
-                const est = holding.shares * next.amountPerShare;
-                return (
-                  <div className="mb-4 p-3 bg-rh-green/5 rounded-lg">
-                    <p className="text-sm text-rh-light-text dark:text-rh-text">
-                      Next payout: <span className="font-semibold text-rh-green">{formatCurrency(est)}</span>
-                      <span className="text-rh-light-muted dark:text-rh-muted ml-2">
-                        (${next.amountPerShare.toFixed(4)}/sh &times; {holding.shares}) on {new Date(next.payDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                    </p>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-            {/* Recent history */}
-            <div className="space-y-1.5">
-              {tickerDividends.slice(0, 4).map(d => (
-                <div key={d.id} className="flex items-center justify-between text-sm">
-                  <span className="text-rh-light-muted dark:text-rh-muted">
-                    Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
-                  </span>
-                  <span className="font-medium text-rh-green">${d.amountPerShare.toFixed(2)}/sh</span>
-                </div>
-              ))}
-            </div>
-            {/* Credits received */}
-            {tickerCredits.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Received</p>
-                {tickerCredits.slice(0, 4).map(c => (
-                  <div key={c.id} className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-rh-light-muted dark:text-rh-muted">
-                      {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
-                    </span>
-                    <span className="font-medium text-rh-green">{formatCurrency(c.amountGross)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )
-      )}
+      ) : null}
 
       {/* Price Alerts */}
       {priceAlerts.length > 0 && (
-        <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-5 mb-6">
+        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Price Alerts</h2>
+            <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">Price Alerts</h2>
             <button
               onClick={() => setShowAlertModal(true)}
-              className="text-sm text-rh-green hover:text-green-600 font-medium transition-colors"
+              className="text-xs font-medium text-rh-green hover:text-rh-green/80 transition-colors"
             >
               + Add Alert
             </button>
@@ -878,8 +889,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>
       )}
 
-      {/* Add / Update Holding */}
-      <AddToPortfolioForm ticker={ticker} currentPrice={quote.currentPrice} onAdded={onHoldingAdded} holding={holding} />
+      {/* Add / Update Holding Modal */}
+      {showAddHolding && (
+        <AddHoldingModal
+          ticker={ticker}
+          currentPrice={quote.currentPrice}
+          onAdded={onHoldingAdded}
+          holding={holding}
+          onClose={() => setShowAddHolding(false)}
+        />
+      )}
 
       {/* Create Price Alert Modal */}
       {showAlertModal && (

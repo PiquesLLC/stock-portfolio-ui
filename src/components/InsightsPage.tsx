@@ -8,10 +8,12 @@ import { RiskForecast } from './RiskForecast';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
+import PortfolioBriefing from './PortfolioBriefing';
+import BehaviorInsights from './BehaviorInsights';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior';
 
 // Cache for insights data - persists across component mounts
 const insightsCache: {
@@ -174,9 +176,59 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   const subTabs: { id: InsightsSubTab; label: string }[] = [
     { id: 'intelligence', label: 'Intelligence' },
+    { id: 'ai-briefing', label: 'AI Briefing' },
+    { id: 'ai-behavior', label: 'Behavior Coach' },
     { id: 'income', label: 'Income' },
     { id: 'projections-goals', label: 'Projections & Goals' },
   ];
+
+  // AI Briefing subtab
+  if (subTab === 'ai-briefing') {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1 w-fit">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <PortfolioBriefing />
+      </div>
+    );
+  }
+
+  // Behavior Coach subtab
+  if (subTab === 'ai-behavior') {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-1 bg-rh-light-bg dark:bg-rh-dark rounded-lg p-1 w-fit">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <BehaviorInsights />
+      </div>
+    );
+  }
 
   // Income subtab
   if (subTab === 'income') {

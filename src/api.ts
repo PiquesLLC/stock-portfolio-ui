@@ -584,6 +584,11 @@ export async function getPerformance(
   );
 }
 
+// Ticker activity (buy/sell/update events for a specific stock)
+export async function getTickerActivity(ticker: string): Promise<ActivityEvent[]> {
+  return fetchJson<ActivityEvent[]>(`${API_BASE_URL}/portfolio/activity/${encodeURIComponent(ticker)}`);
+}
+
 // Transaction endpoints
 export async function getTransactions(): Promise<Transaction[]> {
   return fetchJson<Transaction[]>(`${API_BASE_URL}/transactions`);
@@ -653,6 +658,86 @@ export async function getMarketNews(limit = 20): Promise<MarketNewsItem[]> {
   return fetchJson<MarketNewsItem[]>(`${API_BASE_URL}/market/news?limit=${limit}`);
 }
 
+export async function getTickerNews(ticker: string, limit = 30): Promise<MarketNewsItem[]> {
+  return fetchJson<MarketNewsItem[]>(`${API_BASE_URL}/market/stock/${encodeURIComponent(ticker)}/news?limit=${limit}`);
+}
+
+// Perplexity AI-powered events
+export interface AIEvent {
+  date: string;
+  type: 'EARNINGS' | 'ANALYST' | 'NEWS' | 'DIVIDEND';
+  label: string;
+  insight: string;
+  sentiment: number;
+  source_url?: string;
+}
+
+export interface AIEventsResponse {
+  ticker: string;
+  events: AIEvent[];
+}
+
+export async function getAIEvents(ticker: string, days = 90): Promise<AIEventsResponse> {
+  return fetchJson<AIEventsResponse>(`${API_BASE_URL}/market/stock/${encodeURIComponent(ticker)}/ai-events?days=${days}`);
+}
+
+// Stock Q&A (Perplexity AI)
+export interface StockQAResponse {
+  ticker: string;
+  question: string;
+  answer: string;
+  citations: string[];
+  answeredAt: string;
+}
+
+export async function askStockQuestion(ticker: string, question: string): Promise<StockQAResponse> {
+  return fetchJson<StockQAResponse>(`${API_BASE_URL}/market/stock/${encodeURIComponent(ticker)}/ask`, {
+    method: 'POST',
+    body: JSON.stringify({ question }),
+  });
+}
+
+// Portfolio Briefing (Perplexity AI)
+export interface BriefingSection {
+  title: string;
+  body: string;
+  sentiment?: 'positive' | 'neutral' | 'negative';
+}
+
+export interface PortfolioBriefingResponse {
+  generatedAt: string;
+  headline: string;
+  sections: BriefingSection[];
+  holdingCount: number;
+  cached: boolean;
+}
+
+export async function getPortfolioBriefing(): Promise<PortfolioBriefingResponse> {
+  return fetchJson<PortfolioBriefingResponse>(`${API_BASE_URL}/insights/briefing`);
+}
+
+// Behavior Insights (Perplexity AI)
+export interface BehaviorInsight {
+  category: 'concentration' | 'timing' | 'sizing' | 'diversification' | 'general';
+  title: string;
+  observation: string;
+  suggestion: string;
+  severity: 'info' | 'warning' | 'positive';
+}
+
+export interface BehaviorInsightsResponse {
+  generatedAt: string;
+  summary: string;
+  insights: BehaviorInsight[];
+  activityCount: number;
+  holdingCount: number;
+  cached: boolean;
+}
+
+export async function getBehaviorInsights(): Promise<BehaviorInsightsResponse> {
+  return fetchJson<BehaviorInsightsResponse>(`${API_BASE_URL}/insights/behavior`);
+}
+
 export interface PriceData {
   price: number;
   change: number;
@@ -718,9 +803,12 @@ export async function getUnreadPriceAlertCount(userId?: string): Promise<{ count
 // Analyst events
 import { AnalystEvent } from './types';
 
-export async function getAnalystEvents(limit?: number): Promise<AnalystEvent[]> {
-  const params = limit ? `?limit=${limit}` : '';
-  return fetchJson<AnalystEvent[]>(`${API_BASE_URL}/analyst/events${params}`);
+export async function getAnalystEvents(limit?: number, ticker?: string): Promise<AnalystEvent[]> {
+  const qs = new URLSearchParams();
+  if (limit) qs.set('limit', String(limit));
+  if (ticker) qs.set('ticker', ticker);
+  const params = qs.toString();
+  return fetchJson<AnalystEvent[]>(`${API_BASE_URL}/analyst/events${params ? `?${params}` : ''}`);
 }
 
 export async function markAnalystEventRead(eventId: string): Promise<void> {
@@ -777,4 +865,83 @@ export async function markMilestoneEventRead(eventId: string): Promise<void> {
 
 export async function markAllMilestoneEventsRead(userId: string): Promise<void> {
   await fetchJson(`${API_BASE_URL}/milestones/events/read-all?userId=${userId}`, { method: 'POST' });
+}
+
+// ── Nala AI Research ──────────────────────────────────────────────
+
+export interface NalaStockMetrics {
+  peRatio: number | null;
+  roe: number | null;
+  debtToEquity: number | null;
+  dividendYield: number | null;
+  revenueGrowthYoY: number | null;
+  profitMargin: number | null;
+  freeCashFlowYield: number | null;
+  marketCapB: number | null;
+  beta: number | null;
+  pegRatio: number | null;
+}
+
+export interface NalaLocalDataMatch {
+  ticker: string;
+  isHeld: boolean;
+  localMetrics: {
+    peRatio: number | null;
+    roe: number | null;
+    dividendYield: number | null;
+    profitMargin: number | null;
+    marketCap: number | null;
+    beta: number | null;
+  };
+  deviations: string[];
+}
+
+export interface NalaStockResult {
+  ticker: string;
+  companyName: string;
+  sector: string;
+  currentPrice: number | null;
+  metrics: NalaStockMetrics;
+  confidenceScore: number;
+  explanation: string;
+  risks: string;
+  localData: NalaLocalDataMatch | null;
+}
+
+export interface NalaStrategyInfo {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  riskLevel: 'conservative' | 'moderate' | 'aggressive';
+}
+
+export interface NalaResearchResponse {
+  question: string;
+  strategy: NalaStrategyInfo | null;
+  stocks: NalaStockResult[];
+  strategyExplanation: string;
+  citations: string[];
+  generatedAt: string;
+  cached: boolean;
+}
+
+export interface NalaSuggestion {
+  text: string;
+  icon: string;
+}
+
+export interface NalaSuggestionsResponse {
+  suggestions: NalaSuggestion[];
+}
+
+export async function askNala(question: string): Promise<NalaResearchResponse> {
+  return fetchJson<NalaResearchResponse>(`${API_BASE_URL}/nala/ask`, {
+    method: 'POST',
+    body: JSON.stringify({ question }),
+  });
+}
+
+export async function getNalaSuggestions(): Promise<NalaSuggestionsResponse> {
+  return fetchJson<NalaSuggestionsResponse>(`${API_BASE_URL}/nala/suggestions`);
 }

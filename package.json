@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "framer-motion": "^12.33.0",
     "hls.js": "^1.6.15",
     "http-proxy-middleware": "^3.0.5",
     "react": "^18.3.1",
