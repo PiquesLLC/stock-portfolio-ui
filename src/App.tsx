@@ -61,11 +61,33 @@ function applyTheme(theme: 'dark' | 'light') {
   localStorage.setItem('theme', theme);
 }
 
+// Convert ET hours:minutes to user's local timezone string
+function etToLocal(hour: number, minute: number): string {
+  // Create a date in ET, then format in user's local timezone
+  const now = new Date();
+  const etDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const localDate = new Date(now);
+  const offsetMs = localDate.getTime() - etDate.getTime();
+  const et = new Date(now);
+  et.setHours(hour, minute, 0, 0);
+  // Adjust: shift from ET to the date that would produce the same ET time, then add offset
+  const etToday = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  etToday.setHours(hour, minute, 0, 0);
+  const local = new Date(etToday.getTime() + offsetMs);
+  return local.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function getLocalTzAbbr(): string {
+  return new Intl.DateTimeFormat([], { timeZoneName: 'short' }).formatToParts(new Date())
+    .find(p => p.type === 'timeZoneName')?.value || '';
+}
+
 function getSessionDisplay(session?: MarketSession): { label: string; color: string; description: string } {
+  const tz = getLocalTzAbbr();
   switch (session) {
-    case 'PRE': return { label: 'PRE', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', description: 'Pre-Market (4:00 AM - 9:30 AM ET)' };
-    case 'REG': return { label: 'OPEN', color: 'bg-green-500/20 text-green-400 border-green-500/30', description: 'Regular Session (9:30 AM - 4:00 PM ET)' };
-    case 'POST': return { label: 'AH', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', description: 'After-Hours (4:00 PM - 8:00 PM ET)' };
+    case 'PRE': return { label: 'PRE', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', description: `Pre-Market (${etToLocal(4, 0)} - ${etToLocal(9, 30)} ${tz})` };
+    case 'REG': return { label: 'OPEN', color: 'bg-green-500/20 text-green-400 border-green-500/30', description: `Regular Session (${etToLocal(9, 30)} - ${etToLocal(16, 0)} ${tz})` };
+    case 'POST': return { label: 'AH', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', description: `After-Hours (${etToLocal(16, 0)} - ${etToLocal(20, 0)} ${tz})` };
     case 'CLOSED': return { label: 'CLOSED', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', description: 'Market Closed' };
     default: return { label: 'CLOSED', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', description: 'Market Closed' };
   }

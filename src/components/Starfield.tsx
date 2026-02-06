@@ -12,14 +12,27 @@ interface Star {
   alpha: number;
 }
 
+interface ShootingStar {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;      // frames remaining
+  maxLife: number;    // total frames for fade calc
+  size: number;
+  trail: { x: number; y: number }[];
+}
+
 const STAR_COUNT = 140;
 const BRAND_RATIO = 0.10;
 const TWINKLE_SPEED = 0.0015;
 const DRIFT_SPEED = [0.019, 0.0375, 0.0625];
+const SHOOTING_STAR_INTERVAL = 90000; // ms — base interval, randomized ±30s in spawner
 
 export default function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const starsRef = useRef<Star[]>([]);
+  const shootingRef = useRef<ShootingStar[]>([]);
   const animRef = useRef<number>(0);
   const timeRef = useRef(0);
 
@@ -57,6 +70,42 @@ export default function Starfield() {
     }
 
     starsRef.current = Array.from({ length: STAR_COUNT }, createStar);
+
+    function spawnShootingStar() {
+      // Pick a random start along the top or right edge
+      const fromTop = Math.random() < 0.6;
+      const x = fromTop ? Math.random() * w * 0.8 : w + 10;
+      const y = fromTop ? -10 : Math.random() * h * 0.4;
+      // Streak diagonally down-left to down-right
+      const angle = fromTop
+        ? (Math.PI * 0.15) + Math.random() * (Math.PI * 0.25)  // 27° to 72° from horizontal
+        : (Math.PI * 0.55) + Math.random() * (Math.PI * 0.25); // 99° to 144°
+      const speed = 1.2 + Math.random() * 0.8; // 1.2-2.0 px/frame
+      // Calculate life so it crosses ~85-95% of the screen diagonal
+      const diagonal = Math.sqrt(w * w + h * h);
+      const targetDist = diagonal * (0.85 + Math.random() * 0.1);
+      const life = Math.floor(targetDist / speed);
+      shootingRef.current.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life,
+        maxLife: life,
+        size: 2.0 + Math.random() * 1.0,
+        trail: [],
+      });
+    }
+
+    // Randomized recurring spawn — 60-120s between each
+    let shootingTimeout: ReturnType<typeof setTimeout>;
+    function scheduleNext() {
+      const delay = SHOOTING_STAR_INTERVAL + (Math.random() - 0.5) * 60000; // 60s-120s
+      shootingTimeout = setTimeout(() => {
+        spawnShootingStar();
+        scheduleNext();
+      }, delay);
+    }
+    scheduleNext();
 
     function resize() {
       const dpr = window.devicePixelRatio || 1;
@@ -133,6 +182,59 @@ export default function Starfield() {
         }
       }
 
+      // ── Shooting stars (line streaks) ─────────────────────
+      const shooters = shootingRef.current;
+      for (let i = shooters.length - 1; i >= 0; i--) {
+        const ss = shooters[i];
+
+        // Move
+        ss.x += ss.vx;
+        ss.y += ss.vy;
+        ss.life--;
+
+        const lifeRatio = ss.life / ss.maxLife; // 1 → 0
+        // Fade in fast, sustain, fade out at end
+        const alpha = ss.life < 10 ? ss.life / 10 : Math.min((ss.maxLife - ss.life) / 5, 1);
+
+        // Tail position — streak extends behind the head
+        const tailLen = 120 + ss.size * 30; // long streak
+        const speed = Math.sqrt(ss.vx * ss.vx + ss.vy * ss.vy);
+        const dx = ss.vx / speed; // normalized direction
+        const dy = ss.vy / speed;
+        const tailX = ss.x - dx * tailLen;
+        const tailY = ss.y - dy * tailLen;
+
+        // Gradient from tail (transparent) to head (subtle)
+        const grad = ctx!.createLinearGradient(tailX, tailY, ss.x, ss.y);
+        grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
+        grad.addColorStop(0.7, `rgba(255, 255, 255, ${alpha * 0.12})`);
+        grad.addColorStop(1, `rgba(255, 255, 255, ${alpha * 0.35})`);
+
+        // Draw the streak line
+        ctx!.beginPath();
+        ctx!.moveTo(tailX, tailY);
+        ctx!.lineTo(ss.x, ss.y);
+        ctx!.strokeStyle = grad;
+        ctx!.lineWidth = ss.size * 0.5;
+        ctx!.lineCap = 'round';
+        ctx!.stroke();
+
+        // Head dot — subtle, no heavy glow
+        ctx!.beginPath();
+        ctx!.arc(ss.x, ss.y, ss.size * 0.4, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(255, 255, 255, ${alpha * 0.45})`;
+        ctx!.shadowColor = `rgba(255, 255, 255, ${alpha * 0.2})`;
+        ctx!.shadowBlur = 3;
+        ctx!.fill();
+        ctx!.shadowColor = 'transparent';
+        ctx!.shadowBlur = 0;
+
+        // Remove dead shooting stars
+        if (ss.life <= 0 || ss.x < -100 || ss.x > w + 100 || ss.y > h + 100) {
+          shooters.splice(i, 1);
+        }
+      }
+
       animRef.current = requestAnimationFrame(animate);
     }
 
@@ -140,6 +242,7 @@ export default function Starfield() {
 
     return () => {
       cancelAnimationFrame(animRef.current);
+      clearTimeout(shootingTimeout);
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
