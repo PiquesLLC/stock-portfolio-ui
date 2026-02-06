@@ -6,26 +6,27 @@ interface Star {
   vx: number;
   vy: number;
   size: number;
-  layer: number;     // 0=far, 1=mid, 2=near
+  layer: number;
   isBrand: boolean;
   phase: number;
-  alpha: number;     // base brightness
+  alpha: number;
 }
 
-const STAR_COUNT = 280;
+const STAR_COUNT = 140;
 const BRAND_RATIO = 0.10;
 const TWINKLE_SPEED = 0.0015;
-const MOUSE_PARALLAX = [8, 20, 40];
-const DRIFT_SPEED = [0.04, 0.08, 0.14];
+const DRIFT_SPEED = [0.019, 0.0375, 0.0625];
 
 export default function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: 0.5, y: 0.5, sx: 0.5, sy: 0.5 });
   const starsRef = useRef<Star[]>([]);
   const animRef = useRef<number>(0);
   const timeRef = useRef(0);
 
   useEffect(() => {
+    // Skip on mobile/tablet
+    if (window.innerWidth < 1024) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -70,12 +71,6 @@ export default function Starfield() {
     resize();
     window.addEventListener('resize', resize);
 
-    function handleMouseMove(e: MouseEvent) {
-      mouseRef.current.x = e.clientX / w;
-      mouseRef.current.y = e.clientY / h;
-    }
-    window.addEventListener('mousemove', handleMouseMove);
-
     let paused = false;
     function handleVisibility() {
       paused = document.hidden;
@@ -87,12 +82,6 @@ export default function Starfield() {
       if (paused) return;
 
       const time = timeRef.current++;
-      const mouse = mouseRef.current;
-
-      mouse.sx += (mouse.x - mouse.sx) * 0.03;
-      mouse.sy += (mouse.y - mouse.sy) * 0.03;
-      const mx = mouse.sx - 0.5;
-      const my = mouse.sy - 0.5;
 
       const grad = ctx!.createLinearGradient(0, 0, 0, h);
       grad.addColorStop(0, '#050505');
@@ -116,15 +105,11 @@ export default function Starfield() {
         if (s.y < -60) s.y = h + 50;
         else if (s.y > h + 60) s.y = -50;
 
-        const parallax = MOUSE_PARALLAX[s.layer];
-        const sx = s.x + mx * parallax;
-        const sy = s.y + my * parallax;
-
         const twinkle = 0.65 + 0.35 * Math.sin(time * TWINKLE_SPEED + s.phase);
         const a = s.alpha * twinkle;
 
         ctx!.beginPath();
-        ctx!.arc(sx, sy, s.size, 0, Math.PI * 2);
+        ctx!.arc(s.x, s.y, s.size, 0, Math.PI * 2);
 
         if (s.isBrand) {
           ctx!.fillStyle = `rgba(0, 209, 255, ${a})`;
@@ -156,7 +141,6 @@ export default function Starfield() {
     return () => {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener('resize', resize);
-      window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
@@ -165,10 +149,10 @@ export default function Starfield() {
     <>
       <canvas
         ref={canvasRef}
-        className="starfield-canvas"
+        className="starfield-canvas hidden lg:block"
         aria-hidden="true"
       />
-      <div className="starfield-vignette" aria-hidden="true" />
+      <div className="starfield-vignette hidden lg:block" aria-hidden="true" />
     </>
   );
 }

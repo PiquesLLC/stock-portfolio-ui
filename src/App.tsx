@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Portfolio, Settings, MarketSession, PortfolioChartPeriod } from './types';
 import { getPortfolio, getSettings, getUsers, getPortfolioChart } from './api';
 import { REFRESH_INTERVAL } from './config';
-import { HoldingsTable } from './components/HoldingsTable';
+import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { InsightsPage } from './components/InsightsPage';
@@ -163,6 +163,7 @@ export default function App() {
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
+  const holdingsActionsRef = useRef<HoldingsTableActions | null>(null);
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
   const clearNavigationState = useCallback(() => {
     setViewingProfileId(null);
@@ -635,7 +636,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Portfolio Value Chart + Benchmark — seamless foreground+midground */}
+            {/* Portfolio Value Chart */}
             {portfolio && (
               <div className="space-y-0">
                 <PortfolioValueChart
@@ -651,80 +652,103 @@ export default function App() {
                   onPeriodChange={setChartPeriod}
                   onReturnChange={setChartReturnPct}
                 />
-                <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
                 <FuturesBanner session={portfolio.session} refreshTrigger={portfolioRefreshCount} />
-                <DividendsSection refreshTrigger={portfolioRefreshCount} holdings={portfolio.holdings} />
               </div>
             )}
 
-            {/* Separator */}
-            <div className="section-separator" />
-
-            {/* Key Metrics — BACKGROUND LAYER: recessed, supporting */}
+            {/* Key Metrics — compact inline bar */}
             {portfolio && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 background-layer background-fade-in">
-                <div className="rounded-xl p-4 kpi-card">
-                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Total Assets</p>
-                  <p className="text-lg font-bold text-rh-light-text/80 dark:text-rh-text/80">
+              <div className="flex flex-wrap items-center gap-y-2 px-6 py-3 border-y border-white/[0.04] dark:border-white/[0.04] border-gray-200/30">
+                {/* Capital group */}
+                <div className="flex items-baseline gap-1.5 mr-8">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Assets</span>
+                  <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
                     {portfolio.totalAssets > 0 ? formatCurrency(portfolio.totalAssets) : '—'}
-                  </p>
-                  <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mt-0.5">Holdings + Cash</p>
+                  </span>
                 </div>
-                <div className="rounded-xl p-4 kpi-card">
-                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Net Equity</p>
-                  <p className="text-lg font-bold text-rh-light-text/80 dark:text-rh-text/80">
+                <div className="flex items-baseline gap-1.5 mr-10">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Equity</span>
+                  <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
                     {formatCurrency(portfolio.netEquity)}
-                  </p>
-                  {portfolio.marginDebt > 0 ? (
-                    <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mt-0.5">
-                      After ${portfolio.marginDebt.toLocaleString()} margin
-                    </p>
-                  ) : (
-                    <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mt-0.5">Cash: {formatCurrency(portfolio.cashBalance)}</p>
+                  </span>
+                  {portfolio.marginDebt > 0 && (
+                    <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+                      (${portfolio.marginDebt.toLocaleString()} margin)
+                    </span>
                   )}
                 </div>
-                <div className={`rounded-xl p-4 kpi-card border-t-2 ${
-                  portfolio.dayChange === 0 ? 'border-transparent' : portfolio.dayChange > 0 ? 'border-rh-green/20' : 'border-rh-red/20'
-                }`}>
-                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Day Change</p>
-                  <p className={`text-lg font-bold ${
-                    portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green/80' : 'text-rh-red/80'
+                {/* Divider — separates capital from performance */}
+                <div className="hidden md:block w-px h-5 bg-white/[0.08] dark:bg-white/[0.08] bg-gray-300/40 mr-10" />
+                {/* Performance group */}
+                <div className="flex items-baseline gap-1.5 mr-8">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Day</span>
+                  <span className={`text-sm font-bold ${
+                    portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
-                    {portfolio.holdings.length > 0
-                      ? `${formatCurrency(portfolio.dayChange)}`
-                      : '—'}
-                  </p>
+                    {portfolio.holdings.length > 0 ? formatCurrency(portfolio.dayChange) : '—'}
+                  </span>
                   {portfolio.holdings.length > 0 && (
-                    <p className={`text-[10px] mt-0.5 ${portfolio.dayChange >= 0 ? 'text-rh-green/50' : 'text-rh-red/50'}`}>
+                    <span className={`text-[10px] ${portfolio.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
                       {formatPercent(portfolio.dayChangePercent)}
-                    </p>
+                    </span>
                   )}
                 </div>
-                <div className={`rounded-xl p-4 kpi-card border-t-2 ${
-                  portfolio.totalPL === 0 ? 'border-transparent' : portfolio.totalPL > 0 ? 'border-rh-green/20' : 'border-rh-red/20'
-                }`}>
-                  <p className="text-rh-light-muted/60 dark:text-rh-muted/60 text-[10px] uppercase tracking-wider mb-2">Total P/L</p>
-                  <p className={`text-lg font-extrabold ${
-                    portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green/85' : 'text-rh-red/85'
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Total P/L</span>
+                  <span className={`text-sm font-extrabold ${
+                    portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>
-                    {portfolio.holdings.length > 0
-                      ? `${formatCurrency(portfolio.totalPL)}`
-                      : '—'}
-                  </p>
+                    {portfolio.holdings.length > 0 ? formatCurrency(portfolio.totalPL) : '—'}
+                  </span>
                   {portfolio.holdings.length > 0 && (
-                    <p className={`text-[10px] mt-0.5 ${portfolio.totalPL >= 0 ? 'text-rh-green/50' : 'text-rh-red/50'}`}>
+                    <span className={`text-[10px] ${portfolio.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
                       {formatPercent(portfolio.totalPLPercent)}
-                    </p>
+                    </span>
                   )}
+                </div>
+                {/* Action buttons — pushed right */}
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => holdingsActionsRef.current?.openCashMargin()}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
+                      text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Cash & Margin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => holdingsActionsRef.current?.openAdd()}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold
+                      hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Stock
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Separator */}
-            <div className="section-separator" />
+            {/* Benchmark + Dividends — side by side, edge-aligned */}
+            {portfolio && (
+              <div className="flex flex-col md:flex-row md:items-start">
+                <div className="md:flex-1">
+                  <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
+                </div>
+                <div className="hidden md:block w-px self-stretch bg-white/[0.04] dark:bg-white/[0.04] bg-gray-200/30 my-4" />
+                <div className="md:flex-1">
+                  <DividendsSection refreshTrigger={portfolioRefreshCount} holdings={portfolio.holdings} />
+                </div>
+              </div>
+            )}
 
-            {/* Holdings + Performance — BACKGROUND LAYER: furthest depth */}
-            <div className="background-layer background-fade-in space-y-8">
+            {/* Holdings + Performance */}
+            <div className="space-y-8">
               <HoldingsTable
                 holdings={portfolio?.holdings ?? []}
                 onUpdate={handleUpdate}
@@ -733,6 +757,7 @@ export default function App() {
                 cashBalance={portfolio?.cashBalance ?? 0}
                 marginDebt={portfolio?.marginDebt ?? 0}
                 userId={currentUserId}
+                actionsRef={holdingsActionsRef}
               />
 
               <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />

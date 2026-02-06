@@ -14,6 +14,11 @@ function getSessionBadge(session?: MarketSession): { label: string; color: strin
   }
 }
 
+export interface HoldingsTableActions {
+  openAdd: () => void;
+  openCashMargin: () => void;
+}
+
 interface Props {
   holdings: Holding[];
   onUpdate: () => void;
@@ -22,6 +27,7 @@ interface Props {
   cashBalance?: number;
   marginDebt?: number;
   userId?: string;
+  actionsRef?: React.MutableRefObject<HoldingsTableActions | null>;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
@@ -59,7 +65,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick, cashBalance = 0, marginDebt = 0, userId }: Props) {
+export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -201,6 +207,11 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' });
     setModalError('');
   };
+
+  // Expose actions to parent via ref
+  if (actionsRef) {
+    actionsRef.current = { openAdd: handleOpenAdd, openCashMargin: handleOpenCashMargin };
+  }
 
   // Close modals
   const handleCloseModal = useCallback(() => {
@@ -483,31 +494,34 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     <div className="rounded-xl overflow-hidden">
       <div className="px-4 pb-4 pt-2 flex items-center justify-between">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleOpenCashMargin}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
-              text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Cash & Margin
-          </button>
-          <button
-            ref={addStockButtonRef}
-            type="button"
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold
-              hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Stock
-          </button>
-        </div>
+        {/* Buttons moved to KPI bar when actionsRef is provided */}
+        {!actionsRef && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenCashMargin}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
+                text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Cash & Margin
+            </button>
+            <button
+              ref={addStockButtonRef}
+              type="button"
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold
+                hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Stock
+            </button>
+          </div>
+        )}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -552,7 +566,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               return (
                 <tr
                   key={holding.id}
-                  className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''}`}
+                  className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-white/[0.03] dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''}`}
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
                 >
                   <td className="px-4 py-3 font-semibold text-rh-light-text dark:text-rh-text">
@@ -579,12 +593,12 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text">{holding.shares.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text">{formatCurrency(holding.averageCost)}</td>
-                  <td className={`px-4 py-3 text-right ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text'}`}>
+                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{holding.shares.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{formatCurrency(holding.averageCost)}</td>
+                  <td className={`px-4 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
-                      {showExtendedHours && hasValidPrice && holding.session && getSessionBadge(holding.session) && (
+                      {showExtendedHours && hasValidPrice && holding.session && holding.session !== 'CLOSED' && getSessionBadge(holding.session) && (
                         <span
                           className={`text-[10px] px-1 py-0.5 rounded font-medium ${getSessionBadge(holding.session)!.color}`}
                           title={getSessionBadge(holding.session)!.title}
@@ -594,12 +608,12 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text">
+                  <td className="px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200">
                     {hasValidPrice ? formatCurrency(holding.currentValue) : '—'}
                   </td>
                   <td className={`px-4 py-3 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
-                    holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'
+                    holding.dayChange >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.dayChange) : '—'}
                   </td>
@@ -611,18 +625,18 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   </td>
                   <td className={`px-4 py-3 text-right font-semibold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
-                    holding.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'
+                    holding.profitLoss >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
                   <td className={`px-4 py-3 text-right font-bold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
-                    holding.profitLossPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
+                    holding.profitLossPercent >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>
                     {hasValidPrice ? formatPercent(holding.profitLossPercent) : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <button
                         onClick={() => handleEdit(holding)}
                         className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white text-sm transition-colors"

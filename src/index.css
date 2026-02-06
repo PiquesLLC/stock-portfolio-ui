@@ -383,6 +383,33 @@ button:active:not(:disabled) {
   display: none;
 }
 
+/* Profit/Loss glow — soft aura on green/red numbers */
+.profit-glow {
+  text-shadow: 0 0 8px rgba(0, 200, 5, 0.35),
+               0 0 14px rgba(0, 200, 5, 0.15);
+}
+.loss-glow {
+  text-shadow: 0 0 8px rgba(232, 84, 78, 0.35),
+               0 0 14px rgba(232, 84, 78, 0.15);
+}
+
+/* Slow twinkle for hero numbers */
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.82; }
+}
+.twinkle-glow {
+  animation: twinkle 4s infinite ease-in-out;
+}
+
+/* Hidden scrollbar — scrollable but no visible bar */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    GRAIN TEXTURE — Premium tactile feel
    ═══════════════════════════════════════════════════════════════ */

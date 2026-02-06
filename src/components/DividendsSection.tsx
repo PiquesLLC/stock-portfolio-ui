@@ -108,6 +108,14 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
           <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
             Dividends
           </h3>
+          {hasData && (
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+            >
+              {showHistory ? 'Hide history' : 'History'}
+            </button>
+          )}
           {/* DRIP Toggle */}
           <button
             onClick={handleDripToggle}
@@ -220,17 +228,9 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
             );
           })()}
 
-          {/* History toggle */}
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="text-xs text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
-          >
-            {showHistory ? 'Hide history' : 'View history'}
-          </button>
-
           {/* History table */}
           {showHistory && credits.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
+            <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30 max-h-[280px] overflow-y-auto no-scrollbar">
               <div className="space-y-1.5">
                 {credits.map(c => {
                   const isReinvested = c.reinvestment != null;

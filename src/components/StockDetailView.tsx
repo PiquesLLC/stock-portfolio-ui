@@ -553,6 +553,11 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         <span>&larr;</span> Back
       </button>
 
+      {/* Two-column layout: main content + sticky intelligence sidebar */}
+      <div className="lg:flex lg:gap-6 lg:items-start">
+        {/* Left / Main column — scrolls with the page */}
+        <div className="lg:flex-1 lg:min-w-0">
+
       {/* Header: Company name + ticker + actions */}
       <div className="mb-2">
         <div className="flex items-center gap-3 mb-1">
@@ -697,16 +702,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       )}
 
       {/* About Section */}
-      {loading ? (
-        <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6 animate-pulse">
-          <div className="h-4 w-16 bg-gray-200/30 dark:bg-white/[0.04] rounded mb-3" />
-          <div className="space-y-2">
-            <div className="h-3 w-full bg-gray-200/30 dark:bg-white/[0.04] rounded" />
-            <div className="h-3 w-full bg-gray-200/30 dark:bg-white/[0.04] rounded" />
-            <div className="h-3 w-3/4 bg-gray-200/30 dark:bg-white/[0.04] rounded" />
-          </div>
-        </div>
-      ) : (about?.description || profile?.name) && (
+      {(about?.description || profile?.name) && (
         <div className="bg-white/[0.02] dark:bg-white/[0.02] bg-gray-50/40 backdrop-blur-md border border-white/[0.05] dark:border-white/[0.05] border-gray-200/40 rounded-xl p-5 mb-6">
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-3">About</h2>
 
@@ -849,12 +845,14 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>
       )}
 
-      {/* Intelligence Feed */}
-      {aiEvents?.events && aiEvents.events.length > 0 && (
-        <div className="mb-6">
-          <EventFeed events={aiEvents.events} ticker={ticker} />
-        </div>
-      )}
+      {/* Intelligence Feed - mobile only (desktop shows in right column) */}
+      <div className="lg:hidden">
+        {aiEvents?.events && aiEvents.events.length > 0 && (
+          <div className="mb-6">
+            <EventFeed events={aiEvents.events} ticker={ticker} />
+          </div>
+        )}
+      </div>
 
       {/* AI Research Q&A */}
       <div className="mb-6">
@@ -898,6 +896,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           <PriceAlertsList alerts={priceAlerts} onRefresh={fetchPriceAlerts} />
         </div>
       )}
+
+        </div>{/* end left column */}
+
+        {/* Right Column - Intelligence Feed (desktop only, sticky sidebar) */}
+        {aiEvents?.events && aiEvents.events.length > 0 && (
+          <div className="hidden lg:block lg:w-[360px] lg:shrink-0 lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto no-scrollbar">
+            <EventFeed events={aiEvents.events} ticker={ticker} />
+          </div>
+        )}
+      </div>{/* end two-column wrapper */}
 
       {/* Add / Update Holding Modal */}
       {showAddHolding && (
