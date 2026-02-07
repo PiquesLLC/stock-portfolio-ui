@@ -367,6 +367,8 @@ export interface Attribution {
     contributionDollar: number;
     contributionPct: number;
   }[];
+  winnersCount: number;
+  losersCount: number;
   partial: boolean;
 }
 
@@ -1127,4 +1129,19 @@ export interface MilestoneEvent {
   isNewRecord: boolean;
   read: boolean;
   createdAt: string;
+}
+
+export interface DailyReportResponse {
+  generatedAt: string;
+  greeting: string;
+  marketOverview: string;
+  portfolioSummary: string;
+  topStories: {
+    headline: string;
+    body: string;
+    sentiment: 'positive' | 'negative' | 'neutral';
+    relatedTickers: string[];
+  }[];
+  watchToday: string[];
+  cached: boolean;
 }

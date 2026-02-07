@@ -722,7 +722,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {/* Intelligence feed toggle — desktop only */}
             <button
               onClick={toggleIntelFeed}
-              className={`hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
                 showIntelFeed
                   ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
                   : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
@@ -1034,20 +1034,27 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Intelligence Feed - mobile only (desktop shows in right column) */}
       <div className="lg:hidden">
-        {showIntelFeed && aiEvents?.events && aiEvents.events.length > 0 && (
+        {showIntelFeed && (
           <div className="mb-6">
-            <EventFeed events={aiEvents.events} ticker={ticker} />
+            {aiEvents?.events && aiEvents.events.length > 0 ? (
+              <EventFeed events={aiEvents.events} ticker={ticker} />
+            ) : (
+              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
+                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
+                  </svg>
+                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : 'Loading intelligence events...'}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Financials & Earnings - for non-ETF stocks only */}
-      {!etfHoldings?.isETF && (
-        <>
-          <EarningsSection ticker={ticker} />
-          <FundamentalsSection ticker={ticker} />
-        </>
-      )}
+      {/* Financials & Earnings */}
+      <EarningsSection ticker={ticker} />
+      <FundamentalsSection ticker={ticker} />
 
       {/* AI Research Q&A */}
       <div className="mb-6">
@@ -1087,9 +1094,20 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>{/* end left column */}
 
         {/* Right Column - Intelligence Feed (desktop only, sticky sidebar) */}
-        {showIntelFeed && aiEvents?.events && aiEvents.events.length > 0 && (
+        {showIntelFeed && (
           <div className="hidden lg:block lg:w-[360px] lg:shrink-0 lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto no-scrollbar">
-            <EventFeed events={aiEvents.events} ticker={ticker} />
+            {aiEvents?.events && aiEvents.events.length > 0 ? (
+              <EventFeed events={aiEvents.events} ticker={ticker} />
+            ) : (
+              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
+                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
+                  </svg>
+                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : 'Loading intelligence events...'}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>{/* end two-column wrapper */}

@@ -3,7 +3,6 @@ import { HealthScore as HealthScoreType, Attribution as AttributionType, LeakDet
 import { getHealthScore, getAttribution, getLeakDetector, getPortfolioIntelligence, getPortfolio } from '../api';
 import { HealthScore } from './HealthScore';
 import { Attribution } from './Attribution';
-import { LeakDetector } from './LeakDetector';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
@@ -153,9 +152,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     fetchInsights(false);
   };
 
-  // Lazy-fetch holdings when Events or Correlation tab is selected
+  // Fetch holdings on mount (needed for allocation donut on Intelligence tab + Events/Allocation tabs)
   useEffect(() => {
-    if ((subTab === 'events' || subTab === 'allocation') && !holdingsFetchedRef.current) {
+    if (!holdingsFetchedRef.current) {
       holdingsFetchedRef.current = true;
       getPortfolio()
         .then((p) => {
@@ -163,7 +162,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         })
         .catch((e) => console.error('Failed to fetch holdings:', e));
     }
-  }, [subTab]);
+  }, []);
 
   // Check if we have any data to show
   const hasAnyData = healthScore || attribution || leakDetector || intelligence;
@@ -337,6 +336,21 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (!initialLoadComplete && !hasAnyData) {
     return (
       <div className="space-y-6">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <SkeletonCard lines={4} height="180px" />
         <SkeletonCard lines={5} height="220px" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -396,18 +410,18 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         <SkeletonCard lines={5} height="220px" />
       )}
 
-      {/* Attribution and Leak Detector - Side by Side - Always show both */}
+      {/* Attribution and Allocation Donut - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {attribution ? (
           <Attribution initialData={attribution} onTickerClick={onTickerClick} />
         ) : (
           <SkeletonCard lines={3} height="160px" />
         )}
-        {leakDetector ? (
-          <LeakDetector data={leakDetector} />
-        ) : (
-          <SkeletonCard lines={3} height="160px" />
-        )}
+        <AllocationDonut
+          holdings={holdings}
+          totalValue={holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0)}
+          onTickerClick={onTickerClick}
+        />
       </div>
 
       {/* Empty State - Only show if no holdings */}

@@ -52,6 +52,7 @@ import {
   PriceAlertEvent,
   CreatePriceAlertInput,
   UpdatePriceAlertInput,
+  DailyReportResponse,
 } from './types';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -327,6 +328,10 @@ export async function getRiskForecast(): Promise<RiskForecast> {
 
 export async function getIncomeInsights(window: IncomeWindow = 'today'): Promise<IncomeInsightsResponse> {
   return fetchJson<IncomeInsightsResponse>(`${API_BASE_URL}/insights/income?window=${window}`);
+}
+
+export async function getDailyReport(): Promise<DailyReportResponse> {
+  return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report`);
 }
 
 // Goals endpoints

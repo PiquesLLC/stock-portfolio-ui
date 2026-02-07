@@ -258,7 +258,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick }: Allocat
         </div>
 
         {/* Legend */}
-        <div className="w-full max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
+        <div className="w-full">
           <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
             {segments.map((seg, i) => (
               <button

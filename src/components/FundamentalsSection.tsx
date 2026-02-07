@@ -32,24 +32,24 @@ function RevenueTable({ data, period }: { data: ParsedIncomeStatement[]; period:
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-rh-light-muted dark:text-rh-muted border-b border-rh-light-border dark:border-rh-border">
-            <th className="text-left py-2 pr-3 font-medium">Period</th>
-            <th className="text-right py-2 px-2 font-medium">Revenue</th>
-            <th className="text-right py-2 px-2 font-medium">Gross Profit</th>
-            <th className="text-right py-2 px-2 font-medium">Net Income</th>
-            <th className="text-right py-2 px-2 font-medium">EBITDA</th>
+          <tr className="border-b border-gray-200/30 dark:border-white/[0.05]">
+            <th className="text-left py-2 pr-3 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Period</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Revenue</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Gross Profit</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Net Income</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">EBITDA</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i} className="border-b border-rh-light-border/50 dark:border-rh-border/50">
-              <td className="py-2 pr-3 text-rh-light-text dark:text-rh-text font-medium">{fmt(row.fiscalDateEnding)}</td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.totalRevenue)}</td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.grossProfit)}</td>
-              <td className={`py-2 px-2 text-right ${row.netIncome != null && row.netIncome < 0 ? 'text-rh-red' : 'text-rh-light-text dark:text-rh-text'}`}>
+            <tr key={i} className="border-b border-gray-200/15 dark:border-white/[0.025] last:border-b-0">
+              <td className="py-2 pr-3 text-rh-light-text/90 dark:text-white/85 font-medium">{fmt(row.fiscalDateEnding)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.totalRevenue)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.grossProfit)}</td>
+              <td className={`py-2 px-2 text-right ${row.netIncome != null && row.netIncome < 0 ? 'text-rh-red' : 'text-rh-light-text/90 dark:text-white/85'}`}>
                 {formatLargeNumber(row.netIncome)}
               </td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.ebitda)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.ebitda)}</td>
             </tr>
           ))}
         </tbody>
@@ -64,22 +64,22 @@ function BalanceTable({ data, period }: { data: ParsedBalanceSheet[]; period: Pe
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-rh-light-muted dark:text-rh-muted border-b border-rh-light-border dark:border-rh-border">
-            <th className="text-left py-2 pr-3 font-medium">Period</th>
-            <th className="text-right py-2 px-2 font-medium">Total Assets</th>
-            <th className="text-right py-2 px-2 font-medium">Total Liabilities</th>
-            <th className="text-right py-2 px-2 font-medium">Equity</th>
-            <th className="text-right py-2 px-2 font-medium">Cash</th>
+          <tr className="border-b border-gray-200/30 dark:border-white/[0.05]">
+            <th className="text-left py-2 pr-3 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Period</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Total Assets</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Total Liabilities</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Equity</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Cash</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i} className="border-b border-rh-light-border/50 dark:border-rh-border/50">
-              <td className="py-2 pr-3 text-rh-light-text dark:text-rh-text font-medium">{fmt(row.fiscalDateEnding)}</td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.totalAssets)}</td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.totalLiabilities)}</td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.totalShareholderEquity)}</td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.cashAndEquivalents)}</td>
+            <tr key={i} className="border-b border-gray-200/15 dark:border-white/[0.025] last:border-b-0">
+              <td className="py-2 pr-3 text-rh-light-text/90 dark:text-white/85 font-medium">{fmt(row.fiscalDateEnding)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.totalAssets)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.totalLiabilities)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.totalShareholderEquity)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.cashAndEquivalents)}</td>
             </tr>
           ))}
         </tbody>
@@ -94,24 +94,24 @@ function CashFlowTable({ data, period }: { data: ParsedCashFlow[]; period: Perio
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-rh-light-muted dark:text-rh-muted border-b border-rh-light-border dark:border-rh-border">
-            <th className="text-left py-2 pr-3 font-medium">Period</th>
-            <th className="text-right py-2 px-2 font-medium">Operating CF</th>
-            <th className="text-right py-2 px-2 font-medium">CapEx</th>
-            <th className="text-right py-2 px-2 font-medium">Free CF</th>
-            <th className="text-right py-2 px-2 font-medium">Dividends</th>
+          <tr className="border-b border-gray-200/30 dark:border-white/[0.05]">
+            <th className="text-left py-2 pr-3 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Period</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Operating CF</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">CapEx</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Free CF</th>
+            <th className="text-right py-2 px-2 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Dividends</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i} className="border-b border-rh-light-border/50 dark:border-rh-border/50">
-              <td className="py-2 pr-3 text-rh-light-text dark:text-rh-text font-medium">{fmt(row.fiscalDateEnding)}</td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.operatingCashflow)}</td>
+            <tr key={i} className="border-b border-gray-200/15 dark:border-white/[0.025] last:border-b-0">
+              <td className="py-2 pr-3 text-rh-light-text/90 dark:text-white/85 font-medium">{fmt(row.fiscalDateEnding)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.operatingCashflow)}</td>
               <td className="py-2 px-2 text-right text-rh-red">{formatLargeNumber(row.capitalExpenditures)}</td>
               <td className={`py-2 px-2 text-right ${row.freeCashFlow != null && row.freeCashFlow < 0 ? 'text-rh-red' : 'text-rh-green'}`}>
                 {formatLargeNumber(row.freeCashFlow)}
               </td>
-              <td className="py-2 px-2 text-right text-rh-light-text dark:text-rh-text">{formatLargeNumber(row.dividendPayout)}</td>
+              <td className="py-2 px-2 text-right text-rh-light-text/90 dark:text-white/85">{formatLargeNumber(row.dividendPayout)}</td>
             </tr>
           ))}
         </tbody>
@@ -158,10 +158,10 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
 
   if (loading) {
     return (
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-4 animate-pulse">
-        <div className="h-4 bg-rh-light-border dark:bg-rh-border rounded w-24 mb-4" />
+      <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5 mb-6 animate-pulse">
+        <div className="h-4 bg-gray-200/50 dark:bg-white/[0.06] rounded w-24 mb-4" />
         <div className="space-y-2">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-3 bg-rh-light-border dark:bg-rh-border rounded" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-3 bg-gray-200/40 dark:bg-white/[0.04] rounded" />)}
         </div>
       </div>
     );
@@ -185,21 +185,21 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
   const cashData = period === 'annual' ? data!.cashFlows.annual : data!.cashFlows.quarterly;
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-4">
+    <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5 mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text">Financials</h3>
+        <h3 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">Financials</h3>
         <div className="flex items-center gap-2">
           {data?.dataAge === 'stale' && (
-            <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">stale data</span>
+            <span className="text-[10px] text-rh-light-muted/40 dark:text-white/20">stale data</span>
           )}
-          <div className="flex gap-0.5 bg-rh-light-bg dark:bg-rh-dark rounded p-0.5">
+          <div className="flex gap-0.5 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-0.5">
             {(['annual', 'quarterly'] as PeriodToggle[]).map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors
+                className={`px-2.5 py-0.5 text-[10px] font-medium rounded-md transition-colors
                   ${period === p
-                    ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                    ? 'bg-white dark:bg-white/[0.06] text-rh-green shadow-sm'
                     : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
                   }`}
               >
@@ -211,7 +211,7 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-3 border-b border-rh-light-border dark:border-rh-border">
+      <div className="flex gap-1 mb-3 border-b border-gray-200/30 dark:border-white/[0.05]">
         {tabs.filter(t => t.available).map(t => (
           <button
             key={t.id}
@@ -219,7 +219,7 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
             className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px
               ${tab === t.id
                 ? 'border-rh-green text-rh-green'
-                : 'border-transparent text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                : 'border-transparent text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
           >
             {t.label}

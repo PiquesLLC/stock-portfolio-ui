@@ -27,6 +27,7 @@ import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { FuturesBanner } from './components/FuturesBanner';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
+import { DailyReportModal } from './components/DailyReportModal';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
@@ -186,6 +187,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
+  const [showDailyReport, setShowDailyReport] = useState(false);
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
@@ -467,6 +469,18 @@ export default function App() {
     const interval = setInterval(fetchData, REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchData, currentUserId]);
+
+  // Show daily report on first visit of the day
+  useEffect(() => {
+    if (!currentUserId || !portfolio) return;
+    const today = new Date().toDateString();
+    const lastShown = localStorage.getItem('dailyReportLastShown');
+    const disabled = localStorage.getItem('dailyReportDisabled') === 'true';
+    if (!disabled && lastShown !== today) {
+      setShowDailyReport(true);
+      localStorage.setItem('dailyReportLastShown', today);
+    }
+  }, [currentUserId, portfolio]);
 
   const handleUpdate = () => {
     fetchData();
@@ -968,6 +982,16 @@ export default function App() {
           cashBalance={portfolio?.cashBalance ?? 0}
           totalValue={portfolio?.totalAssets ?? 0}
           onClose={() => setShowWhatIf(false)}
+        />
+      )}
+      {/* Daily Report Modal */}
+      {showDailyReport && (
+        <DailyReportModal
+          onClose={() => setShowDailyReport(false)}
+          onTickerClick={(ticker) => {
+            setShowDailyReport(false);
+            setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker === ticker) ?? null });
+          }}
         />
       )}
       <ShortcutToast message={toastMessage} />
