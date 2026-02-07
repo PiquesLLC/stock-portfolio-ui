@@ -3,6 +3,7 @@ import { Holding, MarketSession } from '../types';
 import { deleteHolding, addHolding, updateSettings, getPortfolio } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { getAcronymTitle } from './Acronym';
+import { MiniSparkline } from './MiniSparkline';
 
 function getSessionBadge(session?: MarketSession): { label: string; color: string; title?: string } | null {
   switch (session) {
@@ -590,6 +591,9 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                         <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded" title="No price data available">
                           no data
                         </span>
+                      )}
+                      {hasValidPrice && (
+                        <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} />
                       )}
                     </div>
                   </td>

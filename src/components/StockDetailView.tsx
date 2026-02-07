@@ -717,6 +717,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* Chart */}
       <div className="mb-8">
         <StockPriceChart
+          ticker={ticker}
           candles={data.candles}
           intradayCandles={intradayCandles}
           hourlyCandles={hourlyCandles}

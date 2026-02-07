@@ -43,12 +43,20 @@ const SENTIMENT_BORDER: Record<IndicatorSentiment, string> = {
   neutral: 'transparent',
 };
 
-// Subtle background wash per sentiment — very light so it doesn't overwhelm
+// Glassmorphism background per sentiment — translucent tint with glow
 const SENTIMENT_BG: Record<IndicatorSentiment, string> = {
-  healthy: 'rgba(34,197,94,0.04)',   // green tint
-  caution: 'rgba(245,158,11,0.05)',  // amber tint
-  concern: 'rgba(239,68,68,0.05)',   // red tint
+  healthy: 'rgba(34,197,94,0.05)',
+  caution: 'rgba(245,158,11,0.035)',  // amber is perceptually brighter, use lower opacity
+  concern: 'rgba(239,68,68,0.04)',
   neutral: 'transparent',
+};
+
+// Inner glow gradient for glass left edge
+const SENTIMENT_GLOW: Record<IndicatorSentiment, string> = {
+  healthy: 'linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.03) 35%, transparent 100%)',
+  caution: 'linear-gradient(90deg, rgba(245,158,11,0.09) 0%, rgba(245,158,11,0.02) 35%, transparent 100%)',
+  concern: 'linear-gradient(90deg, rgba(239,68,68,0.10) 0%, rgba(239,68,68,0.025) 35%, transparent 100%)',
+  neutral: 'none',
 };
 
 // Value text color per sentiment
@@ -644,6 +652,7 @@ function IndicatorCard({ indicator, isSelected, onClick }: { indicator: Economic
   const sentiment = getIndicatorSentiment(indicator);
   const accentColor = SENTIMENT_BORDER[sentiment];
   const bgColor = SENTIMENT_BG[sentiment];
+  const glowBg = SENTIMENT_GLOW[sentiment];
   const valueClass = SENTIMENT_VALUE_CLASS[sentiment];
   const tooltip = getContextualTooltip(indicator);
 
@@ -665,17 +674,23 @@ function IndicatorCard({ indicator, isSelected, onClick }: { indicator: Economic
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left border rounded-lg p-4 transition-all cursor-pointer
+      className={`w-full text-left rounded-lg p-4 transition-all cursor-pointer relative overflow-hidden
+        border backdrop-blur-sm
         ${isSelected
           ? 'border-rh-green ring-1 ring-rh-green/30'
-          : 'border-gray-200/50 dark:border-white/[0.06] hover:border-white/[0.12]'
+          : 'border-gray-200/40 dark:border-white/[0.06] hover:border-gray-300/50 dark:hover:border-white/[0.12]'
         }`}
       style={{
-        borderLeftWidth: sentiment !== 'neutral' ? '3px' : undefined,
+        borderLeftWidth: sentiment !== 'neutral' ? '2px' : undefined,
         borderLeftColor: sentiment !== 'neutral' ? accentColor : undefined,
         backgroundColor: bgColor,
+        boxShadow: sentiment !== 'neutral' ? `inset 2px 0 12px -4px ${accentColor}44` : undefined,
       }}
     >
+      {/* Glass inner glow from left edge */}
+      {sentiment !== 'neutral' && (
+        <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ background: glowBg }} />
+      )}
       <div className="flex items-start justify-between mb-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -739,16 +754,22 @@ interface SelectedCard {
 function InsightPill({ insight }: { insight: MacroInsight }) {
   const borderColor = SENTIMENT_BORDER[insight.sentiment];
   const bgColor = SENTIMENT_BG[insight.sentiment];
+  const glowBg = SENTIMENT_GLOW[insight.sentiment];
 
   return (
     <div
-      className="group relative rounded-md px-3 py-2 text-left border border-transparent"
+      className="group relative rounded-md px-3 py-2 text-left border border-transparent overflow-hidden backdrop-blur-sm"
       style={{
-        borderLeftWidth: '3px',
+        borderLeftWidth: '2px',
         borderLeftColor: borderColor,
         backgroundColor: bgColor,
+        boxShadow: insight.sentiment !== 'neutral' ? `inset 2px 0 12px -4px ${borderColor}44` : undefined,
       }}
     >
+      {/* Glass inner glow */}
+      {insight.sentiment !== 'neutral' && (
+        <div className="absolute inset-0 pointer-events-none rounded-md" style={{ background: glowBg }} />
+      )}
       <div className="flex items-start gap-2">
         <span className="text-sm flex-shrink-0 mt-0.5">{insight.icon}</span>
         <div className="min-w-0">

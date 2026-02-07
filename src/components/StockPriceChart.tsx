@@ -4,6 +4,7 @@ import { AIEvent } from '../api';
 import { IntradayCandle } from '../api';
 
 interface Props {
+  ticker?: string;
   candles: StockCandles | null;
   intradayCandles?: IntradayCandle[];
   hourlyCandles?: IntradayCandle[];
@@ -322,7 +323,7 @@ const PAD_BOTTOM = 30;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
 
-export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData }: Props) {
+export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -382,9 +383,38 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
   const [hoveredCrossIndex, setHoveredCrossIndex] = useState<number | null>(null);
-  const [measureA, setMeasureA] = useState<{ time: number; price: number } | null>(null);
-  const [measureB, setMeasureB] = useState<{ time: number; price: number } | null>(null);
-  const [measureC, setMeasureC] = useState<{ time: number; price: number } | null>(null);
+  // Load persisted measurements from localStorage
+  const loadMeasurements = useCallback(() => {
+    if (!ticker) return { a: null, b: null, c: null };
+    try {
+      const raw = localStorage.getItem(`chart-measure-${ticker}`);
+      if (raw) return JSON.parse(raw) as { a: { time: number; price: number } | null; b: { time: number; price: number } | null; c: { time: number; price: number } | null };
+    } catch {}
+    return { a: null, b: null, c: null };
+  }, [ticker]);
+  const initMeasure = useRef(loadMeasurements());
+  const [measureA, setMeasureA] = useState<{ time: number; price: number } | null>(initMeasure.current.a);
+  const [measureB, setMeasureB] = useState<{ time: number; price: number } | null>(initMeasure.current.b);
+  const [measureC, setMeasureC] = useState<{ time: number; price: number } | null>(initMeasure.current.c);
+  // Persist measurements to localStorage
+  useEffect(() => {
+    if (!ticker) return;
+    if (!measureA && !measureB && !measureC) {
+      localStorage.removeItem(`chart-measure-${ticker}`);
+    } else {
+      localStorage.setItem(`chart-measure-${ticker}`, JSON.stringify({ a: measureA, b: measureB, c: measureC }));
+    }
+  }, [ticker, measureA, measureB, measureC]);
+
+  // Reload measurements when ticker changes
+  useEffect(() => {
+    if (!ticker) return;
+    const saved = loadMeasurements();
+    setMeasureA(saved.a);
+    setMeasureB(saved.b);
+    setMeasureC(saved.c);
+  }, [ticker, loadMeasurements]);
+
   const [showMeasureHint, setShowMeasureHint] = useState(true);
   const [cardDragPos, setCardDragPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingCard, setIsDraggingCard] = useState(false);
@@ -2042,7 +2072,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             );
           })() : hasData && (
             <g clipPath="url(#plot-clip)">
-              <path d={areaD} fill={`url(#grad-${selectedPeriod})`} />
+              <path d={areaD} fill={`url(#grad-${selectedPeriod})`} style={{ transition: 'opacity 0.2s ease-out' }} />
             </g>
           )}
 
@@ -2121,7 +2151,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             );
           })() : hasData && (
             <g clipPath="url(#plot-clip)">
-              <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transition: 'opacity 0.2s ease-out' }} />
             </g>
           )}
 

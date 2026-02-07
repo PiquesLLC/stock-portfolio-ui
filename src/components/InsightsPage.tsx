@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { HealthScore as HealthScoreType, Attribution as AttributionType, LeakDetectorResult, PortfolioIntelligenceResponse } from '../types';
-import { getHealthScore, getAttribution, getLeakDetector, getPortfolioIntelligence } from '../api';
+import { HealthScore as HealthScoreType, Attribution as AttributionType, LeakDetectorResult, PortfolioIntelligenceResponse, Holding } from '../types';
+import { getHealthScore, getAttribution, getLeakDetector, getPortfolioIntelligence, getPortfolio } from '../api';
 import { HealthScore } from './HealthScore';
 import { Attribution } from './Attribution';
 import { LeakDetector } from './LeakDetector';
@@ -9,10 +9,11 @@ import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
 import PortfolioBriefing from './PortfolioBriefing';
 import BehaviorInsights from './BehaviorInsights';
+import EventsCalendar from './EventsCalendar';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'events';
 
 // Cache for insights data - persists across component mounts
 const insightsCache: {
@@ -58,9 +59,11 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(insightsCache.intelligence);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(insightsCache.lastFetchTime !== null);
+  const [holdings, setHoldings] = useState<Holding[]>([]);
 
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
+  const holdingsFetchedRef = useRef(false);
 
   // Update cache when state changes
   useEffect(() => {
@@ -148,6 +151,18 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     fetchInsights(false);
   };
 
+  // Lazy-fetch holdings when Events tab is selected
+  useEffect(() => {
+    if (subTab === 'events' && !holdingsFetchedRef.current) {
+      holdingsFetchedRef.current = true;
+      getPortfolio()
+        .then((p) => {
+          if (mountedRef.current) setHoldings(p.holdings);
+        })
+        .catch((e) => console.error('Failed to fetch holdings for events:', e));
+    }
+  }, [subTab]);
+
   // Check if we have any data to show
   const hasAnyData = healthScore || attribution || leakDetector || intelligence;
 
@@ -156,6 +171,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'ai-briefing', label: 'AI Briefing' },
     { id: 'ai-behavior', label: 'Behavior Coach' },
     { id: 'income', label: 'Income' },
+    { id: 'events', label: 'Events' },
     { id: 'projections-goals', label: 'Projections & Goals' },
   ];
 
@@ -255,6 +271,30 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           refreshTrigger={refreshTrigger}
           session={session}
         />
+      </div>
+    );
+  }
+
+  // Events subtab
+  if (subTab === 'events') {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <EventsCalendar holdings={holdings} />
       </div>
     );
   }
