@@ -11,10 +11,11 @@ import BehaviorInsights from './BehaviorInsights';
 import EventsCalendar from './EventsCalendar';
 import CorrelationHeatmap from './CorrelationHeatmap';
 import { AllocationDonut } from './AllocationDonut';
+import { WhatIfSimulator } from './WhatIfSimulator';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'events' | 'allocation';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'events' | 'allocation' | 'what-if';
 
 // Cache for insights data - persists across component mounts
 const insightsCache: {
@@ -48,9 +49,11 @@ interface InsightsPageProps {
   currentValue: number;
   refreshTrigger?: number;
   session?: MarketSession;
+  cashBalance?: number;
+  totalAssets?: number;
 }
 
-export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session }: InsightsPageProps) {
+export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0 }: InsightsPageProps) {
   const [subTab, setSubTab] = useState<InsightsSubTab>('intelligence');
 
   // Initialize state from cache
@@ -170,23 +173,24 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const subTabs: { id: InsightsSubTab; label: string }[] = [
     { id: 'intelligence', label: 'Intelligence' },
     { id: 'ai-briefing', label: 'AI Briefing' },
-    { id: 'ai-behavior', label: 'Behavior Coach' },
+    { id: 'ai-behavior', label: 'Behavior' },
     { id: 'income', label: 'Income' },
     { id: 'events', label: 'Events' },
     { id: 'allocation', label: 'Allocation' },
-    { id: 'projections-goals', label: 'Projections & Goals' },
+    { id: 'projections-goals', label: 'Goals' },
+    { id: 'what-if', label: 'What If' },
   ];
 
   // AI Briefing subtab
   if (subTab === 'ai-briefing') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -205,12 +209,12 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'ai-behavior') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -229,12 +233,12 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'income') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -253,12 +257,12 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'projections-goals') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -281,12 +285,12 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'events') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -301,17 +305,45 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     );
   }
 
+  // What-If Simulator subtab
+  if (subTab === 'what-if') {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <WhatIfSimulator
+          holdings={holdings}
+          cashBalance={cashBalance}
+          totalValue={totalAssets}
+        />
+      </div>
+    );
+  }
+
   // Allocation subtab — donut chart + correlation heatmap
   if (subTab === 'allocation') {
     const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -336,12 +368,12 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (!initialLoadComplete && !hasAnyData) {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -365,12 +397,12 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     <div className="space-y-6">
       {/* Header: sub-tabs left, refresh + timestamp right */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
           {subTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
                 ${subTab === t.id
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'

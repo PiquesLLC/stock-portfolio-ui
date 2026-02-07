@@ -495,7 +495,6 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
     <div className="rounded-xl overflow-hidden">
       <div className="px-4 pb-4 pt-2 flex items-center justify-between">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
-        {/* Buttons moved to KPI bar when actionsRef is provided */}
         {!actionsRef && (
           <div className="flex items-center gap-2">
             <button
