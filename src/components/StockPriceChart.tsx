@@ -23,6 +23,8 @@ interface Props {
   tradeEvents?: ActivityEvent[];
   analystEvents?: AnalystEvent[];
   aiEvents?: AIEvent[];
+  onRequestResolution?: (level: 'daily' | 'hourly' | 'intraday', rangeStart: number, rangeEnd: number) => void;
+  zoomData?: { time: number; label: string; price: number; volume?: number }[];
 }
 
 const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
@@ -34,10 +36,37 @@ interface DataPoint {
   volume?: number;
 }
 
+// Snap a timestamp to the nearest clean date boundary if within threshold
+function snapToCleanBoundary(ms: number, visibleRange: number): number {
+  const threshold = visibleRange * 0.03;
+  const d = new Date(ms);
+  const targets: number[] = [];
+  // Year boundaries
+  targets.push(new Date(d.getFullYear(), 0, 1, 12).getTime());
+  targets.push(new Date(d.getFullYear() + 1, 0, 1, 12).getTime());
+  // Quarter boundaries
+  const q = Math.floor(d.getMonth() / 3) * 3;
+  targets.push(new Date(d.getFullYear(), q, 1, 12).getTime());
+  targets.push(new Date(d.getFullYear(), q + 3, 1, 12).getTime());
+  // Month boundaries
+  targets.push(new Date(d.getFullYear(), d.getMonth(), 1, 12).getTime());
+  targets.push(new Date(d.getFullYear(), d.getMonth() + 1, 1, 12).getTime());
+  // Week boundary (Monday)
+  const dow = d.getDay();
+  const toMon = dow === 0 ? 6 : dow - 1;
+  targets.push(new Date(d.getFullYear(), d.getMonth(), d.getDate() - toMon, 12).getTime());
+  let best = ms, bestDist = threshold;
+  for (const t of targets) {
+    const dist = Math.abs(t - ms);
+    if (dist < bestDist) { bestDist = dist; best = t; }
+  }
+  return best;
+}
+
 function buildPoints(
   candles: StockCandles | null,
   intradayCandles: IntradayCandle[] | undefined,
-  _hourlyCandles: IntradayCandle[] | undefined,
+  hourlyCandles: IntradayCandle[] | undefined,
   livePrices: { time: string; price: number }[],
   period: ChartPeriod,
   currentPrice: number,
@@ -82,9 +111,26 @@ function buildPoints(
     return pts;
   }
 
+  // Use hourly candles for 1W/1M — index-based x-axis eliminates overnight gaps
+  // giving smooth, dynamic charts like Robinhood's
+  if ((period === '1W' || period === '1M') && hourlyCandles && hourlyCandles.length > 0) {
+    const now = new Date();
+    return hourlyCandles.map(c => {
+      const d = new Date(c.time);
+      return {
+        time: d.getTime(),
+        label: d.getFullYear() !== now.getFullYear()
+          ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+          : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+        price: c.close,
+        volume: c.volume,
+      };
+    });
+  }
+
   const now = new Date();
 
-  // For all non-1D periods, always return the FULL daily candle dataset.
+  // For all other non-1D periods, always return the FULL daily candle dataset.
   // Period selection controls the initial zoom window, not the data range.
   // This enables seamless zoom across the entire stock history.
   if (!candles || candles.closes.length === 0) return [];
@@ -276,7 +322,7 @@ const PAD_BOTTOM = 30;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
 
-export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents }: Props) {
+export function StockPriceChart({ candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -336,9 +382,9 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
   const [hoveredCrossIndex, setHoveredCrossIndex] = useState<number | null>(null);
-  const [measureA, setMeasureA] = useState<number | null>(null);
-  const [measureB, setMeasureB] = useState<number | null>(null);
-  const [measureC, setMeasureC] = useState<number | null>(null);
+  const [measureA, setMeasureA] = useState<{ time: number; price: number } | null>(null);
+  const [measureB, setMeasureB] = useState<{ time: number; price: number } | null>(null);
+  const [measureC, setMeasureC] = useState<{ time: number; price: number } | null>(null);
   const [showMeasureHint, setShowMeasureHint] = useState(true);
   const [cardDragPos, setCardDragPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingCard, setIsDraggingCard] = useState(false);
@@ -361,6 +407,22 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   // Pan state
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef<{ x: number; rangeStart: number; rangeEnd: number } | null>(null);
+  // Zoom history for back navigation
+  const zoomHistoryRef = useRef<({ startMs: number; endMs: number } | null)[]>([]);
+  const zoomHistoryDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Touch pinch/pan state
+  const touchStartRef = useRef<{ distance: number; startMs: number; endMs: number; centerRatio: number } | null>(null);
+  const singleTouchRef = useRef<{ x: number; startMs: number; endMs: number } | null>(null);
+  // Zoom bar drag state
+  const [isBarDragging, setIsBarDragging] = useState(false);
+  const barDragRef = useRef<{ startX: number; startLeft: number; barWidth: number; containerWidth: number } | null>(null);
+  const zoomBarRef = useRef<HTMLDivElement>(null);
+  // Animated zoom transition refs
+  const zoomAnimRef = useRef<{
+    fromStart: number; fromEnd: number; toStart: number; toEnd: number;
+    startTime: number; duration: number; toNull: boolean;
+  } | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   // Derive visible index range from zoom
   const { visStartIdx, visEndIdx, visiblePoints } = useMemo(() => {
@@ -390,6 +452,23 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     };
   }, [zoomRange, points]);
 
+  // Request higher-resolution data when zoomed into small time range
+  useEffect(() => {
+    if (!zoomRange || !onRequestResolution || selectedPeriod === '1D' || selectedPeriod === '1W' || selectedPeriod === '1M') return;
+    const duration = zoomRange.endMs - zoomRange.startMs;
+    const thirtyFiveDays = 35 * 86400000; // covers 1M zoom window
+    const twoDays = 2 * 86400000;
+    if (duration <= twoDays) onRequestResolution('intraday', zoomRange.startMs, zoomRange.endMs);
+    else if (duration <= thirtyFiveDays) onRequestResolution('hourly', zoomRange.startMs, zoomRange.endMs);
+    else onRequestResolution('daily', zoomRange.startMs, zoomRange.endMs);
+  }, [zoomRange, onRequestResolution, selectedPeriod]);
+
+  // Use high-res data for rendering when available (keeps main points for hover/events)
+  const zoomDataPoints = useMemo(() => {
+    if (!zoomData || zoomData.length === 0 || !zoomRange) return null;
+    return zoomData.filter(p => p.time >= zoomRange.startMs && p.time <= zoomRange.endMs);
+  }, [zoomData, zoomRange]);
+
   const toggleMA = useCallback((period: MAPeriod) => {
     setEnabledMAs(prev => {
       const next = new Set(prev);
@@ -404,30 +483,24 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   useEffect(() => {
     setHoveredBreachIndex(null); setHoveredCrossIndex(null); setHoveredEventIdx(null);
     setPinnedEventIdx(null); setExpandedClusterIdx(null); setHoverIndex(null);
-    setMeasureA(null); setMeasureB(null); setMeasureC(null);
+    zoomHistoryRef.current = [];
 
     // For non-1D: period buttons set the visible zoom window on the full dataset
     // MAX = full view (null), others = zoom to that period's time range
-    if (selectedPeriod === 'MAX' || selectedPeriod === '1D' || points.length < 2) {
-      setZoomRange(null);
+    if (selectedPeriod === 'MAX' || selectedPeriod === '1D' || selectedPeriod === '1W' || selectedPeriod === '1M' || points.length < 2) {
+      animateZoomTo(null);
     } else {
       const now = Date.now();
       let startMs: number;
       switch (selectedPeriod) {
-        case '1W': startMs = now - 7 * 86400000; break;
-        case '1M': startMs = now - 30 * 86400000; break;
         case '3M': startMs = now - 90 * 86400000; break;
         case 'YTD': startMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
         case '1Y': startMs = now - 365 * 86400000; break;
         default: startMs = now - 365 * 86400000; break;
       }
-      // Clamp to data range
       const dataStart = points[0].time;
       const dataEnd = points[points.length - 1].time;
-      setZoomRange({
-        startMs: Math.max(dataStart, startMs),
-        endMs: dataEnd,
-      });
+      animateZoomTo({ startMs: Math.max(dataStart, startMs), endMs: dataEnd });
     }
   }, [selectedPeriod, points.length]);
 
@@ -439,6 +512,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
 
   // Click outside chart clears measurement and pinned events
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -527,13 +601,204 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     };
   }, [isPanning]);
 
+  // ── Zoom bar drag handler ────────────────────────────────────────
+  useEffect(() => {
+    if (!isBarDragging) return;
+    const moveHandler = (e: MouseEvent) => {
+      const drag = barDragRef.current;
+      if (!drag) return;
+      const pts = pointsRef.current;
+      if (pts.length < 2) return;
+      const fullStart = pts[0].time;
+      const fullEnd = pts[pts.length - 1].time;
+      const fullRange = fullEnd - fullStart;
+      const dx = e.clientX - drag.startX;
+      const deltaPct = (dx / drag.containerWidth) * 100;
+      const newLeftPct = Math.max(0, Math.min(100 - drag.barWidth, drag.startLeft + deltaPct));
+      const cur = zoomRangeRef.current;
+      if (!cur) return;
+      const zoomDuration = cur.endMs - cur.startMs;
+      const newStartMs = fullStart + (newLeftPct / 100) * fullRange;
+      setZoomRange({ startMs: Math.max(fullStart, newStartMs), endMs: Math.min(fullEnd, newStartMs + zoomDuration) });
+    };
+    const upHandler = () => { setIsBarDragging(false); barDragRef.current = null; };
+    window.addEventListener('mousemove', moveHandler);
+    window.addEventListener('mouseup', upHandler);
+    return () => { window.removeEventListener('mousemove', moveHandler); window.removeEventListener('mouseup', upHandler); };
+  }, [isBarDragging]);
+
+  // ── Animated zoom transition ──────────────────────────────────────
+  const animateZoomTo = useCallback((target: { startMs: number; endMs: number } | null, duration = 250) => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    const pts = pointsRef.current;
+    if (pts.length < 2) { setZoomRange(target); return; }
+    const fullStart = pts[0].time;
+    const fullEnd = pts[pts.length - 1].time;
+    const current = zoomRangeRef.current;
+    const fromStart = current?.startMs ?? fullStart;
+    const fromEnd = current?.endMs ?? fullEnd;
+    const toStart = target?.startMs ?? fullStart;
+    const toEnd = target?.endMs ?? fullEnd;
+    if (Math.abs(fromStart - toStart) < 1 && Math.abs(fromEnd - toEnd) < 1) { setZoomRange(target); return; }
+    zoomAnimRef.current = { fromStart, fromEnd, toStart, toEnd, startTime: performance.now(), duration, toNull: target === null };
+    const tick = (now: number) => {
+      const anim = zoomAnimRef.current;
+      if (!anim) return;
+      const t = Math.min(1, (now - anim.startTime) / anim.duration);
+      const ease = 1 - Math.pow(1 - t, 3); // cubic ease-out
+      if (t >= 1) {
+        setZoomRange(anim.toNull ? null : { startMs: anim.toStart, endMs: anim.toEnd });
+        zoomAnimRef.current = null; animFrameRef.current = null;
+      } else {
+        setZoomRange({ startMs: anim.fromStart + (anim.toStart - anim.fromStart) * ease, endMs: anim.fromEnd + (anim.toEnd - anim.fromEnd) * ease });
+        animFrameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    animFrameRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  // Clean up animation on unmount
+  useEffect(() => () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); }, []);
+
+  // Track zoom changes into history (debounced to avoid flooding during scroll)
+  useEffect(() => {
+    if (zoomHistoryDebounce.current) clearTimeout(zoomHistoryDebounce.current);
+    zoomHistoryDebounce.current = setTimeout(() => {
+      const h = zoomHistoryRef.current;
+      const last = h.length > 0 ? h[h.length - 1] : undefined;
+      if (last === zoomRange) return;
+      if (last && zoomRange && last.startMs === zoomRange.startMs && last.endMs === zoomRange.endMs) return;
+      h.push(zoomRange);
+      if (h.length > 20) h.shift();
+    }, 300);
+  }, [zoomRange]);
+
+  const goBackZoom = useCallback(() => {
+    const h = zoomHistoryRef.current;
+    if (h.length < 2) return;
+    h.pop(); // remove current
+    const prev = h[h.length - 1];
+    animateZoomTo(prev ?? null, 200);
+  }, [animateZoomTo]);
+
+  // ── Keyboard zoom/pan controls ──────────────────────────────────
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const pts = pointsRef.current;
+    if (pts.length < 20) return;
+    const fullStartMs = pts[0].time;
+    const fullEndMs = pts[pts.length - 1].time;
+    const fullRange = fullEndMs - fullStartMs;
+    if (fullRange <= 0) return;
+    const cur = zoomRangeRef.current;
+    const curStart = cur?.startMs ?? fullStartMs;
+    const curEnd = cur?.endMs ?? fullEndMs;
+    const curRange = curEnd - curStart;
+    const minRange = (fullRange / (pts.length - 1)) * 20;
+
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      const newRange = Math.max(minRange, curRange * 0.8);
+      if (newRange >= fullRange * 0.99) { animateZoomTo(null, 150); return; }
+      const mid = (curStart + curEnd) / 2;
+      let s = mid - newRange / 2, en = mid + newRange / 2;
+      if (s < fullStartMs) { s = fullStartMs; en = s + newRange; }
+      if (en > fullEndMs) { en = fullEndMs; s = en - newRange; }
+      animateZoomTo({ startMs: s, endMs: en }, 150);
+    } else if (e.key === '-') {
+      e.preventDefault();
+      const newRange = curRange * 1.25;
+      if (newRange >= fullRange * 0.99) { animateZoomTo(null, 150); return; }
+      const mid = (curStart + curEnd) / 2;
+      let s = mid - newRange / 2, en = mid + newRange / 2;
+      if (s < fullStartMs) { s = fullStartMs; en = s + newRange; }
+      if (en > fullEndMs) { en = fullEndMs; s = en - newRange; }
+      animateZoomTo({ startMs: s, endMs: en }, 150);
+    } else if (e.key === 'ArrowLeft' && cur) {
+      e.preventDefault();
+      const shift = curRange * 0.1;
+      let s = curStart - shift, en = curEnd - shift;
+      if (s < fullStartMs) { s = fullStartMs; en = s + curRange; }
+      setZoomRange({ startMs: s, endMs: en });
+    } else if (e.key === 'ArrowRight' && cur) {
+      e.preventDefault();
+      const shift = curRange * 0.1;
+      let s = curStart + shift, en = curEnd + shift;
+      if (en > fullEndMs) { en = fullEndMs; s = en - curRange; }
+      setZoomRange({ startMs: s, endMs: en });
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      animateZoomTo(null, 200);
+    } else if (e.key === 'Backspace') {
+      e.preventDefault();
+      goBackZoom();
+    }
+  }, [animateZoomTo, goBackZoom]);
+
+  // ── Touch pinch-to-zoom and pan ─────────────────────────────────
+  const getTouchDist = (t1: React.Touch, t2: React.Touch) =>
+    Math.sqrt((t1.clientX - t2.clientX) ** 2 + (t1.clientY - t2.clientY) ** 2);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    const pts = pointsRef.current;
+    if (pts.length < 20) return;
+    const zoom = zoomRangeRef.current;
+    const fullStart = pts[0].time;
+    const fullEnd = pts[pts.length - 1].time;
+    if (e.touches.length === 2) {
+      const dist = getTouchDist(e.touches[0], e.touches[1]);
+      const rect = svgRef.current?.getBoundingClientRect();
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const centerRatio = rect ? Math.max(0, Math.min(1, (centerX - rect.left) / rect.width)) : 0.5;
+      touchStartRef.current = { distance: dist, startMs: zoom?.startMs ?? fullStart, endMs: zoom?.endMs ?? fullEnd, centerRatio };
+      singleTouchRef.current = null;
+    } else if (e.touches.length === 1 && zoom) {
+      singleTouchRef.current = { x: e.touches[0].clientX, startMs: zoom.startMs, endMs: zoom.endMs };
+      touchStartRef.current = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    const pts = pointsRef.current;
+    if (pts.length < 20) return;
+    const fullStart = pts[0].time;
+    const fullEnd = pts[pts.length - 1].time;
+    const fullRange = fullEnd - fullStart;
+    if (e.touches.length === 2 && touchStartRef.current) {
+      e.preventDefault();
+      const dist = getTouchDist(e.touches[0], e.touches[1]);
+      const scale = dist / touchStartRef.current.distance;
+      const origRange = touchStartRef.current.endMs - touchStartRef.current.startMs;
+      const newRange = Math.max((fullRange / (pts.length - 1)) * 20, Math.min(fullRange, origRange / scale));
+      if (newRange >= fullRange * 0.99) { setZoomRange(null); return; }
+      const anchor = touchStartRef.current.startMs + touchStartRef.current.centerRatio * origRange;
+      let s = anchor - touchStartRef.current.centerRatio * newRange;
+      let en = anchor + (1 - touchStartRef.current.centerRatio) * newRange;
+      if (s < fullStart) { s = fullStart; en = s + newRange; }
+      if (en > fullEnd) { en = fullEnd; s = en - newRange; }
+      setZoomRange({ startMs: s, endMs: en });
+    } else if (e.touches.length === 1 && singleTouchRef.current) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - singleTouchRef.current.x;
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const origRange = singleTouchRef.current.endMs - singleTouchRef.current.startMs;
+      const deltaMs = -dx * (origRange / rect.width);
+      let s = singleTouchRef.current.startMs + deltaMs, en = singleTouchRef.current.endMs + deltaMs;
+      if (s < fullStart) { s = fullStart; en = s + origRange; }
+      if (en > fullEnd) { en = fullEnd; s = en - origRange; }
+      setZoomRange({ startMs: s, endMs: en });
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => { touchStartRef.current = null; singleTouchRef.current = null; }, []);
+
   // ── Scroll-to-zoom handler (native for passive:false) ────────────
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
 
     const handler = (e: WheelEvent) => {
-      e.preventDefault(); // capture scroll over chart for zoom
+      e.preventDefault();
 
       // Don't zoom if user is focused on an input or modal
       const active = document.activeElement;
@@ -596,7 +861,13 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       if (newStart < fullStartMs) { newStart = fullStartMs; newEnd = fullStartMs + clampedRange; }
       if (newEnd > fullEndMs) { newEnd = fullEndMs; newStart = fullEndMs - clampedRange; }
 
-      setZoomRange({ startMs: Math.max(fullStartMs, newStart), endMs: Math.min(fullEndMs, newEnd) });
+      // Snap to clean date boundaries if close
+      newStart = snapToCleanBoundary(newStart, clampedRange);
+      newEnd = snapToCleanBoundary(newEnd, clampedRange);
+      newStart = Math.max(fullStartMs, newStart);
+      newEnd = Math.min(fullEndMs, newEnd);
+
+      setZoomRange({ startMs: newStart, endMs: newEnd });
     };
 
     svg.addEventListener('wheel', handler, { passive: false });
@@ -758,13 +1029,41 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     return mx;
   }, [volumeEnabled, points, zoomRange, visStartIdx, visEndIdx]);
 
-  // Build SVG path — scope to visible range when zoomed
+  // Build SVG path — scope to visible range when zoomed, with decimation for performance
   const pathStart = zoomRange ? visStartIdx : 0;
   const pathEnd = zoomRange ? visEndIdx : points.length - 1;
-  const pathD = points.slice(pathStart, pathEnd + 1).map((p, j) => {
-    const i = pathStart + j;
-    return `${j === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.price).toFixed(1)}`;
-  }).join(' ');
+  const decimatedIndices = useMemo(() => {
+    const count = pathEnd - pathStart + 1;
+    const MAX_RENDER = 800;
+    if (count <= MAX_RENDER) return null;
+    const step = count / MAX_RENDER;
+    const indices: number[] = [pathStart];
+    for (let i = 1; i < MAX_RENDER - 1; i++) {
+      const idx = pathStart + Math.round(i * step);
+      if (idx !== indices[indices.length - 1]) indices.push(idx);
+    }
+    indices.push(pathEnd);
+    return indices;
+  }, [pathStart, pathEnd]);
+
+  // When high-res zoom data is available, render it instead of daily candles for the zoomed path
+  const zoomDataToX = (t: number) => {
+    if (!zoomRange) return PAD_LEFT;
+    return PAD_LEFT + ((t - zoomRange.startMs) / (zoomRange.endMs - zoomRange.startMs)) * plotW;
+  };
+
+  const pathD = zoomDataPoints && zoomDataPoints.length > 1
+    ? zoomDataPoints.map((p, j) =>
+        `${j === 0 ? 'M' : 'L'}${zoomDataToX(p.time).toFixed(1)},${toY(p.price).toFixed(1)}`
+      ).join(' ')
+    : decimatedIndices
+      ? decimatedIndices.map((i, j) =>
+          `${j === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(points[i].price).toFixed(1)}`
+        ).join(' ')
+      : points.slice(pathStart, pathEnd + 1).map((p, j) => {
+          const i = pathStart + j;
+          return `${j === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.price).toFixed(1)}`;
+        }).join(' ');
 
   // Session split indices for 1D: market open (9:30 AM ET) and close (4:00 PM ET)
   const { stockOpenIdx, stockCloseIdx } = useMemo(() => {
@@ -1356,6 +1655,24 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     return Math.max(0, Math.min(points.length - 1, Math.round(ratio * (points.length - 1))));
   }, [points, plotW, is1D, dayStartMs, dayRangeMs, zoomRange, visStartIdx, visEndIdx]);
 
+  // Resolve timestamp-based measurement point to nearest index in current points array
+  const resolveIndex = useCallback((timestamp: number): number | null => {
+    if (points.length === 0) return null;
+    let lo = 0, hi = points.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (points[mid].time < timestamp) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo > 0 && Math.abs(points[lo - 1].time - timestamp) < Math.abs(points[lo].time - timestamp)) return lo - 1;
+    return lo;
+  }, [points]);
+
+  // Derived indices from timestamp-based measurement state
+  const measureAIdx = measureA ? resolveIndex(measureA.time) : null;
+  const measureBIdx = measureB ? resolveIndex(measureB.time) : null;
+  const measureCIdx = measureC ? resolveIndex(measureC.time) : null;
+
   // Click handler for measurement — on container div so clicks above/below chart register
   const handleChartClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (isPanning) return; // suppress measurement during pan drag
@@ -1382,20 +1699,19 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       setIsDraggingCard(false);
       return;
     } else if (measureA === null) {
-      setMeasureA(idx);
+      setMeasureA({ time: points[idx].time, price: points[idx].price });
     } else if (measureB === null) {
-      setMeasureB(idx);
+      setMeasureB({ time: points[idx].time, price: points[idx].price });
     } else {
-      setMeasureC(idx);
+      setMeasureC({ time: points[idx].time, price: points[idx].price });
     }
   }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning]);
 
   // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
-    if (measureA === null || measureB === null) return null;
-    if (!points[measureA] || !points[measureB]) return null;
-    // Sort by index so A is always the earlier point in time
-    const [idxA, idxB] = measureA <= measureB ? [measureA, measureB] : [measureB, measureA];
+    if (measureAIdx === null || measureBIdx === null) return null;
+    if (!points[measureAIdx] || !points[measureBIdx]) return null;
+    const [idxA, idxB] = measureAIdx <= measureBIdx ? [measureAIdx, measureBIdx] : [measureBIdx, measureAIdx];
     const pA = points[idxA];
     const pB = points[idxB];
     if (pA.price === 0) return null;
@@ -1408,8 +1724,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
     };
     let bc: typeof ab | null = null;
     let ac: typeof ab | null = null;
-    if (measureC !== null && points[measureC]) {
-      const pC = points[measureC];
+    if (measureCIdx !== null && points[measureCIdx]) {
+      const pC = points[measureCIdx];
       bc = {
         startPrice: pB.price, endPrice: pC.price,
         startLabel: pB.label, endLabel: pC.label,
@@ -1426,18 +1742,18 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
       };
     }
     return { ab, bc, ac };
-  }, [measureA, measureB, measureC, points]);
+  }, [measureAIdx, measureBIdx, measureCIdx, points]);
 
   const measureIsGain = measurement ? measurement.ab.dollarChange >= 0 : true;
   const measureColor = measureIsGain ? '#00C805' : '#E8544E';
 
-  // SVG coordinates for measurement markers (guard against stale indices after period change)
-  const mAx = measureA !== null && measureA < points.length ? toX(measureA) : null;
-  const mAy = measureA !== null && points[measureA] ? toY(points[measureA].price) : null;
-  const mBx = measureB !== null && measureB < points.length ? toX(measureB) : null;
-  const mBy = measureB !== null && points[measureB] ? toY(points[measureB].price) : null;
-  const mCx = measureC !== null && measureC < points.length ? toX(measureC) : null;
-  const mCy = measureC !== null && points[measureC] ? toY(points[measureC].price) : null;
+  // SVG coordinates for measurement markers (using resolved indices)
+  const mAx = measureAIdx !== null && measureAIdx < points.length ? toX(measureAIdx) : null;
+  const mAy = measureAIdx !== null && points[measureAIdx] ? toY(points[measureAIdx].price) : null;
+  const mBx = measureBIdx !== null && measureBIdx < points.length ? toX(measureBIdx) : null;
+  const mBy = measureBIdx !== null && points[measureBIdx] ? toY(points[measureBIdx].price) : null;
+  const mCx = measureCIdx !== null && measureCIdx < points.length ? toX(measureCIdx) : null;
+  const mCy = measureCIdx !== null && points[measureCIdx] ? toY(points[measureCIdx].price) : null;
 
 
   // Snap-to-event: when chart crosshair is near an event, highlight it
@@ -1502,7 +1818,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
   })() : null;
 
   return (
-    <div className="relative" style={{ overflow: 'visible' }}>
+    <div className="relative" style={{ overflowX: 'clip', overflowY: 'visible' }}>
       {/* Signal HUD — absolutely positioned top-right, extends up into parent header area */}
       {hudData && hoveredCluster && (
         <div
@@ -1624,7 +1940,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
         )}
       </div>
 
-      <div ref={chartContainerRef} className="relative w-full" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }} onClick={handleChartClick}>
+      <div ref={chartContainerRef} className="relative w-full focus-visible:ring-1 focus-visible:ring-rh-green/30 rounded" tabIndex={0} style={{ aspectRatio: `${CHART_W}/${CHART_H}`, outline: 'none' }} onClick={handleChartClick} onKeyDown={handleKeyDown}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CHART_W} ${CHART_H}`}
@@ -1634,6 +1950,9 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onDoubleClick={handleDoubleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{ cursor: isPanning ? 'grabbing' : zoomRange ? 'grab' : undefined }}
           onClick={(e) => {
             if (isPanning) return; // suppress measurement click during pan drag
@@ -1646,9 +1965,9 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             const idx = findNearestIndex(svgX);
             setShowMeasureHint(false);
             if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
-            else if (measureA === null) { setMeasureA(idx); }
-            else if (measureB === null) { setMeasureB(idx); }
-            else { setMeasureC(idx); }
+            else if (measureA === null) { setMeasureA({ time: points[idx].time, price: points[idx].price }); }
+            else if (measureB === null) { setMeasureB({ time: points[idx].time, price: points[idx].price }); }
+            else { setMeasureC({ time: points[idx].time, price: points[idx].price }); }
           }}
         >
           <defs>
@@ -1810,7 +2129,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           <g clipPath="url(#plot-clip)">
             {maPaths.map(({ period, d }) => (
               <path key={`ma-${period}`} d={d} fill="none" stroke={MA_COLORS[period]}
-                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.55" />
             ))}
           </g>
 
@@ -1818,6 +2137,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           {(() => {
             // Compute local max Y (highest visible line) at each signal's index
             const pillPositions = breachClusters.map((cluster) => {
+              // Skip signals outside visible range when zoomed
+              if (zoomRange && (cluster.index < visStartIdx || cluster.index > visEndIdx)) return null;
               const cx = toX(cluster.index);
               const idx = cluster.index;
               // Sample all visible values at this index
@@ -1833,7 +2154,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               const allPeriods = [...new Set(cluster.events.flatMap(e => e.maPeriods))].sort((a, b) => b - a);
               const isPrimary = allPeriods.includes(200 as MAPeriod);
               return { cluster, cx, cy: toY(cluster.price), localMinY, allPeriods, isPrimary };
-            });
+            }).filter((p): p is NonNullable<typeof p> => p !== null);
 
             // Density stagger: offset Y when pills are close in X
             const staggerOffset: number[] = new Array(pillPositions.length).fill(0);
@@ -1946,6 +2267,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
           {/* Golden / Death Cross markers */}
           {crossEvents.map((cross) => {
+            if (zoomRange && (cross.index < visStartIdx || cross.index > visEndIdx)) return null;
             const cx = toX(cross.index);
             const cy = toY(cross.price);
             const isActive = effectiveCrossIndex === cross.index;
@@ -1998,6 +2320,8 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
             style={{ transition: 'opacity 300ms ease' }}
           >
           {eventClusters.map((cluster, ci) => {
+            // Skip events outside visible range when zoomed
+            if (zoomRange && (cluster.index < visStartIdx || cluster.index > visEndIdx)) return null;
             const ex = toX(cluster.index);
             const priceY = toY(points[cluster.index]?.price ?? 0);
             const bottomY = CHART_H - PAD_BOTTOM;
@@ -2283,57 +2607,56 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               }}
             >
               <div
-                className="rounded-xl px-4 py-3 text-left shadow-2xl bg-gray-50/95 dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200/60 dark:border-white/[0.08]"
+                className="rounded-lg text-left shadow-2xl bg-gray-50/95 dark:bg-[rgba(20,20,26,0.92)] backdrop-blur-xl border border-gray-200/60 dark:border-white/[0.08]"
                 style={{
-                  minWidth: '200px',
-                  maxWidth: '280px',
+                  width: '240px',
+                  maxHeight: '280px',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
                 {/* Header: date + close button */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-rh-light-muted/50 dark:text-white/40">{dateStr}</span>
+                <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
+                  <span className="text-[10px] font-medium text-rh-light-muted/50 dark:text-white/35 tracking-wide uppercase">{dateStr}</span>
                   {isPinned && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPinnedEventIdx(null); }}
-                      className="text-rh-light-muted/40 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 transition-colors ml-3 -mr-1 -mt-1"
-                      style={{ fontSize: '14px', lineHeight: 1 }}
+                      className="text-rh-light-muted/40 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 transition-colors -mr-0.5"
+                      style={{ fontSize: '13px', lineHeight: 1 }}
                     >&times;</button>
                   )}
                 </div>
 
+                {/* Scrollable event list */}
+                <div className="overflow-y-auto px-3 pb-2.5 no-scrollbar" style={{ maxHeight: '240px' }}>
                 {items.map((item, ii) => (
-                  <div key={ii} className={ii > 0 ? 'mt-3 pt-3 border-t border-gray-200/20 dark:border-white/[0.06]' : ''}>
-                    {/* Title */}
-                    <div className="text-[13px] font-semibold text-rh-light-text dark:text-white leading-tight mb-1.5">{item.title}</div>
-
-                    {/* Badges row */}
-                    <div className="flex items-center gap-1.5 mb-2">
-                      {item.typeBadge && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-200/50 dark:bg-white/10 text-rh-light-muted dark:text-white/60 font-medium">
-                          {item.typeBadge.toLowerCase()}
-                        </span>
-                      )}
+                  <div key={ii} className={ii > 0 ? 'mt-2 pt-2 border-t border-gray-200/15 dark:border-white/[0.05]' : ''}>
+                    {/* Title + type inline */}
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-[12px] font-semibold text-rh-light-text dark:text-white/90 leading-tight truncate">{item.title}</span>
                       {item.sentimentBadge && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full text-white font-semibold ${item.sentimentColor}`}>
-                          {item.sentimentBadge}
+                        <span className={`text-[9px] px-1.5 py-px rounded-full text-white font-semibold shrink-0 ${item.sentimentColor}`}>
+                          {item.sentimentBadge === 'Positive' ? '+' : item.sentimentBadge === 'Negative' ? '−' : '~'}
                         </span>
                       )}
                     </div>
 
                     {/* Detail text */}
                     {item.detail && (
-                      <p className="text-[11px] text-rh-light-text/70 dark:text-white/60 leading-relaxed">{item.detail}</p>
+                      <p className="text-[10.5px] text-rh-light-text/60 dark:text-white/50 leading-snug line-clamp-2">{item.detail}</p>
                     )}
 
                     {/* Source link */}
                     {item.sourceUrl && (
                       <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-                        className="inline-block mt-1.5 text-[10px] text-rh-green/60 hover:text-rh-green">
-                        View Source &rarr;
+                        className="inline-block mt-1 text-[9px] text-rh-green/50 hover:text-rh-green transition-colors"
+                        onClick={(e) => e.stopPropagation()}>
+                        source &rarr;
                       </a>
                     )}
                   </div>
                 ))}
+                </div>
               </div>
             </div>
           );
@@ -2345,7 +2668,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
           const allXs = [mAx, mBx, ...(mCx !== null ? [mCx] : [])];
           const midXPct = ((Math.min(...allXs) + Math.max(...allXs)) / 2 / CHART_W) * 100;
           // Find the highest price point in the selected range to place card above it
-          const indices = [measureA!, measureB!, ...(measureC !== null ? [measureC] : [])];
+          const indices = [measureAIdx!, measureBIdx!, ...(measureCIdx !== null ? [measureCIdx] : [])];
           const lo = Math.min(...indices);
           const hi = Math.max(...indices);
           let minYInRange = CHART_H;
@@ -2489,7 +2812,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
         })()}
 
         {/* Single-point indicator — above the selected point */}
-        {isMeasuring && !hasFullMeasurement && !(hasMeasurement) && measureA !== null && points[measureA] && mAx !== null && mAy !== null && (() => {
+        {isMeasuring && !hasFullMeasurement && !(hasMeasurement) && measureAIdx !== null && points[measureAIdx] && mAx !== null && mAy !== null && (() => {
           const leftPct = Math.max(2, Math.min(70, (mAx / CHART_W) * 100 - 5));
           const topPct = Math.max(0, (mAy / CHART_H) * 100 - 14);
           return (
@@ -2506,7 +2829,7 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
                 <span className="text-xs text-white/70">
-                  {points[measureA].label} · ${points[measureA].price.toFixed(2)}
+                  {points[measureAIdx!].label} · ${points[measureAIdx!].price.toFixed(2)}
                 </span>
                 <span className="text-[10px] text-white/30">
                   — click another point
@@ -2518,19 +2841,34 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
 
         {/* Signal HUD moved to outer wrapper */}
 
-        {/* Reset Zoom button */}
+        {/* Zoom navigation buttons */}
         {zoomRange && (
-          <button
-            onClick={(e) => { e.stopPropagation(); setZoomRange(null); }}
-            className="absolute top-1 left-1 z-20 px-2 py-0.5 rounded text-[10px] font-medium
-                       text-rh-light-muted dark:text-white/50
-                       bg-gray-100/80 dark:bg-white/[0.06]
-                       hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
-                       border border-gray-200/40 dark:border-white/[0.08]
-                       backdrop-blur transition-all"
-          >
-            Reset Zoom
-          </button>
+          <div className="absolute top-1 left-1 z-20 flex gap-1">
+            {zoomHistoryRef.current.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); goBackZoom(); }}
+                className="px-2 py-0.5 rounded text-[10px] font-medium
+                           text-rh-light-muted dark:text-white/50
+                           bg-gray-100/80 dark:bg-white/[0.06]
+                           hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
+                           border border-gray-200/40 dark:border-white/[0.08]
+                           backdrop-blur transition-all"
+              >
+                &larr; Back
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setZoomRange(null); zoomHistoryRef.current = []; }}
+              className="px-2 py-0.5 rounded text-[10px] font-medium
+                         text-rh-light-muted dark:text-white/50
+                         bg-gray-100/80 dark:bg-white/[0.06]
+                         hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
+                         border border-gray-200/40 dark:border-white/[0.08]
+                         backdrop-blur transition-all"
+            >
+              Reset Zoom
+            </button>
+          </div>
         )}
 
         {/* No data overlay */}
@@ -2572,10 +2910,31 @@ export function StockPriceChart({ candles, intradayCandles, hourlyCandles, liveP
         const leftPct = ((zoomRange.startMs - fullStart) / fullRange) * 100;
         const widthPct = ((zoomRange.endMs - zoomRange.startMs) / fullRange) * 100;
         return (
-          <div className="relative h-1 bg-gray-200/30 dark:bg-white/[0.06] rounded-full mt-1.5">
+          <div
+            ref={zoomBarRef}
+            className="relative h-2 bg-gray-200/30 dark:bg-white/[0.06] rounded-full mt-1.5 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickPct = ((e.clientX - rect.left) / rect.width) * 100;
+              const zoomDuration = zoomRange.endMs - zoomRange.startMs;
+              const newCenterMs = fullStart + (clickPct / 100) * fullRange;
+              let s = newCenterMs - zoomDuration / 2, en = newCenterMs + zoomDuration / 2;
+              if (s < fullStart) { s = fullStart; en = s + zoomDuration; }
+              if (en > fullEnd) { en = fullEnd; s = en - zoomDuration; }
+              animateZoomTo({ startMs: s, endMs: en }, 150);
+            }}
+          >
             <div
-              className="absolute top-0 h-full bg-rh-green/40 rounded-full transition-all duration-75"
+              className="absolute top-0 h-full bg-rh-green/50 rounded-full cursor-grab active:cursor-grabbing hover:bg-rh-green/60 transition-colors"
               style={{ left: `${Math.max(0, leftPct)}%`, width: `${Math.min(100, widthPct)}%` }}
+              onMouseDown={(e) => {
+                e.stopPropagation(); e.preventDefault();
+                const rect = zoomBarRef.current?.getBoundingClientRect();
+                if (!rect) return;
+                barDragRef.current = { startX: e.clientX, startLeft: leftPct, barWidth: widthPct, containerWidth: rect.width };
+                setIsBarDragging(true);
+              }}
             />
           </div>
         );

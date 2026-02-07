@@ -204,8 +204,44 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       setHourlyCandles([]);
     }
   }, []);
+
   // Intraday candles for 1D chart (from Yahoo Finance via API)
   const [intradayCandles, setIntradayCandles] = useState<IntradayCandle[]>([]);
+
+  // Zoom data resolution state
+  const [zoomData, setZoomData] = useState<{ time: number; label: string; price: number; volume?: number }[]>([]);
+
+  const handleResolutionRequest = useCallback((level: 'daily' | 'hourly' | 'intraday', rangeStart: number, rangeEnd: number) => {
+    if (level === 'daily') { setZoomData([]); return; }
+    if (level === 'hourly') {
+      const all = [...(hourlyCache.current['1W'] || []), ...(hourlyCache.current['1M'] || [])];
+      const seen = new Set<number>();
+      const filtered = all.filter(c => {
+        const t = new Date(c.time).getTime();
+        if (seen.has(t) || t < rangeStart || t > rangeEnd) return false;
+        seen.add(t); return true;
+      }).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+      if (filtered.length > 0) {
+        setZoomData(filtered.map(c => {
+          const d = new Date(c.time);
+          return { time: d.getTime(), label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), price: c.close, volume: c.volume };
+        }));
+      }
+      return;
+    }
+    if (level === 'intraday' && intradayCandles.length > 0) {
+      const filtered = intradayCandles.filter(c => {
+        const t = new Date(c.time).getTime();
+        return t >= rangeStart && t <= rangeEnd;
+      });
+      if (filtered.length > 0) {
+        setZoomData(filtered.map(c => {
+          const d = new Date(c.time);
+          return { time: d.getTime(), label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), price: c.close, volume: c.volume };
+        }));
+      }
+    }
+  }, [intradayCandles]);
   // Hourly candles for 1W/1M (finer-grained than daily)
   const [hourlyCandles, setHourlyCandles] = useState<IntradayCandle[]>([]);
   // Legacy live prices kept as fallback
@@ -275,7 +311,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // Fetch AI-powered events (Perplexity) — period-aware
   useEffect(() => {
     const periodDays: Record<string, number> = {
-      '1D': 0, '1W': 14, '1M': 45, '3M': 100, 'YTD': 365, '1Y': 400, 'MAX': 7300,
+      '1D': 0, '1W': 14, '1M': 45, '3M': 100, 'YTD': 365, '1Y': 730, 'MAX': 7300,
     };
     const days = periodDays[chartPeriod] || 90;
     if (days === 0) { setAiEvents(null); return; } // skip 1D
@@ -699,6 +735,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           tradeEvents={tradeEvents}
           analystEvents={analystEvents}
           aiEvents={aiEvents?.events}
+          onRequestResolution={handleResolutionRequest}
+          zoomData={zoomData}
         />
       </div>
 
