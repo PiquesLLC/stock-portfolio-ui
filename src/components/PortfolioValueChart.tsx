@@ -341,11 +341,9 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // ── Normalized benchmark data for overlay ──────────────────────
   const benchmarkNormalized = useMemo(() => {
     if (!showBenchmark || points.length < 2) return null;
-    // Skip 1D intraday — not enough benchmark resolution
-    if (selectedPeriod === '1D') return null;
 
     // Choose the right candle set based on period
-    const candles = (selectedPeriod === '1W' || selectedPeriod === '1M')
+    const candles = (selectedPeriod === '1D' || selectedPeriod === '1W' || selectedPeriod === '1M')
       ? (intradayBenchmark.length > 0 ? intradayBenchmark : benchmarkCandles)
       : benchmarkCandles;
     if (candles.length === 0) return null;
@@ -466,6 +464,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
       .map((bp, j) => `${j === 0 ? 'M' : 'L'}${toX(bp.index).toFixed(1)},${toY(bp.value).toFixed(1)}`)
       .join(' ');
   }, [benchmarkNormalized, points, paddedMin, paddedMax]);
+
 
   // Benchmark value at hover index (for tooltip)
   const hoverBenchmarkValue = useMemo(() => {
@@ -733,140 +732,141 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     <div className={`relative px-6 pt-8 pb-3 ${
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
     }`}>
-      {/* Hero value display — FOREGROUND: highest visual weight */}
-      {!hasMeasurement && (
-        <div className="mb-5 relative z-10" style={{ minHeight: '120px' }}>
-          <p className={`text-5xl md:text-6xl font-black tracking-tighter text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
-            isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
-          }`}>
-            {formatCurrency(displayValue)}
-          </p>
-          {/* Show separate regular + after-hours lines when applicable */}
-          {showDayChange && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST' ? (
-            <>
-              <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
-                <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
-              </p>
-              <p className={`text-xs mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
-                {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
-                <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-[10px] ml-1.5">After hours</span>
-              </p>
-            </>
-          ) : (
-            <>
-              <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatChange(displayChange)} ({formatPct(displayChangePct)})
-                {hoverIndex !== null && hoverLabel && (
-                  <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
-                )}
-                {hoverIndex === null && selectedPeriod === '1D' && (
+      {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
+      <div className="mb-5 relative z-10" style={{ height: '140px' }}>
+        {/* Hero value display — FOREGROUND: highest visual weight */}
+        {!hasMeasurement && (
+          <div>
+            <p className={`text-5xl md:text-6xl font-black tracking-tighter text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
+              isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
+            }`}>
+              {formatCurrency(displayValue)}
+            </p>
+            {/* Show separate regular + after-hours lines when applicable */}
+            {showDayChange && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST' ? (
+              <>
+                <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
                   <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+                </p>
+                <p className={`text-xs mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                  {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
+                  <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-[10px] ml-1.5">After hours</span>
+                </p>
+              </>
+            ) : (
+              <>
+                <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {formatChange(displayChange)} ({formatPct(displayChangePct)})
+                  {hoverIndex !== null && hoverLabel && (
+                    <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
+                  )}
+                  {hoverIndex === null && selectedPeriod === '1D' && (
+                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+                  )}
+                </p>
+                {/* Benchmark comparison on hover */}
+                {showBenchmark && hoverBenchmarkValue !== null && hoverIndex !== null && (
+                  (() => {
+                    const spyChange = hoverBenchmarkValue - periodStartValue;
+                    const spyChangePct = periodStartValue > 0 ? (spyChange / periodStartValue) * 100 : 0;
+                    const outperformPct = displayChangePct - spyChangePct;
+                    return (
+                      <p className="text-xs mt-0.5 text-rh-light-muted dark:text-rh-muted">
+                        <span className="opacity-60">SPY: </span>
+                        <span className={spyChangePct >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}>
+                          {formatPct(spyChangePct)}
+                        </span>
+                        <span className="mx-1.5 opacity-40">·</span>
+                        <span className={`font-semibold ${outperformPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                          {formatPct(outperformPct)} vs SPY
+                        </span>
+                      </p>
+                    );
+                  })()
                 )}
-              </p>
-              {/* Benchmark comparison on hover */}
-              {showBenchmark && hoverBenchmarkValue !== null && hoverIndex !== null && (
-                (() => {
-                  const spyChange = hoverBenchmarkValue - periodStartValue;
-                  const spyChangePct = periodStartValue > 0 ? (spyChange / periodStartValue) * 100 : 0;
-                  const outperformPct = displayChangePct - spyChangePct;
-                  return (
-                    <p className="text-xs mt-0.5 text-rh-light-muted dark:text-rh-muted">
-                      <span className="opacity-60">SPY: </span>
-                      <span className={spyChangePct >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}>
-                        {formatPct(spyChangePct)}
-                      </span>
-                      <span className="mx-1.5 opacity-40">·</span>
-                      <span className={`font-semibold ${outperformPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                        {formatPct(outperformPct)} vs SPY
-                      </span>
-                    </p>
-                  );
-                })()
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── Measurement Card ─────────────────────────────────── */}
-      {hasMeasurement && measurement && (
-        <div
-          className="mb-2 animate-in fade-in slide-in-from-top-1 duration-200"
-        >
-          <div className="inline-flex flex-col gap-0.5">
-            {/* Date range */}
-            <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
-              <span>{formatShortDate(measurement.startTime, is1D)}</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-              <span>{formatShortDate(measurement.endTime, is1D)}</span>
-              <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
-                · {measurement.daysBetween}d
-              </span>
-            </div>
-
-            {/* Values */}
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold text-rh-light-text dark:text-rh-text">
-                {formatCurrency(measurement.startValue)}
-              </span>
-              <svg className="w-3 h-3 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-              <span className="text-lg font-bold text-rh-light-text dark:text-rh-text">
-                {formatCurrency(measurement.endValue)}
-              </span>
-            </div>
-
-            {/* Change stats */}
-            <div className="flex items-center gap-3">
-              <span className={`text-2xl font-bold ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatPct(measurement.percentChange)}
-              </span>
-              <span className={`text-sm font-medium ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatChange(measurement.dollarChange)}
-              </span>
-            </div>
-
-            {/* Benchmark comparison */}
-            {benchmarkResult && (
-              <div className="flex items-center gap-3 text-xs mt-0.5">
-                <span className="text-rh-light-muted dark:text-rh-muted">
-                  You: <span className={measureIsGain ? 'text-rh-green' : 'text-rh-red'}>{formatPct(measurement.percentChange)}</span>
-                </span>
-                <span className="text-rh-light-muted dark:text-rh-muted">
-                  SPY: <span className={benchmarkResult.spyReturn >= 0 ? 'text-rh-green' : 'text-rh-red'}>{formatPct(benchmarkResult.spyReturn)}</span>
-                </span>
-                <span className={`font-semibold ${benchmarkResult.outperformance >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {benchmarkResult.outperformance >= 0 ? 'Outperformance' : 'Underperformance'}: {formatPct(benchmarkResult.outperformance)}
-                </span>
-              </div>
+              </>
             )}
 
-            {/* Clear hint */}
-            <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">
-              Click chart to remeasure · Click outside to clear
+            {/* Single-point selected indicator */}
+            {isMeasuring && measureA !== null && points[measureA] && (
+              <div className="mt-3 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
+                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+                    {formatShortDate(points[measureA].time, is1D)} · {formatCurrency(points[measureA].value)}
+                  </span>
+                  <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                    — click another point to measure
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Measurement Card ─────────────────────────────────── */}
+        {hasMeasurement && measurement && (
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="inline-flex flex-col gap-0.5">
+              {/* Date range */}
+              <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+                <span>{formatShortDate(measurement.startTime, is1D)}</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+                <span>{formatShortDate(measurement.endTime, is1D)}</span>
+                <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
+                  · {measurement.daysBetween}d
+                </span>
+              </div>
+
+              {/* Values */}
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-lg font-bold text-rh-light-text dark:text-rh-text">
+                  {formatCurrency(measurement.startValue)}
+                </span>
+                <svg className="w-3 h-3 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+                <span className="text-lg font-bold text-rh-light-text dark:text-rh-text">
+                  {formatCurrency(measurement.endValue)}
+                </span>
+              </div>
+
+              {/* Change stats */}
+              <div className="flex items-center gap-3">
+                <span className={`text-2xl font-bold ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {formatPct(measurement.percentChange)}
+                </span>
+                <span className={`text-sm font-medium ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {formatChange(measurement.dollarChange)}
+                </span>
+              </div>
+
+              {/* Benchmark comparison */}
+              {benchmarkResult && (
+                <div className="flex items-center gap-3 text-xs mt-0.5">
+                  <span className="text-rh-light-muted dark:text-rh-muted">
+                    You: <span className={measureIsGain ? 'text-rh-green' : 'text-rh-red'}>{formatPct(measurement.percentChange)}</span>
+                  </span>
+                  <span className="text-rh-light-muted dark:text-rh-muted">
+                    SPY: <span className={benchmarkResult.spyReturn >= 0 ? 'text-rh-green' : 'text-rh-red'}>{formatPct(benchmarkResult.spyReturn)}</span>
+                  </span>
+                  <span className={`font-semibold ${benchmarkResult.outperformance >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {benchmarkResult.outperformance >= 0 ? 'Outperformance' : 'Underperformance'}: {formatPct(benchmarkResult.outperformance)}
+                  </span>
+                </div>
+              )}
+
+              {/* Clear hint */}
+              <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">
+                Click chart to remeasure · Click outside to clear
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Single-point selected indicator */}
-      {isMeasuring && !hasMeasurement && measureA !== null && points[measureA] && (
-        <div className="mb-2 animate-in fade-in duration-150">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-              {formatShortDate(points[measureA].time, is1D)} · {formatCurrency(points[measureA].value)}
-            </span>
-            <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
-              — click another point to measure
-            </span>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Chart — MIDGROUND: recessed, context only */}
       <div className="relative w-full chart-layer chart-fade-in" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
@@ -1066,36 +1066,97 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           )}
 
           {/* ── Benchmark (SPY) overlay line ────────────────── */}
-          {showBenchmark && benchmarkPathD && benchmarkNormalized && benchmarkNormalized.length >= 2 && (
-            <>
-              <path
-                d={benchmarkPathD}
-                fill="none"
-                className="stroke-black/[0.15] dark:stroke-white/25"
-                strokeWidth="0.9"
-                strokeDasharray="6,4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {/* SPY label at end of benchmark line */}
-              {(() => {
-                const lastBp = benchmarkNormalized[benchmarkNormalized.length - 1];
-                const lx = toX(lastBp.index);
-                const ly = toY(lastBp.value);
-                return (
-                  <text
-                    x={lx + 6}
-                    y={ly + 3}
-                    fontSize="9"
-                    fontWeight="600"
-                    className="fill-black/25 dark:fill-white/30"
-                  >
-                    SPY
-                  </text>
-                );
-              })()}
-            </>
-          )}
+          {showBenchmark && benchmarkNormalized && benchmarkNormalized.length >= 2 && (() => {
+            // Determine hovered session (same logic as portfolio line)
+            let hoveredSession: 'pre' | 'market' | 'after' | null = null;
+            if (is1D && sessionSplitIdx !== null && hoverIndex !== null) {
+              const closeIdx = sessionCloseIdx ?? points.length - 1;
+              if (hoverIndex < sessionSplitIdx) hoveredSession = 'pre';
+              else if (hoverIndex < closeIdx) hoveredSession = 'market';
+              else hoveredSession = 'after';
+            }
+
+            const buildBenchSeg = (fromIdx: number, toIdx: number) => {
+              const seg = benchmarkNormalized.filter(bp => bp.index >= fromIdx && bp.index <= toIdx);
+              if (seg.length < 2) return '';
+              return seg.map((bp, j) => `${j === 0 ? 'M' : 'L'}${toX(bp.index).toFixed(1)},${toY(bp.value).toFixed(1)}`).join(' ');
+            };
+
+            const dimOpacity = hoveredSession !== null ? 0.12 : 0.25;
+            const activeOpacity = 0.85;
+            const dimWidth = 0.9;
+            const activeWidth = 1.1;
+            const transition = 'opacity 0.15s, stroke-width 0.15s, stroke-dasharray 0.3s';
+
+            // Split into session segments on 1D, single line otherwise
+            if (is1D && sessionSplitIdx !== null) {
+              const closeIdx = sessionCloseIdx ?? points.length - 1;
+              const hasAH = sessionCloseIdx !== null && sessionCloseIdx < points.length - 1;
+              const prePath = buildBenchSeg(0, sessionSplitIdx);
+              const mktPath = buildBenchSeg(sessionSplitIdx, closeIdx);
+              const ahPath = hasAH ? buildBenchSeg(closeIdx, points.length - 1) : '';
+
+              return (
+                <>
+                  {prePath && <path d={prePath} fill="none" className="stroke-black/30 dark:stroke-white/70"
+                    strokeWidth={hoveredSession === 'pre' ? activeWidth : dimWidth}
+                    strokeDasharray={hoveredSession === 'pre' ? 'none' : '6,4'}
+                    strokeLinecap="round" strokeLinejoin="round"
+                    opacity={hoveredSession === 'pre' ? activeOpacity : dimOpacity}
+                    style={{ transition }} />}
+                  {mktPath && <path d={mktPath} fill="none" className="stroke-black/30 dark:stroke-white/70"
+                    strokeWidth={hoveredSession === 'market' ? activeWidth : dimWidth}
+                    strokeDasharray={hoveredSession === 'market' ? 'none' : '6,4'}
+                    strokeLinecap="round" strokeLinejoin="round"
+                    opacity={hoveredSession === 'market' ? activeOpacity : (hoveredSession === null ? 0.25 : dimOpacity)}
+                    style={{ transition }} />}
+                  {ahPath && <path d={ahPath} fill="none" className="stroke-black/30 dark:stroke-white/70"
+                    strokeWidth={hoveredSession === 'after' ? activeWidth : dimWidth}
+                    strokeDasharray={hoveredSession === 'after' ? 'none' : '6,4'}
+                    strokeLinecap="round" strokeLinejoin="round"
+                    opacity={hoveredSession === 'after' ? activeOpacity : dimOpacity}
+                    style={{ transition }} />}
+                  {/* SPY label at end */}
+                  {(() => {
+                    const lastBp = benchmarkNormalized[benchmarkNormalized.length - 1];
+                    return (
+                      <text x={toX(lastBp.index) + 6} y={toY(lastBp.value) + 3}
+                        fontSize="9" fontWeight="600" className="fill-black/25 dark:fill-white/30">
+                        SPY
+                      </text>
+                    );
+                  })()}
+                </>
+              );
+            }
+
+            // Non-1D: single line with hover solidify
+            return (
+              <>
+                <path
+                  d={benchmarkPathD}
+                  fill="none"
+                  className={hoverIndex !== null
+                    ? 'stroke-black/30 dark:stroke-white/50'
+                    : 'stroke-black/[0.15] dark:stroke-white/25'
+                  }
+                  strokeWidth={hoverIndex !== null ? 1.1 : 0.9}
+                  strokeDasharray={hoverIndex !== null ? 'none' : '6,4'}
+                  strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transition: 'stroke 0.3s ease, stroke-width 0.3s ease, stroke-dasharray 0.3s ease' }}
+                />
+                {(() => {
+                  const lastBp = benchmarkNormalized[benchmarkNormalized.length - 1];
+                  return (
+                    <text x={toX(lastBp.index) + 6} y={toY(lastBp.value) + 3}
+                      fontSize="9" fontWeight="600" className="fill-black/25 dark:fill-white/30">
+                      SPY
+                    </text>
+                  );
+                })()}
+              </>
+            );
+          })()}
 
           {/* ── Measurement overlays ───────────────────────── */}
 
@@ -1292,19 +1353,17 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           </button>
         ))}
         </div>
-        {/* SPY benchmark toggle — hidden on 1D since intraday benchmark isn't meaningful */}
-        {selectedPeriod !== '1D' && (
-          <button
-            onClick={() => setShowBenchmark(prev => !prev)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
-              showBenchmark
-                ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
-                : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
-            }`}
-          >
-            SPY
-          </button>
-        )}
+        {/* SPY benchmark toggle */}
+        <button
+          onClick={() => setShowBenchmark(prev => !prev)}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+            showBenchmark
+              ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
+              : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
+          }`}
+        >
+          <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
+        </button>
         {showHint && hasData && !isMeasuring && (
           <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 ml-auto">
             Click chart to measure gains between two dates
