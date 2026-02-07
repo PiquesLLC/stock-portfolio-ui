@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
-import { getPortfolioBriefing, PortfolioBriefingResponse } from '../api';
-
-function SentimentBorder({ sentiment }: { sentiment?: string }) {
-  if (sentiment === 'positive') return 'border-l-4 border-rh-green';
-  if (sentiment === 'negative') return 'border-l-4 border-rh-red';
-  return 'border-l-4 border-gray-200/30 dark:border-white/[0.04]';
-}
+import { getPortfolioBriefing, explainBriefingSection, PortfolioBriefingResponse, BriefingExplainResponse } from '../api';
 
 export default function PortfolioBriefing() {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Track expanded sections and their explanations
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [explaining, setExplaining] = useState(false);
+  const [explanation, setExplanation] = useState<BriefingExplainResponse | null>(null);
 
   const fetchBriefing = async () => {
     setLoading(true);
@@ -26,6 +25,29 @@ export default function PortfolioBriefing() {
   };
 
   useEffect(() => { fetchBriefing(); }, []);
+
+  const handleSectionClick = async (idx: number) => {
+    // Toggle off if already expanded
+    if (expandedIdx === idx) {
+      setExpandedIdx(null);
+      setExplanation(null);
+      return;
+    }
+
+    setExpandedIdx(idx);
+    setExplanation(null);
+    setExplaining(true);
+
+    try {
+      const section = briefing!.sections[idx];
+      const result = await explainBriefingSection(section.title, section.body);
+      setExplanation(result);
+    } catch {
+      setExplanation({ explanation: 'Unable to load detailed explanation at this time.', citations: [], cached: false });
+    } finally {
+      setExplaining(false);
+    }
+  };
 
   if (loading && !briefing) {
     return (
@@ -107,17 +129,80 @@ export default function PortfolioBriefing() {
             ? 'border-l-4 border-rh-red'
             : 'border-l-4 border-gray-200/30 dark:border-white/[0.04]';
 
+        const isExpanded = expandedIdx === i;
+
         return (
           <div
             key={i}
-            className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5 ${borderClass}`}
+            className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl ${borderClass} transition-colors`}
           >
-            <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-2">
-              {section.title}
-            </h3>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed">
-              {section.body}
-            </p>
+            {/* Clickable header area */}
+            <div
+              onClick={() => handleSectionClick(i)}
+              className="p-5 cursor-pointer hover:bg-gray-100/80 dark:hover:bg-white/[0.06] transition-colors rounded-xl group"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-2">
+                    {section.title}
+                  </h3>
+                  <p className="text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed">
+                    {section.body}
+                  </p>
+                </div>
+                <span className={`text-[10px] shrink-0 mt-0.5 transition-colors ${
+                  isExpanded
+                    ? 'text-rh-green'
+                    : 'text-rh-light-muted/0 group-hover:text-rh-green dark:text-rh-muted/0 dark:group-hover:text-rh-green'
+                }`}>
+                  {isExpanded ? 'Collapse ↑' : 'Deep dive →'}
+                </span>
+              </div>
+            </div>
+
+            {/* Expanded explanation */}
+            {isExpanded && (
+              <div className="px-5 pb-5 border-t border-gray-200/30 dark:border-white/[0.04]">
+                {explaining ? (
+                  <div className="pt-4">
+                    <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">
+                      Researching — this may take 5–15 seconds...
+                    </p>
+                    <div className="space-y-3 animate-pulse">
+                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
+                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-5/6" />
+                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-4/6" />
+                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
+                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-3/4" />
+                    </div>
+                  </div>
+                ) : explanation ? (
+                  <div className="pt-4">
+                    <div className="text-sm text-rh-light-text dark:text-rh-text leading-relaxed whitespace-pre-line">
+                      {explanation.explanation}
+                    </div>
+                    {explanation.citations.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200/20 dark:border-white/[0.04]">
+                        <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/50 mb-1">Sources</p>
+                        <div className="flex flex-wrap gap-2">
+                          {explanation.citations.map((url, ci) => (
+                            <a
+                              key={ci}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-rh-green/70 hover:text-rh-green truncate max-w-[200px]"
+                            >
+                              {new URL(url).hostname}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         );
       })}

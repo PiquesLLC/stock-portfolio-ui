@@ -17,6 +17,90 @@ import { MarketSession } from '../types';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'events' | 'allocation' | 'what-if';
 
+const PRIMARY_COUNT = 5; // core tabs always visible
+
+function InsightsTabBar({ tabs, activeTab, onTabChange }: {
+  tabs: { id: InsightsSubTab; label: string }[];
+  activeTab: InsightsSubTab;
+  onTabChange: (id: InsightsSubTab) => void;
+}) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  const primaryTabs = tabs.slice(0, PRIMARY_COUNT);
+  const secondaryTabs = tabs.slice(PRIMARY_COUNT);
+  const activeSecondary = secondaryTabs.find((t) => t.id === activeTab);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [moreOpen]);
+
+  const btnClass = (active: boolean) =>
+    `px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+      active
+        ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+    }`;
+
+  return (
+    <>
+      {/* Desktop: all tabs in one row */}
+      <div className="hidden md:flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
+        {tabs.map((t) => (
+          <button key={t.id} onClick={() => onTabChange(t.id)} className={btnClass(activeTab === t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile: primary tabs + More dropdown */}
+      <div className="flex md:hidden gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
+        {primaryTabs.map((t) => (
+          <button key={t.id} onClick={() => { onTabChange(t.id); setMoreOpen(false); }} className={btnClass(activeTab === t.id)}>
+            {t.label}
+          </button>
+        ))}
+        {secondaryTabs.length > 0 && (
+          <div className="relative shrink-0" ref={moreRef}>
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className={btnClass(!!activeSecondary)}
+            >
+              {activeSecondary ? activeSecondary.label : 'More'}
+              <svg className="w-3 h-3 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={moreOpen ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
+              </svg>
+            </button>
+            {moreOpen && (
+              <div className="absolute top-full right-0 mt-1 z-30 min-w-[140px] rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1a] shadow-lg py-1">
+                {secondaryTabs.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { onTabChange(t.id); setMoreOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                      activeTab === t.id
+                        ? 'text-rh-green font-medium bg-gray-50 dark:bg-white/[0.04]'
+                        : 'text-rh-light-text dark:text-rh-text hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 // Cache for insights data - persists across component mounts
 const insightsCache: {
   healthScore: HealthScoreType | null;
@@ -44,6 +128,8 @@ function formatTimeAgo(timestamp: number): string {
   return `${hours}h ago`;
 }
 
+const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'events', 'allocation', 'what-if']);
+
 interface InsightsPageProps {
   onTickerClick?: (ticker: string) => void;
   currentValue: number;
@@ -51,10 +137,19 @@ interface InsightsPageProps {
   session?: MarketSession;
   cashBalance?: number;
   totalAssets?: number;
+  initialSubTab?: string | null;
+  onSubTabChange?: (subtab: string) => void;
 }
 
-export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0 }: InsightsPageProps) {
-  const [subTab, setSubTab] = useState<InsightsSubTab>('intelligence');
+export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, initialSubTab, onSubTabChange }: InsightsPageProps) {
+  const [subTab, setSubTabLocal] = useState<InsightsSubTab>(
+    () => (initialSubTab && VALID_SUBTABS.has(initialSubTab as InsightsSubTab)) ? initialSubTab as InsightsSubTab : 'intelligence'
+  );
+
+  const setSubTab = useCallback((tab: InsightsSubTab) => {
+    setSubTabLocal(tab);
+    onSubTabChange?.(tab);
+  }, [onSubTabChange]);
 
   // Initialize state from cache
   const [healthScore, setHealthScore] = useState<HealthScoreType | null>(insightsCache.healthScore);
@@ -171,13 +266,15 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const hasAnyData = healthScore || attribution || leakDetector || intelligence;
 
   const subTabs: { id: InsightsSubTab; label: string }[] = [
+    // Primary — core cockpit instruments
     { id: 'intelligence', label: 'Intelligence' },
     { id: 'ai-briefing', label: 'AI Briefing' },
-    { id: 'ai-behavior', label: 'Behavior' },
     { id: 'allocation', label: 'Allocation' },
-    { id: 'income', label: 'Income' },
     { id: 'events', label: 'Events' },
     { id: 'what-if', label: 'Scenarios' },
+    // Secondary — powerful but not universal
+    { id: 'ai-behavior', label: 'Behavior' },
+    { id: 'income', label: 'Income' },
     { id: 'projections-goals', label: 'Goals' },
   ];
 
@@ -185,21 +282,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'ai-briefing') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <PortfolioBriefing />
       </div>
     );
@@ -209,21 +292,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'ai-behavior') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <BehaviorInsights />
       </div>
     );
@@ -233,21 +302,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'income') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <IncomeInsights refreshTrigger={refreshTrigger} />
       </div>
     );
@@ -257,21 +312,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'projections-goals') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <ProjectionsAndGoals
           currentValue={currentValue}
           refreshTrigger={refreshTrigger}
@@ -285,21 +326,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'events') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <EventsCalendar holdings={holdings} />
       </div>
     );
@@ -309,21 +336,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'what-if') {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <WhatIfSimulator
           holdings={holdings}
           cashBalance={cashBalance}
@@ -338,21 +351,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AllocationDonut
             holdings={holdings}
@@ -368,21 +367,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (!initialLoadComplete && !hasAnyData) {
     return (
       <div className="space-y-6">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <SkeletonCard lines={4} height="180px" />
         <SkeletonCard lines={5} height="220px" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -397,21 +382,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     <div className="space-y-6">
       {/* Header: sub-tabs left, refresh + timestamp right */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-          {subTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap
-                ${subTab === t.id
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <div className="flex items-center gap-3">
           {insightsCache.lastFetchTime && (
             <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 tabular-nums min-w-[90px] text-right">

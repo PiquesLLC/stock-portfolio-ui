@@ -5,6 +5,8 @@ import NalaStockCard from './NalaStockCard';
 
 interface NalaAIPageProps {
   onTickerClick?: (ticker: string) => void;
+  initialQuestion?: string | null;
+  onQuestionConsumed?: () => void;
 }
 
 const RISK_BADGE: Record<string, string> = {
@@ -13,7 +15,7 @@ const RISK_BADGE: Record<string, string> = {
   aggressive: 'from-orange-400/20 to-red-400/20 text-orange-400 border-orange-400/20',
 };
 
-export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
+export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionConsumed }: NalaAIPageProps) {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<NalaResearchResponse | null>(null);
@@ -22,6 +24,7 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const cacheRef = useRef<Map<string, NalaResearchResponse>>(new Map());
+  const consumedQuestionRef = useRef<string | null>(null);
 
   useEffect(() => {
     getNalaSuggestions()
@@ -62,6 +65,15 @@ export default function NalaAIPage({ onTickerClick }: NalaAIPageProps) {
       setLoading(false);
     }
   };
+
+  // Auto-fire when initialQuestion is passed from another component (e.g., briefing deep dive)
+  useEffect(() => {
+    if (initialQuestion && initialQuestion !== consumedQuestionRef.current) {
+      consumedQuestionRef.current = initialQuestion;
+      handleAsk(initialQuestion);
+      onQuestionConsumed?.();
+    }
+  }, [initialQuestion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStop = () => {
     abortRef.current?.abort();

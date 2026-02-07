@@ -721,6 +721,22 @@ export async function getPortfolioBriefing(): Promise<PortfolioBriefingResponse>
   return fetchJson<PortfolioBriefingResponse>(`${API_BASE_URL}/insights/briefing`);
 }
 
+export interface BriefingExplainResponse {
+  explanation: string;
+  citations: string[];
+  cached: boolean;
+}
+
+export async function explainBriefingSection(title: string, body: string): Promise<BriefingExplainResponse> {
+  const resp = await fetch(`${API_BASE_URL}/insights/briefing/explain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, body }),
+  });
+  if (!resp.ok) throw new Error(`Failed to explain briefing section`);
+  return resp.json();
+}
+
 // Behavior Insights (Perplexity AI)
 export interface BehaviorInsight {
   category: 'concentration' | 'timing' | 'sizing' | 'diversification' | 'general';

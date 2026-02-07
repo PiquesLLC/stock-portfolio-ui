@@ -114,6 +114,7 @@ interface NavState {
   stock: string | null;
   profile: string | null;
   lbuser: string | null; // leaderboard selected user
+  subtab: string | null; // insights sub-tab
 }
 
 // Valid tab names for URL parameter validation
@@ -129,6 +130,7 @@ function parseHash(): NavState {
       stock: params.get('stock') || null,
       profile: params.get('profile') || null,
       lbuser: params.get('lbuser') || null,
+      subtab: params.get('subtab') || null,
     };
     sessionStorage.setItem('navState', JSON.stringify(state));
     return state;
@@ -137,21 +139,22 @@ function parseHash(): NavState {
     const saved = sessionStorage.getItem('navState');
     if (saved) {
       const s = JSON.parse(saved);
-      return { tab: s.tab || 'portfolio', stock: s.stock || null, profile: s.profile || null, lbuser: s.lbuser || null };
+      return { tab: s.tab || 'portfolio', stock: s.stock || null, profile: s.profile || null, lbuser: s.lbuser || null, subtab: s.subtab || null };
     }
   } catch {}
-  return { tab: 'portfolio', stock: null, profile: null, lbuser: null };
+  return { tab: 'portfolio', stock: null, profile: null, lbuser: null, subtab: null };
 }
 
-function setHash(tab: TabType, stock?: string | null, profile?: string | null, lbuser?: string | null) {
+function setHash(tab: TabType, stock?: string | null, profile?: string | null, lbuser?: string | null, subtab?: string | null) {
   const params = new URLSearchParams();
   if (tab !== 'portfolio') params.set('tab', tab);
   if (stock) params.set('stock', stock);
   if (profile) params.set('profile', profile);
   if (lbuser) params.set('lbuser', lbuser);
+  if (subtab) params.set('subtab', subtab);
   const str = params.toString();
   window.location.hash = str ? str : '';
-  sessionStorage.setItem('navState', JSON.stringify({ tab, stock, profile, lbuser }));
+  sessionStorage.setItem('navState', JSON.stringify({ tab, stock, profile, lbuser, subtab }));
 }
 
 const savedInitialNav = parseHash(); // Parse once at module load, before any React renders
@@ -181,9 +184,11 @@ export default function App() {
   const currentUserName = user?.displayName || user?.username || '';
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
+  const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.subtab);
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
+  const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
@@ -368,8 +373,8 @@ export default function App() {
   // Sync navigation state → URL hash
   useEffect(() => {
     const stockTicker = viewingStock?.ticker || null;
-    setHash(activeTab, stockTicker, viewingProfileId, leaderboardUserId);
-  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId]);
+    setHash(activeTab, stockTicker, viewingProfileId, leaderboardUserId, insightsSubTab);
+  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab]);
 
   // Handle browser back/forward
   useEffect(() => {
@@ -378,6 +383,7 @@ export default function App() {
       setActiveTab(nav.tab);
       setViewingProfileId(nav.profile);
       setLeaderboardUserId(nav.lbuser);
+      setInsightsSubTab(nav.subtab);
       if (nav.stock) {
         setViewingStock(prev => prev?.ticker === nav.stock ? prev : { ticker: nav.stock!, holding: null });
       } else {
@@ -852,6 +858,8 @@ export default function App() {
           <ErrorBoundary>
             <NalaAIPage
               onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null })}
+              initialQuestion={nalaQuestion}
+              onQuestionConsumed={() => setNalaQuestion(null)}
             />
           </ErrorBoundary>
         )}
@@ -866,6 +874,8 @@ export default function App() {
               session={portfolio?.session}
               cashBalance={portfolio?.cashBalance ?? 0}
               totalAssets={portfolio?.totalAssets ?? 0}
+              initialSubTab={insightsSubTab}
+              onSubTabChange={setInsightsSubTab}
             />
           </ErrorBoundary>
         )}
