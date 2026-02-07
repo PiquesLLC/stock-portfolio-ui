@@ -556,9 +556,16 @@ export default function App() {
       <Starfield />
       <div className="grain-overlay" />
       <header className="relative z-30 border-b border-rh-light-border/40 dark:border-rh-border/40 dark:bg-black/30 dark:backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/north-signal-logo.png" alt="Nala" className="h-[42px] w-[42px] cursor-pointer" onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }} />
+            {/* Dark mode: show PNG as-is. Light mode: use image as mask over green fill */}
+            <div
+              className="h-[35px] w-[35px] cursor-pointer"
+              onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
+            >
+              <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
+              <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
+            </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Global Stock Search */}
@@ -620,8 +627,8 @@ export default function App() {
               <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
             {lastUpdate && (
-              <span className="hidden sm:inline text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
-                {lastUpdate.toLocaleTimeString()}
+              <span className="hidden sm:inline text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50 whitespace-nowrap">
+                {lastUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} <span className="text-rh-light-muted/30 dark:text-rh-muted/30">{getLocalTzAbbr()}</span>
               </span>
             )}
           </div>
@@ -636,7 +643,7 @@ export default function App() {
         setLeaderboardUserId(null);
       }} />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-6 space-y-8">
         {/* Stock Detail Overlay (works from any tab) */}
         {viewingStock && (
           <StockDetailView

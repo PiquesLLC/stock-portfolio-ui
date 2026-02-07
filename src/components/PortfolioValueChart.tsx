@@ -360,14 +360,17 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
     // Build normalized points aligned to portfolio x-axis
     // For each portfolio point, find nearest benchmark candle and normalize
+    // Carry forward last known value to avoid gaps (e.g., SPY has no pre-market data)
     const normalized: { index: number; value: number }[] = [];
+    let lastNormalizedValue = portfolioStartVal;
     for (let i = 0; i < points.length; i++) {
       const t = points[i].time;
       const bIdx = findBenchmarkIndex(candles, t);
-      if (bIdx === null) continue;
-      const spyClose = candles[bIdx].close;
-      const normalizedValue = (spyClose / spyStartClose) * portfolioStartVal;
-      normalized.push({ index: i, value: normalizedValue });
+      if (bIdx !== null) {
+        const spyClose = candles[bIdx].close;
+        lastNormalizedValue = (spyClose / spyStartClose) * portfolioStartVal;
+      }
+      normalized.push({ index: i, value: lastNormalizedValue });
     }
 
     if (normalized.length < 2) return null;
@@ -410,18 +413,12 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const { paddedMin, paddedMax } = useMemo(() => {
     if (points.length < 2) return { paddedMin: 0, paddedMax: 1 };
     const values = points.map(p => p.value);
-    // Include benchmark values in min/max when visible
-    if (benchmarkNormalized) {
-      for (const bp of benchmarkNormalized) {
-        values.push(bp.value);
-      }
-    }
     let minV = Math.min(...values, periodStartValue);
     let maxV = Math.max(...values, periodStartValue);
     if (maxV === minV) { maxV += 1; minV -= 1; }
     const range = maxV - minV;
     return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
-  }, [points, periodStartValue, benchmarkNormalized]);
+  }, [points, periodStartValue]);
 
   // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   // Derive the trading day from the data points (not "today") so it works after hours / weekends
@@ -457,13 +454,23 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // Build SVG path
   const pathD = hasData ? points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ') : '';
 
-  // Build benchmark SVG path
+  // Lightly smoothed benchmark values (3-point weighted average, ~8% smoothing)
+  const benchmarkSmoothed = useMemo(() => {
+    if (!benchmarkNormalized || benchmarkNormalized.length < 2) return null;
+    return benchmarkNormalized.map((bp, i, arr) => {
+      if (i === 0 || i === arr.length - 1) return bp;
+      const smoothed = arr[i - 1].value * 0.15 + bp.value * 0.70 + arr[i + 1].value * 0.15;
+      return { ...bp, value: smoothed };
+    });
+  }, [benchmarkNormalized]);
+
+  // Build benchmark SVG path from smoothed values
   const benchmarkPathD = useMemo(() => {
-    if (!benchmarkNormalized || benchmarkNormalized.length < 2) return '';
-    return benchmarkNormalized
+    if (!benchmarkSmoothed || benchmarkSmoothed.length < 2) return '';
+    return benchmarkSmoothed
       .map((bp, j) => `${j === 0 ? 'M' : 'L'}${toX(bp.index).toFixed(1)},${toY(bp.value).toFixed(1)}`)
       .join(' ');
-  }, [benchmarkNormalized, points, paddedMin, paddedMax]);
+  }, [benchmarkSmoothed, points, paddedMin, paddedMax]);
 
 
   // Benchmark value at hover index (for tooltip)
@@ -938,6 +945,10 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               <stop offset="0%" stopColor={measureColor} stopOpacity="0.20" />
               <stop offset="100%" stopColor={measureColor} stopOpacity="0.03" />
             </linearGradient>
+            {/* Clip benchmark — generous top overflow, clipped at bottom to avoid bleeding into labels */}
+            <clipPath id="chart-clip">
+              <rect x={PAD_LEFT} y={-200} width={CHART_W - PAD_LEFT - PAD_RIGHT} height={CHART_H - PAD_BOTTOM + 200} />
+            </clipPath>
           </defs>
 
           {/* Reference line */}
@@ -1065,7 +1076,8 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
-          {/* ── Benchmark (SPY) overlay line ────────────────── */}
+          {/* ── Benchmark (SPY) overlay line — clipped to chart area ── */}
+          <g clipPath="url(#chart-clip)">
           {showBenchmark && benchmarkNormalized && benchmarkNormalized.length >= 2 && (() => {
             // Determine hovered session (same logic as portfolio line)
             let hoveredSession: 'pre' | 'market' | 'after' | null = null;
@@ -1076,52 +1088,48 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               else hoveredSession = 'after';
             }
 
+            const smoothed = benchmarkSmoothed!;
             const buildBenchSeg = (fromIdx: number, toIdx: number) => {
-              const seg = benchmarkNormalized.filter(bp => bp.index >= fromIdx && bp.index <= toIdx);
+              const seg = smoothed.filter(bp => bp.index >= fromIdx && bp.index <= toIdx);
               if (seg.length < 2) return '';
               return seg.map((bp, j) => `${j === 0 ? 'M' : 'L'}${toX(bp.index).toFixed(1)},${toY(bp.value).toFixed(1)}`).join(' ');
             };
 
-            const dimOpacity = hoveredSession !== null ? 0.12 : 0.25;
-            const activeOpacity = 0.85;
-            const dimWidth = 0.9;
-            const activeWidth = 1.1;
+            const dimOpacity = hoveredSession !== null ? 0.10 : 0.22;
+            const activeOpacity = 1;
+            const dimWidth = 0.8;
+            const activeWidth = 1.2;
             const transition = 'opacity 0.15s, stroke-width 0.15s, stroke-dasharray 0.3s';
 
             // Split into session segments on 1D, single line otherwise
             if (is1D && sessionSplitIdx !== null) {
               const closeIdx = sessionCloseIdx ?? points.length - 1;
               const hasAH = sessionCloseIdx !== null && sessionCloseIdx < points.length - 1;
-              const prePath = buildBenchSeg(0, sessionSplitIdx);
-              const mktPath = buildBenchSeg(sessionSplitIdx, closeIdx);
-              const ahPath = hasAH ? buildBenchSeg(closeIdx, points.length - 1) : '';
+              const activePath = hoveredSession === 'pre' ? buildBenchSeg(0, sessionSplitIdx)
+                : hoveredSession === 'market' ? buildBenchSeg(sessionSplitIdx, closeIdx)
+                : hoveredSession === 'after' && hasAH ? buildBenchSeg(closeIdx, points.length - 1)
+                : '';
 
               return (
                 <>
-                  {prePath && <path d={prePath} fill="none" className="stroke-black/30 dark:stroke-white/70"
-                    strokeWidth={hoveredSession === 'pre' ? activeWidth : dimWidth}
-                    strokeDasharray={hoveredSession === 'pre' ? 'none' : '6,4'}
+                  {/* Base: full line at dim opacity — no gaps */}
+                  <path d={benchmarkPathD} fill="none" className="stroke-black/70 dark:stroke-white/70"
+                    strokeWidth={dimWidth} strokeDasharray="6,4"
                     strokeLinecap="round" strokeLinejoin="round"
-                    opacity={hoveredSession === 'pre' ? activeOpacity : dimOpacity}
-                    style={{ transition }} />}
-                  {mktPath && <path d={mktPath} fill="none" className="stroke-black/30 dark:stroke-white/70"
-                    strokeWidth={hoveredSession === 'market' ? activeWidth : dimWidth}
-                    strokeDasharray={hoveredSession === 'market' ? 'none' : '6,4'}
+                    opacity={hoveredSession !== null ? dimOpacity : 0.22}
+                    style={{ transition }} />
+                  {/* Active session overlay — solid and bright */}
+                  {activePath && <path d={activePath} fill="none" className="stroke-black/70 dark:stroke-white/70"
+                    strokeWidth={activeWidth} strokeDasharray="none"
                     strokeLinecap="round" strokeLinejoin="round"
-                    opacity={hoveredSession === 'market' ? activeOpacity : (hoveredSession === null ? 0.25 : dimOpacity)}
-                    style={{ transition }} />}
-                  {ahPath && <path d={ahPath} fill="none" className="stroke-black/30 dark:stroke-white/70"
-                    strokeWidth={hoveredSession === 'after' ? activeWidth : dimWidth}
-                    strokeDasharray={hoveredSession === 'after' ? 'none' : '6,4'}
-                    strokeLinecap="round" strokeLinejoin="round"
-                    opacity={hoveredSession === 'after' ? activeOpacity : dimOpacity}
+                    opacity={activeOpacity}
                     style={{ transition }} />}
                   {/* SPY label at end */}
                   {(() => {
-                    const lastBp = benchmarkNormalized[benchmarkNormalized.length - 1];
+                    const lastBp = smoothed[smoothed.length - 1];
                     return (
                       <text x={toX(lastBp.index) + 6} y={toY(lastBp.value) + 3}
-                        fontSize="9" fontWeight="600" className="fill-black/25 dark:fill-white/30">
+                        fontSize="9" fontWeight="600" className="fill-black/50 dark:fill-white/30">
                         SPY
                       </text>
                     );
@@ -1137,8 +1145,8 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                   d={benchmarkPathD}
                   fill="none"
                   className={hoverIndex !== null
-                    ? 'stroke-black/30 dark:stroke-white/50'
-                    : 'stroke-black/[0.15] dark:stroke-white/25'
+                    ? 'stroke-black/70 dark:stroke-white/50'
+                    : 'stroke-black/50 dark:stroke-white/25'
                   }
                   strokeWidth={hoverIndex !== null ? 1.1 : 0.9}
                   strokeDasharray={hoverIndex !== null ? 'none' : '6,4'}
@@ -1146,10 +1154,10 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                   style={{ transition: 'stroke 0.3s ease, stroke-width 0.3s ease, stroke-dasharray 0.3s ease' }}
                 />
                 {(() => {
-                  const lastBp = benchmarkNormalized[benchmarkNormalized.length - 1];
+                  const lastBp = benchmarkSmoothed![benchmarkSmoothed!.length - 1];
                   return (
                     <text x={toX(lastBp.index) + 6} y={toY(lastBp.value) + 3}
-                      fontSize="9" fontWeight="600" className="fill-black/25 dark:fill-white/30">
+                      fontSize="9" fontWeight="600" className="fill-black/50 dark:fill-white/30">
                       SPY
                     </text>
                   );
@@ -1157,6 +1165,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               </>
             );
           })()}
+          </g>
 
           {/* ── Measurement overlays ───────────────────────── */}
 
