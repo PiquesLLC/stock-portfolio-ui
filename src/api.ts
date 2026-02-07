@@ -705,12 +705,14 @@ export async function askStockQuestion(ticker: string, question: string): Promis
 // Portfolio Briefing (Perplexity AI)
 export interface BriefingSection {
   title: string;
+  takeaway: string;
   body: string;
   sentiment?: 'positive' | 'neutral' | 'negative';
 }
 
 export interface PortfolioBriefingResponse {
   generatedAt: string;
+  verdict: string;
   headline: string;
   sections: BriefingSection[];
   holdingCount: number;

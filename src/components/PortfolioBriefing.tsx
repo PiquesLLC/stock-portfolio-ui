@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPortfolioBriefing, explainBriefingSection, PortfolioBriefingResponse, BriefingExplainResponse } from '../api';
 
 export default function PortfolioBriefing() {
@@ -6,14 +6,18 @@ export default function PortfolioBriefing() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Track expanded sections and their explanations
+  // Track expanded section
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-  const [explaining, setExplaining] = useState(false);
-  const [explanation, setExplanation] = useState<BriefingExplainResponse | null>(null);
+
+  // Prefetched explanations keyed by section index
+  const [explanations, setExplanations] = useState<Record<number, BriefingExplainResponse>>({});
+  const [loadingIdxs, setLoadingIdxs] = useState<Set<number>>(new Set());
+  const prefetchedRef = useRef(false);
 
   const fetchBriefing = async () => {
     setLoading(true);
     setError(null);
+    prefetchedRef.current = false;
     try {
       const data = await getPortfolioBriefing();
       setBriefing(data);
@@ -26,27 +30,32 @@ export default function PortfolioBriefing() {
 
   useEffect(() => { fetchBriefing(); }, []);
 
-  const handleSectionClick = async (idx: number) => {
-    // Toggle off if already expanded
-    if (expandedIdx === idx) {
-      setExpandedIdx(null);
-      setExplanation(null);
-      return;
-    }
+  // Prefetch all explanations once briefing loads
+  const prefetchAll = useCallback((sections: PortfolioBriefingResponse['sections']) => {
+    sections.forEach((section, idx) => {
+      setLoadingIdxs((prev) => new Set(prev).add(idx));
+      explainBriefingSection(section.title, section.body)
+        .then((result) => {
+          setExplanations((prev) => ({ ...prev, [idx]: result }));
+        })
+        .catch(() => {
+          setExplanations((prev) => ({ ...prev, [idx]: { explanation: 'Unable to load detailed explanation at this time.', citations: [], cached: false } }));
+        })
+        .finally(() => {
+          setLoadingIdxs((prev) => { const next = new Set(prev); next.delete(idx); return next; });
+        });
+    });
+  }, []);
 
-    setExpandedIdx(idx);
-    setExplanation(null);
-    setExplaining(true);
-
-    try {
-      const section = briefing!.sections[idx];
-      const result = await explainBriefingSection(section.title, section.body);
-      setExplanation(result);
-    } catch {
-      setExplanation({ explanation: 'Unable to load detailed explanation at this time.', citations: [], cached: false });
-    } finally {
-      setExplaining(false);
+  useEffect(() => {
+    if (briefing && briefing.sections.length > 0 && !prefetchedRef.current) {
+      prefetchedRef.current = true;
+      prefetchAll(briefing.sections);
     }
+  }, [briefing, prefetchAll]);
+
+  const handleSectionClick = (idx: number) => {
+    setExpandedIdx(expandedIdx === idx ? null : idx);
   };
 
   if (loading && !briefing) {
@@ -93,6 +102,16 @@ export default function PortfolioBriefing() {
     ? getTimeAgo(new Date(briefing.generatedAt))
     : '';
 
+  const sentimentLabel = (s?: string) =>
+    s === 'positive' ? 'Tailwind' : s === 'negative' ? 'Headwind' : 'Neutral';
+
+  const sentimentLabelClass = (s?: string) =>
+    s === 'positive'
+      ? 'text-rh-green/70 dark:text-rh-green/60'
+      : s === 'negative'
+        ? 'text-rh-red/70 dark:text-rh-red/60'
+        : 'text-rh-light-muted/60 dark:text-rh-muted/50';
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -115,6 +134,13 @@ export default function PortfolioBriefing() {
           </button>
         </div>
 
+        {/* Verdict — single-sentence weekly theme */}
+        {briefing.verdict && (
+          <p className="text-sm italic text-rh-light-muted dark:text-rh-muted mb-3">
+            {briefing.verdict}
+          </p>
+        )}
+
         {/* Headline */}
         <p className="text-sm font-medium text-rh-light-text dark:text-rh-text leading-relaxed">
           {briefing.headline}
@@ -124,10 +150,10 @@ export default function PortfolioBriefing() {
       {/* Sections */}
       {briefing.sections.map((section, i) => {
         const borderClass = section.sentiment === 'positive'
-          ? 'border-l-4 border-rh-green'
+          ? 'border-l-4 border-rh-green/50'
           : section.sentiment === 'negative'
-            ? 'border-l-4 border-rh-red'
-            : 'border-l-4 border-gray-200/30 dark:border-white/[0.04]';
+            ? 'border-l-4 border-rh-red/50'
+            : 'border-l-4 border-gray-300/40 dark:border-white/[0.08]';
 
         const isExpanded = expandedIdx === i;
 
@@ -143,9 +169,19 @@ export default function PortfolioBriefing() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-2">
-                    {section.title}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+                      {section.title}
+                    </h3>
+                    <span className={`text-[10px] font-medium ${sentimentLabelClass(section.sentiment)}`}>
+                      {sentimentLabel(section.sentiment)}
+                    </span>
+                  </div>
+                  {section.takeaway && (
+                    <p className="text-xs font-medium text-rh-light-text/80 dark:text-rh-text/70 mb-2">
+                      {section.takeaway}
+                    </p>
+                  )}
                   <p className="text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed">
                     {section.body}
                   </p>
@@ -155,7 +191,7 @@ export default function PortfolioBriefing() {
                     ? 'text-rh-green'
                     : 'text-rh-light-muted/0 group-hover:text-rh-green dark:text-rh-muted/0 dark:group-hover:text-rh-green'
                 }`}>
-                  {isExpanded ? 'Collapse ↑' : 'Deep dive →'}
+                  {isExpanded ? 'Collapse' : 'Why this matters'}
                 </span>
               </div>
             </div>
@@ -163,7 +199,7 @@ export default function PortfolioBriefing() {
             {/* Expanded explanation */}
             {isExpanded && (
               <div className="px-5 pb-5 border-t border-gray-200/30 dark:border-white/[0.04]">
-                {explaining ? (
+                {loadingIdxs.has(i) ? (
                   <div className="pt-4">
                     <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">
                       Researching — this may take 5–15 seconds...
@@ -176,16 +212,16 @@ export default function PortfolioBriefing() {
                       <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-3/4" />
                     </div>
                   </div>
-                ) : explanation ? (
+                ) : explanations[i] ? (
                   <div className="pt-4">
                     <div className="text-sm text-rh-light-text dark:text-rh-text leading-relaxed whitespace-pre-line">
-                      {explanation.explanation}
+                      {explanations[i].explanation}
                     </div>
-                    {explanation.citations.length > 0 && (
+                    {explanations[i].citations.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-gray-200/20 dark:border-white/[0.04]">
                         <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/50 mb-1">Sources</p>
                         <div className="flex flex-wrap gap-2">
-                          {explanation.citations.map((url, ci) => (
+                          {explanations[i].citations.map((url, ci) => (
                             <a
                               key={ci}
                               href={url}
@@ -209,12 +245,12 @@ export default function PortfolioBriefing() {
 
       {/* Footer */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
-          Powered by AI {briefing.cached ? '(cached)' : ''}
+        <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40">
+          Context, not advice.
         </span>
         {timeAgo && (
-          <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
-            Generated {timeAgo}
+          <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40">
+            {timeAgo}
           </span>
         )}
       </div>
