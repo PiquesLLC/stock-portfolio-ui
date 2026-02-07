@@ -195,7 +195,7 @@ export function WhatIfSimulator({ holdings, cashBalance, totalValue }: WhatIfSim
       <div>
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
-            What-If Simulator
+            Scenario Explorer
           </h2>
           <button
             onClick={() => setShowHelp(!showHelp)}

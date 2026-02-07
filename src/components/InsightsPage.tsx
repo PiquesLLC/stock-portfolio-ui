@@ -174,11 +174,11 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'intelligence', label: 'Intelligence' },
     { id: 'ai-briefing', label: 'AI Briefing' },
     { id: 'ai-behavior', label: 'Behavior' },
+    { id: 'allocation', label: 'Allocation' },
     { id: 'income', label: 'Income' },
     { id: 'events', label: 'Events' },
-    { id: 'allocation', label: 'Allocation' },
+    { id: 'what-if', label: 'Scenarios' },
     { id: 'projections-goals', label: 'Goals' },
-    { id: 'what-if', label: 'What If' },
   ];
 
   // AI Briefing subtab
