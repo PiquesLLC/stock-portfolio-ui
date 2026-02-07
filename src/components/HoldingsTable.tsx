@@ -528,31 +528,34 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
         <table className="w-full">
           <thead className="sticky top-0 z-10 backdrop-blur-sm bg-rh-light-bg/90 dark:bg-rh-black/90">
             <tr className="border-t border-b border-rh-light-border/25 dark:border-rh-border/25 text-left text-xs uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60">
-              <th className={getHeaderClass('ticker')} onClick={() => handleSort('ticker')}>
+              <th className={getHeaderClass('ticker')} onClick={() => handleSort('ticker')} title="Sort by ticker symbol">
                 Ticker{getSortIndicator('ticker')}
               </th>
-              <th className={getHeaderClass('shares', 'right')} onClick={() => handleSort('shares')}>
-                {getSortIndicator('shares')}Shares
+              <th className={`px-2 py-3 font-medium text-center cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap ${sortKey === 'dayChangePercent' ? 'text-rh-light-text dark:text-white' : ''}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
+                Today{sortKey === 'dayChangePercent' ? <span className="ml-1 opacity-70">{sortDir === 'desc' ? '▼' : '▲'}</span> : null}
               </th>
-              <th className={getHeaderClass('averageCost', 'right')} onClick={() => handleSort('averageCost')}>
+              <th className={getHeaderClass('averageCost', 'right')} onClick={() => handleSort('averageCost')} title="Sort by average cost basis">
                 {getSortIndicator('averageCost')}Avg Cost
               </th>
-              <th className={getHeaderClass('currentPrice', 'right')} onClick={() => handleSort('currentPrice')}>
+              <th className={getHeaderClass('shares', 'right')} onClick={() => handleSort('shares')} title="Sort by number of shares">
+                {getSortIndicator('shares')}Shares
+              </th>
+              <th className={getHeaderClass('currentPrice', 'right')} onClick={() => handleSort('currentPrice')} title="Sort by current price">
                 {getSortIndicator('currentPrice')}Price
               </th>
-              <th className={getHeaderClass('currentValue', 'right')} onClick={() => handleSort('currentValue')}>
+              <th className={getHeaderClass('currentValue', 'right')} onClick={() => handleSort('currentValue')} title="Sort by market value">
                 {getSortIndicator('currentValue')}Market Value
               </th>
-              <th className={getHeaderClass('dayChange', 'right')} onClick={() => handleSort('dayChange')}>
-                {getSortIndicator('dayChange')}Day <span title="Profit / Loss">P/L</span>
+              <th className={getHeaderClass('dayChange', 'right')} onClick={() => handleSort('dayChange')} title="Sort by today's profit/loss">
+                {getSortIndicator('dayChange')}Day <span>P/L</span>
               </th>
-              <th className={getHeaderClass('dayChangePercent', 'right')} onClick={() => handleSort('dayChangePercent')}>
+              <th className={getHeaderClass('dayChangePercent', 'right')} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
                 {getSortIndicator('dayChangePercent')}Day %
               </th>
-              <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')}>
-                {getSortIndicator('profitLoss')}Total <span title="Profit / Loss">P/L</span>
+              <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')} title="Sort by total profit/loss">
+                {getSortIndicator('profitLoss')}Total <span>P/L</span>
               </th>
-              <th className={getHeaderClass('profitLossPercent', 'right')} onClick={() => handleSort('profitLossPercent')}>
+              <th className={getHeaderClass('profitLossPercent', 'right')} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
                 {getSortIndicator('profitLossPercent')}Total %
               </th>
               <th className="px-4 py-3 font-medium"></th>
@@ -570,8 +573,8 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''}`}
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
                 >
-                  <td className="px-4 py-3 font-semibold text-rh-light-text dark:text-rh-text">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-2.5 font-semibold text-rh-light-text dark:text-rh-text">
+                    <div className="flex items-center gap-1.5">
                       <span
                         className={onTickerClick ? 'cursor-pointer hover:underline hover:text-rh-green transition-colors' : ''}
                         onClick={onTickerClick ? () => onTickerClick(holding.ticker, holding) : undefined}
@@ -580,7 +583,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                       </span>
                       {isRepricing && !isUnavailable && (
                         <span
-                          className="relative flex h-2 w-2"
+                          className="relative flex h-2 w-2 shrink-0"
                           title="Repricing…"
                         >
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
@@ -588,17 +591,19 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                         </span>
                       )}
                       {isUnavailable && (
-                        <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded" title="No price data available">
+                        <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded shrink-0" title="No price data available">
                           no data
                         </span>
                       )}
-                      {hasValidPrice && (
-                        <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} />
-                      )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{holding.shares.toLocaleString()}</td>
+                  <td className="px-2 py-2.5 text-center">
+                    {hasValidPrice && (
+                      <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} />
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{formatCurrency(holding.averageCost)}</td>
+                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{holding.shares.toLocaleString()}</td>
                   <td className={`px-4 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
