@@ -16,6 +16,7 @@ import { UserProfileView } from './components/UserProfileView';
 import { StockDetailView } from './components/StockDetailView';
 import { PortfolioValueChart, ChartMeasurement } from './components/PortfolioValueChart';
 import { BenchmarkWidget } from './components/BenchmarkWidget';
+
 import { DividendsSection } from './components/DividendsSection';
 import { NotificationBell } from './components/NotificationBell';
 import { UserMenu } from './components/UserMenu';
@@ -25,6 +26,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { FuturesBanner } from './components/FuturesBanner';
+import { WhatIfSimulator } from './components/WhatIfSimulator';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
@@ -183,6 +185,7 @@ export default function App() {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [showWhatIf, setShowWhatIf] = useState(false);
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
@@ -767,6 +770,17 @@ export default function App() {
                 <div className="flex items-center gap-2 ml-auto">
                   <button
                     type="button"
+                    onClick={() => setShowWhatIf(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
+                      text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    What If
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => holdingsActionsRef.current?.openCashMargin()}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
                       text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
@@ -791,9 +805,9 @@ export default function App() {
               </div>
             )}
 
-            {/* Benchmark + Dividends — side by side, edge-aligned */}
+            {/* Benchmark + Dividends */}
             {portfolio && (
-              <div className="flex flex-col md:flex-row md:items-start">
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
                 <div className="md:flex-1">
                   <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
                 </div>
@@ -947,6 +961,15 @@ export default function App() {
           fetchData();
         }}
       />
+      {/* What-If Simulator Modal */}
+      {showWhatIf && (
+        <WhatIfSimulator
+          holdings={portfolio?.holdings ?? []}
+          cashBalance={portfolio?.cashBalance ?? 0}
+          totalValue={portfolio?.totalAssets ?? 0}
+          onClose={() => setShowWhatIf(false)}
+        />
+      )}
       <ShortcutToast message={toastMessage} />
       <KeyboardCheatSheet isOpen={isCheatSheetOpen} onClose={closeCheatSheet} />
     </div>

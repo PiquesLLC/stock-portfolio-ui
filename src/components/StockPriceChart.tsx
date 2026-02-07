@@ -26,6 +26,8 @@ interface Props {
   aiEvents?: AIEvent[];
   onRequestResolution?: (level: 'daily' | 'hourly' | 'intraday', rangeStart: number, rangeEnd: number) => void;
   zoomData?: { time: number; label: string; price: number; volume?: number }[];
+  // Comparison overlay — normalized % return lines from other tickers
+  comparisons?: { ticker: string; color: string; points: { time: number; price: number }[] }[];
 }
 
 const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
@@ -323,7 +325,7 @@ const PAD_BOTTOM = 30;
 const PAD_LEFT = 0;
 const PAD_RIGHT = 0;
 
-export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData }: Props) {
+export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -2163,6 +2165,65 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
                 strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.55" />
             ))}
           </g>
+
+          {/* Comparison overlay lines — normalized % return from other tickers */}
+          {comparisons && comparisons.length > 0 && hasData && (
+            <g clipPath="url(#plot-clip)">
+              {comparisons.map(comp => {
+                if (comp.points.length < 2) return null;
+                // Map comparison points to SVG coordinates using time-based x positioning
+                const compPath = comp.points.map((cp, j) => {
+                  // Find x position: match to nearest main point by time, or interpolate
+                  let x: number;
+                  if (zoomRange) {
+                    const ratio = (cp.time - zoomRange.startMs) / (zoomRange.endMs - zoomRange.startMs);
+                    x = PAD_LEFT + ratio * plotW;
+                  } else if (is1D && dayRangeMs > 0) {
+                    x = PAD_LEFT + ((cp.time - dayStartMs) / dayRangeMs) * plotW;
+                  } else if (points.length > 1) {
+                    // Index-based: find nearest point index by time
+                    const startT = points[0].time;
+                    const endT = points[points.length - 1].time;
+                    const ratio = endT > startT ? (cp.time - startT) / (endT - startT) : 0;
+                    x = PAD_LEFT + ratio * plotW;
+                  } else {
+                    x = PAD_LEFT;
+                  }
+                  const y = toY(cp.price);
+                  return `${j === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+                }).join(' ');
+                return (
+                  <g key={comp.ticker}>
+                    <path d={compPath} fill="none" stroke={comp.color} strokeWidth="1.3"
+                      strokeLinecap="round" strokeLinejoin="round" opacity="0.7"
+                      strokeDasharray="4,2" />
+                    {/* Label at end of line */}
+                    {(() => {
+                      const last = comp.points[comp.points.length - 1];
+                      let lx: number;
+                      if (zoomRange) {
+                        lx = PAD_LEFT + ((last.time - zoomRange.startMs) / (zoomRange.endMs - zoomRange.startMs)) * plotW;
+                      } else if (is1D && dayRangeMs > 0) {
+                        lx = PAD_LEFT + ((last.time - dayStartMs) / dayRangeMs) * plotW;
+                      } else if (points.length > 1) {
+                        const ratio = (last.time - points[0].time) / (points[points.length - 1].time - points[0].time);
+                        lx = PAD_LEFT + ratio * plotW;
+                      } else {
+                        lx = PAD_LEFT;
+                      }
+                      const ly = toY(last.price);
+                      return (
+                        <text x={Math.min(lx + 4, CHART_W - PAD_RIGHT - 30)} y={ly + 3}
+                          fill={comp.color} fontSize="9" fontWeight="600" opacity="0.85">
+                          {comp.ticker}
+                        </text>
+                      );
+                    })()}
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* MA Breach signals — dynamically positioned above local chart contour */}
           {(() => {

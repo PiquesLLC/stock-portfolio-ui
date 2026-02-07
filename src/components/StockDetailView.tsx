@@ -273,6 +273,80 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
 
 
+  // Comparison overlay
+  const [compareTickers, setCompareTickers] = useState<string[]>([]);
+  const [compareInput, setCompareInput] = useState('');
+  const [showCompareInput, setShowCompareInput] = useState(false);
+  const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number }[] }[]>([]);
+
+  const COMPARE_COLORS = ['#8B5CF6', '#F59E0B', '#EC4899']; // purple, amber, pink
+
+  // Fetch comparison data whenever compareTickers or chartPeriod changes
+  useEffect(() => {
+    if (compareTickers.length === 0) { setCompareData([]); return; }
+
+    const fetchComps = async () => {
+      const results: typeof compareData = [];
+      for (let ci = 0; ci < compareTickers.length; ci++) {
+        const ct = compareTickers[ci];
+        try {
+          let compCandles: IntradayCandle[] = [];
+          if (chartPeriod === '1D') {
+            compCandles = await getIntradayCandles(ct);
+          } else if (chartPeriod === '1W') {
+            compCandles = await getHourlyCandles(ct, '1W');
+          } else if (chartPeriod === '1M') {
+            compCandles = await getHourlyCandles(ct, '1M');
+          }
+
+          // For longer periods, use the existing candles structure — fetch via getStockDetails
+          // For now we use intraday/hourly for 1D/1W/1M and skip comparison on longer periods
+          if (compCandles.length >= 2) {
+            // Normalize: compute % return and map to main ticker's price scale
+            const mainStartPrice = data?.quote?.currentPrice ?? 0;
+            // Get main chart's starting price for the period
+            let mainRefPrice = mainStartPrice;
+            if (chartPeriod === '1D' && intradayCandles.length > 0) {
+              mainRefPrice = intradayCandles[0].close;
+            } else if ((chartPeriod === '1W' || chartPeriod === '1M') && hourlyCandles.length > 0) {
+              mainRefPrice = hourlyCandles[0].close;
+            } else if (data?.candles && data.candles.closes.length > 0) {
+              mainRefPrice = data.candles.closes[0];
+            }
+
+            const compStartPrice = compCandles[0].close;
+            const points = compCandles.map(c => {
+              const compReturn = (c.close - compStartPrice) / compStartPrice; // % return
+              const normalizedPrice = mainRefPrice * (1 + compReturn); // map to main scale
+              return { time: new Date(c.time).getTime(), price: normalizedPrice };
+            });
+
+            results.push({
+              ticker: ct,
+              color: COMPARE_COLORS[ci % COMPARE_COLORS.length],
+              points,
+            });
+          }
+        } catch { /* skip failed tickers */ }
+      }
+      setCompareData(results);
+    };
+
+    fetchComps();
+  }, [compareTickers, chartPeriod, data?.candles, data?.quote?.currentPrice, intradayCandles, hourlyCandles]);
+
+  const addCompareTicker = (t: string) => {
+    const upper = t.trim().toUpperCase();
+    if (!upper || upper === ticker || compareTickers.includes(upper) || compareTickers.length >= 3) return;
+    setCompareTickers(prev => [...prev, upper]);
+    setCompareInput('');
+    setShowCompareInput(false);
+  };
+
+  const removeCompareTicker = (t: string) => {
+    setCompareTickers(prev => prev.filter(ct => ct !== t));
+  };
+
   // Price alerts
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -738,7 +812,49 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           aiEvents={aiEvents?.events}
           onRequestResolution={handleResolutionRequest}
           zoomData={zoomData}
+          comparisons={compareData.length > 0 ? compareData : undefined}
         />
+
+        {/* Compare tickers UI */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {compareTickers.map((ct, i) => (
+            <span
+              key={ct}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+              style={{ borderColor: COMPARE_COLORS[i % COMPARE_COLORS.length] + '40', color: COMPARE_COLORS[i % COMPARE_COLORS.length] }}
+            >
+              <span className="w-2 h-0.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[i % COMPARE_COLORS.length], display: 'inline-block' }} />
+              {ct}
+              <button onClick={() => removeCompareTicker(ct)} className="ml-0.5 opacity-60 hover:opacity-100">&times;</button>
+            </span>
+          ))}
+          {compareTickers.length < 3 && (
+            showCompareInput ? (
+              <form
+                onSubmit={(e) => { e.preventDefault(); addCompareTicker(compareInput); }}
+                className="inline-flex items-center"
+              >
+                <input
+                  autoFocus
+                  value={compareInput}
+                  onChange={(e) => setCompareInput(e.target.value.toUpperCase())}
+                  onBlur={() => { if (!compareInput) setShowCompareInput(false); }}
+                  placeholder="TICKER"
+                  className="w-16 px-1.5 py-0.5 text-[11px] font-semibold bg-transparent border border-white/[0.12] dark:border-white/[0.12] rounded text-rh-light-text dark:text-rh-text outline-none focus:border-rh-green/40"
+                  maxLength={6}
+                />
+              </form>
+            ) : (
+              <button
+                onClick={() => setShowCompareInput(true)}
+                className="px-2 py-0.5 rounded-md text-[11px] font-medium text-rh-light-muted dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text border border-rh-light-border/30 dark:border-white/[0.08] hover:border-rh-green/30 transition-all"
+                title="Compare with another ticker"
+              >
+                + Compare
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       {/* Warning Panel */}

@@ -10,10 +10,12 @@ import { IncomeInsights } from './IncomeInsights';
 import PortfolioBriefing from './PortfolioBriefing';
 import BehaviorInsights from './BehaviorInsights';
 import EventsCalendar from './EventsCalendar';
+import CorrelationHeatmap from './CorrelationHeatmap';
+import { AllocationDonut } from './AllocationDonut';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'events';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'events' | 'allocation';
 
 // Cache for insights data - persists across component mounts
 const insightsCache: {
@@ -151,15 +153,15 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     fetchInsights(false);
   };
 
-  // Lazy-fetch holdings when Events tab is selected
+  // Lazy-fetch holdings when Events or Correlation tab is selected
   useEffect(() => {
-    if (subTab === 'events' && !holdingsFetchedRef.current) {
+    if ((subTab === 'events' || subTab === 'allocation') && !holdingsFetchedRef.current) {
       holdingsFetchedRef.current = true;
       getPortfolio()
         .then((p) => {
           if (mountedRef.current) setHoldings(p.holdings);
         })
-        .catch((e) => console.error('Failed to fetch holdings for events:', e));
+        .catch((e) => console.error('Failed to fetch holdings:', e));
     }
   }, [subTab]);
 
@@ -172,6 +174,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'ai-behavior', label: 'Behavior Coach' },
     { id: 'income', label: 'Income' },
     { id: 'events', label: 'Events' },
+    { id: 'allocation', label: 'Allocation' },
     { id: 'projections-goals', label: 'Projections & Goals' },
   ];
 
@@ -295,6 +298,37 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           ))}
         </div>
         <EventsCalendar holdings={holdings} />
+      </div>
+    );
+  }
+
+  // Allocation subtab — donut chart + correlation heatmap
+  if (subTab === 'allocation') {
+    const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+          {subTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`px-4 py-1 text-xs font-medium rounded-md transition-colors
+                ${subTab === t.id
+                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AllocationDonut
+            holdings={holdings}
+            totalValue={totalValue}
+          />
+          <CorrelationHeatmap holdings={holdings} />
+        </div>
       </div>
     );
   }

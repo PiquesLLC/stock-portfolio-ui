@@ -214,6 +214,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const [benchmarkCandles, setBenchmarkCandles] = useState<BenchmarkCandle[]>([]);
   const [intradayBenchmark, setIntradayBenchmark] = useState<BenchmarkCandle[]>([]);
   const [showHint, setShowHint] = useState(true);
+  const [showBenchmark, setShowBenchmark] = useState(false);
 
   const isMeasuring = measureA !== null;
   const hasMeasurement = measureA !== null && measureB !== null;
@@ -337,6 +338,44 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const points = chartData?.points ?? [];
   const periodStartValue = chartData?.periodStartValue ?? currentValue;
 
+  // ── Normalized benchmark data for overlay ──────────────────────
+  const benchmarkNormalized = useMemo(() => {
+    if (!showBenchmark || points.length < 2) return null;
+    // Skip 1D intraday — not enough benchmark resolution
+    if (selectedPeriod === '1D') return null;
+
+    // Choose the right candle set based on period
+    const candles = (selectedPeriod === '1W' || selectedPeriod === '1M')
+      ? (intradayBenchmark.length > 0 ? intradayBenchmark : benchmarkCandles)
+      : benchmarkCandles;
+    if (candles.length === 0) return null;
+
+    const chartStart = points[0].time;
+
+    // Find SPY close at chart start
+    const startIdx = findBenchmarkIndex(candles, chartStart);
+    if (startIdx === null) return null;
+    const spyStartClose = candles[startIdx].close;
+    if (spyStartClose === 0) return null;
+
+    const portfolioStartVal = periodStartValue;
+
+    // Build normalized points aligned to portfolio x-axis
+    // For each portfolio point, find nearest benchmark candle and normalize
+    const normalized: { index: number; value: number }[] = [];
+    for (let i = 0; i < points.length; i++) {
+      const t = points[i].time;
+      const bIdx = findBenchmarkIndex(candles, t);
+      if (bIdx === null) continue;
+      const spyClose = candles[bIdx].close;
+      const normalizedValue = (spyClose / spyStartClose) * portfolioStartVal;
+      normalized.push({ index: i, value: normalizedValue });
+    }
+
+    if (normalized.length < 2) return null;
+    return normalized;
+  }, [showBenchmark, points, selectedPeriod, benchmarkCandles, intradayBenchmark, periodStartValue]);
+
   // Compute hero display values
   const hoverValue = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex].value : null;
   const displayValue = hoverValue ?? currentValue;
@@ -373,12 +412,18 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const { paddedMin, paddedMax } = useMemo(() => {
     if (points.length < 2) return { paddedMin: 0, paddedMax: 1 };
     const values = points.map(p => p.value);
+    // Include benchmark values in min/max when visible
+    if (benchmarkNormalized) {
+      for (const bp of benchmarkNormalized) {
+        values.push(bp.value);
+      }
+    }
     let minV = Math.min(...values, periodStartValue);
     let maxV = Math.max(...values, periodStartValue);
     if (maxV === minV) { maxV += 1; minV -= 1; }
     const range = maxV - minV;
     return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
-  }, [points, periodStartValue]);
+  }, [points, periodStartValue, benchmarkNormalized]);
 
   // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   // Derive the trading day from the data points (not "today") so it works after hours / weekends
@@ -413,6 +458,21 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
   // Build SVG path
   const pathD = hasData ? points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ') : '';
+
+  // Build benchmark SVG path
+  const benchmarkPathD = useMemo(() => {
+    if (!benchmarkNormalized || benchmarkNormalized.length < 2) return '';
+    return benchmarkNormalized
+      .map((bp, j) => `${j === 0 ? 'M' : 'L'}${toX(bp.index).toFixed(1)},${toY(bp.value).toFixed(1)}`)
+      .join(' ');
+  }, [benchmarkNormalized, points, paddedMin, paddedMax]);
+
+  // Benchmark value at hover index (for tooltip)
+  const hoverBenchmarkValue = useMemo(() => {
+    if (!showBenchmark || !benchmarkNormalized || hoverIndex === null) return null;
+    const match = benchmarkNormalized.find(bp => bp.index === hoverIndex);
+    return match?.value ?? null;
+  }, [showBenchmark, benchmarkNormalized, hoverIndex]);
 
   // Session split indices: market open (9:30 AM ET) and close (4:00 PM ET)
   const { sessionSplitIdx, sessionCloseIdx } = useMemo(() => {
@@ -694,15 +754,37 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               </p>
             </>
           ) : (
-            <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
-              {formatChange(displayChange)} ({formatPct(displayChangePct)})
-              {hoverIndex !== null && hoverLabel && (
-                <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
+            <>
+              <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                {formatChange(displayChange)} ({formatPct(displayChangePct)})
+                {hoverIndex !== null && hoverLabel && (
+                  <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
+                )}
+                {hoverIndex === null && selectedPeriod === '1D' && (
+                  <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+                )}
+              </p>
+              {/* Benchmark comparison on hover */}
+              {showBenchmark && hoverBenchmarkValue !== null && hoverIndex !== null && (
+                (() => {
+                  const spyChange = hoverBenchmarkValue - periodStartValue;
+                  const spyChangePct = periodStartValue > 0 ? (spyChange / periodStartValue) * 100 : 0;
+                  const outperformPct = displayChangePct - spyChangePct;
+                  return (
+                    <p className="text-xs mt-0.5 text-rh-light-muted dark:text-rh-muted">
+                      <span className="opacity-60">SPY: </span>
+                      <span className={spyChangePct >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}>
+                        {formatPct(spyChangePct)}
+                      </span>
+                      <span className="mx-1.5 opacity-40">·</span>
+                      <span className={`font-semibold ${outperformPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        {formatPct(outperformPct)} vs SPY
+                      </span>
+                    </p>
+                  );
+                })()
               )}
-              {hoverIndex === null && selectedPeriod === '1D' && (
-                <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
-              )}
-            </p>
+            </>
           )}
         </div>
       )}
@@ -983,6 +1065,38 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
             <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
+          {/* ── Benchmark (SPY) overlay line ────────────────── */}
+          {showBenchmark && benchmarkPathD && benchmarkNormalized && benchmarkNormalized.length >= 2 && (
+            <>
+              <path
+                d={benchmarkPathD}
+                fill="none"
+                className="stroke-black/[0.15] dark:stroke-white/25"
+                strokeWidth="0.9"
+                strokeDasharray="6,4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* SPY label at end of benchmark line */}
+              {(() => {
+                const lastBp = benchmarkNormalized[benchmarkNormalized.length - 1];
+                const lx = toX(lastBp.index);
+                const ly = toY(lastBp.value);
+                return (
+                  <text
+                    x={lx + 6}
+                    y={ly + 3}
+                    fontSize="9"
+                    fontWeight="600"
+                    className="fill-black/25 dark:fill-white/30"
+                  >
+                    SPY
+                  </text>
+                );
+              })()}
+            </>
+          )}
+
           {/* ── Measurement overlays ───────────────────────── */}
 
           {/* Shaded region between A and B */}
@@ -1134,6 +1248,16 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               {/* Glow under hover dot */}
               <circle cx={hoverX} cy={hoverY} r="12" fill="url(#dot-glow)" />
               <circle cx={hoverX} cy={hoverY} r="3.5" fill={lineColor} stroke="#fff" strokeWidth="1.2" />
+              {/* Benchmark dot on hover */}
+              {showBenchmark && hoverBenchmarkValue !== null && hoverX !== null && (
+                <circle
+                  cx={hoverX}
+                  cy={toY(hoverBenchmarkValue)}
+                  r="2.5"
+                  className="fill-black/20 dark:fill-white/30 stroke-black/10 dark:stroke-white/20"
+                  strokeWidth="1"
+                />
+              )}
             </>
           )}
 
@@ -1168,6 +1292,19 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           </button>
         ))}
         </div>
+        {/* SPY benchmark toggle — hidden on 1D since intraday benchmark isn't meaningful */}
+        {selectedPeriod !== '1D' && (
+          <button
+            onClick={() => setShowBenchmark(prev => !prev)}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+              showBenchmark
+                ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
+                : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
+            }`}
+          >
+            SPY
+          </button>
+        )}
         {showHint && hasData && !isMeasuring && (
           <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 ml-auto">
             Click chart to measure gains between two dates
