@@ -20,7 +20,7 @@ import { DailyReportModal } from './components/DailyReportModal';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
 import Starfield from './components/Starfield';
 import { MiniPlayer } from './components/MiniPlayer';
 
@@ -229,53 +229,58 @@ export default function App() {
 
     if (hlsRef.current) return;
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: false, debug: false, lowLatencyMode: true, xhrSetup: (xhr) => { xhr.withCredentials = false; } });
-      hlsRef.current = hls;
-      loadedChannelRef.current = activeChannel.id;
+    // Dynamic import hls.js only when needed (saves ~250KB from initial bundle)
+    import('hls.js').then(({ default: HlsLib }) => {
+      // Guard: effect may have cleaned up while awaiting import
+      if (hlsRef.current) return;
+      if (HlsLib.isSupported()) {
+        const hls = new HlsLib({ enableWorker: false, debug: false, lowLatencyMode: true, xhrSetup: (xhr: XMLHttpRequest) => { xhr.withCredentials = false; } });
+        hlsRef.current = hls;
+        loadedChannelRef.current = activeChannel.id;
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setStreamStatus('');
-        setStreamHasError(false);
-        video.play().catch(() => setStreamStatus('Click to play'));
-      });
+        hls.on(HlsLib.Events.MANIFEST_PARSED, () => {
+          setStreamStatus('');
+          setStreamHasError(false);
+          video.play().catch(() => setStreamStatus('Click to play'));
+        });
 
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        console.error('HLS error:', data.type, data.details);
-        if (data.fatal) {
-          setStreamHasError(true);
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              setStreamStatus('Network error — retrying...');
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              setStreamStatus('Media error — recovering...');
-              hls.recoverMediaError();
-              break;
-            default:
-              setStreamStatus('Stream unavailable');
-              hls.destroy();
-              hlsRef.current = null;
-              loadedChannelRef.current = null;
-              break;
+        hls.on(HlsLib.Events.ERROR, (_event: string, data: { type: string; details: string; fatal: boolean }) => {
+          console.error('HLS error:', data.type, data.details);
+          if (data.fatal) {
+            setStreamHasError(true);
+            switch (data.type) {
+              case HlsLib.ErrorTypes.NETWORK_ERROR:
+                setStreamStatus('Network error — retrying...');
+                hls.startLoad();
+                break;
+              case HlsLib.ErrorTypes.MEDIA_ERROR:
+                setStreamStatus('Media error — recovering...');
+                hls.recoverMediaError();
+                break;
+              default:
+                setStreamStatus('Stream unavailable');
+                hls.destroy();
+                hlsRef.current = null;
+                loadedChannelRef.current = null;
+                break;
+            }
           }
-        }
-      });
+        });
 
-      hls.loadSource(activeChannel.url);
-      hls.attachMedia(video);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = activeChannel.url;
-      loadedChannelRef.current = activeChannel.id;
-      video.addEventListener('loadedmetadata', () => {
-        setStreamStatus('');
-        video.play().catch(() => setStreamStatus('Click to play'));
-      });
-    } else {
-      setStreamStatus('HLS not supported in this browser');
-      setStreamHasError(true);
-    }
+        hls.loadSource(activeChannel.url);
+        hls.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = activeChannel.url;
+        loadedChannelRef.current = activeChannel.id;
+        video.addEventListener('loadedmetadata', () => {
+          setStreamStatus('');
+          video.play().catch(() => setStreamStatus('Click to play'));
+        });
+      } else {
+        setStreamStatus('HLS not supported in this browser');
+        setStreamHasError(true);
+      }
+    });
   }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible]);
 
   const handleViewProfile = (userId: string) => setViewingProfileId(userId);

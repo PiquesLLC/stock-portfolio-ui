@@ -533,28 +533,28 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               <th className={`px-2 py-3 font-medium text-center cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap ${sortKey === 'dayChangePercent' ? 'text-rh-light-text dark:text-white' : ''}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
                 Today{sortKey === 'dayChangePercent' ? <span className="ml-1 opacity-70">{sortDir === 'desc' ? '▼' : '▲'}</span> : null}
               </th>
-              <th className={getHeaderClass('averageCost', 'right')} onClick={() => handleSort('averageCost')} title="Sort by average cost basis">
+              <th className={`hidden md:table-cell ${getHeaderClass('averageCost', 'right')}`} onClick={() => handleSort('averageCost')} title="Sort by average cost basis">
                 {getSortIndicator('averageCost')}Avg Cost
               </th>
-              <th className={getHeaderClass('shares', 'right')} onClick={() => handleSort('shares')} title="Sort by number of shares">
+              <th className={`hidden lg:table-cell ${getHeaderClass('shares', 'right')}`} onClick={() => handleSort('shares')} title="Sort by number of shares">
                 {getSortIndicator('shares')}Shares
               </th>
               <th className={getHeaderClass('currentPrice', 'right')} onClick={() => handleSort('currentPrice')} title="Sort by current price">
                 {getSortIndicator('currentPrice')}Price
               </th>
-              <th className={getHeaderClass('currentValue', 'right')} onClick={() => handleSort('currentValue')} title="Sort by market value">
-                {getSortIndicator('currentValue')}Market Value
+              <th className={`hidden sm:table-cell ${getHeaderClass('currentValue', 'right')}`} onClick={() => handleSort('currentValue')} title="Sort by market value">
+                {getSortIndicator('currentValue')}Mkt Val
               </th>
-              <th className={getHeaderClass('dayChange', 'right')} onClick={() => handleSort('dayChange')} title="Sort by today's profit/loss">
+              <th className={`hidden lg:table-cell ${getHeaderClass('dayChange', 'right')}`} onClick={() => handleSort('dayChange')} title="Sort by today's profit/loss">
                 {getSortIndicator('dayChange')}Day <span>P/L</span>
               </th>
-              <th className={getHeaderClass('dayChangePercent', 'right')} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
+              <th className={`hidden md:table-cell ${getHeaderClass('dayChangePercent', 'right')}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
                 {getSortIndicator('dayChangePercent')}Day %
               </th>
               <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')} title="Sort by total profit/loss">
                 {getSortIndicator('profitLoss')}Total <span>P/L</span>
               </th>
-              <th className={getHeaderClass('profitLossPercent', 'right')} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
+              <th className={`hidden sm:table-cell ${getHeaderClass('profitLossPercent', 'right')}`} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
                 {getSortIndicator('profitLossPercent')}Total %
               </th>
               <th className="px-4 py-3 font-medium"></th>
@@ -601,8 +601,8 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                       <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} />
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{formatCurrency(holding.averageCost)}</td>
-                  <td className="px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{holding.shares.toLocaleString()}</td>
+                  <td className="hidden md:table-cell px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{formatCurrency(holding.averageCost)}</td>
+                  <td className="hidden lg:table-cell px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{holding.shares.toLocaleString()}</td>
                   <td className={`px-4 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
@@ -616,16 +616,16 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200">
+                  <td className={`hidden sm:table-cell px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200`}>
                     {hasValidPrice ? formatCurrency(holding.currentValue) : '—'}
                   </td>
-                  <td className={`px-4 py-3 text-right ${
+                  <td className={`hidden lg:table-cell px-4 py-3 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChange >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.dayChange) : '—'}
                   </td>
-                  <td className={`px-4 py-3 text-right text-[13px] ${
+                  <td className={`hidden md:table-cell px-4 py-3 text-right text-[13px] ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChangePercent >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'
                   }`}>
@@ -637,7 +637,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
-                  <td className={`px-4 py-3 text-right font-bold value-transition ${
+                  <td className={`hidden sm:table-cell px-4 py-3 text-right font-bold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLossPercent >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>

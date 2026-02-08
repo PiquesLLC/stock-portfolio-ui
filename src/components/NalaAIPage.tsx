@@ -23,13 +23,25 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
   const [suggestions, setSuggestions] = useState<NalaSuggestion[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const cacheRef = useRef<Map<string, NalaResearchResponse>>(new Map());
+  const cacheRef = useRef<Map<string, { data: NalaResearchResponse; ts: number }>>(new Map());
   const consumedQuestionRef = useRef<string | null>(null);
+
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  const FALLBACK_SUGGESTIONS: NalaSuggestion[] = [
+    { icon: '📈', text: 'Best growth stocks to buy right now' },
+    { icon: '💰', text: 'High dividend yield stocks for passive income' },
+    { icon: '🛡️', text: 'Defensive stocks for a recession' },
+    { icon: '🤖', text: 'Top AI and tech stocks to watch' },
+  ];
 
   useEffect(() => {
     getNalaSuggestions()
-      .then(data => setSuggestions(data.suggestions))
-      .catch(() => {});
+      .then(data => {
+        if (data.suggestions?.length > 0) setSuggestions(data.suggestions);
+        else setSuggestions(FALLBACK_SUGGESTIONS);
+      })
+      .catch(() => setSuggestions(FALLBACK_SUGGESTIONS));
   }, []);
 
   const handleAsk = async (q?: string) => {
@@ -38,10 +50,10 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
 
     const cacheKey = query.toLowerCase();
     const cached = cacheRef.current.get(cacheKey);
-    if (cached) {
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
       setQuestion(query);
       setError(null);
-      setResponse({ ...cached, cached: true });
+      setResponse({ ...cached.data, cached: true });
       return;
     }
 
@@ -55,11 +67,11 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
 
     try {
       const data = await askNala(query, controller.signal);
-      cacheRef.current.set(cacheKey, data);
+      cacheRef.current.set(cacheKey, { data, ts: Date.now() });
       setResponse(data);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
-      setError(err.message || 'Failed to get research results');
+      setError('Something went wrong. Please try again.');
     } finally {
       abortRef.current = null;
       setLoading(false);
@@ -180,6 +192,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
             placeholder="Ask anything about investing..."
             disabled={loading}
             maxLength={500}
+            aria-label="Ask Nala AI a question about investing"
             className="w-full px-1 py-3 text-lg bg-transparent
               text-rh-light-text dark:text-white
               placeholder:text-rh-light-muted/40 dark:placeholder:text-white/25
@@ -195,6 +208,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
         <button
           onClick={() => handleAsk()}
           disabled={loading || question.trim().length < 5}
+          aria-label={loading ? 'Researching...' : 'Submit question'}
           className="px-4 py-3 rounded-xl font-medium
             bg-transparent border border-rh-green/50
             text-rh-green
@@ -219,6 +233,13 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
           )}
         </button>
       </motion.div>
+
+      {/* Input validation hint */}
+      {question.trim().length > 0 && question.trim().length < 5 && !loading && (
+        <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 -mt-4 ml-11 pl-1">
+          Type at least 5 characters to search
+        </p>
+      )}
 
       {/* Suggestion chips */}
       {!response && !loading && suggestions.length > 0 && (

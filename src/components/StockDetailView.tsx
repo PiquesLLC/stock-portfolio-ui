@@ -550,15 +550,15 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Header: Company name + ticker + actions */}
       <div className="mb-2">
-        <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text">
             {profile?.name || ticker}
           </h1>
           {profile?.name && (
             <span className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">{ticker}</span>
           )}
           {exchangeLabel && (
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-gray-50/60 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.06] text-rh-light-muted/60 dark:text-white/25">
+            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 rounded-lg bg-gray-50/60 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.06] text-rh-light-muted/60 dark:text-white/25">
               {exchangeLabel}
             </span>
           )}
@@ -613,7 +613,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Price hero */}
       <div className="mb-4" style={{ minHeight: showExtendedLine ? '110px' : '85px' }}>
-        <div className="text-4xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">
+        <div className="text-3xl sm:text-4xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">
           {formatCurrency(displayPrice)}
         </div>
         <div className={`flex items-center gap-2 mt-1 ${changeColor}`}>
@@ -771,7 +771,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           )}
 
           {/* Metadata grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-sm">
             {/* ETF-specific fields first */}
             {about?.category && (
               <div>
@@ -858,7 +858,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {!loading && (metrics || quote) && (
         <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Key Statistics</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-4">
             {profile && profile.marketCapM > 0 && (
               <StatItem label="Mkt Cap" value={formatLargeNumber(profile.marketCapM)} />
             )}

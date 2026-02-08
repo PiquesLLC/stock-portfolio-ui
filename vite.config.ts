@@ -30,8 +30,15 @@ export default defineConfig({
       },
     },
   },
-  // Expose environment variables to the client
-  define: {
-    // Ensure VITE_API_URL is available
+  build: {
+    chunkSizeWarningLimit: 550,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'framer': ['framer-motion'],
+        },
+      },
+    },
   },
 })
