@@ -606,7 +606,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative px-6 pt-8 pb-3 ${
+    <div className={`relative px-3 sm:px-6 pt-8 pb-3 ${
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
     }`}>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
@@ -614,7 +614,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
         {/* Hero value display — FOREGROUND: highest visual weight */}
         {!hasMeasurement && (
           <div>
-            <p className={`text-5xl md:text-6xl font-black tracking-tighter text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
+            <p className={`text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
               isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
             }`}>
               {formatCurrency(displayValue)}
@@ -1216,7 +1216,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
       </div>
 
       {/* Hint + Period selector */}
-      <div className="flex items-center gap-3 mt-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-2">
         <div className="flex gap-0.5">
         {PERIODS.map(period => (
           <button
