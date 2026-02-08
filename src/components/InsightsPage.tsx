@@ -79,7 +79,7 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
               </svg>
             </button>
             {moreOpen && (
-              <div className="absolute top-full right-0 mt-1 z-30 min-w-[140px] rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1a] shadow-lg py-1">
+              <div className="absolute top-full right-0 mt-1 z-30 min-w-[120px] sm:min-w-[140px] rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1a] shadow-lg py-1">
                 {secondaryTabs.map((t) => (
                   <button
                     key={t.id}

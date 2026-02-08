@@ -26,17 +26,15 @@ export function WatchPage({
   return (
     <div className="max-w-5xl mx-auto py-4">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Watch</h1>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">Live financial news</p>
-            <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">Now playing: {activeChannel.name} &bull; {activeChannel.description}</p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Watch</h1>
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">Live financial news</p>
+          <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5 truncate max-w-[280px] sm:max-w-none">Now playing: {activeChannel.name} &bull; {activeChannel.description}</p>
         </div>
 
         {/* Background toggle chip */}
-        <label className="flex items-center gap-2.5 cursor-pointer select-none px-3 py-1.5 rounded-lg
+        <label className="self-start sm:self-auto flex items-center gap-2.5 cursor-pointer select-none px-3 py-1.5 rounded-lg
           bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border border-gray-200/50 dark:border-white/[0.06]
           hover:border-gray-300/60 dark:hover:border-white/[0.12] transition-colors">
           <span className="text-xs text-rh-light-muted dark:text-rh-muted whitespace-nowrap">Background playback</span>

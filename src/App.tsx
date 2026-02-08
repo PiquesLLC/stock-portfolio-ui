@@ -464,7 +464,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            <div className="w-[140px] sm:w-[270px]">
+            <div className="w-[160px] sm:w-[220px] md:w-[270px]">
               <TickerAutocompleteInput
                 value={searchQuery}
                 onChange={setSearchQuery}
