@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Holding, MarketSession } from '../types';
+import { useToast } from '../context/ToastContext';
 import { deleteHolding, addHolding, updateSettings, getPortfolio } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { getAcronymTitle } from './Acronym';
@@ -67,6 +68,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
 }
 
 export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef }: Props) {
+  const { showToast } = useToast();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -128,7 +130,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
       await deleteHolding(ticker);
       onUpdate();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete');
+      showToast(err instanceof Error ? err.message : 'Failed to delete', 'error');
     } finally {
       setDeleting(null);
     }

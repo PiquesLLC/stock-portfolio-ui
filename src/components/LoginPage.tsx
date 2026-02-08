@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { setPassword as apiSetPassword, checkHasPassword } from '../api';
 
 // Eye icons for password visibility toggle
@@ -33,6 +34,7 @@ const Spinner = () => (
 
 export function LoginPage() {
   const { login, signup } = useAuth();
+  const { showToast } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPasswordValue] = useState('');
   const [error, setError] = useState('');
@@ -236,7 +238,7 @@ export function LoginPage() {
                       type="button"
                       className="text-xs text-rh-muted/60 hover:text-rh-muted transition-colors"
                       onClick={() => {
-                        alert('Password reset coming soon. Contact support for help.');
+                        showToast('Password reset coming soon. Contact support for help.', 'info');
                       }}
                     >
                       Forgot password?

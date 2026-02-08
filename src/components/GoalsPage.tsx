@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Goal, GoalInput } from '../types';
+import { useToast } from '../context/ToastContext';
 import { getGoals, createGoal, updateGoal, deleteGoal } from '../api';
 
 function formatCurrency(value: number): string {
@@ -193,6 +194,7 @@ interface GoalCardProps {
 }
 
 function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) {
+  const { showToast } = useToast();
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
@@ -202,7 +204,7 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
       setDeleting(true);
       await onDelete(goal.id);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete goal');
+      showToast(err instanceof Error ? err.message : 'Failed to delete goal', 'error');
       setDeleting(false);
     }
   }
