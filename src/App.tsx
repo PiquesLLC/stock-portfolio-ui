@@ -1,22 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Portfolio, Settings, MarketSession, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getUsers, getPortfolioChart } from './api';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { Portfolio, Settings, PortfolioChartPeriod } from './types';
+import { getPortfolio, getSettings, getPortfolioChart } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
-import { InsightsPage } from './components/InsightsPage';
-import NalaAIPage from './components/NalaAIPage';
-import { EconomicIndicators } from './components/EconomicIndicators';
-import { LeaderboardPage } from './components/LeaderboardPage';
-import { FeedPage } from './components/FeedPage';
-import { WatchPage } from './components/WatchPage';
-import { MiniPlayer } from './components/MiniPlayer';
-import { UserProfileView } from './components/UserProfileView';
-import { StockDetailView } from './components/StockDetailView';
 import { PortfolioValueChart, ChartMeasurement } from './components/PortfolioValueChart';
 import { BenchmarkWidget } from './components/BenchmarkWidget';
-
 import { DividendsSection } from './components/DividendsSection';
 import { NotificationBell } from './components/NotificationBell';
 import { UserMenu } from './components/UserMenu';
@@ -26,86 +16,35 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { FuturesBanner } from './components/FuturesBanner';
-
 import { DailyReportModal } from './components/DailyReportModal';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
 import Hls from 'hls.js';
 import Starfield from './components/Starfield';
+import { MiniPlayer } from './components/MiniPlayer';
 
-export interface Channel {
-  id: string;
-  name: string;
-  url: string;
-  website: string;
-  description: string;
-}
+import { formatCurrency, formatPercent } from './utils/format';
+import { getInitialTheme, applyTheme } from './utils/theme';
+import { getSessionDisplay, getLocalTzAbbr } from './utils/market';
+import { Channel, CHANNELS } from './utils/channels';
 
-export const CHANNELS: Channel[] = [
-  { id: 'cnbc', name: 'CNBC', url: '/hls/cnbc/cnbcsd.m3u8', website: 'https://www.cnbc.com/live-tv/', description: 'Business News' },
-  { id: 'bloomberg', name: 'Bloomberg US', url: 'https://www.bloomberg.com/media-manifest/streams/us.m3u8', website: 'https://www.bloomberg.com/live', description: 'Markets & Finance' },
-  { id: 'yahoo-finance', name: 'Yahoo Finance', url: 'https://d1ewctnvcwvvvu.cloudfront.net/playlist.m3u8', website: 'https://finance.yahoo.com/live/', description: 'Markets & Investing' },
-];
+// Lazy-loaded page components
+const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
+const NalaAIPage = lazy(() => import('./components/NalaAIPage'));
+const EconomicIndicators = lazy(() => import('./components/EconomicIndicators').then(m => ({ default: m.EconomicIndicators })));
+const LeaderboardPage = lazy(() => import('./components/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
+const FeedPage = lazy(() => import('./components/FeedPage').then(m => ({ default: m.FeedPage })));
+const WatchPage = lazy(() => import('./components/WatchPage').then(m => ({ default: m.WatchPage })));
+const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
+const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 
-// Theme utilities
-function getInitialTheme(): 'dark' | 'light' {
-  const stored = localStorage.getItem('theme');
-  if (stored === 'light') return 'light';
-  return 'dark'; // Default to dark
-}
-
-function applyTheme(theme: 'dark' | 'light') {
-  if (theme === 'dark') {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-  localStorage.setItem('theme', theme);
-}
-
-// Convert ET hours:minutes to user's local timezone string
-function etToLocal(hour: number, minute: number): string {
-  // Create a date in ET, then format in user's local timezone
-  const now = new Date();
-  const etDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const localDate = new Date(now);
-  const offsetMs = localDate.getTime() - etDate.getTime();
-  const et = new Date(now);
-  et.setHours(hour, minute, 0, 0);
-  // Adjust: shift from ET to the date that would produce the same ET time, then add offset
-  const etToday = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  etToday.setHours(hour, minute, 0, 0);
-  const local = new Date(etToday.getTime() + offsetMs);
-  return local.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
-
-function getLocalTzAbbr(): string {
-  return new Intl.DateTimeFormat([], { timeZoneName: 'short' }).formatToParts(new Date())
-    .find(p => p.type === 'timeZoneName')?.value || '';
-}
-
-function getSessionDisplay(session?: MarketSession): { label: string; color: string; description: string } {
-  const tz = getLocalTzAbbr();
-  switch (session) {
-    case 'PRE': return { label: 'PRE', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', description: `Pre-Market (${etToLocal(4, 0)} - ${etToLocal(9, 30)} ${tz})` };
-    case 'REG': return { label: 'OPEN', color: 'bg-green-500/20 text-green-400 border-green-500/30', description: `Regular Session (${etToLocal(9, 30)} - ${etToLocal(16, 0)} ${tz})` };
-    case 'POST': return { label: 'AH', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', description: `After-Hours (${etToLocal(16, 0)} - ${etToLocal(20, 0)} ${tz})` };
-    case 'CLOSED': return { label: 'CLOSED', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', description: 'Market Closed' };
-    default: return { label: 'CLOSED', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', description: 'Market Closed' };
-  }
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(value);
-}
-
-function formatPercent(value: number): string {
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${value.toFixed(2)}%`;
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent" />
+    </div>
+  );
 }
 
 // Parse hash to restore navigation state on load/refresh
@@ -113,11 +52,10 @@ interface NavState {
   tab: TabType;
   stock: string | null;
   profile: string | null;
-  lbuser: string | null; // leaderboard selected user
-  subtab: string | null; // insights sub-tab
+  lbuser: string | null;
+  subtab: string | null;
 }
 
-// Valid tab names for URL parameter validation
 const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'macro', 'leaderboard', 'feed', 'watch']);
 
 function parseHash(): NavState {
@@ -157,7 +95,7 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
   sessionStorage.setItem('navState', JSON.stringify({ tab, stock, profile, lbuser, subtab }));
 }
 
-const savedInitialNav = parseHash(); // Parse once at module load, before any React renders
+const savedInitialNav = parseHash();
 
 export default function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -179,7 +117,6 @@ export default function App() {
   });
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
   const [activeTab, setActiveTab] = useState<TabType>(initialNav.tab);
-  // Use authenticated user from auth context
   const currentUserId = user?.id || '';
   const currentUserName = user?.displayName || user?.username || '';
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
@@ -191,7 +128,6 @@ export default function App() {
   const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-
   const [showDailyReport, setShowDailyReport] = useState(false);
 
   // --- Keyboard shortcuts ---
@@ -213,7 +149,7 @@ export default function App() {
   // --- Stream / PiP state ---
   const [pipEnabled, setPipEnabled] = useState(() => {
     const stored = localStorage.getItem('pipEnabled');
-    return stored !== null ? stored === 'true' : true; // default ON
+    return stored !== null ? stored === 'true' : true;
   });
   const [streamActive, setStreamActive] = useState(false);
   const [activeChannel, setActiveChannel] = useState<Channel>(CHANNELS[0]);
@@ -226,7 +162,6 @@ export default function App() {
   const loadedChannelRef = useRef<string | null>(null);
   const [containerReady, setContainerReady] = useState(0);
 
-  // Callback ref: when WatchPage's container mounts, bump containerReady to re-trigger the effect
   const watchContainerCallback = useCallback((node: HTMLDivElement | null) => {
     watchVideoContainerRef.current = node;
     if (node) setContainerReady(c => c + 1);
@@ -237,7 +172,6 @@ export default function App() {
     localStorage.setItem('pipEnabled', String(enabled));
   };
 
-  // Activate stream when navigating to Watch tab
   useEffect(() => {
     if (activeTab === 'watch') {
       setStreamActive(true);
@@ -246,10 +180,7 @@ export default function App() {
     }
   }, [activeTab, pipEnabled]);
 
-  const handleMiniPlayerClose = () => {
-    setStreamActive(false);
-  };
-
+  const handleMiniPlayerClose = () => setStreamActive(false);
   const handleMiniPlayerExpand = () => {
     setActiveTab('watch');
     setViewingProfileId(null);
@@ -257,19 +188,16 @@ export default function App() {
     setLeaderboardUserId(null);
   };
 
-  // When viewing a stock detail on the Watch tab, treat it like navigating away
   const watchFullyVisible = activeTab === 'watch' && !viewingStock;
   const showMiniPlayer = streamActive && pipEnabled && !watchFullyVisible;
 
-  // Unified effect: move video into correct container, then init/destroy HLS
+  // Unified HLS effect
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Determine if stream should be active (derive directly, don't wait for state)
     const shouldBeActive = watchFullyVisible || (streamActive && pipEnabled);
 
-    // 1. Place video in the right container
     if (watchFullyVisible && watchVideoContainerRef.current) {
       watchVideoContainerRef.current.appendChild(video);
       video.style.display = '';
@@ -280,7 +208,6 @@ export default function App() {
       video.style.display = 'none';
     }
 
-    // 2. Start or stop HLS
     if (!shouldBeActive) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -292,7 +219,6 @@ export default function App() {
       return;
     }
 
-    // If channel changed, tear down and re-init
     if (hlsRef.current && loadedChannelRef.current !== activeChannel.id) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -301,27 +227,17 @@ export default function App() {
       setStreamHasError(false);
     }
 
-    // Already running correct channel
     if (hlsRef.current) return;
 
     if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: false,
-        debug: false,
-        lowLatencyMode: true,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = false;
-        },
-      });
+      const hls = new Hls({ enableWorker: false, debug: false, lowLatencyMode: true, xhrSetup: (xhr) => { xhr.withCredentials = false; } });
       hlsRef.current = hls;
       loadedChannelRef.current = activeChannel.id;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setStreamStatus('');
         setStreamHasError(false);
-        video.play().catch(() => {
-          setStreamStatus('Click to play');
-        });
+        video.play().catch(() => setStreamStatus('Click to play'));
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -354,9 +270,7 @@ export default function App() {
       loadedChannelRef.current = activeChannel.id;
       video.addEventListener('loadedmetadata', () => {
         setStreamStatus('');
-        video.play().catch(() => {
-          setStreamStatus('Click to play');
-        });
+        video.play().catch(() => setStreamStatus('Click to play'));
       });
     } else {
       setStreamStatus('HLS not supported in this browser');
@@ -364,11 +278,7 @@ export default function App() {
     }
   }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible]);
 
-  // User ID now comes from auth context - no manual fetching needed
-
-  const handleViewProfile = (userId: string) => {
-    setViewingProfileId(userId);
-  };
+  const handleViewProfile = (userId: string) => setViewingProfileId(userId);
 
   // Sync navigation state → URL hash
   useEffect(() => {
@@ -394,36 +304,28 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Keep track of the last valid portfolio to avoid flickering
   const lastValidPortfolio = useRef<Portfolio | null>(null);
-  // Track last totalAssets to only trigger projection refresh on value change
   const lastTotalAssets = useRef<number | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!currentUserId) return; // Wait for user to be set
+    if (!currentUserId) return;
     try {
       const portfolioData = await getPortfolio(currentUserId);
       const settingsData = await getSettings(currentUserId);
 
-      // Check if the new data is valid (not showing -100% P/L for all holdings)
       const hasValidData = portfolioData.holdings.length === 0 ||
         portfolioData.holdings.some(h => !h.priceUnavailable && h.currentPrice > 0);
 
-      // Check if holdings structure changed (new stock added/removed)
       const holdingsChanged = !lastValidPortfolio.current ||
         portfolioData.holdings.length !== lastValidPortfolio.current.holdings.length ||
         portfolioData.holdings.some(h => !lastValidPortfolio.current!.holdings.find(old => old.ticker === h.ticker));
 
-      // If we have unavailable quotes but holdings structure changed, we MUST accept the new data
-      // Otherwise the new holding or settings won't be reflected
       if (!hasValidData && lastValidPortfolio.current && !holdingsChanged) {
         console.log('New data has unavailable quotes, keeping previous price data but updating settings');
-        // Merge: keep old price-related data but use new settings (cashBalance, marginDebt)
         setPortfolio({
           ...lastValidPortfolio.current,
           cashBalance: portfolioData.cashBalance,
           marginDebt: portfolioData.marginDebt,
-          // Recalculate netEquity with new margin debt but old holdings value
           netEquity: lastValidPortfolio.current.totalAssets - portfolioData.marginDebt,
         });
         setSettings(settingsData);
@@ -431,33 +333,27 @@ export default function App() {
         return;
       }
 
-      // Update with new data
       setPortfolio(portfolioData);
       setSettings(settingsData);
       setError('');
       setLastUpdate(new Date());
 
-      // Only trigger projection refresh when portfolio value actually changes
       const newTotalAssets = Math.round(portfolioData.totalAssets * 100) / 100;
       if (lastTotalAssets.current === null || newTotalAssets !== lastTotalAssets.current) {
         lastTotalAssets.current = newTotalAssets;
         setPortfolioRefreshCount((c) => c + 1);
       }
 
-      // Track repricing state
       const dataIsRepricing = portfolioData.quotesMeta?.anyRepricing ||
         portfolioData.quotesStale ||
         (portfolioData.quotesUnavailableCount && portfolioData.quotesUnavailableCount > 0);
       setIsStale(!!dataIsRepricing);
 
-      // Save as last valid portfolio if it has good data
       if (hasValidData) {
         lastValidPortfolio.current = portfolioData;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
-
-      // On fetch error, keep existing data and show stale indicator
       if (portfolio) {
         console.log('Fetch failed, keeping previous state:', message);
         setIsStale(true);
@@ -476,7 +372,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [fetchData, currentUserId]);
 
-  // Show daily report on first visit of the day
   useEffect(() => {
     if (!currentUserId || !portfolio) return;
     const today = new Date().toDateString();
@@ -505,11 +400,10 @@ export default function App() {
     applyTheme(newTheme);
   };
 
-  // Determine if we're currently in extended hours
   const isExtendedHours = portfolio?.session === 'PRE' || portfolio?.session === 'POST';
 
+  const findHolding = (ticker: string) => portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null;
 
-  // Show loading while checking auth
   if (authLoading) {
     return (
       <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
@@ -521,7 +415,6 @@ export default function App() {
     );
   }
 
-  // Show login page if not authenticated
   if (!isAuthenticated) {
     return <LoginPage />;
   }
@@ -564,7 +457,6 @@ export default function App() {
       <header className="relative z-30 border-b border-rh-light-border/40 dark:border-rh-border/40 dark:bg-black/30 dark:backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Dark mode: show PNG as-is. Light mode: use image as mask over green fill */}
             <div
               className="h-[35px] w-[35px] cursor-pointer"
               onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
@@ -574,13 +466,12 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Global Stock Search */}
             <div className="w-[140px] sm:w-[270px]">
               <TickerAutocompleteInput
                 value={searchQuery}
                 onChange={setSearchQuery}
                 onSelect={(result) => {
-                  const held = portfolio?.holdings.find(h => h.ticker.toUpperCase() === result.symbol.toUpperCase()) ?? null;
+                  const held = findHolding(result.symbol);
                   setViewingStock({ ticker: result.symbol, holding: held });
                   setSearchQuery('');
                 }}
@@ -600,7 +491,6 @@ export default function App() {
                 {getSessionDisplay(portfolio.session).label}
               </span>
             )}
-            {/* User Menu */}
             {currentUserName && currentUserId && (
               <UserMenu
                 userName={currentUserName}
@@ -610,10 +500,7 @@ export default function App() {
                 onLogoutClick={logout}
               />
             )}
-            {/* Notification Bell */}
             {currentUserId && <NotificationBell userId={currentUserId} />}
-
-            {/* Theme Toggle - hidden on mobile */}
             <button
               onClick={toggleTheme}
               className="hidden sm:flex group items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
@@ -641,7 +528,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
       <Navigation activeTab={activeTab} onTabChange={(tab) => {
         setActiveTab(tab);
         setViewingProfileId(null);
@@ -650,30 +536,28 @@ export default function App() {
       }} />
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-6 space-y-8">
-        {/* Stock Detail Overlay (works from any tab) */}
         {viewingStock && (
-          <StockDetailView
-            ticker={viewingStock.ticker}
-            holding={viewingStock.holding}
-            portfolioTotal={portfolio?.totalAssets ?? 0}
-            onBack={() => setViewingStock(null)}
-            onHoldingAdded={() => {
-              fetchData();
-              // Update viewingStock to reflect the new holding after refresh
-              setTimeout(async () => {
-                const p = await getPortfolio(currentUserId);
-                const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
-                setViewingStock(prev => prev ? { ...prev, holding: held } : null);
-                setPortfolio(p);
-              }, 500);
-            }}
-          />
+          <Suspense fallback={<PageFallback />}>
+            <StockDetailView
+              ticker={viewingStock.ticker}
+              holding={viewingStock.holding}
+              portfolioTotal={portfolio?.totalAssets ?? 0}
+              onBack={() => setViewingStock(null)}
+              onHoldingAdded={() => {
+                fetchData();
+                setTimeout(async () => {
+                  const p = await getPortfolio(currentUserId);
+                  const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
+                  setViewingStock(prev => prev ? { ...prev, holding: held } : null);
+                  setPortfolio(p);
+                }, 500);
+              }}
+            />
+          </Suspense>
         )}
 
-        {/* Portfolio Tab */}
         {activeTab === 'portfolio' && !viewingStock && (
           <>
-            {/* Stale Data Banner - only show if quotes are completely unavailable */}
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
                 <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -689,7 +573,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Portfolio Value Chart */}
             {portfolio && (
               <div className="space-y-0">
                 <PortfolioValueChart
@@ -711,10 +594,8 @@ export default function App() {
               </div>
             )}
 
-            {/* Key Metrics — compact inline bar */}
             {portfolio && (
               <div className="flex flex-wrap items-center gap-y-2 px-6 py-3 border-y border-white/[0.04] dark:border-white/[0.04] border-gray-200/30">
-                {/* Capital group */}
                 <div className="flex items-baseline gap-1.5 mr-8">
                   <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Assets</span>
                   <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
@@ -732,9 +613,7 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                {/* Divider — separates capital from performance */}
                 <div className="hidden md:block w-px h-5 bg-white/[0.08] dark:bg-white/[0.08] bg-gray-300/40 mr-10" />
-                {/* Performance group — swaps to measurement data when active */}
                 {chartMeasurement ? (
                   <>
                     <div className="flex items-baseline gap-1.5 mr-8">
@@ -793,7 +672,6 @@ export default function App() {
                     </div>
                   </>
                 )}
-                {/* Action buttons — pushed right */}
                 <div className="flex items-center gap-2 ml-auto">
                   <button
                     type="button"
@@ -821,7 +699,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Benchmark + Dividends */}
             {portfolio && (
               <div className="flex flex-col md:flex-row md:items-start gap-4">
                 <div className="md:flex-1">
@@ -834,7 +711,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Holdings + Performance */}
             <div className="space-y-8">
               <HoldingsTable
                 holdings={portfolio?.holdings ?? []}
@@ -846,105 +722,97 @@ export default function App() {
                 userId={currentUserId}
                 actionsRef={holdingsActionsRef}
               />
-
               <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
             </div>
-
           </>
         )}
 
-        {/* Nala AI Tab */}
-        {activeTab === 'nala' && !viewingStock && (
-          <ErrorBoundary>
-            <NalaAIPage
-              onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null })}
-              initialQuestion={nalaQuestion}
-              onQuestionConsumed={() => setNalaQuestion(null)}
-            />
-          </ErrorBoundary>
-        )}
-
-        {/* Insights Tab */}
-        {activeTab === 'insights' && !viewingStock && (
-          <ErrorBoundary>
-            <InsightsPage
-              onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null })}
-              currentValue={portfolio?.netEquity ?? 0}
-              refreshTrigger={portfolioRefreshCount}
-              session={portfolio?.session}
-              cashBalance={portfolio?.cashBalance ?? 0}
-              totalAssets={portfolio?.totalAssets ?? 0}
-              initialSubTab={insightsSubTab}
-              onSubTabChange={setInsightsSubTab}
-            />
-          </ErrorBoundary>
-        )}
-
-        {/* Macro Tab */}
-        {activeTab === 'macro' && !viewingStock && (
-          <ErrorBoundary>
-            <EconomicIndicators />
-          </ErrorBoundary>
-        )}
-
-        {/* Leaderboard Tab */}
-        {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && (
-          <ErrorBoundary>
-            <LeaderboardPage
-              session={portfolio?.session}
-              currentUserId={currentUserId}
-              onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
-              selectedUserId={leaderboardUserId}
-              onSelectedUserChange={setLeaderboardUserId}
-            />
-          </ErrorBoundary>
-        )}
-
-        {/* Profile View (overlays leaderboard or feed tab) */}
-        {viewingProfileId && !viewingStock && (
-          <ErrorBoundary>
-            <UserProfileView
-              userId={viewingProfileId}
-              currentUserId={currentUserId}
-              session={portfolio?.session}
-              onBack={() => setViewingProfileId(null)}
-              onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
-            />
-          </ErrorBoundary>
-        )}
-
-        {/* Watch Tab — keep mounted (hidden) when viewing a stock so the video stream isn't interrupted */}
-        {activeTab === 'watch' && (
-          <div className={viewingStock ? 'hidden' : undefined}>
+        <Suspense fallback={<PageFallback />}>
+          {activeTab === 'nala' && !viewingStock && (
             <ErrorBoundary>
-              <WatchPage
-                pipEnabled={pipEnabled}
-                onPipToggle={handlePipToggle}
-                status={streamStatus}
-                hasError={streamHasError}
-                videoContainerRef={watchContainerCallback}
-                channels={CHANNELS}
-                activeChannel={activeChannel}
-                onChannelChange={setActiveChannel}
-                onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker === ticker) ?? null })}
+              <NalaAIPage
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                initialQuestion={nalaQuestion}
+                onQuestionConsumed={() => setNalaQuestion(null)}
               />
             </ErrorBoundary>
-          </div>
-        )}
+          )}
 
-        {/* Feed Tab */}
-        {activeTab === 'feed' && !viewingProfileId && !viewingStock && (
-          <ErrorBoundary>
-            <FeedPage
-              currentUserId={currentUserId}
-              onUserClick={handleViewProfile}
-              onTickerClick={(ticker) => setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker === ticker) ?? null })}
-            />
-          </ErrorBoundary>
-        )}
+          {activeTab === 'insights' && !viewingStock && (
+            <ErrorBoundary>
+              <InsightsPage
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                currentValue={portfolio?.netEquity ?? 0}
+                refreshTrigger={portfolioRefreshCount}
+                session={portfolio?.session}
+                cashBalance={portfolio?.cashBalance ?? 0}
+                totalAssets={portfolio?.totalAssets ?? 0}
+                initialSubTab={insightsSubTab}
+                onSubTabChange={setInsightsSubTab}
+              />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'macro' && !viewingStock && (
+            <ErrorBoundary>
+              <EconomicIndicators />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && (
+            <ErrorBoundary>
+              <LeaderboardPage
+                session={portfolio?.session}
+                currentUserId={currentUserId}
+                onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
+                selectedUserId={leaderboardUserId}
+                onSelectedUserChange={setLeaderboardUserId}
+              />
+            </ErrorBoundary>
+          )}
+
+          {viewingProfileId && !viewingStock && (
+            <ErrorBoundary>
+              <UserProfileView
+                userId={viewingProfileId}
+                currentUserId={currentUserId}
+                session={portfolio?.session}
+                onBack={() => setViewingProfileId(null)}
+                onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
+              />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'watch' && (
+            <div className={viewingStock ? 'hidden' : undefined}>
+              <ErrorBoundary>
+                <WatchPage
+                  pipEnabled={pipEnabled}
+                  onPipToggle={handlePipToggle}
+                  status={streamStatus}
+                  hasError={streamHasError}
+                  videoContainerRef={watchContainerCallback}
+                  channels={CHANNELS}
+                  activeChannel={activeChannel}
+                  onChannelChange={setActiveChannel}
+                  onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                />
+              </ErrorBoundary>
+            </div>
+          )}
+
+          {activeTab === 'feed' && !viewingProfileId && !viewingStock && (
+            <ErrorBoundary>
+              <FeedPage
+                currentUserId={currentUserId}
+                onUserClick={handleViewProfile}
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+              />
+            </ErrorBoundary>
+          )}
+        </Suspense>
       </main>
 
-      {/* Persistent video element — always in DOM, moved between containers */}
       <video
         ref={videoRef}
         controls
@@ -955,14 +823,12 @@ export default function App() {
         style={{ background: '#000', display: 'none' }}
       />
 
-      {/* Disclaimer Footer */}
       <footer className="relative z-10 border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
         <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
         </p>
       </footer>
 
-      {/* Mini Player — shown when stream active + PiP enabled + not on Watch tab */}
       {showMiniPlayer && (
         <MiniPlayer
           channelName={activeChannel.name}
@@ -973,23 +839,18 @@ export default function App() {
         </MiniPlayer>
       )}
 
-      {/* Account Settings Modal */}
       <AccountSettingsModal
         userId={currentUserId}
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
-        onSave={() => {
-          // Refresh user data after settings change
-          fetchData();
-        }}
+        onSave={() => fetchData()}
       />
-      {/* Daily Report Modal */}
       {showDailyReport && (
         <DailyReportModal
           onClose={() => setShowDailyReport(false)}
           onTickerClick={(ticker) => {
             setShowDailyReport(false);
-            setViewingStock({ ticker, holding: portfolio?.holdings.find(h => h.ticker === ticker) ?? null });
+            setViewingStock({ ticker, holding: findHolding(ticker) });
           }}
         />
       )}

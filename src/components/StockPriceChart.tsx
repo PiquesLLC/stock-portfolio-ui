@@ -2,6 +2,32 @@ import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { ChartPeriod, StockCandles, ParsedQuarterlyEarning, DividendEvent, DividendCredit, ActivityEvent, AnalystEvent } from '../types';
 import { AIEvent } from '../api';
 import { IntradayCandle } from '../api';
+import {
+  snapToCleanBoundary,
+  buildPoints,
+  formatVolume,
+  MA_PERIODS,
+  type MAPeriod,
+  MA_COLORS,
+  calcSMA,
+  detectAllBreaches,
+  SIGNAL_MA_PERIODS,
+  type BreachCluster,
+  clusterBreaches,
+  type CrossEvent,
+  CROSS_COLORS,
+  detectCrosses,
+  clusterColor,
+  clusterPillSize,
+  clusterGlowOpacity,
+  CHART_W,
+  CHART_H,
+  PAD_TOP,
+  PAD_BOTTOM,
+  PAD_LEFT,
+  PAD_RIGHT,
+  PERIODS,
+} from '../utils/stock-chart';
 
 interface Props {
   ticker?: string;
@@ -29,301 +55,6 @@ interface Props {
   // Comparison overlay — normalized % return lines from other tickers
   comparisons?: { ticker: string; color: string; points: { time: number; price: number }[] }[];
 }
-
-const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
-
-interface DataPoint {
-  time: number; // ms timestamp
-  label: string;
-  price: number;
-  volume?: number;
-}
-
-// Snap a timestamp to the nearest clean date boundary if within threshold
-function snapToCleanBoundary(ms: number, visibleRange: number): number {
-  const threshold = visibleRange * 0.03;
-  const d = new Date(ms);
-  const targets: number[] = [];
-  // Year boundaries
-  targets.push(new Date(d.getFullYear(), 0, 1, 12).getTime());
-  targets.push(new Date(d.getFullYear() + 1, 0, 1, 12).getTime());
-  // Quarter boundaries
-  const q = Math.floor(d.getMonth() / 3) * 3;
-  targets.push(new Date(d.getFullYear(), q, 1, 12).getTime());
-  targets.push(new Date(d.getFullYear(), q + 3, 1, 12).getTime());
-  // Month boundaries
-  targets.push(new Date(d.getFullYear(), d.getMonth(), 1, 12).getTime());
-  targets.push(new Date(d.getFullYear(), d.getMonth() + 1, 1, 12).getTime());
-  // Week boundary (Monday)
-  const dow = d.getDay();
-  const toMon = dow === 0 ? 6 : dow - 1;
-  targets.push(new Date(d.getFullYear(), d.getMonth(), d.getDate() - toMon, 12).getTime());
-  let best = ms, bestDist = threshold;
-  for (const t of targets) {
-    const dist = Math.abs(t - ms);
-    if (dist < bestDist) { bestDist = dist; best = t; }
-  }
-  return best;
-}
-
-function buildPoints(
-  candles: StockCandles | null,
-  intradayCandles: IntradayCandle[] | undefined,
-  hourlyCandles: IntradayCandle[] | undefined,
-  livePrices: { time: string; price: number }[],
-  period: ChartPeriod,
-  currentPrice: number,
-  previousClose: number,
-): DataPoint[] {
-  if (period === '1D') {
-    if (intradayCandles && intradayCandles.length > 0) {
-      const pts = intradayCandles.map(c => {
-        const d = new Date(c.time);
-        return {
-          time: d.getTime(),
-          label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          price: c.close,
-          volume: c.volume,
-        };
-      });
-      // Prepend a point at previous close just before the first candle
-      // so the chart starts with a flat line from the open
-      if (pts.length > 0) {
-        pts.unshift({
-          time: pts[0].time - 1000,
-          label: pts[0].label,
-          price: previousClose,
-          volume: 0,
-        });
-      }
-      return pts;
-    }
-    const pts: DataPoint[] = livePrices.map(p => ({
-      time: new Date(p.time).getTime(),
-      label: new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      price: p.price,
-    }));
-    if (pts.length <= 1) {
-      const now = Date.now();
-      const start = now - 5 * 60000;
-      return [
-        { time: start, label: '', price: previousClose },
-        { time: now, label: 'Now', price: currentPrice },
-      ];
-    }
-    return pts;
-  }
-
-  // Use hourly candles for 1W/1M — index-based x-axis eliminates overnight gaps
-  // giving smooth, dynamic charts like Robinhood's
-  if ((period === '1W' || period === '1M') && hourlyCandles && hourlyCandles.length > 0) {
-    const now = new Date();
-    return hourlyCandles.map(c => {
-      const d = new Date(c.time);
-      return {
-        time: d.getTime(),
-        label: d.getFullYear() !== now.getFullYear()
-          ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
-          : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-        price: c.close,
-        volume: c.volume,
-      };
-    });
-  }
-
-  const now = new Date();
-
-  // For all other non-1D periods, always return the FULL daily candle dataset.
-  // Period selection controls the initial zoom window, not the data range.
-  // This enables seamless zoom across the entire stock history.
-  if (!candles || candles.closes.length === 0) return [];
-
-  const pts: DataPoint[] = [];
-  for (let i = 0; i < candles.dates.length; i++) {
-    // Parse as local noon to avoid UTC date-shift in western timezones
-    const d = new Date(candles.dates[i] + 'T12:00:00');
-    pts.push({
-      time: d.getTime(),
-      label: d.getFullYear() !== now.getFullYear()
-        ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
-        : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-      price: candles.closes[i],
-      volume: candles.volumes[i],
-    });
-  }
-  return pts;
-}
-
-function formatVolume(v: number): string {
-  if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
-  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
-  return v.toFixed(0);
-}
-
-// ── SMA calculation ──────────────────────────────────────────────
-const MA_PERIODS = [5, 10, 50, 100, 200] as const;
-type MAPeriod = typeof MA_PERIODS[number];
-
-const MA_COLORS: Record<MAPeriod, string> = {
-  5: '#F59E0B',   // amber
-  10: '#8B5CF6',  // violet
-  50: '#3B82F6',  // blue
-  100: '#EC4899', // pink
-  200: '#10B981', // emerald
-};
-
-function calcSMA(prices: number[], period: number): (number | null)[] {
-  const result: (number | null)[] = [];
-  let sum = 0;
-  for (let i = 0; i < prices.length; i++) {
-    sum += prices[i];
-    if (i >= period) sum -= prices[i - period];
-    result.push(i >= period - 1 ? sum / period : null);
-  }
-  return result;
-}
-
-// ── MA Breach Signal Detection ────────────────────────────────────
-
-interface BreachEvent {
-  index: number;
-  maPeriods: MAPeriod[];       // which MAs were breached on this candle
-  price: number;
-  maValues: Partial<Record<MAPeriod, number>>; // MA values at breach point
-}
-
-function detectAllBreaches(
-  prices: number[],
-  maData: { period: MAPeriod; values: (number | null)[] }[],
-): BreachEvent[] {
-  const wasAbove = new Map<MAPeriod, boolean>();
-  for (const ma of maData) wasAbove.set(ma.period, true);
-
-  const events: BreachEvent[] = [];
-  for (let i = 0; i < prices.length; i++) {
-    const p = prices[i];
-    const breached: MAPeriod[] = [];
-    const vals: Partial<Record<MAPeriod, number>> = {};
-
-    for (const ma of maData) {
-      const v = ma.values[i] ?? null;
-      if (v === null) continue;
-      vals[ma.period] = v;
-      const isAbove = p >= v;
-      if (!isAbove && wasAbove.get(ma.period)) breached.push(ma.period);
-      wasAbove.set(ma.period, isAbove);
-    }
-
-    if (breached.length > 0) {
-      events.push({ index: i, maPeriods: breached, price: p, maValues: vals });
-    }
-  }
-  return events;
-}
-
-// Only these MAs generate signals (short MAs are too noisy)
-const SIGNAL_MA_PERIODS: MAPeriod[] = [5, 10, 50, 100, 200];
-
-interface BreachCluster {
-  index: number;          // representative index (first event in cluster)
-  events: BreachEvent[];  // all events in this cluster
-  price: number;
-}
-
-function clusterBreaches(events: BreachEvent[], minGap: number): BreachCluster[] {
-  if (events.length === 0) return [];
-  const clusters: BreachCluster[] = [];
-  let current: BreachCluster = { index: events[0].index, events: [events[0]], price: events[0].price };
-  for (let i = 1; i < events.length; i++) {
-    if (events[i].index - current.events[current.events.length - 1].index <= minGap) {
-      current.events.push(events[i]);
-    } else {
-      clusters.push(current);
-      current = { index: events[i].index, events: [events[i]], price: events[i].price };
-    }
-  }
-  clusters.push(current);
-  return clusters;
-}
-
-// ── Golden / Death Cross Detection ───────────────────────────────
-
-interface CrossEvent {
-  index: number;
-  type: 'golden' | 'death';
-  ma100: number;
-  ma200: number;
-  price: number;
-}
-
-const CROSS_EPSILON = 0.0001;
-
-const CROSS_COLORS = {
-  golden: '#FFD700',  // gold
-  death: '#9CA3AF',   // gray
-} as const;
-
-function detectCrosses(
-  prices: number[],
-  ma100Values: (number | null)[],
-  ma200Values: (number | null)[],
-): CrossEvent[] {
-  const events: CrossEvent[] = [];
-  let prevDiff: number | null = null;
-
-  for (let i = 0; i < prices.length; i++) {
-    const ma100 = ma100Values[i];
-    const ma200 = ma200Values[i];
-    if (ma100 === null || ma200 === null) { prevDiff = null; continue; }
-
-    const currDiff = ma100 - ma200;
-
-    // Only mark actual crossover transitions — not inherited state from before the visible range
-    if (prevDiff !== null) {
-      if (prevDiff <= CROSS_EPSILON && currDiff > CROSS_EPSILON) {
-        events.push({ index: i, type: 'golden', ma100, ma200, price: prices[i] });
-      } else if (prevDiff >= -CROSS_EPSILON && currDiff < -CROSS_EPSILON) {
-        events.push({ index: i, type: 'death', ma100, ma200, price: prices[i] });
-      }
-    }
-    prevDiff = currDiff;
-  }
-  return events;
-}
-
-function clusterColor(cluster: BreachCluster): string {
-  // Use highest-priority MA color (200 > 100 > 50)
-  const allPeriods = new Set(cluster.events.flatMap(e => e.maPeriods));
-  if (allPeriods.has(200)) return MA_COLORS[200];
-  if (allPeriods.has(100)) return MA_COLORS[100];
-  if (allPeriods.has(50)) return MA_COLORS[50];
-  const first = allPeriods.values().next().value;
-  return first ? MA_COLORS[first] : '#F59E0B';
-}
-
-// Signal hierarchy: MA200 > MA100 > MA50
-function clusterPillSize(cluster: BreachCluster): number {
-  const allPeriods = new Set(cluster.events.flatMap(e => e.maPeriods));
-  if (allPeriods.has(200)) return 18;
-  if (allPeriods.has(100)) return 15;
-  return 13;
-}
-
-function clusterGlowOpacity(cluster: BreachCluster): number {
-  const allPeriods = new Set(cluster.events.flatMap(e => e.maPeriods));
-  if (allPeriods.has(200)) return 0.25;
-  if (allPeriods.has(100)) return 0.18;
-  return 0.12;
-}
-
-
-const CHART_W = 800;
-const CHART_H = 280;
-const PAD_TOP = 20;
-const PAD_BOTTOM = 30;
-const PAD_LEFT = 0;
-const PAD_RIGHT = 0;
 
 export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons }: Props) {
   const points = useMemo(

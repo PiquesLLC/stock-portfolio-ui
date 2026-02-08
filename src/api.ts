@@ -55,10 +55,38 @@ import {
   DailyReportResponse,
 } from './types';
 
+// Global API error callback — set by ToastProvider to show error toasts
+let onApiError: ((message: string) => void) | null = null;
+export function setApiErrorHandler(handler: ((message: string) => void) | null) {
+  onApiError = handler;
+}
+
+// Refresh token mutex: only one refresh at a time, others wait
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefreshToken(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function refreshOnce(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = tryRefreshToken().finally(() => { refreshPromise = null; });
+  return refreshPromise;
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const doFetch = () => fetch(url, {
     ...options,
-    credentials: 'include', // Send cookies with every request
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
@@ -66,14 +94,24 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  // Handle 401 - session expired, app will handle auth state via context
-  if (response.status === 401) {
-    // Don't redirect here - let the app handle auth state
+  let response = await doFetch();
+
+  // On 401, try refreshing tokens once then retry the original request
+  if (response.status === 401 && !url.includes('/auth/refresh') && !url.includes('/auth/login')) {
+    const refreshed = await refreshOnce();
+    if (refreshed) {
+      response = await doFetch();
+    }
   }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+    const msg = error.error || `HTTP ${response.status}`;
+    // Notify global toast for non-auth errors
+    if (onApiError && !url.includes('/auth/')) {
+      onApiError(msg);
+    }
+    throw new Error(msg);
   }
 
   if (response.status === 204) {

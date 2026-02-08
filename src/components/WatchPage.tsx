@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Channel } from '../App';
+import { Channel } from '../utils/channels';
 import { WatchHeadlines } from './WatchHeadlines';
 import { LiveHeadlines } from './LiveHeadlines';
 
