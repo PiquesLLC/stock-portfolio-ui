@@ -98,6 +98,17 @@ export default function PortfolioBriefing() {
     );
   }
 
+  if (briefing.sections.length === 0 && !briefing.headline) {
+    return (
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
+        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+          Briefing temporarily unavailable. Try again later.
+        </p>
+        <button onClick={fetchBriefing} className="mt-3 text-xs text-rh-green hover:underline">Retry</button>
+      </div>
+    );
+  }
+
   const timeAgo = briefing.generatedAt
     ? getTimeAgo(new Date(briefing.generatedAt))
     : '';

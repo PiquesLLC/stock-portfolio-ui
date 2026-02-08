@@ -283,7 +283,8 @@ export default function App() {
   // Sync navigation state → URL hash
   useEffect(() => {
     const stockTicker = viewingStock?.ticker || null;
-    setHash(activeTab, stockTicker, viewingProfileId, leaderboardUserId, insightsSubTab);
+    const subtab = activeTab === 'insights' ? insightsSubTab : null;
+    setHash(activeTab, stockTicker, viewingProfileId, leaderboardUserId, subtab);
   }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab]);
 
   // Handle browser back/forward

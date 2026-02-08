@@ -12,6 +12,7 @@ import EventsCalendar from './EventsCalendar';
 import CorrelationHeatmap from './CorrelationHeatmap';
 import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
+import { LeakDetector } from './LeakDetector';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
@@ -426,6 +427,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           onTickerClick={onTickerClick}
         />
       </div>
+
+      {/* Correlation / Leak Detector */}
+      {leakDetector && <LeakDetector data={leakDetector} />}
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (

@@ -96,10 +96,10 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
         tabIndex={-1}
         role="dialog"
         aria-label={`${title} explanation`}
-        className="fixed top-0 right-0 h-full w-full max-w-md bg-black/80 dark:bg-black/80 backdrop-blur-xl border-l border-gray-200/30 dark:border-white/[0.04]
+        className="fixed top-0 right-0 h-full w-full max-w-md bg-white/95 dark:bg-[#0a0a0b]/95 backdrop-blur-xl border-l border-gray-200/30 dark:border-white/[0.04]
           shadow-xl z-50 overflow-y-auto outline-none animate-slide-in-right"
       >
-        <div className="sticky top-0 bg-black/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/30 dark:border-white/[0.04] px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white/95 dark:bg-[#0a0a0b]/95 backdrop-blur-xl border-b border-gray-200/30 dark:border-white/[0.04] px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
             <p className={`text-sm font-medium ${getScoreColor(catDetail.score, catDetail.maxScore)}`}>
