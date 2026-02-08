@@ -88,7 +88,6 @@ export function WhatIfSimulator({ holdings, cashBalance, totalValue }: WhatIfSim
 
     const simPrice = currentPrice * (1 + changePct / 100);
     const simValue = shares * simPrice;
-    const dollarDelta = simValue - marketValue;
 
     const accentClass = isDown
       ? 'accent-red-500'

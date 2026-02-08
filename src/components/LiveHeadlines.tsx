@@ -105,11 +105,11 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
           </p>
         ) : (
           <div className="space-y-1">
-            {visible.map((h, i) => {
+            {visible.map((h) => {
               const ticker = detectTickersFromText(h.text);
               const handleClick = () => {
                 // Open article tab, then immediately pull focus back to our app
-                const newTab = window.open(h.url, '_blank', 'noopener,noreferrer');
+                window.open(h.url, '_blank', 'noopener,noreferrer');
                 // Refocus our window after a frame so the tab is created but we stay here
                 requestAnimationFrame(() => {
                   window.focus();

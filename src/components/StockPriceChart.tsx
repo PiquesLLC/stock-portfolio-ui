@@ -56,7 +56,7 @@ interface Props {
   comparisons?: { ticker: string; color: string; points: { time: number; price: number }[] }[];
 }
 
-export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose, onHoverPrice, goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons }: Props) {
+export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -1253,7 +1253,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     return clusters;
   }, [chartEvents, points.length]);
 
-  const [expandedClusterIdx, setExpandedClusterIdx] = useState<number | null>(null);
+  const [, setExpandedClusterIdx] = useState<number | null>(null);
 
   // Animated entry for events toggle
   const [eventsVisible, setEventsVisible] = useState(eventsEnabled);

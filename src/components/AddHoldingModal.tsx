@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Holding } from '../types';
 import { addHolding } from '../api';
+import { useToast } from '../context/ToastContext';
 
 interface AddHoldingModalProps {
   ticker: string;
@@ -14,8 +15,8 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
   const [shares, setShares] = useState('');
   const [avgCost, setAvgCost] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +29,9 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
     setFormError(null);
     try {
       await addHolding({ ticker: ticker.toUpperCase(), shares: s, averageCost: c });
-      setSuccess(true);
-      setShares('');
-      setAvgCost('');
+      showToast(`${ticker.toUpperCase()} added to portfolio`, 'success');
       onAdded?.();
-      setTimeout(onClose, 800);
+      onClose();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to add holding');
     } finally {
@@ -60,11 +59,6 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
         {holding && (
           <div className="mb-3 text-sm text-rh-light-muted dark:text-rh-muted">
             Holding <span className="font-semibold text-rh-light-text dark:text-rh-text">{holding.shares}</span> shares at <span className="font-semibold text-rh-light-text dark:text-rh-text">${holding.averageCost.toFixed(2)}</span> avg
-          </div>
-        )}
-        {success && (
-          <div className="mb-3 bg-rh-green/10 border border-rh-green/30 rounded-lg p-3 text-center">
-            <div className="text-rh-green font-semibold text-sm">Added to Portfolio</div>
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-3">

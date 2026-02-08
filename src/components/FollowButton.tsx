@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { followUser, unfollowUser } from '../api';
+import { useToast } from '../context/ToastContext';
 
 interface FollowButtonProps {
   targetUserId: string;
@@ -11,6 +12,7 @@ interface FollowButtonProps {
 export function FollowButton({ targetUserId, currentUserId, initialFollowing, onToggle }: FollowButtonProps) {
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   if (targetUserId === currentUserId) return null;
 
@@ -26,8 +28,8 @@ export function FollowButton({ targetUserId, currentUserId, initialFollowing, on
         setFollowing(true);
         onToggle?.(true);
       }
-    } catch (err) {
-      console.error('Follow toggle failed:', err);
+    } catch {
+      showToast('Failed to update follow status');
     } finally {
       setLoading(false);
     }

@@ -439,7 +439,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
         <p className="text-rh-red font-medium mb-2">Error loading goals</p>
         <p className="text-sm text-rh-light-muted dark:text-rh-muted">{error}</p>
         <button
-          onClick={fetchGoals}
+          onClick={() => fetchGoals()}
           className="mt-3 px-4 py-2 bg-rh-green text-black rounded-lg font-medium hover:bg-green-600 transition-colors"
         >
           Retry

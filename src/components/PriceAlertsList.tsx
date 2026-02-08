@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PriceAlert, PriceAlertCondition } from '../types';
 import { updatePriceAlert, deletePriceAlert } from '../api';
+import { useToast } from '../context/ToastContext';
 
 interface Props {
   alerts: PriceAlert[];
@@ -51,14 +52,15 @@ function getConditionColor(condition: PriceAlertCondition): string {
 export function PriceAlertsList({ alerts, onRefresh }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const handleToggle = async (alert: PriceAlert) => {
     setTogglingId(alert.id);
     try {
       await updatePriceAlert(alert.id, { enabled: !alert.enabled });
       onRefresh();
-    } catch (err) {
-      console.error('Failed to toggle alert:', err);
+    } catch {
+      showToast('Failed to update alert');
     } finally {
       setTogglingId(null);
     }
@@ -69,8 +71,9 @@ export function PriceAlertsList({ alerts, onRefresh }: Props) {
     try {
       await deletePriceAlert(alertId);
       onRefresh();
-    } catch (err) {
-      console.error('Failed to delete alert:', err);
+      showToast('Alert deleted', 'success');
+    } catch {
+      showToast('Failed to delete alert');
     } finally {
       setDeletingId(null);
     }

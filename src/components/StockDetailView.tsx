@@ -130,7 +130,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [tradeEvents, setTradeEvents] = useState<ActivityEvent[]>([]);
 
   // News and analyst events for chart events
-  const [newsEvents, setNewsEvents] = useState<MarketNewsItem[]>([]);
+  const [, setNewsEvents] = useState<MarketNewsItem[]>([]);
   const [analystEvents, setAnalystEvents] = useState<AnalystEvent[]>([]);
 
   // AI-powered events from Perplexity

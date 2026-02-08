@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { searchSymbols, getStockDetails } from '../api';
+import { searchSymbols } from '../api';
 import { SymbolSearchResult } from '../types';
-
-// Pre-fetch cache to avoid duplicate requests
-const prefetchedTickers = new Set<string>();
 
 /**
  * Pre-fetch stock details for top search results to warm the cache

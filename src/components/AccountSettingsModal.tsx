@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, changePassword, deleteAccount, getPortfolio } from '../api';
+import { useToast } from '../context/ToastContext';
 
 interface AccountSettingsModalProps {
   userId: string;
@@ -13,6 +14,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Local form state
   const [displayName, setDisplayName] = useState('');
@@ -39,7 +41,6 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
 
   // Notification preferences (localStorage)
@@ -82,7 +83,6 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
 
   const handleChangePassword = async () => {
     setPasswordError('');
-    setPasswordSuccess('');
 
     if (!currentPassword) {
       setPasswordError('Current password is required');
@@ -112,7 +112,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
     setChangingPassword(true);
     try {
       await changePassword(currentPassword, newPassword);
-      setPasswordSuccess('Password changed successfully');
+      showToast('Password changed successfully', 'success');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
@@ -157,6 +157,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
       }
 
       onSave?.();
+      showToast('Settings saved', 'success');
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings');
@@ -457,8 +458,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
                       onClick={() => {
                         setShowPasswordChange(true);
                         setPasswordError('');
-                        setPasswordSuccess('');
-                      }}
+                                          }}
                       className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
                         bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-rh-text
                         hover:bg-gray-200 dark:hover:bg-rh-border/80 transition-colors
@@ -474,11 +474,6 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
                       {passwordError && (
                         <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-red-500 text-xs">
                           {passwordError}
-                        </div>
-                      )}
-                      {passwordSuccess && (
-                        <div className="p-2 bg-rh-green/10 border border-rh-green/30 rounded text-rh-green text-xs">
-                          {passwordSuccess}
                         </div>
                       )}
                       <div>

@@ -3,6 +3,12 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/__tests__/setup.ts',
+    include: ['src/**/*.test.{ts,tsx}'],
+  },
   server: {
     port: parseInt(process.env.VITE_PORT || '5173'),
     host: '0.0.0.0', // Listen on all interfaces for LAN access

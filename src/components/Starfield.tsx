@@ -196,7 +196,6 @@ export default function Starfield() {
         ss.y += ss.vy;
         ss.life--;
 
-        const lifeRatio = ss.life / ss.maxLife; // 1 → 0
         // Fade in fast, sustain, fade out at end
         const alpha = ss.life < 10 ? ss.life / 10 : Math.min((ss.maxLife - ss.life) / 5, 1);
 

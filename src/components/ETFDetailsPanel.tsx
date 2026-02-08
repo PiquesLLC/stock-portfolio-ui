@@ -200,7 +200,7 @@ function Sector3DVisualization({ sectors }: SectorVisualizationProps) {
           <div
             className="absolute bottom-0 left-0 right-0 flex h-10 rounded-lg overflow-hidden pointer-events-none"
           >
-            {sectors.map((s, index) => {
+            {sectors.map((s) => {
               const isSelected = selectedSector === s.sector;
               return (
                 <div

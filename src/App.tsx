@@ -108,10 +108,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [isStale, setIsStale] = useState(false);
+  const [, setIsStale] = useState(false);
   const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
   const [portfolioRefreshCount, setPortfolioRefreshCount] = useState(0);
-  const [showExtendedHours, setShowExtendedHours] = useState(() => {
+  const [showExtendedHours] = useState(() => {
     const stored = localStorage.getItem('showExtendedHours');
     return stored !== null ? stored === 'true' : true;
   });
@@ -388,19 +388,11 @@ export default function App() {
     setSummaryRefreshTrigger((t) => t + 1);
   };
 
-  const toggleExtendedHours = () => {
-    const newValue = !showExtendedHours;
-    setShowExtendedHours(newValue);
-    localStorage.setItem('showExtendedHours', String(newValue));
-  };
-
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     applyTheme(newTheme);
   };
-
-  const isExtendedHours = portfolio?.session === 'PRE' || portfolio?.session === 'POST';
 
   const findHolding = (ticker: string) => portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null;
 
