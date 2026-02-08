@@ -311,6 +311,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
               <p className="font-mono text-[11px] text-rh-light-muted/50 dark:text-white/30 mt-1">This may take 15-30 seconds</p>
               <button
                 onClick={handleStop}
+                aria-label="Stop research"
                 className="mt-4 text-[11px] font-medium px-3 py-1 rounded-lg
                   bg-transparent border border-gray-200/40 dark:border-white/[0.1]
                   text-rh-light-muted/50 dark:text-white/30
@@ -383,6 +384,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
       <AnimatePresence>
         {error && !loading && (
           <motion.div
+            role="alert"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -432,6 +434,9 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
       <AnimatePresence>
         {response && !loading && (
           <motion.div
+            role="region"
+            aria-live="polite"
+            aria-label="Research results"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}

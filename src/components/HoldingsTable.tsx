@@ -416,14 +416,14 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   if (holdings.length === 0) {
     return (
       <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Holdings</h2>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleOpenCashMargin}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
-                text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors text-sm"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
+                text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors text-xs sm:text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -434,8 +434,8 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               ref={addStockButtonRef}
               type="button"
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
-                hover:bg-green-600 transition-colors text-sm"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
+                hover:bg-green-600 transition-colors text-xs sm:text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

@@ -723,7 +723,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
               {/* Benchmark comparison */}
               {benchmarkResult && (
-                <div className="flex items-center gap-3 text-xs mt-0.5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs mt-0.5">
                   <span className="text-rh-light-muted dark:text-rh-muted">
                     You: <span className={measureIsGain ? 'text-rh-green' : 'text-rh-red'}>{formatPct(measurement.percentChange)}</span>
                   </span>
