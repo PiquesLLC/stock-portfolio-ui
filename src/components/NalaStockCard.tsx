@@ -62,7 +62,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
         hover:border-gray-300 dark:hover:border-white/[0.15]`}
     >
       {/* Rank badge */}
-      <div className="absolute -top-2.5 -left-2.5 w-7 h-7 rounded-full bg-rh-green flex items-center justify-center shadow-lg shadow-green-500/30">
+      <div className="absolute -top-2.5 -left-2.5 w-7 h-7 rounded-full bg-rh-green flex items-center justify-center shadow-lg shadow-green-500/30" aria-label={`Rank ${rank}`}>
         <span className="text-[11px] font-bold text-white">{rank}</span>
       </div>
 
@@ -118,8 +118,14 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
           <MetricCell label="Rev Growth" value={formatMetric(m.revenueGrowthYoY, '%')} />
           <MetricCell label="Margin" value={formatMetric(m.profitMargin, '%')} />
           <MetricCell label="D/E" value={formatMetric(m.debtToEquity)} />
-          <MetricCell label="FCF Yield" value={formatMetric(m.freeCashFlowYield, '%')} />
+          <MetricCell label="Beta" value={formatMetric(m.beta)} />
           <MetricCell label="Mkt Cap" value={formatMarketCap(m.marketCapB)} />
+          {(m.pegRatio != null || m.freeCashFlowYield != null) && (
+            <>
+              {m.pegRatio != null && <MetricCell label="PEG" value={formatMetric(m.pegRatio)} />}
+              {m.freeCashFlowYield != null && <MetricCell label="FCF Yield" value={formatMetric(m.freeCashFlowYield, '%')} />}
+            </>
+          )}
         </div>
       </div>
 
@@ -165,7 +171,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-gray-200/30 dark:border-white/[0.05]">
-        {stock.localData ? (
+        {stock.localData?.isHeld ? (
           <span className="flex items-center gap-1.5 text-[10px] font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             <span className="text-green-400/80">In portfolio</span>
