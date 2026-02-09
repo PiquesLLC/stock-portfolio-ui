@@ -29,6 +29,7 @@ import { formatCurrency, formatPercent } from './utils/format';
 import { getInitialTheme, applyTheme } from './utils/theme';
 import { getSessionDisplay, getLocalTzAbbr } from './utils/market';
 import { Channel, CHANNELS } from './utils/channels';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 
 // Lazy-loaded page components
 const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
@@ -100,6 +101,7 @@ const savedInitialNav = parseHash();
 
 export default function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const isOnline = useOnlineStatus();
   const initialNav = savedInitialNav;
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
@@ -486,8 +488,9 @@ export default function App() {
     <div className="min-h-screen bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text">
       <Starfield />
       <div className="grain-overlay" />
-      <header className="relative z-30 border-b border-rh-light-border/40 dark:border-rh-border/40 dark:bg-black/30 dark:backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-30" style={{ WebkitBackfaceVisibility: 'hidden' }}>
+      <header className="border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className="h-[35px] w-[35px] cursor-pointer"
@@ -497,8 +500,8 @@ export default function App() {
               <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="w-[160px] sm:w-[220px] md:w-[270px]">
+          <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4">
+            <div className="flex-1 max-w-[270px] min-w-[120px]">
               <TickerAutocompleteInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -566,8 +569,16 @@ export default function App() {
         setViewingStock(null);
         setLeaderboardUserId(null);
       }} />
+      </div>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-6 space-y-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
+        {!isOnline && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
+            <p className="text-yellow-400 text-sm font-medium">
+              You're offline — market data may be outdated
+            </p>
+          </div>
+        )}
         {viewingStock && (
           <Suspense fallback={<PageFallback />}>
             <StockDetailView
@@ -738,7 +749,7 @@ export default function App() {
                 </div>
                 <div className="hidden md:block w-px self-stretch bg-white/[0.04] dark:bg-white/[0.04] bg-gray-200/30 my-4" />
                 <div className="md:flex-1">
-                  <DividendsSection refreshTrigger={portfolioRefreshCount} holdings={portfolio.holdings} />
+                  <DividendsSection refreshTrigger={portfolioRefreshCount} holdings={portfolio.holdings} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
                 </div>
               </div>
             )}

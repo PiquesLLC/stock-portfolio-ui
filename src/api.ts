@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { isNative } from './utils/platform';
 import {
   Portfolio,
   ProjectionResponse,
@@ -91,6 +92,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     headers: {
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
+      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
       ...options?.headers,
     },
   });

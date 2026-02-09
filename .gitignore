@@ -22,3 +22,14 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Capacitor native build artifacts
+ios/App/Pods/
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+android/local.properties
+
+# Capacitor environment
+.env.capacitor
