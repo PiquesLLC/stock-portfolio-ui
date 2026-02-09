@@ -1,7 +1,9 @@
 /**
  * Acronym tooltip component — wraps any abbreviation with a dotted underline
- * and shows the full meaning on hover.
+ * and shows the full meaning on hover via a glassmorphic floating tooltip.
  */
+
+import { useState, useRef, useEffect } from 'react';
 
 const ACRONYM_DEFINITIONS: Record<string, string> = {
   // Returns & Performance
@@ -33,6 +35,7 @@ const ACRONYM_DEFINITIONS: Record<string, string> = {
   'P/E': 'Price-to-Earnings Ratio — stock price divided by earnings per share',
   'P/E Ratio': 'Price-to-Earnings Ratio — stock price divided by earnings per share',
   'IPO': 'Initial Public Offering — the first time a company sells shares to the public',
+  'AUM': 'Assets Under Management — total value of investments managed by a fund',
 
   // Market Sessions
   'PRE': 'Pre-Market — trading session before regular hours (4:00–9:30 AM ET)',
@@ -64,14 +67,56 @@ interface AcronymProps {
 
 export function Acronym({ label, className = '' }: AcronymProps) {
   const definition = ACRONYM_DEFINITIONS[label];
+  const [show, setShow] = useState(false);
+  const [above, setAbove] = useState(true);
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
+
   if (!definition) return <span className={className}>{label}</span>;
+
+  const handleEnter = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (spanRef.current) {
+      const rect = spanRef.current.getBoundingClientRect();
+      setAbove(rect.top > 80);
+    }
+    setShow(true);
+  };
+
+  const handleLeave = () => {
+    timerRef.current = setTimeout(() => setShow(false), 150);
+  };
 
   return (
     <span
-      className={`underline decoration-dotted decoration-current/40 underline-offset-2 cursor-help ${className}`}
-      title={definition}
+      ref={spanRef}
+      className={`relative inline-block underline decoration-dotted decoration-current/40 underline-offset-2 cursor-help ${className}`}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      onFocus={handleEnter}
+      onBlur={handleLeave}
+      tabIndex={0}
     >
       {label}
+      {show && (
+        <span
+          className={`absolute left-1/2 -translate-x-1/2 z-50 w-56 px-3 py-2 rounded-lg text-[11px] leading-relaxed font-normal normal-case tracking-normal text-left
+            bg-gray-900/95 dark:bg-white/[0.1] backdrop-blur-xl border border-white/[0.1] dark:border-white/[0.12]
+            text-white/90 dark:text-white/85 shadow-lg
+            animate-[fadeIn_150ms_ease-out]
+            ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+        >
+          {definition}
+          <span className={`absolute left-1/2 -translate-x-1/2 w-2 h-2 rotate-45
+            bg-gray-900/95 dark:bg-white/[0.1] border-white/[0.1] dark:border-white/[0.12]
+            ${above ? 'top-full -mt-1 border-r border-b' : 'bottom-full -mb-1 border-l border-t'}`}
+          />
+        </span>
+      )}
     </span>
   );
 }

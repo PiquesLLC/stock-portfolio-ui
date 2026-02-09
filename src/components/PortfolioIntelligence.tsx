@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { InfoTooltip } from './InfoTooltip';
 import { Acronym } from './Acronym';
 import {
+  MarketSession,
   PortfolioIntelligenceResponse,
   IntelligenceWindow,
   ContributorEntry,
@@ -14,6 +15,93 @@ interface Props {
   initialData: PortfolioIntelligenceResponse;
   fetchFn?: (window: IntelligenceWindow) => Promise<PortfolioIntelligenceResponse>;
   onTickerClick?: (ticker: string) => void;
+  session?: MarketSession;
+}
+
+/* ─── Portfolio Pulse (merged from Attribution) ─── */
+
+interface WaterfallEntry {
+  ticker: string;
+  contributionDollar: number;
+  contributionPct: number;
+}
+
+function formatCurrency(value: number): string {
+  const sign = value >= 0 ? '+' : '';
+  return `${sign}$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function PulseSummary({ topContributors, topDetractors, winnersCount, losersCount, onTickerClick }: {
+  topContributors: WaterfallEntry[];
+  topDetractors: WaterfallEntry[];
+  winnersCount: number;
+  losersCount: number;
+  onTickerClick?: (ticker: string) => void;
+}) {
+  const allEntries = [...topContributors, ...topDetractors];
+  if (allEntries.length === 0) return null;
+
+  const totalGains = topContributors.reduce((s, e) => s + e.contributionDollar, 0);
+  const totalLosses = topDetractors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
+  const winCount = winnersCount;
+  const lossCount = losersCount;
+  const totalCount = winCount + lossCount;
+
+  const biggestMover = allEntries.reduce((best, e) =>
+    Math.abs(e.contributionDollar) > Math.abs(best.contributionDollar) ? e : best
+  , allEntries[0]);
+
+  const totalAbsMovement = allEntries.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
+  const topConcentration = totalAbsMovement > 0
+    ? (Math.abs(biggestMover.contributionDollar) / totalAbsMovement) * 100
+    : 0;
+
+  const gainsWidth = totalAbsMovement > 0 ? (totalGains / totalAbsMovement) * 100 : 50;
+
+  return (
+    <div>
+      <div className="mb-3">
+        <div className="flex items-center justify-between text-[10px] mb-1">
+          <span className="text-rh-green font-medium">Gains {formatCurrency(totalGains)}</span>
+          <span className="text-rh-red font-medium">Losses {formatCurrency(-totalLosses)}</span>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.04]">
+          <div className="h-full bg-rh-green/60 rounded-l-full transition-all duration-500" style={{ width: `${gainsWidth}%` }} />
+          <div className="h-full bg-rh-red/50 rounded-r-full transition-all duration-500" style={{ width: `${100 - gainsWidth}%` }} />
+        </div>
+      </div>
+
+      <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-white/40 mb-3">
+        Portfolio Pulse
+      </h4>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Win Rate</div>
+          <div className="text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
+            {totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0}%
+          </div>
+          <div className="text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">{winCount} up / {lossCount} down</div>
+        </div>
+        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Biggest Mover</div>
+          <button className={`text-lg font-bold hover:opacity-80 transition-opacity ${biggestMover.contributionDollar >= 0 ? 'text-rh-green' : 'text-rh-red'}`}
+            onClick={() => onTickerClick?.(biggestMover.ticker)}>
+            {biggestMover.ticker}
+          </button>
+          <div className={`text-[10px] mt-0.5 tabular-nums ${biggestMover.contributionDollar >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+            {formatCurrency(biggestMover.contributionDollar)}
+          </div>
+        </div>
+        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Top Concentration</div>
+          <div className="text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
+          <div className="text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">of total movement</div>
+        </div>
+      </div>
+
+    </div>
+  );
 }
 
 const WINDOW_LABELS: Record<IntelligenceWindow, string> = {
@@ -65,63 +153,90 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick }: {
   );
 }
 
-function SectorBar({ sectors }: { sectors: SectorExposureEntry[] }) {
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const colors = [
-    'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500',
-    'bg-rose-500', 'bg-cyan-500', 'bg-orange-500', 'bg-gray-500',
+function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[]; onTickerClick?: (ticker: string) => void }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggle = (sector: string) => setExpanded(prev => {
+    const next = new Set(prev);
+    next.has(sector) ? next.delete(sector) : next.add(sector);
+    return next;
+  });
+  const colorConfig = [
+    { bg: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-400', chip: 'bg-blue-500/[0.08] border-blue-400/20' },
+    { bg: 'bg-emerald-500', border: 'border-emerald-500', text: 'text-emerald-400', chip: 'bg-emerald-500/[0.08] border-emerald-400/20' },
+    { bg: 'bg-amber-500', border: 'border-amber-500', text: 'text-amber-400', chip: 'bg-amber-500/[0.08] border-amber-400/20' },
+    { bg: 'bg-purple-500', border: 'border-purple-500', text: 'text-purple-400', chip: 'bg-purple-500/[0.08] border-purple-400/20' },
+    { bg: 'bg-rose-500', border: 'border-rose-500', text: 'text-rose-400', chip: 'bg-rose-500/[0.08] border-rose-400/20' },
+    { bg: 'bg-cyan-500', border: 'border-cyan-500', text: 'text-cyan-400', chip: 'bg-cyan-500/[0.08] border-cyan-400/20' },
+    { bg: 'bg-orange-500', border: 'border-orange-500', text: 'text-orange-400', chip: 'bg-orange-500/[0.08] border-orange-400/20' },
+    { bg: 'bg-gray-500', border: 'border-gray-500', text: 'text-gray-400', chip: 'bg-gray-500/[0.08] border-gray-400/20' },
   ];
 
   return (
     <div>
-      {/* Stacked bar */}
-      <div className="flex h-6 rounded overflow-hidden mb-3">
-        {sectors.map((s, i) => (
-          <div
-            key={s.sector}
-            className={`${colors[i % colors.length]} opacity-80 cursor-pointer hover:opacity-100 transition-opacity`}
-            style={{ width: `${s.exposurePercent}%` }}
-            title={`${s.sector}: ${s.exposurePercent}%`}
-            onClick={() => setExpanded(expanded === s.sector ? null : s.sector)}
-          />
-        ))}
+      {/* Segmented bar with gaps */}
+      <div className="flex h-7 gap-1 mb-4">
+        {sectors.map((s, i) => {
+          const c = colorConfig[i % colorConfig.length];
+          const isActive = expanded.has(s.sector);
+          return (
+            <div
+              key={s.sector}
+              className={`${c.bg} rounded-md cursor-pointer transition-all duration-200 ${
+                isActive ? 'opacity-100 ring-2 ring-white/20 scale-y-110' : 'opacity-70 hover:opacity-90'
+              }`}
+              style={{ width: `${s.exposurePercent}%`, minWidth: s.exposurePercent > 0 ? '4px' : '0' }}
+              title={`${s.sector}: ${s.exposurePercent}%`}
+              onClick={() => toggle(s.sector)}
+            />
+          );
+        })}
       </div>
-      {/* Legend */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-        {sectors.map((s, i) => (
-          <div key={s.sector}>
-            <button
-              onClick={() => setExpanded(expanded === s.sector ? null : s.sector)}
-              className="flex items-center gap-2 text-sm w-full hover:bg-gray-100/60 dark:hover:bg-white/[0.04] rounded px-1 -mx-1 py-0.5 transition-colors"
-            >
-              <div className={`w-2.5 h-2.5 rounded-sm ${colors[i % colors.length]} opacity-80 shrink-0`} />
-              <span className="text-rh-light-text dark:text-rh-text truncate">{s.sector}</span>
-              <span className="ml-auto text-rh-light-muted dark:text-rh-muted whitespace-nowrap tabular-nums">
-                {s.exposurePercent}%
-                <span className="ml-1 text-[10px] opacity-60">{expanded === s.sector ? '▲' : '▼'}</span>
-              </span>
-            </button>
-            {expanded === s.sector && s.tickers && (
-              <div className="ml-5 mt-1 mb-2 space-y-0.5">
-                {s.tickers.map(t => (
-                  <div key={t.ticker} className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
-                    <span className="font-medium text-rh-light-text dark:text-rh-text">{t.ticker}</span>
-                    <span className="ml-auto whitespace-nowrap">
-                      ${t.valueDollar.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      <span className="ml-1.5 opacity-70">({t.valuePercent}%)</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+      {/* Card-style legend */}
+      <div className="grid grid-cols-2 gap-2">
+        {sectors.map((s, i) => {
+          const c = colorConfig[i % colorConfig.length];
+          const isActive = expanded.has(s.sector);
+          return (
+            <div key={s.sector}>
+              <button
+                onClick={() => toggle(s.sector)}
+                className={`flex items-center gap-2.5 w-full rounded-lg px-3 py-2 transition-all duration-200 border-l-[3px] ${c.border} ${
+                  isActive
+                    ? 'bg-gray-100/80 dark:bg-white/[0.06]'
+                    : 'bg-gray-50/40 dark:bg-white/[0.02] hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex-1 min-w-0 text-left">
+                  <span className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate block">{s.sector}</span>
+                </div>
+                <span className={`text-sm font-bold tabular-nums ${c.text}`}>{s.exposurePercent}%</span>
+                <svg className={`w-3 h-3 text-rh-light-muted dark:text-rh-muted transition-transform duration-200 shrink-0 ${isActive ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {isActive && s.tickers && (
+                <div className="flex flex-wrap gap-2 mt-2.5 mb-1 ml-3">
+                  {s.tickers.map(t => (
+                    <button
+                      key={t.ticker}
+                      onClick={() => onTickerClick?.(t.ticker)}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${c.chip} hover:border-rh-green/40 hover:bg-rh-green/[0.06] transition-all group`}
+                    >
+                      <span className={`text-xs font-bold group-hover:text-rh-green transition-colors ${c.text}`}>{t.ticker}</span>
+                      <span className="text-[11px] font-medium text-rh-light-text/70 dark:text-rh-text/70 tabular-nums">{t.valuePercent}%</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: Props) {
+export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, session }: Props) {
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [selectedWindow, setSelectedWindow] = useState<IntelligenceWindow>(initialData.window);
@@ -148,11 +263,53 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
     ? Math.max(...allEntries.map(e => Math.abs(e.contributionDollar)))
     : 0;
 
+  // Compute net P&L from contributors + detractors
+  const netPnL = contributors.reduce((s, e) => s + e.contributionDollar, 0) +
+    detractors.reduce((s, e) => s + e.contributionDollar, 0);
+
+  // Split explanation into headline + detail (split on first period)
+  const explanationParts = explanation ? explanation.split(/\.\s+/) : [];
+  const headline = explanationParts[0] || '';
+  const detail = explanationParts.slice(1).join('. ');
+
+  function renderRichText(text: string) {
+    // Capture sign+dollar together: (+$3,688) or (-$1,903)
+    return text.split(/([+-]\$[\d,.]+|\b[A-Z]{2,5}\b)/g).map((part, i) => {
+      if (/^[+-]\$[\d,.]+$/.test(part)) {
+        const isNeg = part.startsWith('-');
+        return <span key={i} className={isNeg ? 'text-rh-red' : 'text-rh-green'}>{part}</span>;
+      }
+      if (/^[A-Z]{2,5}$/.test(part)) {
+        return <button key={i} className="font-bold hover:text-rh-green transition-colors" onClick={() => onTickerClick?.(part)}>{part}</button>;
+      }
+      return part;
+    });
+  }
+
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none space-y-4">
-      {/* Header + window selector */}
+      {/* Header + net P&L + window selector */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="Shows top contributors/detractors by dollar P&L, sector exposure by market value, and portfolio beta vs SPY (covariance of daily returns divided by SPY variance)." /></h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="A breakdown of what's driving your portfolio today — top winners, losers, and sector allocation." /></h3>
+          {session && (
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              session === 'REG'
+                ? 'bg-rh-green/10 text-rh-green border border-rh-green/20'
+                : session === 'PRE' || session === 'POST'
+                  ? 'bg-amber-400/10 text-amber-500 dark:text-amber-400 border border-amber-400/20'
+                  : 'bg-gray-200/40 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted border border-gray-200/40 dark:border-white/[0.06]'
+            }`}>
+              {session === 'REG' && <span className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />}
+              {session === 'REG' ? 'Live' : session === 'PRE' ? 'Pre-Market' : session === 'POST' ? 'After Hours' : 'Closed'}
+            </span>
+          )}
+          {allEntries.length > 0 && (
+            <span className={`text-lg font-bold tabular-nums ${netPnL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+              {formatDollar(netPnL)} <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted">{WINDOW_LABELS[selectedWindow].toLowerCase()}</span>
+            </span>
+          )}
+        </div>
         <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
           {(Object.keys(WINDOW_LABELS) as IntelligenceWindow[]).map((w) => (
             <button
@@ -171,22 +328,41 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
         </div>
       </div>
 
-      {/* Explanation banner — bold tickers and dollar values */}
-      {explanation && (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3">
-          <p className="text-sm text-rh-light-text dark:text-rh-text">
-            {explanation.split(/(\$[\d,.]+|\b[A-Z]{2,5}\b)/g).map((part, i) => {
-              if (/^\$[\d,.]+$/.test(part) || /^[A-Z]{2,5}$/.test(part)) {
-                return <span key={i} className="font-semibold">{part}</span>;
-              }
-              return part;
-            })}
+      {/* Headline insight — punchy first line + muted detail */}
+      {headline && (
+        <div>
+          <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+            {renderRichText(headline)}{detail ? '.' : ''}
           </p>
+          {detail && (
+            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+              {renderRichText(detail)}
+            </p>
+          )}
         </div>
       )}
 
       {/* Hero insight stats */}
-      {data.heroStats && <HeroInsights data={data.heroStats} />}
+      {data.heroStats && <HeroInsights data={data.heroStats} window={selectedWindow} onTickerClick={onTickerClick} />}
+
+      {/* Portfolio Pulse (summary stats + gains/losses bar) */}
+      {(contributors.length > 0 || detractors.length > 0) && (
+        <PulseSummary
+          topContributors={contributors.map(c => ({
+            ticker: c.ticker,
+            contributionDollar: c.contributionDollar,
+            contributionPct: c.percentReturn ?? 0,
+          }))}
+          topDetractors={detractors.map(c => ({
+            ticker: c.ticker,
+            contributionDollar: c.contributionDollar,
+            contributionPct: c.percentReturn ?? 0,
+          }))}
+          winnersCount={data.winnersCount ?? contributors.length}
+          losersCount={data.losersCount ?? detractors.length}
+          onTickerClick={onTickerClick}
+        />
+      )}
 
       {loading && (
         <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
@@ -229,7 +405,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
           {sectorExposure.length > 0 && (
             <div>
               <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-3">Sector Exposure</h4>
-              <SectorBar sectors={sectorExposure} />
+              <SectorBar sectors={sectorExposure} onTickerClick={onTickerClick} />
             </div>
           )}
 
@@ -268,6 +444,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick }: P
               <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">{beta.dataNote}</p>
             </div>
           )}
+
         </>
       )}
     </div>

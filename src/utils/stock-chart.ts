@@ -100,15 +100,29 @@ export function buildPoints(
   // giving smooth, dynamic charts like Robinhood's
   if ((period === '1W' || period === '1M') && hourlyCandles && hourlyCandles.length > 0) {
     const now = new Date();
+
+    // Aggregate hourly volumes into daily averages to eliminate volume bar gaps.
+    // Extended-hours candles often have 0 volume; spreading the daily total across
+    // all candles ensures every bar renders and relative daily volume stays accurate.
+    const dailyVolumes = new Map<string, number>();
+    const dailyCounts = new Map<string, number>();
+    for (const c of hourlyCandles) {
+      const dateKey = new Date(c.time).toISOString().slice(0, 10);
+      dailyVolumes.set(dateKey, (dailyVolumes.get(dateKey) || 0) + c.volume);
+      dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
+    }
+
     return hourlyCandles.map(c => {
       const d = new Date(c.time);
+      const dateKey = d.toISOString().slice(0, 10);
+      const avgVolume = Math.round((dailyVolumes.get(dateKey) || 0) / (dailyCounts.get(dateKey) || 1));
       return {
         time: d.getTime(),
         label: d.getFullYear() !== now.getFullYear()
           ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
           : d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
         price: c.close,
-        volume: c.volume,
+        volume: avgVolume,
       };
     });
   }

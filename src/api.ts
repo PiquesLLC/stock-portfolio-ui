@@ -53,6 +53,7 @@ import {
   CreatePriceAlertInput,
   UpdatePriceAlertInput,
   DailyReportResponse,
+  HistoricalCAGR,
 } from './types';
 
 // Global API error callback — set by ToastProvider to show error toasts
@@ -207,6 +208,11 @@ export async function getProjections(
 
 export async function getMetrics(lookback: LookbackPeriod = '1y'): Promise<MetricsResponse> {
   return fetchJson<MetricsResponse>(`${API_BASE_URL}/portfolio/metrics?lookback=${lookback}`);
+}
+
+export async function getHistoricalCAGR(tickers: string[]): Promise<{ cagrs: HistoricalCAGR[] }> {
+  const params = new URLSearchParams({ tickers: tickers.join(',') });
+  return fetchJson<{ cagrs: HistoricalCAGR[] }>(`${API_BASE_URL}/market/historical-cagr?${params}`);
 }
 
 export async function updateCashBalance(cashBalance: number): Promise<{ cashBalance: number }> {
@@ -493,6 +499,7 @@ export interface UserSettings {
   region: string | null;
   showRegion: boolean;
   holdingsVisibility: 'all' | 'top5' | 'sectors' | 'hidden';
+  bio?: string | null;
   dripEnabled: boolean;
   createdAt: string;
 }
@@ -503,6 +510,7 @@ export interface UserSettingsUpdate {
   region?: string | null;
   showRegion?: boolean;
   holdingsVisibility?: 'all' | 'top5' | 'sectors' | 'hidden';
+  bio?: string | null;
   dripEnabled?: boolean;
 }
 

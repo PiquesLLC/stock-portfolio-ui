@@ -23,6 +23,7 @@ import { Holding } from './types';
 import type Hls from 'hls.js';
 import Starfield from './components/Starfield';
 import { MiniPlayer } from './components/MiniPlayer';
+import { Term } from './components/Term';
 
 import { formatCurrency, formatPercent } from './utils/format';
 import { getInitialTheme, applyTheme } from './utils/theme';
@@ -595,13 +596,13 @@ export default function App() {
             {portfolio && (
               <div className="flex flex-wrap items-center gap-y-2 px-6 py-3 border-y border-white/[0.04] dark:border-white/[0.04] border-gray-200/30">
                 <div className="flex items-baseline gap-1.5 mr-8">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Assets</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Value" advanced="Assets" /></span>
                   <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
                     {portfolio.totalAssets > 0 ? formatCurrency(portfolio.totalAssets) : '—'}
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5 mr-10">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Equity</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Owned" advanced="Equity" /></span>
                   <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
                     {formatCurrency(portfolio.netEquity)}
                   </span>
@@ -643,7 +644,7 @@ export default function App() {
                 ) : (
                   <>
                     <div className="flex items-baseline gap-1.5 mr-8">
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Day</span>
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="Today" advanced="Day" /></span>
                       <span className={`text-sm font-bold ${
                         portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                       }`}>
@@ -656,7 +657,7 @@ export default function App() {
                       )}
                     </div>
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">Total P/L</span>
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="All-Time Gain/Loss" advanced="Total P/L" /></span>
                       <span className={`text-sm font-extrabold ${
                         portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                       }`}>
@@ -777,6 +778,7 @@ export default function App() {
                 session={portfolio?.session}
                 onBack={() => setViewingProfileId(null)}
                 onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
+                onUserClick={handleViewProfile}
               />
             </ErrorBoundary>
           )}

@@ -1,22 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { HealthScore as HealthScoreType, Attribution as AttributionType, LeakDetectorResult, PortfolioIntelligenceResponse, Holding } from '../types';
-import { getHealthScore, getAttribution, getLeakDetector, getPortfolioIntelligence, getPortfolio } from '../api';
+import { HealthScore as HealthScoreType, PortfolioIntelligenceResponse, Holding } from '../types';
+import { getHealthScore, getPortfolioIntelligence, getPortfolio } from '../api';
 import { HealthScore } from './HealthScore';
-import { Attribution } from './Attribution';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
 import PortfolioBriefing from './PortfolioBriefing';
 import BehaviorInsights from './BehaviorInsights';
 import EventsCalendar from './EventsCalendar';
-import CorrelationHeatmap from './CorrelationHeatmap';
 import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
-import { LeakDetector } from './LeakDetector';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'events' | 'allocation' | 'what-if';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if';
 
 const PRIMARY_COUNT = 5; // core tabs always visible
 
@@ -105,14 +102,10 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
 // Cache for insights data - persists across component mounts
 const insightsCache: {
   healthScore: HealthScoreType | null;
-  attribution: AttributionType | null;
-  leakDetector: LeakDetectorResult | null;
   intelligence: PortfolioIntelligenceResponse | null;
   lastFetchTime: number | null;
 } = {
   healthScore: null,
-  attribution: null,
-  leakDetector: null,
   intelligence: null,
   lastFetchTime: null,
 };
@@ -129,7 +122,39 @@ function formatTimeAgo(timestamp: number): string {
   return `${hours}h ago`;
 }
 
-const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'events', 'allocation', 'what-if']);
+const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if']);
+
+function EventsSection({ holdings }: { holdings: Holding[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Events</span>
+          <span className="text-xs text-rh-light-muted dark:text-rh-muted">Earnings &amp; Dividends</span>
+        </div>
+        <svg
+          className={`w-4 h-4 text-rh-light-muted dark:text-rh-muted transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {expanded && (
+        <div className="px-5 pb-5">
+          <EventsCalendar holdings={holdings} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface InsightsPageProps {
   onTickerClick?: (ticker: string) => void;
@@ -154,8 +179,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   // Initialize state from cache
   const [healthScore, setHealthScore] = useState<HealthScoreType | null>(insightsCache.healthScore);
-  const [attribution, setAttribution] = useState<AttributionType | null>(insightsCache.attribution);
-  const [leakDetector, setLeakDetector] = useState<LeakDetectorResult | null>(insightsCache.leakDetector);
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(insightsCache.intelligence);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(insightsCache.lastFetchTime !== null);
@@ -169,14 +192,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   useEffect(() => {
     insightsCache.healthScore = healthScore;
   }, [healthScore]);
-
-  useEffect(() => {
-    insightsCache.attribution = attribution;
-  }, [attribution]);
-
-  useEffect(() => {
-    insightsCache.leakDetector = leakDetector;
-  }, [leakDetector]);
 
   useEffect(() => {
     insightsCache.intelligence = intelligence;
@@ -196,12 +211,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         getHealthScore()
           .then(data => { if (mountedRef.current) setHealthScore(data); })
           .catch(e => console.error('Health score error:', e)),
-        getAttribution('1d')
-          .then(data => { if (mountedRef.current) setAttribution(data); })
-          .catch(e => console.error('Attribution error:', e)),
-        getLeakDetector()
-          .then(data => { if (mountedRef.current) setLeakDetector(data); })
-          .catch(e => console.error('Leak detector error:', e)),
         getPortfolioIntelligence('1d')
           .then(data => { if (mountedRef.current) setIntelligence(data); })
           .catch(e => console.error('Intelligence error:', e)),
@@ -230,8 +239,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       : Infinity;
 
     const cacheIsStale = cacheAge > CACHE_TTL_MS;
-    const hasNoData = !insightsCache.healthScore && !insightsCache.attribution &&
-      !insightsCache.leakDetector && !insightsCache.intelligence;
+    const hasNoData = !insightsCache.healthScore && !insightsCache.intelligence;
 
     if (hasNoData) {
       // No data at all - do a visible fetch
@@ -251,7 +259,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     fetchInsights(false);
   };
 
-  // Fetch holdings on mount (needed for allocation donut on Intelligence tab + Events/Allocation tabs)
+  // Fetch holdings on mount (needed for Events on Intelligence tab + Allocation tab)
   useEffect(() => {
     if (!holdingsFetchedRef.current) {
       holdingsFetchedRef.current = true;
@@ -264,17 +272,16 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   }, []);
 
   // Check if we have any data to show
-  const hasAnyData = healthScore || attribution || leakDetector || intelligence;
+  const hasAnyData = healthScore || intelligence;
 
   const subTabs: { id: InsightsSubTab; label: string }[] = [
-    // Primary — core cockpit instruments
+    // Primary
     { id: 'intelligence', label: 'Intelligence' },
     { id: 'ai-briefing', label: 'AI Briefing' },
     { id: 'allocation', label: 'Allocation' },
-    { id: 'events', label: 'Events' },
     { id: 'what-if', label: 'Scenarios' },
-    // Secondary — powerful but not universal
     { id: 'ai-behavior', label: 'Behavior' },
+    // Secondary
     { id: 'income', label: 'Income' },
     { id: 'projections-goals', label: 'Goals' },
   ];
@@ -323,12 +330,17 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     );
   }
 
-  // Events subtab
-  if (subTab === 'events') {
+  // Allocation subtab — donut chart
+  if (subTab === 'allocation') {
+    const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
     return (
       <div className="space-y-6">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <EventsCalendar holdings={holdings} />
+        <AllocationDonut
+          holdings={holdings}
+          totalValue={totalValue}
+          onTickerClick={onTickerClick}
+        />
       </div>
     );
   }
@@ -342,24 +354,8 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           holdings={holdings}
           cashBalance={cashBalance}
           totalValue={totalAssets}
+          onTickerClick={onTickerClick}
         />
-      </div>
-    );
-  }
-
-  // Allocation subtab — donut chart + correlation heatmap
-  if (subTab === 'allocation') {
-    const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
-    return (
-      <div className="space-y-6">
-        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AllocationDonut
-            holdings={holdings}
-            totalValue={totalValue}
-          />
-          <CorrelationHeatmap holdings={holdings} />
-        </div>
       </div>
     );
   }
@@ -380,7 +376,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header: sub-tabs left, refresh + timestamp right */}
       <div className="flex items-center justify-between">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
@@ -404,32 +400,20 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         </div>
       </div>
 
-      {/* Health Score - Always show if we have data */}
-      {healthScore && <HealthScore data={healthScore} />}
-
-      {/* Portfolio Intelligence */}
+      {/* Portfolio Intelligence (includes Attribution Pulse) */}
       {intelligence ? (
-        <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} />
+        <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} session={session} />
       ) : (
         <SkeletonCard lines={5} height="220px" />
       )}
 
-      {/* Attribution and Allocation Donut - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {attribution ? (
-          <Attribution initialData={attribution} onTickerClick={onTickerClick} />
-        ) : (
-          <SkeletonCard lines={3} height="160px" />
-        )}
-        <AllocationDonut
-          holdings={holdings}
-          totalValue={holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0)}
-          onTickerClick={onTickerClick}
-        />
-      </div>
+      {/* Health Score */}
+      {healthScore && <HealthScore data={healthScore} />}
 
-      {/* Correlation / Leak Detector */}
-      {leakDetector && <LeakDetector data={leakDetector} />}
+      {/* Events Timeline — collapsible */}
+      {holdings.length > 0 && (
+        <EventsSection holdings={holdings} />
+      )}
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (

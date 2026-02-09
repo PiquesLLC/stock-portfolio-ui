@@ -129,6 +129,7 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
   const [loading, setLoading] = useState(!fundCache.has(ticker));
   const [tab, setTab] = useState<FundTab>('revenue');
   const [period, setPeriod] = useState<PeriodToggle>('annual');
+  const [collapsed, setCollapsed] = useState(true);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -184,53 +185,83 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
   const balanceData = period === 'annual' ? data!.balanceSheets.annual : data!.balanceSheets.quarterly;
   const cashData = period === 'annual' ? data!.cashFlows.annual : data!.cashFlows.quarterly;
 
+  // Summary line for collapsed state
+  const latestIncome = incomeData[0];
+  const summaryText = latestIncome
+    ? `Revenue ${formatLargeNumber(latestIncome.totalRevenue)} · Net Income ${formatLargeNumber(latestIncome.netIncome)}`
+    : `${tabs.filter(t => t.available).map(t => t.label).join(', ')} available`;
+
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5 mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">Financials</h3>
+      {/* Header — always visible, clickable to toggle */}
+      <div
+        className="flex items-center justify-between cursor-pointer select-none"
+        onClick={() => setCollapsed(c => !c)}
+      >
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">Financials</h3>
+          {collapsed && (
+            <p className="text-xs text-rh-light-muted/60 dark:text-white/30 mt-1 truncate">{summaryText}</p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {data?.dataAge === 'stale' && (
             <span className="text-[10px] text-rh-light-muted/40 dark:text-white/20">stale data</span>
           )}
-          <div className="flex gap-0.5 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-0.5">
-            {(['annual', 'quarterly'] as PeriodToggle[]).map(p => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-2.5 py-0.5 text-[10px] font-medium rounded-md transition-colors
-                  ${period === p
-                    ? 'bg-white dark:bg-white/[0.06] text-rh-green shadow-sm'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                  }`}
-              >
-                {p === 'annual' ? 'Annual' : 'Quarterly'}
-              </button>
-            ))}
-          </div>
+          <svg
+            className={`w-4 h-4 text-rh-light-muted/40 dark:text-white/20 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 mb-3 border-b border-gray-200/30 dark:border-white/[0.05]">
-        {tabs.filter(t => t.available).map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px
-              ${tab === t.id
-                ? 'border-rh-green text-rh-green'
-                : 'border-transparent text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-rh-text'
-              }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Expanded content */}
+      {!collapsed && (
+        <div className="mt-3">
+          {/* Period toggle */}
+          <div className="flex items-center justify-end mb-3">
+            <div className="flex gap-0.5 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-0.5">
+              {(['annual', 'quarterly'] as PeriodToggle[]).map(p => (
+                <button
+                  key={p}
+                  onClick={(e) => { e.stopPropagation(); setPeriod(p); }}
+                  className={`px-2.5 py-0.5 text-[10px] font-medium rounded-md transition-colors
+                    ${period === p
+                      ? 'bg-white dark:bg-white/[0.06] text-rh-green shadow-sm'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                    }`}
+                >
+                  {p === 'annual' ? 'Annual' : 'Quarterly'}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Table content */}
-      {tab === 'revenue' && <RevenueTable data={incomeData} period={period} />}
-      {tab === 'balance' && <BalanceTable data={balanceData} period={period} />}
-      {tab === 'cashflow' && <CashFlowTable data={cashData} period={period} />}
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-3 border-b border-gray-200/30 dark:border-white/[0.05]">
+            {tabs.filter(t => t.available).map(t => (
+              <button
+                key={t.id}
+                onClick={(e) => { e.stopPropagation(); setTab(t.id); }}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px
+                  ${tab === t.id
+                    ? 'border-rh-green text-rh-green'
+                    : 'border-transparent text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-rh-text'
+                  }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Table content */}
+          {tab === 'revenue' && <RevenueTable data={incomeData} period={period} />}
+          {tab === 'balance' && <BalanceTable data={balanceData} period={period} />}
+          {tab === 'cashflow' && <CashFlowTable data={cashData} period={period} />}
+        </div>
+      )}
     </div>
   );
 }

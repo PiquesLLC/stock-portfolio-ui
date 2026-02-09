@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession } from '../types';
 import { getLeaderboard } from '../api';
 import { UserPortfolioView } from './UserPortfolioView';
-import { Acronym } from './Acronym';
 
 const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
   { id: '1D', label: '1D' },
@@ -19,7 +18,7 @@ const REGIONS: { id: LeaderboardRegion; label: string }[] = [
   { id: 'apac', label: 'Asia-Pacific' },
 ];
 
-type SortKey = 'rank' | 'user' | 'twrPct' | 'returnPct' | 'returnDollar' | 'assets';
+type SortKey = 'rank' | 'user' | 'twrPct' | 'returnDollar' | 'assets';
 type SortDir = 'asc' | 'desc';
 
 function formatCurrency(value: number | null): string {
@@ -36,7 +35,6 @@ function formatPercent(value: number | null): string {
 function getNumericValue(entry: LeaderboardEntry, key: SortKey): number | null {
   switch (key) {
     case 'twrPct': return entry.twrPct;
-    case 'returnPct': return entry.returnPct;
     case 'returnDollar': return entry.returnDollar;
     case 'assets': return entry.currentAssets;
     default: return null;
@@ -268,10 +266,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                   User{getSortIndicator('user')}
                 </th>
                 <th className={`${getHeaderClass('twrPct', 'right')} text-xs`} onClick={() => handleSort('twrPct')}>
-                  {getSortIndicator('twrPct')}<Acronym label="TWR" />
-                </th>
-                <th className={`${getHeaderClass('returnPct', 'right')} text-xs`} onClick={() => handleSort('returnPct')}>
-                  {getSortIndicator('returnPct')}Return %
+                  {getSortIndicator('twrPct')}Return %
                 </th>
                 <th className={`${getHeaderClass('returnDollar', 'right')} text-xs`} onClick={() => handleSort('returnDollar')}>
                   {getSortIndicator('returnDollar')}Return $
@@ -287,10 +282,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 const twrColor = entry.twrPct === null
                   ? 'text-rh-light-muted dark:text-rh-muted'
                   : entry.twrPct >= 0 ? 'text-rh-green' : 'text-rh-red';
-                const returnColor = entry.returnPct === null
-                  ? 'text-rh-light-muted dark:text-rh-muted'
-                  : entry.returnPct >= 0 ? 'text-rh-green' : 'text-rh-red';
-
                 return (
                   <tr
                     key={entry.userId}
@@ -329,10 +320,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                     <td className={`px-4 py-3 text-sm text-right font-bold ${twrColor}`}>
                       {formatPercent(entry.twrPct)}
                     </td>
-                    <td className={`px-4 py-3 text-sm text-right font-medium ${returnColor}`}>
-                      {formatPercent(entry.returnPct)}
-                    </td>
-                    <td className={`px-4 py-3 text-sm text-right ${returnColor}`}>
+                    <td className={`px-4 py-3 text-sm text-right ${twrColor}`}>
                       {entry.returnDollar !== null ? (
                         <>
                           {entry.returnDollar >= 0 ? '+' : ''}

@@ -23,6 +23,10 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.90' },
         },
+        'fadeIn': {
+          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'slide-in-right': 'slide-in-right 0.2s ease-out',

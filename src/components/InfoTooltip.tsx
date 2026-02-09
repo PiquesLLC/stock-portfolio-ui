@@ -26,20 +26,27 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
         className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold
-          bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted
-          hover:text-rh-light-text dark:hover:text-rh-text transition-colors cursor-help"
+          border border-gray-300/60 dark:border-white/[0.12]
+          text-rh-light-muted/70 dark:text-rh-muted/70
+          hover:text-rh-light-text dark:hover:text-rh-text
+          hover:border-gray-400/60 dark:hover:border-white/20
+          transition-all cursor-help"
         aria-label="Info"
       >
         i
       </button>
       {show && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[90vw]
-          bg-gray-900 dark:bg-gray-800 text-white text-xs leading-relaxed rounded-lg shadow-lg p-3
-          pointer-events-none"
+        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-64 max-w-[90vw]
+          bg-gray-800/95 dark:bg-[#1e1e1e]/95 backdrop-blur-md
+          border border-gray-700/50 dark:border-white/[0.1]
+          text-gray-100 text-[11px] leading-relaxed rounded-xl shadow-xl
+          px-3.5 py-2.5 pointer-events-none
+          animate-in fade-in duration-150"
         >
           {text}
           <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0
-            border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800" />
+            border-l-[5px] border-r-[5px] border-t-[5px] border-transparent
+            border-t-gray-800/95 dark:border-t-[#1e1e1e]/95" />
         </div>
       )}
     </span>

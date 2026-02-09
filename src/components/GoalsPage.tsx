@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Goal, GoalInput } from '../types';
 import { useToast } from '../context/ToastContext';
 import { getGoals, createGoal, updateGoal, deleteGoal } from '../api';
+import { ConfirmModal } from './ConfirmModal';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -196,10 +197,14 @@ interface GoalCardProps {
 function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  async function handleDelete() {
-    if (!confirm(`Delete goal "${goal.name}"?`)) return;
+  function handleDelete() {
+    setShowConfirm(true);
+  }
 
+  async function executeDelete() {
+    setShowConfirm(false);
     try {
       setDeleting(true);
       await onDelete(goal.id);
@@ -350,6 +355,16 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
           {goal.monthlyContribution > 0 ? formatCurrency(goal.monthlyContribution) : 'None'}
         </span>
       </div>
+      {showConfirm && (
+        <ConfirmModal
+          title="Delete Goal"
+          message={`Are you sure you want to delete "${goal.name}"?`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={executeDelete}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
     </div>
   );
 }

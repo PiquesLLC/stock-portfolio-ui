@@ -172,10 +172,17 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick }: Allocat
         p-5"
       onMouseMove={handleMouseMove}
     >
-      {/* Header */}
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted/70 mb-4">
-        Portfolio Allocation
-      </h3>
+      {/* Header + Concentration Summary */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted/70">
+          Portfolio Allocation
+        </h3>
+        {segments.length >= 3 && (
+          <span className="text-[10px] text-rh-light-muted dark:text-rh-muted/60">
+            Top 3 = {segments.slice(0, 3).reduce((s, seg) => s + seg.percent, 0).toFixed(1)}% of portfolio
+          </span>
+        )}
+      </div>
 
       <div className="flex flex-col items-center gap-4">
         {/* Donut Chart */}
@@ -281,7 +288,10 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick }: Allocat
                 <span className="text-xs font-medium text-rh-light-text dark:text-rh-text truncate">
                   {seg.ticker}
                 </span>
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted ml-auto flex-shrink-0">
+                <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 ml-auto flex-shrink-0 tabular-nums">
+                  {formatCurrency(seg.value)}
+                </span>
+                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted flex-shrink-0 tabular-nums w-10 text-right">
                   {seg.percent.toFixed(1)}%
                 </span>
               </button>

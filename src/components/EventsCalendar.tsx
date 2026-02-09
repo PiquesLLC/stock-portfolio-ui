@@ -60,6 +60,7 @@ interface DateGroup {
 
 interface EventsCalendarProps {
   holdings: Holding[];
+  onTickerClick?: (ticker: string) => void;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -72,26 +73,18 @@ function getDateGroupLabel(dateMs: number, now: Date): string {
   const diffDays = Math.floor((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDays < -30) return 'Older';
-  if (diffDays < -7) return 'Earlier This Month';
-  if (diffDays < 0) return 'Last 7 Days';
+  if (diffDays < 0) return 'Last 30 Days';
   if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  if (diffDays <= 7) return 'This Week';
-  if (diffDays <= 14) return 'Next Week';
-  if (diffDays <= 30) return 'This Month';
+  if (diffDays <= 30) return 'Next 30 Days';
   return 'Later';
 }
 
 const GROUP_ORDER: Record<string, number> = {
+  'Last 30 Days': -1,
+  'Older': -2,
   'Today': 0,
-  'Tomorrow': 1,
-  'This Week': 2,
-  'Next Week': 3,
-  'This Month': 4,
-  'Later': 5,
-  'Last 7 Days': -1,
-  'Earlier This Month': -2,
-  'Older': -3,
+  'Next 30 Days': 1,
+  'Later': 2,
 };
 
 function formatDate(dateStr: string): string {
@@ -108,7 +101,7 @@ function formatEPS(val: number | null): string {
 // Component
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function EventsCalendar({ holdings }: EventsCalendarProps) {
+export default function EventsCalendar({ holdings, onTickerClick }: EventsCalendarProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -237,7 +230,12 @@ export default function EventsCalendar({ holdings }: EventsCalendarProps) {
   }
 
   for (const [label, groupEvents] of groupMap) {
-    groups.push({ label, events: groupEvents });
+    // Past groups: most recent first; future groups: soonest first
+    const order = GROUP_ORDER[label] ?? 99;
+    const sorted = [...groupEvents].sort((a, b) =>
+      order < 0 ? b.dateMs - a.dateMs : a.dateMs - b.dateMs
+    );
+    groups.push({ label, events: sorted });
   }
   groups.sort((a, b) => (GROUP_ORDER[a.label] ?? 99) - (GROUP_ORDER[b.label] ?? 99));
 
@@ -283,20 +281,20 @@ export default function EventsCalendar({ holdings }: EventsCalendarProps) {
   return (
     <div className="space-y-6">
       {/* Summary bar */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl px-4 py-2.5">
+      <div className="flex gap-3 flex-wrap">
+        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-rh-green/20 rounded-xl px-4 py-2.5">
           <span className="text-xs text-rh-light-muted dark:text-rh-muted">Total Events</span>
-          <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text tabular-nums">{events.length}</p>
+          <p className="text-lg font-semibold text-rh-green tabular-nums">{events.length}</p>
         </div>
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl px-4 py-2.5">
+        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-amber-400/20 rounded-xl px-4 py-2.5">
           <span className="text-xs text-rh-light-muted dark:text-rh-muted">Earnings</span>
-          <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text tabular-nums">
+          <p className="text-lg font-semibold text-amber-500 dark:text-amber-400 tabular-nums">
             {events.filter(e => e.type === 'earnings').length}
           </p>
         </div>
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl px-4 py-2.5">
+        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-blue-400/20 rounded-xl px-4 py-2.5">
           <span className="text-xs text-rh-light-muted dark:text-rh-muted">Dividends</span>
-          <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text tabular-nums">
+          <p className="text-lg font-semibold text-blue-500 dark:text-blue-400 tabular-nums">
             {events.filter(e => e.type === 'dividend').length}
           </p>
         </div>
@@ -317,7 +315,7 @@ export default function EventsCalendar({ holdings }: EventsCalendarProps) {
           {/* Events in this group */}
           <div className="space-y-2">
             {group.events.map((event, idx) => (
-              <EventCard key={`${event.ticker}-${event.type}-${event.date}-${idx}`} event={event} />
+              <EventCard key={`${event.ticker}-${event.type}-${event.date}-${idx}`} event={event} onTickerClick={onTickerClick} />
             ))}
           </div>
         </div>
@@ -330,14 +328,14 @@ export default function EventsCalendar({ holdings }: EventsCalendarProps) {
 // Event Card
 // ═══════════════════════════════════════════════════════════════════════════
 
-function EventCard({ event }: { event: CalendarEvent }) {
+function EventCard({ event, onTickerClick }: { event: CalendarEvent; onTickerClick?: (ticker: string) => void }) {
   if (event.type === 'earnings') {
-    return <EarningsCard event={event} />;
+    return <EarningsCard event={event} onTickerClick={onTickerClick} />;
   }
-  return <DividendCard event={event} />;
+  return <DividendCard event={event} onTickerClick={onTickerClick} />;
 }
 
-function EarningsCard({ event }: { event: EarningsEvent }) {
+function EarningsCard({ event, onTickerClick }: { event: EarningsEvent; onTickerClick?: (ticker: string) => void }) {
   const beatColor = event.beat === true
     ? 'text-rh-green'
     : event.beat === false
@@ -363,7 +361,7 @@ function EarningsCard({ event }: { event: EarningsEvent }) {
       {/* Main content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{event.ticker}</span>
+          <button onClick={() => onTickerClick?.(event.ticker)} className="font-semibold text-sm text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{event.ticker}</button>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/15 text-amber-500 dark:text-amber-400 border border-amber-400/20">
             Earnings
           </span>
@@ -407,7 +405,7 @@ function EarningsCard({ event }: { event: EarningsEvent }) {
   );
 }
 
-function DividendCard({ event }: { event: DividendCalendarEvent }) {
+function DividendCard({ event, onTickerClick }: { event: DividendCalendarEvent; onTickerClick?: (ticker: string) => void }) {
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-4 flex items-center gap-4">
       {/* Date column */}
@@ -421,7 +419,7 @@ function DividendCard({ event }: { event: DividendCalendarEvent }) {
       {/* Main content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{event.ticker}</span>
+          <button onClick={() => onTickerClick?.(event.ticker)} className="font-semibold text-sm text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{event.ticker}</button>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-400/15 text-blue-500 dark:text-blue-400 border border-blue-400/20">
             Dividend
           </span>

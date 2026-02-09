@@ -190,6 +190,16 @@ export interface MetricsResponse {
   dataEndDate: string | null;
 }
 
+// Historical CAGR types
+export interface HistoricalCAGR {
+  ticker: string;
+  cagr20yr: number | null;
+  cagr10yr: number | null;
+  dataYears: number;
+  startDate: string | null;
+  endDate: string | null;
+}
+
 // Performance Summary types
 export interface PerformanceSummary {
   sinceTracking: {
@@ -519,6 +529,8 @@ export interface PortfolioIntelligenceResponse {
   explanation: string;
   partial: boolean;
   heroStats: HeroStats | null;
+  winnersCount: number;
+  losersCount: number;
 }
 
 // Symbol search types
@@ -619,6 +631,7 @@ export interface UserProfile {
   recentActivity: ActivityEvent[];
   performance: PerformanceData | null;
   holdingsVisibility: string;
+  bio?: string | null;
 }
 
 // Portfolio Chart types

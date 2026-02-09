@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Channel } from '../utils/channels';
 import { WatchHeadlines } from './WatchHeadlines';
 import { LiveHeadlines } from './LiveHeadlines';
@@ -23,8 +23,25 @@ export function WatchPage({
     onTickerClick?.(ticker);
   }, [onTickerClick]);
 
+  const [theatreMode, setTheatreMode] = useState(false);
+
+  // Escape key exits theatre mode
+  useEffect(() => {
+    if (!theatreMode) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setTheatreMode(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [theatreMode]);
+
   return (
     <div className="max-w-5xl mx-auto py-4">
+      {/* Theatre mode overlay */}
+      {theatreMode && (
+        <div
+          className="fixed inset-0 z-40 bg-black/90 backdrop-blur-sm cursor-pointer animate-in fade-in duration-300"
+          onClick={() => setTheatreMode(false)}
+        />
+      )}
       {/* Header row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
@@ -98,8 +115,12 @@ export function WatchPage({
       </div>
 
       {/* Player card — subtle dark gradient anchor behind */}
-      <div className="dark:bg-gradient-to-b dark:from-white/[0.03] dark:to-transparent rounded-xl p-px">
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden shadow-sm dark:shadow-none">
+      <div className={`dark:bg-gradient-to-b dark:from-white/[0.03] dark:to-transparent rounded-xl p-px transition-all duration-300 ${
+        theatreMode ? 'relative z-50 scale-[1.02]' : ''
+      }`}>
+      <div className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden transition-shadow duration-300 ${
+        theatreMode ? 'shadow-[0_0_80px_-10px_rgba(0,0,0,0.8)] dark:shadow-[0_0_80px_-10px_rgba(0,200,5,0.08)]' : 'shadow-sm dark:shadow-none'
+      }`}>
         {/* Player header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200/50 dark:border-white/[0.06]">
           <div className="flex items-center gap-2">
@@ -111,19 +132,39 @@ export function WatchPage({
               Live
             </span>
           </div>
-          {/* Open in new tab */}
-          <a
-            href={activeChannel.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
-              hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
-            title="Watch on website"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
+          <div className="flex items-center gap-1.5">
+            {/* Theatre mode toggle */}
+            <button
+              onClick={() => setTheatreMode(t => !t)}
+              className={`p-1.5 rounded-lg transition-colors ${
+                theatreMode
+                  ? 'text-rh-green bg-rh-green/10'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark'
+              }`}
+              title={theatreMode ? 'Exit theatre mode (Esc)' : 'Theatre mode'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {theatreMode ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                )}
+              </svg>
+            </button>
+            {/* Open in new tab */}
+            <a
+              href={activeChannel.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+              title="Watch on website"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
         </div>
 
         {/* Video area */}

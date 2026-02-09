@@ -14,6 +14,8 @@ import StockQAPanel from './StockQAPanel';
 import EventFeed from './EventFeed';
 import { formatCurrency, formatLargeNumber, formatVolume, formatPercent, inferExchangeLabel } from '../utils/stock-detail';
 import { AddHoldingModal } from './AddHoldingModal';
+import { Term } from './Term';
+import { StockLogo } from './StockLogo';
 
 interface Props {
   ticker: string;
@@ -551,6 +553,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* Header: Company name + ticker + actions */}
       <div className="mb-2">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+          <StockLogo ticker={ticker} size="lg" />
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text">
             {profile?.name || ticker}
           </h1>
@@ -860,13 +863,13 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Key Statistics</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-4">
             {profile && profile.marketCapM > 0 && (
-              <StatItem label="Mkt Cap" value={formatLargeNumber(profile.marketCapM)} />
+              <StatItem label={<Term beginner="Company Size" advanced="Mkt Cap" />} value={formatLargeNumber(profile.marketCapM)} />
             )}
             {metrics?.peRatio != null && (
-              <StatItem label={<><Acronym label="P/E" /></>} value={metrics.peRatio.toFixed(2)} />
+              <StatItem label={<Term beginner="Price vs Earnings" advanced="P/E" />} value={metrics.peRatio.toFixed(2)} />
             )}
             {metrics?.dividendYield != null && (
-              <StatItem label="Div Yield" value={`${metrics.dividendYield.toFixed(2)}%`} />
+              <StatItem label={<Term beginner="Cash Payback %" advanced="Div Yield" />} value={`${metrics.dividendYield.toFixed(2)}%`} />
             )}
             {metrics?.avgVolume10D != null && (
               <StatItem label="Vol (10D)" value={formatVolume(metrics.avgVolume10D)} />
@@ -876,16 +879,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             <StatItem label="Low" value={quote.low > 0 ? formatCurrency(quote.low) : '—'} />
             <StatItem label="Prev Close" value={formatCurrency(quote.previousClose)} />
             {metrics?.week52High != null && (
-              <StatItem label="52W High" value={formatCurrency(metrics.week52High)} />
+              <StatItem label={<Term beginner="Year High" advanced="52W High" />} value={formatCurrency(metrics.week52High)} />
             )}
             {metrics?.week52Low != null && (
-              <StatItem label="52W Low" value={formatCurrency(metrics.week52Low)} />
+              <StatItem label={<Term beginner="Year Low" advanced="52W Low" />} value={formatCurrency(metrics.week52Low)} />
             )}
             {metrics?.beta != null && (
-              <StatItem label={<Acronym label="Beta" />} value={metrics.beta.toFixed(2)} />
+              <StatItem label={<Term beginner="Volatility" advanced="Beta" />} value={metrics.beta.toFixed(2)} />
             )}
             {metrics?.eps !== undefined && metrics.eps !== null && (
-              <StatItem label={<><Acronym label="EPS" /></>} value={`$${metrics.eps.toFixed(2)}`} />
+              <StatItem label={<Term beginner="Earnings/Share" advanced="EPS" />} value={`$${metrics.eps.toFixed(2)}`} />
             )}
             {metrics?.aumB != null && (
               <StatItem label={<><Acronym label="AUM" /></>} value={`$${metrics.aumB.toFixed(0)}B`} />

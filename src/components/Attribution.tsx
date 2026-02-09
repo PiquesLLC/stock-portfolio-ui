@@ -55,7 +55,7 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
   const gainsWidth = totalAbsMovement > 0 ? (totalGains / totalAbsMovement) * 100 : 50;
 
   return (
-    <div className="mb-5 pb-4 border-b border-gray-200/60 dark:border-white/[0.06]">
+    <div>
       <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-white/40 mb-3">
         Portfolio Pulse
       </h4>
@@ -168,11 +168,6 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
 
   const { topContributors, topDetractors, partial } = data;
 
-  const allEntries = [...topContributors, ...topDetractors];
-  const maxAbsDollar = allEntries.length > 0
-    ? Math.max(...allEntries.map(e => Math.abs(e.contributionDollar)))
-    : 0;
-
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
       <div className="flex items-center justify-between mb-3">
@@ -209,64 +204,13 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
           Add holdings to see what's driving your returns.
         </p>
       ) : (
-        <>
-          {/* Portfolio Pulse Summary */}
-          <PulseSummary
-            topContributors={topContributors}
-            topDetractors={topDetractors}
-            winnersCount={data.winnersCount ?? topContributors.length}
-            losersCount={data.losersCount ?? topDetractors.length}
-            onTickerClick={onTickerClick}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Top Contributors */}
-            <div>
-              <h4 className="text-xs font-medium uppercase tracking-wider text-rh-green/80 mb-2">Contributors</h4>
-              {topContributors.length === 0 ? (
-                <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 italic">No gains this period</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {topContributors.map((h) => {
-                    const barWidth = maxAbsDollar > 0 ? (Math.abs(h.contributionDollar) / maxAbsDollar) * 100 : 0;
-                    return (
-                      <div key={h.ticker} className="flex items-center gap-2">
-                        <button className="w-12 text-sm font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer text-left shrink-0" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
-                        <div className="flex-1 h-3 bg-rh-light-bg dark:bg-rh-dark rounded-sm overflow-hidden">
-                          <div className="h-full bg-rh-green/50 rounded-sm" style={{ width: `${Math.max(barWidth, 3)}%` }} />
-                        </div>
-                        <span className="text-rh-green text-xs font-medium w-16 text-right shrink-0 tabular-nums">{formatCurrency(h.contributionDollar)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Top Detractors */}
-            <div>
-              <h4 className="text-xs font-medium uppercase tracking-wider text-rh-red/80 mb-2">Detractors</h4>
-              {topDetractors.length === 0 ? (
-                <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 italic">No losses this period</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {topDetractors.map((h) => {
-                    const barWidth = maxAbsDollar > 0 ? (Math.abs(h.contributionDollar) / maxAbsDollar) * 100 : 0;
-                    return (
-                      <div key={h.ticker} className="flex items-center gap-2">
-                        <button className="w-12 text-sm font-medium text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors cursor-pointer text-left shrink-0" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</button>
-                        <div className="flex-1 h-3 bg-rh-light-bg dark:bg-rh-dark rounded-sm overflow-hidden">
-                          <div className="h-full bg-rh-red/40 rounded-sm" style={{ width: `${Math.max(barWidth, 3)}%` }} />
-                        </div>
-                        <span className="text-rh-red text-xs font-medium w-16 text-right shrink-0 tabular-nums">{formatCurrency(h.contributionDollar)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
+        <PulseSummary
+          topContributors={topContributors}
+          topDetractors={topDetractors}
+          winnersCount={data.winnersCount ?? topContributors.length}
+          losersCount={data.losersCount ?? topDetractors.length}
+          onTickerClick={onTickerClick}
+        />
       )}
     </div>
   );

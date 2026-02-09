@@ -509,7 +509,7 @@ function IncomeDividendTimeline({
       <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">
         Dividend Timeline
       </h3>
-      <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-rh-border scrollbar-track-transparent">
+      <div className="max-h-64 overflow-y-auto scrollbar-minimal">
         <div className="space-y-3">
           {events.map((event, i) => (
             <div key={`${event.ticker}-${event.date}-${i}`} className="flex items-center gap-3">

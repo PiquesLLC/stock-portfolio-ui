@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent } from '../types';
-import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence } from '../api';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, PortfolioChartPeriod } from '../types';
+import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings } from '../api';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
 
@@ -14,8 +15,52 @@ function regionShort(region: string | null): string {
   return REGION_OPTIONS.find((r) => r.value === region)?.short ?? '';
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+// ── Count-up animation hook ───────────────────────────────────────────
+function useCountUp(target: number, duration = 800): number {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(target * eased);
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+
+  return value;
+}
+
+// ── Animation variants ────────────────────────────────────────────────
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
+
 // ── Signal Rating Computation ─────────────────────────────────────────
-// Returns grade + score + reasons explaining the rating
 function computeSignalRating(perf: PerformanceData | null): {
   grade: string;
   score: number;
@@ -26,7 +71,6 @@ function computeSignalRating(perf: PerformanceData | null): {
   let score = 50;
   const reasons: string[] = [];
 
-  // TWR contribution
   if (perf.twrPct !== null) {
     if (perf.twrPct >= 10) { score += 30; reasons.push('Strong returns'); }
     else if (perf.twrPct >= 5) { score += 20; reasons.push('Above-average returns'); }
@@ -36,7 +80,6 @@ function computeSignalRating(perf: PerformanceData | null): {
     else { score -= 15; reasons.push('Negative returns'); }
   }
 
-  // Alpha contribution
   if (perf.alphaPct !== null) {
     if (perf.alphaPct >= 5) { score += 20; reasons.push('SPY outperformance'); }
     else if (perf.alphaPct >= 2) { score += 12; reasons.push('Beating benchmark'); }
@@ -44,21 +87,18 @@ function computeSignalRating(perf: PerformanceData | null): {
     else { score -= 8; }
   }
 
-  // Volatility
   if (perf.volatilityPct !== null) {
     if (perf.volatilityPct > 40) { score -= 15; reasons.push('High volatility'); }
     else if (perf.volatilityPct > 25) { score -= 8; }
     else if (perf.volatilityPct < 15) { score += 5; reasons.push('Low volatility'); }
   }
 
-  // Max drawdown
   if (perf.maxDrawdownPct !== null) {
     if (perf.maxDrawdownPct > 20) { score -= 20; reasons.push('Large drawdown'); }
     else if (perf.maxDrawdownPct > 10) { score -= 10; }
     else if (perf.maxDrawdownPct < 5) { score += 5; reasons.push('Drawdown control'); }
   }
 
-  // Beta bonus
   if (perf.beta !== null && perf.beta < 0.8 && (perf.twrPct ?? 0) > 0) {
     reasons.push('Low beta');
   }
@@ -79,39 +119,33 @@ function computeSignalRating(perf: PerformanceData | null): {
 }
 
 // ── Auto-generated Tagline ────────────────────────────────────────────
-// Algorithmic tagline from actual metrics
 function generateTagline(perf: PerformanceData | null): string {
   if (!perf || perf.snapshotCount < 5) return 'Building track record';
 
   const phrases: string[] = [];
 
-  // Beta-based
   if (perf.beta !== null) {
     if (perf.beta < 0.6) phrases.push('market-independent');
     else if (perf.beta < 0.8) phrases.push('low beta');
     else if (perf.beta > 1.4) phrases.push('leveraged exposure');
   }
 
-  // Alpha-based
   if (perf.alphaPct !== null) {
     if (perf.alphaPct > 5) phrases.push('consistent alpha');
     else if (perf.alphaPct > 2) phrases.push('steady outperformance');
     else if (perf.alphaPct > 0 && (perf.twrPct ?? 0) > 0) phrases.push('benchmark-beating');
   }
 
-  // Risk-based
   if (perf.maxDrawdownPct !== null && perf.maxDrawdownPct < 5) {
     phrases.push('controlled risk');
   } else if (perf.volatilityPct !== null && perf.volatilityPct < 12) {
     phrases.push('steady returns');
   }
 
-  // Correlation-based
   if (perf.correlation !== null && perf.correlation < 0.4) {
     phrases.push('uncorrelated');
   }
 
-  // Conviction-based
   if (perf.volatilityPct !== null && perf.volatilityPct > 30 && (perf.twrPct ?? 0) > 5) {
     phrases.push('high conviction');
   }
@@ -122,7 +156,6 @@ function generateTagline(perf: PerformanceData | null): string {
     return 'Active portfolio';
   }
 
-  // Combine 2 phrases max, capitalize first
   const selected = phrases.slice(0, 2);
   return selected.map((p, i) => i === 0 ? p.charAt(0).toUpperCase() + p.slice(1) : p).join(', ');
 }
@@ -141,19 +174,112 @@ function getRiskPosture(perf: PerformanceData | null): { level: 'Low' | 'Medium'
   return { level: 'Low', color: 'text-rh-green' };
 }
 
+// ── Signal grade colors ───────────────────────────────────────────────
+function getSignalColors(grade: string) {
+  if (grade.startsWith('A')) return { ring: 'ring-rh-green/40', bg: 'bg-rh-green/15', text: 'text-rh-green', badgeBg: 'bg-rh-green', badgeText: 'text-black', pulse: grade === 'A+' };
+  if (grade.startsWith('B')) return { ring: 'ring-blue-500/40', bg: 'bg-blue-500/15', text: 'text-blue-400', badgeBg: 'bg-blue-500', badgeText: 'text-white', pulse: false };
+  if (grade.startsWith('C')) return { ring: 'ring-yellow-500/40', bg: 'bg-yellow-500/15', text: 'text-yellow-400', badgeBg: 'bg-yellow-500', badgeText: 'text-black', pulse: false };
+  if (grade === '--') return { ring: 'ring-rh-border', bg: 'bg-rh-dark/50', text: 'text-rh-muted', badgeBg: 'bg-rh-border', badgeText: 'text-rh-muted', pulse: false };
+  return { ring: 'ring-rh-red/40', bg: 'bg-rh-red/15', text: 'text-rh-red', badgeBg: 'bg-rh-red', badgeText: 'text-white', pulse: false };
+}
+
+// ── Achievement badges ───────────────────────────────────────────────
+function computeBadges(perf: PerformanceData | null, createdAt: string): { label: string; icon: string; color: string }[] {
+  const badges: { label: string; icon: string; color: string }[] = [];
+  if (!perf || perf.snapshotCount < 5) return badges;
+
+  if ((perf.alphaPct ?? 0) > 5) badges.push({ label: 'Alpha Hunter', icon: '\u{1F3AF}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
+  else if ((perf.alphaPct ?? 0) > 0) badges.push({ label: 'Benchmark Beater', icon: '\u{1F4C8}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
+
+  if ((perf.volatilityPct ?? 100) < 12) badges.push({ label: 'Steady Hand', icon: '\u{1F9CA}', color: 'text-blue-400 border-blue-400/20 bg-blue-400/[0.06]' });
+
+  if ((perf.maxDrawdownPct ?? 0) > 15 && (perf.twrPct ?? 0) > 0) badges.push({ label: 'Diamond Hands', icon: '\u{1F48E}', color: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/[0.06]' });
+
+  if ((perf.beta ?? 1) < 0.7 && (perf.twrPct ?? 0) > 0) badges.push({ label: 'Uncorrelated', icon: '\u{1F30A}', color: 'text-purple-400 border-purple-400/20 bg-purple-400/[0.06]' });
+
+  const joinDate = new Date(createdAt);
+  if (joinDate < new Date('2026-03-01')) badges.push({ label: 'Early Adopter', icon: '\u{1F680}', color: 'text-amber-400 border-amber-400/20 bg-amber-400/[0.06]' });
+
+  return badges.slice(0, 4);
+}
+
+// ── Mini sparkline SVG ───────────────────────────────────────────────
+function MiniSparkline({ points, isPositive, id }: { points: { time: number; value: number }[]; isPositive: boolean; id: string }) {
+  if (points.length < 3) return null;
+
+  const values = points.map(p => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+
+  const w = 320, h = 28, pad = 1;
+  const d = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * (w - pad * 2) + pad;
+    const y = h - pad - ((p.value - min) / range) * (h - pad * 2);
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const color = isPositive ? '#00C805' : '#E8544E';
+  const lastX = w - pad;
+  const firstX = pad;
+  const lastPoint = points[points.length - 1];
+  const endX = lastX;
+  const endY = h - pad - ((lastPoint.value - min) / range) * (h - pad * 2);
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-7" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`sf-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.12" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${d} L${lastX},${h} L${firstX},${h} Z`} fill={`url(#sf-${id})`} />
+      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      {/* Endpoint pulse dot */}
+      <circle cx={endX} cy={endY} r="3" fill={color} opacity="0.9">
+        <animate attributeName="r" values="2.5;4;2.5" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx={endX} cy={endY} r="1.5" fill={color} />
+    </svg>
+  );
+}
+
+// ── Group events by date ─────────────────────────────────────────────
+function groupByDate(events: ActivityEvent[]): { date: string; events: ActivityEvent[] }[] {
+  const groups: Map<string, ActivityEvent[]> = new Map();
+  for (const event of events) {
+    const date = new Date(event.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (!groups.has(date)) groups.set(date, []);
+    groups.get(date)!.push(event);
+  }
+  return Array.from(groups.entries()).map(([date, evts]) => ({ date, events: evts }));
+}
+
+function getAvatarGradient(grade: string): string {
+  if (grade.startsWith('A')) return 'conic-gradient(from 0deg, #00C805, rgba(0,200,5,0.1), #00C805)';
+  if (grade.startsWith('B')) return 'conic-gradient(from 0deg, #3B82F6, rgba(59,130,246,0.1), #3B82F6)';
+  if (grade.startsWith('C')) return 'conic-gradient(from 0deg, #EAB308, rgba(234,179,8,0.1), #EAB308)';
+  if (grade === '--') return 'conic-gradient(from 0deg, #6B7280, rgba(107,114,128,0.1), #6B7280)';
+  return 'conic-gradient(from 0deg, #E8544E, rgba(232,84,78,0.1), #E8544E)';
+}
+
 interface UserProfileViewProps {
   userId: string;
   currentUserId: string;
   session?: MarketSession;
   onBack: () => void;
   onStockClick?: (ticker: string) => void;
+  onUserClick?: (userId: string) => void;
 }
 
-export function UserProfileView({ userId, currentUserId, session, onBack, onStockClick }: UserProfileViewProps) {
+export function UserProfileView({ userId, currentUserId, session, onBack, onStockClick, onUserClick }: UserProfileViewProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [rankPercentile, setRankPercentile] = useState<number | null>(null);
+  const [rankPosition, setRankPosition] = useState<number | null>(null);
   const [showSignalTooltip, setShowSignalTooltip] = useState(false);
   const [intelligence, setIntelligence] = useState<{
     topContributor: { ticker: string; pct: number } | null;
@@ -162,18 +288,32 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     topHoldingTicker: string | null;
   } | null>(null);
 
+  const [socialTab, setSocialTab] = useState<'followers' | 'following' | null>(null);
+  const [socialList, setSocialList] = useState<{ id: string; username: string; displayName: string }[]>([]);
+  const [socialLoading, setSocialLoading] = useState(false);
+
   const isOwner = userId === currentUserId;
 
-  // Fetch profile
   useEffect(() => {
     setLoading(true);
+    setSocialTab(null);
     getUserProfile(userId, currentUserId)
       .then(setProfile)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [userId, currentUserId]);
 
-  // Fetch rank percentile from leaderboard
+  const handleSocialTab = async (tab: 'followers' | 'following') => {
+    if (socialTab === tab) { setSocialTab(null); return; }
+    setSocialTab(tab);
+    setSocialLoading(true);
+    try {
+      const data = tab === 'followers' ? await getFollowers(userId) : await getFollowingList(userId);
+      setSocialList(data);
+    } catch { setSocialList([]); }
+    finally { setSocialLoading(false); }
+  };
+
   useEffect(() => {
     getLeaderboard('1M', 'world')
       .then((data) => {
@@ -182,12 +322,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         if (idx >= 0 && entries.length > 0) {
           const percentile = Math.round(((entries.length - idx) / entries.length) * 100);
           setRankPercentile(percentile);
+          setRankPosition(idx + 1);
         }
       })
       .catch(() => {});
   }, [userId]);
 
-  // Fetch intelligence for signal summary
   useEffect(() => {
     getUserIntelligence(userId, '1m')
       .then((data) => {
@@ -197,23 +337,51 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         const largestDrag = data.detractors?.[0]
           ? { ticker: data.detractors[0].ticker, pct: data.detractors[0].percentReturn ?? 0 }
           : null;
-        // Calculate top holding weight from sector exposure or contributors
         const topWeight = data.sectorExposure?.[0]?.exposurePercent ?? null;
         const topTicker = data.contributors?.[0]?.ticker ?? null;
-        setIntelligence({
-          topContributor,
-          largestDrag,
-          topHoldingWeight: topWeight,
-          topHoldingTicker: topTicker,
-        });
+        setIntelligence({ topContributor, largestDrag, topHoldingWeight: topWeight, topHoldingTicker: topTicker });
       })
       .catch(() => {});
   }, [userId]);
 
-  // Computed values
+  // Top holdings preview
+  const [topHoldings, setTopHoldings] = useState<{ ticker: string; weight: number; dayChangePct: number }[]>([]);
+  const [chartPoints, setChartPoints] = useState<{ time: number; value: number }[]>([]);
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioText, setBioText] = useState('');
+
+  useEffect(() => {
+    if (!profile?.profilePublic) return;
+    getUserPortfolio(userId)
+      .then((p) => {
+        const sorted = [...p.holdings].sort((a, b) => b.currentValue - a.currentValue).slice(0, 5);
+        const total = p.holdingsValue || sorted.reduce((s, h) => s + h.currentValue, 0);
+        setTopHoldings(sorted.map(h => ({
+          ticker: h.ticker,
+          weight: total > 0 ? (h.currentValue / total) * 100 : 0,
+          dayChangePct: h.dayChangePercent,
+        })));
+      })
+      .catch(() => setTopHoldings([]));
+  }, [userId, profile?.profilePublic]);
+
+  useEffect(() => {
+    if (!profile?.profilePublic) return;
+    getUserChart(userId, '1M')
+      .then((data) => setChartPoints(data.points))
+      .catch(() => setChartPoints([]));
+  }, [userId, profile?.profilePublic]);
+
+  // Sync bio text when profile loads
+  useEffect(() => {
+    if (profile) setBioText(profile.bio ?? '');
+  }, [profile]);
+
   const signalRating = useMemo(() => computeSignalRating(profile?.performance ?? null), [profile?.performance]);
   const tagline = useMemo(() => generateTagline(profile?.performance ?? null), [profile?.performance]);
   const riskPosture = useMemo(() => getRiskPosture(profile?.performance ?? null), [profile?.performance]);
+  const signalColors = useMemo(() => getSignalColors(signalRating.grade), [signalRating.grade]);
+  const badges = useMemo(() => profile ? computeBadges(profile.performance, profile.createdAt) : [], [profile?.performance, profile?.createdAt]);
 
   if (showPortfolio && profile) {
     return (
@@ -234,28 +402,30 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 w-16 bg-rh-dark/50 rounded" />
-          <div className="bg-rh-card border border-rh-border rounded-xl p-6">
-            <div className="flex justify-between">
-              <div className="space-y-2">
-                <div className="h-7 w-40 bg-rh-dark/50 rounded" />
-                <div className="h-4 w-24 bg-rh-dark/30 rounded" />
+        <div className="animate-pulse space-y-3">
+          <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-[52px] h-[52px] bg-gray-200/50 dark:bg-rh-dark/50 rounded-full" />
+              <div className="space-y-2 flex-1">
+                <div className="h-6 w-36 bg-gray-200/50 dark:bg-rh-dark/50 rounded" />
+                <div className="h-3 w-20 bg-gray-200/30 dark:bg-rh-dark/30 rounded" />
               </div>
-              <div className="h-14 w-14 bg-rh-dark/50 rounded-xl" />
             </div>
-            <div className="flex gap-6 mt-6">
+            <div className="flex gap-4 mt-5 pt-4 border-t border-gray-200/20 dark:border-white/[0.06]">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-10 w-20 bg-rh-dark/30 rounded" />
+                <div key={i} className="flex-1 text-center space-y-1">
+                  <div className="h-6 w-16 mx-auto bg-gray-200/40 dark:bg-rh-dark/40 rounded" />
+                  <div className="h-2 w-10 mx-auto bg-gray-200/20 dark:bg-rh-dark/20 rounded" />
+                </div>
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div className="h-20 bg-rh-card border border-rh-border rounded-xl col-span-2 md:col-span-1" />
+          <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-16 bg-rh-card border border-rh-border rounded-xl" />
+              <div key={i} className="h-7 w-20 bg-gray-200/30 dark:bg-rh-dark/30 rounded-full" />
             ))}
           </div>
+          <div className="h-32 bg-white/80 dark:bg-white/[0.04] rounded-xl" />
         </div>
       </div>
     );
@@ -264,10 +434,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   if (!profile) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8 text-center">
-        <p className="text-rh-muted text-sm">User not found.</p>
-        <button onClick={onBack} className="mt-2 text-rh-green text-sm hover:underline">
-          Go back
-        </button>
+        <p className="text-rh-light-muted dark:text-rh-muted text-sm">User not found.</p>
+        <button onClick={onBack} className="mt-2 text-rh-green text-sm hover:underline">Go back</button>
       </div>
     );
   }
@@ -275,130 +443,261 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const perf = profile.performance;
   const hasPerformance = perf && perf.snapshotCount >= 2;
   const isNewAccount = profile.followerCount === 0 && profile.followingCount === 0;
+  const isPositive = (perf?.twrPct ?? 0) >= 0;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-2xl mx-auto px-4 py-6"
+    >
       {/* Back button */}
-      <button
+      <motion.button
+        variants={itemVariants}
         onClick={onBack}
-        className="flex items-center gap-1.5 text-xs text-rh-muted hover:text-rh-text mb-4 transition-colors group"
+        className="flex items-center gap-1.5 text-xs text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors group"
       >
         <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
         Back
-      </button>
+      </motion.button>
 
       {/* ═══════════════════════════════════════════════════════════════
-          1. PROFILE HEADER
+          1. UNIFIED HERO — profile + performance + social
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="bg-rh-card border border-rh-border rounded-xl p-6 mb-3">
-        <div className="flex items-start justify-between">
-          {/* Left: Name, handle, join date, tagline */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-rh-text truncate">
-                {profile.displayName}
-              </h1>
-              {/* Region badge - secondary, muted */}
-              {profile.showRegion && profile.region && (
-                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-medium rounded bg-rh-dark/50 text-rh-muted/60">
-                  {regionShort(profile.region)}
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-rh-muted">@{profile.username}</p>
-            {/* Join date - heavily de-emphasized */}
-            <p className="text-[10px] text-rh-muted/40 mt-0.5">
-              {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-            </p>
-            {/* Algorithmic tagline */}
-            <p className="text-xs text-rh-muted/70 mt-2.5 font-medium tracking-wide">
-              {tagline}
-            </p>
-          </div>
+      <motion.div
+        variants={itemVariants}
+        className="relative overflow-hidden bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-6 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+      >
+        {/* Ambient glow */}
+        {hasPerformance && (
+          <div className={`absolute inset-0 rounded-xl pointer-events-none ${isPositive ? 'profile-hero-glow-green' : 'profile-hero-glow-red'}`} />
+        )}
 
-          {/* Right: Signal Rating with tooltip */}
+        {/* Profile identity row */}
+        <div className="relative flex items-start gap-3.5">
+          {/* Avatar with signal badge */}
           <div
-            className="shrink-0 flex flex-col items-center ml-4 relative"
+            className="relative shrink-0 cursor-help"
             onMouseEnter={() => setShowSignalTooltip(true)}
             onMouseLeave={() => setShowSignalTooltip(false)}
           >
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold border-2 cursor-help transition-all duration-200 ${
-              signalRating.grade.startsWith('A') ? 'border-rh-green/50 text-rh-green bg-rh-green/5 shadow-[inset_0_0_12px_-4px_rgba(0,200,5,0.15)] hover:shadow-[inset_0_0_16px_-4px_rgba(0,200,5,0.25)] hover:scale-[1.03]' :
-              signalRating.grade.startsWith('B') ? 'border-blue-500/50 text-blue-400 bg-blue-500/5 shadow-[inset_0_0_12px_-4px_rgba(59,130,246,0.15)] hover:shadow-[inset_0_0_16px_-4px_rgba(59,130,246,0.25)] hover:scale-[1.03]' :
-              signalRating.grade.startsWith('C') ? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/5 shadow-[inset_0_0_12px_-4px_rgba(234,179,8,0.15)] hover:shadow-[inset_0_0_16px_-4px_rgba(234,179,8,0.25)] hover:scale-[1.03]' :
-              signalRating.grade === '--' ? 'border-rh-border text-rh-muted bg-rh-dark' :
-              'border-rh-red/50 text-rh-red bg-rh-red/5 shadow-[inset_0_0_12px_-4px_rgba(232,84,78,0.15)] hover:shadow-[inset_0_0_16px_-4px_rgba(232,84,78,0.25)] hover:scale-[1.03]'
-            }`}>
+            <div className="relative w-[52px] h-[52px]">
+              {/* Animated gradient ring */}
+              <div
+                className="absolute inset-0 rounded-full avatar-ring-spin"
+                style={{ background: getAvatarGradient(signalRating.grade) }}
+              />
+              {/* Ring gap */}
+              <div className="absolute inset-[3px] rounded-full bg-white dark:bg-rh-card" />
+              {/* Avatar face */}
+              <div className={`absolute inset-[4px] rounded-full flex items-center justify-center text-sm font-bold ${signalColors.bg} ${signalColors.text}`}>
+                {getInitials(profile.displayName)}
+              </div>
+            </div>
+            {/* Signal grade badge overlay */}
+            <div className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white dark:border-rh-card ${signalColors.badgeBg} ${signalColors.badgeText} ${signalColors.pulse ? 'signal-pulse-green' : ''} hover:scale-110 transition-transform duration-200`}>
               {signalRating.grade}
             </div>
-            <span className="text-[9px] text-rh-muted/50 mt-1 uppercase tracking-wider">Signal</span>
 
-            {/* Signal tooltip - authoritative explanation */}
-            {showSignalTooltip && (
-              <div className="absolute top-full mt-2 right-0 z-20 w-52 p-3 bg-rh-dark border border-rh-border rounded-lg shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
-                <p className="text-[10px] text-rh-text/80 leading-relaxed mb-2">
-                  Signal grade based on:
-                </p>
-                <ul className="space-y-1.5 text-[10px] text-rh-muted/70">
-                  <li className="flex items-start gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-rh-muted/40 mt-1.5 shrink-0" />
-                    Risk-adjusted return
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-rh-muted/40 mt-1.5 shrink-0" />
-                    Drawdown control
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-rh-muted/40 mt-1.5 shrink-0" />
-                    Market correlation
-                  </li>
-                </ul>
-                <p className="text-[9px] text-rh-muted/50 mt-2.5 pt-2 border-t border-rh-border/30">
-                  Stable signal (30d)
-                </p>
+            {/* Signal tooltip */}
+            <AnimatePresence>
+              {showSignalTooltip && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full mt-2 left-0 z-20 w-52 p-3 bg-white dark:bg-rh-dark border border-gray-200/60 dark:border-rh-border rounded-lg shadow-xl"
+                >
+                  <p className="text-[10px] text-rh-light-text/80 dark:text-rh-text/80 leading-relaxed mb-2">
+                    Signal grade based on:
+                  </p>
+                  <ul className="space-y-1.5 text-[10px] text-rh-light-muted/70 dark:text-rh-muted/70">
+                    <li className="flex items-start gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-rh-light-muted/40 dark:bg-rh-muted/40 mt-1.5 shrink-0" />
+                      Risk-adjusted return
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-rh-light-muted/40 dark:bg-rh-muted/40 mt-1.5 shrink-0" />
+                      Drawdown control
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-rh-light-muted/40 dark:bg-rh-muted/40 mt-1.5 shrink-0" />
+                      Market correlation
+                    </li>
+                  </ul>
+                  <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-2.5 pt-2 border-t border-gray-200/30 dark:border-rh-border/30">
+                    Stable signal (30d)
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Name + username + tagline */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text truncate">
+                {profile.displayName}
+              </h1>
+              {profile.showRegion && profile.region && (
+                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-medium rounded bg-gray-100 dark:bg-rh-dark/50 text-rh-light-muted/60 dark:text-rh-muted/60">
+                  {regionShort(profile.region)}
+                </span>
+              )}
+              {/* Share button */}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}?profile=${userId}`);
+                  const btn = document.getElementById('share-toast');
+                  if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = ''; }, 1500); }
+                }}
+                className="shrink-0 ml-auto p-1.5 rounded-lg text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green hover:bg-rh-green/[0.06] transition-all"
+                title="Share profile"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </button>
+              <span id="share-toast" className="absolute -top-1 right-0 text-[9px] text-rh-green font-medium" />
+            </div>
+            <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+              @{profile.username}
+              <span className="mx-1.5 text-rh-light-muted/30 dark:text-rh-muted/30">&middot;</span>
+              <span className="text-rh-light-muted/40 dark:text-rh-muted/40">
+                {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              </span>
+            </p>
+            {/* Bio / Tagline */}
+            {isOwner && editingBio ? (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  autoFocus
+                  value={bioText}
+                  onChange={(e) => setBioText(e.target.value.slice(0, 80))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setEditingBio(false);
+                      updateUserSettings(userId, { bio: bioText }).catch(() => {});
+                    }
+                    if (e.key === 'Escape') setEditingBio(false);
+                  }}
+                  onBlur={() => {
+                    setEditingBio(false);
+                    updateUserSettings(userId, { bio: bioText }).catch(() => {});
+                  }}
+                  placeholder={tagline}
+                  className="flex-1 text-xs bg-transparent border-b border-rh-green/30 text-rh-light-text dark:text-rh-text focus:outline-none focus:border-rh-green py-0.5 italic"
+                  maxLength={80}
+                />
+                <span className="text-[8px] text-rh-light-muted/40 dark:text-rh-muted/40">{bioText.length}/80</span>
+              </div>
+            ) : (
+              <p
+                className={`text-xs text-rh-light-muted/80 dark:text-rh-muted/80 mt-2 font-medium tracking-wide italic ${isOwner ? 'cursor-pointer hover:text-rh-green/60 transition-colors' : ''}`}
+                onClick={() => isOwner && setEditingBio(true)}
+                title={isOwner ? 'Click to edit bio' : undefined}
+              >
+                {bioText || tagline}
+              </p>
+            )}
+
+            {/* Achievement badges */}
+            {badges.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {badges.map((badge) => (
+                  <span key={badge.label} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-medium rounded-full border ${badge.color}`}>
+                    <span className="text-[10px]">{badge.icon}</span>
+                    {badge.label}
+                  </span>
+                ))}
               </div>
             )}
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            2. SOCIAL PROOF STRIP
-            ═══════════════════════════════════════════════════════════════ */}
-        <div className="flex items-center gap-4 mt-5 pt-4 border-t border-rh-border/50">
+        {/* ── Performance identity row ────────────────────────────── */}
+        {profile.profilePublic && hasPerformance && (
+          <div className="relative flex items-center gap-0 mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
+            {/* Rank badge floating top-right of perf row */}
+            {rankPosition !== null && rankPosition <= 20 && (
+              <div className="absolute -top-1 right-0 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rh-green/[0.08] border border-rh-green/20">
+                <span className="text-[9px] text-rh-green/60">#</span>
+                <span className="text-[10px] font-bold text-rh-green tabular-nums">{rankPosition}</span>
+                <span className="text-[8px] text-rh-green/50 uppercase">this month</span>
+              </div>
+            )}
+            <PerformanceStat
+              value={perf?.twrPct ?? null}
+              label="TWR (1mo)"
+              isPercent
+              primary
+            />
+            <div className="w-px h-8 bg-gray-200/30 dark:bg-white/[0.06]" />
+            <PerformanceStat
+              value={perf?.alphaPct ?? null}
+              label={`vs ${perf?.benchmarkTicker ?? 'SPY'}`}
+              isPercent
+            />
+            {/* Third stat: Rank if available, otherwise Beta */}
+            <div className="w-px h-8 bg-gray-200/30 dark:bg-white/[0.06]" />
+            {rankPercentile !== null && rankPercentile <= 80 ? (
+              <div className="flex-1 text-center">
+                <p className="text-lg font-bold text-rh-green tabular-nums">
+                  Top {100 - rankPercentile}%
+                </p>
+                <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-0.5">Rank</p>
+              </div>
+            ) : (
+              <PerformanceStat
+                value={perf?.beta ?? null}
+                label="Beta"
+                formatFn={(v) => v.toFixed(2)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ── Mini sparkline ───────────────────────────────────── */}
+        {profile.profilePublic && hasPerformance && chartPoints.length > 3 && (
+          <div className="mt-3 -mx-1 opacity-70">
+            <MiniSparkline points={chartPoints} isPositive={isPositive} id={userId} />
+          </div>
+        )}
+
+        {/* ── Social strip ────────────────────────────────────────── */}
+        <div className="flex items-center gap-4 mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
           {isNewAccount ? (
-            // Empty state for new accounts
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-xs text-rh-muted/60">
+              <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
                 <span className="w-1.5 h-1.5 rounded-full bg-rh-green/50 animate-pulse" />
                 <span>Performance tracking started — be the first to follow</span>
               </div>
-              <p className="text-[10px] text-rh-muted/40 pl-3.5">
-                Followers get notified when risk posture or signal changes
-              </p>
             </div>
           ) : (
             <>
-              <button className="group flex items-baseline gap-1.5 hover:opacity-80 transition-opacity">
-                <span className="text-base font-semibold text-rh-text group-hover:text-rh-green transition-colors">
+              <button
+                onClick={() => handleSocialTab('followers')}
+                className={`group flex items-baseline gap-1.5 transition-opacity ${socialTab === 'followers' ? 'opacity-100' : 'hover:opacity-80'}`}
+              >
+                <span className={`text-sm font-bold transition-colors ${socialTab === 'followers' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
                   {profile.followerCount}
                 </span>
-                <span className="text-xs text-rh-muted group-hover:underline decoration-rh-muted/30">Followers</span>
+                <span className={`text-xs transition-colors ${socialTab === 'followers' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Followers</span>
               </button>
-              <button className="group flex items-baseline gap-1.5 hover:opacity-80 transition-opacity">
-                <span className="text-base font-semibold text-rh-text group-hover:text-rh-green transition-colors">
+              <button
+                onClick={() => handleSocialTab('following')}
+                className={`group flex items-baseline gap-1.5 transition-opacity ${socialTab === 'following' ? 'opacity-100' : 'hover:opacity-80'}`}
+              >
+                <span className={`text-sm font-bold transition-colors ${socialTab === 'following' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
                   {profile.followingCount}
                 </span>
-                <span className="text-xs text-rh-muted group-hover:underline decoration-rh-muted/30">Following</span>
+                <span className={`text-xs transition-colors ${socialTab === 'following' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Following</span>
               </button>
             </>
-          )}
-
-          {rankPercentile !== null && rankPercentile <= 80 && (
-            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-rh-green/10 text-rh-green border border-rh-green/20">
-              Top {100 - rankPercentile}%
-            </span>
           )}
 
           {/* Follow button - pushed to right */}
@@ -421,148 +720,359 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          3. PERFORMANCE CARDS (with hierarchy)
+          1b. SOCIAL LIST — expandable followers/following
+          ═══════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {socialTab && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="overflow-hidden mb-2"
+          >
+            <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
+                  {socialTab === 'followers' ? 'Followers' : 'Following'}
+                </h3>
+                <button
+                  onClick={() => setSocialTab(null)}
+                  className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {socialLoading ? (
+                <div className="flex items-center justify-center gap-2 py-6">
+                  <div className="w-4 h-4 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
+                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">Loading…</span>
+                </div>
+              ) : socialList.length === 0 ? (
+                <p className="text-xs text-rh-light-muted dark:text-rh-muted text-center py-6">
+                  {socialTab === 'followers' ? 'No followers yet' : 'Not following anyone'}
+                </p>
+              ) : (
+                <div className="space-y-1 max-h-64 overflow-y-auto no-scrollbar">
+                  {socialList.map((user, i) => (
+                    <motion.button
+                      key={user.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: i * 0.03 }}
+                      onClick={() => onUserClick?.(user.id)}
+                      className="w-full flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors text-left"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-rh-green/10 flex items-center justify-center text-[10px] font-bold text-rh-green shrink-0">
+                        {getInitials(user.displayName)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate">{user.displayName}</p>
+                        <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">@{user.username}</p>
+                      </div>
+                      <svg className="w-3.5 h-3.5 text-rh-light-muted/30 dark:text-rh-muted/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          2. METRICS CHIP STRIP — scrollable pills
           ═══════════════════════════════════════════════════════════════ */}
       {profile.profilePublic && hasPerformance && (
-        <div className="mb-3 space-y-2">
-          {/* Primary row: TWR (large) + SPY badge - visually connected */}
-          <div className={`flex flex-col sm:flex-row rounded-xl overflow-hidden ${
-            (perf?.twrPct ?? 0) >= 0
-              ? 'bg-gradient-to-r from-rh-green/[0.03] to-transparent'
-              : 'bg-gradient-to-r from-rh-red/[0.03] to-transparent'
-          }`}>
-            {/* TWR - Hero card */}
-            <div className={`flex-1 bg-rh-card border rounded-xl sm:rounded-r-none p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
-              (perf?.twrPct ?? 0) >= 0
-                ? 'border-rh-green/30 shadow-[0_0_20px_-5px_rgba(0,200,5,0.2)]'
-                : 'border-rh-red/30 shadow-[0_0_20px_-5px_rgba(232,84,78,0.2)]'
-            }`}>
-              <p className="text-[10px] text-rh-muted uppercase tracking-wider mb-1">Time-Weighted Return</p>
-              <p className={`text-2xl font-bold ${(perf?.twrPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {perf?.twrPct !== null ? `${perf.twrPct >= 0 ? '+' : ''}${perf.twrPct.toFixed(2)}%` : '--'}
-              </p>
-              <p className="text-[10px] text-rh-muted/50 mt-1">1 month</p>
-            </div>
-
-            {/* SPY Comparison - connected to TWR */}
-            {perf?.alphaPct !== null && (
-              <div className={`w-full sm:w-32 flex flex-col items-center justify-center rounded-xl sm:rounded-l-none sm:-ml-px p-3 border ${
-                perf.alphaPct >= 0
-                  ? 'border-rh-green/30 bg-rh-card'
-                  : 'border-rh-red/30 bg-rh-card'
+        <motion.div
+          variants={itemVariants}
+          className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-2 -mx-1 px-1"
+        >
+          {[
+            { label: 'Vol', value: perf?.volatilityPct !== null ? `${perf!.volatilityPct!.toFixed(1)}%` : '--' },
+            { label: 'Max DD', value: perf?.maxDrawdownPct !== null ? `-${perf!.maxDrawdownPct!.toFixed(1)}%` : '--' },
+            ...(rankPercentile !== null && rankPercentile <= 80
+              ? [{ label: 'Beta', value: perf?.beta !== null ? perf!.beta!.toFixed(2) : '--' }]
+              : []),
+            { label: 'Best', value: perf?.bestDay ? `+${perf.bestDay.returnPct.toFixed(1)}%` : '--', accent: 'green' as const },
+            { label: 'Worst', value: perf?.worstDay ? `${perf.worstDay.returnPct.toFixed(1)}%` : '--', accent: 'red' as const },
+          ].map((chip, i) => (
+            <motion.div
+              key={chip.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.25, delay: 0.2 + i * 0.04 }}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-lg border border-gray-200/30 dark:border-white/[0.06] cursor-default profile-chip"
+            >
+              <span className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 uppercase tracking-wider">{chip.label}</span>
+              <span className={`text-xs font-medium tabular-nums ${
+                chip.accent === 'green' ? 'text-rh-green/80' :
+                chip.accent === 'red' ? 'text-rh-red/80' :
+                'text-rh-light-text/80 dark:text-rh-text/80'
               }`}>
-                <span className={`text-lg font-bold ${perf.alphaPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {perf.alphaPct >= 0 ? '+' : ''}{perf.alphaPct.toFixed(2)}%
-                </span>
-                <span className="text-[9px] text-rh-muted/60 uppercase tracking-wider mt-0.5">
-                  vs {perf.benchmarkTicker}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Secondary row: analytical metrics (muted) */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            <MetricCard label="Volatility" value={perf?.volatilityPct !== null ? `${perf.volatilityPct.toFixed(1)}%` : '--'} />
-            <MetricCard label="Max DD" value={perf?.maxDrawdownPct !== null ? `-${perf.maxDrawdownPct.toFixed(1)}%` : '--'} />
-            <MetricCard label="Beta" value={perf?.beta !== null ? perf.beta.toFixed(2) : '--'} />
-            <MetricCard label="Best" value={perf?.bestDay ? `+${perf.bestDay.returnPct.toFixed(1)}%` : '--'} accent="green" />
-            <MetricCard label="Worst" value={perf?.worstDay ? `${perf.worstDay.returnPct.toFixed(1)}%` : '--'} accent="red" />
-          </div>
-        </div>
+                {chip.value}
+              </span>
+            </motion.div>
+          ))}
+        </motion.div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          4. SIGNAL SUMMARY (enhanced)
+          2b. TOP HOLDINGS PREVIEW
+          ═══════════════════════════════════════════════════════════════ */}
+      {profile.profilePublic && topHoldings.length > 0 && (
+        <motion.div
+          variants={itemVariants}
+          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+        >
+          <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
+          <div className="space-y-1.5">
+            {topHoldings.map((h) => (
+              <button
+                key={h.ticker}
+                onClick={() => onStockClick?.(h.ticker)}
+                className="w-full flex items-center gap-3 py-1.5 px-1.5 -mx-1.5 hover:bg-gray-100/50 dark:hover:bg-white/[0.04] rounded-lg transition-colors text-left group"
+              >
+                <span className="text-sm font-bold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors w-16 shrink-0 tabular-nums">{h.ticker}</span>
+                <div className="flex-1 h-2 bg-gray-200/40 dark:bg-white/[0.08] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${h.dayChangePct >= 0 ? 'bg-rh-green/70' : 'bg-rh-red/60'}`}
+                    style={{ width: `${Math.max(Math.min(h.weight, 100), 2)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted tabular-nums w-11 text-right shrink-0">{h.weight.toFixed(1)}%</span>
+                <span className={`text-[10px] tabular-nums w-12 text-right font-medium shrink-0 ${h.dayChangePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {h.dayChangePct >= 0 ? '+' : ''}{h.dayChangePct.toFixed(1)}%
+                </span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          3. SIGNAL PANEL — 2-col grid + reason chips
           ═══════════════════════════════════════════════════════════════ */}
       {profile.profilePublic && hasPerformance && (
-        <div className="bg-rh-card border border-rh-border rounded-xl p-4 mb-3">
-          <h3 className="text-[10px] font-semibold text-rh-muted/60 uppercase tracking-wider mb-3">Signal Summary</h3>
-          <div className="space-y-2.5 text-xs">
+        <motion.div
+          variants={itemVariants}
+          className={`bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] border-l-2 ${
+            riskPosture.level === 'Low' ? 'border-l-rh-green/30' :
+            riskPosture.level === 'High' ? 'border-l-rh-red/30' :
+            'border-l-yellow-500/30'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 mb-3">
+            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
+            {signalRating.grade !== '--' && (
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20">
+                  <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-gray-200/20 dark:text-white/[0.06]" />
+                  <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2.5"
+                    strokeDasharray={`${(signalRating.score / 100) * 50.27} 50.27`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 10 10)"
+                    className={signalColors.text}
+                  />
+                </svg>
+                <span className={`text-[9px] font-semibold tabular-nums ${signalColors.text}`}>{signalRating.score}</span>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
             {intelligence?.topContributor && (
-              <div className="flex justify-between items-center group">
-                <span className="text-rh-muted group-hover:text-rh-muted/80 transition-colors">Top contributor</span>
+              <div className="flex justify-between items-center">
+                <span className="text-rh-light-muted dark:text-rh-muted">Top contributor</span>
                 <span className="text-rh-green font-medium">
-                  {intelligence.topContributor.ticker} <span className="text-rh-green/70">+{intelligence.topContributor.pct.toFixed(1)}%</span>
+                  <button onClick={() => onStockClick?.(intelligence.topContributor!.ticker)} className="hover:underline">{intelligence.topContributor.ticker}</button> <span className="text-rh-green/70">+{intelligence.topContributor.pct.toFixed(1)}%</span>
                 </span>
               </div>
             )}
             {intelligence?.largestDrag && (
-              <div className="flex justify-between items-center group">
-                <span className="text-rh-muted group-hover:text-rh-muted/80 transition-colors">Largest drag</span>
+              <div className="flex justify-between items-center">
+                <span className="text-rh-light-muted dark:text-rh-muted">Largest drag</span>
                 <span className="text-rh-red font-medium">
-                  {intelligence.largestDrag.ticker} <span className="text-rh-red/70">{intelligence.largestDrag.pct.toFixed(1)}%</span>
+                  <button onClick={() => onStockClick?.(intelligence.largestDrag!.ticker)} className="hover:underline">{intelligence.largestDrag.ticker}</button> <span className="text-rh-red/70">{intelligence.largestDrag.pct.toFixed(1)}%</span>
                 </span>
               </div>
             )}
             {intelligence?.topHoldingWeight && (
-              <div className="flex justify-between items-center group">
-                <span className="text-rh-muted group-hover:text-rh-muted/80 transition-colors">Largest position</span>
-                <span className="text-rh-text font-medium">{intelligence.topHoldingWeight.toFixed(1)}%</span>
+              <div className="flex justify-between items-center">
+                <span className="text-rh-light-muted dark:text-rh-muted">Largest position</span>
+                <span className="text-rh-light-text dark:text-rh-text font-medium">{intelligence.topHoldingWeight.toFixed(1)}%</span>
               </div>
             )}
-            <div className="flex justify-between items-center group">
-              <span className="text-rh-muted group-hover:text-rh-muted/80 transition-colors">Risk posture</span>
+            <div className="flex justify-between items-center">
+              <span className="text-rh-light-muted dark:text-rh-muted">Risk posture</span>
               <span className={`font-medium ${riskPosture.color}`}>{riskPosture.level}</span>
             </div>
             {perf?.correlation !== null && (
-              <div className="flex justify-between items-center group">
-                <span className="text-rh-muted group-hover:text-rh-muted/80 transition-colors">SPY correlation</span>
-                <span className="text-rh-text font-medium">{perf.correlation.toFixed(2)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-rh-light-muted dark:text-rh-muted">SPY correlation</span>
+                <span className="text-rh-light-text dark:text-rh-text font-medium">{perf!.correlation!.toFixed(2)}</span>
               </div>
             )}
-            {intelligence?.topContributor && perf?.twrPct && Math.abs(perf.twrPct) > 0 && (
-              <div className="flex justify-between items-center group">
-                <span className="text-rh-muted group-hover:text-rh-muted/80 transition-colors">Return concentration</span>
-                <span className="text-rh-text/70 font-medium">
-                  {Math.abs(intelligence.topContributor.pct / perf.twrPct) > 0.6 ? 'High' :
-                   Math.abs(intelligence.topContributor.pct / perf.twrPct) > 0.3 ? 'Medium' : 'Low'}
-                </span>
-              </div>
-            )}
+            {intelligence?.topContributor && perf?.twrPct && Math.abs(perf.twrPct) > 0 && (() => {
+              const ratio = Math.abs(intelligence.topContributor!.pct / perf!.twrPct!);
+              const level = ratio > 0.6 ? 'High' : ratio > 0.3 ? 'Medium' : 'Low';
+              const color = level === 'High' ? 'text-amber-400' : level === 'Medium' ? 'text-yellow-400' : 'text-rh-green';
+              return (
+                <div className="flex justify-between items-center">
+                  <span className="text-rh-light-muted dark:text-rh-muted">Concentration</span>
+                  <span className={`font-medium ${color}`}>{level}</span>
+                </div>
+              );
+            })()}
           </div>
-        </div>
+
+          {/* Signal reason chips */}
+          {signalRating.reasons.length > 0 && signalRating.grade !== '--' && (
+            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-200/20 dark:border-white/[0.06]">
+              {signalRating.reasons.map((reason) => (
+                <span key={reason} className="px-2 py-0.5 text-[9px] font-medium rounded-full bg-rh-green/[0.08] text-rh-green/70 border border-rh-green/15">
+                  {reason}
+                </span>
+              ))}
+            </div>
+          )}
+        </motion.div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          5. LATEST MOVES
+          4. ACTIVITY TIMELINE — latest moves with spine + dots
           ═══════════════════════════════════════════════════════════════ */}
       {profile.profilePublic && profile.recentActivity && profile.recentActivity.length > 0 && (
-        <LatestMovesSection
-          events={profile.recentActivity.slice(0, 5)}
-          onTickerClick={onStockClick}
-        />
+        <motion.div
+          variants={itemVariants}
+          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+        >
+          <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">
+            Latest Moves
+          </h3>
+          <div className="relative">
+            {/* Timeline spine */}
+            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.12] via-white/[0.06] to-transparent" />
+            <div className="space-y-4 pl-6">
+              {groupByDate(profile.recentActivity.slice(0, 8)).map((group) => (
+                <div key={group.date}>
+                  <p className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider mb-1.5 -ml-1">{group.date}</p>
+                  <div className="space-y-2.5">
+                    {group.events.map((event, i) => {
+                      const { verb, isSell } = getActionInfo(event.type, event.payload);
+                      const notionalValue = event.payload.shares && event.payload.averageCost
+                        ? event.payload.shares * event.payload.averageCost
+                        : null;
+
+                      let details = '';
+                      if (event.type === 'holding_added' && event.payload.shares) {
+                        details = `${event.payload.shares} shares`;
+                      } else if (event.type === 'holding_updated' && event.payload.previousShares && event.payload.shares) {
+                        const diff = event.payload.shares - event.payload.previousShares;
+                        details = diff > 0
+                          ? `+${diff} → ${event.payload.shares} total`
+                          : `−${Math.abs(diff)} → ${event.payload.shares} total`;
+                      } else if (event.type === 'holding_removed') {
+                        details = 'closed';
+                      }
+
+                      return (
+                        <motion.div
+                          key={event.id}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.25, delay: 0.35 + i * 0.06 }}
+                          className="relative"
+                        >
+                          <div className={`absolute -left-[22px] top-1 w-3 h-3 rounded-full border-2 ${
+                            isSell ? 'bg-rh-red/40 border-rh-red/60' : 'bg-rh-green/40 border-rh-green/60'
+                          }`} />
+
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className={`text-xs font-semibold ${isSell ? 'text-rh-red' : 'text-rh-green'}`}>{verb}</span>
+                              <button
+                                onClick={() => onStockClick?.(event.payload.ticker)}
+                                className="text-sm font-bold text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors"
+                              >
+                                {event.payload.ticker}
+                              </button>
+                              {details && <span className="text-xs text-rh-light-muted dark:text-rh-muted">{details}</span>}
+                            </div>
+                            <div className="flex items-center gap-2.5 flex-shrink-0">
+                              {notionalValue && notionalValue >= 1000 && (
+                                <span className="text-xs text-rh-light-text/70 dark:text-rh-text/70 tabular-nums font-medium">
+                                  {formatValue(notionalValue)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          6. HOLDINGS VISIBILITY (Owner only)
+          5. VIEW PORTFOLIO CTA
           ═══════════════════════════════════════════════════════════════ */}
-      {isOwner && (
-        <div className="bg-rh-card border border-rh-border rounded-xl p-4 mb-3">
-          <h3 className="text-[10px] font-semibold text-rh-muted/60 uppercase tracking-wider mb-3">Holdings Visibility</h3>
-          <HoldingsVisibilityToggle
-            value={profile.holdingsVisibility ?? 'all'}
-            onChange={async (val) => {
-              setProfile((p) => p ? { ...p, holdingsVisibility: val } : p);
-              await updateHoldingsVisibility(userId, val);
-            }}
-          />
-        </div>
+      {profile.profilePublic && (
+        <motion.button
+          variants={itemVariants}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowPortfolio(true)}
+          className="w-full py-3.5 text-sm font-semibold rounded-xl bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08]
+            text-rh-light-text dark:text-rh-text hover:bg-rh-green/5 hover:border-rh-green/30 hover:text-rh-green hover:shadow-[0_0_24px_-6px_rgba(0,200,5,0.15)] transition-all group shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] mb-2"
+        >
+          <span className="flex items-center justify-center gap-2">
+            View Full Portfolio
+            <svg className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </span>
+        </motion.button>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          6. REGION (Owner only - passive metadata)
+          6. PROFILE SETTINGS — merged (owner only)
           ═══════════════════════════════════════════════════════════════ */}
       {isOwner && (
-        <div className="bg-rh-card border border-rh-border rounded-xl p-4 mb-3">
-          <h3 className="text-[10px] font-semibold text-rh-muted/60 uppercase tracking-wider mb-3">Region</h3>
+        <motion.div
+          variants={itemVariants}
+          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 opacity-80 hover:opacity-100 transition-opacity shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+        >
+          <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">Profile Settings</h3>
+
+          {/* Holdings visibility */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-rh-light-muted dark:text-rh-muted">Holdings</span>
+            <HoldingsVisibilityToggle
+              value={profile.holdingsVisibility ?? 'all'}
+              onChange={async (val) => {
+                setProfile((p) => p ? { ...p, holdingsVisibility: val } : p);
+                await updateHoldingsVisibility(userId, val);
+              }}
+            />
+          </div>
+
+          <div className="border-t border-gray-200/20 dark:border-white/[0.06] mb-3" />
+
+          {/* Region */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-rh-muted">
-              {profile.region ? (profile.showRegion ? regionShort(profile.region) : 'Not disclosed') : 'Not set'}
-            </span>
+            <span className="text-xs text-rh-light-muted dark:text-rh-muted">Region</span>
             <select
               value={`${profile.region ?? ''}|${profile.showRegion ? '1' : '0'}`}
               onChange={async (e) => {
@@ -572,7 +1082,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 setProfile((p) => p ? { ...p, region: newRegion, showRegion: newShow } : p);
                 await updateUserRegion(userId, newRegion, newShow);
               }}
-              className="text-xs text-rh-text bg-rh-dark border border-rh-border rounded-lg px-3 py-1.5 focus:outline-none focus:border-rh-green/50 cursor-pointer hover:border-rh-muted transition-colors"
+              className="text-xs text-rh-light-text dark:text-rh-text bg-white dark:bg-rh-dark border border-gray-200/60 dark:border-rh-border rounded-lg px-3 py-1.5 focus:outline-none focus:border-rh-green/50 cursor-pointer hover:border-rh-light-muted dark:hover:border-rh-muted transition-colors"
             >
               <option value="|0">Not set</option>
               {REGION_OPTIONS.map((r) => (
@@ -583,104 +1093,93 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               ))}
             </select>
           </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════
-          7. VIEW PORTFOLIO CTA
-          ═══════════════════════════════════════════════════════════════ */}
-      {profile.profilePublic && (
-        <button
-          onClick={() => setShowPortfolio(true)}
-          className="w-full py-3.5 text-sm font-semibold rounded-xl bg-rh-dark border border-rh-border
-            text-rh-text hover:bg-rh-green/5 hover:border-rh-green/30 hover:text-rh-green transition-all group"
-        >
-          <span className="flex items-center justify-center gap-2">
-            View Full Portfolio
-            <svg className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </span>
-        </button>
+        </motion.div>
       )}
 
       {/* Private Profile */}
       {!profile.profilePublic && (
-        <div className="text-center py-12">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-rh-dark border border-rh-border flex items-center justify-center">
-            <svg className="w-5 h-5 text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <motion.div variants={itemVariants} className="text-center py-12">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-rh-dark border border-gray-200/60 dark:border-rh-border flex items-center justify-center">
+            <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <p className="text-sm text-rh-muted">This profile is private</p>
-        </div>
+          <p className="text-sm text-rh-light-muted dark:text-rh-muted">This profile is private</p>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// METRIC CARD (Secondary - muted, analytical)
+// PERFORMANCE STAT — used in hero identity row
 // ═══════════════════════════════════════════════════════════════════════
-function MetricCard({ label, value, accent }: {
+function PerformanceStat({ value, label, isPercent, primary, formatFn }: {
+  value: number | null;
   label: string;
-  value: string;
-  accent?: 'green' | 'red';
+  isPercent?: boolean;
+  primary?: boolean;
+  formatFn?: (v: number) => string;
 }) {
-  const valueColor = accent === 'green' ? 'text-rh-green/80' :
-                     accent === 'red' ? 'text-rh-red/80' :
-                     'text-rh-text/80';
+  const animatedValue = useCountUp(value ?? 0, 900);
+  const displayValue = value !== null
+    ? formatFn
+      ? formatFn(animatedValue)
+      : `${value >= 0 ? '+' : ''}${animatedValue.toFixed(2)}${isPercent ? '%' : ''}`
+    : '--';
+  const color = value === null
+    ? 'text-rh-light-muted dark:text-rh-muted'
+    : formatFn
+      ? 'text-rh-light-text dark:text-rh-text'
+      : value >= 0 ? 'text-rh-green' : 'text-rh-red';
 
   return (
-    <div className="bg-rh-card border border-rh-border/50 rounded-lg p-2.5 hover:border-rh-border transition-colors">
-      <p className="text-[9px] text-rh-muted/35 uppercase tracking-wide mb-0.5">{label}</p>
-      <p className={`text-xs font-medium ${valueColor}`}>{value}</p>
+    <div className="flex-1 text-center">
+      <p className={`${primary ? 'text-2xl' : 'text-lg'} font-bold tabular-nums ${color} ${primary && value !== null && value >= 0 ? 'profit-glow' : ''}`}>
+        {displayValue}
+      </p>
+      <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-0.5">{label}</p>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// HOLDINGS VISIBILITY TOGGLE (with descriptions)
+// HOLDINGS VISIBILITY TOGGLE (compact version)
 // ═══════════════════════════════════════════════════════════════════════
 function HoldingsVisibilityToggle({ value, onChange }: {
   value: string;
   onChange: (val: string) => void;
 }) {
   const options = [
-    { val: 'all', label: 'Public', desc: 'All holdings visible to others' },
-    { val: 'top5', label: 'Partial', desc: 'Top 5 positions visible' },
-    { val: 'hidden', label: 'Private', desc: 'Holdings hidden from viewers' },
+    { val: 'all', label: 'Public' },
+    { val: 'top5', label: 'Partial' },
+    { val: 'hidden', label: 'Private' },
   ];
 
-  const selected = options.find(o => o.val === value || (o.val === 'top5' && value === 'sectors')) ?? options[0];
-
   return (
-    <div>
-      <div className="flex gap-1">
-        {options.map((opt) => {
-          const isActive = value === opt.val || (opt.val === 'top5' && value === 'sectors');
-          return (
-            <button
-              key={opt.val}
-              onClick={() => onChange(opt.val)}
-              className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all ${
-                isActive
-                  ? 'bg-rh-green/10 text-rh-green border border-rh-green/40 shadow-[0_0_10px_-3px_rgba(0,200,5,0.3)]'
-                  : 'bg-rh-dark text-rh-muted border border-rh-border hover:border-rh-muted/50 hover:text-rh-text'
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-      <p className="text-[10px] text-rh-muted/50 mt-2 pl-1">{selected.desc}</p>
+    <div className="flex gap-1">
+      {options.map((opt) => {
+        const isActive = value === opt.val || (opt.val === 'top5' && value === 'sectors');
+        return (
+          <button
+            key={opt.val}
+            onClick={() => onChange(opt.val)}
+            className={`px-3 py-1 text-[10px] font-medium rounded-full transition-all ${
+              isActive
+                ? 'bg-rh-green/10 text-rh-green border border-rh-green/40 shadow-[0_0_10px_-3px_rgba(0,200,5,0.3)]'
+                : 'bg-gray-50 dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted border border-gray-200/60 dark:border-rh-border hover:border-gray-300 dark:hover:border-rh-muted/50'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// LATEST MOVES SECTION
+// HELPERS
 // ═══════════════════════════════════════════════════════════════════════
 function getActionInfo(type: string, payload: { shares?: number; previousShares?: number }): {
   verb: string;
@@ -712,66 +1211,4 @@ function formatRelativeTime(isoDate: string): string {
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   return `${days}d`;
-}
-
-function LatestMovesSection({ events, onTickerClick }: {
-  events: ActivityEvent[];
-  onTickerClick?: (ticker: string) => void;
-}) {
-  return (
-    <div className="bg-rh-card border border-rh-border rounded-xl p-4 mb-3">
-      <h3 className="text-xs font-semibold text-rh-muted uppercase tracking-wider mb-3">
-        Latest Moves
-      </h3>
-      <div className="space-y-2.5">
-        {events.map((event) => {
-          const { verb, isSell } = getActionInfo(event.type, event.payload);
-          const notionalValue = event.payload.shares && event.payload.averageCost
-            ? event.payload.shares * event.payload.averageCost
-            : null;
-
-          let details = '';
-          if (event.type === 'holding_added' && event.payload.shares) {
-            details = `${event.payload.shares} shares`;
-          } else if (event.type === 'holding_updated' && event.payload.previousShares && event.payload.shares) {
-            const diff = event.payload.shares - event.payload.previousShares;
-            details = diff > 0
-              ? `+${diff} → ${event.payload.shares} total`
-              : `−${Math.abs(diff)} → ${event.payload.shares} total`;
-          } else if (event.type === 'holding_removed') {
-            details = 'closed';
-          }
-
-          return (
-            <div key={event.id} className="flex items-center justify-between gap-3 py-1.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className={`text-sm font-semibold ${isSell ? 'text-rh-red' : 'text-rh-green'}`}>
-                  {verb}
-                </span>
-                <button
-                  onClick={() => onTickerClick?.(event.payload.ticker)}
-                  className="text-sm font-bold text-rh-text hover:text-rh-green transition-colors"
-                >
-                  {event.payload.ticker}
-                </button>
-                {details && (
-                  <span className="text-sm text-rh-muted">{details}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2.5 flex-shrink-0">
-                {notionalValue && notionalValue >= 1000 && (
-                  <span className="text-sm text-rh-text/70 tabular-nums font-medium">
-                    {formatValue(notionalValue)}
-                  </span>
-                )}
-                <span className="text-xs text-rh-muted tabular-nums">
-                  {formatRelativeTime(event.createdAt)}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }

@@ -5,6 +5,8 @@ import { deleteHolding, addHolding, updateSettings, getPortfolio } from '../api'
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { getAcronymTitle } from './Acronym';
 import { MiniSparkline } from './MiniSparkline';
+import { StockLogo } from './StockLogo';
+import { ConfirmModal } from './ConfirmModal';
 
 function getSessionBadge(session?: MarketSession): { label: string; color: string; title?: string } | null {
   switch (session) {
@@ -79,6 +81,11 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   const [marginValue, setMarginValue] = useState(marginDebt.toString());
   const [cashMarginLoading, setCashMarginLoading] = useState(false);
   const [cashMarginError, setCashMarginError] = useState('');
+  const [confirmDeleteTicker, setConfirmDeleteTicker] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'compact' | 'detailed'>(() => {
+    const stored = localStorage.getItem('holdingsView');
+    return stored === 'detailed' ? 'detailed' : 'compact';
+  });
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin' });
@@ -123,8 +130,13 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   };
 
   const handleDelete = async (ticker: string) => {
-    if (!confirm(`Delete ${ticker} from portfolio?`)) return;
+    setConfirmDeleteTicker(ticker);
+  };
 
+  const executeDelete = async () => {
+    const ticker = confirmDeleteTicker;
+    if (!ticker) return;
+    setConfirmDeleteTicker(null);
     setDeleting(ticker);
     try {
       await deleteHolding(ticker);
@@ -496,7 +508,21 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
   return (
     <div className="rounded-xl overflow-hidden">
       <div className="px-4 pb-4 pt-2 flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
+          <div className="flex rounded-lg overflow-hidden border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40">
+            <button
+              type="button"
+              onClick={() => { setViewMode('compact'); localStorage.setItem('holdingsView', 'compact'); }}
+              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'compact' ? 'bg-white/[0.08] text-white/80 dark:bg-white/[0.08] dark:text-white/80 bg-gray-100 text-gray-700' : 'text-white/30 dark:text-white/30 text-gray-400 hover:text-white/50 dark:hover:text-white/50 hover:text-gray-600'}`}
+            >Simple</button>
+            <button
+              type="button"
+              onClick={() => { setViewMode('detailed'); localStorage.setItem('holdingsView', 'detailed'); }}
+              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-white/[0.08] text-white/80 dark:bg-white/[0.08] dark:text-white/80 bg-gray-100 text-gray-700' : 'text-white/30 dark:text-white/30 text-gray-400 hover:text-white/50 dark:hover:text-white/50 hover:text-gray-600'}`}
+            >Detailed</button>
+          </div>
+        </div>
         {!actionsRef && (
           <div className="flex items-center gap-2">
             <button
@@ -535,10 +561,10 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               <th className={`px-2 py-3 font-medium text-center cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap ${sortKey === 'dayChangePercent' ? 'text-rh-light-text dark:text-white' : ''}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
                 Today{sortKey === 'dayChangePercent' ? <span className="ml-1 opacity-70">{sortDir === 'desc' ? '▼' : '▲'}</span> : null}
               </th>
-              <th className={`hidden md:table-cell ${getHeaderClass('averageCost', 'right')}`} onClick={() => handleSort('averageCost')} title="Sort by average cost basis">
+              <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} ${getHeaderClass('averageCost', 'right')}`} onClick={() => handleSort('averageCost')} title="Sort by average cost basis">
                 {getSortIndicator('averageCost')}Avg Cost
               </th>
-              <th className={`hidden lg:table-cell ${getHeaderClass('shares', 'right')}`} onClick={() => handleSort('shares')} title="Sort by number of shares">
+              <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} ${getHeaderClass('shares', 'right')}`} onClick={() => handleSort('shares')} title="Sort by number of shares">
                 {getSortIndicator('shares')}Shares
               </th>
               <th className={getHeaderClass('currentPrice', 'right')} onClick={() => handleSort('currentPrice')} title="Sort by current price">
@@ -547,16 +573,16 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               <th className={`hidden sm:table-cell ${getHeaderClass('currentValue', 'right')}`} onClick={() => handleSort('currentValue')} title="Sort by market value">
                 {getSortIndicator('currentValue')}Mkt Val
               </th>
-              <th className={`hidden lg:table-cell ${getHeaderClass('dayChange', 'right')}`} onClick={() => handleSort('dayChange')} title="Sort by today's profit/loss">
-                {getSortIndicator('dayChange')}Day <span>P/L</span>
+              <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} ${getHeaderClass('dayChange', 'right')}`} onClick={() => handleSort('dayChange')} title="Sort by today's profit/loss">
+                {getSortIndicator('dayChange')}Day P/L
               </th>
-              <th className={`hidden md:table-cell ${getHeaderClass('dayChangePercent', 'right')}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
+              <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} ${getHeaderClass('dayChangePercent', 'right')}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
                 {getSortIndicator('dayChangePercent')}Day %
               </th>
               <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')} title="Sort by total profit/loss">
-                {getSortIndicator('profitLoss')}Total <span>P/L</span>
+                {getSortIndicator('profitLoss')}Total P/L
               </th>
-              <th className={`hidden sm:table-cell ${getHeaderClass('profitLossPercent', 'right')}`} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
+              <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} ${getHeaderClass('profitLossPercent', 'right')}`} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
                 {getSortIndicator('profitLossPercent')}Total %
               </th>
               <th className="px-4 py-3 font-medium"></th>
@@ -575,7 +601,8 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
                 >
                   <td className="px-4 py-2.5 font-semibold text-rh-light-text dark:text-rh-text">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <StockLogo ticker={holding.ticker} size="sm" />
                       <span
                         className={onTickerClick ? 'cursor-pointer hover:underline hover:text-rh-green transition-colors' : ''}
                         onClick={onTickerClick ? () => onTickerClick(holding.ticker, holding) : undefined}
@@ -603,8 +630,8 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                       <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} />
                     )}
                   </td>
-                  <td className="hidden md:table-cell px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{formatCurrency(holding.averageCost)}</td>
-                  <td className="hidden lg:table-cell px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200">{holding.shares.toLocaleString()}</td>
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>{formatCurrency(holding.averageCost)}</td>
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>{holding.shares.toLocaleString()}</td>
                   <td className={`px-4 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
@@ -621,13 +648,13 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   <td className={`hidden sm:table-cell px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200`}>
                     {hasValidPrice ? formatCurrency(holding.currentValue) : '—'}
                   </td>
-                  <td className={`hidden lg:table-cell px-4 py-3 text-right ${
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} px-4 py-3 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChange >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.dayChange) : '—'}
                   </td>
-                  <td className={`hidden md:table-cell px-4 py-3 text-right text-[13px] ${
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} px-4 py-3 text-right text-[13px] ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChangePercent >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'
                   }`}>
@@ -639,7 +666,7 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
-                  <td className={`hidden sm:table-cell px-4 py-3 text-right font-bold value-transition ${
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} px-4 py-3 text-right font-bold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLossPercent >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>
@@ -823,6 +850,16 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
             </form>
           </div>
         </div>
+      )}
+      {confirmDeleteTicker && (
+        <ConfirmModal
+          title="Remove Holding"
+          message={`Are you sure you want to remove ${confirmDeleteTicker} from your portfolio?`}
+          confirmLabel="Remove"
+          danger
+          onConfirm={executeDelete}
+          onCancel={() => setConfirmDeleteTicker(null)}
+        />
       )}
     </div>
   );

@@ -1,15 +1,34 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPortfolioBriefing, explainBriefingSection, PortfolioBriefingResponse, BriefingExplainResponse } from '../api';
 
+function getSentimentEmoji(_verdict?: string, sections?: PortfolioBriefingResponse['sections']): string {
+  if (!sections || sections.length === 0) return '📊';
+  const pos = sections.filter(s => s.sentiment === 'positive').length;
+  const neg = sections.filter(s => s.sentiment === 'negative').length;
+  if (pos > neg + 1) return '🚀';
+  if (pos > neg) return '📈';
+  if (neg > pos + 1) return '⚠️';
+  if (neg > pos) return '📉';
+  return '⚖️';
+}
+
+function getSentimentPill(sentiment?: string) {
+  if (sentiment === 'positive') return { label: 'Tailwind', cls: 'bg-rh-green/15 text-rh-green' };
+  if (sentiment === 'negative') return { label: 'Headwind', cls: 'bg-rh-red/15 text-rh-red' };
+  return { label: 'Neutral', cls: 'bg-white/[0.08] text-white/50' };
+}
+
+// Extract numbers/percentages from text for highlighting
+function extractHighlights(text: string): string[] {
+  const matches = text.match(/[-+]?\d+\.?\d*%|[-+]?\$[\d,]+\.?\d*|\$[\d,]+\.?\d*/g);
+  return matches ? [...new Set(matches)].slice(0, 3) : [];
+}
+
 export default function PortfolioBriefing() {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Track expanded section
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-
-  // Prefetched explanations keyed by section index
   const [explanations, setExplanations] = useState<Record<number, BriefingExplainResponse>>({});
   const [loadingIdxs, setLoadingIdxs] = useState<Set<number>>(new Set());
   const prefetchedRef = useRef(false);
@@ -30,7 +49,6 @@ export default function PortfolioBriefing() {
 
   useEffect(() => { fetchBriefing(); }, []);
 
-  // Prefetch all explanations once briefing loads
   const prefetchAll = useCallback((sections: PortfolioBriefingResponse['sections']) => {
     sections.forEach((section, idx) => {
       setLoadingIdxs((prev) => new Set(prev).add(idx));
@@ -62,14 +80,16 @@ export default function PortfolioBriefing() {
     return (
       <div className="space-y-4">
         <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 animate-pulse">
-          <div className="h-4 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/3 mb-4" />
-          <div className="h-6 bg-gray-100/60 dark:bg-white/[0.06] rounded w-3/4 mb-3" />
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 bg-gray-100/60 dark:bg-white/[0.06] rounded" />
-            ))}
-          </div>
+          <div className="h-10 bg-gray-100/60 dark:bg-white/[0.06] rounded-lg w-16 mx-auto mb-4" />
+          <div className="h-5 bg-gray-100/60 dark:bg-white/[0.06] rounded w-2/3 mx-auto mb-3" />
+          <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/2 mx-auto" />
         </div>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] rounded-xl p-5 animate-pulse">
+            <div className="h-4 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/3 mb-3" />
+            <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
+          </div>
+        ))}
       </div>
     );
   }
@@ -78,12 +98,7 @@ export default function PortfolioBriefing() {
     return (
       <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
         <p className="text-sm text-rh-red">{error}</p>
-        <button
-          onClick={fetchBriefing}
-          className="mt-2 text-xs text-rh-green hover:underline"
-        >
-          Try again
-        </button>
+        <button onClick={fetchBriefing} className="mt-2 text-xs text-rh-green hover:underline">Try again</button>
       </div>
     );
   }
@@ -109,107 +124,98 @@ export default function PortfolioBriefing() {
     );
   }
 
-  const timeAgo = briefing.generatedAt
-    ? getTimeAgo(new Date(briefing.generatedAt))
-    : '';
-
-  const sentimentLabel = (s?: string) =>
-    s === 'positive' ? 'Tailwind' : s === 'negative' ? 'Headwind' : 'Neutral';
-
-  const sentimentLabelClass = (s?: string) =>
-    s === 'positive'
-      ? 'text-rh-green/70 dark:text-rh-green/60'
-      : s === 'negative'
-        ? 'text-rh-red/70 dark:text-rh-red/60'
-        : 'text-rh-light-muted/60 dark:text-rh-muted/50';
+  const timeAgo = briefing.generatedAt ? getTimeAgo(new Date(briefing.generatedAt)) : '';
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-rh-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
+      {/* Hero Verdict Card */}
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-rh-green/[0.03] to-transparent pointer-events-none" />
+        <div className="relative">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30">
               Weekly Briefing
-            </h2>
+            </span>
+            <button
+              onClick={fetchBriefing}
+              disabled={loading}
+              className="text-[10px] text-rh-green hover:underline disabled:opacity-50"
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
-          <button
-            onClick={fetchBriefing}
-            disabled={loading}
-            className="text-xs text-rh-green hover:underline disabled:opacity-50"
-          >
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <div className="text-4xl mb-3">{getSentimentEmoji(briefing.verdict, briefing.sections)}</div>
+          <h2 className="text-lg font-bold text-rh-light-text dark:text-white leading-snug mb-2">
+            {briefing.headline}
+          </h2>
+          {briefing.verdict && (
+            <p className="text-sm text-rh-light-muted dark:text-white/50 italic">
+              {briefing.verdict}
+            </p>
+          )}
         </div>
-
-        {/* Verdict — single-sentence weekly theme */}
-        {briefing.verdict && (
-          <p className="text-sm italic text-rh-light-muted dark:text-rh-muted mb-3">
-            {briefing.verdict}
-          </p>
-        )}
-
-        {/* Headline */}
-        <p className="text-sm font-medium text-rh-light-text dark:text-rh-text leading-relaxed">
-          {briefing.headline}
-        </p>
       </div>
 
-      {/* Sections */}
+      {/* Section Cards */}
       {briefing.sections.map((section, i) => {
-        const borderClass = section.sentiment === 'positive'
-          ? 'border-l-4 border-rh-green/50'
-          : section.sentiment === 'negative'
-            ? 'border-l-4 border-rh-red/50'
-            : 'border-l-4 border-gray-300/40 dark:border-white/[0.08]';
-
+        const pill = getSentimentPill(section.sentiment);
         const isExpanded = expandedIdx === i;
+        const highlights = extractHighlights(section.body);
 
         return (
           <div
             key={i}
-            className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl ${borderClass} transition-colors`}
+            className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden transition-all"
           >
-            {/* Clickable header area */}
             <div
               onClick={() => handleSectionClick(i)}
-              className="p-5 cursor-pointer hover:bg-gray-100/80 dark:hover:bg-white/[0.06] transition-colors rounded-xl group"
+              className="p-5 cursor-pointer hover:bg-gray-100/80 dark:hover:bg-white/[0.06] transition-colors group"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-                      {section.title}
-                    </h3>
-                    <span className={`text-[10px] font-medium ${sentimentLabelClass(section.sentiment)}`}>
-                      {sentimentLabel(section.sentiment)}
-                    </span>
-                  </div>
-                  {section.takeaway && (
-                    <p className="text-xs font-medium text-rh-light-text/80 dark:text-rh-text/70 mb-2">
-                      {section.takeaway}
-                    </p>
-                  )}
-                  <p className="text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed">
-                    {section.body}
-                  </p>
-                </div>
-                <span className={`text-[10px] shrink-0 mt-0.5 transition-colors ${
-                  isExpanded
-                    ? 'text-rh-green'
-                    : 'text-rh-light-muted/0 group-hover:text-rh-green dark:text-rh-muted/0 dark:group-hover:text-rh-green'
-                }`}>
-                  {isExpanded ? 'Collapse' : 'Why this matters'}
+              {/* Title + sentiment pill */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${pill.cls}`}>
+                  {pill.label}
                 </span>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">
+                  {section.title}
+                </h3>
+                <svg
+                  className={`w-3.5 h-3.5 ml-auto text-rh-light-muted/40 dark:text-white/20 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
+
+              {/* Bold takeaway as the main headline */}
+              {section.takeaway && (
+                <p className="text-sm font-semibold text-rh-light-text dark:text-white/90 mb-2 leading-snug">
+                  {section.takeaway}
+                </p>
+              )}
+
+              {/* Key number highlights */}
+              {highlights.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {highlights.map((h, hi) => (
+                    <span key={hi} className="text-lg font-mono font-bold text-rh-light-text dark:text-white/80">
+                      {h}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Body — collapsed by default, show 2 lines */}
+              <p className={`text-sm text-rh-light-muted dark:text-white/40 leading-relaxed ${
+                isExpanded ? '' : 'line-clamp-2'
+              }`}>
+                {section.body}
+              </p>
             </div>
 
-            {/* Expanded explanation */}
+            {/* Deep-dive explanation */}
             {isExpanded && (
-              <div className="px-5 pb-5 border-t border-gray-200/30 dark:border-white/[0.04]">
+              <div className="px-5 pb-5 border-t border-gray-200/20 dark:border-white/[0.04]">
                 {loadingIdxs.has(i) ? (
                   <div className="pt-4">
                     <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">
@@ -219,8 +225,6 @@ export default function PortfolioBriefing() {
                       <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
                       <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-5/6" />
                       <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-4/6" />
-                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
-                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-3/4" />
                     </div>
                   </div>
                 ) : explanations[i] ? (
@@ -256,11 +260,11 @@ export default function PortfolioBriefing() {
 
       {/* Footer */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40">
+        <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
           Context, not advice.
         </span>
         {timeAgo && (
-          <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40">
+          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
             {timeAgo}
           </span>
         )}

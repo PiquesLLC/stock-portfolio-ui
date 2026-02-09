@@ -1,14 +1,28 @@
 import { useState, useEffect } from 'react';
 import { PortfolioMacroImpactResponse, MacroInsight, FedSentiment } from '../../types';
 import { getPortfolioMacroImpact } from '../../api';
-import { SENTIMENT_BORDER, SENTIMENT_BG, SENTIMENT_GLOW } from './IndicatorCard';
+
 
 export const MACRO_IMPACT_CACHE_TTL = 10 * 60 * 1000; // 10 min UI-side
 
+// Subtle versions of the sentiment colors for insight pills
+const PILL_BORDER: Record<string, string> = {
+  healthy: 'rgba(34,197,94,0.25)',
+  caution: 'rgba(245,158,11,0.25)',
+  concern: 'rgba(239,68,68,0.25)',
+  neutral: 'rgba(156,163,175,0.2)',
+};
+
+const PILL_BG: Record<string, string> = {
+  healthy: 'rgba(34,197,94,0.03)',
+  caution: 'rgba(245,158,11,0.02)',
+  concern: 'rgba(239,68,68,0.025)',
+  neutral: 'transparent',
+};
+
 export function InsightPill({ insight }: { insight: MacroInsight }) {
-  const borderColor = SENTIMENT_BORDER[insight.sentiment];
-  const bgColor = SENTIMENT_BG[insight.sentiment];
-  const glowBg = SENTIMENT_GLOW[insight.sentiment];
+  const borderColor = PILL_BORDER[insight.sentiment] ?? PILL_BORDER.neutral;
+  const bgColor = PILL_BG[insight.sentiment] ?? PILL_BG.neutral;
 
   return (
     <div
@@ -17,13 +31,8 @@ export function InsightPill({ insight }: { insight: MacroInsight }) {
         borderLeftWidth: '2px',
         borderLeftColor: borderColor,
         backgroundColor: bgColor,
-        boxShadow: insight.sentiment !== 'neutral' ? `inset 2px 0 12px -4px ${borderColor}44` : undefined,
       }}
     >
-      {/* Glass inner glow */}
-      {insight.sentiment !== 'neutral' && (
-        <div className="absolute inset-0 pointer-events-none rounded-md" style={{ background: glowBg }} />
-      )}
       <div className="flex items-start gap-2">
         <span className="text-sm flex-shrink-0 mt-0.5">{insight.icon}</span>
         <div className="min-w-0">
