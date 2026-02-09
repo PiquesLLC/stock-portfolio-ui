@@ -192,13 +192,31 @@ export default function App() {
   const watchFullyVisible = activeTab === 'watch' && !viewingStock;
   const showMiniPlayer = streamActive && pipEnabled && !watchFullyVisible;
 
+  // Helper: fully reset video element so a fresh HLS can attach cleanly
+  const resetVideoElement = useCallback((video: HTMLVideoElement) => {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+  }, []);
+
+  // Helper: tear down HLS instance and reset refs
+  const destroyHls = useCallback(() => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+      loadedChannelRef.current = null;
+    }
+  }, []);
+
   // Unified HLS effect
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    let cancelled = false;
 
     const shouldBeActive = watchFullyVisible || (streamActive && pipEnabled);
 
+    // Move video element to the correct container
     if (watchFullyVisible && watchVideoContainerRef.current) {
       watchVideoContainerRef.current.appendChild(video);
       video.style.display = '';
@@ -209,33 +227,41 @@ export default function App() {
       video.style.display = 'none';
     }
 
+    // Tear down when stream should not be active
     if (!shouldBeActive) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-        loadedChannelRef.current = null;
-      }
+      destroyHls();
+      resetVideoElement(video);
       setStreamStatus('Loading stream...');
       setStreamHasError(false);
       return;
     }
 
+    // Channel changed — destroy old instance so we recreate below
     if (hlsRef.current && loadedChannelRef.current !== activeChannel.id) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-      loadedChannelRef.current = null;
+      destroyHls();
+      resetVideoElement(video);
       setStreamStatus('Loading stream...');
       setStreamHasError(false);
     }
 
+    // Already loaded for the current channel — nothing to do
     if (hlsRef.current) return;
+
+    setStreamStatus('Loading stream...');
+    setStreamHasError(false);
 
     // Dynamic import hls.js only when needed (saves ~250KB from initial bundle)
     import('hls.js').then(({ default: HlsLib }) => {
-      // Guard: effect may have cleaned up while awaiting import
-      if (hlsRef.current) return;
+      // Guard: effect was cleaned up or another instance was created while awaiting import
+      if (cancelled || hlsRef.current) return;
+
       if (HlsLib.isSupported()) {
-        const hls = new HlsLib({ enableWorker: false, debug: false, lowLatencyMode: true, xhrSetup: (xhr: XMLHttpRequest) => { xhr.withCredentials = false; } });
+        const hls = new HlsLib({
+          enableWorker: false,
+          debug: false,
+          lowLatencyMode: true,
+          xhrSetup: (xhr: XMLHttpRequest) => { xhr.withCredentials = false; },
+        });
         hlsRef.current = hls;
         loadedChannelRef.current = activeChannel.id;
 
@@ -271,18 +297,25 @@ export default function App() {
         hls.loadSource(activeChannel.url);
         hls.attachMedia(video);
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari native HLS
         video.src = activeChannel.url;
         loadedChannelRef.current = activeChannel.id;
-        video.addEventListener('loadedmetadata', () => {
+        const onMeta = () => {
+          if (cancelled) return;
           setStreamStatus('');
-          video.play().catch(() => setStreamStatus('Click to play'));
-        });
+          video.play().catch(() => {
+            if (!cancelled) setStreamStatus('Click to play');
+          });
+        };
+        video.addEventListener('loadedmetadata', onMeta, { once: true });
       } else {
         setStreamStatus('HLS not supported in this browser');
         setStreamHasError(true);
       }
     });
-  }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible]);
+
+    return () => { cancelled = true; };
+  }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible, destroyHls, resetVideoElement]);
 
   const handleViewProfile = (userId: string) => setViewingProfileId(userId);
 

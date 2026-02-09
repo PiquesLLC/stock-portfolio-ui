@@ -999,7 +999,7 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
         </h2>
         <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
           {mode === 'whatif'
-            ? 'Simulate price changes and see how they affect your portfolio'
+            ? 'Build custom scenarios and see how they affect your portfolio'
             : 'Project your portfolio\'s growth using historical stock performance'}
         </p>
       </div>
@@ -1012,7 +1012,7 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
               : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
           }`}
         >
-          What If
+          Custom
         </button>
         <button onClick={() => setMode('growth')}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
