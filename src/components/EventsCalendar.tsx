@@ -80,11 +80,11 @@ function getDateGroupLabel(dateMs: number, now: Date): string {
 }
 
 const GROUP_ORDER: Record<string, number> = {
-  'Last 30 Days': -1,
-  'Older': -2,
   'Today': 0,
   'Next 30 Days': 1,
   'Later': 2,
+  'Last 30 Days': 3,
+  'Older': 4,
 };
 
 function formatDate(dateStr: string): string {
@@ -281,20 +281,20 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
   return (
     <div className="space-y-6">
       {/* Summary bar */}
-      <div className="flex gap-3 flex-wrap">
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-rh-green/20 rounded-xl px-4 py-2.5">
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">Total Events</span>
-          <p className="text-lg font-semibold text-rh-green tabular-nums">{events.length}</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-rh-green/20 rounded-xl px-3 sm:px-4 py-2">
+          <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Total Events</span>
+          <p className="text-base sm:text-lg font-semibold text-rh-green tabular-nums">{events.length}</p>
         </div>
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-amber-400/20 rounded-xl px-4 py-2.5">
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">Earnings</span>
-          <p className="text-lg font-semibold text-amber-500 dark:text-amber-400 tabular-nums">
+        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-amber-400/20 rounded-xl px-3 sm:px-4 py-2">
+          <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Earnings</span>
+          <p className="text-base sm:text-lg font-semibold text-amber-500 dark:text-amber-400 tabular-nums">
             {events.filter(e => e.type === 'earnings').length}
           </p>
         </div>
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-blue-400/20 rounded-xl px-4 py-2.5">
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">Dividends</span>
-          <p className="text-lg font-semibold text-blue-500 dark:text-blue-400 tabular-nums">
+        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-blue-400/20 rounded-xl px-3 sm:px-4 py-2">
+          <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Dividends</span>
+          <p className="text-base sm:text-lg font-semibold text-blue-500 dark:text-blue-400 tabular-nums">
             {events.filter(e => e.type === 'dividend').length}
           </p>
         </div>
@@ -312,11 +312,24 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
             </span>
           </div>
 
-          {/* Events in this group */}
+          {/* Events in this group — sub-grouped by date */}
           <div className="space-y-2">
-            {group.events.map((event, idx) => (
-              <EventCard key={`${event.ticker}-${event.type}-${event.date}-${idx}`} event={event} onTickerClick={onTickerClick} />
-            ))}
+            {(() => {
+              // Sub-group events by their actual date string
+              const byDate = new Map<string, CalendarEvent[]>();
+              for (const ev of group.events) {
+                const key = ev.date;
+                if (!byDate.has(key)) byDate.set(key, []);
+                byDate.get(key)!.push(ev);
+              }
+              return Array.from(byDate.entries()).map(([date, dayEvents]) =>
+                dayEvents.length === 1 ? (
+                  <EventCard key={`${dayEvents[0].ticker}-${dayEvents[0].type}-${date}`} event={dayEvents[0]} onTickerClick={onTickerClick} />
+                ) : (
+                  <DayGroupCard key={`day-${date}`} date={date} events={dayEvents} onTickerClick={onTickerClick} />
+                )
+              );
+            })()}
           </div>
         </div>
       ))}
@@ -325,17 +338,87 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Day Group Card (multiple events on same date)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DayGroupCard({ date, events, onTickerClick }: { date: string; events: CalendarEvent[]; onTickerClick?: (ticker: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const earningsCount = events.filter(e => e.type === 'earnings').length;
+  const dividendCount = events.filter(e => e.type === 'dividend').length;
+  const tickers = events.map(e => e.ticker);
+
+  return (
+    <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
+      {/* Collapsed summary row */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm p-4 flex items-center gap-4 hover:bg-gray-100/60 dark:hover:bg-white/[0.05] transition-colors"
+      >
+        {/* Date */}
+        <div className="text-center min-w-[52px]">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(date)}</p>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06]" />
+
+        {/* Summary */}
+        <div className="flex-1 min-w-0 text-left">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">
+              {events.length} events
+            </span>
+            {earningsCount > 0 && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/15 text-amber-500 dark:text-amber-400 border border-amber-400/20">
+                {earningsCount} Earnings
+              </span>
+            )}
+            {dividendCount > 0 && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-400/15 text-blue-500 dark:text-blue-400 border border-blue-400/20">
+                {dividendCount} Dividend{dividendCount !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted truncate">
+            {tickers.join(', ')}
+          </p>
+        </div>
+
+        {/* Chevron */}
+        <svg
+          className={`w-4 h-4 text-rh-light-muted dark:text-rh-muted transition-transform duration-200 shrink-0 ${expanded ? 'rotate-180' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Expanded event cards */}
+      {expanded && (
+        <div className="border-t border-gray-200/40 dark:border-white/[0.06] ml-4 mr-2 divide-y divide-gray-200/30 dark:divide-white/[0.04] border-l-2 border-l-white/[0.06]">
+          {events.map((event, idx) => (
+            <div key={`${event.ticker}-${event.type}-${idx}`} className="pl-3">
+              <EventCard event={event} onTickerClick={onTickerClick} noBorder />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Event Card
 // ═══════════════════════════════════════════════════════════════════════════
 
-function EventCard({ event, onTickerClick }: { event: CalendarEvent; onTickerClick?: (ticker: string) => void }) {
+function EventCard({ event, onTickerClick, noBorder }: { event: CalendarEvent; onTickerClick?: (ticker: string) => void; noBorder?: boolean }) {
   if (event.type === 'earnings') {
-    return <EarningsCard event={event} onTickerClick={onTickerClick} />;
+    return <EarningsCard event={event} onTickerClick={onTickerClick} noBorder={noBorder} />;
   }
-  return <DividendCard event={event} onTickerClick={onTickerClick} />;
+  return <DividendCard event={event} onTickerClick={onTickerClick} noBorder={noBorder} />;
 }
 
-function EarningsCard({ event, onTickerClick }: { event: EarningsEvent; onTickerClick?: (ticker: string) => void }) {
+function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent; onTickerClick?: (ticker: string) => void; noBorder?: boolean }) {
   const beatColor = event.beat === true
     ? 'text-rh-green'
     : event.beat === false
@@ -349,93 +432,100 @@ function EarningsCard({ event, onTickerClick }: { event: EarningsEvent; onTicker
       : 'bg-gray-100/60 dark:bg-white/[0.02] border-gray-200/40 dark:border-white/[0.06]';
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-4 flex items-center gap-4">
-      {/* Date column */}
-      <div className="text-center min-w-[52px]">
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.date)}</p>
-      </div>
+    <div className={noBorder ? 'py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4'}>
+      {/* Top row: date + ticker + badges + EPS */}
+      <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+        {/* Date column — hidden when nested */}
+        {!noBorder && (
+          <>
+            <div className="text-center min-w-[48px] sm:min-w-[52px] shrink-0">
+              <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.date)}</p>
+            </div>
+            <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06] shrink-0" />
+          </>
+        )}
 
-      {/* Divider */}
-      <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06]" />
-
-      {/* Main content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <button onClick={() => onTickerClick?.(event.ticker)} className="font-semibold text-sm text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{event.ticker}</button>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/15 text-amber-500 dark:text-amber-400 border border-amber-400/20">
-            Earnings
-          </span>
-          {event.isUpcoming && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-400/15 text-blue-500 dark:text-blue-400 border border-blue-400/20">
-              Upcoming
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-0.5 sm:mb-1">
+            <button onClick={() => onTickerClick?.(event.ticker)} className="font-semibold text-sm text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{event.ticker}</button>
+            <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-amber-400/15 text-amber-500 dark:text-amber-400 border border-amber-400/20">
+              Earnings
             </span>
-          )}
-        </div>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted truncate">
-          Fiscal quarter ending {event.fiscalDateEnding}
-        </p>
-      </div>
-
-      {/* EPS data */}
-      <div className="text-right shrink-0">
-        {event.reportedEPS !== null ? (
-          <div className={`inline-flex flex-col items-end px-3 py-1.5 rounded-lg border ${beatBg}`}>
-            <span className={`text-sm font-semibold tabular-nums ${beatColor}`}>
-              {formatEPS(event.reportedEPS)}
-            </span>
-            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
-              vs est. {formatEPS(event.estimatedEPS)}
-            </span>
-            {event.surprisePercentage !== null && (
-              <span className={`text-[10px] font-medium tabular-nums ${beatColor}`}>
-                {event.beat ? '+' : ''}{event.surprisePercentage.toFixed(1)}%
+            {event.isUpcoming && (
+              <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-blue-400/15 text-blue-500 dark:text-blue-400 border border-blue-400/20">
+                Upcoming
               </span>
             )}
           </div>
-        ) : (
-          <div className="inline-flex flex-col items-end px-3 py-1.5 rounded-lg border bg-gray-100/60 dark:bg-white/[0.02] border-gray-200/40 dark:border-white/[0.06]">
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">Est.</span>
-            <span className="text-sm font-semibold tabular-nums text-rh-light-text dark:text-rh-text">
-              {formatEPS(event.estimatedEPS)}
-            </span>
-          </div>
-        )}
+          <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted truncate">
+            Fiscal quarter ending {event.fiscalDateEnding}
+          </p>
+        </div>
+
+        {/* EPS data */}
+        <div className="text-right shrink-0">
+          {event.reportedEPS !== null ? (
+            <div className={`inline-flex flex-col items-end px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border ${beatBg}`}>
+              <span className={`text-xs sm:text-sm font-semibold tabular-nums ${beatColor}`}>
+                {formatEPS(event.reportedEPS)}
+              </span>
+              <span className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted">
+                vs est. {formatEPS(event.estimatedEPS)}
+              </span>
+              {event.surprisePercentage !== null && (
+                <span className={`text-[9px] sm:text-[10px] font-medium tabular-nums ${beatColor}`}>
+                  {event.beat ? '+' : ''}{event.surprisePercentage.toFixed(1)}%
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="inline-flex flex-col items-end px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border bg-gray-100/60 dark:bg-white/[0.02] border-gray-200/40 dark:border-white/[0.06]">
+              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Est.</span>
+              <span className="text-xs sm:text-sm font-semibold tabular-nums text-rh-light-text dark:text-rh-text">
+                {formatEPS(event.estimatedEPS)}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function DividendCard({ event, onTickerClick }: { event: DividendCalendarEvent; onTickerClick?: (ticker: string) => void }) {
+function DividendCard({ event, onTickerClick, noBorder }: { event: DividendCalendarEvent; onTickerClick?: (ticker: string) => void; noBorder?: boolean }) {
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-4 flex items-center gap-4">
-      {/* Date column */}
-      <div className="text-center min-w-[52px]">
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.exDate)}</p>
-      </div>
-
-      {/* Divider */}
-      <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06]" />
+    <div className={noBorder ? 'py-3 flex items-center gap-3 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4'}>
+      {/* Date column — hidden when nested */}
+      {!noBorder && (
+        <>
+          <div className="text-center min-w-[48px] sm:min-w-[52px] shrink-0">
+            <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.exDate)}</p>
+          </div>
+          <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06] shrink-0" />
+        </>
+      )}
 
       {/* Main content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-0.5 sm:mb-1">
           <button onClick={() => onTickerClick?.(event.ticker)} className="font-semibold text-sm text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{event.ticker}</button>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-400/15 text-blue-500 dark:text-blue-400 border border-blue-400/20">
+          <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-blue-400/15 text-blue-500 dark:text-blue-400 border border-blue-400/20">
             Dividend
           </span>
         </div>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted truncate">
-          Ex-date {formatDate(event.exDate)} &middot; Pay date {formatDate(event.payDate)}
+        <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted truncate">
+          Ex {formatDate(event.exDate)} · Pay {formatDate(event.payDate)}
         </p>
       </div>
 
       {/* Amount */}
       <div className="text-right shrink-0">
-        <div className="inline-flex flex-col items-end px-3 py-1.5 rounded-lg border bg-blue-400/10 border-blue-400/20">
-          <span className="text-sm font-semibold tabular-nums text-blue-500 dark:text-blue-400">
+        <div className="inline-flex flex-col items-end px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border bg-blue-400/10 border-blue-400/20">
+          <span className="text-xs sm:text-sm font-semibold tabular-nums text-blue-500 dark:text-blue-400">
             ${event.amountPerShare.toFixed(2)}
           </span>
-          <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">per share</span>
+          <span className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted">per share</span>
         </div>
       </div>
     </div>

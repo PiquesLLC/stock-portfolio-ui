@@ -27,9 +27,9 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   ];
 
   return (
-    <nav className="relative z-10 border-b border-rh-light-border/60 dark:border-rh-border/60 dark:bg-black/20 dark:backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex overflow-x-auto no-scrollbar sm:justify-start sm:gap-1">
+    <nav className="border-b border-rh-light-border/60 dark:border-rh-border/60 bg-rh-light-bg/95 dark:bg-black/80 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-0 sm:px-4">
+        <div className="flex overflow-x-auto no-scrollbar justify-around sm:justify-start sm:gap-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}

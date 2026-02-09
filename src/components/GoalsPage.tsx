@@ -238,13 +238,13 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
   }
 
   return (
-    <div className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-6 shadow-sm dark:shadow-none ${
+    <div className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-4 sm:p-6 shadow-sm dark:shadow-none ${
       isAchieved ? 'border-rh-green' : 'border-gray-200/30 dark:border-white/[0.04]'
     }`}>
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{goal.name}</h3>
+      <div className="flex items-start justify-between mb-4 gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base sm:text-lg font-semibold text-rh-light-text dark:text-rh-text truncate">{goal.name}</h3>
             {trackStatus === 'ahead' && (
               <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rh-green/15 text-rh-green">Ahead</span>
             )}
@@ -305,33 +305,33 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
       {/* Time to Goal Range */}
       {!isAchieved && timeToGoal && (
         <div className="mb-4 p-3 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg">
-          <p className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2">Estimated Time to Goal</p>
+          <p className="text-xs sm:text-sm font-medium text-rh-light-text dark:text-rh-text mb-2">Estimated Time to Goal</p>
           <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-rh-green">Optimistic</span>
-              <span className="text-rh-green">
+            <div className="flex justify-between text-xs sm:text-sm gap-2">
+              <span className="text-rh-green shrink-0">Optimistic</span>
+              <span className="text-rh-green text-right">
                 {formatMonths(timeToGoal.optimistic)}
-                {projectedDate.optimistic && ` (${formatDate(projectedDate.optimistic)})`}
+                <span className="hidden sm:inline">{projectedDate.optimistic && ` (${formatDate(projectedDate.optimistic)})`}</span>
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-blue-400">Base Case</span>
-              <span className="text-blue-400">
+            <div className="flex justify-between text-xs sm:text-sm gap-2">
+              <span className="text-blue-400 shrink-0">Base Case</span>
+              <span className="text-blue-400 text-right">
                 {formatMonths(timeToGoal.base)}
-                {projectedDate.base && ` (${formatDate(projectedDate.base)})`}
+                <span className="hidden sm:inline">{projectedDate.base && ` (${formatDate(projectedDate.base)})`}</span>
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-rh-red">Pessimistic</span>
-              <span className="text-rh-red">
+            <div className="flex justify-between text-xs sm:text-sm gap-2">
+              <span className="text-rh-red shrink-0">Pessimistic</span>
+              <span className="text-rh-red text-right">
                 {formatMonths(timeToGoal.pessimistic)}
-                {projectedDate.pessimistic && ` (${formatDate(projectedDate.pessimistic)})`}
+                <span className="hidden sm:inline">{projectedDate.pessimistic && ` (${formatDate(projectedDate.pessimistic)})`}</span>
               </span>
             </div>
             {annualizedPacePct != null && (
-              <div className="flex justify-between text-sm border-t border-gray-200/30 dark:border-white/[0.04] pt-1 mt-1">
-                <span className="text-amber-400">Your Pace ({annualizedPacePct > 0 ? '+' : ''}{annualizedPacePct.toFixed(1)}%)</span>
-                <span className="text-amber-400">
+              <div className="flex justify-between text-xs sm:text-sm border-t border-gray-200/30 dark:border-white/[0.04] pt-1 mt-1 gap-2">
+                <span className="text-amber-400 shrink-0">Your Pace ({annualizedPacePct > 0 ? '+' : ''}{annualizedPacePct.toFixed(1)}%)</span>
+                <span className="text-amber-400 text-right">
                   {yourPaceMonths !== null
                     ? `${formatMonths(yourPaceMonths)}${yourPaceDate ? ` (${formatDate(yourPaceDate)})` : ''}`
                     : 'N/A'}
@@ -468,22 +468,23 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-rh-light-text dark:text-rh-text">Financial Goals</h2>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-rh-light-text dark:text-rh-text">Financial Goals</h2>
+          <p className="text-xs sm:text-sm text-rh-light-muted dark:text-rh-muted">
             Track your progress with optimistic, base, and pessimistic scenarios
           </p>
         </div>
         {!showForm && !editingGoal && (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-rh-green text-black rounded-lg font-medium hover:bg-green-600 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-rh-green text-black rounded-lg font-medium hover:bg-green-600 transition-colors text-sm shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Goal
+            <span className="hidden sm:inline">Add Goal</span>
+            <span className="sm:hidden">Add</span>
           </button>
         )}
       </div>

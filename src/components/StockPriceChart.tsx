@@ -2836,10 +2836,10 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
               </button>
             );
           })}
-          <span className="hidden sm:block w-px bg-rh-light-border dark:bg-rh-border mx-0.5" />
+          <span className="w-px bg-rh-light-border dark:bg-rh-border mx-0.5" />
           <button
             onClick={toggleVolume}
-            className={`hidden sm:block px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+            className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
               volumeEnabled
                 ? 'text-white border-transparent'
                 : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
@@ -2850,7 +2850,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
           </button>
           <button
             onClick={toggleSignals}
-            className={`hidden sm:block px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+            className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
               signalsEnabled
                 ? 'text-white border-transparent'
                 : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
@@ -2861,7 +2861,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
           </button>
           <button
             onClick={toggleEvents}
-            className={`hidden sm:block px-2 py-1 rounded text-[10px] font-semibold tracking-wide transition-all border ${
+            className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
               eventsEnabled
                 ? 'text-white border-transparent'
                 : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'

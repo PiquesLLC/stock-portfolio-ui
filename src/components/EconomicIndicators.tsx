@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { EconomicDashboardResponse, InternationalEconomicResponse, EconomicIndicator } from '../types';
 import { getEconomicDashboard, getInternationalEconomic } from '../api';
 import { SkeletonCard } from './SkeletonCard';
@@ -18,6 +18,99 @@ let cacheTime: number | null = null;
 let intlCache: InternationalEconomicResponse | null = null;
 let intlCacheTime: number | null = null;
 const CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+// RegionSection renders indicator cards in rows, inserting chart panel
+// directly after the row containing the selected card
+function RegionSection({
+  id,
+  label,
+  sublabel,
+  lastUpdated,
+  dataAge,
+  indicators,
+  region,
+  selected,
+  selectedIndicator,
+  selectedRegionLabel,
+  onCardClick,
+  onChartClose,
+  extraHeaderRight,
+}: {
+  id: string;
+  label: ReactNode;
+  sublabel: string;
+  lastUpdated: string | null;
+  dataAge: string | null;
+  indicators: EconomicIndicator[];
+  region: 'us' | 'eu' | 'japan';
+  selected: SelectedCard | null;
+  selectedIndicator: EconomicIndicator | null;
+  selectedRegionLabel: string;
+  onCardClick: (region: 'us' | 'eu' | 'japan', idx: number) => void;
+  onChartClose: () => void;
+  extraHeaderRight?: ReactNode;
+}) {
+  const isThisRegion = selected?.region === region;
+  // Determine which row the selected card is in (3 cols on lg, 2 on sm, 1 on xs)
+  // We use lg breakpoint (3 cols) for row calculation since that's the grid layout
+  const selectedIdx = isThisRegion ? selected!.idx : -1;
+
+  // Group indicators into rows of 3 (matching lg:grid-cols-3)
+  const rows: EconomicIndicator[][] = [];
+  for (let i = 0; i < indicators.length; i += 3) {
+    rows.push(indicators.slice(i, i + 3));
+  }
+
+  const selectedRowIdx = selectedIdx >= 0 ? Math.floor(selectedIdx / 3) : -1;
+
+  return (
+    <div id={id} className="space-y-3 scroll-mt-4">
+      <div className="flex flex-wrap items-center justify-between gap-y-1">
+        <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
+          {label}
+          <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:inline">{sublabel}</span>
+        </h3>
+        <div className="flex items-center gap-2">
+          {extraHeaderRight}
+          {lastUpdated && (
+            <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
+              {dataAge === 'stale' ? 'Data may be stale' : `Updated ${new Date(lastUpdated).toLocaleDateString()}`}
+            </span>
+          )}
+        </div>
+      </div>
+      {rows.map((row, rowIdx) => {
+        const rowStartIdx = rowIdx * 3;
+        return (
+          <div key={rowIdx}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {row.map((ind, colIdx) => {
+                const globalIdx = rowStartIdx + colIdx;
+                return (
+                  <IndicatorCard
+                    key={`${region}-${ind.name}`}
+                    indicator={ind}
+                    isSelected={isThisRegion && selected?.idx === globalIdx}
+                    onClick={() => onCardClick(region, globalIdx)}
+                  />
+                );
+              })}
+            </div>
+            {isThisRegion && selectedIndicator && selectedRowIdx === rowIdx && (
+              <div className="mt-4">
+                <ChartPanel
+                  indicator={selectedIndicator}
+                  regionLabel={selectedRegionLabel}
+                  onClose={onChartClose}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function EconomicIndicators() {
   const [data, setData] = useState<EconomicDashboardResponse | null>(economicCache);
@@ -151,41 +244,23 @@ export function EconomicIndicators() {
       <PortfolioImpactCard />
 
       {/* -- United States -- */}
-      <div id="macro-region-us" className="space-y-3 scroll-mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-y-1">
-          <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
-            <span className="text-base">$</span> United States
-            <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:inline">Monthly / Quarterly</span>
-          </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 italic hidden sm:inline">Dates show latest available</span>
-            {data.lastUpdated && (
-              <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
-                {data.dataAge === 'stale' ? 'Data may be stale' : `Updated ${new Date(data.lastUpdated).toLocaleDateString()}`}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {usIndicatorList.map((ind, i) => (
-            <IndicatorCard
-              key={`us-${ind.name}`}
-              indicator={ind}
-              isSelected={selected?.region === 'us' && selected?.idx === i}
-              onClick={() => handleCardClick('us', i)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Expanded chart (shows after the region that owns it, or at bottom) */}
-      {selectedIndicator && selected?.region === 'us' && (
-        <ChartPanel
-          indicator={selectedIndicator}
-          regionLabel={selectedRegionLabel}
-          onClose={() => setSelected(null)}
-        />
-      )}
+      <RegionSection
+        id="macro-region-us"
+        label={<><span className="text-base">$</span> United States</>}
+        sublabel="Monthly / Quarterly"
+        lastUpdated={data.lastUpdated}
+        dataAge={data.dataAge}
+        indicators={usIndicatorList}
+        region="us"
+        selected={selected}
+        selectedIndicator={selectedIndicator}
+        selectedRegionLabel={selectedRegionLabel}
+        onCardClick={handleCardClick}
+        onChartClose={() => setSelected(null)}
+        extraHeaderRight={
+          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 italic hidden sm:inline">Dates show latest available</span>
+        }
+      />
 
       {/* Divider */}
       {euIndicatorList.length > 0 && (
@@ -194,36 +269,19 @@ export function EconomicIndicators() {
 
       {/* -- European Union -- */}
       {euIndicatorList.length > 0 && (
-        <div id="macro-region-eu" className="space-y-3 scroll-mt-4">
-          <div className="flex flex-wrap items-center justify-between gap-y-1">
-            <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
-              <span className="text-base">&#8364;</span> European Union
-              <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:inline">Annual</span>
-            </h3>
-            {intlData?.lastUpdated && (
-              <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
-                {intlData.dataAge === 'stale' ? 'Data may be stale' : `Updated ${new Date(intlData.lastUpdated).toLocaleDateString()}`}
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {euIndicatorList.map((ind, i) => (
-              <IndicatorCard
-                key={`eu-${ind.name}`}
-                indicator={ind}
-                isSelected={selected?.region === 'eu' && selected?.idx === i}
-                onClick={() => handleCardClick('eu', i)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selectedIndicator && selected?.region === 'eu' && (
-        <ChartPanel
-          indicator={selectedIndicator}
-          regionLabel={selectedRegionLabel}
-          onClose={() => setSelected(null)}
+        <RegionSection
+          id="macro-region-eu"
+          label={<><span className="text-base">&#8364;</span> European Union</>}
+          sublabel="Annual"
+          lastUpdated={intlData?.lastUpdated ?? null}
+          dataAge={intlData?.dataAge ?? null}
+          indicators={euIndicatorList}
+          region="eu"
+          selected={selected}
+          selectedIndicator={selectedIndicator}
+          selectedRegionLabel={selectedRegionLabel}
+          onCardClick={handleCardClick}
+          onChartClose={() => setSelected(null)}
         />
       )}
 
@@ -234,36 +292,19 @@ export function EconomicIndicators() {
 
       {/* -- Japan -- */}
       {jpnIndicatorList.length > 0 && (
-        <div id="macro-region-japan" className="space-y-3 scroll-mt-4">
-          <div className="flex flex-wrap items-center justify-between gap-y-1">
-            <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
-              <span className="text-base">&#165;</span> Japan
-              <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:inline">Annual</span>
-            </h3>
-            {intlData?.lastUpdated && (
-              <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
-                {intlData.dataAge === 'stale' ? 'Data may be stale' : `Updated ${new Date(intlData.lastUpdated).toLocaleDateString()}`}
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {jpnIndicatorList.map((ind, i) => (
-              <IndicatorCard
-                key={`jpn-${ind.name}`}
-                indicator={ind}
-                isSelected={selected?.region === 'japan' && selected?.idx === i}
-                onClick={() => handleCardClick('japan', i)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selectedIndicator && selected?.region === 'japan' && (
-        <ChartPanel
-          indicator={selectedIndicator}
-          regionLabel={selectedRegionLabel}
-          onClose={() => setSelected(null)}
+        <RegionSection
+          id="macro-region-japan"
+          label={<><span className="text-base">&#165;</span> Japan</>}
+          sublabel="Annual"
+          lastUpdated={intlData?.lastUpdated ?? null}
+          dataAge={intlData?.dataAge ?? null}
+          indicators={jpnIndicatorList}
+          region="japan"
+          selected={selected}
+          selectedIndicator={selectedIndicator}
+          selectedRegionLabel={selectedRegionLabel}
+          onCardClick={handleCardClick}
+          onChartClose={() => setSelected(null)}
         />
       )}
 

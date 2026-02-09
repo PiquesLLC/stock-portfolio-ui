@@ -75,28 +75,28 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
         Portfolio Pulse
       </h4>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Win Rate</div>
-          <div className="text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3">
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Win Rate</div>
+          <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
             {totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0}%
           </div>
-          <div className="text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">{winCount} up / {lossCount} down</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">{winCount} up / {lossCount} down</div>
         </div>
-        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Biggest Mover</div>
-          <button className={`text-lg font-bold hover:opacity-80 transition-opacity ${biggestMover.contributionDollar >= 0 ? 'text-rh-green' : 'text-rh-red'}`}
+        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3">
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Biggest Mover</div>
+          <button className={`text-base sm:text-lg font-bold hover:opacity-80 transition-opacity ${biggestMover.contributionDollar >= 0 ? 'text-rh-green' : 'text-rh-red'}`}
             onClick={() => onTickerClick?.(biggestMover.ticker)}>
             {biggestMover.ticker}
           </button>
-          <div className={`text-[10px] mt-0.5 tabular-nums ${biggestMover.contributionDollar >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+          <div className={`text-[9px] sm:text-[10px] mt-0.5 tabular-nums ${biggestMover.contributionDollar >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
             {formatCurrency(biggestMover.contributionDollar)}
           </div>
         </div>
-        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Top Concentration</div>
-          <div className="text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
-          <div className="text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">of total movement</div>
+        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3 min-w-0">
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1 truncate">Top Concentration</div>
+          <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">of movement</div>
         </div>
       </div>
 
@@ -119,36 +119,125 @@ function formatPct(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 }
 
-function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick }: {
+function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalAbsDollar, isDimmed, onHover }: {
   entry: ContributorEntry;
   maxAbsDollar: number;
   isPositive: boolean;
   onTickerClick?: (ticker: string) => void;
+  totalAbsDollar: number;
+  isDimmed: boolean;
+  onHover: (ticker: string | null) => void;
 }) {
+  const [showPopover, setShowPopover] = useState(false);
   const barWidth = maxAbsDollar > 0 ? (Math.abs(entry.contributionDollar) / maxAbsDollar) * 100 : 0;
+  const weightPct = totalAbsDollar > 0 ? (Math.abs(entry.contributionDollar) / totalAbsDollar) * 100 : 0;
+  const hasDetails = entry.shares != null && entry.currentPrice != null;
+
   return (
-    <div className="flex items-center gap-3 py-1.5">
+    <div
+      className={`relative flex items-center gap-3 py-1.5 rounded-lg px-2 -mx-2 transition-all duration-200 ${
+        isDimmed ? 'opacity-30' : 'opacity-100'
+      } ${!isDimmed ? 'hover:bg-gray-100/60 dark:hover:bg-white/[0.04]' : ''}`}
+      onMouseEnter={() => { onHover(entry.ticker); setShowPopover(true); }}
+      onMouseLeave={() => { onHover(null); setShowPopover(false); }}
+    >
       <button
-        className="w-14 text-sm font-mono font-medium text-rh-light-text dark:text-rh-text shrink-0 text-left hover:text-rh-green transition-colors cursor-pointer"
+        className="w-11 sm:w-14 text-xs sm:text-sm font-mono font-medium text-rh-light-text dark:text-rh-text shrink-0 text-left hover:text-rh-green transition-colors cursor-pointer"
         onClick={() => onTickerClick?.(entry.ticker)}
       >
         {entry.ticker}
       </button>
-      <div className="flex-1 h-5 bg-gray-50/40 dark:bg-white/[0.02] rounded overflow-hidden">
-        <div
-          className={`h-full rounded ${isPositive ? 'bg-rh-green/70' : 'bg-red-500/70'}`}
-          style={{ width: `${Math.max(barWidth, 2)}%` }}
-        />
+      <div className="flex-1 h-5 bg-gray-50/40 dark:bg-white/[0.02] rounded relative">
+        <div className="absolute inset-0 rounded overflow-hidden">
+          <div
+            className={`h-full rounded transition-all duration-300 ${
+              isPositive ? 'bg-rh-green/70' : 'bg-red-500/70'
+            }`}
+            style={{ width: `${Math.max(barWidth, 2)}%` }}
+          />
+        </div>
+        {!isDimmed && showPopover && (
+          <div
+            className={`absolute top-0 left-0 h-full rounded transition-all duration-300 ${
+              isPositive ? 'bg-rh-green/90' : 'bg-red-500/90'
+            }`}
+            style={{
+              width: `${Math.max(barWidth, 2)}%`,
+              boxShadow: isPositive
+                ? '0 0 12px rgba(0, 200, 5, 0.5), 0 0 4px rgba(0, 200, 5, 0.3)'
+                : '0 0 12px rgba(239, 68, 68, 0.5), 0 0 4px rgba(239, 68, 68, 0.3)',
+              transform: 'scaleY(1.3)',
+              transformOrigin: 'center',
+            }}
+          />
+        )}
       </div>
-      <span className={`w-20 text-right text-sm font-mono tabular-nums ${isPositive ? 'text-rh-green' : 'text-red-400'}`}>
+      <span className={`w-16 sm:w-20 text-right text-xs sm:text-sm font-mono tabular-nums ${isPositive ? 'text-rh-green' : 'text-red-400'}`}>
         {formatDollar(entry.contributionDollar)}
       </span>
-      <span className={`w-14 text-right text-xs tabular-nums ${
+      <span className={`w-12 sm:w-14 text-right text-[10px] sm:text-xs tabular-nums ${
         entry.percentReturn === null ? 'text-rh-light-muted dark:text-rh-muted' :
         isPositive ? 'text-rh-green' : 'text-red-400'
       }`}>
         {entry.percentReturn !== null ? formatPct(entry.percentReturn) : '—'}
       </span>
+
+      {/* Hover Detail Popover */}
+      {showPopover && !isDimmed && hasDetails && (
+        <>
+          {/* Opaque backing layer — hides text underneath */}
+          <div
+            className={`absolute z-40 ${isPositive ? 'left-0' : 'right-0'} bottom-full mb-2 w-56 rounded-xl bg-gray-50 dark:bg-[#0a0a0b] p-3 pointer-events-none`}
+            aria-hidden="true"
+          >
+            {/* Mirror the same content height but invisible */}
+            <div className="invisible">
+              <div className="flex items-center justify-between mb-2"><span className="text-sm">&nbsp;</span></div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                <div><span>&nbsp;</span><p>&nbsp;</p></div>
+                <div><span>&nbsp;</span><p>&nbsp;</p></div>
+                <div><span>&nbsp;</span><p>&nbsp;</p></div>
+                <div><span>&nbsp;</span><p>&nbsp;</p></div>
+              </div>
+            </div>
+          </div>
+          {/* Glassmorphic popover on top */}
+          <div
+            className={`absolute z-50 ${isPositive ? 'left-0' : 'right-0'} bottom-full mb-2 w-56 rounded-xl border border-gray-200/60 dark:border-white/[0.12] bg-white/80 dark:bg-white/[0.10] backdrop-blur-xl shadow-xl dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-3 pointer-events-none`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{entry.ticker}</span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                isPositive
+                  ? 'bg-rh-green/10 text-rh-green'
+                  : 'bg-red-500/10 text-red-400'
+              }`}>
+                {weightPct.toFixed(1)}% of {isPositive ? 'gains' : 'losses'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+              <div>
+                <span className="text-rh-light-muted/60 dark:text-white/30">Shares</span>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">{entry.shares!.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+              </div>
+              <div>
+                <span className="text-rh-light-muted/60 dark:text-white/30">Price</span>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentPrice!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+              <div>
+                <span className="text-rh-light-muted/60 dark:text-white/30">Avg Cost</span>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.avgCost!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+              <div>
+                <span className="text-rh-light-muted/60 dark:text-white/30">Position</span>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentValue!.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </div>
+            </div>
+            {/* Arrow */}
+            <div className={`absolute top-full ${isPositive ? 'left-6' : 'right-6'} w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-200/60 dark:border-t-white/[0.08]`} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -192,7 +281,7 @@ function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[];
         })}
       </div>
       {/* Card-style legend */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {sectors.map((s, i) => {
           const c = colorConfig[i % colorConfig.length];
           const isActive = expanded.has(s.sector);
@@ -240,6 +329,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [selectedWindow, setSelectedWindow] = useState<IntelligenceWindow>(initialData.window);
+  const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
 
   const handleWindowChange = async (window: IntelligenceWindow) => {
     if (window === selectedWindow) return;
@@ -262,6 +352,8 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
   const maxAbsDollar = allEntries.length > 0
     ? Math.max(...allEntries.map(e => Math.abs(e.contributionDollar)))
     : 0;
+  const totalGainsDollar = contributors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
+  const totalLossesDollar = detractors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
 
   // Compute net P&L from contributors + detractors
   const netPnL = contributors.reduce((s, e) => s + e.contributionDollar, 0) +
@@ -287,45 +379,47 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
   }
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none space-y-4">
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-3 sm:p-5 shadow-sm dark:shadow-none space-y-4">
       {/* Header + net P&L + window selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="A breakdown of what's driving your portfolio today — top winners, losers, and sector allocation." /></h3>
-          {session && (
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-              session === 'REG'
-                ? 'bg-rh-green/10 text-rh-green border border-rh-green/20'
-                : session === 'PRE' || session === 'POST'
-                  ? 'bg-amber-400/10 text-amber-500 dark:text-amber-400 border border-amber-400/20'
-                  : 'bg-gray-200/40 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted border border-gray-200/40 dark:border-white/[0.06]'
-            }`}>
-              {session === 'REG' && <span className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />}
-              {session === 'REG' ? 'Live' : session === 'PRE' ? 'Pre-Market' : session === 'POST' ? 'After Hours' : 'Closed'}
-            </span>
-          )}
-          {allEntries.length > 0 && (
-            <span className={`text-lg font-bold tabular-nums ${netPnL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-              {formatDollar(netPnL)} <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted">{WINDOW_LABELS[selectedWindow].toLowerCase()}</span>
-            </span>
-          )}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="A breakdown of what's driving your portfolio today — top winners, losers, and sector allocation." /></h3>
+            {session && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
+                session === 'REG'
+                  ? 'bg-rh-green/10 text-rh-green border border-rh-green/20'
+                  : session === 'PRE' || session === 'POST'
+                    ? 'bg-amber-400/10 text-amber-500 dark:text-amber-400 border border-amber-400/20'
+                    : 'bg-gray-200/40 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted border border-gray-200/40 dark:border-white/[0.06]'
+              }`}>
+                {session === 'REG' && <span className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />}
+                {session === 'REG' ? 'Live' : session === 'PRE' ? 'Pre-Market' : session === 'POST' ? 'After Hours' : 'Closed'}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 shrink-0">
+            {(Object.keys(WINDOW_LABELS) as IntelligenceWindow[]).map((w) => (
+              <button
+                key={w}
+                onClick={() => handleWindowChange(w)}
+                disabled={loading}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  selectedWindow === w
+                    ? 'bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text shadow-sm'
+                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                } disabled:opacity-50`}
+              >
+                {WINDOW_LABELS[w]}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
-          {(Object.keys(WINDOW_LABELS) as IntelligenceWindow[]).map((w) => (
-            <button
-              key={w}
-              onClick={() => handleWindowChange(w)}
-              disabled={loading}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                selectedWindow === w
-                  ? 'bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-              } disabled:opacity-50`}
-            >
-              {WINDOW_LABELS[w]}
-            </button>
-          ))}
-        </div>
+        {allEntries.length > 0 && (
+          <div className={`text-lg font-bold tabular-nums ${netPnL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+            {formatDollar(netPnL)} <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted">{WINDOW_LABELS[selectedWindow].toLowerCase()}</span>
+          </div>
+        )}
       </div>
 
       {/* Headline insight — punchy first line + muted detail */}
@@ -381,7 +475,16 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                 <h4 className="text-sm font-medium text-rh-green mb-2">Top Contributors</h4>
                 {contributors.length > 0 ? (
                   contributors.map(c => (
-                    <ContributorBar key={c.ticker} entry={c} maxAbsDollar={maxAbsDollar} isPositive={true} onTickerClick={onTickerClick} />
+                    <ContributorBar
+                      key={c.ticker}
+                      entry={c}
+                      maxAbsDollar={maxAbsDollar}
+                      isPositive={true}
+                      onTickerClick={onTickerClick}
+                      totalAbsDollar={totalGainsDollar}
+                      isDimmed={hoveredTicker !== null && hoveredTicker !== c.ticker}
+                      onHover={setHoveredTicker}
+                    />
                   ))
                 ) : (
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted">No gainers this period</p>
@@ -392,7 +495,16 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                 <h4 className="text-sm font-medium text-red-400 mb-2">Top Detractors</h4>
                 {detractors.length > 0 ? (
                   detractors.map(c => (
-                    <ContributorBar key={c.ticker} entry={c} maxAbsDollar={maxAbsDollar} isPositive={false} onTickerClick={onTickerClick} />
+                    <ContributorBar
+                      key={c.ticker}
+                      entry={c}
+                      maxAbsDollar={maxAbsDollar}
+                      isPositive={false}
+                      onTickerClick={onTickerClick}
+                      totalAbsDollar={totalLossesDollar}
+                      isDimmed={hoveredTicker !== null && hoveredTicker !== c.ticker}
+                      onHover={setHoveredTicker}
+                    />
                   ))
                 ) : (
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted">No losers this period</p>

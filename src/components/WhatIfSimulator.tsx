@@ -22,9 +22,9 @@ const HORIZON_YEARS: Record<Horizon, number> = { '1y': 1, '5y': 5, '10y': 10, '2
 const HORIZON_LABELS: Record<Horizon, string> = { '1y': '1 Year', '5y': '5 Years', '10y': '10 Years', '20y': '20 Years' };
 
 const PRESETS = [
-  { label: '+5%', value: 5 },
   { label: '+10%', value: 10 },
   { label: '+25%', value: 25 },
+  { label: '+50%', value: 50 },
   { label: '-10%', value: -10 },
   { label: '-25%', value: -25 },
   { label: '-50%', value: -50 },
@@ -566,7 +566,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
   const [error, setError] = useState<string | null>(null);
   const [monthlyContrib, setMonthlyContrib] = useState(0);
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
-  const [showContributors, setShowContributors] = useState(false);
+  const [showContributors, setShowContributors] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -593,7 +593,20 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
   const years = HORIZON_YEARS[horizon];
   const stocksTotal = useMemo(() => holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0), [holdings]);
 
-  const getRate = useCallback((ticker: string): number | null => {
+  // S&P 500 long-term average annual return (used as anchor for blending)
+  const MARKET_AVG_RATE = 0.10;
+
+  // Confidence weight: how much to trust the stock's actual CAGR vs market average
+  // based on how many years of data we have relative to the projection horizon
+  function getConfidenceWeight(dataYrs: number): number {
+    if (dataYrs >= 20) return 1.0;   // full confidence
+    if (dataYrs >= 10) return 0.8;
+    if (dataYrs >= 5) return 0.5;
+    if (dataYrs >= 3) return 0.3;
+    return 0.2;                       // minimal confidence for very short history
+  }
+
+  const getRawRate = useCallback((ticker: string): number | null => {
     if (overrides[ticker] !== undefined) return overrides[ticker] / 100;
     const data = cagrData[ticker];
     if (!data) return null;
@@ -609,7 +622,22 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
     holdings.map(h => {
       const mv = h.shares * h.currentPrice;
       const weight = stocksTotal > 0 ? mv / stocksTotal : 0;
-      const rate = getRate(h.ticker);
+      const rawRate = getRawRate(h.ticker);
+      const data = cagrData[h.ticker];
+      const dataYrs = data?.dataYears ?? 0;
+      const hasOverride = overrides[h.ticker] !== undefined;
+
+      // Apply blending for short-history stocks (skip if user set a custom override)
+      let rate = rawRate;
+      let isBlended = false;
+      if (rawRate !== null && !hasOverride && dataYrs > 0 && dataYrs < 20) {
+        const w = getConfidenceWeight(dataYrs);
+        if (w < 1.0) {
+          rate = w * rawRate + (1 - w) * MARKET_AVG_RATE;
+          isBlended = true;
+        }
+      }
+
       const annualContrib = monthlyContrib * 12 * weight;
 
       // Iterative compound calculation (includes DCA)
@@ -624,10 +652,12 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
 
       const totalContributed = annualContrib * years;
       const gain = rate !== null ? projected - mv - totalContributed : null;
-      const data = cagrData[h.ticker];
-      const displayRate = overrides[h.ticker] !== undefined
+      const displayRate = hasOverride
         ? overrides[h.ticker]
         : rate !== null ? rate * 100 : null;
+      const rawDisplayRate = hasOverride
+        ? overrides[h.ticker]
+        : rawRate !== null ? rawRate * 100 : null;
 
       return {
         ticker: h.ticker,
@@ -636,17 +666,20 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
         marketValue: mv,
         weight: weight * 100,
         rate,
+        rawRate,
         displayRate,
+        rawDisplayRate,
+        isBlended,
         projected: rate !== null ? projected : null,
         gain,
         totalContributed,
         annualContrib,
         yearlyValues,
-        dataYears: data?.dataYears ?? 0,
+        dataYears: dataYrs,
         hasData: rate !== null,
       };
     }),
-    [holdings, getRate, years, cagrData, overrides, stocksTotal, monthlyContrib]
+    [holdings, getRawRate, years, cagrData, overrides, stocksTotal, monthlyContrib]
   );
 
   const equity = totalValue - marginDebt;
@@ -678,6 +711,21 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
     [...entries].filter(e => e.gain !== null).sort((a, b) => Math.abs(b.gain!) - Math.abs(a.gain!)).slice(0, 5),
     [entries]
   );
+
+  // Top 3 tickers for row highlighting
+  const top3Tickers = useMemo(() => {
+    const sorted = [...entries].filter(e => e.gain !== null && e.gain > 0).sort((a, b) => b.gain! - a.gain!);
+    return new Set(sorted.slice(0, 3).map(e => e.ticker));
+  }, [entries]);
+
+  // Max absolute gain for scaling growth bars
+  const maxAbsGain = useMemo(() => {
+    let max = 0;
+    for (const e of entries) {
+      if (e.gain !== null && Math.abs(e.gain) > max) max = Math.abs(e.gain);
+    }
+    return max;
+  }, [entries]);
 
   const updateOverride = useCallback((ticker: string, pct: number) => {
     setOverrides(prev => ({ ...prev, [ticker]: pct }));
@@ -812,9 +860,9 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
           {showContributors && (
             <div className="flex flex-wrap gap-2">
               {topContributors.map((e, i) => (
-                <div key={e.ticker} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50/40 dark:bg-white/[0.03] border border-gray-200/20 dark:border-white/[0.04]">
+                <button key={e.ticker} onClick={() => onTickerClick?.(e.ticker)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50/40 dark:bg-white/[0.03] border border-gray-200/20 dark:border-white/[0.04] hover:bg-gray-100/60 dark:hover:bg-white/[0.06] hover:border-rh-green/20 transition-colors cursor-pointer">
                   <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">#{i + 1}</span>
-                  <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text">{e.ticker}</span>
+                  <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{e.ticker}</span>
                   <span className={`text-[10px] font-medium tabular-nums ${e.gain! >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {e.gain! >= 0 ? '+' : ''}{formatCurrency(e.gain!)}
                   </span>
@@ -823,7 +871,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
                       ({e.displayRate.toFixed(1)}%/yr)
                     </span>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -831,24 +879,34 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
       )}
 
       {/* Table header */}
-      <div className="grid grid-cols-[1fr_70px_80px_auto] gap-x-1 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 border-b border-gray-200/40 dark:border-white/[0.04]">
+      <div className="grid grid-cols-[minmax(100px,1.2fr)_80px_80px_minmax(80px,1fr)_minmax(100px,1.2fr)] gap-x-2 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 border-b border-gray-200/40 dark:border-white/[0.04]">
         <span>Stock</span>
         <span className="text-right">Current</span>
         <span className="text-center">Avg Return</span>
+        <span>Growth</span>
         <span className="text-right">Projected</span>
       </div>
 
       {/* Table rows */}
-      <div className="divide-y divide-gray-100/60 dark:divide-white/[0.03]">
-        {entries.map(entry => {
-          const { ticker, shares, price, marketValue, weight, displayRate, projected, gain, totalContributed: rowContrib, annualContrib, yearlyValues, dataYears, hasData } = entry;
+      <div>
+        {entries.map((entry, rowIdx) => {
+          const { ticker, shares, price, marketValue, weight, displayRate, rawDisplayRate, isBlended, projected, gain, annualContrib, yearlyValues, dataYears, hasData } = entry;
           const isExpanded = expandedTicker === ticker;
+          const isTop3 = top3Tickers.has(ticker);
+          const growthBarPct = gain !== null && maxAbsGain > 0 ? Math.min(100, (Math.abs(gain) / maxAbsGain) * 100) : 0;
+          const multiplier = projected !== null && marketValue > 0 ? projected / marketValue : null;
 
           return (
             <div key={ticker}>
               <div
-                className={`grid grid-cols-[1fr_70px_80px_auto] gap-x-1 items-center px-3 py-1.5 transition-colors cursor-pointer ${
-                  hasData ? 'hover:bg-gray-50/40 dark:hover:bg-white/[0.02]' : 'opacity-60'
+                className={`grid grid-cols-[minmax(100px,1.2fr)_80px_80px_minmax(80px,1fr)_minmax(100px,1.2fr)] gap-x-2 items-center px-3 py-2 transition-colors cursor-pointer ${
+                  isTop3
+                    ? 'bg-rh-green/[0.08] hover:bg-rh-green/[0.12] border-l-2 border-rh-green/30'
+                    : hasData
+                      ? rowIdx % 2 === 0
+                        ? 'hover:bg-gray-50/40 dark:hover:bg-white/[0.02]'
+                        : 'bg-gray-50/20 dark:bg-white/[0.015] hover:bg-gray-50/50 dark:hover:bg-white/[0.03]'
+                      : 'opacity-60'
                 }`}
                 onClick={() => setExpandedTicker(isExpanded ? null : ticker)}
               >
@@ -865,8 +923,9 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
                       {weight.toFixed(1)}%
                     </span>
                     {dataYears > 0 && source === 'best' && hasData && (
-                      <span className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60" title={`Using ${dataYears >= 16 ? '20yr' : dataYears >= 8 ? '10yr' : dataYears >= 4 ? '5yr' : 'all'} avg (${dataYears.toFixed(0)}yr data)`}>
+                      <span className={`text-[9px] tabular-nums ${isBlended ? 'text-amber-500/80' : 'text-rh-light-muted/70 dark:text-rh-muted/60'}`} title={isBlended ? `${dataYears.toFixed(0)}yr data blended with market avg (${rawDisplayRate?.toFixed(1)}% → ${displayRate?.toFixed(1)}%)` : `Using ${dataYears >= 16 ? '20yr' : dataYears >= 8 ? '10yr' : dataYears >= 4 ? '5yr' : 'all'} avg (${dataYears.toFixed(0)}yr data)`}>
                         {dataYears >= 16 ? '20y' : dataYears >= 8 ? '10y' : dataYears >= 4 ? '5y' : `${dataYears.toFixed(0)}y`}
+                        {isBlended && ' ~'}
                       </span>
                     )}
                     {dataYears > 0 && source !== 'best' && source !== 'custom' && !hasData && (
@@ -896,6 +955,25 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
                       focus:ring-1 focus:ring-rh-green/40`}
                   />
                   <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">%</span>
+                </div>
+
+                {/* Growth bar */}
+                <div className="flex items-center gap-1.5">
+                  {gain !== null && maxAbsGain > 0 ? (
+                    <div className="flex-1 h-1.5 rounded-full bg-gray-200/40 dark:bg-white/[0.06] overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${gain >= 0 ? 'bg-rh-green/60' : 'bg-rh-red/60'}`}
+                        style={{ width: `${growthBarPct}%` }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                  {multiplier !== null && years >= 5 && multiplier >= 1.5 && (
+                    <span className={`text-[9px] font-semibold tabular-nums shrink-0 ${isBlended ? 'text-amber-500/70' : gain !== null && gain >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`} title={isBlended ? `Blended rate (${dataYears.toFixed(0)}yr data)` : ''}>
+                      {multiplier.toFixed(1)}x
+                    </span>
+                  )}
                 </div>
 
                 {/* Projected value */}
@@ -955,7 +1033,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
       </div>
 
       {/* Sticky total row */}
-      <div className="sticky bottom-0 z-10 grid grid-cols-[1fr_70px_80px_auto] gap-x-1 items-center px-3 py-2 bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border-t border-gray-200/40 dark:border-white/[0.08] rounded-b-lg shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
+      <div className="sticky bottom-0 z-10 grid grid-cols-[minmax(100px,1.2fr)_80px_80px_minmax(80px,1fr)_minmax(100px,1.2fr)] gap-x-2 items-center px-3 py-2 bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border-t border-gray-200/40 dark:border-white/[0.08] rounded-b-lg shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
         <span className="text-xs font-bold text-rh-light-text dark:text-rh-text">Portfolio Total</span>
         <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text tabular-nums text-right">
           {formatCurrency(equity)}
@@ -967,6 +1045,13 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
             </span>
           )}
         </span>
+        <div>
+          {equity > 0 && projectedEquity > 0 && years >= 5 && (
+            <span className={`text-[10px] font-bold tabular-nums ${totalGain >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+              {(projectedEquity / equity).toFixed(1)}x
+            </span>
+          )}
+        </div>
         <div className="text-right">
           <span className={`text-[11px] font-bold tabular-nums ${totalGain >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
             {formatCurrency(projectedEquity)}
@@ -977,8 +1062,9 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
         </div>
       </div>
 
-      <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 text-center mt-3">
-        Click row for year-by-year breakdown &middot; Returns compounded annually &middot; Past performance does not guarantee future results
+      <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 text-center mt-3 space-y-0.5">
+        <div>Click row for year-by-year breakdown &middot; Returns compounded annually &middot; Past performance does not guarantee future results</div>
+        <div>Stocks with limited history (<span className="text-amber-500/70">~</span>) use rates blended toward the S&amp;P 500 avg (~10%/yr) for conservative estimates</div>
       </div>
     </>
   );

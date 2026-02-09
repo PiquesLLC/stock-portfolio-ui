@@ -16,6 +16,7 @@ import { formatCurrency, formatLargeNumber, formatVolume, formatPercent, inferEx
 import { AddHoldingModal } from './AddHoldingModal';
 import { Term } from './Term';
 import { StockLogo } from './StockLogo';
+import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 
 interface Props {
   ticker: string;
@@ -221,7 +222,18 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [showIntelFeed, setShowIntelFeed] = useState<boolean>(() => {
     try { const v = localStorage.getItem('stockIntelFeed'); return v !== null ? JSON.parse(v) : true; } catch { return true; }
   });
-  const toggleIntelFeed = () => setShowIntelFeed(prev => { const next = !prev; localStorage.setItem('stockIntelFeed', JSON.stringify(next)); return next; });
+  const [intelCollapsed, setIntelCollapsed] = useState(false);
+  const toggleIntelFeed = () => {
+    if (showIntelFeed) {
+      // If enabled, toggle collapsed state instead of hiding
+      setIntelCollapsed(prev => !prev);
+    } else {
+      // If disabled, enable it and uncollapse
+      setShowIntelFeed(true);
+      setIntelCollapsed(false);
+      localStorage.setItem('stockIntelFeed', 'true');
+    }
+  };
 
   const fetchPriceAlerts = useCallback(() => {
     getPriceAlerts(ticker).then(setPriceAlerts).catch(() => setPriceAlerts([]));
@@ -590,17 +602,25 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {/* Intelligence feed toggle — desktop only */}
             <button
               onClick={toggleIntelFeed}
+              onDoubleClick={() => { setShowIntelFeed(false); localStorage.setItem('stockIntelFeed', 'false'); }}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-                showIntelFeed
+                showIntelFeed && !intelCollapsed
                   ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
-                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
+                  : showIntelFeed && intelCollapsed
+                    ? 'border-blue-500/15 text-blue-400/50 hover:bg-blue-500/10'
+                    : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
               }`}
-              title={showIntelFeed ? 'Hide intelligence feed' : 'Show intelligence feed'}
+              title={!showIntelFeed ? 'Show intelligence feed' : intelCollapsed ? 'Expand intelligence feed (double-click to hide)' : 'Collapse intelligence feed (double-click to hide)'}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
               </svg>
               Intel
+              {showIntelFeed && (
+                <svg className={`w-2.5 h-2.5 transition-transform ${intelCollapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -698,20 +718,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           ))}
           {compareTickers.length < 3 && (
             showCompareInput ? (
-              <form
-                onSubmit={(e) => { e.preventDefault(); addCompareTicker(compareInput); }}
-                className="inline-flex items-center"
-              >
-                <input
-                  autoFocus
+              <div className="inline-flex items-center relative" style={{ width: '120px' }}>
+                <TickerAutocompleteInput
                   value={compareInput}
-                  onChange={(e) => setCompareInput(e.target.value.toUpperCase())}
-                  onBlur={() => { if (!compareInput) setShowCompareInput(false); }}
+                  onChange={(v) => setCompareInput(v)}
+                  onSelect={(result) => { addCompareTicker(result.symbol); setShowCompareInput(false); }}
                   placeholder="TICKER"
-                  className="w-16 px-1.5 py-0.5 text-[11px] font-semibold bg-transparent border border-white/[0.12] dark:border-white/[0.12] rounded text-rh-light-text dark:text-rh-text outline-none focus:border-rh-green/40"
-                  maxLength={6}
+                  autoFocus
+                  className="!w-full !px-1.5 !py-0.5 !text-[11px] !font-semibold !bg-transparent !border-white/[0.12] dark:!border-white/[0.12] !rounded !text-rh-light-text dark:!text-rh-text"
                 />
-              </form>
+              </div>
             ) : (
               <button
                 onClick={() => setShowCompareInput(true)}
@@ -902,7 +918,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Intelligence Feed - mobile only (desktop shows in right column) */}
       <div className="lg:hidden">
-        {showIntelFeed && (
+        {showIntelFeed && !intelCollapsed && (
           <div className="mb-6">
             {aiEvents?.events && aiEvents.events.length > 0 ? (
               <EventFeed events={aiEvents.events} ticker={ticker} />
@@ -962,7 +978,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>{/* end left column */}
 
         {/* Right Column - Intelligence Feed (desktop only, sticky sidebar) */}
-        {showIntelFeed && (
+        {showIntelFeed && !intelCollapsed && (
           <div className="hidden lg:block lg:w-[360px] lg:shrink-0 lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto no-scrollbar">
             {aiEvents?.events && aiEvents.events.length > 0 ? (
               <EventFeed events={aiEvents.events} ticker={ticker} />

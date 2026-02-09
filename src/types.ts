@@ -468,6 +468,10 @@ export interface ContributorEntry {
   ticker: string;
   percentReturn: number | null;
   contributionDollar: number;
+  shares?: number;
+  avgCost?: number;
+  currentPrice?: number;
+  currentValue?: number;
 }
 
 export interface SectorExposureEntry {

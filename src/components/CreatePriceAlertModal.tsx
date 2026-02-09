@@ -153,7 +153,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl p-5 w-full max-w-sm mx-4 shadow-xl"
+        className="bg-white/90 dark:bg-white/[0.06] backdrop-blur-xl border border-gray-200/50 dark:border-white/[0.08] rounded-xl p-5 w-full max-w-sm mx-4 shadow-2xl dark:shadow-black/40"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

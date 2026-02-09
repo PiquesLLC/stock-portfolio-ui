@@ -31,7 +31,7 @@ export function HeroInsights({ data, window: win = '1d', onTickerClick }: Props)
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {/* Sector Driver / Drag (toggleable) */}
-      <div className={`bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px] border-l-2 ${sectorMode === 'driver' ? 'border-l-rh-green/60' : 'border-l-rh-red/60'}`}>
+      <div className={`bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px] border-l-2 border-r-2 md:border-r-0 ${sectorMode === 'driver' ? 'border-l-rh-green/60 border-r-rh-green/60 md:border-r-transparent' : 'border-l-rh-red/60 border-r-rh-red/60 md:border-r-transparent'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <button
@@ -109,7 +109,7 @@ export function HeroInsights({ data, window: win = '1d', onTickerClick }: Props)
       </div>
 
       {/* Momentum / Deceleration (toggleable) */}
-      <div className={`bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px] border-r-2 ${streakMode === 'momentum' ? 'border-r-rh-green/60' : 'border-r-rh-red/60'}`}>
+      <div className={`bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px] border-l-2 border-r-2 md:border-l-0 ${streakMode === 'momentum' ? 'border-r-rh-green/60 border-l-rh-green/60 md:border-l-transparent' : 'border-r-rh-red/60 border-l-rh-red/60 md:border-l-transparent'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             {hasEither ? (

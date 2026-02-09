@@ -100,11 +100,23 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
       >
         {/* Header */}
         <div className="sticky top-0 bg-black/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/30 dark:border-white/[0.04] px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
-            <p className={`text-sm font-medium ${isMargin ? (marginDetail.penalty > 0 ? 'text-rh-red' : 'text-rh-green') : getBarColor(catDetail!.score, catDetail!.maxScore)}`}>
-              {scoreLabel}
-            </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+                hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+              aria-label="Back"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
+              <p className={`text-sm font-medium ${isMargin ? (marginDetail.penalty > 0 ? 'text-rh-red' : 'text-rh-green') : getBarColor(catDetail!.score, catDetail!.maxScore)}`}>
+                {scoreLabel}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}

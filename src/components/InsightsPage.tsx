@@ -15,7 +15,7 @@ import { MarketSession } from '../types';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if';
 
-const PRIMARY_COUNT = 5; // core tabs always visible
+const PRIMARY_COUNT_MOBILE = 3;
 
 function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   tabs: { id: InsightsSubTab; label: string }[];
@@ -25,9 +25,9 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  const primaryTabs = tabs.slice(0, PRIMARY_COUNT);
-  const secondaryTabs = tabs.slice(PRIMARY_COUNT);
-  const activeSecondary = secondaryTabs.find((t) => t.id === activeTab);
+  const mobilePrimary = tabs.slice(0, PRIMARY_COUNT_MOBILE);
+  const mobileSecondary = tabs.slice(PRIMARY_COUNT_MOBILE);
+  const activeMobileSecondary = mobileSecondary.find((t) => t.id === activeTab);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -57,27 +57,27 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
         ))}
       </div>
 
-      {/* Mobile: primary tabs + More dropdown */}
-      <div className="flex md:hidden gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
-        {primaryTabs.map((t) => (
+      {/* Mobile: fewer primary tabs + More dropdown */}
+      <div className="flex md:hidden gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
+        {mobilePrimary.map((t) => (
           <button key={t.id} onClick={() => { onTabChange(t.id); setMoreOpen(false); }} className={btnClass(activeTab === t.id)}>
             {t.label}
           </button>
         ))}
-        {secondaryTabs.length > 0 && (
+        {mobileSecondary.length > 0 && (
           <div className="relative shrink-0" ref={moreRef}>
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className={btnClass(!!activeSecondary)}
+              className={btnClass(!!activeMobileSecondary)}
             >
-              {activeSecondary ? activeSecondary.label : 'More'}
+              {activeMobileSecondary ? activeMobileSecondary.label : 'More'}
               <svg className="w-3 h-3 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={moreOpen ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
               </svg>
             </button>
             {moreOpen && (
               <div className="absolute top-full right-0 mt-1 z-30 min-w-[120px] sm:min-w-[140px] rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1a] shadow-lg py-1">
-                {secondaryTabs.map((t) => (
+                {mobileSecondary.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => { onTabChange(t.id); setMoreOpen(false); }}
@@ -302,7 +302,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     return (
       <div className="space-y-6">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <BehaviorInsights />
+        <BehaviorInsights onTickerClick={onTickerClick} portfolioTickers={holdings.map(h => h.ticker)} />
       </div>
     );
   }
@@ -312,7 +312,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     return (
       <div className="space-y-6">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <IncomeInsights refreshTrigger={refreshTrigger} />
+        <IncomeInsights refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} />
       </div>
     );
   }

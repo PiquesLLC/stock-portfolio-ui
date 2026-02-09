@@ -4,6 +4,7 @@ import { getIncomeInsights } from '../api';
 
 interface Props {
   refreshTrigger?: number;
+  onTickerClick?: (ticker: string) => void;
 }
 
 function formatCurrency(amount: number): string {
@@ -100,11 +101,23 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
           shadow-xl z-50 overflow-y-auto outline-none animate-slide-in-right"
       >
         <div className="sticky top-0 bg-white/95 dark:bg-[#0a0a0b]/95 backdrop-blur-xl border-b border-gray-200/30 dark:border-white/[0.04] px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
-            <p className={`text-sm font-medium ${getScoreColor(catDetail.score, catDetail.maxScore)}`}>
-              Score: {catDetail.score}/{catDetail.maxScore}
-            </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+                hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+              aria-label="Back"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
+              <p className={`text-sm font-medium ${getScoreColor(catDetail.score, catDetail.maxScore)}`}>
+                Score: {catDetail.score}/{catDetail.maxScore}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -544,7 +557,7 @@ function IncomeDividendTimeline({
 // MAIN COMPONENT
 // ============================================================================
 
-export function IncomeInsights({ refreshTrigger }: Props) {
+export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
   const [data, setData] = useState<IncomeInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -614,10 +627,10 @@ export function IncomeInsights({ refreshTrigger }: Props) {
 
       {/* Contributors + Concentration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <IncomeContributors contributors={data.contributors} />
+        <IncomeContributors contributors={data.contributors} onTickerClick={onTickerClick} />
         <div className="space-y-6">
           <IncomeConcentration data={data.concentration} />
-          <IncomeDividendTimeline events={data.timeline} />
+          <IncomeDividendTimeline events={data.timeline} onTickerClick={onTickerClick} />
         </div>
       </div>
     </div>

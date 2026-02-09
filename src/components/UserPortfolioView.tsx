@@ -182,7 +182,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Back button */}
       <button
         onClick={onBack}
@@ -192,17 +192,17 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       </button>
 
       {/* User header */}
-      <div className="flex items-center gap-3 mb-1">
-        <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">{displayName}</h1>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+        <h1 className="text-lg sm:text-xl font-bold text-rh-light-text dark:text-rh-text">{displayName}</h1>
         {returnPct !== null && (
-          <span className={`px-2 py-0.5 text-sm font-medium rounded ${
+          <span className={`px-2 py-0.5 text-xs sm:text-sm font-medium rounded ${
             returnPct >= 0 ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'
           }`}>
             {formatPercent(returnPct)} ({window})
           </span>
         )}
         {trackingStartAt && (
-          <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-500/10 text-blue-400">
+          <span className="hidden sm:inline px-2 py-0.5 text-xs font-medium rounded bg-blue-500/10 text-blue-400">
             Tracking since {new Date(trackingStartAt).toLocaleDateString()}
           </span>
         )}
@@ -276,15 +276,16 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
           {portfolio.holdings.length === 0 ? (
             <div className="text-rh-light-muted dark:text-rh-muted text-sm">No holdings</div>
           ) : (
-            <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border overflow-hidden">
-              <table className="w-full">
+            <div className="bg-gray-50/40 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr className="border-b border-rh-light-border dark:border-rh-border text-left">
+                  <tr className="border-b border-gray-200/30 dark:border-white/[0.06] text-left">
                     <th className={thClass('ticker', 'left')} onClick={() => handleSort('ticker')}>Ticker{sortIndicator('ticker')}</th>
                     <th className={thClass('shares')} onClick={() => handleSort('shares')}>{sortIndicator('shares')}Shares</th>
                     <th className={thClass('price')} onClick={() => handleSort('price')}>{sortIndicator('price')}Price</th>
-                    <th className={thClass('value')} onClick={() => handleSort('value')}>{sortIndicator('value')}Value</th>
-                    <th className={thClass('dayPL')} onClick={() => handleSort('dayPL')}>{sortIndicator('dayPL')}Day P/L</th>
+                    <th className={`hidden sm:table-cell ${thClass('value')}`} onClick={() => handleSort('value')}>{sortIndicator('value')}Value</th>
+                    <th className={`hidden sm:table-cell ${thClass('dayPL')}`} onClick={() => handleSort('dayPL')}>{sortIndicator('dayPL')}Day P/L</th>
                     <th className={thClass('dayChg')} onClick={() => handleSort('dayChg')}>{sortIndicator('dayChg')}Day %</th>
                     <th className={thClass('pl')} onClick={() => handleSort('pl')}>{sortIndicator('pl')}P/L</th>
                     <th className={thClass('plPct')} onClick={() => handleSort('plPct')}>{sortIndicator('plPct')}P/L %</th>
@@ -295,29 +296,30 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
                     const plColor = h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red';
                     const dayColor = h.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red';
                     return (
-                      <tr key={h.id} className="border-b border-rh-light-border dark:border-rh-border last:border-b-0">
-                        <td className="px-4 py-3 text-sm font-medium text-rh-light-text dark:text-rh-text">
+                      <tr key={h.id} className="border-b border-gray-200/20 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                        <td className="px-3 sm:px-4 py-3 text-sm font-medium text-rh-light-text dark:text-rh-text">
                           <span
                             className="cursor-pointer hover:text-rh-green hover:underline transition-colors"
                             onClick={() => onStockClick ? onStockClick(h.ticker) : setViewingStock({ ticker: h.ticker, holding: h })}
                           >{h.ticker}</span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{h.shares}</td>
-                        <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{formatCurrency(h.currentPrice)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{formatCurrency(h.currentValue)}</td>
-                        <td className={`px-4 py-3 text-sm text-right ${dayColor}`}>
+                        <td className="px-3 sm:px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{h.shares}</td>
+                        <td className="px-3 sm:px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">{formatCurrency(h.currentPrice)}</td>
+                        <td className={`hidden sm:table-cell px-3 sm:px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text`}>{formatCurrency(h.currentValue)}</td>
+                        <td className={`hidden sm:table-cell px-3 sm:px-4 py-3 text-sm text-right ${dayColor}`}>
                           {formatCurrency(h.dayChange)}
                         </td>
-                        <td className={`px-4 py-3 text-sm text-right ${dayColor}`}>
+                        <td className={`px-3 sm:px-4 py-3 text-sm text-right ${dayColor}`}>
                           {formatPercent(h.dayChangePercent)}
                         </td>
-                        <td className={`px-4 py-3 text-sm text-right ${plColor}`}>{formatCurrency(h.profitLoss)}</td>
-                        <td className={`px-4 py-3 text-sm text-right ${plColor}`}>{formatPercent(h.profitLossPercent)}</td>
+                        <td className={`px-3 sm:px-4 py-3 text-sm text-right ${plColor}`}>{formatCurrency(h.profitLoss)}</td>
+                        <td className={`px-3 sm:px-4 py-3 text-sm text-right ${plColor}`}>{formatPercent(h.profitLossPercent)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -343,9 +345,9 @@ function SummaryCard({ label, value, valueColor, sub }: {
   sub?: string;
 }) {
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card rounded-xl border border-rh-light-border dark:border-rh-border p-4">
+    <div className="bg-gray-50/40 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-4">
       <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">{label}</div>
-      <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>
+      <div className={`text-base sm:text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>
         {value}
       </div>
       {sub && (

@@ -507,19 +507,19 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
 
   return (
     <div className="rounded-xl overflow-hidden">
-      <div className="px-4 pb-4 pt-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="px-3 sm:px-4 pb-4 pt-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
-          <div className="flex rounded-lg overflow-hidden border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40">
+          <div className="flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
             <button
               type="button"
               onClick={() => { setViewMode('compact'); localStorage.setItem('holdingsView', 'compact'); }}
-              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'compact' ? 'bg-white/[0.08] text-white/80 dark:bg-white/[0.08] dark:text-white/80 bg-gray-100 text-gray-700' : 'text-white/30 dark:text-white/30 text-gray-400 hover:text-white/50 dark:hover:text-white/50 hover:text-gray-600'}`}
+              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
             >Simple</button>
             <button
               type="button"
               onClick={() => { setViewMode('detailed'); localStorage.setItem('holdingsView', 'detailed'); }}
-              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-white/[0.08] text-white/80 dark:bg-white/[0.08] dark:text-white/80 bg-gray-100 text-gray-700' : 'text-white/30 dark:text-white/30 text-gray-400 hover:text-white/50 dark:hover:text-white/50 hover:text-gray-600'}`}
+              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
             >Detailed</button>
           </div>
         </div>
@@ -579,8 +579,8 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} ${getHeaderClass('dayChangePercent', 'right')}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
                 {getSortIndicator('dayChangePercent')}Day %
               </th>
-              <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')} title="Sort by total profit/loss">
-                {getSortIndicator('profitLoss')}Total P/L
+              <th className={getHeaderClass('profitLoss', 'right')} onClick={() => handleSort('profitLoss')} title="Sort by total profit/loss" style={{ paddingLeft: '0.5rem', paddingRight: '0.5rem' }}>
+                {getSortIndicator('profitLoss')}<span className="hidden sm:inline">Total </span>P/L
               </th>
               <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} ${getHeaderClass('profitLossPercent', 'right')}`} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
                 {getSortIndicator('profitLossPercent')}Total %
@@ -660,13 +660,13 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   }`}>
                     {hasValidPrice ? formatPercent(holding.dayChangePercent) : '—'}
                   </td>
-                  <td className={`px-4 py-3 text-right font-semibold value-transition ${
+                  <td className={`px-2 sm:px-4 py-3 text-right font-semibold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLoss >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} px-4 py-3 text-right font-bold value-transition ${
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} px-2 sm:px-4 py-3 text-right font-bold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLossPercent >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>

@@ -22,9 +22,10 @@ function shortDate(iso: string): string {
 interface Props {
   refreshTrigger?: number;
   holdings?: Holding[];
+  onTickerClick?: (ticker: string) => void;
 }
 
-export function DividendsSection({ refreshTrigger, holdings }: Props) {
+export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Props) {
   const [summary, setSummary] = useState<DividendSummary | null>(null);
   const [upcoming, setUpcoming] = useState<DividendEvent[]>([]);
   const [credits, setCredits] = useState<DividendCredit[]>([]);
@@ -202,7 +203,10 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
                     return (
                       <div key={ev.id} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-rh-light-text dark:text-rh-text">{ev.ticker}</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onTickerClick?.(ev.ticker); }}
+                            className="font-medium text-rh-green hover:underline"
+                          >{ev.ticker}</button>
                           <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
                             ${ev.amountPerShare.toFixed(4)}/sh
                             {holding && <> &times; {holding.shares}</>}
@@ -241,7 +245,10 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
                       className="w-full flex items-center justify-between text-xs py-1 px-1 -mx-1 rounded hover:bg-rh-light-bg dark:hover:bg-rh-dark/50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-rh-light-text dark:text-rh-text">{c.ticker}</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onTickerClick?.(c.ticker); }}
+                          className="font-medium text-rh-green hover:underline"
+                        >{c.ticker}</button>
                         <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
                           {c.sharesEligible} sh
                         </span>
@@ -282,7 +289,10 @@ export function DividendsSection({ refreshTrigger, holdings }: Props) {
               <div className="space-y-1">
                 {summary.byTicker.map(t => (
                   <div key={t.ticker} className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-rh-light-text dark:text-rh-text">{t.ticker}</span>
+                    <button
+                      onClick={() => onTickerClick?.(t.ticker)}
+                      className="font-medium text-rh-green hover:underline"
+                    >{t.ticker}</button>
                     <div className="flex items-center gap-3">
                       <span className="text-rh-green">{formatCurrency(t.total)}</span>
                       <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{t.count} payouts</span>

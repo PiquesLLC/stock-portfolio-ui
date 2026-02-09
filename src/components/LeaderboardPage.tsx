@@ -162,7 +162,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   };
 
   const getHeaderClass = (key: SortKey, align: 'left' | 'right' = 'left') => {
-    const base = 'px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors select-none whitespace-nowrap';
+    const base = 'px-2 sm:px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors select-none whitespace-nowrap';
     const alignClass = align === 'right' ? 'text-right' : '';
     const activeClass = sortKey === key ? 'text-rh-light-text dark:text-white' : '';
     return `${base} ${alignClass} ${activeClass}`;
@@ -186,7 +186,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
         <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
@@ -255,11 +255,11 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
           No verified users found. Run the seed script to add demo users.
         </div>
       ) : (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-x-auto">
+          <table className="w-full min-w-[480px]">
             <thead>
               <tr className="border-b border-gray-200/50 dark:border-white/[0.06] text-left">
-                <th className={`${getHeaderClass('rank')} w-12 text-xs`} onClick={() => handleSort('rank')}>
+                <th className={`${getHeaderClass('rank')} w-8 sm:w-12 text-xs`} onClick={() => handleSort('rank')}>
                   #{getSortIndicator('rank')}
                 </th>
                 <th className={`${getHeaderClass('user')} text-xs`} onClick={() => handleSort('user')}>
@@ -268,13 +268,13 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 <th className={`${getHeaderClass('twrPct', 'right')} text-xs`} onClick={() => handleSort('twrPct')}>
                   {getSortIndicator('twrPct')}Return %
                 </th>
-                <th className={`${getHeaderClass('returnDollar', 'right')} text-xs`} onClick={() => handleSort('returnDollar')}>
+                <th className={`${getHeaderClass('returnDollar', 'right')} text-xs hidden sm:table-cell`} onClick={() => handleSort('returnDollar')}>
                   {getSortIndicator('returnDollar')}Return $
                 </th>
-                <th className={`${getHeaderClass('assets', 'right')} text-xs`} onClick={() => handleSort('assets')}>
+                <th className={`${getHeaderClass('assets', 'right')} text-xs hidden sm:table-cell`} onClick={() => handleSort('assets')}>
                   {getSortIndicator('assets')}Assets
                 </th>
-                <th className="px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right w-24">Status</th>
+                <th className="px-2 sm:px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right w-16 sm:w-24">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -291,36 +291,36 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                     }`}
                     title={entry.flagged ? entry.flagReason ?? 'Flagged' : undefined}
                   >
-                    <td className="px-4 py-3 text-sm text-rh-light-muted dark:text-rh-muted font-medium">
+                    <td className="px-2 sm:px-4 py-3 text-sm text-rh-light-muted dark:text-rh-muted font-medium">
                       {index + 1}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">
+                        <span className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate max-w-[120px] sm:max-w-none">
                           {entry.displayName}
                         </span>
                         {entry.isNew && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shrink-0">
                             NEW
                           </span>
                         )}
                         {entry.flagged && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-500/20 text-red-400 border border-red-500/30" title={entry.flagReason ?? ''}>
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-500/20 text-red-400 border border-red-500/30 shrink-0" title={entry.flagReason ?? ''}>
                             FLAG
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-rh-light-muted dark:text-rh-muted">
+                      <div className="text-xs text-rh-light-muted dark:text-rh-muted truncate max-w-[120px] sm:max-w-none">
                         @{entry.username}
                         {entry.sinceStart && (
-                          <span className="ml-2 opacity-60">Since start</span>
+                          <span className="ml-2 opacity-60 hidden sm:inline">Since start</span>
                         )}
                       </div>
                     </td>
-                    <td className={`px-4 py-3 text-sm text-right font-bold ${twrColor}`}>
+                    <td className={`px-2 sm:px-4 py-3 text-xs sm:text-sm text-right font-bold ${twrColor}`}>
                       {formatPercent(entry.twrPct)}
                     </td>
-                    <td className={`px-4 py-3 text-sm text-right ${twrColor}`}>
+                    <td className={`px-2 sm:px-4 py-3 text-sm text-right hidden sm:table-cell ${twrColor}`}>
                       {entry.returnDollar !== null ? (
                         <>
                           {entry.returnDollar >= 0 ? '+' : ''}
@@ -328,16 +328,16 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                         </>
                       ) : '--'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text">
+                    <td className="px-2 sm:px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text hidden sm:table-cell">
                       {formatCurrency(entry.currentAssets)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 sm:px-4 py-3 text-right">
                       {entry.verified && !entry.flagged && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-2.108-2.108 3 3 0 01-5.304 0 3 3 0 00-2.108 2.108 3 3 0 010 5.304 3 3 0 002.108 2.108 3 3 0 015.304 0 3 3 0 002.108-2.108zM9.293 10.707a1 1 0 011.414-1.414l1 1a1 1 0 01-1.414 1.414l-1-1z" clipRule="evenodd" />
                           </svg>
-                          Verified
+                          <span className="hidden sm:inline">Verified</span>
                         </span>
                       )}
                     </td>
