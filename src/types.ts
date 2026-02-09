@@ -195,6 +195,8 @@ export interface HistoricalCAGR {
   ticker: string;
   cagr20yr: number | null;
   cagr10yr: number | null;
+  cagr5yr: number | null;
+  cagrMax: number | null;
   dataYears: number;
   startDate: string | null;
   endDate: string | null;

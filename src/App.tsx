@@ -746,6 +746,7 @@ export default function App() {
                 session={portfolio?.session}
                 cashBalance={portfolio?.cashBalance ?? 0}
                 totalAssets={portfolio?.totalAssets ?? 0}
+                marginDebt={portfolio?.marginDebt ?? 0}
                 initialSubTab={insightsSubTab}
                 onSubTabChange={setInsightsSubTab}
               />

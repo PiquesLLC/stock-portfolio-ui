@@ -8,12 +8,13 @@ interface WhatIfSimulatorProps {
   holdings: Holding[];
   cashBalance: number;
   totalValue: number;
+  marginDebt?: number;
   onTickerClick?: (ticker: string) => void;
 }
 
 type Mode = 'whatif' | 'growth';
 type Horizon = '1y' | '5y' | '10y' | '20y';
-type CAGRSource = '20yr' | '10yr' | 'custom';
+type CAGRSource = 'best' | '20yr' | '10yr' | '5yr' | 'max' | 'custom';
 type SortKey = 'alpha' | 'value' | 'change' | 'weight';
 type SortDir = 'asc' | 'desc';
 
@@ -99,25 +100,43 @@ function formatPrice(value: number): string {
   return `$${value.toFixed(4)}`;
 }
 
+function getMilestone(current: number, projected: number): string | null {
+  const thresholds = [100000, 250000, 500000, 750000, 1000000, 1500000, 2000000, 5000000, 10000000];
+  for (const t of thresholds) {
+    if (current < t && projected >= t) {
+      return t >= 1000000 ? `$${(t / 1000000).toFixed(t % 1000000 === 0 ? 0 : 1)}M` : `$${(t / 1000).toFixed(0)}K`;
+    }
+  }
+  return null;
+}
+
 function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return null;
-  return <span className="ml-0.5 text-rh-green text-[9px]">{dir === 'asc' ? '\u25B2' : '\u25BC'}</span>;
+  return <span className="ml-0.5 text-rh-green text-[9px]">{dir === 'desc' ? '\u25B2' : '\u25BC'}</span>;
 }
 
 // ──────────────────────────────────────
 // What-If Mode
 // ──────────────────────────────────────
 
-function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIfSimulatorProps) {
+function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTickerClick }: WhatIfSimulatorProps) {
   const [changes, setChanges] = useState<Record<string, number>>(() => {
     const map: Record<string, number> = {};
     holdings.forEach(h => { map[h.ticker] = 0; });
     return map;
   });
-  const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
+  const [expandedTickers, setExpandedTickers] = useState<Set<string>>(() => {
+    // Auto-expand the highest-value holding (first after default value desc sort)
+    if (holdings.length === 0) return new Set();
+    const sorted = [...holdings].sort((a, b) => (b.shares * b.currentPrice) - (a.shares * a.currentPrice));
+    return new Set([sorted[0].ticker]);
+  });
   const [sortKey, setSortKey] = useState<SortKey>('value');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [showScenarios, setShowScenarios] = useState(false);
+
+  // Equity = totalAssets - marginDebt (what the user actually "owns")
+  const equity = totalValue - marginDebt;
 
   const stocksTotal = useMemo(() => holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0), [holdings]);
 
@@ -154,8 +173,9 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
     () => entries.reduce((s, e) => s + e.simValue, 0) + cashBalance,
     [entries, cashBalance]
   );
+  const simEquity = simTotal - marginDebt;
   const delta = simTotal - totalValue;
-  const deltaPct = totalValue > 0 ? (delta / totalValue) * 100 : 0;
+  const deltaPct = equity > 0 ? (delta / equity) * 100 : 0;
   const hasChanges = useMemo(() => Object.values(changes).some(v => v !== 0), [changes]);
   const changedCount = useMemo(() => Object.values(changes).filter(v => v !== 0).length, [changes]);
 
@@ -188,7 +208,9 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
       Object.keys(prev).forEach(k => { next[k] = 0; });
       return next;
     });
-  }, []);
+    // Collapse all sliders for a clean slate
+    setExpandedTickers(new Set());
+  }, [holdings]);
 
   const toggleSort = useCallback((key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
@@ -198,44 +220,72 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
   return (
     <>
       {/* Sticky Summary */}
-      <div className={`sticky top-0 z-10 rounded-xl p-4 mb-4 border backdrop-blur-sm transition-colors duration-200 ${
+      <div className={`sticky top-0 z-10 rounded-xl p-4 mb-4 border backdrop-blur-xl shadow-lg transition-colors duration-200 ${
         hasChanges
           ? delta >= 0
-            ? 'border-rh-green/30 dark:border-rh-green/20 bg-green-50/95 dark:bg-[#0a1a0a]/95'
-            : 'border-red-300/30 dark:border-red-500/20 bg-red-50/95 dark:bg-[#1a0a0a]/95'
-          : 'border-gray-200/60 dark:border-white/[0.06] bg-gray-50/95 dark:bg-[#1a1a1a]/95'
+            ? 'border-rh-green/20 dark:border-rh-green/15 bg-green-50/80 dark:bg-rh-green/[0.04]'
+            : 'border-red-300/20 dark:border-red-500/15 bg-red-50/80 dark:bg-rh-red/[0.04]'
+          : 'border-gray-200/40 dark:border-white/[0.08] bg-white/60 dark:bg-white/[0.03]'
       }`}>
-        <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1">
-          <span className="text-xl font-bold text-rh-light-text dark:text-rh-text">
-            {formatCurrencyFull(totalValue)}
-          </span>
-          {hasChanges && (
-            <>
-              <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-              <span className="text-xl font-bold text-rh-light-text dark:text-rh-text">
-                {formatCurrencyFull(simTotal)}
+        {!hasChanges ? (
+          /* Idle state */
+          <div>
+            <span className="text-xl font-bold text-rh-light-text dark:text-rh-text">
+              {formatCurrencyFull(equity)}
+            </span>
+            <div className="mt-2 text-xs text-rh-light-muted dark:text-rh-muted">
+              {holdings.length} positions &middot; Cash {formatCurrency(cashBalance)} held constant
+            </div>
+          </div>
+        ) : (
+          /* Active state — projected value is the hero */
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">
+                  {formatCurrencyFull(equity)}
+                  <svg className="w-3.5 h-3.5 inline mx-1.5 -mt-0.5 text-rh-light-muted/50 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </div>
+                <span className={`text-2xl font-bold tracking-tight ${delta >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {formatCurrencyFull(simEquity)}
+                </span>
+              </div>
+              <button onClick={resetAll} className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset
+              </button>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              <span className={`text-sm font-bold ${delta >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                {delta >= 0 ? '+' : ''}{formatCurrencyFull(delta)}
               </span>
-              <span className={`text-sm font-semibold ${delta >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {delta >= 0 ? '+' : ''}{formatCurrencyFull(delta)} ({formatPct(deltaPct)})
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                delta >= 0 ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'
+              }`}>
+                {formatPct(deltaPct)}
               </span>
-            </>
-          )}
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-            {holdings.length} positions &middot; Cash {formatCurrency(cashBalance)} held constant
-          </span>
-          {hasChanges && (
-            <button onClick={resetAll} className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Reset
-            </button>
-          )}
-        </div>
+              {(() => {
+                const milestone = getMilestone(equity, simEquity);
+                if (!milestone) return null;
+                return (
+                  <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    You&apos;d cross {milestone}!
+                  </span>
+                );
+              })()}
+            </div>
+            <div className="mt-2 text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40">
+              {holdings.length} positions &middot; {changedCount} adjusted &middot; Cash {formatCurrency(cashBalance)} held constant
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Presets + Scenarios toggle */}
@@ -285,6 +335,26 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
           {changedCount > 0 && (
             <span className="text-[11px] text-rh-green font-medium">{changedCount} adjusted</span>
           )}
+          <div className="ml-auto flex items-center gap-3">
+            {changedCount > 0 && (
+              <button
+                onClick={resetAll}
+                className="text-[10px] font-medium text-rh-red/70 hover:text-rh-red transition-colors"
+              >
+                Reset All
+              </button>
+            )}
+            <button
+              onClick={() => {
+                const allTickers = entries.map(e => e.ticker);
+                const allExpanded = allTickers.every(t => expandedTickers.has(t));
+                setExpandedTickers(allExpanded ? new Set() : new Set(allTickers));
+              }}
+              className="text-[10px] font-medium text-rh-light-muted/60 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+            >
+              {entries.every(e => expandedTickers.has(e.ticker)) ? 'Collapse All' : 'Expand All'}
+            </button>
+          </div>
         </div>
 
         {/* Sortable Table header */}
@@ -306,7 +376,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
             const isChanged = changePct !== 0;
             const isUp = changePct > 0;
             const isDown = changePct < 0;
-            const isExpanded = expandedTicker === ticker;
+            const isExpanded = expandedTickers.has(ticker);
 
             return (
               <div key={ticker}>
@@ -316,7 +386,11 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
                       ? isUp ? 'bg-green-50/30 dark:bg-rh-green/[0.03]' : 'bg-red-50/30 dark:bg-rh-red/[0.03]'
                       : 'hover:bg-gray-50/60 dark:hover:bg-white/[0.02]'
                   }`}
-                  onClick={() => setExpandedTicker(isExpanded ? null : ticker)}
+                  onClick={() => setExpandedTickers(prev => {
+                    const next = new Set(prev);
+                    if (next.has(ticker)) next.delete(ticker); else next.add(ticker);
+                    return next;
+                  })}
                 >
                   {/* Ticker + price + weight */}
                   <div className="min-w-0">
@@ -327,11 +401,11 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
                       >
                         {ticker}
                       </button>
-                      <span className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 tabular-nums">
+                      <span className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
                         {weight.toFixed(1)}%
                       </span>
                     </div>
-                    <div className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 tabular-nums">
+                    <div className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
                       {formatPrice(price)} &times; {shares % 1 === 0 ? shares : shares.toFixed(2)}
                     </div>
                   </div>
@@ -385,35 +459,83 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
                 </div>
 
                 {/* Expanded slider */}
-                {isExpanded && (
-                  <div className="px-3 pb-2 pt-0.5" onClick={e => e.stopPropagation()}>
-                    <input
-                      type="range" min={-99} max={200} step={1} value={changePct}
-                      onChange={e => updateChange(ticker, parseFloat(e.target.value))}
-                      className={`w-full h-1 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-white/10 ${
-                        isDown ? 'accent-red-500' : isUp ? 'accent-rh-green' : 'accent-gray-400'
-                      }`}
-                    />
-                    <div className="flex justify-between text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 mt-0.5">
-                      <span>-99%</span><span>0%</span><span>+200%</span>
+                {isExpanded && (() => {
+                  const zeroPct = (99 / 299) * 100;
+                  const thumbPct = ((changePct + 99) / 299) * 100;
+                  const fillLeft = changePct >= 0 ? zeroPct : thumbPct;
+                  const fillWidth = changePct >= 0 ? thumbPct - zeroPct : zeroPct - thumbPct;
+                  const compact = expandedTickers.size > 3;
+                  return (
+                    <div className={`mx-2 mb-1 rounded-lg bg-gray-50/40 dark:bg-white/[0.015] border border-gray-200/20 dark:border-white/[0.04] ${compact ? 'px-3 pb-1.5 pt-2' : 'px-3 pb-2 pt-3'}`} onClick={e => e.stopPropagation()}>
+                      <div className="relative h-1">
+                        {/* Track background */}
+                        <div className="absolute inset-0 rounded-full bg-gray-200 dark:bg-white/10" />
+                        {/* Colored fill from 0% to thumb */}
+                        {changePct !== 0 && (
+                          <div
+                            className={`absolute top-0 h-full rounded-full ${isUp ? 'bg-rh-green/50' : 'bg-rh-red/50'}`}
+                            style={{ left: `${fillLeft}%`, width: `${fillWidth}%` }}
+                          />
+                        )}
+                        {/* Range input (transparent track, styled thumb) */}
+                        <input
+                          type="range" min={-99} max={200} step={1} value={changePct}
+                          onChange={e => {
+                            const raw = parseFloat(e.target.value);
+                            const snaps = [-75, -50, -25, 0, 25, 50, 75, 100, 125, 150, 175, 200];
+                            const nearest = snaps.reduce((best, s) => Math.abs(raw - s) < Math.abs(raw - best) ? s : best, snaps[0]);
+                            updateChange(ticker, Math.abs(raw - nearest) <= 3 ? nearest : raw);
+                          }}
+                          onDoubleClick={() => updateChange(ticker, 0)}
+                          className="absolute inset-0 w-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-gray-300 dark:[&::-webkit-slider-thumb]:border-white/20 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-gray-300 dark:[&::-moz-range-thumb]:border-white/20 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:bg-transparent"
+                        />
+                        {/* Live value tooltip */}
+                        {changePct !== 0 && (
+                          <div
+                            className={`absolute -top-6 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-semibold tabular-nums whitespace-nowrap ${
+                              isUp ? 'bg-rh-green/20 text-rh-green' : 'bg-rh-red/20 text-rh-red'
+                            }`}
+                            style={{ left: `${thumbPct}%` }}
+                          >
+                            {changePct > 0 ? '+' : ''}{changePct}%
+                          </div>
+                        )}
+                        {/* Tick marks at every 25% */}
+                        {[-75, -50, -25, 0, 25, 50, 75, 100, 125, 150, 175, 200].map(tick => (
+                          <div key={tick} className={`absolute w-px pointer-events-none ${tick === 0 ? 'h-2.5 -top-[3px] bg-rh-light-muted/50 dark:bg-rh-muted/50' : 'h-1 top-0 bg-rh-light-muted/20 dark:bg-rh-muted/20'}`}
+                            style={{ left: `${((tick + 99) / 299) * 100}%` }}
+                          />
+                        ))}
+                      </div>
+                      {/* Full labels only in non-compact mode */}
+                      {!compact && (
+                        <div className="relative text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 mt-1.5 h-3">
+                          <span className="absolute left-0">-99%</span>
+                          <span className="absolute -translate-x-1/2" style={{ left: `${((-50 + 99) / 299) * 100}%` }}>-50%</span>
+                          <span className="absolute -translate-x-1/2 text-rh-light-muted/70 dark:text-rh-muted/60" style={{ left: `${zeroPct}%` }}>0%</span>
+                          <span className="absolute -translate-x-1/2" style={{ left: `${((50 + 99) / 299) * 100}%` }}>+50%</span>
+                          <span className="absolute -translate-x-1/2" style={{ left: `${((100 + 99) / 299) * 100}%` }}>+100%</span>
+                          <span className="absolute right-0">+200%</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
         </div>
 
         {/* Sticky total row */}
-        <div className="sticky bottom-0 z-10 grid grid-cols-[1fr_70px_90px_80px] gap-x-1 items-center px-3 py-2 bg-gray-50/95 dark:bg-[#141414]/95 backdrop-blur-sm border-t border-gray-200/40 dark:border-white/[0.06] rounded-b-lg">
+        <div className="sticky bottom-0 z-10 grid grid-cols-[1fr_70px_90px_80px] gap-x-1 items-center px-3 py-2 bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border-t border-gray-200/40 dark:border-white/[0.08] rounded-b-lg shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
           <span className="text-xs font-bold text-rh-light-text dark:text-rh-text">Portfolio Total</span>
           <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text tabular-nums text-right">
-            {formatCurrency(totalValue)}
+            {formatCurrency(equity)}
           </span>
           <span />
           <div className="text-right">
             <span className={`text-[11px] font-bold tabular-nums ${hasChanges && delta >= 0 ? 'text-rh-green' : hasChanges ? 'text-rh-red' : 'text-rh-light-text dark:text-rh-text'}`}>
-              {formatCurrency(simTotal)}
+              {formatCurrency(simEquity)}
             </span>
             {hasChanges && (
               <div className={`text-[9px] tabular-nums ${delta >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
@@ -425,7 +547,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
       </div>
 
       <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 text-center mt-2">
-        Click row for slider &middot; Double-click input to reset &middot; Hold Shift on &plusmn; for 5% steps
+        Click any row for slider &middot; Double-click input to reset &middot; Shift+&plusmn; for 5% steps
       </div>
     </>
   );
@@ -435,9 +557,9 @@ function WhatIfMode({ holdings, cashBalance, totalValue, onTickerClick }: WhatIf
 // Growth Projector Mode
 // ──────────────────────────────────────
 
-function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: WhatIfSimulatorProps) {
+function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, onTickerClick }: WhatIfSimulatorProps) {
   const [horizon, setHorizon] = useState<Horizon>('10y');
-  const [source, setSource] = useState<CAGRSource>('20yr');
+  const [source, setSource] = useState<CAGRSource>('best');
   const [cagrData, setCagrData] = useState<Record<string, HistoricalCAGR>>({});
   const [overrides, setOverrides] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -477,7 +599,10 @@ function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: W
     if (!data) return null;
     if (source === '20yr') return data.cagr20yr;
     if (source === '10yr') return data.cagr10yr;
-    return null;
+    if (source === '5yr') return data.cagr5yr;
+    if (source === 'max') return data.cagrMax;
+    // 'best': use longest available CAGR (20yr → 10yr → 5yr → max)
+    return data.cagr20yr ?? data.cagr10yr ?? data.cagr5yr ?? data.cagrMax;
   }, [cagrData, overrides, source]);
 
   const entries = useMemo(() =>
@@ -524,14 +649,17 @@ function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: W
     [holdings, getRate, years, cagrData, overrides, stocksTotal, monthlyContrib]
   );
 
+  const equity = totalValue - marginDebt;
+
   const projectedTotal = useMemo(() => {
     const stocksProj = entries.reduce((s, e) => s + (e.projected ?? e.marketValue), 0);
     return stocksProj + cashBalance;
   }, [entries, cashBalance]);
+  const projectedEquity = projectedTotal - marginDebt;
 
   const totalContributions = monthlyContrib * 12 * years;
   const totalGain = projectedTotal - totalValue - totalContributions;
-  const totalGainPct = totalValue > 0 ? (totalGain / totalValue) * 100 : 0;
+  const totalGainPct = equity > 0 ? (totalGain / equity) * 100 : 0;
 
   const blendedCAGR = useMemo(() => {
     let weightedSum = 0;
@@ -570,16 +698,16 @@ function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: W
   return (
     <>
       {/* Summary Card */}
-      <div className="rounded-xl p-4 mb-4 border border-gray-200/60 dark:border-white/[0.06] bg-gray-50/95 dark:bg-[#1a1a1a]/95 backdrop-blur-sm">
+      <div className="rounded-xl p-4 mb-4 border border-gray-200/40 dark:border-white/[0.08] bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg">
         <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1">
           <span className="text-xl font-bold text-rh-light-text dark:text-rh-text">
-            {formatCurrencyFull(totalValue)}
+            {formatCurrencyFull(equity)}
           </span>
           <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
           <span className={`text-xl font-bold ${totalGain >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-            {formatCurrencyFull(projectedTotal)}
+            {formatCurrencyFull(projectedEquity)}
           </span>
         </div>
         <div className="flex items-center gap-3 mt-2 text-xs flex-wrap">
@@ -613,27 +741,27 @@ function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: W
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3 mb-3">
         {/* Data source */}
-        <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
-          {(['20yr', '10yr', 'custom'] as CAGRSource[]).map(s => (
+        <div className="flex items-center gap-1 bg-white/40 dark:bg-white/[0.04] backdrop-blur-md border border-gray-200/30 dark:border-white/[0.06] rounded-lg p-0.5 shadow-sm">
+          {(['best', '20yr', '10yr', '5yr', 'max', 'custom'] as CAGRSource[]).map(s => (
             <button key={s} onClick={() => { setSource(s); if (s !== 'custom') clearOverrides(); }}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                 source === s
-                  ? 'bg-white dark:bg-white/10 text-rh-light-text dark:text-rh-text shadow-sm'
+                  ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
-              {s === '20yr' ? '20yr Avg' : s === '10yr' ? '10yr Avg' : 'Custom'}
+              {s === 'best' ? 'Best' : s === '20yr' ? '20yr' : s === '10yr' ? '10yr' : s === '5yr' ? '5yr' : s === 'max' ? 'All' : 'Custom'}
             </button>
           ))}
         </div>
 
         {/* Horizon */}
-        <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
+        <div className="flex items-center gap-1 bg-white/40 dark:bg-white/[0.04] backdrop-blur-md border border-gray-200/30 dark:border-white/[0.06] rounded-lg p-0.5 shadow-sm">
           {(['1y', '5y', '10y', '20y'] as Horizon[]).map(h => (
             <button key={h} onClick={() => setHorizon(h)}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                 horizon === h
-                  ? 'bg-white dark:bg-white/10 text-rh-light-text dark:text-rh-text shadow-sm'
+                  ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
@@ -733,16 +861,21 @@ function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: W
                     >
                       {ticker}
                     </button>
-                    <span className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 tabular-nums">
+                    <span className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
                       {weight.toFixed(1)}%
                     </span>
-                    {dataYears > 0 && dataYears < 20 && source === '20yr' && (
-                      <span className="text-[9px] text-amber-500/70" title={`Only ${dataYears.toFixed(0)}yr of data`}>
+                    {dataYears > 0 && source === 'best' && hasData && (
+                      <span className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60" title={`Using ${dataYears >= 16 ? '20yr' : dataYears >= 8 ? '10yr' : dataYears >= 4 ? '5yr' : 'all'} avg (${dataYears.toFixed(0)}yr data)`}>
+                        {dataYears >= 16 ? '20y' : dataYears >= 8 ? '10y' : dataYears >= 4 ? '5y' : `${dataYears.toFixed(0)}y`}
+                      </span>
+                    )}
+                    {dataYears > 0 && source !== 'best' && source !== 'custom' && !hasData && (
+                      <span className="text-[9px] text-amber-500/70" title={`Only ${dataYears.toFixed(0)}yr of data available`}>
                         {dataYears.toFixed(0)}yr
                       </span>
                     )}
                   </div>
-                  <div className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 tabular-nums">
+                  <div className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
                     {formatPrice(price)} &times; {shares % 1 === 0 ? shares : shares.toFixed(2)}
                   </div>
                 </div>
@@ -822,10 +955,10 @@ function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: W
       </div>
 
       {/* Sticky total row */}
-      <div className="sticky bottom-0 z-10 grid grid-cols-[1fr_70px_80px_auto] gap-x-1 items-center px-3 py-2 bg-gray-50/95 dark:bg-[#141414]/95 backdrop-blur-sm border-t border-gray-200/40 dark:border-white/[0.06] rounded-b-lg">
+      <div className="sticky bottom-0 z-10 grid grid-cols-[1fr_70px_80px_auto] gap-x-1 items-center px-3 py-2 bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border-t border-gray-200/40 dark:border-white/[0.08] rounded-b-lg shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
         <span className="text-xs font-bold text-rh-light-text dark:text-rh-text">Portfolio Total</span>
         <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text tabular-nums text-right">
-          {formatCurrency(totalValue)}
+          {formatCurrency(equity)}
         </span>
         <span className="text-center">
           {blendedCAGR !== null && (
@@ -836,7 +969,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, onTickerClick }: W
         </span>
         <div className="text-right">
           <span className={`text-[11px] font-bold tabular-nums ${totalGain >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-            {formatCurrency(projectedTotal)}
+            {formatCurrency(projectedEquity)}
           </span>
           <div className={`text-[9px] tabular-nums ${totalGain >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
             {totalGain >= 0 ? '+' : ''}{formatCurrency(totalGain)} growth
@@ -871,11 +1004,11 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
         </p>
       </div>
 
-      <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5 w-fit">
+      <div className="flex items-center gap-1 bg-white/40 dark:bg-white/[0.04] backdrop-blur-md border border-gray-200/30 dark:border-white/[0.06] rounded-lg p-0.5 w-fit shadow-sm">
         <button onClick={() => setMode('whatif')}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             mode === 'whatif'
-              ? 'bg-white dark:bg-white/10 text-rh-light-text dark:text-rh-text shadow-sm'
+              ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
               : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
           }`}
         >
@@ -884,7 +1017,7 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
         <button onClick={() => setMode('growth')}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             mode === 'growth'
-              ? 'bg-white dark:bg-white/10 text-rh-light-text dark:text-rh-text shadow-sm'
+              ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
               : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
           }`}
         >

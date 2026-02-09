@@ -163,11 +163,12 @@ interface InsightsPageProps {
   session?: MarketSession;
   cashBalance?: number;
   totalAssets?: number;
+  marginDebt?: number;
   initialSubTab?: string | null;
   onSubTabChange?: (subtab: string) => void;
 }
 
-export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, initialSubTab, onSubTabChange }: InsightsPageProps) {
+export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, marginDebt = 0, initialSubTab, onSubTabChange }: InsightsPageProps) {
   const [subTab, setSubTabLocal] = useState<InsightsSubTab>(
     () => (initialSubTab && VALID_SUBTABS.has(initialSubTab as InsightsSubTab)) ? initialSubTab as InsightsSubTab : 'intelligence'
   );
@@ -354,6 +355,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           holdings={holdings}
           cashBalance={cashBalance}
           totalValue={totalAssets}
+          marginDebt={marginDebt}
           onTickerClick={onTickerClick}
         />
       </div>
