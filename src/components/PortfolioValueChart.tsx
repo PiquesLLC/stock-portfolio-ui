@@ -295,8 +295,9 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const is1D = selectedPeriod === '1D' && points.length > 1;
   let dayStartMs = 0, dayEndMs = 0;
   if (is1D) {
-    // Use the first data point's date to determine which trading day this is
-    const refDate = new Date(points[0].time);
+    // Use the last data point's date to determine which trading day this is
+    // (1D data spans ~24h, so the first point may be from the previous ET day)
+    const refDate = new Date(points[points.length - 1].time);
     const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
       .format(refDate);
     const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
@@ -354,8 +355,8 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const { sessionSplitIdx, sessionCloseIdx } = useMemo(() => {
     if (!hasData || !is1D) return { sessionSplitIdx: null, sessionCloseIdx: null };
 
-    // Derive trading day from data points (works after hours / weekends)
-    const refDate = new Date(points[0].time);
+    // Derive trading day from last data point (works after hours / weekends)
+    const refDate = new Date(points[points.length - 1].time);
     const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
     const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
     const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {

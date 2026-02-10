@@ -745,9 +745,10 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   let dayStartMs = 0;
   let dayEndMs = 0;
   if (is1D) {
-    // Get the date in ET timezone (YYYY-MM-DD)
+    // Get the date in ET timezone (YYYY-MM-DD) — use last point so we get
+    // the current trading day even if early data crosses the UTC midnight boundary
     const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
-      .format(new Date(points[0].time));
+      .format(new Date(points[points.length - 1].time));
     // Create dates at the ET times we want, using America/New_York
     // Pre-market opens at 4:00 AM ET = 09:00 UTC (EST) or 08:00 UTC (EDT)
     // AH closes at 8:00 PM ET = 01:00+1 UTC (EST) or 00:00+1 UTC (EDT)
