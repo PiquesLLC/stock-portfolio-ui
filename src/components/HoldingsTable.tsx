@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Holding, MarketSession } from '../types';
 import { useToast } from '../context/ToastContext';
 import { deleteHolding, addHolding, updateSettings, getPortfolio } from '../api';
@@ -595,8 +595,8 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
               const hasValidPrice = !isUnavailable && holding.currentPrice > 0;
 
               return (
+                <React.Fragment key={holding.id}>
                 <tr
-                  key={holding.id}
                   className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''}`}
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
                 >
@@ -700,6 +700,31 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                     </div>
                   </td>
                 </tr>
+                {viewMode === 'detailed' && hasValidPrice && (
+                  <tr className="md:hidden border-b border-rh-light-border/10 dark:border-rh-border/10 bg-gray-50/40 dark:bg-white/[0.015]">
+                    <td colSpan={99} className="px-4 py-1.5">
+                      <div className="grid grid-cols-4 gap-x-3 text-[10px]">
+                        <div>
+                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Shares</span>
+                          <p className="text-rh-light-text dark:text-rh-text font-medium">{holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                        </div>
+                        <div>
+                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Avg Cost</span>
+                          <p className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency(holding.averageCost)}</p>
+                        </div>
+                        <div>
+                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Day</span>
+                          <p className={`font-medium ${holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{formatPL(holding.dayChange)}</p>
+                        </div>
+                        <div>
+                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Day %</span>
+                          <p className={`font-medium ${holding.dayChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{formatPercent(holding.dayChangePercent)}</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               );
             })}
           </tbody>
