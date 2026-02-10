@@ -78,6 +78,21 @@ export function buildPoints(
           volume: 0,
         });
       }
+      // Append live prices newer than the last candle to fill the gap
+      // (Polygon Developer plan has ~15min delay; live prices bridge the gap)
+      if (livePrices.length > 0 && pts.length > 0) {
+        const lastCandleTime = pts[pts.length - 1].time;
+        for (const lp of livePrices) {
+          const t = new Date(lp.time).getTime();
+          if (t > lastCandleTime) {
+            pts.push({
+              time: t,
+              label: new Date(lp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              price: lp.price,
+            });
+          }
+        }
+      }
       return pts;
     }
     const pts: DataPoint[] = livePrices.map(p => ({
