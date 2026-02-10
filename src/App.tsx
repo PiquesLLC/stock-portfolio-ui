@@ -352,7 +352,7 @@ export default function App() {
   const fetchData = useCallback(async () => {
     if (!currentUserId) return;
     try {
-      const portfolioData = await getPortfolio(currentUserId);
+      const portfolioData = await getPortfolio();  // Always use system/default portfolio
       const settingsData = await getSettings(currentUserId);
 
       const hasValidData = portfolioData.holdings.length === 0 ||
@@ -589,7 +589,7 @@ export default function App() {
               onHoldingAdded={() => {
                 fetchData();
                 setTimeout(async () => {
-                  const p = await getPortfolio(currentUserId);
+                  const p = await getPortfolio();
                   const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
                   setViewingStock(prev => prev ? { ...prev, holding: held } : null);
                   setPortfolio(p);
@@ -627,7 +627,7 @@ export default function App() {
                   afterHoursChange={portfolio.afterHoursChange}
                   afterHoursChangePercent={portfolio.afterHoursChangePercent}
                   refreshTrigger={portfolioRefreshCount}
-                  fetchFn={(period) => getPortfolioChart(period, currentUserId)}
+                  fetchFn={(period) => getPortfolioChart(period)}
                   onPeriodChange={setChartPeriod}
                   onReturnChange={setChartReturnPct}
                   onMeasurementChange={setChartMeasurement}
