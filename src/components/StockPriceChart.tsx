@@ -179,9 +179,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   // Touch hover state (Robinhood-style press-and-drag crosshair)
   const isTouchHoveringRef = useRef(false);
   const wasTouchRef = useRef(false); // suppress click-to-measure after touch
-  // Two-finger live measurement state
-  const touchMeasuringRef = useRef(false);
-  const [touchMeasure, setTouchMeasure] = useState<{ aIdx: number; bIdx: number } | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   // Zoom bar drag state
   const [isBarDragging, setIsBarDragging] = useState(false);
   const barDragRef = useRef<{ startX: number; startLeft: number; barWidth: number; containerWidth: number } | null>(null);
@@ -517,26 +515,15 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     onHoverPrice?.(points[idx].price, points[idx].label, referencePriceRef.current);
   }, [points, findNearestIndex, onHoverPrice]);
 
-  // Pure helper: clientX → nearest point index (no side effects)
-  const getIndexFromClientX = useCallback((clientX: number): number => {
-    if (!svgRef.current || points.length < 2) return 0;
-    const rect = svgRef.current.getBoundingClientRect();
-    const svgX = ((clientX - rect.left) / rect.width) * CHART_W;
-    return findNearestIndex(svgX);
-  }, [points, findNearestIndex]);
-
-  // Keep ref in sync so native event handlers can access latest version
-  const getIndexRef = useRef(getIndexFromClientX);
-  useEffect(() => { getIndexRef.current = getIndexFromClientX; }, [getIndexFromClientX]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
-    wasTouchRef.current = true; // mark so click handler skips measurement
-    // Two-finger measurement is handled by native listeners (see useEffect below)
-    if (e.touches.length >= 2 || touchMeasuringRef.current) return;
-    const pts = pointsRef.current;
-    const zoom = zoomRangeRef.current;
+    wasTouchRef.current = true; // default: suppress click handler (overridden on tap in touchEnd)
+    if (e.touches.length >= 2) return;
 
     if (e.touches.length === 1) {
+      touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      const pts = pointsRef.current;
+      const zoom = zoomRangeRef.current;
       if (zoom && pts.length >= 20) {
         // Pan when zoomed
         isTouchHoveringRef.current = false;
@@ -553,8 +540,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   }, [updateHoverFromClientX]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
-    // Two-finger measurement is handled by native listeners
-    if (e.touches.length >= 2 || touchMeasuringRef.current) return;
+    if (e.touches.length >= 2) return;
     const pts = pointsRef.current;
     if (pts.length < 2) return;
     const fullStart = pts[0].time;
@@ -580,12 +566,18 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   }, [updateHoverFromClientX]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
-    // Clear two-finger measurement when fewer than 2 fingers remain
-    if (touchMeasuringRef.current && e.touches.length < 2) {
-      touchMeasuringRef.current = false;
-      setTouchMeasure(null);
-    }
     if (e.touches.length === 0) {
+      // Detect tap vs drag: if finger barely moved, treat as a tap
+      // so the synthesized click event fires the measurement system
+      if (touchStartPosRef.current && e.changedTouches.length > 0) {
+        const endTouch = e.changedTouches[0];
+        const dx = Math.abs(endTouch.clientX - touchStartPosRef.current.x);
+        const dy = Math.abs(endTouch.clientY - touchStartPosRef.current.y);
+        if (dx < 10 && dy < 10) {
+          wasTouchRef.current = false; // allow click handler to fire → places measurement
+        }
+      }
+      touchStartPosRef.current = null;
       touchStartRef.current = null;
       singleTouchRef.current = null;
       if (isTouchHoveringRef.current) {
@@ -596,55 +588,6 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     }
   }, [onHoverPrice]);
 
-  // ── Two-finger measurement — native listeners for iOS compatibility ──
-  // React touch handlers are passive; preventDefault() silently fails.
-  // Native { passive: false } listeners are required to block iOS page zoom
-  // AND run the measurement logic in the same handler.
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-        isTouchHoveringRef.current = false;
-        touchMeasuringRef.current = true;
-        setHoverIndex(null);
-        const idxA = getIndexRef.current(e.touches[0].clientX);
-        const idxB = getIndexRef.current(e.touches[1].clientX);
-        setTouchMeasure({ aIdx: idxA, bIdx: idxB });
-      }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length >= 2 && touchMeasuringRef.current) {
-        e.preventDefault();
-        const idxA = getIndexRef.current(e.touches[0].clientX);
-        const idxB = getIndexRef.current(e.touches[1].clientX);
-        setTouchMeasure({ aIdx: idxA, bIdx: idxB });
-      }
-    };
-    const onTouchEnd = (e: TouchEvent) => {
-      if (touchMeasuringRef.current && e.touches.length < 2) {
-        touchMeasuringRef.current = false;
-        setTouchMeasure(null);
-      }
-    };
-    // iOS fires proprietary gesture events for pinch-zoom — block those too
-    const blockGesture = (e: Event) => e.preventDefault();
-
-    svg.addEventListener('touchstart', onTouchStart, { passive: false });
-    svg.addEventListener('touchmove', onTouchMove, { passive: false });
-    svg.addEventListener('touchend', onTouchEnd);
-    svg.addEventListener('gesturestart', blockGesture, { passive: false } as EventListenerOptions);
-    svg.addEventListener('gesturechange', blockGesture, { passive: false } as EventListenerOptions);
-    return () => {
-      svg.removeEventListener('touchstart', onTouchStart);
-      svg.removeEventListener('touchmove', onTouchMove);
-      svg.removeEventListener('touchend', onTouchEnd);
-      svg.removeEventListener('gesturestart', blockGesture);
-      svg.removeEventListener('gesturechange', blockGesture);
-    };
-  }, []);
 
   // ── Scroll-to-zoom handler (native for passive:false) ────────────
   useEffect(() => {
@@ -1631,24 +1574,6 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   const measureIsGain = measurement ? measurement.ab.dollarChange >= 0 : true;
   const measureColor = measureIsGain ? '#00C805' : '#E8544E';
 
-  // Two-finger live measurement computation
-  const touchMeasurement = useMemo(() => {
-    if (!touchMeasure) return null;
-    const { aIdx, bIdx } = touchMeasure;
-    if (!points[aIdx] || !points[bIdx]) return null;
-    const [lo, hi] = aIdx <= bIdx ? [aIdx, bIdx] : [bIdx, aIdx];
-    const pA = points[lo];
-    const pB = points[hi];
-    if (pA.price === 0) return null;
-    return {
-      startIdx: lo, endIdx: hi,
-      startPrice: pA.price, endPrice: pB.price,
-      startLabel: pA.label, endLabel: pB.label,
-      dollarChange: pB.price - pA.price,
-      percentChange: ((pB.price - pA.price) / pA.price) * 100,
-      daysBetween: Math.round(Math.abs(pB.time - pA.time) / 86400000),
-    };
-  }, [touchMeasure, points]);
 
   // SVG coordinates for measurement markers (using resolved indices)
   const mAx = measureAIdx !== null && measureAIdx < points.length ? toX(measureAIdx) : null;
@@ -2439,32 +2364,6 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
             </>
           )}
 
-          {/* Two-finger live measurement crosshairs */}
-          {touchMeasurement && (() => {
-            const x1 = toX(touchMeasurement.startIdx);
-            const y1 = toY(touchMeasurement.startPrice);
-            const x2 = toX(touchMeasurement.endIdx);
-            const y2 = toY(touchMeasurement.endPrice);
-            const gain = touchMeasurement.dollarChange >= 0;
-            const color = gain ? '#00C805' : '#E8544E';
-            return (
-              <g>
-                {/* Dashed line connecting the two points */}
-                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={1} strokeDasharray="4 3" opacity={0.6} />
-                {/* Crosshair line 1 */}
-                <line x1={x1} y1={PAD_TOP} x2={x1} y2={CHART_H - PAD_BOTTOM} stroke="#9CA3AF" strokeWidth={0.8} opacity={0.4} />
-                {/* Crosshair line 2 */}
-                <line x1={x2} y1={PAD_TOP} x2={x2} y2={CHART_H - PAD_BOTTOM} stroke="#9CA3AF" strokeWidth={0.8} opacity={0.4} />
-                {/* Dot 1 */}
-                <circle cx={x1} cy={y1} r={4.5} fill={color} stroke="white" strokeWidth={1.5} />
-                {/* Dot 2 */}
-                <circle cx={x2} cy={y2} r={4.5} fill={color} stroke="white" strokeWidth={1.5} />
-                {/* Date labels above each crosshair */}
-                <text x={x1} y={PAD_TOP - 6} textAnchor="middle" fill="#9CA3AF" fontSize="10" fontWeight="600">{touchMeasurement.startLabel}</text>
-                <text x={x2} y={PAD_TOP - 6} textAnchor="middle" fill="#9CA3AF" fontSize="10" fontWeight="600">{touchMeasurement.endLabel}</text>
-              </g>
-            );
-          })()}
 
           {/* Time labels */}
           {timeLabels.map((tl, i) => {
@@ -2657,41 +2556,6 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
           );
         })()}
 
-        {/* Two-finger live measurement HUD */}
-        {touchMeasurement && (
-          <div
-            className="absolute top-2 left-1/2 -translate-x-1/2 z-20 rounded-xl border border-white/[0.08] px-3 py-2"
-            style={{
-              background: 'rgba(15, 15, 20, 0.75)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              pointerEvents: 'none',
-            }}
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="text-center">
-                <div className="text-[10px] text-white/40">{touchMeasurement.startLabel}</div>
-                <div className="text-sm font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${touchMeasurement.startPrice.toFixed(2)}</div>
-              </div>
-              <svg className="w-3 h-3 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-              <div className="text-center">
-                <div className="text-[10px] text-white/40">{touchMeasurement.endLabel}</div>
-                <div className="text-sm font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${touchMeasurement.endPrice.toFixed(2)}</div>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <span className={`text-lg font-bold ${touchMeasurement.dollarChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {touchMeasurement.percentChange >= 0 ? '+' : ''}{touchMeasurement.percentChange.toFixed(2)}%
-              </span>
-              <span className={`text-xs font-medium ${touchMeasurement.dollarChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
-                {touchMeasurement.dollarChange >= 0 ? '+' : ''}${touchMeasurement.dollarChange.toFixed(2)}
-              </span>
-              {touchMeasurement.daysBetween > 0 && (
-                <span className="text-[10px] text-white/30">{touchMeasurement.daysBetween}d</span>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Measurement HUD — positioned in empty space above price action */}
         {hasMeasurement && measurement && mAx !== null && mBx !== null && mAy !== null && mBy !== null && (() => {
@@ -3065,7 +2929,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
           )}
           {!zoomRange && showMeasureHint && hasData && !isMeasuring && (
             <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
-              Scroll to zoom · Click to measure
+              Scroll to zoom · Tap to measure
             </span>
           )}
         </div>

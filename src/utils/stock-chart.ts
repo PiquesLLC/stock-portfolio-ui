@@ -90,11 +90,27 @@ export function buildPoints(
           .map(lp => ({ time: new Date(lp.time).getTime(), price: lp.price }))
           .filter(lp => lp.time > lastCandleTime);
 
+        // Filter out spike data points — reject any live price that jumps
+        // more than 10% from the previous good price. This prevents bad
+        // quotes or stale data from creating visual spikes on the chart.
+        const filteredLive: typeof newerLive = [];
+        let anchor = lastCandlePrice;
+        for (const lp of newerLive) {
+          if (anchor === 0 || Math.abs(lp.price - anchor) / anchor < 0.10) {
+            filteredLive.push(lp);
+            anchor = lp.price;
+          }
+        }
+
+        // Validate currentPrice against the last known good price
+        const safeCurrentPrice = anchor === 0 || Math.abs(currentPrice - anchor) / anchor < 0.10
+          ? currentPrice : anchor;
+
         // The target we're bridging toward: first live price, or current price
         const now = Date.now();
-        const bridgeTarget = newerLive.length > 0
-          ? newerLive[0]
-          : { time: now, price: currentPrice };
+        const bridgeTarget = filteredLive.length > 0
+          ? filteredLive[0]
+          : { time: now, price: safeCurrentPrice };
         const gapMs = bridgeTarget.time - lastCandleTime;
 
         // Fill gaps larger than 90s with interpolated points every 30s
@@ -111,8 +127,8 @@ export function buildPoints(
           }
         }
 
-        // Append actual live price points
-        for (const lp of newerLive) {
+        // Append filtered live price points
+        for (const lp of filteredLive) {
           pts.push({
             time: lp.time,
             label: new Date(lp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -125,7 +141,7 @@ export function buildPoints(
           pts.push({
             time: now,
             label: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            price: currentPrice,
+            price: safeCurrentPrice,
           });
         }
       }
