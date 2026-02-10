@@ -27,6 +27,11 @@ function formatDate(dateStr: string): string {
   });
 }
 
+// Strip Perplexity citation references like [1], [2], [headlines], [4] from text
+function stripCitations(text: string): string {
+  return text.replace(/\[\d+\]|\[headlines?\]|\[sources?\]/gi, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalProps) {
   const [data, setData] = useState<DailyReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,14 +70,14 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
 
   return (
     <div className="fixed inset-0 z-50 bg-black overflow-y-auto"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', paddingTop: 'env(safe-area-inset-top)' }}
     >
       {/* Hide webkit scrollbar */}
       <style>{`.daily-report-scroll::-webkit-scrollbar { display: none; }`}</style>
 
       <div className="daily-report-scroll min-h-full">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-black/80 backdrop-blur-sm border-b border-white/[0.06]">
+        <div className="sticky z-10 flex items-center justify-between px-6 py-4 bg-black/80 backdrop-blur-sm border-b border-white/[0.06]" style={{ top: 'env(safe-area-inset-top)' }}>
           <button
             onClick={onClose}
             className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
@@ -160,15 +165,15 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
               {/* Greeting / headline */}
               <div className="mb-10">
                 <h2 className="text-2xl font-bold text-white leading-snug mb-6">
-                  {data.greeting}
+                  {stripCitations(data.greeting)}
                 </h2>
                 <div className="border-t border-white/[0.08]" />
               </div>
 
-              {/* Market Overview — large drop cap style */}
+              {/* Market Overview */}
               <div className="mb-10">
-                <p className="text-[15px] text-white/80 leading-[1.8] first-letter:text-5xl first-letter:font-bold first-letter:text-white first-letter:float-left first-letter:mr-3 first-letter:mt-1">
-                  {data.marketOverview}
+                <p className="text-[15px] text-white/80 leading-[1.8]">
+                  {stripCitations(data.marketOverview)}
                 </p>
               </div>
 
@@ -180,7 +185,7 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
                   Your Portfolio
                 </h3>
                 <p className="text-[15px] text-white/80 leading-[1.8]">
-                  {data.portfolioSummary}
+                  {stripCitations(data.portfolioSummary)}
                 </p>
               </div>
 
@@ -205,10 +210,10 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
                         }`} />
                         <div className="flex-1">
                           <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
-                            {story.headline}
+                            {stripCitations(story.headline)}
                           </h4>
                           <p className="text-sm text-white/50 leading-relaxed">
-                            {story.body}
+                            {stripCitations(story.body)}
                           </p>
                           {story.relatedTickers.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-2">
@@ -244,7 +249,7 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
                   {data.watchToday.map((item, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <span className="text-rh-green text-xs mt-1">{'--'}</span>
-                      <p className="text-[15px] text-white/70 leading-relaxed">{item}</p>
+                      <p className="text-[15px] text-white/70 leading-relaxed">{stripCitations(item)}</p>
                     </div>
                   ))}
                 </div>

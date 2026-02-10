@@ -485,10 +485,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text">
+    <div className="min-h-screen bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <Starfield />
       <div className="grain-overlay" />
-      <div className="sticky top-0 z-30" style={{ WebkitBackfaceVisibility: 'hidden' }}>
+      <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
       <header className="border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
