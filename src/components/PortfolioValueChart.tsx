@@ -89,25 +89,34 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const isMeasuring = measureA !== null;
   const hasMeasurement = measureA !== null && measureB !== null;
 
-  // ── Data fetching ──────────────────────────────────────────────
+  // ── Data fetching (debounced: one in-flight at a time, queue latest) ──
 
-  const fetchIdRef = useRef(0);
+  const isFetchingRef = useRef(false);
+  const pendingFetchRef = useRef<{ period: PortfolioChartPeriod; silent: boolean } | null>(null);
+
   const fetchChart = useCallback(async (period: PortfolioChartPeriod, silent = false) => {
-    const id = ++fetchIdRef.current;
+    // If already fetching, queue this request for after completion
+    if (isFetchingRef.current) {
+      pendingFetchRef.current = { period, silent: true };
+      return;
+    }
+    isFetchingRef.current = true;
     if (!silent) setLoading(true);
     try {
       const fetcher = fetchFn || getPortfolioChart;
       const data = await fetcher(period);
-      // Only apply if this is still the latest request (ignore stale responses)
-      if (id === fetchIdRef.current) {
-        setChartData(data);
-        chartCacheRef.current.set(period, data);
-      }
+      setChartData(data);
+      chartCacheRef.current.set(period, data);
     } catch (e) {
       console.error('Chart fetch error:', e);
     } finally {
-      if (id === fetchIdRef.current) {
-        setLoading(false);
+      setLoading(false);
+      isFetchingRef.current = false;
+      // Process queued request (picks up latest data after current fetch completes)
+      const pending = pendingFetchRef.current;
+      if (pending) {
+        pendingFetchRef.current = null;
+        fetchChart(pending.period, pending.silent);
       }
     }
   }, []);
@@ -205,7 +214,21 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
   // ── Chart data ─────────────────────────────────────────────────
 
-  const points = chartData?.points ?? [];
+  // Extend chart to current time using the live portfolio value from props.
+  // Yahoo candles are ~15 min delayed; this bridges the gap so the line
+  // always reaches "now" and the user can hover to the latest value.
+  const points = useMemo(() => {
+    const raw = chartData?.points ?? [];
+    if (raw.length === 0) return raw;
+    if (selectedPeriod === '1D') {
+      const now = Date.now();
+      const last = raw[raw.length - 1];
+      if (now - last.time > 10000) {
+        return [...raw, { time: now, value: currentValue }];
+      }
+    }
+    return raw;
+  }, [chartData, selectedPeriod, currentValue]);
   const periodStartValue = chartData?.periodStartValue ?? currentValue;
 
   // ── Normalized benchmark data for overlay ──────────────────────

@@ -15,7 +15,6 @@ import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
-import { FuturesBanner } from './components/FuturesBanner';
 import { DailyReportModal } from './components/DailyReportModal';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
@@ -633,7 +632,6 @@ export default function App() {
                   onMeasurementChange={setChartMeasurement}
                   session={portfolio.session}
                 />
-                <FuturesBanner session={portfolio.session} refreshTrigger={portfolioRefreshCount} />
               </div>
             )}
 

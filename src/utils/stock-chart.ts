@@ -78,19 +78,55 @@ export function buildPoints(
           volume: 0,
         });
       }
-      // Append live prices newer than the last candle to fill the gap
-      // (Polygon Developer plan has ~15min delay; live prices bridge the gap)
-      if (livePrices.length > 0 && pts.length > 0) {
+      // Bridge the gap between delayed candles and live/current data.
+      // Polygon candles are ~15 min behind; we interpolate so the chart
+      // looks continuous and every point in the gap is hoverable.
+      {
         const lastCandleTime = pts[pts.length - 1].time;
-        for (const lp of livePrices) {
-          const t = new Date(lp.time).getTime();
-          if (t > lastCandleTime) {
+        const lastCandlePrice = pts[pts.length - 1].price;
+
+        // Collect live prices newer than the last candle
+        const newerLive = livePrices
+          .map(lp => ({ time: new Date(lp.time).getTime(), price: lp.price }))
+          .filter(lp => lp.time > lastCandleTime);
+
+        // The target we're bridging toward: first live price, or current price
+        const now = Date.now();
+        const bridgeTarget = newerLive.length > 0
+          ? newerLive[0]
+          : { time: now, price: currentPrice };
+        const gapMs = bridgeTarget.time - lastCandleTime;
+
+        // Fill gaps larger than 90s with interpolated points every 30s
+        if (gapMs > 90000) {
+          const stepMs = 30000;
+          for (let t = lastCandleTime + stepMs; t < bridgeTarget.time; t += stepMs) {
+            const ratio = (t - lastCandleTime) / gapMs;
+            const price = lastCandlePrice + (bridgeTarget.price - lastCandlePrice) * ratio;
             pts.push({
               time: t,
-              label: new Date(lp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              price: lp.price,
+              label: new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              price: Math.round(price * 100) / 100,
             });
           }
+        }
+
+        // Append actual live price points
+        for (const lp of newerLive) {
+          pts.push({
+            time: lp.time,
+            label: new Date(lp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            price: lp.price,
+          });
+        }
+
+        // Always extend to current time so the chart reaches "now"
+        if (now - pts[pts.length - 1].time > 5000) {
+          pts.push({
+            time: now,
+            label: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            price: currentPrice,
+          });
         }
       }
       return pts;
