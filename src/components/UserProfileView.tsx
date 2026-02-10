@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, PortfolioChartPeriod } from '../types';
+import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent } from '../types';
 import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings } from '../api';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
@@ -56,7 +56,7 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
   },
 };
 
@@ -731,7 +731,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
             className="overflow-hidden mb-2"
           >
             <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]">
@@ -1201,14 +1201,3 @@ function formatValue(value: number): string {
   return `$${value.toFixed(0)}`;
 }
 
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime();
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return 'now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
-}
