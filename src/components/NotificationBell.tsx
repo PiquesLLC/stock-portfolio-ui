@@ -188,17 +188,22 @@ export function NotificationBell({ userId }: Props) {
   }, [open]);
 
   const handleMarkRead = async (notification: UnifiedNotification) => {
-    if (notification.type === 'alert') {
-      await markAlertRead(notification.id);
-    } else if (notification.type === 'price_alert') {
-      await markPriceAlertEventRead(notification.id);
-    } else if (notification.type === 'analyst') {
-      await markAnalystEventRead(notification.id);
-    } else if (notification.type === 'milestone') {
-      await markMilestoneEventRead(notification.id);
-    }
+    // Optimistic update — mark read in UI immediately
     setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
+    try {
+      if (notification.type === 'alert') {
+        await markAlertRead(notification.id);
+      } else if (notification.type === 'price_alert') {
+        await markPriceAlertEventRead(notification.id);
+      } else if (notification.type === 'analyst') {
+        await markAnalystEventRead(notification.id);
+      } else if (notification.type === 'milestone') {
+        await markMilestoneEventRead(notification.id);
+      }
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
   };
 
   const handleMarkAllRead = async () => {

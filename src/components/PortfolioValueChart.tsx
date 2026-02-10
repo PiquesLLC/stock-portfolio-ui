@@ -445,9 +445,40 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
   const handleMouseLeave = useCallback(() => setHoverIndex(null), []);
 
-  // ── Click handler (measurement) ────────────────────────────────
+  // ── Touch hover (Robinhood-style press-drag crosshair) ────────
+  const isTouchHoveringRef = useRef(false);
+  const wasTouchRef = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    wasTouchRef.current = true;
+    if (e.touches.length === 1 && svgRef.current && points.length >= 2) {
+      isTouchHoveringRef.current = true;
+      const rect = svgRef.current.getBoundingClientRect();
+      const svgX = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
+      setHoverIndex(findNearestIndex(svgX));
+    }
+  }, [points, findNearestIndex]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1 && isTouchHoveringRef.current && svgRef.current) {
+      e.preventDefault();
+      const rect = svgRef.current.getBoundingClientRect();
+      const svgX = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
+      setHoverIndex(findNearestIndex(svgX));
+    }
+  }, [findNearestIndex]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (isTouchHoveringRef.current) {
+      isTouchHoveringRef.current = false;
+      setHoverIndex(null);
+    }
+  }, []);
+
+  // ── Click handler (measurement — desktop only) ────────────────
 
   const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (wasTouchRef.current) { wasTouchRef.current = false; return; }
     if (!hasData || points.length < 2) return;
     const svgX = mouseToSvgX(e);
     const idx = findNearestIndex(svgX);
@@ -808,6 +839,10 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
           <defs>
             {/* Stroke brightness gradient — boosted when market open */}

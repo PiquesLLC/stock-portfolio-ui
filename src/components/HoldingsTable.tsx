@@ -1,22 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Holding, MarketSession } from '../types';
+import { Holding } from '../types';
 import { useToast } from '../context/ToastContext';
 import { deleteHolding, addHolding, updateSettings, getPortfolio } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
-import { getAcronymTitle } from './Acronym';
 import { MiniSparkline } from './MiniSparkline';
 import { StockLogo } from './StockLogo';
 import { ConfirmModal } from './ConfirmModal';
-
-function getSessionBadge(session?: MarketSession): { label: string; color: string; title?: string } | null {
-  switch (session) {
-    case 'PRE': return { label: 'PRE', color: 'bg-blue-500/20 text-blue-400', title: getAcronymTitle('PRE') };
-    case 'REG': return { label: 'REG', color: 'bg-green-500/20 text-green-400', title: getAcronymTitle('REG') };
-    case 'POST': return { label: 'AH', color: 'bg-purple-500/20 text-purple-400', title: getAcronymTitle('AH') };
-    case 'CLOSED': return { label: 'CLOSED', color: 'bg-gray-500/10 text-gray-500/60' };
-    default: return null;
-  }
-}
 
 export interface HoldingsTableActions {
   openAdd: () => void;
@@ -26,7 +15,6 @@ export interface HoldingsTableActions {
 interface Props {
   holdings: Holding[];
   onUpdate: () => void;
-  showExtendedHours?: boolean;
   onTickerClick?: (ticker: string, holding: Holding) => void;
   cashBalance?: number;
   marginDebt?: number;
@@ -69,7 +57,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef }: Props) {
+export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef }: Props) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('ticker');
@@ -609,15 +597,6 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                       >
                         {holding.ticker}
                       </span>
-                      {isRepricing && !isUnavailable && (
-                        <span
-                          className="relative flex h-2 w-2 shrink-0"
-                          title="Repricing…"
-                        >
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
-                        </span>
-                      )}
                       {isUnavailable && (
                         <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded shrink-0" title="No price data available">
                           no data
@@ -635,14 +614,6 @@ export function HoldingsTable({ holdings, onUpdate, showExtendedHours = true, on
                   <td className={`px-4 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
                     <div className="flex items-center justify-end gap-1.5">
                       {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
-                      {showExtendedHours && hasValidPrice && holding.session && holding.session !== 'CLOSED' && holding.session !== 'PRE' && getSessionBadge(holding.session) && (
-                        <span
-                          className={`text-[10px] px-1 py-0.5 rounded font-medium ${getSessionBadge(holding.session)!.color}`}
-                          title={getSessionBadge(holding.session)!.title}
-                        >
-                          {getSessionBadge(holding.session)!.label}
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className={`hidden sm:table-cell px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200`}>

@@ -113,10 +113,6 @@ export default function App() {
   const [, setIsStale] = useState(false);
   const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
   const [portfolioRefreshCount, setPortfolioRefreshCount] = useState(0);
-  const [showExtendedHours] = useState(() => {
-    const stored = localStorage.getItem('showExtendedHours');
-    return stored !== null ? stored === 'true' : true;
-  });
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
   const [activeTab, setActiveTab] = useState<TabType>(initialNav.tab);
   const currentUserId = user?.id || '';
@@ -485,6 +481,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {/* Fixed shield covering the iOS status bar area so scrolling content is hidden behind it */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-rh-light-bg dark:bg-black" style={{ height: 'env(safe-area-inset-top)' }} />
       <Starfield />
       <div className="grain-overlay" />
       <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
@@ -756,7 +754,6 @@ export default function App() {
               <HoldingsTable
                 holdings={portfolio?.holdings ?? []}
                 onUpdate={handleUpdate}
-                showExtendedHours={showExtendedHours}
                 onTickerClick={(ticker, holding) => setViewingStock({ ticker, holding })}
                 cashBalance={portfolio?.cashBalance ?? 0}
                 marginDebt={portfolio?.marginDebt ?? 0}
