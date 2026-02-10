@@ -502,18 +502,16 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   }, [animateZoomTo, goBackZoom]);
 
   // ── Touch: pinch-to-zoom, pan, and Robinhood-style press-drag hover ──
-  const getTouchDist = (t1: React.Touch, t2: React.Touch) =>
-    Math.sqrt((t1.clientX - t2.clientX) ** 2 + (t1.clientY - t2.clientY) ** 2);
 
   // Convert a touch clientX to hoverIndex + fire onHoverPrice
   const updateHoverFromClientX = useCallback((clientX: number) => {
     if (!svgRef.current || points.length < 2) return;
     const rect = svgRef.current.getBoundingClientRect();
     const svgX = ((clientX - rect.left) / rect.width) * CHART_W;
-    const idx = findNearestIndex(svgX);
+    const idx = findNearestIndexRef.current(svgX);
     setHoverIndex(idx);
     onHoverPrice?.(points[idx].price, points[idx].label, referencePriceRef.current);
-  }, [points, findNearestIndex, onHoverPrice]);
+  }, [points, onHoverPrice]);
 
 
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
@@ -1480,6 +1478,8 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     const ratio = (svgX - PAD_LEFT) / plotW;
     return Math.max(0, Math.min(points.length - 1, Math.round(ratio * (points.length - 1))));
   }, [points, plotW, is1D, dayStartMs, dayRangeMs, zoomRange, visStartIdx, visEndIdx]);
+  const findNearestIndexRef = useRef(findNearestIndex);
+  findNearestIndexRef.current = findNearestIndex;
 
   // Resolve timestamp-based measurement point to nearest index in current points array
   const resolveIndex = useCallback((timestamp: number): number | null => {
