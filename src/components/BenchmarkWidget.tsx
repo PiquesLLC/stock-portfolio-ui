@@ -84,9 +84,9 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
         <div className="h-16 flex items-center justify-center">
           <div className="animate-spin rounded-full h-5 w-5 border-2 border-rh-green border-t-transparent"></div>
         </div>
-      ) : !data || data.snapshotCount < 2 ? (
+      ) : !data || data.snapshotCount < 2 || (youPct === 0 && data.simpleReturnPct === 0 && data.twrPct === 0) ? (
         <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-4">
-          Not enough data yet
+          Add holdings to compare against the market
         </p>
       ) : (
         <>
