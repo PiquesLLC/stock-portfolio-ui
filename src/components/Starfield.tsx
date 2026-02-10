@@ -122,10 +122,14 @@ export default function Starfield() {
 
     let paused = false;
     function handleVisibility() {
-      paused = document.hidden;
-      if (!paused) {
+      if (document.hidden) {
+        paused = true;
+        cancelAnimationFrame(animRef.current);
+      } else {
+        paused = false;
         // Clear shooting stars that accumulated while tab was hidden
         shootingRef.current = [];
+        // Only start a new loop (the old one was cancelled above)
         animRef.current = requestAnimationFrame(animate);
       }
     }
