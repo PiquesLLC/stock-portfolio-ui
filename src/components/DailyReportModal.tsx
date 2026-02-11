@@ -1,11 +1,40 @@
-import { useState, useEffect } from 'react';
-import { getDailyReport } from '../api';
+import { useState, useEffect, useRef } from 'react';
+import { getDailyReport, getFastQuote } from '../api';
 import { DailyReportResponse } from '../types';
 
 interface DailyReportModalProps {
   onClose: () => void;
   onTickerClick?: (ticker: string) => void;
+  hidden?: boolean;
 }
+
+// Common English words that look like tickers but aren't
+const TICKER_BLACKLIST = new Set([
+  'I', 'A', 'AM', 'AN', 'AS', 'AT', 'BE', 'BY', 'DO', 'GO', 'IF', 'IN', 'IS', 'IT', 'ME',
+  'MY', 'NO', 'OF', 'OK', 'ON', 'OR', 'OX', 'SO', 'TO', 'UP', 'US', 'WE',
+  'ALL', 'AND', 'ANY', 'ARE', 'BIG', 'BUT', 'CAN', 'DAY', 'DID', 'END', 'FEW', 'FOR',
+  'GET', 'GOT', 'HAD', 'HAS', 'HER', 'HIM', 'HIS', 'HOW', 'ITS', 'LET', 'MAY', 'NEW',
+  'NOT', 'NOW', 'OLD', 'ONE', 'OUR', 'OUT', 'OWN', 'PUT', 'RAN', 'RUN', 'SAY', 'SET',
+  'SHE', 'THE', 'TOO', 'TOP', 'TWO', 'USE', 'WAS', 'WAY', 'WHO', 'WHY', 'WIN', 'WON',
+  'YET', 'YOU', 'YOUR', 'ALSO', 'BACK', 'BEEN', 'BOTH', 'CAME', 'COME', 'DOWN', 'EACH',
+  'EVEN', 'FIND', 'FIVE', 'FROM', 'FULL', 'GAVE', 'GOOD', 'GREW', 'GROW', 'HALF', 'HAVE',
+  'HEAD', 'HERE', 'HIGH', 'HOLD', 'INTO', 'JUST', 'KEEP', 'KEPT', 'KNOW', 'LAST', 'LEFT',
+  'LIKE', 'LINE', 'LIST', 'LONG', 'LOOK', 'LOSE', 'LOSS', 'LOST', 'MADE', 'MAKE', 'MANY',
+  'MORE', 'MOST', 'MOVE', 'MUCH', 'MUST', 'NAME', 'NEAR', 'NEED', 'NEXT', 'NOTE', 'ONLY',
+  'OPEN', 'OVER', 'PAID', 'PART', 'PAST', 'PICK', 'PLAN', 'PULL', 'PUSH', 'RATE', 'READ',
+  'RISE', 'ROSE', 'SAID', 'SAME', 'SEEN', 'SHOW', 'SIDE', 'SIGN', 'SLOW', 'SOLD', 'SOME',
+  'STAY', 'SUCH', 'TAKE', 'TELL', 'THAN', 'THAT', 'THEM', 'THEN', 'THEY', 'THIS', 'TOOK',
+  'TURN', 'VERY', 'WANT', 'WEEK', 'WELL', 'WENT', 'WERE', 'WHAT', 'WHEN', 'WILL', 'WITH',
+  'WORD', 'YEAR', 'ABOVE', 'AFTER', 'AGAIN', 'BELOW', 'COULD', 'EVERY', 'FIRST',
+  'GIVEN', 'GOING', 'GREAT', 'KNOWN', 'LARGE', 'LOWER', 'MIGHT', 'NEVER', 'OTHER',
+  'POINT', 'PRICE', 'RALLY', 'RIGHT', 'SHALL', 'SHARE', 'SHARP', 'SHORT', 'SINCE',
+  'SMALL', 'STACK', 'STILL', 'STOCK', 'THEIR', 'THERE', 'THESE', 'THINK', 'THOSE',
+  'THREE', 'TODAY', 'TOTAL', 'TRADE', 'UNDER', 'UNTIL', 'UPPER', 'VALUE', 'WATCH',
+  'WHERE', 'WHICH', 'WHILE', 'WHOLE', 'WHOSE', 'WORTH', 'WOULD', 'YIELD',
+  // Economic indicators / non-stock acronyms
+  'CPI', 'GDP', 'PCE', 'PPI', 'PMI', 'ISM', 'FOMC', 'FED', 'SEC', 'IPO', 'ETF',
+  'NYSE', 'YOY', 'QOQ', 'MOM', 'BPS', 'CEO', 'CFO', 'COO', 'CTO',
+]);
 
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -29,16 +58,66 @@ function formatDate(dateStr: string): string {
 
 // Strip Perplexity citation references like [1], [2], [headlines], [4] from text
 function stripCitations(text: string): string {
-  return text.replace(/\[\d+\]|\[headlines?\]|\[sources?\]/gi, '').replace(/\s{2,}/g, ' ').trim();
+  return text.replace(/\[\d+\]|\[headlines?\]|\[sources?\]|\[provided\]/gi, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').replace(/\s{2,}/g, ' ').trim();
 }
 
-export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalProps) {
+// Extract ticker symbols from text
+function extractTickers(text: string): string[] {
+  const matches = stripCitations(text).match(/\b[A-Z]{2,5}\b/g) || [];
+  return [...new Set(matches.filter(t => !TICKER_BLACKLIST.has(t)))];
+}
+
+// Extract all tickers from the full report
+function extractAllTickers(data: DailyReportResponse): string[] {
+  const texts = [
+    data.marketOverview,
+    data.portfolioSummary,
+    ...data.topStories.map(s => s.headline + ' ' + s.body),
+    ...data.topStories.flatMap(s => s.relatedTickers),
+    ...data.watchToday,
+  ];
+  const all = texts.flatMap(t => extractTickers(t));
+  return [...new Set(all)];
+}
+
+type LiveQuotes = Record<string, { changePercent: number }>;
+
+// Render text with inline clickable ticker symbols + live badges
+function renderWithTickers(text: string, onClick?: (ticker: string) => void, quotes?: LiveQuotes): (string | JSX.Element)[] {
+  const cleaned = stripCitations(text);
+  const parts = cleaned.split(/\b([A-Z]{1,5})\b/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1 && !TICKER_BLACKLIST.has(part) && part.length >= 2) {
+      const q = quotes?.[part];
+      return (
+        <span key={i} className="inline-flex items-baseline gap-0.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onClick?.(part); }}
+            className="text-white/90 font-medium underline decoration-white/20 underline-offset-2 hover:decoration-rh-green hover:text-rh-green transition-colors"
+          >
+            {part}
+          </button>
+          {q && (
+            <span className={`text-[12px] font-mono font-medium ${q.changePercent >= 0 ? 'text-rh-green/80' : 'text-rh-red/80'}`}>
+              {q.changePercent >= 0 ? '+' : ''}{q.changePercent.toFixed(1)}%
+            </span>
+          )}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
+export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReportModalProps) {
   const [data, setData] = useState<DailyReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(
     () => localStorage.getItem('dailyReportDisabled') === 'true'
   );
+  const [liveQuotes, setLiveQuotes] = useState<LiveQuotes>({});
+  const quotesFetchedRef = useRef(false);
 
   // Escape key handler
   useEffect(() => {
@@ -51,6 +130,13 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
+
+  // Lock body scroll when modal is visible
+  useEffect(() => {
+    if (hidden) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [hidden]);
 
   // Fetch on mount
   const fetchReport = async () => {
@@ -68,16 +154,29 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
 
   useEffect(() => { fetchReport(); }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black overflow-y-auto"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', paddingTop: 'env(safe-area-inset-top)' }}
-    >
-      {/* Hide webkit scrollbar */}
-      <style>{`.daily-report-scroll::-webkit-scrollbar { display: none; }`}</style>
+  // Fetch live quotes for all tickers mentioned in the article
+  useEffect(() => {
+    if (!data || quotesFetchedRef.current) return;
+    quotesFetchedRef.current = true;
+    const tickers = extractAllTickers(data);
+    tickers.forEach(ticker => {
+      getFastQuote(ticker)
+        .then(q => {
+          setLiveQuotes(prev => ({ ...prev, [ticker]: { changePercent: q.changePercent } }));
+        })
+        .catch(() => {}); // silently skip failed quotes
+    });
+  }, [data]);
 
-      <div className="daily-report-scroll min-h-full">
+  return (
+    <div className="fixed inset-0 z-50 bg-black overflow-hidden"
+      style={{ paddingTop: 'env(safe-area-inset-top)', display: hidden ? 'none' : undefined }}
+    >
+      <div className="h-full overflow-y-auto"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {/* Top bar */}
-        <div className="sticky z-10 flex items-center justify-between px-6 py-4 bg-black/80 backdrop-blur-sm border-b border-white/[0.06]" style={{ top: 'env(safe-area-inset-top)' }}>
+        <div className="sticky z-10 flex items-center justify-between px-6 py-4 bg-black border-b border-white/[0.06]" style={{ top: 0 }}>
           <button
             onClick={onClose}
             className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
@@ -103,7 +202,7 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto px-6 py-10">
+        <div className="max-w-3xl mx-auto px-6 pt-16 pb-10">
           {/* Loading state */}
           {loading && (
             <div className="animate-pulse space-y-10">
@@ -173,7 +272,7 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
               {/* Market Overview */}
               <div className="mb-10">
                 <p className="text-[15px] text-white/80 leading-[1.8]">
-                  {stripCitations(data.marketOverview)}
+                  {renderWithTickers(data.marketOverview, onTickerClick, liveQuotes)}
                 </p>
               </div>
 
@@ -185,7 +284,7 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
                   Your Portfolio
                 </h3>
                 <p className="text-[15px] text-white/80 leading-[1.8]">
-                  {stripCitations(data.portfolioSummary)}
+                  {renderWithTickers(data.portfolioSummary, onTickerClick, liveQuotes)}
                 </p>
               </div>
 
@@ -210,10 +309,10 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
                         }`} />
                         <div className="flex-1">
                           <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
-                            {stripCitations(story.headline)}
+                            {renderWithTickers(story.headline, onTickerClick, liveQuotes)}
                           </h4>
                           <p className="text-sm text-white/50 leading-relaxed">
-                            {stripCitations(story.body)}
+                            {renderWithTickers(story.body, onTickerClick, liveQuotes)}
                           </p>
                           {story.relatedTickers.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-2">
@@ -248,8 +347,8 @@ export function DailyReportModal({ onClose, onTickerClick }: DailyReportModalPro
                 <div className="space-y-4">
                   {data.watchToday.map((item, i) => (
                     <div key={i} className="flex items-start gap-3">
-                      <span className="text-rh-green text-xs mt-1">{'--'}</span>
-                      <p className="text-[15px] text-white/70 leading-relaxed">{stripCitations(item)}</p>
+                      <span className="text-rh-green text-xs mt-1">{'–'}</span>
+                      <p className="text-[15px] text-white/70 leading-relaxed">{renderWithTickers(item, onTickerClick, liveQuotes)}</p>
                     </div>
                   ))}
                 </div>

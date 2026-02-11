@@ -127,6 +127,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
+  const [dailyReportHidden, setDailyReportHidden] = useState(false);
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
@@ -534,6 +535,17 @@ export default function App() {
                 onLogoutClick={logout}
               />
             )}
+            {currentUserId && (
+              <button
+                onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
+                className="relative p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                title="Today's Brief"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+              </button>
+            )}
             {currentUserId && <NotificationBell userId={currentUserId} />}
             <button
               onClick={toggleTheme}
@@ -584,7 +596,12 @@ export default function App() {
               ticker={viewingStock.ticker}
               holding={viewingStock.holding}
               portfolioTotal={portfolio?.totalAssets ?? 0}
-              onBack={() => setViewingStock(null)}
+              onBack={() => {
+                if (dailyReportHidden) {
+                  setDailyReportHidden(false);
+                }
+                setViewingStock(null);
+              }}
               onHoldingAdded={() => {
                 fetchData();
                 setTimeout(async () => {
@@ -648,12 +665,23 @@ export default function App() {
                   <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
                     {formatCurrency(portfolio.netEquity)}
                   </span>
-                  {portfolio.marginDebt > 0 && (
-                    <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
-                      (${portfolio.marginDebt.toLocaleString()} margin)
-                    </span>
-                  )}
                 </div>
+                {(portfolio.cashBalance > 0 || portfolio.marginDebt > 0) && (
+                  <div className="flex items-center gap-2 mr-10">
+                    {portfolio.cashBalance > 0 && (
+                      <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-green/[0.08] border border-rh-green/20">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-rh-green/60">Cash</span>
+                        <span className="text-xs font-bold text-rh-green">${portfolio.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                    {portfolio.marginDebt > 0 && (
+                      <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-red/[0.08] border border-rh-red/20">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-rh-red/60">Margin</span>
+                        <span className="text-xs font-bold text-rh-red">-${portfolio.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="hidden md:block w-px h-5 bg-white/[0.08] dark:bg-white/[0.08] bg-gray-300/40 mr-10" />
                 {chartMeasurement ? (
                   <>
@@ -887,11 +915,12 @@ export default function App() {
         onClose={() => setSettingsModalOpen(false)}
         onSave={() => fetchData()}
       />
-      {showDailyReport && (
+      {(showDailyReport || dailyReportHidden) && (
         <DailyReportModal
-          onClose={() => setShowDailyReport(false)}
+          onClose={() => { setShowDailyReport(false); setDailyReportHidden(false); }}
+          hidden={dailyReportHidden}
           onTickerClick={(ticker) => {
-            setShowDailyReport(false);
+            setDailyReportHidden(true);
             setViewingStock({ ticker, holding: findHolding(ticker) });
           }}
         />

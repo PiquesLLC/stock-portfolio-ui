@@ -354,7 +354,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     if (!profile?.profilePublic) return;
     getUserPortfolio(userId)
       .then((p) => {
-        const sorted = [...p.holdings].sort((a, b) => b.currentValue - a.currentValue).slice(0, 5);
+        const sorted = [...p.holdings].sort((a, b) => b.profitLossPercent - a.profitLossPercent).slice(0, 5);
         const total = p.holdingsValue || sorted.reduce((s, h) => s + h.currentValue, 0);
         setTopHoldings(sorted.map(h => ({
           ticker: h.ticker,
@@ -812,6 +812,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
         >
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
+          <div className="flex items-center gap-3 px-1.5 mb-1">
+            <span className="w-16 shrink-0"></span>
+            <div className="flex-1"></div>
+            <span className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider w-11 text-right shrink-0">Weight</span>
+            <span className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider w-12 text-right shrink-0">Return</span>
+          </div>
           <div className="space-y-1.5">
             {topHoldings.map((h) => (
               <button
@@ -823,7 +829,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 <div className="flex-1 h-2 bg-gray-200/40 dark:bg-white/[0.08] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${h.returnPct >= 0 ? 'bg-rh-green/70' : 'bg-rh-red/60'}`}
-                    style={{ width: `${Math.max(Math.min(h.weight, 100), 2)}%` }}
+                    style={{ width: `${Math.max(Math.min(Math.abs(h.returnPct) / Math.max(...topHoldings.map(t => Math.abs(t.returnPct)), 1) * 100, 100), 2)}%` }}
                   />
                 </div>
                 <span className="text-[10px] text-rh-light-muted dark:text-rh-muted tabular-nums w-11 text-right shrink-0">{h.weight.toFixed(1)}%</span>
