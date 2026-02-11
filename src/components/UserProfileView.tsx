@@ -345,7 +345,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   }, [userId]);
 
   // Top holdings preview
-  const [topHoldings, setTopHoldings] = useState<{ ticker: string; weight: number; dayChangePct: number }[]>([]);
+  const [topHoldings, setTopHoldings] = useState<{ ticker: string; weight: number; returnPct: number }[]>([]);
   const [chartPoints, setChartPoints] = useState<{ time: number; value: number }[]>([]);
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
@@ -359,7 +359,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         setTopHoldings(sorted.map(h => ({
           ticker: h.ticker,
           weight: total > 0 ? (h.currentValue / total) * 100 : 0,
-          dayChangePct: h.dayChangePercent,
+          returnPct: h.profitLossPercent,
         })));
       })
       .catch(() => setTopHoldings([]));
@@ -844,13 +844,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 <span className="text-sm font-bold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors w-16 shrink-0 tabular-nums">{h.ticker}</span>
                 <div className="flex-1 h-2 bg-gray-200/40 dark:bg-white/[0.08] rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${h.dayChangePct >= 0 ? 'bg-rh-green/70' : 'bg-rh-red/60'}`}
+                    className={`h-full rounded-full transition-all ${h.returnPct >= 0 ? 'bg-rh-green/70' : 'bg-rh-red/60'}`}
                     style={{ width: `${Math.max(Math.min(h.weight, 100), 2)}%` }}
                   />
                 </div>
                 <span className="text-[10px] text-rh-light-muted dark:text-rh-muted tabular-nums w-11 text-right shrink-0">{h.weight.toFixed(1)}%</span>
-                <span className={`text-[10px] tabular-nums w-12 text-right font-medium shrink-0 ${h.dayChangePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {h.dayChangePct >= 0 ? '+' : ''}{h.dayChangePct.toFixed(1)}%
+                <span className={`text-[10px] tabular-nums w-12 text-right font-medium shrink-0 ${h.returnPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {h.returnPct >= 0 ? '+' : ''}{h.returnPct.toFixed(1)}%
                 </span>
               </button>
             ))}

@@ -320,7 +320,9 @@ export default function App() {
   useEffect(() => {
     const stockTicker = viewingStock?.ticker || null;
     const subtab = activeTab === 'insights' ? insightsSubTab : null;
-    setHash(activeTab, stockTicker, viewingProfileId, leaderboardUserId, subtab);
+    // When viewing a profile, use 'portfolio' as tab so the URL is clean (#profile=...)
+    const hashTab = viewingProfileId ? 'portfolio' as TabType : activeTab;
+    setHash(hashTab, stockTicker, viewingProfileId, leaderboardUserId, subtab);
   }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab]);
 
   // Handle browser back/forward
