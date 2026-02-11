@@ -734,7 +734,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <button
-                        onClick={() => handleEdit(holding)}
+                        onClick={(e) => { e.stopPropagation(); handleEdit(holding); }}
                         className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white text-sm transition-colors"
                         title="Edit holding"
                       >
@@ -743,7 +743,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDelete(holding.ticker)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(holding.ticker); }}
                         disabled={deleting === holding.ticker}
                         className="text-rh-light-muted dark:text-rh-muted hover:text-rh-red disabled:opacity-50 text-sm transition-colors"
                         title="Delete holding"
