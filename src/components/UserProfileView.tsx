@@ -799,42 +799,6 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         )}
       </AnimatePresence>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          2. METRICS CHIP STRIP — scrollable pills
-          ═══════════════════════════════════════════════════════════════ */}
-      {profile.profilePublic && hasPerformance && (
-        <motion.div
-          variants={itemVariants}
-          className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-2 -mx-1 px-1"
-        >
-          {[
-            { label: 'Vol', value: perf?.volatilityPct !== null ? `${perf!.volatilityPct!.toFixed(1)}%` : '--' },
-            { label: 'Max DD', value: perf?.maxDrawdownPct !== null ? `-${perf!.maxDrawdownPct!.toFixed(1)}%` : '--' },
-            ...(rankPercentile !== null && rankPercentile <= 80
-              ? [{ label: 'Beta', value: perf?.beta !== null ? perf!.beta!.toFixed(2) : '--' }]
-              : []),
-            { label: 'Best', value: perf?.bestDay ? `+${perf.bestDay.returnPct.toFixed(1)}%` : '--', accent: 'green' as const },
-            { label: 'Worst', value: perf?.worstDay ? `${perf.worstDay.returnPct.toFixed(1)}%` : '--', accent: 'red' as const },
-          ].map((chip, i) => (
-            <motion.div
-              key={chip.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.25, delay: 0.2 + i * 0.04 }}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-lg border border-gray-200/30 dark:border-white/[0.06] cursor-default profile-chip"
-            >
-              <span className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 uppercase tracking-wider">{chip.label}</span>
-              <span className={`text-xs font-medium tabular-nums ${
-                chip.accent === 'green' ? 'text-rh-green/80' :
-                chip.accent === 'red' ? 'text-rh-red/80' :
-                'text-rh-light-text/80 dark:text-rh-text/80'
-              }`}>
-                {chip.value}
-              </span>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════
           2b. TOP HOLDINGS PREVIEW
@@ -882,7 +846,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           }`}
         >
           <div className="flex items-center gap-2.5 mb-3">
-            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
+            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal">(1mo)</span></h3>
             {signalRating.grade !== '--' && (
               <div className="flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 20 20">
