@@ -647,7 +647,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             />
             <div className="w-px h-8 bg-gray-200/30 dark:bg-white/[0.06]" />
             <PerformanceStat
-              value={perf?.alphaPct ?? null}
+              value={chartReturnPct != null && perf?.benchmarkReturnPct != null
+                ? Math.round((chartReturnPct - perf.benchmarkReturnPct) * 100) / 100
+                : perf?.alphaPct ?? null}
               label={`vs ${perf?.benchmarkTicker ?? 'SPY'}`}
               isPercent
             />
