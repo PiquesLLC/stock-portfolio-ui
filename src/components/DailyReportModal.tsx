@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getDailyReport, getFastQuote } from '../api';
+import { getDailyReport, regenerateDailyReport, getFastQuote } from '../api';
 import { DailyReportResponse } from '../types';
 
 interface DailyReportModalProps {
@@ -58,7 +58,12 @@ function formatDate(dateStr: string): string {
 
 // Strip Perplexity citation references like [1], [2], [headlines], [4] from text
 function stripCitations(text: string): string {
-  return text.replace(/\[\d+\]|\[headlines?\]|\[sources?\]|\[provided\]/gi, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').replace(/\s{2,}/g, ' ').trim();
+  return text
+    .replace(/\[\d+\]|\[headlines?\]|\[sources?\]|\[provided\]|\[portfolio[^\]]*\]/gi, '')
+    .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
+    .replace(/\/(?=[A-Z]{2,5}\b)/g, ', ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 // Extract ticker symbols from text
@@ -117,6 +122,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
     () => localStorage.getItem('dailyReportDisabled') === 'true'
   );
   const [liveQuotes, setLiveQuotes] = useState<LiveQuotes>({});
+  const [regenerating, setRegenerating] = useState(false);
   const quotesFetchedRef = useRef(false);
 
   // Escape key handler
@@ -154,19 +160,40 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
 
   useEffect(() => { fetchReport(); }, []);
 
-  // Fetch live quotes for all tickers mentioned in the article
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    setLiveQuotes({});
+    quotesFetchedRef.current = false;
+    try {
+      const report = await regenerateDailyReport();
+      setData(report);
+    } catch {
+      // fall back to existing data
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  // Fetch live quotes for all tickers mentioned in the article, refresh every 30s
   useEffect(() => {
-    if (!data || quotesFetchedRef.current) return;
-    quotesFetchedRef.current = true;
+    if (!data || hidden) return;
     const tickers = extractAllTickers(data);
-    tickers.forEach(ticker => {
-      getFastQuote(ticker)
-        .then(q => {
-          setLiveQuotes(prev => ({ ...prev, [ticker]: { changePercent: q.changePercent } }));
-        })
-        .catch(() => {}); // silently skip failed quotes
-    });
-  }, [data]);
+    if (tickers.length === 0) return;
+
+    const fetchQuotes = () => {
+      tickers.forEach(ticker => {
+        getFastQuote(ticker)
+          .then(q => {
+            setLiveQuotes(prev => ({ ...prev, [ticker]: { changePercent: q.changePercent } }));
+          })
+          .catch(() => {});
+      });
+    };
+
+    fetchQuotes();
+    const interval = setInterval(fetchQuotes, 30000);
+    return () => clearInterval(interval);
+  }, [data, hidden]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black overflow-hidden"
@@ -186,7 +213,17 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
             </svg>
             Back
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-rh-green transition-colors disabled:opacity-50"
+            >
+              <svg className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {regenerating ? 'Generating...' : 'Refresh'}
+            </button>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"

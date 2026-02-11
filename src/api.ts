@@ -380,6 +380,12 @@ export async function getDailyReport(): Promise<DailyReportResponse> {
   return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report`);
 }
 
+export async function regenerateDailyReport(): Promise<DailyReportResponse> {
+  return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report/regenerate`, {
+    method: 'POST',
+  });
+}
+
 // Goals endpoints
 export async function getGoals(): Promise<Goal[]> {
   return fetchJson<Goal[]>(`${API_BASE_URL}/goals`);
