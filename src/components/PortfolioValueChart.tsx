@@ -306,16 +306,12 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const { paddedMin, paddedMax } = useMemo(() => {
     if (points.length < 2) return { paddedMin: 0, paddedMax: 1 };
     const values = points.map(p => p.value);
-    // Include benchmark values in scale when Compare SPY is active
-    if (benchmarkNormalized && benchmarkNormalized.length > 0) {
-      values.push(...benchmarkNormalized.map(bp => bp.value));
-    }
     let minV = Math.min(...values, periodStartValue);
     let maxV = Math.max(...values, periodStartValue);
     if (maxV === minV) { maxV += 1; minV -= 1; }
     const range = maxV - minV;
     return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
-  }, [points, periodStartValue, benchmarkNormalized]);
+  }, [points, periodStartValue]);
 
   // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   // Derive the trading day from the data points (not "today") so it works after hours / weekends
