@@ -10,10 +10,11 @@ import BehaviorInsights from './BehaviorInsights';
 import EventsCalendar from './EventsCalendar';
 import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
+import { EarningsTab } from './EarningsTab';
 import { SkeletonCard } from './SkeletonCard';
 import { MarketSession } from '../types';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings';
 
 const PRIMARY_COUNT_MOBILE = 3;
 
@@ -122,7 +123,7 @@ function formatTimeAgo(timestamp: number): string {
   return `${hours}h ago`;
 }
 
-const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if']);
+const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings']);
 
 function EventsSection({ holdings }: { holdings: Holding[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -279,10 +280,11 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     // Primary
     { id: 'intelligence', label: 'Intelligence' },
     { id: 'ai-briefing', label: 'AI Briefing' },
-    { id: 'allocation', label: 'Allocation' },
+    { id: 'earnings', label: 'Earnings' },
     { id: 'what-if', label: 'Scenarios' },
     { id: 'ai-behavior', label: 'Behavior' },
     // Secondary
+    { id: 'allocation', label: 'Allocation' },
     { id: 'income', label: 'Income' },
     { id: 'projections-goals', label: 'Goals' },
   ];
@@ -293,6 +295,16 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       <div className="space-y-6">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <PortfolioBriefing />
+      </div>
+    );
+  }
+
+  // Earnings subtab
+  if (subTab === 'earnings') {
+    return (
+      <div className="space-y-6">
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
+        <EarningsTab holdings={holdings} onTickerClick={onTickerClick} />
       </div>
     );
   }

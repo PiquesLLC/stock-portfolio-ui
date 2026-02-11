@@ -1,11 +1,21 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Holding } from '../types';
+import { Holding, EarningsResponse } from '../types';
 import { useToast } from '../context/ToastContext';
-import { deleteHolding, addHolding, updateSettings, getPortfolio } from '../api';
+import { deleteHolding, addHolding, updateSettings, getPortfolio, getEarnings } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { MiniSparkline } from './MiniSparkline';
 import { StockLogo } from './StockLogo';
 import { ConfirmModal } from './ConfirmModal';
+
+// Earnings badge data per ticker
+interface EarningsBadge {
+  daysUntil: number;
+  label: string; // "Today", "Tomorrow", "Wed", "Feb 18", etc.
+}
+
+// Module-level cache so we don't refetch on every re-render
+const EARNINGS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+let earningsCache: { data: Record<string, EarningsBadge>; timestamp: number } | null = null;
 
 export interface HoldingsTableActions {
   openAdd: () => void;
@@ -87,6 +97,58 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   // Sync cash/margin values when props change (round to 2 decimals to avoid floating point noise)
   useEffect(() => { setCashValue(parseFloat(cashBalance.toFixed(2)).toString()); }, [cashBalance]);
   useEffect(() => { setMarginValue(parseFloat(marginDebt.toFixed(2)).toString()); }, [marginDebt]);
+
+  // Upcoming earnings badges (within 7 days)
+  const [earningsBadges, setEarningsBadges] = useState<Record<string, EarningsBadge>>({});
+
+  useEffect(() => {
+    if (holdings.length === 0) return;
+
+    // Use cache if fresh
+    if (earningsCache && Date.now() - earningsCache.timestamp < EARNINGS_CACHE_TTL) {
+      setEarningsBadges(earningsCache.data);
+      return;
+    }
+
+    let cancelled = false;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    async function fetchEarningsDates() {
+      const badges: Record<string, EarningsBadge> = {};
+
+      await Promise.allSettled(
+        holdings.map(async (h) => {
+          try {
+            const data: EarningsResponse = await getEarnings(h.ticker);
+            for (const q of data.quarterly) {
+              const reportDate = new Date(q.reportedDate + 'T00:00:00');
+              const daysUntil = Math.floor((reportDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              // Only show badge for earnings within 7 days and not yet reported
+              if (daysUntil >= 0 && daysUntil <= 7 && q.reportedEPS === null) {
+                let label: string;
+                if (daysUntil === 0) label = 'Today';
+                else if (daysUntil === 1) label = 'Tomorrow';
+                else label = reportDate.toLocaleDateString('en-US', { weekday: 'short' });
+                badges[h.ticker] = { daysUntil, label };
+                break;
+              }
+            }
+          } catch {
+            // skip failed tickers
+          }
+        })
+      );
+
+      if (!cancelled) {
+        earningsCache = { data: badges, timestamp: Date.now() };
+        setEarningsBadges(badges);
+      }
+    }
+
+    fetchEarningsDates();
+    return () => { cancelled = true; };
+  }, [holdings]);
 
   // Check if any modal is open
   const isModalOpen = showAddModal || editingHolding !== null || showCashMarginModal;
@@ -600,6 +662,16 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                       {isUnavailable && (
                         <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded shrink-0" title="No price data available">
                           no data
+                        </span>
+                      )}
+                      {earningsBadges[holding.ticker] && (
+                        <span
+                          className="text-[10px] bg-amber-500/15 text-amber-500 dark:text-amber-400 px-1.5 py-0.5 rounded-full shrink-0 font-medium"
+                          title={`Earnings ${earningsBadges[holding.ticker].daysUntil === 0 ? 'today' : `in ${earningsBadges[holding.ticker].daysUntil} day${earningsBadges[holding.ticker].daysUntil === 1 ? '' : 's'}`}`}
+                        >
+                          {earningsBadges[holding.ticker].daysUntil === 0
+                            ? 'ER Today'
+                            : `ER ${earningsBadges[holding.ticker].label}`}
                         </span>
                       )}
                     </div>
