@@ -414,6 +414,7 @@ export interface CsvParseResult {
   totalRows: number;
   validRows: number;
   skippedRows: number;
+  warning?: string;
 }
 
 export async function uploadPortfolioCsv(file: File): Promise<CsvParseResult> {
@@ -438,6 +439,32 @@ export async function uploadPortfolioCsv(file: File): Promise<CsvParseResult> {
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body.error || `Upload failed (${response.status})`);
+  }
+  return response.json();
+}
+
+export async function uploadPortfolioScreenshot(file: File): Promise<CsvParseResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const doFetch = () => fetch(`${API_BASE_URL}/portfolio/import/screenshot`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: {
+      'Bypass-Tunnel-Reminder': 'true',
+      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+    },
+  });
+
+  let response = await doFetch();
+  if (response.status === 401) {
+    const refreshed = await refreshOnce();
+    if (refreshed) response = await doFetch();
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Screenshot upload failed (${response.status})`);
   }
   return response.json();
 }

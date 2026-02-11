@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { uploadPortfolioCsv, confirmPortfolioImport, clearPortfolio, CsvParsedRow } from '../api';
+import { uploadPortfolioCsv, uploadPortfolioScreenshot, confirmPortfolioImport, clearPortfolio, CsvParsedRow } from '../api';
 
 interface PortfolioImportProps {
   onClose: () => void;
@@ -22,7 +22,10 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [dragOver, setDragOver] = useState(false);
   const [clearText, setClearText] = useState('');
   const [clearing, setClearing] = useState(false);
+  const [globalWarning, setGlobalWarning] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const screenshotInputRef = useRef<HTMLInputElement>(null);
+  const [uploadSource, setUploadSource] = useState<'csv' | 'screenshot'>('csv');
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.csv')) {
@@ -35,10 +38,36 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       const data = await uploadPortfolioCsv(file);
       setRows(data.parsed);
       setWarnings(data.warnings);
+      setGlobalWarning(data.warning || '');
       setStats({ totalRows: data.totalRows, validRows: data.validRows, skippedRows: data.skippedRows });
+      setUploadSource('csv');
       setStep('review');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
+      setStep('choose');
+    }
+  }, []);
+
+  const handleScreenshot = useCallback(async (file: File) => {
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif'];
+    const validExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.heic', '.heif', '.bmp', '.tiff', '.tif'];
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
+      setError('Please upload an image file (PNG, JPG, WebP, or HEIC)');
+      return;
+    }
+    setError('');
+    setStep('uploading');
+    try {
+      const data = await uploadPortfolioScreenshot(file);
+      setRows(data.parsed);
+      setWarnings(data.warnings);
+      setGlobalWarning(data.warning || '');
+      setStats({ totalRows: data.totalRows, validRows: data.validRows, skippedRows: data.skippedRows });
+      setUploadSource('screenshot');
+      setStep('review');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Screenshot processing failed');
       setStep('choose');
     }
   }, []);
@@ -155,10 +184,10 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 />
               </div>
 
-              {/* Screenshot option (coming soon) */}
+              {/* Screenshot upload */}
               <button
-                disabled
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-left opacity-50 cursor-not-allowed"
+                onClick={() => screenshotInputRef.current?.click()}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] hover:border-rh-green/30 transition-colors text-left"
               >
                 <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -166,8 +195,18 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 </svg>
                 <div>
                   <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">Upload Screenshot</p>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">Coming soon</p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">OCR reads your portfolio image (beta)</p>
                 </div>
+                <input
+                  ref={screenshotInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleScreenshot(file);
+                  }}
+                />
               </button>
 
               {/* Manual entry */}
@@ -204,13 +243,27 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
           {step === 'uploading' && (
             <div className="text-center py-12">
               <div className="w-8 h-8 border-2 border-rh-green border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">Parsing your CSV...</p>
+              <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+                {uploadSource === 'screenshot' ? 'Running OCR on your screenshot...' : 'Parsing your CSV...'}
+              </p>
+              {uploadSource === 'screenshot' && (
+                <p className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40 mt-2">This may take a few seconds</p>
+              )}
             </div>
           )}
 
           {/* ── STEP: Review ── */}
           {step === 'review' && (
             <div className="space-y-4">
+              {/* OCR / global warning notice */}
+              {(uploadSource === 'screenshot' || globalWarning) && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                  <p className="text-xs text-amber-500 font-medium">
+                    {globalWarning || 'OCR Result — Please verify all values before importing'}
+                  </p>
+                </div>
+              )}
+
               {/* Stats bar */}
               <div className="flex items-center gap-4 text-xs text-rh-light-muted dark:text-rh-muted">
                 <span>{stats.validRows} valid</span>
@@ -323,7 +376,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => { setStep('choose'); setRows([]); setWarnings([]); setError(''); }}
+                  onClick={() => { setStep('choose'); setRows([]); setWarnings([]); setGlobalWarning(''); setError(''); }}
                   className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Back
