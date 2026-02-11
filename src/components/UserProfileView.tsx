@@ -846,7 +846,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           }`}
         >
           <div className="flex items-center gap-2.5 mb-3">
-            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal">(1mo)</span></h3>
+            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
+            <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
             {signalRating.grade !== '--' && (
               <div className="flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 20 20">
