@@ -386,6 +386,19 @@ export async function regenerateDailyReport(): Promise<DailyReportResponse> {
   });
 }
 
+// Earnings summary (batch endpoint)
+export interface EarningsSummaryItem {
+  ticker: string;
+  reportDate: string;
+  estimatedEPS: number | null;
+  reportedEPS: number | null;
+  daysUntil: number;
+}
+
+export async function getEarningsSummary(): Promise<{ results: EarningsSummaryItem[]; partial: boolean }> {
+  return fetchJson<{ results: EarningsSummaryItem[]; partial: boolean }>(`${API_BASE_URL}/insights/earnings-summary`);
+}
+
 // Goals endpoints
 export async function getGoals(): Promise<Goal[]> {
   return fetchJson<Goal[]>(`${API_BASE_URL}/goals`);

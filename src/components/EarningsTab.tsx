@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Holding, EarningsResponse } from '../types';
-import { getEarnings } from '../api';
+import { Holding } from '../types';
+import { getEarningsSummary, EarningsSummaryItem } from '../api';
 import EventsCalendar from './EventsCalendar';
 import { SkeletonCard } from './SkeletonCard';
 
@@ -34,6 +34,18 @@ function formatCountdown(daysUntil: number): string {
   return `in ${daysUntil} days`;
 }
 
+function toUpcomingEarning(item: EarningsSummaryItem): UpcomingEarning {
+  const dateMs = new Date(item.reportDate + 'T00:00:00').getTime();
+  return {
+    ticker: item.ticker,
+    date: item.reportDate,
+    dateMs,
+    estimatedEPS: item.estimatedEPS,
+    daysUntil: item.daysUntil,
+    dayLabel: getDayLabel(item.daysUntil, dateMs),
+  };
+}
+
 export function EarningsTab({ holdings, onTickerClick }: EarningsTabProps) {
   const [upcoming, setUpcoming] = useState<UpcomingEarning[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,41 +63,18 @@ export function EarningsTab({ holdings, onTickerClick }: EarningsTabProps) {
       }
 
       setLoading(true);
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const results: UpcomingEarning[] = [];
+      try {
+        const { results } = await getEarningsSummary();
+        if (!mountedRef.current) return;
 
-      const promises = holdings.map(async (h) => {
-        try {
-          const data: EarningsResponse = await getEarnings(h.ticker);
-          for (const q of data.quarterly) {
-            const reportDate = new Date(q.reportedDate + 'T00:00:00');
-            const daysUntil = Math.floor((reportDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            // Include upcoming earnings (next 90 days) and those with no reported EPS yet
-            if ((daysUntil >= 0 && daysUntil <= 90) || (q.reportedEPS === null && daysUntil >= -7)) {
-              results.push({
-                ticker: h.ticker,
-                date: q.reportedDate,
-                dateMs: reportDate.getTime(),
-                estimatedEPS: q.estimatedEPS,
-                daysUntil: Math.max(0, daysUntil),
-                dayLabel: getDayLabel(Math.max(0, daysUntil), reportDate.getTime()),
-              });
-              break; // Only take the next upcoming one per ticker
-            }
-          }
-        } catch {
-          // skip failed tickers
-        }
-      });
-
-      await Promise.allSettled(promises);
-      if (!mountedRef.current) return;
-
-      results.sort((a, b) => a.daysUntil - b.daysUntil);
-      upcomingCache = { data: results, timestamp: Date.now() };
-      setUpcoming(results);
-      setLoading(false);
+        const mapped = results.map(toUpcomingEarning);
+        mapped.sort((a, b) => a.daysUntil - b.daysUntil);
+        upcomingCache = { data: mapped, timestamp: Date.now() };
+        setUpcoming(mapped);
+      } catch {
+        // Fall through with empty
+      }
+      if (mountedRef.current) setLoading(false);
     }
 
     fetchUpcoming();

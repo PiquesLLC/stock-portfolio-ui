@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Holding, EarningsResponse } from '../types';
+import { Holding } from '../types';
 import { useToast } from '../context/ToastContext';
-import { deleteHolding, addHolding, updateSettings, getPortfolio, getEarnings } from '../api';
+import { deleteHolding, addHolding, updateSettings, getPortfolio, getEarningsSummary } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { MiniSparkline } from './MiniSparkline';
 import { StockLogo } from './StockLogo';
@@ -14,8 +14,8 @@ interface EarningsBadge {
 }
 
 // Module-level cache so we don't refetch on every re-render
-const EARNINGS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-let earningsCache: { data: Record<string, EarningsBadge>; timestamp: number } | null = null;
+const EARNINGS_BADGE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+let earningsBadgeCache: { data: Record<string, EarningsBadge>; timestamp: number } | null = null;
 
 export interface HoldingsTableActions {
   openAdd: () => void;
@@ -105,48 +105,41 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     if (holdings.length === 0) return;
 
     // Use cache if fresh
-    if (earningsCache && Date.now() - earningsCache.timestamp < EARNINGS_CACHE_TTL) {
-      setEarningsBadges(earningsCache.data);
+    if (earningsBadgeCache && Date.now() - earningsBadgeCache.timestamp < EARNINGS_BADGE_CACHE_TTL) {
+      setEarningsBadges(earningsBadgeCache.data);
       return;
     }
 
     let cancelled = false;
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    async function fetchEarningsDates() {
-      const badges: Record<string, EarningsBadge> = {};
+    async function fetchEarningsBadges() {
+      try {
+        const { results } = await getEarningsSummary();
+        if (cancelled) return;
 
-      await Promise.allSettled(
-        holdings.map(async (h) => {
-          try {
-            const data: EarningsResponse = await getEarnings(h.ticker);
-            for (const q of data.quarterly) {
-              const reportDate = new Date(q.reportedDate + 'T00:00:00');
-              const daysUntil = Math.floor((reportDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-              // Only show badge for earnings within 7 days and not yet reported
-              if (daysUntil >= 0 && daysUntil <= 7 && q.reportedEPS === null) {
-                let label: string;
-                if (daysUntil === 0) label = 'Today';
-                else if (daysUntil === 1) label = 'Tomorrow';
-                else label = reportDate.toLocaleDateString('en-US', { weekday: 'short' });
-                badges[h.ticker] = { daysUntil, label };
-                break;
-              }
+        const badges: Record<string, EarningsBadge> = {};
+        for (const item of results) {
+          if (item.daysUntil <= 7) {
+            const dateMs = new Date(item.reportDate + 'T00:00:00').getTime();
+            let label: string;
+            if (item.daysUntil === 0) label = 'Today';
+            else if (item.daysUntil === 1) label = 'Tomorrow';
+            else label = new Date(dateMs).toLocaleDateString('en-US', { weekday: 'short' });
+            // Only keep first per ticker (they're sorted by date)
+            if (!badges[item.ticker]) {
+              badges[item.ticker] = { daysUntil: item.daysUntil, label };
             }
-          } catch {
-            // skip failed tickers
           }
-        })
-      );
+        }
 
-      if (!cancelled) {
-        earningsCache = { data: badges, timestamp: Date.now() };
+        earningsBadgeCache = { data: badges, timestamp: Date.now() };
         setEarningsBadges(badges);
+      } catch {
+        // silently fail — badges are non-critical
       }
     }
 
-    fetchEarningsDates();
+    fetchEarningsBadges();
     return () => { cancelled = true; };
   }, [holdings]);
 
