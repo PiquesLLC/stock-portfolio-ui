@@ -4,6 +4,7 @@ import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, Activity
 import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings } from '../api';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
+import { PortfolioImport } from './PortfolioImport';
 
 const REGION_OPTIONS = [
   { value: 'NA', label: 'North America', short: 'NA' },
@@ -272,12 +273,14 @@ interface UserProfileViewProps {
   onBack: () => void;
   onStockClick?: (ticker: string) => void;
   onUserClick?: (userId: string) => void;
+  onPortfolioUpdate?: () => void;
 }
 
-export function UserProfileView({ userId, currentUserId, session, onBack, onStockClick, onUserClick }: UserProfileViewProps) {
+export function UserProfileView({ userId, currentUserId, session, onBack, onStockClick, onUserClick, onPortfolioUpdate }: UserProfileViewProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPortfolio, setShowPortfolio] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [rankPercentile, setRankPercentile] = useState<number | null>(null);
   const [rankPosition, setRankPosition] = useState<number | null>(null);
   const [showSignalTooltip, setShowSignalTooltip] = useState(false);
@@ -1078,7 +1081,28 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               ))}
             </select>
           </div>
+
+          <div className="border-t border-gray-200/20 dark:border-white/[0.06] mt-3 pt-3" />
+
+          {/* Portfolio management */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-rh-light-muted dark:text-rh-muted">Portfolio</span>
+            <button
+              onClick={() => setShowImport(true)}
+              className="text-xs text-rh-green hover:text-green-600 font-medium transition-colors"
+            >
+              Import / Update
+            </button>
+          </div>
         </motion.div>
+      )}
+
+      {/* Portfolio Import Modal */}
+      {showImport && (
+        <PortfolioImport
+          onClose={() => setShowImport(false)}
+          onImportComplete={() => { setShowImport(false); onPortfolioUpdate?.(); }}
+        />
       )}
 
       {/* Private Profile */}

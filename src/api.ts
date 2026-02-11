@@ -399,6 +399,66 @@ export async function getEarningsSummary(): Promise<{ results: EarningsSummaryIt
   return fetchJson<{ results: EarningsSummaryItem[]; partial: boolean }>(`${API_BASE_URL}/insights/earnings-summary`);
 }
 
+// Portfolio import endpoints
+export interface CsvParsedRow {
+  rowNumber: number;
+  ticker: string;
+  shares: number;
+  averageCost: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface CsvParseResult {
+  parsed: CsvParsedRow[];
+  warnings: { rowNumber: number; message: string }[];
+  totalRows: number;
+  validRows: number;
+  skippedRows: number;
+}
+
+export async function uploadPortfolioCsv(file: File): Promise<CsvParseResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const doFetch = () => fetch(`${API_BASE_URL}/portfolio/import/csv`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: {
+      'Bypass-Tunnel-Reminder': 'true',
+      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+    },
+  });
+
+  let response = await doFetch();
+  if (response.status === 401) {
+    const refreshed = await refreshOnce();
+    if (refreshed) response = await doFetch();
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Upload failed (${response.status})`);
+  }
+  return response.json();
+}
+
+export async function confirmPortfolioImport(
+  holdings: { ticker: string; shares: number; averageCost: number }[],
+  mode: 'replace' | 'merge'
+): Promise<{ added: number; updated: number; removed: number }> {
+  return fetchJson<{ added: number; updated: number; removed: number }>(
+    `${API_BASE_URL}/portfolio/import/confirm`,
+    { method: 'POST', body: JSON.stringify({ holdings, mode }) }
+  );
+}
+
+export async function clearPortfolio(): Promise<{ cleared: boolean; holdingsRemoved: number }> {
+  return fetchJson<{ cleared: boolean; holdingsRemoved: number }>(
+    `${API_BASE_URL}/portfolio/clear`,
+    { method: 'POST', body: JSON.stringify({ confirmation: 'CLEAR' }) }
+  );
+}
+
 // Goals endpoints
 export async function getGoals(): Promise<Goal[]> {
   return fetchJson<Goal[]>(`${API_BASE_URL}/goals`);

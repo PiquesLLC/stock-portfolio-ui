@@ -849,6 +849,7 @@ export default function App() {
                 onBack={() => setViewingProfileId(null)}
                 onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
                 onUserClick={handleViewProfile}
+                onPortfolioUpdate={handleUpdate}
               />
             </ErrorBoundary>
           )}

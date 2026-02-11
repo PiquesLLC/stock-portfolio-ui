@@ -6,6 +6,7 @@ import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { MiniSparkline } from './MiniSparkline';
 import { StockLogo } from './StockLogo';
 import { ConfirmModal } from './ConfirmModal';
+import { PortfolioImport } from './PortfolioImport';
 
 // Earnings badge data per ticker
 interface EarningsBadge {
@@ -80,6 +81,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   const [cashMarginLoading, setCashMarginLoading] = useState(false);
   const [cashMarginError, setCashMarginError] = useState('');
   const [confirmDeleteTicker, setConfirmDeleteTicker] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [viewMode, setViewMode] = useState<'compact' | 'detailed'>(() => {
     const stored = localStorage.getItem('holdingsView');
     return stored === 'detailed' ? 'detailed' : 'compact';
@@ -501,7 +503,28 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             </button>
           </div>
         </div>
-        <p className="text-rh-light-muted dark:text-rh-muted text-center py-8">No holdings yet. Add your first stock above.</p>
+        <div className="text-center py-8 space-y-4">
+          <p className="text-rh-light-muted dark:text-rh-muted">No holdings yet. Add your first stock above.</p>
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white hover:border-rh-green/30 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Import from CSV
+          </button>
+        </div>
+
+        {showImport && (
+          <PortfolioImport
+            onClose={() => setShowImport(false)}
+            onImportComplete={() => { setShowImport(false); onUpdate(); }}
+            onboarding
+            onManualEntry={() => { setShowImport(false); handleOpenAdd(); }}
+          />
+        )}
 
         {showAddModal && (
           <div
