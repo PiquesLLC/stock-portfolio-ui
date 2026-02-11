@@ -27,7 +27,7 @@ export function ConfirmModal({ title, message, confirmLabel = 'Confirm', cancelL
     <div className="fixed inset-0 z-[999] flex items-center justify-center" onClick={onCancel}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
-        className="relative w-[90%] max-w-sm bg-white dark:bg-rh-card rounded-[18px] border border-gray-200/50 dark:border-white/[0.08] shadow-2xl p-6"
+        className="relative w-[90%] max-w-sm bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] border border-white/20 dark:border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-bold text-rh-light-text dark:text-white mb-2">{title}</h3>

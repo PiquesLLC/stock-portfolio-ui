@@ -92,8 +92,8 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={step !== 'uploading' && step !== 'confirming' ? onClose : undefined} />
-      <div className="relative bg-white dark:bg-rh-card rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={step !== 'uploading' && step !== 'confirming' ? onClose : undefined} />
+      <div className="relative bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/20 dark:border-white/[0.1] rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">

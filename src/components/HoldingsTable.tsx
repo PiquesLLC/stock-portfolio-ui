@@ -534,7 +534,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             aria-labelledby="modal-title-add"
           >
             <div
-              className="absolute inset-0 modal-overlay bg-black/60"
+              className="absolute inset-0 modal-overlay bg-black/60 backdrop-blur-sm"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -543,7 +543,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               aria-hidden="true"
             />
             <div
-              className="relative modal-container bg-white dark:bg-rh-card rounded-[18px] p-6 w-full max-w-md [border:none] [outline:none] [box-shadow:0_4px_24px_rgba(0,0,0,0.08),0_12px_48px_rgba(0,0,0,0.06)]"
+              className="relative modal-container bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] p-6 w-full max-w-md border border-white/20 dark:border-white/[0.1] [box-shadow:0_8px_32px_rgba(0,0,0,0.12)] dark:[box-shadow:0_8px_32px_rgba(0,0,0,0.5)]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
@@ -799,7 +799,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           aria-labelledby="modal-title-add"
         >
           <div
-            className="absolute inset-0 modal-overlay bg-black/60"
+            className="absolute inset-0 modal-overlay bg-black/60 backdrop-blur-sm"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -808,7 +808,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             aria-hidden="true"
           />
           <div
-            className="relative modal-container bg-white dark:bg-rh-card rounded-[18px] p-6 w-full max-w-md [border:none] [outline:none] [box-shadow:0_4px_24px_rgba(0,0,0,0.08),0_12px_48px_rgba(0,0,0,0.06)]"
+            className="relative modal-container bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] p-6 w-full max-w-md border border-white/20 dark:border-white/[0.1] [box-shadow:0_8px_32px_rgba(0,0,0,0.12)] dark:[box-shadow:0_8px_32px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -842,7 +842,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           aria-labelledby="modal-title-edit"
         >
           <div
-            className="absolute inset-0 modal-overlay bg-black/60"
+            className="absolute inset-0 modal-overlay bg-black/60 backdrop-blur-sm"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -851,7 +851,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             aria-hidden="true"
           />
           <div
-            className="relative modal-container bg-white dark:bg-rh-card rounded-[18px] p-6 w-full max-w-md [border:none] [outline:none] [box-shadow:0_4px_24px_rgba(0,0,0,0.08),0_12px_48px_rgba(0,0,0,0.06)]"
+            className="relative modal-container bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] p-6 w-full max-w-md border border-white/20 dark:border-white/[0.1] [box-shadow:0_8px_32px_rgba(0,0,0,0.12)] dark:[box-shadow:0_8px_32px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -879,9 +879,9 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       {/* Cash & Margin Modal */}
       {showCashMarginModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 modal-overlay bg-black/60" onClick={() => setShowCashMarginModal(false)} aria-hidden="true" />
+          <div className="absolute inset-0 modal-overlay bg-black/60 backdrop-blur-sm" onClick={() => setShowCashMarginModal(false)} aria-hidden="true" />
           <div
-            className="relative modal-container bg-white dark:bg-rh-card rounded-[18px] p-0 dark:p-6 w-full max-w-[440px] dark:max-w-sm [border:none] [outline:none] [box-shadow:0_4px_24px_rgba(0,0,0,0.08),0_12px_48px_rgba(0,0,0,0.06)]"
+            className="relative modal-container bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] p-0 dark:p-6 w-full max-w-[440px] dark:max-w-sm border border-white/20 dark:border-white/[0.1] [box-shadow:0_8px_32px_rgba(0,0,0,0.12)] dark:[box-shadow:0_8px_32px_rgba(0,0,0,0.5)]"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
