@@ -365,10 +365,19 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       .catch(() => setTopHoldings([]));
   }, [userId, profile?.profilePublic]);
 
+  const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
+
   useEffect(() => {
     if (!profile?.profilePublic) return;
     getUserChart(userId, '1M')
-      .then((data) => setChartPoints(data.points))
+      .then((data) => {
+        setChartPoints(data.points);
+        // Compute return from chart data (matches what user sees on portfolio chart)
+        if (data.points.length >= 2 && data.periodStartValue > 0) {
+          const lastVal = data.points[data.points.length - 1].value;
+          setChartReturnPct(Math.round(((lastVal - data.periodStartValue) / data.periodStartValue) * 10000) / 100);
+        }
+      })
       .catch(() => setChartPoints([]));
   }, [userId, profile?.profilePublic]);
 
@@ -631,8 +640,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               </div>
             )}
             <PerformanceStat
-              value={perf?.twrPct ?? null}
-              label="TWR (1mo)"
+              value={chartReturnPct ?? perf?.twrPct ?? null}
+              label="Return (1mo)"
               isPercent
               primary
             />
