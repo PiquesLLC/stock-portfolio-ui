@@ -630,7 +630,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
         {/* ── Performance identity row ────────────────────────────── */}
         {profile.profilePublic && hasPerformance && (
-          <div className="relative flex items-center gap-0 mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
+          <div className="relative mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
+            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3 text-center">Performance</h3>
+          <div className="relative flex items-center gap-0">
             {/* Rank badge floating top-right of perf row */}
             {rankPosition !== null && rankPosition <= 20 && (
               <div className="absolute -top-1 right-0 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rh-green/[0.08] border border-rh-green/20">
@@ -669,6 +671,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 formatFn={(v) => v.toFixed(2)}
               />
             )}
+          </div>
           </div>
         )}
 
