@@ -272,7 +272,8 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
 
         {/* Summary bar */}
         {detail && detail.holdings.length > 0 && (
-          <div className="flex flex-wrap gap-x-8 gap-y-2 px-4 py-3 rounded-xl bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.04]">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3 rounded-xl bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.04]">
+            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest bg-rh-green/10 text-rh-green/80 border border-rh-green/20">Watchlist</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Value</span>
               <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">
@@ -433,17 +434,21 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       {label}<SortIcon col={key} />
                     </th>
                   ))}
-                  <th className="py-2.5 px-2 hidden sm:table-cell" />
+                  <th className="py-2.5 px-2 hidden sm:table-cell text-center">
+                    <svg className="w-5 h-5 inline-block text-rh-light-muted/60 dark:text-white/35" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17l6-6 4 4 8-8" />
+                    </svg>
+                  </th>
                   {([
                     ['currentPrice', 'Price', 'text-right'],
-                    ['shares', 'Shares', 'text-right hidden sm:table-cell'],
-                    ['averageCost', 'Avg Cost', 'text-right hidden sm:table-cell'],
+                    ['shares', 'Shares', 'text-right hidden xl:table-cell'],
+                    ['averageCost', 'Avg Cost', 'text-right hidden xl:table-cell'],
                     ['currentValue', 'Mkt Val', 'text-right hidden md:table-cell'],
                     ['dayChange', 'Day P/L', 'text-right'],
-                    ['weekChangePercent', 'Week', 'text-right hidden lg:table-cell'],
-                    ['monthChangePercent', 'Month', 'text-right hidden lg:table-cell'],
-                    ['yearChangePercent', '1Y', 'text-right hidden lg:table-cell'],
-                    ['peRatio', 'P/E', 'text-right hidden lg:table-cell'],
+                    ['weekChangePercent', 'Week', 'text-right hidden lg:table-cell w-[88px]'],
+                    ['monthChangePercent', 'Month', 'text-right hidden lg:table-cell w-[88px]'],
+                    ['yearChangePercent', '1Y', 'text-right hidden lg:table-cell w-[88px]'],
+                    ['peRatio', 'P/E', 'text-right hidden lg:table-cell w-[64px]'],
                     ['profitLoss', 'Total P/L', 'text-right'],
                   ] as [SortKey, string, string][]).map(([key, label, className]) => (
                     <th
@@ -461,15 +466,13 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 {sortedHoldings.map((h) => (
                   <tr
                     key={h.ticker}
-                    className="border-b border-gray-200/20 dark:border-white/[0.03] hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors group"
+                    onClick={() => onTickerClick(h.ticker)}
+                    className="border-b border-gray-200/20 dark:border-white/[0.03] hover:bg-gray-100/70 dark:hover:bg-white/[0.04] transition-colors group cursor-pointer"
                   >
                     <td className="py-3 px-3">
-                      <button
-                        onClick={() => onTickerClick(h.ticker)}
-                        className="font-semibold text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors"
-                      >
+                      <span className="font-semibold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors">
                         {h.ticker}
-                      </button>
+                      </span>
                     </td>
                     <td className="py-2.5 px-2 text-center hidden sm:table-cell">
                       <MiniSparkline ticker={h.ticker} positive={h.dayChange >= 0} period={chartPeriod} />
@@ -477,18 +480,18 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                     <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text">
                       {formatCurrency(h.currentPrice)}
                     </td>
-                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden sm:table-cell">
+                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
                       {h.shares.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                     </td>
-                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden sm:table-cell">
+                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
                       {formatCurrency(h.averageCost)}
                     </td>
                     <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text hidden md:table-cell">
                       {formatCurrency(h.currentValue)}
                     </td>
                     <td className={`py-3 px-3 text-right tabular-nums ${h.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      <div>{formatCurrency(h.dayChange)}</div>
-                      <div className="text-[10px] opacity-60">{formatPercent(h.dayChangePercent)}</div>
+                      <div className="text-sm">{formatCurrency(h.dayChange)}</div>
+                      <div className="text-[9px] opacity-50">{formatPercent(h.dayChangePercent)}</div>
                     </td>
                     <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.weekChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {formatPercent(h.weekChangePercent)}
@@ -503,8 +506,8 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       {h.peRatio !== null ? h.peRatio.toFixed(1) : '—'}
                     </td>
                     <td className={`py-3 px-3 text-right tabular-nums font-medium ${h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      <div>{formatCurrency(h.profitLoss)}</div>
-                      <div className="text-[10px] opacity-60">{formatPercent(h.profitLossPercent)}</div>
+                      <div className="text-sm">{formatCurrency(h.profitLoss)}</div>
+                      <div className="text-[9px] opacity-50">{formatPercent(h.profitLossPercent)}</div>
                     </td>
                     <td className="py-3 px-1">
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">

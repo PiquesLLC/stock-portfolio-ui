@@ -169,9 +169,9 @@ export default function Starfield() {
         ctx!.arc(s.x, s.y, s.size, 0, Math.PI * 2);
 
         if (s.isBrand) {
-          ctx!.fillStyle = `rgba(0, 209, 255, ${a})`;
+          ctx!.fillStyle = `rgba(255, 223, 140, ${a})`;
           if (s.layer >= 1) {
-            ctx!.shadowColor = 'rgba(0, 209, 255, 0.6)';
+            ctx!.shadowColor = 'rgba(255, 223, 140, 0.5)';
             ctx!.shadowBlur = s.size * 4;
           }
         } else {
