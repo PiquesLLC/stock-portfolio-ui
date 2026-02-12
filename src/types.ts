@@ -1185,6 +1185,10 @@ export interface WatchlistHolding {
   profitLossPercent: number;
   dayChange: number;
   dayChangePercent: number;
+  weekChangePercent: number;
+  monthChangePercent: number;
+  yearChangePercent: number;
+  peRatio: number | null;
 }
 
 export interface WatchlistPortfolioSummary {

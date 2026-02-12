@@ -5,13 +5,14 @@ import { HealthScore } from './HealthScore';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
-import PortfolioBriefing from './PortfolioBriefing';
-import BehaviorInsights from './BehaviorInsights';
+// Premium-gated: import PortfolioBriefing from './PortfolioBriefing';
+// Premium-gated: import BehaviorInsights from './BehaviorInsights';
 import EventsCalendar from './EventsCalendar';
 import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
 import { EarningsTab } from './EarningsTab';
 import { SkeletonCard } from './SkeletonCard';
+import { PremiumOverlay } from './PremiumOverlay';
 import { MarketSession } from '../types';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings';
@@ -289,12 +290,15 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'projections-goals', label: 'Goals' },
   ];
 
-  // AI Briefing subtab
+  // AI Briefing subtab (Premium)
   if (subTab === 'ai-briefing') {
     return (
       <div className="space-y-6">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <PortfolioBriefing />
+        <PremiumOverlay
+          featureName="AI Portfolio Briefing"
+          description="Weekly AI-generated briefing analyzing your portfolio's performance, market conditions, and actionable insights tailored to your holdings."
+        />
       </div>
     );
   }
@@ -309,12 +313,15 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     );
   }
 
-  // Behavior Coach subtab
+  // Behavior Coach subtab (Premium)
   if (subTab === 'ai-behavior') {
     return (
       <div className="space-y-6">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <BehaviorInsights onTickerClick={onTickerClick} portfolioTickers={holdings.map(h => h.ticker)} />
+        <PremiumOverlay
+          featureName="AI Behavior Coach"
+          description="Personalized behavioral analysis of your trading patterns. Get scored on discipline, diversification, and risk management with actionable coaching tips."
+        />
       </div>
     );
   }

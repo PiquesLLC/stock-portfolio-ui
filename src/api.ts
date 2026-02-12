@@ -63,6 +63,12 @@ export function setApiErrorHandler(handler: ((message: string) => void) | null) 
   onApiError = handler;
 }
 
+// Global auth expiry callback — set by AuthProvider to force logout on unrecoverable 401
+let onAuthExpired: (() => void) | null = null;
+export function setAuthExpiredHandler(handler: (() => void) | null) {
+  onAuthExpired = handler;
+}
+
 // Refresh token mutex: only one refresh at a time, others wait
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -104,6 +110,9 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     const refreshed = await refreshOnce();
     if (refreshed) {
       response = await doFetch();
+    } else if (onAuthExpired) {
+      // Refresh failed — session is dead, kick to login
+      onAuthExpired();
     }
   }
 
@@ -719,6 +728,11 @@ export async function getHourlyCandles(ticker: string, period: '1W' | '1M'): Pro
   return resp.candles;
 }
 
+export async function getDailyCandles(ticker: string, period: '3M' | 'YTD' | '1Y' | 'ALL'): Promise<IntradayCandle[]> {
+  const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/daily?period=${period}`);
+  return resp.candles;
+}
+
 export interface BenchmarkCandle {
   date: string;
   time: number;
@@ -1148,6 +1162,10 @@ export async function getWatchlists(): Promise<WatchlistSummary[]> {
 
 export async function getWatchlistDetail(id: string): Promise<WatchlistDetail> {
   return fetchJson<WatchlistDetail>(`${API_BASE_URL}/watchlists/${id}`);
+}
+
+export async function getWatchlistChart(watchlistId: string, period: PortfolioChartPeriod = '1D'): Promise<PortfolioChartData> {
+  return fetchJson<PortfolioChartData>(`${API_BASE_URL}/watchlists/${watchlistId}/chart?period=${period}`);
 }
 
 export async function createWatchlist(input: WatchlistInput): Promise<WatchlistSummary> {

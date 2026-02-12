@@ -1,25 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
-import { WatchlistSummary, WatchlistDetail, WatchlistHolding } from '../types';
+import { WatchlistSummary, WatchlistDetail, WatchlistHolding, PortfolioChartPeriod } from '../types';
 import {
   getWatchlists,
   getWatchlistDetail,
+  getWatchlistChart,
   createWatchlist,
   updateWatchlist,
   deleteWatchlist,
   addWatchlistHolding,
   updateWatchlistHolding,
   removeWatchlistHolding,
+  getFastQuote,
 } from '../api';
 import { CreateWatchlistModal } from './CreateWatchlistModal';
 import { ConfirmModal } from './ConfirmModal';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
+import { MiniSparkline } from './MiniSparkline';
+import { PortfolioValueChart } from './PortfolioValueChart';
 import { formatCurrency, formatPercent } from '../utils/format';
 
 interface WatchlistPageProps {
   onTickerClick: (ticker: string) => void;
 }
 
-type SortKey = 'ticker' | 'currentPrice' | 'shares' | 'averageCost' | 'currentValue' | 'dayChange' | 'profitLoss';
+type SortKey = 'ticker' | 'currentPrice' | 'shares' | 'averageCost' | 'currentValue' | 'dayChange' | 'profitLoss' | 'weekChangePercent' | 'monthChangePercent' | 'yearChangePercent' | 'peRatio';
 type SortDir = 'asc' | 'desc';
 
 export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
@@ -40,6 +44,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
   const [addTicker, setAddTicker] = useState('');
   const [addShares, setAddShares] = useState('1');
   const [addCost, setAddCost] = useState('');
+  const [addCurrentPrice, setAddCurrentPrice] = useState<number | null>(null);
   const [addError, setAddError] = useState('');
 
   // Edit holding state
@@ -49,6 +54,12 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
 
   // Delete holding state
   const [deletingHolding, setDeletingHolding] = useState<WatchlistHolding | null>(null);
+
+  // Chart refresh trigger — increment to re-fetch chart after holding changes
+  const [chartRefresh, setChartRefresh] = useState(0);
+
+  // Track chart period so sparklines can sync
+  const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
 
   // Sort state
   const [sortKey, setSortKey] = useState<SortKey>('currentValue');
@@ -135,9 +146,11 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       setAddTicker('');
       setAddShares('1');
       setAddCost('');
+      setAddCurrentPrice(null);
       setAddError('');
       await loadDetail(selectedId);
       await loadWatchlists();
+      setChartRefresh(n => n + 1);
     } catch {
       setAddError('Failed to add holding');
     }
@@ -153,6 +166,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       await updateWatchlistHolding(selectedId, editingHolding.ticker, { shares: s, averageCost: c });
       setEditingHolding(null);
       await loadDetail(selectedId);
+      setChartRefresh(n => n + 1);
     } catch {
       // toast
     }
@@ -165,6 +179,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       setDeletingHolding(null);
       await loadDetail(selectedId);
       await loadWatchlists();
+      setChartRefresh(n => n + 1);
     } catch {
       // toast
     }
@@ -184,6 +199,10 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
     const av = a[sortKey];
     const bv = b[sortKey];
     if (typeof av === 'string') return mul * av.localeCompare(bv as string);
+    // Handle null values (e.g. peRatio) — push nulls to the end
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
     return mul * ((av as number) - (bv as number));
   }) ?? [];
 
@@ -285,6 +304,18 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           </div>
         )}
 
+        {/* Portfolio chart */}
+        {detail && detail.holdings.length > 0 && selectedId && (
+          <PortfolioValueChart
+            currentValue={detail.summary.totalValue}
+            dayChange={detail.summary.dayChange}
+            dayChangePercent={detail.summary.dayChangePercent}
+            refreshTrigger={chartRefresh}
+            fetchFn={(period) => getWatchlistChart(selectedId, period)}
+            onPeriodChange={setChartPeriod}
+          />
+        )}
+
         {/* Add stock button */}
         <div className="flex justify-end">
           <button
@@ -306,8 +337,18 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Ticker</label>
                 <TickerAutocompleteInput
                   value={addTicker}
-                  onChange={setAddTicker}
-                  onSelect={(result) => setAddTicker(result.symbol)}
+                  onChange={(val) => { setAddTicker(val); if (!val) { setAddCurrentPrice(null); setAddCost(''); } }}
+                  onSelect={async (result) => {
+                    setAddTicker(result.symbol);
+                    setAddCurrentPrice(null);
+                    try {
+                      const quote = await getFastQuote(result.symbol);
+                      if (quote?.currentPrice) {
+                        setAddCurrentPrice(quote.currentPrice);
+                        setAddCost(quote.currentPrice.toFixed(2));
+                      }
+                    } catch { /* silent */ }
+                  }}
                   heldTickers={detail?.holdings.map(h => h.ticker) ?? []}
                   compact
                   placeholder="Search ticker..."
@@ -325,21 +366,28 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Avg Cost ($)</label>
+                <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                  Avg Cost ($)
+                  {addCurrentPrice !== null && (
+                    <span className="ml-1.5 text-rh-green font-normal">
+                      Current: ${addCurrentPrice.toFixed(2)}
+                    </span>
+                  )}
+                </label>
                 <input
                   type="number"
                   value={addCost}
                   onChange={(e) => setAddCost(e.target.value)}
                   min="0.01"
                   step="any"
-                  placeholder="Entry price"
+                  placeholder={addCurrentPrice !== null ? `$${addCurrentPrice.toFixed(2)}` : 'Entry price'}
                   className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
                 />
               </div>
             </div>
             {addError && <p className="text-xs text-rh-red">{addError}</p>}
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setShowAddStock(false); setAddError(''); }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+              <button onClick={() => { setShowAddStock(false); setAddError(''); setAddCurrentPrice(null); setAddTicker(''); setAddCost(''); setAddShares('1'); }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
                 Cancel
               </button>
               <button onClick={handleAddHolding} className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rh-green/15 text-rh-green hover:bg-rh-green/25 transition-colors">
@@ -376,11 +424,26 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 <tr className="border-b border-gray-200/30 dark:border-white/[0.04]">
                   {([
                     ['ticker', 'Ticker', 'text-left'],
+                  ] as [SortKey, string, string][]).map(([key, label, className]) => (
+                    <th
+                      key={key}
+                      onClick={() => handleSort(key)}
+                      className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-white/40 cursor-pointer hover:text-rh-light-text dark:hover:text-rh-text transition-colors select-none`}
+                    >
+                      {label}<SortIcon col={key} />
+                    </th>
+                  ))}
+                  <th className="py-2.5 px-2 hidden sm:table-cell" />
+                  {([
                     ['currentPrice', 'Price', 'text-right'],
                     ['shares', 'Shares', 'text-right hidden sm:table-cell'],
                     ['averageCost', 'Avg Cost', 'text-right hidden sm:table-cell'],
                     ['currentValue', 'Mkt Val', 'text-right hidden md:table-cell'],
                     ['dayChange', 'Day P/L', 'text-right'],
+                    ['weekChangePercent', 'Week', 'text-right hidden lg:table-cell'],
+                    ['monthChangePercent', 'Month', 'text-right hidden lg:table-cell'],
+                    ['yearChangePercent', '1Y', 'text-right hidden lg:table-cell'],
+                    ['peRatio', 'P/E', 'text-right hidden lg:table-cell'],
                     ['profitLoss', 'Total P/L', 'text-right'],
                   ] as [SortKey, string, string][]).map(([key, label, className]) => (
                     <th
@@ -408,6 +471,9 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                         {h.ticker}
                       </button>
                     </td>
+                    <td className="py-2.5 px-2 text-center hidden sm:table-cell">
+                      <MiniSparkline ticker={h.ticker} positive={h.dayChange >= 0} period={chartPeriod} />
+                    </td>
                     <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text">
                       {formatCurrency(h.currentPrice)}
                     </td>
@@ -423,6 +489,18 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                     <td className={`py-3 px-3 text-right tabular-nums ${h.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       <div>{formatCurrency(h.dayChange)}</div>
                       <div className="text-[10px] opacity-60">{formatPercent(h.dayChangePercent)}</div>
+                    </td>
+                    <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.weekChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatPercent(h.weekChangePercent)}
+                    </td>
+                    <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.monthChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatPercent(h.monthChangePercent)}
+                    </td>
+                    <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.yearChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatPercent(h.yearChangePercent)}
+                    </td>
+                    <td className="py-3 px-3 text-right tabular-nums hidden lg:table-cell text-rh-light-muted dark:text-rh-muted">
+                      {h.peRatio !== null ? h.peRatio.toFixed(1) : '—'}
                     </td>
                     <td className={`py-3 px-3 text-right tabular-nums font-medium ${h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       <div>{formatCurrency(h.profitLoss)}</div>

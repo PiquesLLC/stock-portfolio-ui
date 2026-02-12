@@ -13,6 +13,7 @@ import { UserMenu } from './components/UserMenu';
 import { AccountSettingsModal } from './components/AccountSettingsModal';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { DailyReportModal } from './components/DailyReportModal';
@@ -32,7 +33,7 @@ import { useOnlineStatus } from './hooks/useOnlineStatus';
 
 // Lazy-loaded page components
 const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
-const NalaAIPage = lazy(() => import('./components/NalaAIPage'));
+// Premium-gated: const NalaAIPage = lazy(() => import('./components/NalaAIPage'));
 const EconomicIndicators = lazy(() => import('./components/EconomicIndicators').then(m => ({ default: m.EconomicIndicators })));
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const FeedPage = lazy(() => import('./components/FeedPage').then(m => ({ default: m.FeedPage })));
@@ -124,7 +125,7 @@ export default function App() {
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
-  const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
+  // Premium-gated: const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
@@ -790,6 +791,7 @@ export default function App() {
                 marginDebt={portfolio?.marginDebt ?? 0}
                 userId={currentUserId}
                 actionsRef={holdingsActionsRef}
+                chartPeriod={chartPeriod}
               />
               <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
             </div>
@@ -798,13 +800,10 @@ export default function App() {
 
         <Suspense fallback={<PageFallback />}>
           {activeTab === 'nala' && !viewingStock && (
-            <ErrorBoundary>
-              <NalaAIPage
-                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
-                initialQuestion={nalaQuestion}
-                onQuestionConsumed={() => setNalaQuestion(null)}
-              />
-            </ErrorBoundary>
+            <PremiumOverlay
+              featureName="Nala AI"
+              description="AI-powered stock research and analysis. Get personalized stock picks, risk assessments, and actionable insights powered by real financial data."
+            />
           )}
 
           {activeTab === 'insights' && !viewingStock && (

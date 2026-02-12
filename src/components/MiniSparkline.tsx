@@ -1,44 +1,59 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getIntradayCandles, IntradayCandle } from '../api';
+import { getIntradayCandles, getHourlyCandles, getDailyCandles, IntradayCandle } from '../api';
+import { PortfolioChartPeriod } from '../types';
 
 interface MiniSparklineProps {
   ticker: string;
   positive: boolean;
+  period?: PortfolioChartPeriod;
 }
 
-// Module-level cache: ticker -> { data, timestamp }
+// Module-level cache: key -> { data, timestamp }
 const cache = new Map<string, { data: IntradayCandle[]; timestamp: number }>();
 const CACHE_TTL = 60_000; // 60 seconds
 
-// In-flight requests to avoid duplicate fetches for the same ticker
+// In-flight requests to avoid duplicate fetches for the same key
 const inflight = new Map<string, Promise<IntradayCandle[]>>();
 
-function getCachedData(ticker: string): IntradayCandle[] | null {
-  const entry = cache.get(ticker);
+function getCacheKey(ticker: string, period: string): string {
+  return `${ticker}:${period}`;
+}
+
+function getCachedData(ticker: string, period: string): IntradayCandle[] | null {
+  const key = getCacheKey(ticker, period);
+  const entry = cache.get(key);
   if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
     return entry.data;
   }
   return null;
 }
 
-async function fetchWithCache(ticker: string): Promise<IntradayCandle[]> {
-  const cached = getCachedData(ticker);
+async function fetchCandles(ticker: string, period: PortfolioChartPeriod): Promise<IntradayCandle[]> {
+  if (period === '1D') return getIntradayCandles(ticker);
+  if (period === '1W' || period === '1M') return getHourlyCandles(ticker, period);
+  return getDailyCandles(ticker, period as '3M' | 'YTD' | '1Y' | 'ALL');
+}
+
+async function fetchWithCache(ticker: string, period: PortfolioChartPeriod): Promise<IntradayCandle[]> {
+  const cached = getCachedData(ticker, period);
   if (cached) return cached;
 
+  const key = getCacheKey(ticker, period);
+
   // Deduplicate in-flight requests
-  const existing = inflight.get(ticker);
+  const existing = inflight.get(key);
   if (existing) return existing;
 
-  const promise = getIntradayCandles(ticker).then((data) => {
-    cache.set(ticker, { data, timestamp: Date.now() });
-    inflight.delete(ticker);
+  const promise = fetchCandles(ticker, period).then((data) => {
+    cache.set(key, { data, timestamp: Date.now() });
+    inflight.delete(key);
     return data;
   }).catch((err) => {
-    inflight.delete(ticker);
+    inflight.delete(key);
     throw err;
   });
 
-  inflight.set(ticker, promise);
+  inflight.set(key, promise);
   return promise;
 }
 
@@ -111,7 +126,7 @@ function smoothPath(coords: { x: number; y: number }[]): string {
   return d;
 }
 
-export function MiniSparkline({ ticker, positive }: MiniSparklineProps) {
+export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparklineProps) {
   const [rawPoints, setRawPoints] = useState<number[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -120,7 +135,7 @@ export function MiniSparkline({ ticker, positive }: MiniSparklineProps) {
     let cancelled = false;
 
     // Check cache synchronously first
-    const cached = getCachedData(ticker);
+    const cached = getCachedData(ticker, period);
     if (cached) {
       setRawPoints(cached.map((c) => c.close));
       setLoading(false);
@@ -130,7 +145,7 @@ export function MiniSparkline({ ticker, positive }: MiniSparklineProps) {
     setLoading(true);
     setError(false);
 
-    fetchWithCache(ticker)
+    fetchWithCache(ticker, period)
       .then((data) => {
         if (!cancelled) {
           setRawPoints(data.map((c) => c.close));
@@ -147,7 +162,7 @@ export function MiniSparkline({ ticker, positive }: MiniSparklineProps) {
     return () => {
       cancelled = true;
     };
-  }, [ticker]);
+  }, [ticker, period]);
 
   const WIDTH = 56;
   const HEIGHT = 24;
@@ -200,7 +215,7 @@ export function MiniSparkline({ ticker, positive }: MiniSparklineProps) {
   if (!points || points.length < 2) return null;
 
   const strokeColor = positive ? '#00c805' : '#ff5000';
-  const gradientId = `sparkGrad-${ticker}`;
+  const gradientId = `sparkGrad-${ticker}-${period}`;
   const lastPt = coords[coords.length - 1];
 
   return (

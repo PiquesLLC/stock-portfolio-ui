@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, setAuthExpiredHandler } from '../api';
 
 interface User {
   id: string;
@@ -67,6 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Even if logout request fails, clear local state
     }
     setUser(null);
+  }, []);
+
+  // When any API call gets an unrecoverable 401, force back to login
+  useEffect(() => {
+    setAuthExpiredHandler(() => setUser(null));
+    return () => setAuthExpiredHandler(null);
   }, []);
 
   return (

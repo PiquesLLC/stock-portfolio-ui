@@ -31,6 +31,7 @@ interface Props {
   marginDebt?: number;
   userId?: string;
   actionsRef?: React.MutableRefObject<HoldingsTableActions | null>;
+  chartPeriod?: import('../types').PortfolioChartPeriod;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
@@ -68,7 +69,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef }: Props) {
+export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef, chartPeriod = '1D' }: Props) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('ticker');
@@ -694,7 +695,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                   </td>
                   <td className="px-2 py-2.5 text-center">
                     {hasValidPrice && (
-                      <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} />
+                      <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} period={chartPeriod} />
                     )}
                   </td>
                   <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>{formatCurrency(holding.averageCost)}</td>
