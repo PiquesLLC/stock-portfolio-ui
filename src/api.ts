@@ -69,6 +69,17 @@ export function setAuthExpiredHandler(handler: (() => void) | null) {
   onAuthExpired = handler;
 }
 
+export function isSameOriginApi(): boolean {
+  if (typeof window === 'undefined') return true;
+  if (!API_BASE_URL || API_BASE_URL.startsWith('/')) return true;
+  try {
+    const url = new URL(API_BASE_URL, window.location.origin);
+    return url.origin === window.location.origin;
+  } catch {
+    return true;
+  }
+}
+
 // Refresh token mutex: only one refresh at a time, others wait
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -112,7 +123,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       response = await doFetch();
     } else if (onAuthExpired) {
       // Refresh failed — session is dead, kick to login
-      onAuthExpired();
+      if (isSameOriginApi()) {
+        onAuthExpired();
+      } else {
+        console.warn('[Auth] 401 with cross-origin API base — cookies likely blocked. Skipping auto-logout.');
+      }
     }
   }
 

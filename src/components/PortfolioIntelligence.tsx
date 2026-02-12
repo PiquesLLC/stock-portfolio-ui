@@ -31,18 +31,19 @@ function formatCurrency(value: number): string {
   return `${sign}$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function PulseSummary({ topContributors, topDetractors, winnersCount, losersCount, onTickerClick }: {
+function PulseSummary({ topContributors, topDetractors, winnersCount, losersCount, totalGains, totalLosses, totalAbsMovement, onTickerClick }: {
   topContributors: WaterfallEntry[];
   topDetractors: WaterfallEntry[];
   winnersCount: number;
   losersCount: number;
+  totalGains: number;
+  totalLosses: number;
+  totalAbsMovement: number;
   onTickerClick?: (ticker: string) => void;
 }) {
   const allEntries = [...topContributors, ...topDetractors];
   if (allEntries.length === 0) return null;
 
-  const totalGains = topContributors.reduce((s, e) => s + e.contributionDollar, 0);
-  const totalLosses = topDetractors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
   const winCount = winnersCount;
   const lossCount = losersCount;
   const totalCount = winCount + lossCount;
@@ -51,7 +52,6 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
     Math.abs(e.contributionDollar) > Math.abs(best.contributionDollar) ? e : best
   , allEntries[0]);
 
-  const totalAbsMovement = allEntries.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
   const topConcentration = totalAbsMovement > 0
     ? (Math.abs(biggestMover.contributionDollar) / totalAbsMovement) * 100
     : 0;
@@ -352,12 +352,15 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
   const maxAbsDollar = allEntries.length > 0
     ? Math.max(...allEntries.map(e => Math.abs(e.contributionDollar)))
     : 0;
-  const totalGainsDollar = contributors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
-  const totalLossesDollar = detractors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
+  const totalGainsDollar = data.totalGains ?? contributors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
+  const totalLossesDollar = data.totalLosses ?? detractors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
+  const totalAbsMovement = data.totalAbsMovement ?? (totalGainsDollar + totalLossesDollar);
 
   // Compute net P&L from contributors + detractors
-  const netPnL = contributors.reduce((s, e) => s + e.contributionDollar, 0) +
-    detractors.reduce((s, e) => s + e.contributionDollar, 0);
+  const netPnL = data.netPnL ?? (
+    contributors.reduce((s, e) => s + e.contributionDollar, 0) +
+    detractors.reduce((s, e) => s + e.contributionDollar, 0)
+  );
 
   // Split explanation into headline + detail (split on first period)
   const explanationParts = explanation ? explanation.split(/\.\s+/) : [];
@@ -454,6 +457,9 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
           }))}
           winnersCount={data.winnersCount ?? contributors.length}
           losersCount={data.losersCount ?? detractors.length}
+          totalGains={totalGainsDollar}
+          totalLosses={totalLossesDollar}
+          totalAbsMovement={totalAbsMovement}
           onTickerClick={onTickerClick}
         />
       )}

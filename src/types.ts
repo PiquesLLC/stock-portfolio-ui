@@ -537,6 +537,11 @@ export interface PortfolioIntelligenceResponse {
   heroStats: HeroStats | null;
   winnersCount: number;
   losersCount: number;
+  streakSource?: 'candles' | 'snapshots';
+  totalGains: number;
+  totalLosses: number;
+  totalAbsMovement: number;
+  netPnL: number;
 }
 
 // Symbol search types
