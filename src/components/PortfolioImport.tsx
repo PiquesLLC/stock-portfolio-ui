@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
-import { uploadPortfolioCsv, uploadPortfolioScreenshot, confirmPortfolioImport, clearPortfolio, CsvParsedRow } from '../api';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { uploadPortfolioCsv, uploadPortfolioScreenshot, confirmPortfolioImport, clearPortfolio, searchSymbols, CsvParsedRow } from '../api';
+import { SymbolSearchResult } from '../types';
 
 interface PortfolioImportProps {
   onClose: () => void;
@@ -14,7 +15,7 @@ type Step = 'choose' | 'uploading' | 'review' | 'confirming' | 'done' | 'clear-c
 export function PortfolioImport({ onClose, onImportComplete, onboarding, onManualEntry }: PortfolioImportProps) {
   const [step, setStep] = useState<Step>('choose');
   const [rows, setRows] = useState<CsvParsedRow[]>([]);
-  const [warnings, setWarnings] = useState<{ rowNumber: number; message: string }[]>([]);
+  const [warnings, setWarnings] = useState<{ rowNumber: number; message: string; line?: string }[]>([]);
   const [stats, setStats] = useState({ totalRows: 0, validRows: 0, skippedRows: 0 });
   const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace');
   const [error, setError] = useState('');
@@ -26,6 +27,35 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const fileInputRef = useRef<HTMLInputElement>(null);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
   const [uploadSource, setUploadSource] = useState<'csv' | 'screenshot'>('csv');
+
+  // Inline ticker autocomplete for review table
+  const [tickerEditRow, setTickerEditRow] = useState<number | null>(null);
+  const [tickerResults, setTickerResults] = useState<SymbolSearchResult[]>([]);
+  const tickerDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickerDropdownRef = useRef<HTMLDivElement>(null);
+
+  const searchTicker = useCallback((query: string) => {
+    if (tickerDebounceRef.current) clearTimeout(tickerDebounceRef.current);
+    if (query.length < 1) { setTickerResults([]); return; }
+    tickerDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await searchSymbols(query);
+        setTickerResults(res.results.slice(0, 5));
+      } catch { setTickerResults([]); }
+    }, 250);
+  }, []);
+
+  // Close ticker dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (tickerDropdownRef.current && !tickerDropdownRef.current.contains(e.target as Node)) {
+        setTickerEditRow(null);
+        setTickerResults([]);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.csv')) {
@@ -275,11 +305,18 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
               {/* Warnings */}
               {warnings.length > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 space-y-1">
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 space-y-1.5">
                   {warnings.slice(0, 5).map((w, i) => (
-                    <p key={i} className="text-xs text-amber-500">
-                      {w.rowNumber > 0 ? `Row ${w.rowNumber}: ` : ''}{w.message}
-                    </p>
+                    <div key={i}>
+                      <p className="text-xs text-amber-500">
+                        {w.rowNumber > 0 ? `Row ${w.rowNumber}: ` : ''}{w.message}
+                      </p>
+                      {w.line && (
+                        <p className="text-[10px] text-amber-500/50 font-mono truncate mt-0.5">
+                          {w.line}
+                        </p>
+                      )}
+                    </div>
                   ))}
                   {warnings.length > 5 && (
                     <p className="text-xs text-amber-500/60">+{warnings.length - 5} more warnings</p>
@@ -288,7 +325,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               )}
 
               {/* Editable table */}
-              <div className="border border-gray-200/40 dark:border-white/[0.08] rounded-xl overflow-hidden">
+              <div className="border border-gray-200/40 dark:border-white/[0.08] rounded-xl overflow-visible">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-white/[0.03] text-xs text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
@@ -301,12 +338,42 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   <tbody>
                     {rows.map((row, i) => (
                       <tr key={i} className="border-t border-gray-200/20 dark:border-white/[0.06]">
-                        <td className="px-3 py-1.5">
+                        <td className="px-3 py-1.5 relative">
                           <input
                             value={row.ticker}
-                            onChange={(e) => updateRow(i, 'ticker', e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value.toUpperCase();
+                              updateRow(i, 'ticker', val);
+                              setTickerEditRow(i);
+                              searchTicker(val);
+                            }}
+                            onFocus={() => { setTickerEditRow(i); if (row.ticker.length >= 1) searchTicker(row.ticker); }}
+                            onBlur={() => { setTimeout(() => { setTickerEditRow(prev => prev === i ? null : prev); setTickerResults([]); }, 150); }}
+                            autoComplete="off"
                             className="w-20 bg-transparent text-rh-light-text dark:text-rh-text font-medium focus:outline-none focus:underline"
                           />
+                          {tickerEditRow === i && tickerResults.length > 0 && (
+                            <div
+                              ref={tickerDropdownRef}
+                              className="absolute left-0 top-full z-50 mt-0.5 w-64 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg shadow-lg max-h-40 overflow-y-auto"
+                            >
+                              {tickerResults.map((r) => (
+                                <div
+                                  key={r.symbol}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateRow(i, 'ticker', r.symbol);
+                                    setTickerEditRow(null);
+                                    setTickerResults([]);
+                                  }}
+                                  className="px-3 py-1.5 cursor-pointer hover:bg-rh-green/10 transition-colors"
+                                >
+                                  <span className="font-semibold text-rh-light-text dark:text-rh-text text-sm">{r.symbol}</span>
+                                  <span className="ml-2 text-xs text-rh-light-muted dark:text-rh-muted truncate">{r.description}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-1.5 text-right">
                           <input

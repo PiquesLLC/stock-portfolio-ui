@@ -14,6 +14,9 @@ import StockQAPanel from './StockQAPanel';
 import EventFeed from './EventFeed';
 import { formatCurrency, formatLargeNumber, formatVolume, formatPercent, inferExchangeLabel } from '../utils/stock-detail';
 import { AddHoldingModal } from './AddHoldingModal';
+import { AddToWatchlistModal } from './AddToWatchlistModal';
+import { CreateWatchlistModal } from './CreateWatchlistModal';
+import { createWatchlist } from '../api';
 import { Term } from './Term';
 import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
@@ -219,6 +222,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [showAddHolding, setShowAddHolding] = useState(false);
+  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+  const [showCreateWatchlist, setShowCreateWatchlist] = useState(false);
   const [showIntelFeed, setShowIntelFeed] = useState<boolean>(() => {
     try { const v = localStorage.getItem('stockIntelFeed'); return v !== null ? JSON.parse(v) : true; } catch { return true; }
   });
@@ -586,6 +591,17 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
               {holding ? 'Edit' : 'Add'}
+            </button>
+            <button
+              onClick={() => setShowWatchlistModal(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-amber-500/25 text-amber-400 hover:bg-amber-500/10 transition-colors"
+              title="Add to watchlist"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Watch
             </button>
             <button
               onClick={() => setShowAlertModal(true)}
@@ -1016,6 +1032,28 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           averageCost={holding?.averageCost}
           onClose={() => setShowAlertModal(false)}
           onCreated={fetchPriceAlerts}
+        />
+      )}
+
+      {/* Add to Watchlist Modal */}
+      {showWatchlistModal && (
+        <AddToWatchlistModal
+          ticker={ticker}
+          currentPrice={quote.currentPrice}
+          onClose={() => setShowWatchlistModal(false)}
+          onCreateNew={() => setShowCreateWatchlist(true)}
+        />
+      )}
+
+      {/* Create Watchlist Modal (from Watch button flow) */}
+      {showCreateWatchlist && (
+        <CreateWatchlistModal
+          onClose={() => setShowCreateWatchlist(false)}
+          onSave={async (data) => {
+            await createWatchlist(data);
+            setShowCreateWatchlist(false);
+            setShowWatchlistModal(true);
+          }}
         />
       )}
     </div>

@@ -37,6 +37,7 @@ const EconomicIndicators = lazy(() => import('./components/EconomicIndicators').
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const FeedPage = lazy(() => import('./components/FeedPage').then(m => ({ default: m.FeedPage })));
 const WatchPage = lazy(() => import('./components/WatchPage').then(m => ({ default: m.WatchPage })));
+const WatchlistPage = lazy(() => import('./components/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 
@@ -57,7 +58,7 @@ interface NavState {
   subtab: string | null;
 }
 
-const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'macro', 'leaderboard', 'feed', 'watch']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'macro', 'leaderboard', 'feed', 'watch']);
 
 function parseHash(): NavState {
   const hash = window.location.hash.slice(1);
@@ -818,6 +819,14 @@ export default function App() {
                 marginDebt={portfolio?.marginDebt ?? 0}
                 initialSubTab={insightsSubTab}
                 onSubTabChange={setInsightsSubTab}
+              />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'watchlists' && !viewingStock && (
+            <ErrorBoundary>
+              <WatchlistPage
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
               />
             </ErrorBoundary>
           )}

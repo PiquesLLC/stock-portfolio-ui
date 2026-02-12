@@ -410,7 +410,7 @@ export interface CsvParsedRow {
 
 export interface CsvParseResult {
   parsed: CsvParsedRow[];
-  warnings: { rowNumber: number; message: string }[];
+  warnings: { rowNumber: number; message: string; line?: string }[];
   totalRows: number;
   validRows: number;
   skippedRows: number;
@@ -447,7 +447,10 @@ export async function uploadPortfolioScreenshot(file: File): Promise<CsvParseRes
   const formData = new FormData();
   formData.append('file', file);
 
-  const doFetch = () => fetch(`${API_BASE_URL}/portfolio/import/screenshot`, {
+  const isDev = import.meta.env.DEV;
+  const url = `${API_BASE_URL}/portfolio/import/screenshot${isDev ? '?debug=1' : ''}`;
+
+  const doFetch = () => fetch(url, {
     method: 'POST',
     body: formData,
     credentials: 'include',
@@ -466,7 +469,11 @@ export async function uploadPortfolioScreenshot(file: File): Promise<CsvParseRes
     const body = await response.json().catch(() => ({}));
     throw new Error(body.error || `Screenshot upload failed (${response.status})`);
   }
-  return response.json();
+  const data = await response.json();
+  if (isDev && data.debug?.rawLines) {
+    console.log('[OCR Debug] rawLines:', data.debug.rawLines);
+  }
+  return data;
 }
 
 export async function confirmPortfolioImport(
@@ -1122,4 +1129,65 @@ export async function askNala(question: string, signal?: AbortSignal): Promise<N
 
 export async function getNalaSuggestions(): Promise<NalaSuggestionsResponse> {
   return fetchJson<NalaSuggestionsResponse>(`${API_BASE_URL}/nala/suggestions`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Watchlist API
+// ═══════════════════════════════════════════════════════════════════════════
+
+import {
+  WatchlistSummary,
+  WatchlistDetail,
+  WatchlistInput,
+  WatchlistHoldingInput,
+} from './types';
+
+export async function getWatchlists(): Promise<WatchlistSummary[]> {
+  return fetchJson<WatchlistSummary[]>(`${API_BASE_URL}/watchlists`);
+}
+
+export async function getWatchlistDetail(id: string): Promise<WatchlistDetail> {
+  return fetchJson<WatchlistDetail>(`${API_BASE_URL}/watchlists/${id}`);
+}
+
+export async function createWatchlist(input: WatchlistInput): Promise<WatchlistSummary> {
+  return fetchJson<WatchlistSummary>(`${API_BASE_URL}/watchlists`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateWatchlist(id: string, input: Partial<WatchlistInput>): Promise<WatchlistSummary> {
+  return fetchJson<WatchlistSummary>(`${API_BASE_URL}/watchlists/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteWatchlist(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/watchlists/${id}`, { method: 'DELETE' });
+}
+
+export async function addWatchlistHolding(watchlistId: string, input: WatchlistHoldingInput): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/watchlists/${watchlistId}/holdings`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateWatchlistHolding(
+  watchlistId: string,
+  ticker: string,
+  input: { shares?: number; averageCost?: number }
+): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/watchlists/${watchlistId}/holdings/${encodeURIComponent(ticker)}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function removeWatchlistHolding(watchlistId: string, ticker: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/watchlists/${watchlistId}/holdings/${encodeURIComponent(ticker)}`, {
+    method: 'DELETE',
+  });
 }

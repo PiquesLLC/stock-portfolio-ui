@@ -1164,3 +1164,56 @@ export interface DailyReportResponse {
   watchToday: string[];
   cached: boolean;
 }
+
+// Watchlist types
+export interface WatchlistSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  holdingsCount: number;
+  createdAt: string;
+}
+
+export interface WatchlistHolding {
+  ticker: string;
+  shares: number;
+  averageCost: number;
+  currentPrice: number;
+  currentValue: number;
+  profitLoss: number;
+  profitLossPercent: number;
+  dayChange: number;
+  dayChangePercent: number;
+}
+
+export interface WatchlistPortfolioSummary {
+  totalValue: number;
+  totalCost: number;
+  totalPL: number;
+  totalPLPercent: number;
+  dayChange: number;
+  dayChangePercent: number;
+  holdingsCount: number;
+}
+
+export interface WatchlistDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  holdings: WatchlistHolding[];
+  summary: WatchlistPortfolioSummary;
+}
+
+export interface WatchlistInput {
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+export interface WatchlistHoldingInput {
+  ticker: string;
+  shares: number;
+  averageCost: number;
+}
