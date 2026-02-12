@@ -214,7 +214,9 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
   // No data or insufficient data
   if (!points || points.length < 2) return null;
 
-  const strokeColor = positive ? '#00c805' : '#ff5000';
+  // Derive color from actual data: is the last price above the first?
+  const dataPositive = points[points.length - 1] >= points[0];
+  const strokeColor = dataPositive ? '#00c805' : '#ff5000';
   const gradientId = `sparkGrad-${ticker}-${period}`;
   const lastPt = coords[coords.length - 1];
 
