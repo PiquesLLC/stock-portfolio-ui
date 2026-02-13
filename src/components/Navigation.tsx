@@ -32,7 +32,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
   return (
     <nav className="border-b border-rh-light-border/60 dark:border-rh-border/60 bg-rh-light-bg/95 dark:bg-black/80 backdrop-blur-md">
-      <div className="max-w-[1440px] mx-auto px-0 sm:px-4">
+      <div className="max-w-[1440px] mx-auto px-0 sm:px-4 relative">
         <div className="flex overflow-x-auto no-scrollbar justify-around sm:justify-start sm:gap-1">
           {tabs.map((tab) => (
             <button
@@ -59,6 +59,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
             </button>
           ))}
         </div>
+        {/* Scroll fade indicator for mobile */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-rh-light-bg dark:from-black/80 to-transparent pointer-events-none sm:hidden" />
       </div>
     </nav>
   );

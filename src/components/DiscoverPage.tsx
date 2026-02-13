@@ -191,9 +191,11 @@ const SECTOR_GAP = 2;
 function Treemap({
   sectors,
   onTickerClick,
+  highlightedSector,
 }: {
   sectors: HeatmapSector[];
   onTickerClick: (ticker: string) => void;
+  highlightedSector?: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 0, height: 0 });
@@ -218,7 +220,8 @@ function Treemap({
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect;
-      setDims({ width, height: Math.max(500, Math.round(width * 0.62)) });
+      const isMobile = width < 640;
+      setDims({ width, height: isMobile ? Math.max(300, Math.round(width * 0.8)) : Math.max(500, Math.round(width * 0.62)) });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -455,6 +458,8 @@ function Treemap({
                       if (isHovered) opacity = 1;
                       else if (isInHoveredSub) opacity = 0.85;
                       else opacity = 0.45;
+                    } else if (highlightedSector) {
+                      opacity = r.sectorName === highlightedSector ? 1 : 0.25;
                     }
 
                     return (
@@ -690,7 +695,7 @@ function TopMovers({
 
 // --- Sector performance bars ---
 
-function SectorBars({ sectors }: { sectors: HeatmapSector[] }) {
+function SectorBars({ sectors, highlightedSector, onSectorClick }: { sectors: HeatmapSector[]; highlightedSector?: string | null; onSectorClick?: (name: string) => void }) {
   const sorted = useMemo(() =>
     [...sectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent),
     [sectors],
@@ -706,8 +711,12 @@ function SectorBars({ sectors }: { sectors: HeatmapSector[] }) {
           const barWidth = (Math.abs(pct) / maxAbs) * 50;
           const isPositive = pct >= 0;
           return (
-            <div key={s.name} className="flex items-center gap-3">
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted w-28 text-right shrink-0">{s.name}</span>
+            <div
+              key={s.name}
+              className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${highlightedSector === s.name ? 'bg-white/10' : 'hover:bg-white/5'}`}
+              onClick={() => onSectorClick?.(s.name)}
+            >
+              <span className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium transition-colors ${highlightedSector === s.name ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>{s.name}</span>
               <div className="flex-1 flex items-center h-5">
                 <div className="relative w-full h-full flex items-center">
                   <div className="absolute left-1/2 top-0 bottom-0 w-px bg-rh-light-border/40 dark:bg-rh-border/40" />
@@ -766,6 +775,8 @@ if (preloaded && !heatmapCache.has('1D')) {
 
 export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
   const [period, setPeriod] = useState<HeatmapPeriod>('1D');
+  const [highlightedSector, setHighlightedSector] = useState<string | null>(null);
+  const treemapRef = useRef<HTMLDivElement>(null);
   // Initialize from cache so first render is instant on re-mount
   const initialCache = heatmapCache.get('1D');
   const [data, setData] = useState<HeatmapResponse | null>(initialCache?.data ?? null);
@@ -871,9 +882,21 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
         ))}
       </div>
 
-      <Treemap sectors={data.sectors} onTickerClick={onTickerClick} />
+      <div ref={treemapRef}>
+        <Treemap sectors={data.sectors} onTickerClick={onTickerClick} highlightedSector={highlightedSector} />
+      </div>
       <ColorLegend />
-      <SectorBars sectors={data.sectors} />
+      <SectorBars
+        sectors={data.sectors}
+        highlightedSector={highlightedSector}
+        onSectorClick={(name) => {
+          const next = highlightedSector === name ? null : name;
+          setHighlightedSector(next);
+          if (next && treemapRef.current) {
+            treemapRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }}
+      />
       <TopMovers stocks={allStocks} onTickerClick={onTickerClick} />
     </div>
   );

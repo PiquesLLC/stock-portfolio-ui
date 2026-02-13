@@ -221,11 +221,25 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     const raw = chartData?.points ?? [];
     if (raw.length === 0) return raw;
     if (selectedPeriod === '1D') {
+      // Filter out pre-market data (before 9:30 AM ET) to avoid the flat-then-drop look.
+      // Derive the trading day from the last point so it works after hours / weekends.
+      const refDate = new Date(raw[raw.length - 1].time);
+      const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
+      const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+      const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+      }).format(noonUtc).split(':')[0]);
+      const etOffsetMs = (noonEtH - 12) * 3600000;
+      const marketOpenMs = new Date(`${etDateStr}T09:30:00Z`).getTime() - etOffsetMs;
+      const filtered = raw.filter(p => p.time >= marketOpenMs);
+      const pts = filtered.length >= 2 ? filtered : raw; // fallback if no market hours data yet
+
       const now = Date.now();
-      const last = raw[raw.length - 1];
+      const last = pts[pts.length - 1];
       if (now - last.time > 10000) {
-        return [...raw, { time: now, value: currentValue }];
+        return [...pts, { time: now, value: currentValue }];
       }
+      return pts;
     }
     return raw;
   }, [chartData, selectedPeriod, currentValue]);
@@ -329,8 +343,8 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
     }).format(noonUtc);
     const noonEtH = parseInt(noonEtStr.split(':')[0]);
     const etOffsetMs = (noonEtH - 12) * 3600000;
-    dayStartMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs;
-    dayEndMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;
+    dayStartMs = new Date(`${etDateStr}T09:30:00Z`).getTime() - etOffsetMs;
+    dayEndMs = new Date(`${etDateStr}T16:00:00Z`).getTime() - etOffsetMs;
   }
   const dayRangeMs = dayEndMs - dayStartMs;
 

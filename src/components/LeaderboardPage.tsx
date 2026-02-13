@@ -256,7 +256,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
         </div>
       ) : (
         <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-x-auto">
-          <table className="w-full min-w-[480px]">
+          <table className="w-full sm:min-w-[480px]">
             <thead>
               <tr className="border-b border-gray-200/50 dark:border-white/[0.06] text-left">
                 <th className={`${getHeaderClass('rank')} w-8 sm:w-12 text-xs`} onClick={() => handleSort('rank')}>
