@@ -41,7 +41,7 @@ interface Props {
 
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
 
-export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session }: Props) {
+export function PortfolioValueChart({ currentValue, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session }: Props) {
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
@@ -288,16 +288,10 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const hoverValue = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex].value : null;
   const displayValue = hoverValue ?? currentValue;
 
-  // For 1D: use previous close (derived from API day change) so hover matches "Today" baseline.
-  // For other periods: use the chart's periodStartValue.
-  const previousClose = currentValue - dayChange;
-  const hoverBase = selectedPeriod === '1D' ? previousClose : periodStartValue;
-  const changeVsBase = displayValue - hoverBase;
-  const changePctVsBase = hoverBase > 0 ? (changeVsBase / hoverBase) * 100 : 0;
-
-  const showDayChange = selectedPeriod === '1D' && hoverIndex === null;
-  const displayChange = showDayChange ? dayChange : changeVsBase;
-  const displayChangePct = showDayChange ? dayChangePercent : changePctVsBase;
+  // Single formula for all periods — no switching between API values and calculated values.
+  // This guarantees hovering at the latest point shows the exact same numbers as the header.
+  const displayChange = displayValue - periodStartValue;
+  const displayChangePct = periodStartValue > 0 ? (displayChange / periodStartValue) * 100 : 0;
 
   // Emit period return to parent (for benchmark widget consistency)
   const periodReturnPct = periodStartValue > 0
@@ -694,7 +688,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               {formatCurrency(displayValue)}
             </p>
             {/* Show separate regular + after-hours lines when applicable */}
-            {showDayChange && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST' ? (
+            {selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST' ? (
               <>
                 <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
