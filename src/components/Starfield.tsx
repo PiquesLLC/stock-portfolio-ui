@@ -69,8 +69,6 @@ export default function Starfield() {
       };
     }
 
-    starsRef.current = Array.from({ length: STAR_COUNT }, createStar);
-
     function spawnShootingStar() {
       // Pick a random start along the top or right edge
       const fromTop = Math.random() < 0.6;
@@ -109,15 +107,23 @@ export default function Starfield() {
 
     function resize() {
       const dpr = window.devicePixelRatio || 1;
-      w = window.innerWidth;
-      h = window.innerHeight;
+      w = canvas!.clientWidth || window.innerWidth;
+      h = canvas!.clientHeight || window.innerHeight;
       canvas!.width = w * dpr;
       canvas!.height = h * dpr;
-      canvas!.style.width = w + 'px';
-      canvas!.style.height = h + 'px';
+      // Don't set style.width/height — let CSS inset:0 handle sizing
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Re-distribute any stars that are out of bounds after resize
+      for (const s of starsRef.current) {
+        if (s.x > w + 60 || s.y > h + 60) {
+          s.x = Math.random() * w;
+          s.y = Math.random() * h;
+        }
+      }
     }
     resize();
+    // Create stars AFTER resize so w/h reflect actual canvas dimensions
+    starsRef.current = Array.from({ length: STAR_COUNT }, createStar);
     window.addEventListener('resize', resize);
 
     let paused = false;

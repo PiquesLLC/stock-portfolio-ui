@@ -5,6 +5,7 @@ import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderbo
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
 import { PortfolioImport } from './PortfolioImport';
+import { useMutedUsers } from '../hooks/useMutedUsers';
 
 const REGION_OPTIONS = [
   { value: 'NA', label: 'North America', short: 'NA' },
@@ -296,6 +297,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const [socialLoading, setSocialLoading] = useState(false);
 
   const isOwner = userId === currentUserId;
+  const { isMuted, toggleMute } = useMutedUsers();
 
   useEffect(() => {
     setLoading(true);
@@ -717,9 +719,29 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             </>
           )}
 
-          {/* Follow button - pushed to right */}
+          {/* Follow + Mute buttons - pushed to right */}
           {!isOwner && (
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => toggleMute(userId, profile.displayName)}
+                title={isMuted(userId) ? 'Unmute activity' : 'Mute activity'}
+                className={`p-2 rounded-lg transition-all ${
+                  isMuted(userId)
+                    ? 'bg-rh-red/10 text-rh-red hover:bg-rh-red/20'
+                    : 'bg-white/[0.04] text-white/30 hover:text-white/50 hover:bg-white/[0.06]'
+                }`}
+              >
+                {isMuted(userId) ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                )}
+              </button>
               <FollowButton
                 targetUserId={userId}
                 currentUserId={currentUserId}

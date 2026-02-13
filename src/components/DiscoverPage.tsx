@@ -145,9 +145,23 @@ function getHeatColorLight(pct: number): string {
   return 'rgb(220,220,225)';
 }
 
-// Dampen market cap so mega-caps don't eat the whole map
-function dampenCap(cap: number): number {
-  return Math.pow(Math.max(cap, 0.1), 0.45);
+// Dampen market cap so mega-caps don't eat the whole map.
+// Uses a floor ratio to guarantee every stock gets at least minRatio of the
+// largest stock's area, preventing unreadable slivers.
+function dampenCap(cap: number, exponent = 0.45): number {
+  return Math.pow(Math.max(cap, 0.1), exponent);
+}
+
+function dampenCapWithFloor(
+  caps: number[],
+  exponent: number,
+  minRatio: number,
+): number[] {
+  if (caps.length === 0) return [];
+  const dampened = caps.map(c => dampenCap(c, exponent));
+  const maxVal = Math.max(...dampened);
+  const floor = maxVal * minRatio;
+  return dampened.map(d => Math.max(d, floor));
 }
 
 // --- Layout result types ---
@@ -192,10 +206,12 @@ function Treemap({
   sectors,
   onTickerClick,
   highlightedSector,
+  stockCount,
 }: {
   sectors: HeatmapSector[];
   onTickerClick: (ticker: string) => void;
   highlightedSector?: string | null;
+  stockCount?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 0, height: 0 });
@@ -235,14 +251,21 @@ function Treemap({
     return () => ro.disconnect();
   }, []);
 
+  // Pick dampening parameters based on stock count:
+  // Fewer stocks (DOW 30) need more aggressive dampening + higher floor
+  const dampenExponent = (stockCount ?? 500) <= 35 ? 0.35 : (stockCount ?? 500) <= 105 ? 0.40 : 0.45;
+  const minFloorRatio = (stockCount ?? 500) <= 35 ? 0.12 : (stockCount ?? 500) <= 105 ? 0.06 : 0.03;
+
   // 3-level layout: Sector → Sub-sector → Stocks
   const sectorRects = useMemo((): SectorRect[] => {
     if (dims.width === 0) return [];
 
-    // Layout sectors
-    const sectorItems: LayoutItem<HeatmapSector>[] = sectors
-      .filter(s => s.totalMarketCapB > 0)
-      .map(s => ({ value: dampenCap(s.totalMarketCapB), data: s }));
+    // Layout sectors with floor-clamped dampening
+    const filteredSectors = sectors.filter(s => s.totalMarketCapB > 0);
+    const sectorCaps = filteredSectors.map(s => s.totalMarketCapB);
+    const dampenedSectorCaps = dampenCapWithFloor(sectorCaps, dampenExponent, minFloorRatio);
+    const sectorItems: LayoutItem<HeatmapSector>[] = filteredSectors
+      .map((s, i) => ({ value: dampenedSectorCaps[i], data: s }));
 
     if (sectorItems.length === 0) return [];
     const sectorLayout = squarifyLayout(sectorItems, 0, 0, dims.width, dims.height);
@@ -266,9 +289,11 @@ function Treemap({
 
       if (!showSubLabels) {
         // Flat layout — all stocks directly
-        const stockItems: LayoutItem<HeatmapStock>[] = sector.stocks
-          .filter(s => s.marketCapB > 0)
-          .map(s => ({ value: dampenCap(s.marketCapB), data: s }));
+        const filteredStocks = sector.stocks.filter(s => s.marketCapB > 0);
+        const stockCaps = filteredStocks.map(s => s.marketCapB);
+        const dampenedStockCaps = dampenCapWithFloor(stockCaps, dampenExponent, minFloorRatio);
+        const stockItems: LayoutItem<HeatmapStock>[] = filteredStocks
+          .map((s, i) => ({ value: dampenedStockCaps[i], data: s }));
 
         const stockLayout = squarifyLayout(stockItems, innerX, innerY, innerW, innerH);
         const singleSub: SubSectorRect = {
@@ -286,9 +311,11 @@ function Treemap({
       }
 
       // Layout sub-sectors within sector
-      const subItems: LayoutItem<HeatmapSubSector>[] = sector.subSectors
-        .filter(s => s.totalMarketCapB > 0)
-        .map(s => ({ value: dampenCap(s.totalMarketCapB), data: s }));
+      const filteredSubs = sector.subSectors.filter(s => s.totalMarketCapB > 0);
+      const subCaps = filteredSubs.map(s => s.totalMarketCapB);
+      const dampenedSubCaps = dampenCapWithFloor(subCaps, dampenExponent, minFloorRatio);
+      const subItems: LayoutItem<HeatmapSubSector>[] = filteredSubs
+        .map((s, i) => ({ value: dampenedSubCaps[i], data: s }));
 
       const subLayout = squarifyLayout(subItems, innerX, innerY, innerW, innerH);
 
@@ -304,9 +331,11 @@ function Treemap({
           return { x: subL.x, y: subL.y, w: subL.w, h: subL.h, subSector: sub, sectorName: sector.name, children: [] };
         }
 
-        const stockItems: LayoutItem<HeatmapStock>[] = sub.stocks
-          .filter(s => s.marketCapB > 0)
-          .map(s => ({ value: dampenCap(s.marketCapB), data: s }));
+        const filteredSubStocks = sub.stocks.filter(s => s.marketCapB > 0);
+        const subStockCaps = filteredSubStocks.map(s => s.marketCapB);
+        const dampenedSubStockCaps = dampenCapWithFloor(subStockCaps, dampenExponent, minFloorRatio);
+        const stockItems: LayoutItem<HeatmapStock>[] = filteredSubStocks
+          .map((s, i) => ({ value: dampenedSubStockCaps[i], data: s }));
 
         const stockLayout = squarifyLayout(stockItems, stockX, stockY, stockW, stockH);
 
@@ -325,7 +354,7 @@ function Treemap({
 
       return { x: sl.x, y: sl.y, w: sl.w, h: sl.h, sector, subSectors: subRects };
     });
-  }, [sectors, dims]);
+  }, [sectors, dims, dampenExponent, minFloorRatio]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -928,7 +957,7 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
       </div>
 
       <div ref={treemapRef}>
-        <Treemap sectors={data.sectors} onTickerClick={onTickerClick} highlightedSector={highlightedSector} />
+        <Treemap sectors={data.sectors} onTickerClick={onTickerClick} highlightedSector={highlightedSector} stockCount={allStocks.length} />
       </div>
       <ColorLegend />
       <SectorBars

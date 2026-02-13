@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ActivityEvent } from '../types';
+import { StockLogo } from './StockLogo';
 
 interface ActivityCardProps {
   events: ActivityEvent[]; // All events for this user group
   onUserClick?: (userId: string) => void;
   onTickerClick?: (ticker: string) => void;
+  onMute?: (userId: string, displayName: string) => void;
 }
 
 function formatRelativeTime(isoDate: string): string {
@@ -85,7 +87,7 @@ function TradeRow({
     if (diff > 0) {
       details = `+${diff} → ${payload.shares}`;
     } else {
-      details = `−${Math.abs(diff)} → ${payload.shares}`;
+      details = `${diff} → ${payload.shares}`;
     }
   } else if (type === 'holding_removed') {
     details = 'closed';
@@ -94,40 +96,59 @@ function TradeRow({
   const verbColor = isSell ? 'text-rh-red' : 'text-rh-green';
 
   return (
-    <div className="flex items-center justify-between gap-3 py-1.5">
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span className={`text-[14px] font-medium ${verbColor}`}>
-          {verb}
-        </span>
-        <button
-          onClick={() => onTickerClick?.(payload.ticker)}
-          className="text-[15px] font-bold text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
-        >
-          {payload.ticker}
-        </button>
-        {details && (
-          <>
-            <span className="text-rh-light-muted/50 dark:text-white/30">·</span>
-            <span className="text-[14px] text-rh-light-muted/70 dark:text-white/50">{details}</span>
-          </>
-        )}
+    <div className="flex items-center justify-between gap-2 py-2 group/row">
+      <div className="flex items-center gap-2 min-w-0">
+        <StockLogo ticker={payload.ticker} size="sm" />
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+          <span className={`text-[13px] font-semibold ${verbColor}`}>
+            {verb}
+          </span>
+          <button
+            onClick={() => onTickerClick?.(payload.ticker)}
+            className="text-[14px] font-bold text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
+          >
+            {payload.ticker}
+          </button>
+          {details && (
+            <>
+              <span className="text-rh-light-muted/40 dark:text-white/20">·</span>
+              <span className="text-[13px] text-rh-light-muted/60 dark:text-white/40">{details}</span>
+            </>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        {notionalValue && notionalValue >= 1000 && (
-          <span className="text-[13px] text-rh-light-muted/60 dark:text-white/40 tabular-nums">
+        {notionalValue && notionalValue > 0 && (
+          <span className={`text-[12px] font-medium tabular-nums ${
+            isSell ? 'text-rh-red/60' : 'text-rh-green/60'
+          }`}>
             {formatValue(notionalValue)}
           </span>
         )}
-        <span className="text-[13px] text-rh-light-muted/50 dark:text-white/30 tabular-nums">
-          · {formatRelativeTime(event.createdAt)}
+        <span className="text-[11px] text-rh-light-muted/40 dark:text-white/20 tabular-nums">
+          {formatRelativeTime(event.createdAt)}
         </span>
       </div>
     </div>
   );
 }
 
-export function ActivityCard({ events, onUserClick, onTickerClick }: ActivityCardProps) {
+export function ActivityCard({ events, onUserClick, onTickerClick, onMute }: ActivityCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showMuteConfirm, setShowMuteConfirm] = useState(false);
+  const mutePopupRef = useRef<HTMLDivElement>(null);
+
+  // Close popup on outside click
+  useEffect(() => {
+    if (!showMuteConfirm) return;
+    function handleClick(e: MouseEvent) {
+      if (mutePopupRef.current && !mutePopupRef.current.contains(e.target as Node)) {
+        setShowMuteConfirm(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showMuteConfirm]);
 
   if (events.length === 0) return null;
 
@@ -140,34 +161,42 @@ export function ActivityCard({ events, onUserClick, onTickerClick }: ActivityCar
   const hasSells = events.some(e => isSellAction(e.type, e.payload));
   const isMixed = hasBuys && hasSells;
 
-  // Avatar styling
-  let avatarStyle = '';
+  // Glassmorphed avatar with buy/sell accent glow
+  const glassBase = 'bg-white/[0.03] backdrop-blur-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.4)]';
+  let accentRing = '';
   let avatarTextColor = '';
 
   if (isMixed) {
-    // Split color - gradient from green to red
-    avatarStyle = 'bg-gradient-to-br from-rh-green/30 via-transparent to-rh-red/30 border-white/20';
-    avatarTextColor = 'text-rh-light-text/80 dark:text-white/80';
+    accentRing = 'ring-1 ring-white/10';
+    avatarTextColor = 'text-white/70';
   } else if (hasSells) {
-    avatarStyle = 'bg-gradient-to-br from-rh-red/25 to-rh-red/10 border-rh-red/30';
-    avatarTextColor = 'text-rh-red/90';
+    accentRing = 'ring-1 ring-rh-red/25';
+    avatarTextColor = 'text-rh-red/80';
   } else {
-    avatarStyle = 'bg-gradient-to-br from-rh-green/25 to-rh-green/10 border-rh-green/30';
-    avatarTextColor = 'text-rh-green/90';
+    accentRing = 'ring-1 ring-rh-green/25';
+    avatarTextColor = 'text-rh-green/80';
   }
 
   const visibleEvents = isExpanded ? events : [firstEvent];
 
+  // Total notional for the group
+  const totalNotional = events.reduce((sum, e) => {
+    const val = e.payload.shares && e.payload.averageCost
+      ? e.payload.shares * e.payload.averageCost
+      : 0;
+    return sum + val;
+  }, 0);
+
   return (
-    <div className="px-4 py-3">
+    <div className="group/card px-4 py-3 hover:bg-rh-light-bg/30 dark:hover:bg-white/[0.015] transition-colors">
       <div className="flex gap-3">
         {/* Avatar */}
         <button
           onClick={() => onUserClick?.(firstEvent.userId)}
-          className="flex-shrink-0"
+          className="flex-shrink-0 mt-0.5"
         >
-          <div className={`w-10 h-10 rounded-full border flex items-center justify-center
-            text-xs font-bold transition-colors hover:brightness-110 ${avatarStyle} ${avatarTextColor}`}
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center
+            text-[11px] font-bold transition-all hover:brightness-125 ${glassBase} ${accentRing} ${avatarTextColor}`}
           >
             {initials}
           </div>
@@ -175,16 +204,74 @@ export function ActivityCard({ events, onUserClick, onTickerClick }: ActivityCar
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* User name */}
-          <button
-            onClick={() => onUserClick?.(firstEvent.userId)}
-            className="font-semibold text-[15px] text-rh-light-text dark:text-white hover:underline"
-          >
-            {firstEvent.displayName}
-          </button>
+          {/* User name + mute + total value */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 relative">
+              <button
+                onClick={() => onUserClick?.(firstEvent.userId)}
+                className="font-semibold text-[15px] text-rh-light-text dark:text-white hover:underline"
+              >
+                {firstEvent.displayName}
+              </button>
+              {onMute && (
+                <button
+                  onClick={() => setShowMuteConfirm(true)}
+                  title={`Mute ${firstEvent.displayName}`}
+                  className="opacity-0 group-hover/card:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/[0.06]"
+                >
+                  <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Mute confirmation popup */}
+              {showMuteConfirm && (
+                <div
+                  ref={mutePopupRef}
+                  className="absolute left-0 top-full mt-1.5 z-50 w-56 rounded-xl overflow-hidden
+                    bg-[#1a1a1e]/90 backdrop-blur-2xl border border-white/[0.08]
+                    shadow-[0_8px_32px_-4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.03)]"
+                >
+                  <div className="px-3.5 pt-3 pb-2">
+                    <p className="text-[13px] font-semibold text-white/90">
+                      Mute {firstEvent.displayName}?
+                    </p>
+                    <p className="text-[11px] text-white/40 mt-1 leading-relaxed">
+                      Their trades won't appear in your feed. You can unmute anytime from settings.
+                    </p>
+                  </div>
+                  <div className="flex border-t border-white/[0.06]">
+                    <button
+                      onClick={() => setShowMuteConfirm(false)}
+                      className="flex-1 px-3 py-2.5 text-[12px] font-semibold text-white/50 hover:text-white/70 hover:bg-white/[0.04] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <div className="w-px bg-white/[0.06]" />
+                    <button
+                      onClick={() => {
+                        onMute?.(firstEvent.userId, firstEvent.displayName);
+                        setShowMuteConfirm(false);
+                      }}
+                      className="flex-1 px-3 py-2.5 text-[12px] font-semibold text-rh-red hover:bg-rh-red/10 transition-colors"
+                    >
+                      Mute
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            {totalNotional >= 1000 && events.length > 1 && (
+              <span className="text-[11px] text-rh-light-muted/40 dark:text-white/20 tabular-nums">
+                {formatValue(totalNotional)} total
+              </span>
+            )}
+          </div>
 
           {/* Trade rows */}
-          <div className={`mt-1 ${isExpanded ? 'space-y-1' : ''}`}>
+          <div className="mt-0.5">
             {visibleEvents.map((event) => (
               <TradeRow
                 key={event.id}
@@ -198,7 +285,7 @@ export function ActivityCard({ events, onUserClick, onTickerClick }: ActivityCar
           {additionalCount > 0 && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className={`mt-2 text-[13px] flex items-center gap-1 transition-colors ${
+              className={`mt-1 text-[12px] flex items-center gap-1 transition-colors ${
                 isExpanded
                   ? 'text-rh-light-muted/45 dark:text-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/40'
                   : 'text-rh-light-muted/60 dark:text-white/40 hover:text-rh-light-muted/80 dark:hover:text-white/60'
