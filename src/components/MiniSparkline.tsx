@@ -126,7 +126,7 @@ function smoothPath(coords: { x: number; y: number }[]): string {
   return d;
 }
 
-export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparklineProps) {
+export function MiniSparkline({ ticker, positive: _positive, period = '1D' }: MiniSparklineProps) {
   const [rawPoints, setRawPoints] = useState<number[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);

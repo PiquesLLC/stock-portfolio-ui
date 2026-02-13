@@ -777,7 +777,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                 {viewMode === 'detailed' && hasValidPrice && (
                   <tr className="md:hidden border-b border-rh-light-border/10 dark:border-rh-border/10 bg-gray-50/40 dark:bg-white/[0.015]">
                     <td colSpan={99} className="px-4 py-1.5">
-                      <div className="grid grid-cols-4 gap-x-3 text-[10px]">
+                      <div className="grid grid-cols-5 gap-x-3 text-[10px]">
                         <div>
                           <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Shares</span>
                           <p className="text-rh-light-text dark:text-rh-text font-medium">{holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
@@ -785,6 +785,10 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                         <div>
                           <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Avg Cost</span>
                           <p className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency(holding.averageCost)}</p>
+                        </div>
+                        <div>
+                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Weight</span>
+                          <p className="text-rh-light-text dark:text-rh-text font-medium">{totalPortfolioValue > 0 ? `${(holding.currentValue / totalPortfolioValue * 100).toFixed(1)}%` : '—'}</p>
                         </div>
                         <div>
                           <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Day</span>

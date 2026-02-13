@@ -123,6 +123,7 @@ export function buildPoints(
               time: t,
               label: new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               price: Math.round(price * 100) / 100,
+              volume: 0,
             });
           }
         }
@@ -133,6 +134,7 @@ export function buildPoints(
             time: lp.time,
             label: new Date(lp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             price: lp.price,
+            volume: 0,
           });
         }
 
@@ -142,6 +144,7 @@ export function buildPoints(
             time: now,
             label: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             price: safeCurrentPrice,
+            volume: 0,
           });
         }
       }
