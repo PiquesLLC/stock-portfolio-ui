@@ -96,6 +96,13 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
     if (selectedId) loadDetail(selectedId);
   }, [selectedId, loadDetail]);
 
+  // Auto-refresh watchlist detail every 60s so currentValue stays fresh for chart bridging
+  useEffect(() => {
+    if (!selectedId) return;
+    const id = setInterval(() => loadDetail(selectedId), 60_000);
+    return () => clearInterval(id);
+  }, [selectedId, loadDetail]);
+
   const handleCreate = async (data: { name: string; description?: string; color: string }) => {
     try {
       await createWatchlist(data);
