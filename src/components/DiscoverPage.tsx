@@ -218,10 +218,18 @@ function Treemap({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    const computeHeight = (width: number) => {
+      const isMobile = width < 640;
+      // Cap height to fit viewport: subtract header(56) + nav(48) + title/selectors(100) + padding(50)
+      const maxViewportH = Math.max(300, window.innerHeight - 260);
+      const naturalH = isMobile
+        ? Math.max(280, Math.round(width * 0.75))
+        : Math.max(400, Math.round(width * 0.55));
+      return Math.min(naturalH, maxViewportH);
+    };
     const ro = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect;
-      const isMobile = width < 640;
-      setDims({ width, height: isMobile ? Math.max(300, Math.round(width * 0.8)) : Math.max(500, Math.round(width * 0.62)) });
+      setDims({ width, height: computeHeight(width) });
     });
     ro.observe(el);
     return () => ro.disconnect();
