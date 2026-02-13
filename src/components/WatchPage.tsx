@@ -34,7 +34,7 @@ export function WatchPage({
   }, [theatreMode]);
 
   return (
-    <div className="max-w-[1600px] mx-auto py-4">
+    <div className="max-w-[1440px] mx-auto py-4">
       {/* Theatre mode overlay */}
       {theatreMode && (
         <div

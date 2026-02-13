@@ -117,17 +117,17 @@ function getHeatColor(pct: number): string {
 
   if (c > 0) {
     const t = Math.min(c / 3, 1);
-    // Slate gray → bright vivid green (#2CC42C)
-    const r = Math.round(bR + (44 - bR) * t);
-    const g = Math.round(bG + (196 - bG) * t);
-    const b = Math.round(bB + (44 - bB) * t);
+    // Slate gray → rh-green (#00C805 = rgb(0,200,5))
+    const r = Math.round(bR + (0 - bR) * t);
+    const g = Math.round(bG + (200 - bG) * t);
+    const b = Math.round(bB + (5 - bB) * t);
     return `rgb(${r},${g},${b})`;
   } else if (c < 0) {
     const t = Math.min(Math.abs(c) / 3, 1);
-    // Slate gray → bright vivid red (#C42C2C)
-    const r = Math.round(bR + (196 - bR) * t);
-    const g = Math.round(bG + (44 - bG) * t);
-    const b = Math.round(bB + (44 - bB) * t);
+    // Slate gray → rh-red (#E8544E = rgb(232,84,78))
+    const r = Math.round(bR + (232 - bR) * t);
+    const g = Math.round(bG + (84 - bG) * t);
+    const b = Math.round(bB + (78 - bB) * t);
     return `rgb(${r},${g},${b})`;
   }
   return `rgb(${bR},${bG},${bB})`;
@@ -552,10 +552,11 @@ function Treemap({
             </div>
           </div>
 
-          {/* All stocks in this sub-sector */}
-          <div className="max-h-[240px] overflow-y-auto">
+          {/* Top stocks in this sub-sector (no scroll) */}
+          <div>
             {popupSubSector.subSector.stocks
               .sort((a, b) => b.marketCapB - a.marketCapB)
+              .slice(0, 6)
               .map((s) => {
                 const isActive = s.ticker === hoveredStock.ticker;
                 return (
@@ -577,6 +578,11 @@ function Treemap({
                   </div>
                 );
               })}
+            {popupSubSector.subSector.stocks.length > 6 && (
+              <div className="px-3 py-1.5 text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 text-center">
+                +{popupSubSector.subSector.stocks.length - 6} more
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -747,24 +753,46 @@ const PERIOD_LABELS: Record<HeatmapPeriod, string> = {
   '1Y': 'yearly change',
 };
 
+// In-memory cache so switching periods / re-mounting is instant
+const heatmapCache = new Map<HeatmapPeriod, { data: HeatmapResponse; ts: number }>();
+
+// Pick up preloaded data from App.tsx boot (stored on window)
+const preloaded = (window as any).__heatmapPreload as { data: HeatmapResponse; ts: number } | undefined;
+if (preloaded && !heatmapCache.has('1D')) {
+  heatmapCache.set('1D', preloaded);
+  delete (window as any).__heatmapPreload;
+}
+
+
 export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
-  const [data, setData] = useState<HeatmapResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [period, setPeriod] = useState<HeatmapPeriod>('1D');
+  // Initialize from cache so first render is instant on re-mount
+  const initialCache = heatmapCache.get('1D');
+  const [data, setData] = useState<HeatmapResponse | null>(initialCache?.data ?? null);
+  const [loading, setLoading] = useState(!initialCache);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
+
+    // Show cached data instantly (stale-while-revalidate)
+    const cached = heatmapCache.get(period);
+    if (cached) {
+      setData(cached.data);
+      setLoading(false);
+    }
+
     const load = async () => {
       try {
-        setLoading(true);
+        if (!cached) setLoading(true);
         const resp = await getMarketHeatmap(period);
         if (!cancelled) {
           setData(resp);
+          heatmapCache.set(period, { data: resp, ts: Date.now() });
           setError('');
         }
       } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Failed to load heatmap data');
+        if (!cancelled && !cached) setError(err.message || 'Failed to load heatmap data');
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -43,6 +43,15 @@ const DiscoverPage = lazy(() => import('./components/DiscoverPage').then(m => ({
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 
+// Preload heatmap data 3s after boot so Discover tab opens instantly
+setTimeout(() => {
+  import('./api').then(({ getMarketHeatmap }) => {
+    getMarketHeatmap('1D').then(resp => {
+      (window as any).__heatmapPreload = { data: resp, ts: Date.now() };
+    }).catch(() => {});
+  });
+}, 3000);
+
 function PageFallback() {
   return (
     <div className="flex items-center justify-center py-20">
@@ -324,8 +333,7 @@ export default function App() {
   useEffect(() => {
     const stockTicker = viewingStock?.ticker || null;
     const subtab = activeTab === 'insights' ? insightsSubTab : null;
-    // When viewing a profile, use 'portfolio' as tab so the URL is clean (#profile=...)
-    const hashTab = viewingProfileId ? 'portfolio' as TabType : activeTab;
+    const hashTab = activeTab;
     setHash(hashTab, stockTicker, viewingProfileId, leaderboardUserId, subtab);
   }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab]);
 
@@ -493,7 +501,7 @@ export default function App() {
       <div className="grain-overlay" />
       <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
       <header className="relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
-        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className="h-[35px] w-[35px] cursor-pointer"
@@ -585,7 +593,7 @@ export default function App() {
       }} />
       </div>
 
-      <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
+      <main className="relative z-10 max-w-[1440px] mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
         {!isOnline && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
             <p className="text-yellow-400 text-sm font-medium">

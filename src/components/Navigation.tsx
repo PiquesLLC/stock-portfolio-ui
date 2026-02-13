@@ -22,8 +22,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: 'portfolio', label: 'Portfolio' },
     { id: 'insights', label: 'Insights' },
     { id: 'watchlists', label: 'Watchlists' },
-    { id: 'nala', label: 'Nala AI' },
     { id: 'discover', label: 'Discover' },
+    { id: 'nala', label: 'Nala AI' },
     { id: 'macro', label: 'Macro' },
     { id: 'feed', label: 'Feed' },
     { id: 'leaderboard', label: 'Leaderboard' },
@@ -32,7 +32,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
   return (
     <nav className="border-b border-rh-light-border/60 dark:border-rh-border/60 bg-rh-light-bg/95 dark:bg-black/80 backdrop-blur-md">
-      <div className="max-w-[1600px] mx-auto px-0 sm:px-4">
+      <div className="max-w-[1440px] mx-auto px-0 sm:px-4">
         <div className="flex overflow-x-auto no-scrollbar justify-around sm:justify-start sm:gap-1">
           {tabs.map((tab) => (
             <button

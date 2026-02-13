@@ -186,7 +186,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto px-3 sm:px-4 py-6">
+    <div className="max-w-[1440px] mx-auto px-3 sm:px-4 py-6">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
         <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
