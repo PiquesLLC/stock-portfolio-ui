@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err: any) {
         if (cancelled) return;
         const msg = (err?.message || '').toLowerCase();
-        const isAuthError = msg.includes('401') || msg.includes('not authenticated') || msg.includes('unauthorized');
+        const isAuthError = msg.includes('401') || msg.includes('not authenticated') || msg.includes('unauthorized') || msg.includes('session expired') || msg.includes('token expired');
         if (isAuthError) {
           if (isSameOriginApi()) {
             setUser(null);
