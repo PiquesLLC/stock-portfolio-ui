@@ -1022,7 +1022,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
       const pts: { x: number; y: number }[] = [];
       for (let i = rangeStart; i <= rangeEnd; i++) {
         const val = ma.values[i];
-        if (val === null) continue;
+        if (val == null) continue;
         pts.push({ x: toX(i), y: toY(val) });
       }
       const d = monotonePath(pts);
