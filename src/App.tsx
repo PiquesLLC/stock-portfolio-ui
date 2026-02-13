@@ -39,6 +39,7 @@ const LeaderboardPage = lazy(() => import('./components/LeaderboardPage').then(m
 const FeedPage = lazy(() => import('./components/FeedPage').then(m => ({ default: m.FeedPage })));
 const WatchPage = lazy(() => import('./components/WatchPage').then(m => ({ default: m.WatchPage })));
 const WatchlistPage = lazy(() => import('./components/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
+const DiscoverPage = lazy(() => import('./components/DiscoverPage').then(m => ({ default: m.DiscoverPage })));
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 
@@ -59,7 +60,7 @@ interface NavState {
   subtab: string | null;
 }
 
-const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'macro', 'leaderboard', 'feed', 'watch']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch']);
 
 function parseHash(): NavState {
   const hash = window.location.hash.slice(1);
@@ -492,7 +493,7 @@ export default function App() {
       <div className="grain-overlay" />
       <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
       <header className="relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className="h-[35px] w-[35px] cursor-pointer"
@@ -503,7 +504,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4">
-            <div className="flex-1 max-w-[270px] min-w-[120px]">
+            <div className="flex-1 max-w-[400px] min-w-[120px]">
               <TickerAutocompleteInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -584,7 +585,7 @@ export default function App() {
       }} />
       </div>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
+      <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
         {!isOnline && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
             <p className="text-yellow-400 text-sm font-medium">
@@ -825,6 +826,14 @@ export default function App() {
           {activeTab === 'watchlists' && !viewingStock && (
             <ErrorBoundary>
               <WatchlistPage
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+              />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'discover' && !viewingStock && (
+            <ErrorBoundary>
+              <DiscoverPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
               />
             </ErrorBoundary>

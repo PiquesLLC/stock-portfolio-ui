@@ -1226,3 +1226,37 @@ export interface WatchlistHoldingInput {
   shares: number;
   averageCost: number;
 }
+
+// Discover / Heatmap
+export interface HeatmapStock {
+  ticker: string;
+  name: string;
+  price: number;
+  changePercent: number;
+  dayChange: number;
+  marketCapB: number;
+  subSector: string;
+}
+
+export interface HeatmapSubSector {
+  name: string;
+  stocks: HeatmapStock[];
+  totalMarketCapB: number;
+  avgChangePercent: number;
+}
+
+export interface HeatmapSector {
+  name: string;
+  stocks: HeatmapStock[];
+  subSectors: HeatmapSubSector[];
+  totalMarketCapB: number;
+  avgChangePercent: number;
+  gainers: number;
+  losers: number;
+}
+
+export interface HeatmapResponse {
+  sectors: HeatmapSector[];
+  period: string;
+  generated: number;
+}

@@ -1224,3 +1224,10 @@ export async function removeWatchlistHolding(watchlistId: string, ticker: string
     method: 'DELETE',
   });
 }
+
+// Discover / Heatmap
+export type HeatmapPeriod = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y';
+
+export async function getMarketHeatmap(period: HeatmapPeriod = '1D'): Promise<import('./types').HeatmapResponse> {
+  return fetchJson<import('./types').HeatmapResponse>(`${API_BASE_URL}/market/heatmap?period=${period}`);
+}
