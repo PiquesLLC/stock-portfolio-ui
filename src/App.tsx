@@ -831,12 +831,14 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'watchlists' && !viewingStock && (
-            <ErrorBoundary>
-              <WatchlistPage
-                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
-              />
-            </ErrorBoundary>
+          {activeTab === 'watchlists' && (
+            <div style={viewingStock ? { display: 'none' } : undefined}>
+              <ErrorBoundary>
+                <WatchlistPage
+                  onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                />
+              </ErrorBoundary>
+            </div>
           )}
 
           {activeTab === 'discover' && !viewingStock && (
