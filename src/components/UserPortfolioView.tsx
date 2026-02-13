@@ -182,7 +182,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
   }
 
   return (
-    <div className="max-w-[1440px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Back button */}
       <button
         onClick={onBack}

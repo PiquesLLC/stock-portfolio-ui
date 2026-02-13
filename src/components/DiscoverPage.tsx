@@ -112,22 +112,22 @@ function doLayout<T>(
 function getHeatColor(pct: number): string {
   const c = Math.max(-5, Math.min(5, pct));
 
-  // Neutral base: visible slate gray (not near-black)
-  const bR = 68, bG = 70, bB = 84;
+  // Finviz-style palette: dark blue-gray base with rich (not neon) green/red
+  const bR = 50, bG = 54, bB = 68;
 
   if (c > 0) {
     const t = Math.min(c / 3, 1);
-    // Slate gray → rh-green (#00C805 = rgb(0,200,5))
-    const r = Math.round(bR + (0 - bR) * t);
-    const g = Math.round(bG + (200 - bG) * t);
-    const b = Math.round(bB + (5 - bB) * t);
+    // Dark base → rich green (rgb(18,170,36))
+    const r = Math.round(bR + (18 - bR) * t);
+    const g = Math.round(bG + (170 - bG) * t);
+    const b = Math.round(bB + (36 - bB) * t);
     return `rgb(${r},${g},${b})`;
   } else if (c < 0) {
     const t = Math.min(Math.abs(c) / 3, 1);
-    // Slate gray → rh-red (#E8544E = rgb(232,84,78))
-    const r = Math.round(bR + (232 - bR) * t);
-    const g = Math.round(bG + (84 - bG) * t);
-    const b = Math.round(bB + (78 - bB) * t);
+    // Dark base → deep red (rgb(200,58,50))
+    const r = Math.round(bR + (200 - bR) * t);
+    const g = Math.round(bG + (58 - bG) * t);
+    const b = Math.round(bB + (50 - bB) * t);
     return `rgb(${r},${g},${b})`;
   }
   return `rgb(${bR},${bG},${bB})`;
@@ -202,6 +202,27 @@ const SECTOR_LABEL_H = 15;
 const SUB_SECTOR_LABEL_H = 12;
 const SECTOR_GAP = 2;
 
+/** Abbreviate multi-word sub-sector names to initials, e.g. "Machinery & Equipment" → "M & E" */
+function abbreviateSubSector(name: string): string {
+  const words = name.split(/\s+/);
+  if (words.length <= 1) return name;
+  return words.map(w => w === '&' ? '&' : w[0]).join(' ');
+}
+
+/** Map sector names to their primary SPDR Select Sector ETF */
+const SECTOR_ETF: Record<string, string> = {
+  'Tech': 'XLK',
+  'Finance': 'XLF',
+  'Healthcare': 'XLV',
+  'Energy': 'XLE',
+  'Consumer': 'XLY',
+  'Industrial': 'XLI',
+  'Communication': 'XLC',
+  'Materials': 'XLB',
+  'Utilities': 'XLU',
+  'Real Estate': 'XLRE',
+};
+
 function Treemap({
   sectors,
   onTickerClick,
@@ -217,6 +238,7 @@ function Treemap({
   const [dims, setDims] = useState({ width: 0, height: 0 });
   const [hoveredStock, setHoveredStock] = useState<HeatmapStock | null>(null);
   const [hoveredSubSector, setHoveredSubSector] = useState<{ sector: string; subSector: string } | null>(null);
+  const [hoveredSectorLabel, setHoveredSectorLabel] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const isDark = document.documentElement.classList.contains('dark');
 
@@ -236,11 +258,11 @@ function Treemap({
     if (!el) return;
     const computeHeight = (width: number) => {
       const isMobile = width < 640;
-      // Cap height to fit viewport: subtract header(56) + nav(48) + title/selectors(100) + padding(50)
-      const maxViewportH = Math.max(300, window.innerHeight - 260);
+      // Match Finviz proportions: ~2:1 aspect ratio (width × 0.52)
+      const maxViewportH = Math.max(400, window.innerHeight - 180);
       const naturalH = isMobile
-        ? Math.max(280, Math.round(width * 0.75))
-        : Math.max(400, Math.round(width * 0.55));
+        ? Math.max(320, Math.round(width * 0.85))
+        : Math.max(500, Math.round(width * 0.52));
       return Math.min(naturalH, maxViewportH);
     };
     const ro = new ResizeObserver((entries) => {
@@ -377,7 +399,7 @@ function Treemap({
     return <div ref={containerRef} className="w-full min-h-[500px]" />;
   }
 
-  const tileStroke = isDark ? '#111' : '#d0d0d0';
+  const tileStroke = isDark ? '#1a1c28' : '#d0d0d0';
 
   // Get the sub-sector stocks for the popup
   const popupSubSector = hoveredSubSector
@@ -403,40 +425,62 @@ function Treemap({
               y={sr.y + 1}
               width={Math.max(0, sr.w - 2)}
               height={Math.max(0, sr.h - 2)}
-              fill={isDark ? '#141414' : '#ddd'}
+              fill={isDark ? '#1a1c28' : '#ddd'}
               rx={1}
             />
-            {/* Sector label bar */}
-            {sr.w > 40 && (
-              <>
-                <rect
-                  x={sr.x + 2}
-                  y={sr.y + 2}
-                  width={Math.max(0, sr.w - 4)}
-                  height={SECTOR_LABEL_H - 1}
-                  fill={isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.08)'}
-                  rx={1}
-                />
-                <text
-                  x={sr.x + SECTOR_GAP + 4}
-                  y={sr.y + SECTOR_LABEL_H - 4}
-                  fontSize={sr.w > 200 ? 9.5 : sr.w > 100 ? 8 : 6.5}
-                  fontWeight={700}
-                  fill={isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)'}
-                  style={{
-                    pointerEvents: 'none',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                  }}
+            {/* Sector label bar — clicks through to sector ETF */}
+            {sr.w > 40 && (() => {
+              const etf = SECTOR_ETF[sr.sector.name];
+              const isLabelHovered = hoveredSectorLabel === sr.sector.name;
+              return (
+                <g
+                  onClick={etf ? () => onTickerClick(etf) : undefined}
+                  onMouseEnter={etf ? () => setHoveredSectorLabel(sr.sector.name) : undefined}
+                  onMouseLeave={etf ? () => setHoveredSectorLabel(null) : undefined}
+                  style={etf ? { cursor: 'pointer' } : undefined}
                 >
-                  {sr.sector.name}
-                </text>
-              </>
-            )}
+                  <rect
+                    x={sr.x + 2}
+                    y={sr.y + 2}
+                    width={Math.max(0, sr.w - 4)}
+                    height={SECTOR_LABEL_H - 1}
+                    fill={isLabelHovered
+                      ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)')
+                      : (isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.08)')}
+                    rx={1}
+                    style={{ transition: 'fill 0.15s' }}
+                  />
+                  <text
+                    x={sr.x + SECTOR_GAP + 4}
+                    y={sr.y + SECTOR_LABEL_H - 4}
+                    fontSize={sr.w > 200 ? 9.5 : sr.w > 100 ? 8 : 6.5}
+                    fontWeight={700}
+                    fill={isLabelHovered
+                      ? (isDark ? '#fff' : 'rgba(0,0,0,0.8)')
+                      : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)')}
+                    style={{
+                      pointerEvents: 'none',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      transition: 'fill 0.15s',
+                    }}
+                  >
+                    {sr.sector.name}
+                  </text>
+                </g>
+              );
+            })()}
             {/* Sub-sector groups */}
             {sr.subSectors.map((subR) => {
-              const showSubLabel = sr.sector.subSectors.length > 1 && subR.h > 30 && subR.w > 50;
+              const subFontSize = subR.w > 120 ? 7.5 : 6;
+              const charW = subFontSize * 0.58;
+              const fullFits = subR.subSector.name.length * charW < subR.w - 8;
+              const abbr = abbreviateSubSector(subR.subSector.name);
+              const abbrFits = abbr.length * charW < subR.w - 8;
+              const showSubLabel = sr.sector.subSectors.length > 1 && subR.h > 30 && (fullFits || abbrFits);
+              const isSubHovered = hoveredSubSector?.sector === sr.sector.name
+                && hoveredSubSector?.subSector === subR.subSector.name;
               return (
                 <g key={subR.subSector.name}>
                   {/* Sub-sector border (thin separator) */}
@@ -447,28 +491,42 @@ function Treemap({
                       width={subR.w}
                       height={subR.h}
                       fill="none"
-                      stroke={isDark ? '#222' : '#bbb'}
+                      stroke={isDark ? '#2a2c38' : '#bbb'}
                       strokeWidth={0.5}
                     />
                   )}
-                  {/* Sub-sector label */}
-                  {showSubLabel && (
-                    <text
-                      x={subR.x + 3}
-                      y={subR.y + SUB_SECTOR_LABEL_H - 3}
-                      fontSize={subR.w > 120 ? 7.5 : 6}
-                      fontWeight={600}
-                      fill={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'}
-                      style={{
-                        pointerEvents: 'none',
-                        fontFamily: 'system-ui, -apple-system, sans-serif',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {subR.subSector.name}
-                    </text>
-                  )}
+                  {/* Sub-sector label — abbreviated when tight, expands on hover */}
+                  {showSubLabel && (() => {
+                    const expanded = isSubHovered || fullFits;
+                    const labelText = expanded ? subR.subSector.name : abbr;
+                    const clipId = `sc-${sr.sector.name}-${subR.subSector.name}`.replace(/[^a-zA-Z0-9]/g, '_');
+                    return (
+                      <>
+                        <clipPath id={clipId}>
+                          <rect x={subR.x} y={subR.y} width={subR.w} height={SUB_SECTOR_LABEL_H} />
+                        </clipPath>
+                        <text
+                          x={subR.x + 3}
+                          y={subR.y + SUB_SECTOR_LABEL_H - 3}
+                          fontSize={subFontSize}
+                          fontWeight={600}
+                          fill={isSubHovered
+                            ? (isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.6)')
+                            : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)')}
+                          clipPath={expanded ? undefined : `url(#${clipId})`}
+                          style={{
+                            pointerEvents: 'none',
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            transition: 'fill 0.15s',
+                          }}
+                        >
+                          {labelText}
+                        </text>
+                      </>
+                    );
+                  })()}
                   {/* Stock tiles */}
                   {subR.children.map((r) => {
                     const isHovered = hoveredStock?.ticker === r.stock.ticker;
@@ -527,7 +585,7 @@ function Treemap({
                             fontWeight={700}
                             fill="#fff"
                             opacity={opacity}
-                            style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 1px 2px rgba(0,0,0,0.5)', transition: 'opacity 0.15s' }}
+                            style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
                           >
                             {r.stock.ticker}
                           </text>
@@ -539,9 +597,9 @@ function Treemap({
                             textAnchor="middle"
                             fontSize={pctFontSize}
                             fontWeight={500}
-                            fill="rgba(255,255,255,0.85)"
+                            fill="rgba(255,255,255,0.9)"
                             opacity={opacity}
-                            style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 1px 2px rgba(0,0,0,0.5)', transition: 'opacity 0.15s' }}
+                            style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
                           >
                             {r.stock.changePercent >= 0 ? '+' : ''}{r.stock.changePercent.toFixed(2)}%
                           </text>

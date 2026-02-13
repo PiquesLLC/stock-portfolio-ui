@@ -501,7 +501,7 @@ export default function App() {
       <div className="grain-overlay" />
       <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
       <header className="relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
-        <div className="max-w-[1440px] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className="h-[35px] w-[35px] cursor-pointer"
@@ -593,7 +593,11 @@ export default function App() {
       }} />
       </div>
 
-      <main className="relative z-10 max-w-[1440px] mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
+      <main className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
+        activeTab === 'discover' && !viewingStock
+          ? 'max-w-[clamp(1200px,71vw,1900px)] px-2 sm:px-3'
+          : 'max-w-[clamp(1200px,75vw,1800px)] px-3 sm:px-6'
+      }`}>
         {!isOnline && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
             <p className="text-yellow-400 text-sm font-medium">
