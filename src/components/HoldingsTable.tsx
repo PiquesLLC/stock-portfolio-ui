@@ -206,6 +206,12 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     }
   };
 
+  // Total portfolio value for weight % calculation
+  const totalPortfolioValue = useMemo(() =>
+    holdings.reduce((sum, h) => sum + (h.priceUnavailable ? 0 : h.currentValue), 0),
+    [holdings],
+  );
+
   // Memoized sorted holdings
   const sortedHoldings = useMemo(() => {
     return [...holdings].sort((a, b) => {
@@ -640,6 +646,9 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               <th className={`hidden sm:table-cell ${getHeaderClass('currentValue', 'right')}`} onClick={() => handleSort('currentValue')} title="Sort by market value">
                 {getSortIndicator('currentValue')}Mkt Val
               </th>
+              <th className={`hidden xl:table-cell ${getHeaderClass('currentValue', 'right')}`} onClick={() => handleSort('currentValue')} title="Sort by portfolio weight (same as market value)">
+                Weight
+              </th>
               <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} ${getHeaderClass('dayChange', 'right')}`} onClick={() => handleSort('dayChange')} title="Sort by today's profit/loss">
                 {getSortIndicator('dayChange')}Day P/L
               </th>
@@ -707,6 +716,11 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                   </td>
                   <td className={`hidden sm:table-cell px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200`}>
                     {hasValidPrice ? formatCurrency(holding.currentValue) : '—'}
+                  </td>
+                  <td className="hidden xl:table-cell px-4 py-3 text-right text-xs text-rh-light-muted dark:text-rh-muted">
+                    {hasValidPrice && totalPortfolioValue > 0
+                      ? `${(holding.currentValue / totalPortfolioValue * 100).toFixed(1)}%`
+                      : '—'}
                   </td>
                   <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} px-4 py-3 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :

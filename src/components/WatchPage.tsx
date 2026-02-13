@@ -73,6 +73,7 @@ export function WatchPage({
       </div>
 
       {/* Channel bar */}
+      <div className="relative">
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1 pl-1 scrollbar-hide">
         {channels.map((ch) => {
           const isActive = activeChannel.id === ch.id;
@@ -112,6 +113,9 @@ export function WatchPage({
             </button>
           );
         })}
+      </div>
+      {/* Scroll fade indicator for mobile */}
+      <div className="absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-rh-light-bg dark:from-[#0a0a0a] to-transparent pointer-events-none sm:hidden" />
       </div>
 
       {/* Player card — subtle dark gradient anchor behind */}
