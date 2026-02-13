@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { getMarketHeatmap, HeatmapPeriod } from '../api';
+import { getMarketHeatmap, HeatmapPeriod, MarketIndex } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 
@@ -762,32 +762,45 @@ const PERIOD_LABELS: Record<HeatmapPeriod, string> = {
   '1Y': 'yearly change',
 };
 
-// In-memory cache so switching periods / re-mounting is instant
-const heatmapCache = new Map<HeatmapPeriod, { data: HeatmapResponse; ts: number }>();
+const INDEXES: { id: MarketIndex; label: string; fullName: string }[] = [
+  { id: 'SP500', label: 'S&P 500', fullName: 'S&P 500' },
+  { id: 'DOW30', label: 'DOW', fullName: 'Dow Jones Industrial Average' },
+  { id: 'NASDAQ100', label: 'NASDAQ', fullName: 'NASDAQ-100' },
+];
+
+// In-memory cache keyed by "period-index" so switching is instant
+const heatmapCache = new Map<string, { data: HeatmapResponse; ts: number }>();
+
+function cacheKey(period: HeatmapPeriod, index: MarketIndex): string {
+  return `${period}-${index}`;
+}
 
 // Pick up preloaded data from App.tsx boot (stored on window)
 const preloaded = (window as any).__heatmapPreload as { data: HeatmapResponse; ts: number } | undefined;
-if (preloaded && !heatmapCache.has('1D')) {
-  heatmapCache.set('1D', preloaded);
+if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
+  heatmapCache.set(cacheKey('1D', 'SP500'), preloaded);
   delete (window as any).__heatmapPreload;
 }
 
 
 export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
   const [period, setPeriod] = useState<HeatmapPeriod>('1D');
+  const [index, setIndex] = useState<MarketIndex>('SP500');
   const [highlightedSector, setHighlightedSector] = useState<string | null>(null);
   const treemapRef = useRef<HTMLDivElement>(null);
   // Initialize from cache so first render is instant on re-mount
-  const initialCache = heatmapCache.get('1D');
+  const initialKey = cacheKey('1D', 'SP500');
+  const initialCache = heatmapCache.get(initialKey);
   const [data, setData] = useState<HeatmapResponse | null>(initialCache?.data ?? null);
   const [loading, setLoading] = useState(!initialCache);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
+    const key = cacheKey(period, index);
 
     // Show cached data instantly (stale-while-revalidate)
-    const cached = heatmapCache.get(period);
+    const cached = heatmapCache.get(key);
     if (cached) {
       setData(cached.data);
       setLoading(false);
@@ -796,10 +809,10 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
     const load = async () => {
       try {
         if (!cached) setLoading(true);
-        const resp = await getMarketHeatmap(period);
+        const resp = await getMarketHeatmap(period, index);
         if (!cancelled) {
           setData(resp);
-          heatmapCache.set(period, { data: resp, ts: Date.now() });
+          heatmapCache.set(key, { data: resp, ts: Date.now() });
           setError('');
         }
       } catch (err: any) {
@@ -812,7 +825,7 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
     const refreshInterval = period === '1D' ? 60_000 : 300_000;
     const interval = setInterval(load, refreshInterval);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [period]);
+  }, [period, index]);
 
   const allStocks = useMemo(() => {
     if (!data) return [];
@@ -838,7 +851,7 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
         <p className="text-rh-light-muted dark:text-rh-muted mb-2">Failed to load market data</p>
         <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">{error}</p>
         <button
-          onClick={() => { setError(''); setLoading(true); getMarketHeatmap(period).then(setData).catch(e => setError(e.message)).finally(() => setLoading(false)); }}
+          onClick={() => { setError(''); setLoading(true); getMarketHeatmap(period, index).then(setData).catch(e => setError(e.message)).finally(() => setLoading(false)); }}
           className="mt-4 px-4 py-2 rounded-lg bg-rh-green text-black text-sm font-medium hover:brightness-110 transition"
         >
           Retry
@@ -853,7 +866,9 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">Market Heatmap</h2>
+          <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">
+            {INDEXES.find(i => i.id === index)?.fullName ?? 'Market'} Heatmap
+          </h2>
           <p className="text-xs text-rh-light-muted dark:text-rh-muted">
             {allStocks.length} stocks across {data.sectors.length} sectors — sized by market cap, colored by {PERIOD_LABELS[period]}
           </p>
@@ -865,21 +880,43 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
         </div>
       </div>
 
-      {/* Period selector */}
-      <div className="flex items-center gap-1">
-        {PERIODS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setPeriod(p.id)}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
-              ${period === p.id
-                ? 'bg-rh-green text-black'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-white/5'
-              }`}
-          >
-            {p.label}
-          </button>
-        ))}
+      {/* Index + Period selectors */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        {/* Index selector */}
+        <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
+          {INDEXES.map((idx) => (
+            <button
+              key={idx.id}
+              onClick={() => { setIndex(idx.id); setHighlightedSector(null); }}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all
+                ${index === idx.id
+                  ? 'bg-white dark:bg-white/[0.12] text-rh-light-text dark:text-rh-text shadow-sm'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
+            >
+              {idx.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="hidden sm:block w-px h-5 bg-rh-light-border/30 dark:bg-rh-border/30" />
+
+        {/* Period selector */}
+        <div className="flex items-center gap-1">
+          {PERIODS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
+                ${period === p.id
+                  ? 'bg-rh-green text-black'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-white/5'
+                }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div ref={treemapRef}>

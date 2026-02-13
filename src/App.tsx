@@ -43,10 +43,10 @@ const DiscoverPage = lazy(() => import('./components/DiscoverPage').then(m => ({
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 
-// Preload heatmap data 3s after boot so Discover tab opens instantly
+// Preload heatmap data 3s after boot so Heatmap tab opens instantly
 setTimeout(() => {
   import('./api').then(({ getMarketHeatmap }) => {
-    getMarketHeatmap('1D').then(resp => {
+    getMarketHeatmap('1D', 'SP500').then(resp => {
       (window as any).__heatmapPreload = { data: resp, ts: Date.now() };
     }).catch(() => {});
   });

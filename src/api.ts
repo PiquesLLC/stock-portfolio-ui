@@ -1227,7 +1227,10 @@ export async function removeWatchlistHolding(watchlistId: string, ticker: string
 
 // Discover / Heatmap
 export type HeatmapPeriod = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y';
+export type MarketIndex = 'SP500' | 'DOW30' | 'NASDAQ100';
 
-export async function getMarketHeatmap(period: HeatmapPeriod = '1D'): Promise<import('./types').HeatmapResponse> {
-  return fetchJson<import('./types').HeatmapResponse>(`${API_BASE_URL}/market/heatmap?period=${period}`);
+export async function getMarketHeatmap(period: HeatmapPeriod = '1D', index?: MarketIndex): Promise<import('./types').HeatmapResponse> {
+  const params = new URLSearchParams({ period });
+  if (index) params.set('index', index);
+  return fetchJson<import('./types').HeatmapResponse>(`${API_BASE_URL}/market/heatmap?${params}`);
 }

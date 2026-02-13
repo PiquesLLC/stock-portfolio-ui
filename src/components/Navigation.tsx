@@ -22,7 +22,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: 'portfolio', label: 'Portfolio' },
     { id: 'insights', label: 'Insights' },
     { id: 'watchlists', label: 'Watchlists' },
-    { id: 'discover', label: 'Discover' },
+    { id: 'discover', label: 'Heatmap' },
     { id: 'nala', label: 'Nala AI' },
     { id: 'macro', label: 'Macro' },
     { id: 'feed', label: 'Feed' },
