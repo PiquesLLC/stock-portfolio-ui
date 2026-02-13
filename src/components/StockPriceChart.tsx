@@ -1609,7 +1609,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     for (const ma of visibleMaData) {
       if (!enabledMAs.has(ma.period)) continue;
       const val = ma.values[hoverIndex];
-      if (val !== null) {
+      if (val != null) {
         result.push({ period: ma.period, value: val, color: MA_COLORS[ma.period] });
       }
     }
@@ -1751,7 +1751,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
             <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
               ${points[safeHoverIndex].price.toFixed(2)}
             </span>
-            {hoverMaValues.map(ma => (
+            {hoverMaValues.filter(ma => ma.value != null).map(ma => (
               <span key={ma.period} className="flex items-center gap-1 text-[11px]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ma.color }} />
                 <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}</span>
