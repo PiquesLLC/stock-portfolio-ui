@@ -287,12 +287,17 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   // Compute hero display values
   const hoverValue = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex].value : null;
   const displayValue = hoverValue ?? currentValue;
-  const changeVsPeriodStart = displayValue - periodStartValue;
-  const changePctVsPeriodStart = periodStartValue > 0 ? (changeVsPeriodStart / periodStartValue) * 100 : 0;
+
+  // For 1D: use previous close (derived from API day change) so hover matches "Today" baseline.
+  // For other periods: use the chart's periodStartValue.
+  const previousClose = currentValue - dayChange;
+  const hoverBase = selectedPeriod === '1D' ? previousClose : periodStartValue;
+  const changeVsBase = displayValue - hoverBase;
+  const changePctVsBase = hoverBase > 0 ? (changeVsBase / hoverBase) * 100 : 0;
 
   const showDayChange = selectedPeriod === '1D' && hoverIndex === null;
-  const displayChange = showDayChange ? dayChange : changeVsPeriodStart;
-  const displayChangePct = showDayChange ? dayChangePercent : changePctVsPeriodStart;
+  const displayChange = showDayChange ? dayChange : changeVsBase;
+  const displayChangePct = showDayChange ? dayChangePercent : changePctVsBase;
 
   // Emit period return to parent (for benchmark widget consistency)
   const periodReturnPct = periodStartValue > 0
