@@ -20,6 +20,7 @@ import { createWatchlist } from '../api';
 import { Term } from './Term';
 import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
+import { NalaScore } from './NalaScore';
 
 interface Props {
   ticker: string;
@@ -787,6 +788,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           </div>
         </div>
       )}
+
+      {/* Nala Score */}
+      <NalaScore ticker={ticker} />
 
       {/* About Section */}
       {(about?.description || profile?.name) && (

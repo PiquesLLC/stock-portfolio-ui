@@ -1260,3 +1260,40 @@ export interface HeatmapResponse {
   period: string;
   generated: number;
 }
+
+// Nala Score types
+export interface NalaSubMetric {
+  name: string;
+  score: number;
+  maxScore: number;
+  rawValue: string;
+  explanation: string;
+}
+
+export interface NalaDimension {
+  name: string;
+  score: number;
+  weight: number;
+  subMetrics: NalaSubMetric[];
+  insight: string;
+}
+
+export type NalaGrade = 'Strong' | 'Good' | 'Fair' | 'Weak';
+
+export interface NalaScoreResponse {
+  ticker: string;
+  composite: number;
+  grade: NalaGrade;
+  dimensions: {
+    value: NalaDimension;
+    quality: NalaDimension;
+    growth: NalaDimension;
+    dividends: NalaDimension;
+    momentum: NalaDimension;
+  };
+  keyInsights: string[];
+  dataAge: 'fresh' | 'cached' | 'stale';
+  isETF: boolean;
+  availableDimensions: string[];
+  lastUpdated: string;
+}

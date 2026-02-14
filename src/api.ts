@@ -1318,3 +1318,16 @@ export interface DividendGrowthResponse {
 export async function getDividendGrowthRates(): Promise<DividendGrowthResponse> {
   return fetchJson<DividendGrowthResponse>(`${API_BASE_URL}/dividends/growth-rates?excludeCurrentYear=true`);
 }
+
+// Nala Score
+import { NalaScoreResponse } from './types';
+
+export async function getNalaScore(ticker: string): Promise<NalaScoreResponse | null> {
+  try {
+    return await fetchJson<NalaScoreResponse>(
+      `${API_BASE_URL}/market/stock/${encodeURIComponent(ticker)}/nala-score`
+    );
+  } catch {
+    return null;
+  }
+}

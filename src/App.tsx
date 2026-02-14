@@ -612,8 +612,8 @@ export default function App() {
 
       <main className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
         activeTab === 'discover' && !viewingStock
-          ? 'max-w-[clamp(1200px,71vw,1900px)] px-2 sm:px-3'
-          : 'max-w-[clamp(1200px,75vw,1800px)] px-3 sm:px-6'
+          ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
+          : 'max-w-[clamp(1080px,64vw,1530px)] px-3 sm:px-6'
       }`}>
         {!isOnline && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">

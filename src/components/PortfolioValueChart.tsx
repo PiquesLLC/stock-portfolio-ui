@@ -221,8 +221,15 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     const raw = chartData?.points ?? [];
     if (raw.length === 0) return raw;
     if (selectedPeriod === '1D') {
-      // Keep pre-market data (from 4 AM ET) — filter only yesterday's data
-      const refDate = new Date(raw[raw.length - 1].time);
+      // Find the last weekday point as reference date.
+      // On weekends the last raw point is a live-appended Sat/Sun timestamp
+      // which would set the cutoff to Saturday 4 AM, filtering out all Friday data.
+      let refDate: Date = new Date(raw[raw.length - 1].time);
+      const etDayFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' });
+      for (let i = raw.length - 1; i >= 0; i--) {
+        const wd = etDayFmt.format(new Date(raw[i].time));
+        if (wd !== 'Sat' && wd !== 'Sun') { refDate = new Date(raw[i].time); break; }
+      }
       const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
       const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
       const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
@@ -230,14 +237,36 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       }).format(noonUtc).split(':')[0]);
       const etOffsetMs = (noonEtH - 12) * 3600000;
       const preMarketOpenMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs;
-      const pts = raw.filter(p => p.time >= preMarketOpenMs);
+      const afterHoursCloseMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;
+      const pts = raw.filter(p => p.time >= preMarketOpenMs && p.time <= afterHoursCloseMs);
 
       const now = Date.now();
       const last = pts[pts.length - 1];
-      if (pts.length > 0 && now - last.time > 10000) {
+      if (pts.length > 0 && now - last.time > 10000 && now <= afterHoursCloseMs) {
         return [...pts, { time: now, value: currentValue }];
       }
       return pts.length >= 2 ? pts : raw;
+    }
+    // For 1W/1M: filter to active trading sessions only.
+    // The API returns 24h data including dead overnight periods and weekends
+    // that create flat horizontal lines on the chart.
+    // Robinhood-style: only show weekday 4 AM–8 PM ET data, index-based positioning.
+    if (selectedPeriod === '1W' || selectedPeriod === '1M') {
+      const etHourFmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+      });
+      const etDayFmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', weekday: 'short',
+      });
+      const filtered = raw.filter(p => {
+        const d = new Date(p.time);
+        const wd = etDayFmt.format(d);
+        if (wd === 'Sat' || wd === 'Sun') return false;
+        const hm = etHourFmt.format(d);
+        const h = parseInt(hm.split(':')[0]);
+        return h >= 4 && h < 20; // 4 AM – 8 PM ET
+      });
+      return filtered.length >= 2 ? filtered : raw;
     }
     return raw;
   }, [chartData, selectedPeriod, currentValue]);
@@ -411,15 +440,26 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
   const refY = hasData ? toY(periodStartValue) : 0;
 
-  // Time labels — only for non-1D periods
+  // Time labels — only for non-1D periods.
+  // Place one label per unique calendar day to avoid duplicates.
   const timeLabels: { label: string; x: number }[] = [];
   if (hasData && selectedPeriod !== '1D') {
-    const maxLabels = 5;
-    const step = Math.max(1, Math.floor(points.length / maxLabels));
-    for (let i = 0; i < points.length; i += step) {
-      const d = new Date(points[i].time);
-      const label = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-      timeLabels.push({ label, x: toX(i) });
+    const dayBounds: { label: string; midIdx: number }[] = [];
+    let prevLabel = '', startIdx = 0;
+    for (let i = 0; i <= points.length; i++) {
+      const label = i < points.length
+        ? new Date(points[i].time).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })
+        : '';
+      if (label !== prevLabel) {
+        if (prevLabel) dayBounds.push({ label: prevLabel, midIdx: Math.floor((startIdx + i - 1) / 2) });
+        startIdx = i;
+        prevLabel = label;
+      }
+    }
+    const maxLabels = 6;
+    const step = Math.max(1, Math.ceil(dayBounds.length / maxLabels));
+    for (let g = 0; g < dayBounds.length; g += step) {
+      timeLabels.push({ label: dayBounds[g].label, x: toX(dayBounds[g].midIdx) });
     }
   }
 
