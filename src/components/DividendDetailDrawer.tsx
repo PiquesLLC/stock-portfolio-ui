@@ -81,7 +81,9 @@ export function DividendDetailDrawer({ credit, open, onClose, onReinvested }: Pr
   if (!open || !credit) return null;
 
   const isReinvested = timeline?.steps.reinvestment?.completed ?? credit.reinvestment != null;
-  const canReinvest = !isReinvested && credit.status === 'posted';
+  const eventType = credit.dividendEvent?.dividendType;
+  const isCashType = eventType === 'cash';
+  const canReinvest = !isReinvested && !isCashType && credit.status === 'posted';
 
   return (
     <>
@@ -104,9 +106,18 @@ export function DividendDetailDrawer({ credit, open, onClose, onReinvested }: Pr
         {/* Header */}
         <div className="sticky top-0 bg-rh-light-card dark:bg-rh-card border-b border-rh-light-border dark:border-rh-border px-5 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
-              {credit.ticker} Dividend
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
+                {credit.ticker} Dividend
+              </h2>
+              {eventType && eventType !== 'regular' && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                  eventType === 'drip' ? 'bg-rh-green/10 text-rh-green' : 'bg-blue-500/10 text-blue-400'
+                }`}>
+                  {eventType === 'drip' ? 'DRIP' : 'Cash'}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-rh-light-muted dark:text-rh-muted">
               {formatDate(credit.creditedAt)}
             </p>

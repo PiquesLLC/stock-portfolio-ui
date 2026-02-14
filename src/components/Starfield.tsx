@@ -107,11 +107,10 @@ export default function Starfield() {
 
     function resize() {
       const dpr = window.devicePixelRatio || 1;
-      w = canvas!.clientWidth || window.innerWidth;
-      h = canvas!.clientHeight || window.innerHeight;
+      w = window.innerWidth;
+      h = window.innerHeight;
       canvas!.width = w * dpr;
       canvas!.height = h * dpr;
-      // Don't set style.width/height — let CSS inset:0 handle sizing
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       // Re-distribute any stars that are out of bounds after resize
       for (const s of starsRef.current) {

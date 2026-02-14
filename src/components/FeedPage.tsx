@@ -3,6 +3,7 @@ import { ActivityEvent } from '../types';
 import { getFeed } from '../api';
 import { ActivityCard } from './ActivityCard';
 import { useMutedUsers } from '../hooks/useMutedUsers';
+import { useDataEvents } from '../context/DataEventContext';
 
 interface FeedPageProps {
   currentUserId: string;
@@ -102,6 +103,7 @@ function getNotionalValue(e: ActivityEvent): number {
 }
 
 export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPageProps) {
+  const { on } = useDataEvents();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +131,9 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
     const interval = setInterval(fetchFeed, 30000);
     return () => clearInterval(interval);
   }, [fetchFeed, feedEnabled]);
+
+  // Re-fetch immediately when watchlist changes (e.g. stock added via modal overlay)
+  useEffect(() => on('watchlist:changed', fetchFeed), [on, fetchFeed]);
 
   // Close settings dropdown on outside click
   useEffect(() => {

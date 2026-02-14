@@ -12,6 +12,7 @@ import {
   removeWatchlistHolding,
   getFastQuote,
 } from '../api';
+import { useDataEvents } from '../context/DataEventContext';
 import { CreateWatchlistModal } from './CreateWatchlistModal';
 import { ConfirmModal } from './ConfirmModal';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
@@ -27,6 +28,7 @@ type SortKey = 'ticker' | 'currentPrice' | 'shares' | 'averageCost' | 'currentVa
 type SortDir = 'asc' | 'desc';
 
 export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
+  const { emit } = useDataEvents();
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<WatchlistDetail | null>(null);
@@ -108,6 +110,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       await createWatchlist(data);
       setShowCreate(false);
       await loadWatchlists();
+      emit('watchlist:changed');
     } catch (err) {
       // The error will show via toast
     }
@@ -135,6 +138,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
         setDetail(null);
       }
       await loadWatchlists();
+      emit('watchlist:changed');
     } catch {
       // toast
     }
@@ -158,6 +162,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       await loadDetail(selectedId);
       await loadWatchlists();
       setChartRefresh(n => n + 1);
+      emit('watchlist:changed');
     } catch {
       setAddError('Failed to add holding');
     }
@@ -174,6 +179,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       setEditingHolding(null);
       await loadDetail(selectedId);
       setChartRefresh(n => n + 1);
+      emit('watchlist:changed');
     } catch {
       // toast
     }
@@ -187,6 +193,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       await loadDetail(selectedId);
       await loadWatchlists();
       setChartRefresh(n => n + 1);
+      emit('watchlist:changed');
     } catch {
       // toast
     }

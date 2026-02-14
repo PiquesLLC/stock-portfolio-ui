@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from 'react';
+
 export type TabType = 'portfolio' | 'nala' | 'insights' | 'watchlists' | 'discover' | 'macro' | 'leaderboard' | 'feed' | 'watch';
 
 interface NavigationProps {
@@ -17,28 +19,58 @@ const TAB_ICONS: Record<TabType, JSX.Element> = {
   feed: <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
 };
 
+// Dots/ellipsis icon for "More" button
+const MoreIcon = <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01" /></svg>;
+
+const PRIMARY_TABS: { id: TabType; label: string }[] = [
+  { id: 'portfolio', label: 'Portfolio' },
+  { id: 'insights', label: 'Insights' },
+  { id: 'discover', label: 'Heatmap' },
+  { id: 'watchlists', label: 'Watchlists' },
+];
+
+const OVERFLOW_TABS: { id: TabType; label: string }[] = [
+  { id: 'nala', label: 'Nala AI' },
+  { id: 'macro', label: 'Macro' },
+  { id: 'feed', label: 'Feed' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'watch', label: 'Watch' },
+];
+
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
-  const tabs: { id: TabType; label: string }[] = [
-    { id: 'portfolio', label: 'Portfolio' },
-    { id: 'insights', label: 'Insights' },
-    { id: 'watchlists', label: 'Watchlists' },
-    { id: 'discover', label: 'Heatmap' },
-    { id: 'nala', label: 'Nala AI' },
-    { id: 'macro', label: 'Macro' },
-    { id: 'feed', label: 'Feed' },
-    { id: 'leaderboard', label: 'Leaderboard' },
-    { id: 'watch', label: 'Watch' },
-  ];
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [moreOpen]);
+
+  const allTabs = [...PRIMARY_TABS, ...OVERFLOW_TABS];
+  const isOverflowActive = OVERFLOW_TABS.some(t => t.id === activeTab);
+  const activeOverflowLabel = OVERFLOW_TABS.find(t => t.id === activeTab)?.label;
 
   return (
     <nav className="border-b border-rh-light-border/60 dark:border-rh-border/60 bg-rh-light-bg/95 dark:bg-black/80 backdrop-blur-md">
       <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-0 sm:px-4 relative">
-        <div className="flex overflow-x-auto no-scrollbar justify-around sm:justify-start sm:gap-1">
-          {tabs.map((tab) => (
+        {/* Desktop: show all tabs in a row */}
+        <div className="hidden sm:flex items-center gap-1">
+          {allTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`group flex items-center gap-1.5 px-2 sm:px-4 py-3 text-sm font-medium transition-all duration-200 relative
+              className={`group flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-all duration-200 relative
                 ${activeTab === tab.id
                   ? 'text-rh-green'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -47,20 +79,80 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               <span className={`transition-opacity duration-200 ${activeTab === tab.id ? 'opacity-100' : 'opacity-40 group-hover:opacity-70'}`}>
                 {TAB_ICONS[tab.id]}
               </span>
-              <span className="hidden sm:inline">{tab.label}</span>
-              {/* Active underline — animated */}
+              <span>{tab.label}</span>
               <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
                 activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
               }`} />
-              {/* Hover underline hint */}
               {activeTab !== tab.id && (
                 <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-current rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
               )}
             </button>
           ))}
         </div>
-        {/* Scroll fade indicator for mobile */}
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-rh-light-bg dark:from-black/80 to-transparent pointer-events-none sm:hidden" />
+
+        {/* Mobile: 4 primary tabs + "More" dropdown */}
+        <div className="flex sm:hidden items-center justify-around">
+          {PRIMARY_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { onTabChange(tab.id); setMoreOpen(false); }}
+              className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
+                ${activeTab === tab.id
+                  ? 'text-rh-green'
+                  : 'text-rh-light-muted dark:text-rh-muted'
+                }`}
+            >
+              <span className={`transition-opacity duration-200 ${activeTab === tab.id ? 'opacity-100' : 'opacity-50'}`}>
+                {TAB_ICONS[tab.id]}
+              </span>
+              <span className="text-[10px]">{tab.label}</span>
+              <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
+                activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+              }`} />
+            </button>
+          ))}
+
+          {/* More button + dropdown */}
+          <div ref={moreRef} className="relative">
+            <button
+              onClick={() => setMoreOpen(prev => !prev)}
+              className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
+                ${isOverflowActive
+                  ? 'text-rh-green'
+                  : 'text-rh-light-muted dark:text-rh-muted'
+                }`}
+            >
+              <span className={`transition-opacity duration-200 ${isOverflowActive || moreOpen ? 'opacity-100' : 'opacity-50'}`}>
+                {MoreIcon}
+              </span>
+              <span className="text-[10px]">{isOverflowActive ? activeOverflowLabel : 'More'}</span>
+              <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
+                isOverflowActive ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+              }`} />
+            </button>
+
+            {moreOpen && (
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] py-1 rounded-xl shadow-2xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/[0.08] backdrop-blur-xl">
+                {OVERFLOW_TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { onTabChange(tab.id); setMoreOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors
+                      ${activeTab === tab.id
+                        ? 'text-rh-green bg-rh-green/10'
+                        : 'text-rh-light-text dark:text-rh-text hover:bg-white/5'
+                      }`}
+                  >
+                    <span className={activeTab === tab.id ? 'opacity-100' : 'opacity-50'}>
+                      {TAB_ICONS[tab.id]}
+                    </span>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </nav>
   );

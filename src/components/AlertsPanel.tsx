@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertConfig } from '../types';
 import { getAlerts, updateAlertConfig } from '../api';
 
@@ -71,17 +72,20 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
     await updateAlertConfig(alert.id, { threshold: alert.threshold });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl p-6 w-full max-w-md mx-4 shadow-xl"
+        className="bg-white/80 dark:bg-white/[0.06] backdrop-blur-2xl border border-gray-200/60 dark:border-white/[0.08]
+          rounded-2xl p-6 w-full max-w-md mx-4 max-h-[50vh] overflow-y-auto scrollbar-minimal
+          shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Alert Settings</h2>
           <button
             onClick={onClose}
-            className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+              hover:bg-black/5 dark:hover:bg-white/[0.08] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -92,7 +96,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
         {loading ? (
           <div className="py-8 text-center text-rh-light-muted dark:text-rh-muted text-sm">Loading alerts...</div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {alerts.map(alert => {
               const meta = ALERT_LABELS[alert.type] || { name: alert.type, description: '', unit: '' };
               const hasThreshold = !['52w_high', '52w_low', 'ath', 'atl'].includes(alert.type);
@@ -100,30 +104,30 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
               return (
                 <div
                   key={alert.id}
-                  className={`p-3 rounded-lg border transition-opacity ${
+                  className={`p-4 rounded-xl border transition-all ${
                     alert.enabled
-                      ? 'bg-rh-light-bg dark:bg-rh-dark border-rh-light-border dark:border-rh-border'
-                      : 'bg-rh-light-bg/50 dark:bg-rh-dark/50 border-rh-light-border/50 dark:border-rh-border/50 opacity-60'
+                      ? 'bg-gray-50/80 dark:bg-white/[0.04] border-gray-200/50 dark:border-white/[0.06]'
+                      : 'bg-gray-50/40 dark:bg-white/[0.02] border-gray-200/30 dark:border-white/[0.03] opacity-50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">{meta.name}</span>
                     <button
                       onClick={() => handleToggle(alert)}
-                      className={`relative w-9 h-5 rounded-full transition-colors ${
-                        alert.enabled ? 'bg-rh-green' : 'bg-gray-400 dark:bg-gray-600'
+                      className={`relative w-10 h-[22px] rounded-full transition-colors ${
+                        alert.enabled ? 'bg-rh-green' : 'bg-gray-300 dark:bg-gray-600'
                       }`}
                     >
                       <span
-                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                          alert.enabled ? 'translate-x-4' : 'translate-x-0'
+                        className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                          alert.enabled ? 'translate-x-[18px]' : 'translate-x-0'
                         }`}
                       />
                     </button>
                   </div>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">{meta.description}</p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">{meta.description}</p>
                   {hasThreshold && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mt-2.5">
                       <span className="text-xs text-rh-light-muted dark:text-rh-muted">Threshold:</span>
                       <input
                         type="number"
@@ -131,7 +135,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                         value={alert.threshold ?? ''}
                         onChange={e => handleThresholdChange(alert, e.target.value)}
                         onBlur={() => handleThresholdBlur(alert)}
-                        className="w-20 px-2 py-1 text-xs rounded bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border text-rh-light-text dark:text-rh-text"
+                        className="w-20 px-2 py-1 text-xs rounded-lg bg-white/60 dark:bg-white/[0.06] border border-gray-200/50 dark:border-white/[0.08] text-rh-light-text dark:text-rh-text"
                       />
                       <span className="text-xs text-rh-light-muted dark:text-rh-muted">{meta.unit}</span>
                     </div>
@@ -142,10 +146,11 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
           </div>
         )}
 
-        <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mt-4">
+        <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/50 mt-4">
           Alerts are evaluated each time your portfolio snapshot updates.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

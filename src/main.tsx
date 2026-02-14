@@ -5,6 +5,7 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import { JargonProvider } from './context/JargonContext'
+import { DataEventProvider } from './context/DataEventContext'
 
 // Unregister any existing service workers to clear stale caches
 if ('serviceWorker' in navigator) {
@@ -22,7 +23,9 @@ createRoot(document.getElementById('root')!).render(
     <AuthProvider>
       <ToastProvider>
         <JargonProvider>
-          <App />
+          <DataEventProvider>
+            <App />
+          </DataEventProvider>
         </JargonProvider>
       </ToastProvider>
     </AuthProvider>

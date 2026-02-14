@@ -197,10 +197,12 @@ interface SectorRect {
 
 // --- Treemap component ---
 
-const GAP = 1.5;
+const GAP_DESKTOP = 1.5;
+const GAP_MOBILE = 0.75;
 const SECTOR_LABEL_H = 15;
 const SUB_SECTOR_LABEL_H = 12;
-const SECTOR_GAP = 2;
+const SECTOR_GAP_DESKTOP = 2;
+const SECTOR_GAP_MOBILE = 1;
 
 /** Abbreviate multi-word sub-sector names to initials, e.g. "Machinery & Equipment" → "M & E" */
 function abbreviateSubSector(name: string): string {
@@ -275,8 +277,12 @@ function Treemap({
 
   // Pick dampening parameters based on stock count:
   // Fewer stocks (DOW 30) need more aggressive dampening + higher floor
+  const isMobile = dims.width > 0 && dims.width < 640;
   const dampenExponent = (stockCount ?? 500) <= 35 ? 0.35 : (stockCount ?? 500) <= 105 ? 0.40 : 0.45;
-  const minFloorRatio = (stockCount ?? 500) <= 35 ? 0.12 : (stockCount ?? 500) <= 105 ? 0.06 : 0.03;
+  const baseFloor = (stockCount ?? 500) <= 35 ? 0.12 : (stockCount ?? 500) <= 105 ? 0.06 : 0.03;
+  const minFloorRatio = isMobile ? Math.max(baseFloor, 0.05) : baseFloor;
+
+  const SECTOR_GAP = isMobile ? SECTOR_GAP_MOBILE : SECTOR_GAP_DESKTOP;
 
   // 3-level layout: Sector → Sub-sector → Stocks
   const sectorRects = useMemo((): SectorRect[] => {
@@ -376,7 +382,7 @@ function Treemap({
 
       return { x: sl.x, y: sl.y, w: sl.w, h: sl.h, sector, subSectors: subRects };
     });
-  }, [sectors, dims, dampenExponent, minFloorRatio]);
+  }, [sectors, dims, dampenExponent, minFloorRatio, SECTOR_GAP]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -399,6 +405,7 @@ function Treemap({
     return <div ref={containerRef} className="w-full min-h-[500px]" />;
   }
 
+  const GAP = dims.width < 640 ? GAP_MOBILE : GAP_DESKTOP;
   const tileStroke = isDark ? '#1a1c28' : '#d0d0d0';
 
   // Get the sub-sector stocks for the popup
@@ -409,7 +416,7 @@ function Treemap({
   return (
     <div ref={containerRef} className="w-full relative" onMouseMove={handleMouseMove}>
       <div className="rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40"
-        style={{ background: isDark ? 'rgba(15,15,18,0.85)' : 'rgba(240,240,244,0.9)', backdropFilter: 'blur(20px)' }}
+        style={{ background: isDark ? (dims.width < 640 ? '#0f0f12' : 'rgba(15,15,18,0.85)') : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.9)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
       >
       <svg
         width={dims.width}
@@ -478,7 +485,7 @@ function Treemap({
               const fullFits = subR.subSector.name.length * charW < subR.w - 8;
               const abbr = abbreviateSubSector(subR.subSector.name);
               const abbrFits = abbr.length * charW < subR.w - 8;
-              const showSubLabel = sr.sector.subSectors.length > 1 && subR.h > 30 && (fullFits || abbrFits);
+              const showSubLabel = sr.sector.subSectors.length > 1 && subR.h > 30 && (fullFits || abbrFits) && dims.width >= 640;
               const isSubHovered = hoveredSubSector?.sector === sr.sector.name
                 && hoveredSubSector?.subSector === subR.subSector.name;
               return (
@@ -538,8 +545,8 @@ function Treemap({
                     const tileH = Math.max(0, r.h - GAP);
                     const halfGap = GAP / 2;
 
-                    const showTicker = tileW > 16 && tileH > 10;
-                    const showPct = tileW > 24 && tileH > 20;
+                    const showTicker = isMobile ? (tileW > 26 && tileH > 14) : (tileW > 16 && tileH > 10);
+                    const showPct = isMobile ? (tileW > 34 && tileH > 22) : (tileW > 24 && tileH > 20);
                     const fontSize = tileW > 110 && tileH > 65 ? 15
                       : tileW > 80 && tileH > 50 ? 13
                       : tileW > 55 && tileH > 35 ? 11
@@ -556,6 +563,8 @@ function Treemap({
                     } else if (highlightedSector) {
                       opacity = r.sectorName === highlightedSector ? 1 : 0.25;
                     }
+
+                    const tileClipId = `tc-${r.stock.ticker}`;
 
                     return (
                       <g
@@ -577,32 +586,37 @@ function Treemap({
                           style={{ transition: 'opacity 0.15s' }}
                         />
                         {showTicker && (
-                          <text
-                            x={r.x + halfGap + tileW / 2}
-                            y={r.y + halfGap + tileH / 2 + (showPct ? -pctFontSize * 0.35 : fontSize * 0.35)}
-                            textAnchor="middle"
-                            fontSize={fontSize}
-                            fontWeight={700}
-                            fill="#fff"
-                            opacity={opacity}
-                            style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
-                          >
-                            {r.stock.ticker}
-                          </text>
-                        )}
-                        {showPct && (
-                          <text
-                            x={r.x + halfGap + tileW / 2}
-                            y={r.y + halfGap + tileH / 2 + pctFontSize * 1.1}
-                            textAnchor="middle"
-                            fontSize={pctFontSize}
-                            fontWeight={500}
-                            fill="rgba(255,255,255,0.9)"
-                            opacity={opacity}
-                            style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
-                          >
-                            {r.stock.changePercent >= 0 ? '+' : ''}{r.stock.changePercent.toFixed(2)}%
-                          </text>
+                          <>
+                            <clipPath id={tileClipId}>
+                              <rect x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH} />
+                            </clipPath>
+                            <g clipPath={`url(#${tileClipId})`} opacity={opacity}>
+                              <text
+                                x={r.x + halfGap + tileW / 2}
+                                y={r.y + halfGap + tileH / 2 + (showPct ? -pctFontSize * 0.35 : fontSize * 0.35)}
+                                textAnchor="middle"
+                                fontSize={fontSize}
+                                fontWeight={700}
+                                fill="#fff"
+                                style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
+                              >
+                                {r.stock.ticker}
+                              </text>
+                              {showPct && (
+                                <text
+                                  x={r.x + halfGap + tileW / 2}
+                                  y={r.y + halfGap + tileH / 2 + pctFontSize * 1.1}
+                                  textAnchor="middle"
+                                  fontSize={pctFontSize}
+                                  fontWeight={500}
+                                  fill="rgba(255,255,255,0.9)"
+                                  style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
+                                >
+                                  {r.stock.changePercent >= 0 ? '+' : ''}{r.stock.changePercent.toFixed(2)}%
+                                </text>
+                              )}
+                            </g>
+                          </>
                         )}
                       </g>
                     );

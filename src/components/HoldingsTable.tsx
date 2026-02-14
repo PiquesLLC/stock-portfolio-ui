@@ -690,6 +690,17 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                           no data
                         </span>
                       )}
+                      {!isUnavailable && isRepricing && (
+                        <span
+                          className="shrink-0"
+                          title={holding.quoteAgeSeconds ? `Refreshing — price is ${Math.round(holding.quoteAgeSeconds / 60)}m old` : 'Refreshing price...'}
+                        >
+                          <svg className="w-3 h-3 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        </span>
+                      )}
                       {earningsBadges[holding.ticker] && (
                         <span
                           className="text-[10px] bg-amber-500/15 text-amber-500 dark:text-amber-400 px-1.5 py-0.5 rounded-full shrink-0 font-medium"
@@ -926,6 +937,16 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                     placeholder="0.00" />
                 </div>
                 <p className="text-[11px] text-rh-light-muted/50 mt-1 dark:hidden">Uninvested cash in your brokerage account.</p>
+                <div className="flex gap-2 mt-2">
+                  <button type="button" onClick={() => { const amt = prompt('Deposit amount:'); if (amt && parseFloat(amt) > 0) setCashValue(v => (parseFloat(v || '0') + parseFloat(amt)).toFixed(2)); }}
+                    className="text-[10px] px-2 py-1 rounded-lg bg-rh-green/10 text-rh-green font-medium hover:bg-rh-green/20 transition-colors">
+                    + Deposit
+                  </button>
+                  <button type="button" onClick={() => { const amt = prompt('Withdraw amount:'); if (amt && parseFloat(amt) > 0) setCashValue(v => Math.max(0, parseFloat(v || '0') - parseFloat(amt)).toFixed(2)); }}
+                    className="text-[10px] px-2 py-1 rounded-lg bg-rh-red/10 text-rh-red font-medium hover:bg-rh-red/20 transition-colors">
+                    - Withdraw
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Margin Debt</label>

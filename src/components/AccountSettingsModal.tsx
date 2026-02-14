@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, changePassword, deleteAccount, getPortfolio } from '../api';
+import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, changePassword, deleteAccount, getPortfolio, HealthStatus, getNotificationStatus, NotificationStatus } from '../api';
 import { useToast } from '../context/ToastContext';
 import { PortfolioImport } from './PortfolioImport';
 
@@ -8,9 +8,10 @@ interface AccountSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave?: () => void;
+  healthStatus?: HealthStatus | null;
 }
 
-export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: AccountSettingsModalProps) {
+export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthStatus }: AccountSettingsModalProps) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -24,6 +25,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
   const [showRegion, setShowRegion] = useState(true);
   const [holdingsVisibility, setHoldingsVisibility] = useState<'all' | 'top5' | 'sectors' | 'hidden'>('all');
   const [dripEnabled, setDripEnabled] = useState(false);
+  const [cashInterestRate, setCashInterestRate] = useState('');
 
   // Theme from localStorage (managed separately from API)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -51,6 +53,9 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
   const [notifyFollowedActivity, setNotifyFollowedActivity] = useState(() => {
     return localStorage.getItem('notifyFollowedActivity') !== 'false';
   });
+  const [notifyEarnings, setNotifyEarnings] = useState(() => {
+    return localStorage.getItem('notifyEarnings') !== 'false';
+  });
 
   // Delete account state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -58,9 +63,18 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  // Notification diagnostics
+  const [notifStatus, setNotifStatus] = useState<NotificationStatus | null>(null);
+
   // Export/Import state
   const [exporting, setExporting] = useState(false);
   const [showImport, setShowImport] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      getNotificationStatus().then(setNotifStatus).catch(() => {});
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -75,6 +89,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
           setShowRegion(data.showRegion);
           setHoldingsVisibility(data.holdingsVisibility);
           setDripEnabled(data.dripEnabled);
+          setCashInterestRate(data.cashInterestRate != null ? String(data.cashInterestRate) : '');
         })
         .catch((err) => {
           setError(err.message || 'Failed to load settings');
@@ -141,6 +156,8 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
       if (showRegion !== settings.showRegion) updates.showRegion = showRegion;
       if (holdingsVisibility !== settings.holdingsVisibility) updates.holdingsVisibility = holdingsVisibility;
       if (dripEnabled !== settings.dripEnabled) updates.dripEnabled = dripEnabled;
+      const rateVal = cashInterestRate ? parseFloat(cashInterestRate) : null;
+      if (rateVal !== (settings.cashInterestRate ?? null)) updates.cashInterestRate = rateVal;
 
       // Save local preferences
       localStorage.setItem('theme', theme);
@@ -152,6 +169,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
       localStorage.setItem('showExtendedHours', String(extendedHours));
       localStorage.setItem('notifyPriceAlerts', String(notifyPriceAlerts));
       localStorage.setItem('notifyFollowedActivity', String(notifyFollowedActivity));
+      localStorage.setItem('notifyEarnings', String(notifyEarnings));
 
       // Only call API if there are server-side changes
       if (Object.keys(updates).length > 0) {
@@ -445,6 +463,28 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
                     </div>
                     <ToggleSwitch checked={dripEnabled} onChange={setDripEnabled} />
                   </label>
+                  {/* Cash Interest Rate */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <div>
+                        <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Cash Interest Rate (APY)</span>
+                        <p className="text-xs text-rh-light-muted dark:text-rh-muted">Interest earned on uninvested cash</p>
+                      </div>
+                    </div>
+                    <div className="relative w-32">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="20"
+                        value={cashInterestRate}
+                        onChange={e => setCashInterestRate(e.target.value)}
+                        placeholder="e.g. 4.5"
+                        className="w-full px-3 py-1.5 pr-7 text-sm bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-lg text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">%</span>
+                    </div>
+                  </div>
                 </div>
               </section>
 
@@ -565,11 +605,60 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave }: Accoun
                   </label>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div>
+                      <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Earnings Alerts</span>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted">Get notified before earnings announcements for your holdings</p>
+                    </div>
+                    <ToggleSwitch checked={notifyEarnings} onChange={setNotifyEarnings} />
+                  </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
                       <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Activity from Followed Users</span>
                       <p className="text-xs text-rh-light-muted dark:text-rh-muted">Get notified when users you follow make trades</p>
                     </div>
                     <ToggleSwitch checked={notifyFollowedActivity} onChange={setNotifyFollowedActivity} />
                   </label>
+                </div>
+                {/* Diagnostics */}
+                <div className="mt-4 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-2">System Status</p>
+                  <div className="space-y-1.5 text-[11px] text-rh-light-muted dark:text-rh-muted">
+                    {healthStatus?.providers ? Object.entries(healthStatus.providers).map(([name, p]) => {
+                      const isOk = p.configured && p.lastSuccessMs > 0 && (!p.rateLimitedUntil || p.rateLimitedUntil < Date.now());
+                      const ago = p.lastSuccessMs > 0 ? Math.round((Date.now() - p.lastSuccessMs) / 60000) : null;
+                      return (
+                        <div key={name} className="flex justify-between items-center">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOk ? 'bg-rh-green' : 'bg-yellow-400'}`} />
+                            <span className="capitalize">{name.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          </div>
+                          <span className="text-rh-light-muted/50 dark:text-rh-muted/50">
+                            {ago !== null ? `${ago}m ago` : 'Pending'}
+                          </span>
+                        </div>
+                      );
+                    }) : (
+                      <p className="text-rh-light-muted/50 dark:text-rh-muted/50">Loading...</p>
+                    )}
+                  </div>
+                  {/* Notification History */}
+                  <div className="mt-3 pt-2 border-t border-rh-light-border/20 dark:border-rh-border/20">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1.5">Last Alerts</p>
+                    <div className="space-y-1 text-[11px] text-rh-light-muted dark:text-rh-muted">
+                      <div className="flex justify-between items-center">
+                        <span>Earnings</span>
+                        <span className="text-rh-light-muted/50 dark:text-rh-muted/50">
+                          {notifStatus?.earnings.lastSentAt
+                            ? new Date(notifStatus.earnings.lastSentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                            : 'No alerts yet'}
+                        </span>
+                      </div>
+                      {notifStatus?.earnings.lastMessage && (
+                        <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 truncate">
+                          {notifStatus.earnings.lastMessage}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </section>
 

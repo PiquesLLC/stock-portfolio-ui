@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { WatchlistSummary } from '../types';
 import { getWatchlists, addWatchlistHolding, removeWatchlistHolding, getWatchlistDetail } from '../api';
+import { useDataEvents } from '../context/DataEventContext';
 
 interface AddToWatchlistModalProps {
   ticker: string;
@@ -11,6 +12,7 @@ interface AddToWatchlistModalProps {
 }
 
 export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew }: AddToWatchlistModalProps) {
+  const { emit } = useDataEvents();
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [holdingMap, setHoldingMap] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -59,6 +61,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
       try {
         await removeWatchlistHolding(wlId, ticker);
         setHoldingMap(prev => ({ ...prev, [wlId]: false }));
+        emit('watchlist:changed');
       } catch {
         setError('Failed to remove from watchlist');
       }
@@ -82,6 +85,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
       setHoldingMap(prev => ({ ...prev, [addingTo]: true }));
       setAddingTo(null);
       setError('');
+      emit('watchlist:changed');
     } catch {
       setError('Failed to add to watchlist');
     }

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { IncomeInsightsResponse, IncomeCategoryDetail, IncomeHealthDetails } from '../types';
-import { getIncomeInsights } from '../api';
+import { getIncomeInsights, getCashInterestAccrual, CashInterestAccrual } from '../api';
+import { DripProjector } from './DripProjector';
 
 interface Props {
   refreshTrigger?: number;
@@ -85,7 +87,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
   const catDetail: IncomeCategoryDetail = details[categoryKey];
   const title = CATEGORY_LABELS[categoryKey];
 
-  return (
+  return createPortal(
     <>
       <div
         className="fixed inset-0 bg-black/40 z-40 transition-opacity"
@@ -176,7 +178,8 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
 
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 
@@ -309,7 +312,7 @@ function IncomeKeyDrivers({ drivers }: { drivers: string[] }) {
 // SIGNAL CARDS
 // ============================================================================
 
-function IncomeSignalCards({ signals }: { signals: IncomeInsightsResponse['signals'] }) {
+function IncomeSignalCards({ signals, cashInterest }: { signals: IncomeInsightsResponse['signals']; cashInterest?: CashInterestAccrual | null }) {
   const { cashFlow, momentum, reliability } = signals;
 
   const trendColor = momentum.trend === 'growing' ? 'text-rh-green' :
@@ -335,6 +338,14 @@ function IncomeSignalCards({ signals }: { signals: IncomeInsightsResponse['signa
         <div className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
           {formatCurrency(cashFlow.monthlyIncome)}/mo
         </div>
+        {cashInterest && cashInterest.annualAccrual > 0 && (
+          <div className="text-[10px] text-blue-400 mt-1.5 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            +{formatCurrency(cashInterest.annualAccrual)}/yr cash interest ({cashInterest.cashInterestRate}% APY)
+          </div>
+        )}
       </div>
 
       {/* Momentum */}
@@ -560,14 +571,19 @@ function IncomeDividendTimeline({
 export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
   const [data, setData] = useState<IncomeInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cashInterest, setCashInterest] = useState<CashInterestAccrual | null>(null);
   const mountedRef = useRef(true);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await getIncomeInsights('today');
+      const [result, interest] = await Promise.all([
+        getIncomeInsights('today'),
+        getCashInterestAccrual().catch(() => null),
+      ]);
       if (mountedRef.current) {
         setData(result);
+        setCashInterest(interest);
       }
     } catch (err) {
       console.error('Failed to fetch income insights:', err);
@@ -623,7 +639,10 @@ export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
       </div>
 
       {/* Signal Cards */}
-      <IncomeSignalCards signals={data.signals} />
+      <IncomeSignalCards signals={data.signals} cashInterest={cashInterest} />
+
+      {/* DRIP Income Projector */}
+      <DripProjector refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} />
 
       {/* Contributors + Concentration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

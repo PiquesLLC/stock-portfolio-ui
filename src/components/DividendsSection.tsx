@@ -238,6 +238,8 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
               <div className="space-y-1.5">
                 {credits.map(c => {
                   const isReinvested = c.reinvestment != null;
+                  const eventType = c.dividendEvent?.dividendType;
+                  const badgeType = eventType === 'drip' || isReinvested ? 'drip' : 'cash';
                   return (
                     <button
                       key={c.id}
@@ -252,9 +254,13 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                         <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
                           {c.sharesEligible} sh
                         </span>
-                        {isReinvested && (
+                        {badgeType === 'drip' ? (
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium">
                             Reinvested
+                          </span>
+                        ) : (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-medium">
+                            Cash
                           </span>
                         )}
                       </div>
@@ -331,6 +337,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
 // ─── Add Dividend Modal ──────────────────────────────────────────
 
 function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [dividendType, setDividendType] = useState<'cash' | 'drip'>('cash');
   const [ticker, setTicker] = useState('');
   const [amountPerShare, setAmountPerShare] = useState('');
   const [exDate, setExDate] = useState('');
@@ -352,6 +359,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         amountPerShare: parseFloat(amountPerShare),
         exDate,
         payDate,
+        dividendType,
       });
       onAdded();
     } catch {
@@ -361,51 +369,64 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
     }
   };
 
+  const inputClass = "w-full px-3 py-2 text-sm bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl p-6 w-80"
+        className="bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/20 dark:border-white/[0.1] shadow-2xl rounded-2xl p-6 w-[340px]"
         onClick={e => e.stopPropagation()}
       >
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">Add Dividend Event</h3>
+        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">Add Dividend</h3>
+
+        {/* Cash vs DRIP selector */}
+        <div className="flex gap-1 p-1 rounded-lg bg-rh-light-bg dark:bg-rh-dark mb-3">
+          <button
+            type="button"
+            onClick={() => setDividendType('cash')}
+            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              dividendType === 'cash'
+                ? 'bg-rh-green text-white shadow-sm'
+                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+          >
+            Cash Dividend
+          </button>
+          <button
+            type="button"
+            onClick={() => setDividendType('drip')}
+            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              dividendType === 'drip'
+                ? 'bg-rh-green text-white shadow-sm'
+                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+          >
+            DRIP Reinvest
+          </button>
+        </div>
+
+        {/* Help text */}
+        <p className="text-[10px] text-rh-light-muted dark:text-rh-muted mb-4 leading-relaxed">
+          {dividendType === 'cash'
+            ? 'Cash dividend paid to your account. Does not change your share count.'
+            : 'Dividend automatically reinvested to purchase additional shares of the stock.'}
+        </p>
+
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="text"
-            placeholder="Ticker (e.g. AAPL)"
-            value={ticker}
-            onChange={e => setTicker(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text"
-          />
-          <input
-            type="number"
-            step="0.0001"
-            placeholder="Amount per share"
-            value={amountPerShare}
-            onChange={e => setAmountPerShare(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text"
-          />
+          <input type="text" placeholder="Ticker (e.g. AAPL)" value={ticker} onChange={e => setTicker(e.target.value)} className={inputClass} />
+          <input type="number" step="0.0001" placeholder="Amount per share" value={amountPerShare} onChange={e => setAmountPerShare(e.target.value)} className={inputClass} />
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] text-rh-light-muted dark:text-rh-muted">Ex-Date</label>
-              <input
-                type="date"
-                value={exDate}
-                onChange={e => setExDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text"
-              />
+              <input type="date" value={exDate} onChange={e => setExDate(e.target.value)} className={inputClass} />
             </div>
             <div>
               <label className="text-[10px] text-rh-light-muted dark:text-rh-muted">Pay Date</label>
-              <input
-                type="date"
-                value={payDate}
-                onChange={e => setPayDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text"
-              />
+              <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className={inputClass} />
             </div>
           </div>
           {error && <p className="text-xs text-rh-red">{error}</p>}
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
@@ -418,7 +439,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
               disabled={saving}
               className="flex-1 px-3 py-2 text-sm font-medium text-white bg-rh-green rounded-lg hover:bg-rh-green/90 disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Add'}
+              {saving ? 'Saving...' : `Add ${dividendType === 'cash' ? 'Cash' : 'DRIP'} Dividend`}
             </button>
           </div>
         </form>

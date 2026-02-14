@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Portfolio, Settings, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getPortfolioChart } from './api';
+import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
@@ -122,7 +122,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [, setIsStale] = useState(false);
+  const [isStale, setIsStale] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
   const [portfolioRefreshCount, setPortfolioRefreshCount] = useState(0);
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
@@ -434,6 +435,14 @@ export default function App() {
     }
   }, [currentUserId, portfolio]);
 
+  // Fetch provider health status periodically
+  useEffect(() => {
+    const fetchHealth = () => getHealthStatus().then(setHealthStatus).catch(() => {});
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleUpdate = () => {
     fetchData();
     setSummaryRefreshTrigger((t) => t + 1);
@@ -577,8 +586,16 @@ export default function App() {
               <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
             {lastUpdate && (
-              <span className="hidden sm:inline text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50 whitespace-nowrap">
-                {lastUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} <span className="text-rh-light-muted/30 dark:text-rh-muted/30">{getLocalTzAbbr()}</span>
+              <span className={`hidden sm:inline text-[11px] whitespace-nowrap flex items-center gap-1.5 ${
+                isStale ? 'text-yellow-500/70' : 'text-rh-light-muted/50 dark:text-rh-muted/50'
+              }`}>
+                {isStale && (
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-400" />
+                  </span>
+                )}
+                {lastUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} <span className={isStale ? 'text-yellow-500/40' : 'text-rh-light-muted/30 dark:text-rh-muted/30'}>{getLocalTzAbbr()}</span>
               </span>
             )}
           </div>
@@ -946,6 +963,7 @@ export default function App() {
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
         onSave={() => fetchData()}
+        healthStatus={healthStatus}
       />
       {(showDailyReport || dailyReportHidden) && (
         <DailyReportModal

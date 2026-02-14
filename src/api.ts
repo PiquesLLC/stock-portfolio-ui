@@ -640,6 +640,7 @@ export interface UserSettings {
   holdingsVisibility: 'all' | 'top5' | 'sectors' | 'hidden';
   bio?: string | null;
   dripEnabled: boolean;
+  cashInterestRate?: number | null;
   createdAt: string;
 }
 
@@ -651,6 +652,7 @@ export interface UserSettingsUpdate {
   holdingsVisibility?: 'all' | 'top5' | 'sectors' | 'hidden';
   bio?: string | null;
   dripEnabled?: boolean;
+  cashInterestRate?: number | null;
 }
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {
@@ -1225,6 +1227,27 @@ export async function removeWatchlistHolding(watchlistId: string, ticker: string
   });
 }
 
+// Health / Status
+export interface ProviderStatus {
+  configured: boolean;
+  lastSuccessMs: number;
+  rateLimitedUntil?: number;
+  hasPremiumAccess?: boolean | null;
+  cookieExpiryMs?: number;
+  cache?: Record<string, number>;
+}
+
+export interface HealthStatus {
+  status: string;
+  timestamp: string;
+  uptime: number;
+  providers: Record<string, ProviderStatus>;
+}
+
+export async function getHealthStatus(): Promise<HealthStatus> {
+  return fetchJson<HealthStatus>(`${API_BASE_URL}/health/status`);
+}
+
 // Discover / Heatmap
 export type HeatmapPeriod = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y';
 export type MarketIndex = 'SP500' | 'DOW30' | 'NASDAQ100';
@@ -1233,4 +1256,65 @@ export async function getMarketHeatmap(period: HeatmapPeriod = '1D', index?: Mar
   const params = new URLSearchParams({ period });
   if (index) params.set('index', index);
   return fetchJson<import('./types').HeatmapResponse>(`${API_BASE_URL}/market/heatmap?${params}`);
+}
+
+// Cash Interest
+export interface CashInterestAccrual {
+  cashBalance: number;
+  cashInterestRate: number;
+  dailyAccrual: number;
+  annualAccrual: number;
+  asOf: string;
+}
+
+export async function getCashInterestAccrual(): Promise<CashInterestAccrual> {
+  return fetchJson<CashInterestAccrual>(`${API_BASE_URL}/settings/cash-interest/accrual`);
+}
+
+// Notification Status
+export interface NotificationStatus {
+  earnings: {
+    lastSentAt: string | null;
+    lastStatus: string | null;
+    lastMessage: string | null;
+    lastRefKey: string | null;
+  };
+}
+
+export async function getNotificationStatus(): Promise<NotificationStatus> {
+  return fetchJson<NotificationStatus>(`${API_BASE_URL}/notifications/status`);
+}
+
+// Dividend Growth Rates
+export interface DividendGrowthHistory {
+  year: number;
+  totalPerShare: number;
+}
+
+export interface HoldingGrowthData {
+  ticker: string;
+  currentAnnualDividend: number;
+  dividendYield: number;
+  growthRates: {
+    '1yr': number | null;
+    '3yr': number | null;
+    '5yr': number | null;
+  };
+  consecutiveYearsGrowth: number;
+  lastIncreaseDate: string | null;
+  lastIncreasePct: number | null;
+  history: DividendGrowthHistory[];
+}
+
+export interface DividendGrowthResponse {
+  holdings: HoldingGrowthData[];
+  portfolio: {
+    weightedAvgGrowthRate: number;
+    totalAnnualIncome: number;
+    totalMonthlyIncome: number;
+  };
+}
+
+export async function getDividendGrowthRates(): Promise<DividendGrowthResponse> {
+  return fetchJson<DividendGrowthResponse>(`${API_BASE_URL}/dividends/growth-rates?excludeCurrentYear=true`);
 }
