@@ -316,17 +316,38 @@ export function ETFOverlap({ onTickerClick }: Props) {
                       {formatDollars(exp.totalExposureValue)}
                     </span>
                   </div>
-                  {/* Source tooltip on hover — absolutely positioned to avoid layout shift */}
-                  <div className="invisible group-hover:visible absolute left-14 -top-6 flex items-center gap-1 z-10 bg-rh-light-card dark:bg-rh-card shadow-lg rounded-md px-2 py-1 border border-gray-200/40 dark:border-white/[0.08]">
-                    {hasDirect && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium whitespace-nowrap">Direct</span>
-                    )}
-                    {[...new Set(etfSources.map(s => s.etf))].map(etf => (
-                      <span key={etf} className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 font-medium whitespace-nowrap">
-                        {etf}
-                      </span>
-                    ))}
-                  </div>
+                  {/* Source tooltip on hover — shows portfolio-level % per source */}
+                  {(() => {
+                    // Aggregate ETF source values by ETF name (handles merged tickers like GOOG/GOOGL)
+                    const etfAgg = new Map<string, number>();
+                    for (const s of etfSources) {
+                      if (s.etf) etfAgg.set(s.etf, (etfAgg.get(s.etf) ?? 0) + (s.value ?? 0));
+                    }
+                    // Portfolio-level %: (sourceValue / totalSourceValue) * exposurePct
+                    // This always sums exactly to exposurePct
+                    const directPortfolioPct = totalSourceValue > 0
+                      ? (directValue / totalSourceValue) * exp.exposurePct
+                      : (hasDirect ? exp.exposurePct : 0);
+                    return (
+                      <div className="invisible group-hover:visible absolute left-14 -top-7 flex items-center gap-1 z-10 bg-rh-light-card dark:bg-rh-card shadow-lg rounded-md px-2 py-1.5 border border-gray-200/40 dark:border-white/[0.08]">
+                        {hasDirect && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium whitespace-nowrap">
+                            Direct {directPortfolioPct.toFixed(1)}%
+                          </span>
+                        )}
+                        {[...etfAgg.entries()].map(([etf, val]) => {
+                          const portfolioPct = totalSourceValue > 0
+                            ? (val / totalSourceValue) * exp.exposurePct
+                            : 0;
+                          return (
+                            <span key={etf} className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 font-medium whitespace-nowrap">
+                              {etf} {portfolioPct.toFixed(1)}%
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
