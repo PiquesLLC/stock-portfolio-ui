@@ -1319,6 +1319,37 @@ export async function getDividendGrowthRates(): Promise<DividendGrowthResponse> 
   return fetchJson<DividendGrowthResponse>(`${API_BASE_URL}/dividends/growth-rates?excludeCurrentYear=true`);
 }
 
+// Earnings Track Record
+import { EarningsTrackResult, TaxHarvestResponse } from './types';
+
+export async function getEarningsTrack(ticker: string): Promise<EarningsTrackResult | null> {
+  try {
+    return await fetchJson<EarningsTrackResult>(
+      `${API_BASE_URL}/market/stock/${encodeURIComponent(ticker)}/earnings-track`
+    );
+  } catch {
+    return null;
+  }
+}
+
+// Tax-Loss Harvesting
+export async function getTaxHarvestSuggestions(): Promise<TaxHarvestResponse | null> {
+  try {
+    return await fetchJson<TaxHarvestResponse>(`${API_BASE_URL}/insights/tax-harvest`);
+  } catch {
+    return null;
+  }
+}
+
+// Dividend Calendar Export
+export function downloadDividendCalendar(months?: number, ticker?: string): void {
+  const params = new URLSearchParams();
+  if (months) params.set('months', String(months));
+  if (ticker) params.set('ticker', ticker);
+  const qs = params.toString();
+  window.open(`${API_BASE_URL}/dividends/calendar.ics${qs ? `?${qs}` : ''}`, '_blank');
+}
+
 // Nala Score
 import { NalaScoreResponse, EtfOverlapResponse, AnomalyEvent } from './types';
 

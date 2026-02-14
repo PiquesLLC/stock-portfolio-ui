@@ -14,10 +14,11 @@ import { EarningsTab } from './EarningsTab';
 import { SkeletonCard } from './SkeletonCard';
 import { PremiumOverlay } from './PremiumOverlay';
 import { ETFOverlap } from './ETFOverlap';
+import { TaxHarvest } from './TaxHarvest';
 import { MarketSession, AnomalyEvent } from '../types';
 import { getAnomalies } from '../api';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap' | 'tax-harvest';
 
 const PRIMARY_COUNT_MOBILE = 3;
 
@@ -126,7 +127,7 @@ function formatTimeAgo(timestamp: number): string {
   return `${hours}h ago`;
 }
 
-const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings', 'etf-overlap']);
+const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings', 'etf-overlap', 'tax-harvest']);
 
 function EventsSection({ holdings }: { holdings: Holding[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -294,6 +295,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'income', label: 'Income' },
     { id: 'projections-goals', label: 'Goals' },
     { id: 'etf-overlap', label: 'ETF Overlap' },
+    { id: 'tax-harvest', label: 'Tax Harvest' },
   ];
 
   // AI Briefing subtab (Premium)
@@ -393,6 +395,16 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       <div className="space-y-6">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <ETFOverlap onTickerClick={onTickerClick} />
+      </div>
+    );
+  }
+
+  // Tax-Loss Harvesting subtab
+  if (subTab === 'tax-harvest') {
+    return (
+      <div className="space-y-6">
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
+        <TaxHarvest onTickerClick={onTickerClick} />
       </div>
     );
   }

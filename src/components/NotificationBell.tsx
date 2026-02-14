@@ -15,6 +15,7 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   price_spike: 'Price Spike',
   sector_divergence: 'Sector Move',
   concentration: 'Concentration',
+  dividend_change: 'Dividend Change',
 };
 
 // Unified notification type for display

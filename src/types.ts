@@ -1342,8 +1342,61 @@ export interface EtfOverlapResponse {
   warnings: EtfOverlapWarning[];
 }
 
+// Earnings Track Record types
+export interface EarningsQuarterSummary {
+  fiscalDateEnding: string;
+  reportedDate: string;
+  reportedEPS: number | null;
+  estimatedEPS: number | null;
+  surprisePct: number | null;
+  beat: boolean | null;
+}
+
+export interface EarningsTrackResult {
+  ticker: string;
+  quarters: EarningsQuarterSummary[];
+  beatCount: number;
+  missCount: number;
+  meetCount: number;
+  totalQuarters: number;
+  beatRate: number;
+  avgSurprisePct: number;
+  currentStreak: number;
+  streakType: 'beat' | 'miss' | 'none';
+  consistencyScore: number;
+  lastUpdated: string;
+}
+
+// Tax-Loss Harvesting types
+export interface HarvestCandidate {
+  ticker: string;
+  shares: number;
+  costBasis: number;
+  currentValue: number;
+  unrealizedLoss: number;
+  unrealizedLossPct: number;
+  holdingPeriod: 'short-term' | 'long-term' | 'mixed';
+  potentialTaxSavings: number;
+  sector: string;
+  daysHeld: number | null;
+}
+
+export interface TaxHarvestResponse {
+  totalUnrealizedGain: number;
+  totalUnrealizedLoss: number;
+  netPosition: number;
+  estimatedTaxLiability: number;
+  potentialTotalSavings: number;
+  harvestCandidates: HarvestCandidate[];
+  washSaleWarnings: string[];
+  aiAnalysis: string | null;
+  aiCitations: string[];
+  generatedAt: string;
+  cached: boolean;
+}
+
 // Anomaly Detection types
-export type AnomalyType = 'volume_spike' | 'price_spike' | 'drawdown' | 'sector_divergence' | 'concentration';
+export type AnomalyType = 'volume_spike' | 'price_spike' | 'drawdown' | 'sector_divergence' | 'concentration' | 'dividend_change';
 export type AnomalySeverity = 'info' | 'warning' | 'critical';
 
 export interface AnomalyEvent {

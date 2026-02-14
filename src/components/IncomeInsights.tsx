@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { IncomeInsightsResponse, IncomeCategoryDetail, IncomeHealthDetails } from '../types';
-import { getIncomeInsights, getCashInterestAccrual, CashInterestAccrual } from '../api';
+import { getIncomeInsights, getCashInterestAccrual, CashInterestAccrual, downloadDividendCalendar } from '../api';
 import { DripProjector } from './DripProjector';
 
 interface Props {
@@ -530,9 +530,20 @@ function IncomeDividendTimeline({
 
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
-      <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">
-        Dividend Timeline
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+          Dividend Timeline
+        </h3>
+        <button
+          onClick={() => downloadDividendCalendar(6)}
+          className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-rh-green bg-rh-green/10 hover:bg-rh-green/20 rounded-full transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Export Calendar
+        </button>
+      </div>
       <div className="max-h-64 overflow-y-auto scrollbar-minimal">
         <div className="space-y-3">
           {events.map((event, i) => (
