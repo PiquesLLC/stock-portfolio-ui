@@ -13,9 +13,11 @@ import { WhatIfSimulator } from './WhatIfSimulator';
 import { EarningsTab } from './EarningsTab';
 import { SkeletonCard } from './SkeletonCard';
 import { PremiumOverlay } from './PremiumOverlay';
-import { MarketSession } from '../types';
+import { ETFOverlap } from './ETFOverlap';
+import { MarketSession, AnomalyEvent } from '../types';
+import { getAnomalies } from '../api';
 
-type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings';
+type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap';
 
 const PRIMARY_COUNT_MOBILE = 3;
 
@@ -124,7 +126,7 @@ function formatTimeAgo(timestamp: number): string {
   return `${hours}h ago`;
 }
 
-const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings']);
+const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings', 'etf-overlap']);
 
 function EventsSection({ holdings }: { holdings: Holding[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -186,6 +188,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(insightsCache.lastFetchTime !== null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [anomalies, setAnomalies] = useState<AnomalyEvent[]>([]);
 
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
@@ -271,6 +274,8 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           if (mountedRef.current) setHoldings(p.holdings);
         })
         .catch((e) => console.error('Failed to fetch holdings:', e));
+      // Also fetch recent anomalies for intelligence tab
+      getAnomalies(10).then(a => { if (mountedRef.current) setAnomalies(a); }).catch(() => {});
     }
   }, []);
 
@@ -288,6 +293,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'allocation', label: 'Allocation' },
     { id: 'income', label: 'Income' },
     { id: 'projections-goals', label: 'Goals' },
+    { id: 'etf-overlap', label: 'ETF Overlap' },
   ];
 
   // AI Briefing subtab (Premium)
@@ -381,6 +387,16 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     );
   }
 
+  // ETF Overlap subtab
+  if (subTab === 'etf-overlap') {
+    return (
+      <div className="space-y-6">
+        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
+        <ETFOverlap onTickerClick={onTickerClick} />
+      </div>
+    );
+  }
+
   // Show initial loading only if we have no cached data at all
   if (!initialLoadComplete && !hasAnyData) {
     return (
@@ -430,6 +446,53 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
       {/* Health Score */}
       {healthScore && <HealthScore data={healthScore} />}
+
+      {/* AI Anomaly Alerts */}
+      {anomalies.length > 0 && (
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            AI Anomaly Detection
+          </h3>
+          <div className="space-y-2">
+            {anomalies.slice(0, 5).map(anomaly => (
+              <div
+                key={anomaly.id}
+                className={`p-3 rounded-lg ${
+                  anomaly.severity === 'critical' ? 'border-l-[3px] border-l-red-500 bg-red-50/30 dark:bg-red-500/[0.05]' :
+                  anomaly.severity === 'warning' ? 'border-l-[3px] border-l-amber-500 bg-amber-50/30 dark:bg-amber-500/[0.05]' :
+                  'border-l-[3px] border-l-blue-500 bg-blue-50/30 dark:bg-blue-500/[0.05]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-orange-500">
+                    {anomaly.type.replace(/_/g, ' ')}
+                  </span>
+                  <span
+                    className="text-xs font-bold text-rh-light-text dark:text-rh-text cursor-pointer hover:text-rh-green transition-colors"
+                    onClick={() => onTickerClick?.(anomaly.ticker)}
+                  >
+                    {anomaly.ticker}
+                  </span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                    anomaly.severity === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                    anomaly.severity === 'warning' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                  }`}>
+                    {anomaly.severity}
+                  </span>
+                </div>
+                <p className="text-xs text-rh-light-text dark:text-rh-text leading-relaxed">{anomaly.title}</p>
+                {anomaly.analysis && (
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1 leading-relaxed">{anomaly.analysis}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Events Timeline — collapsible */}
       {holdings.length > 0 && (

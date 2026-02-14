@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent } from '../types';
-import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAnalystEventRead, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead } from '../api';
+import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent } from '../types';
+import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAnalystEventRead, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, getUnreadAnomalyCount, markAnomalyRead, markAllAnomaliesRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
@@ -11,12 +11,16 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   '52w_low': '52W Low',
   'ath': 'All-Time High',
   'atl': 'All-Time Low',
+  volume_spike: 'Volume Spike',
+  price_spike: 'Price Spike',
+  sector_divergence: 'Sector Move',
+  concentration: 'Concentration',
 };
 
 // Unified notification type for display
 interface UnifiedNotification {
   id: string;
-  type: 'alert' | 'price_alert' | 'analyst' | 'milestone';
+  type: 'alert' | 'price_alert' | 'analyst' | 'milestone' | 'anomaly';
   label: string;
   message: string;
   read: boolean;
@@ -64,24 +68,26 @@ export function NotificationBell({ userId }: Props) {
   const fetchCount = useCallback(async () => {
     if (!userId || !notificationsEnabled) return;
     try {
-      const [alertCount, priceAlertCount, analystCount, milestoneCount] = await Promise.all([
+      const [alertCount, priceAlertCount, analystCount, milestoneCount, anomalyCount] = await Promise.all([
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
         getUnreadAnalystCount(),
         getUnreadMilestoneCount(userId),
+        getUnreadAnomalyCount(),
       ]);
-      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count);
+      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
     } catch {}
   }, [userId, notificationsEnabled]);
 
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
     try {
-      const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents] = await Promise.all([
+      const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents, anomalyEvents] = await Promise.all([
         getAlertEvents(userId),
         getPriceAlertEvents(userId, 50),
         getAnalystEvents(50),
         getMilestoneEvents(userId, 50),
+        getAnomalies(50),
       ]);
 
       // Convert alert events to unified format
@@ -127,21 +133,33 @@ export function NotificationBell({ userId }: Props) {
         ticker: e.ticker,
       }));
 
+      // Convert anomaly events to unified format
+      const unifiedAnomalies: UnifiedNotification[] = anomalyEvents.map((e: AnomalyEvent) => ({
+        id: e.id,
+        type: 'anomaly' as const,
+        label: ALERT_TYPE_LABELS[e.type] || e.type.replace('_', ' '),
+        message: e.title + (e.analysis ? ` — ${e.analysis}` : ''),
+        read: e.read,
+        createdAt: e.createdAt,
+        ticker: e.ticker,
+      }));
+
       // Merge and sort by date (newest first)
-      const merged = [...unifiedAlerts, ...unifiedPriceAlerts, ...unifiedAnalyst, ...unifiedMilestones].sort(
+      const merged = [...unifiedAlerts, ...unifiedPriceAlerts, ...unifiedAnalyst, ...unifiedMilestones, ...unifiedAnomalies].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       setNotifications(merged);
 
       // Refresh count
-      const [alertCount, priceAlertCount, analystCount, milestoneCount] = await Promise.all([
+      const [alertCount, priceAlertCount, analystCount, milestoneCount, anomalyCount] = await Promise.all([
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
         getUnreadAnalystCount(),
         getUnreadMilestoneCount(userId),
+        getUnreadAnomalyCount(),
       ]);
-      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count);
+      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
     } catch {}
   }, [userId]);
 
@@ -200,6 +218,8 @@ export function NotificationBell({ userId }: Props) {
         await markAnalystEventRead(notification.id);
       } else if (notification.type === 'milestone') {
         await markMilestoneEventRead(notification.id);
+      } else if (notification.type === 'anomaly') {
+        await markAnomalyRead(notification.id);
       }
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
@@ -221,6 +241,9 @@ export function NotificationBell({ userId }: Props) {
 
       // Mark all milestone events as read
       await markAllMilestoneEventsRead(userId);
+
+      // Mark all anomaly events as read
+      await markAllAnomaliesRead();
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
@@ -320,6 +343,7 @@ export function NotificationBell({ userId }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-medium uppercase tracking-wider ${
+                          notification.type === 'anomaly' ? 'text-orange-500' :
                           notification.type === 'price_alert' ? 'text-rh-green' :
                           notification.type === 'analyst' ? 'text-amber-500' :
                           notification.label === '52W High' || notification.label === 'All-Time High' ? 'text-emerald-500' :

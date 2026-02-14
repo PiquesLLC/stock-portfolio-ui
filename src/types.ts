@@ -1297,3 +1297,67 @@ export interface NalaScoreResponse {
   availableDimensions: string[];
   lastUpdated: string;
 }
+
+// ETF Overlap types
+export interface EtfOverlapHolding {
+  ticker: string;
+  name: string | null;
+  weightPct: number;
+  exposureValue: number;
+}
+
+export interface EtfOverlapEtf {
+  ticker: string;
+  value: number;
+  asOfDate: string;
+  totalHoldingsPercent: number;
+  holdings: EtfOverlapHolding[];
+  unknownExposureValue: number;
+}
+
+export interface EtfOverlapPair {
+  etfA: string;
+  etfB: string;
+  overlapPercent: number;
+  sharedHoldings: Array<{ ticker: string; overlapPct: number }>;
+}
+
+export interface EtfExposure {
+  ticker: string;
+  totalExposureValue: number;
+  exposurePct: number;
+  sources: Array<{ source: 'direct' | 'etf'; etf?: string; value?: number }>;
+}
+
+export interface EtfOverlapWarning {
+  ticker: string;
+  exposurePct: number;
+  message: string;
+}
+
+export interface EtfOverlapResponse {
+  etfs: EtfOverlapEtf[];
+  overlapMatrix: EtfOverlapPair[];
+  exposures: EtfExposure[];
+  warnings: EtfOverlapWarning[];
+}
+
+// Anomaly Detection types
+export type AnomalyType = 'volume_spike' | 'price_spike' | 'drawdown' | 'sector_divergence' | 'concentration';
+export type AnomalySeverity = 'info' | 'warning' | 'critical';
+
+export interface AnomalyEvent {
+  id: string;
+  userId: string | null;
+  ticker: string;
+  type: AnomalyType;
+  severity: AnomalySeverity;
+  title: string;
+  description: string;
+  analysis: string | null;
+  citations: string | null;
+  value: number | null;
+  threshold: number | null;
+  read: boolean;
+  createdAt: string;
+}

@@ -1320,7 +1320,7 @@ export async function getDividendGrowthRates(): Promise<DividendGrowthResponse> 
 }
 
 // Nala Score
-import { NalaScoreResponse } from './types';
+import { NalaScoreResponse, EtfOverlapResponse, AnomalyEvent } from './types';
 
 export async function getNalaScore(ticker: string): Promise<NalaScoreResponse | null> {
   try {
@@ -1330,4 +1330,38 @@ export async function getNalaScore(ticker: string): Promise<NalaScoreResponse | 
   } catch {
     return null;
   }
+}
+
+// ETF Overlap
+export async function getEtfOverlap(): Promise<EtfOverlapResponse | null> {
+  try {
+    return await fetchJson<EtfOverlapResponse>(`${API_BASE_URL}/portfolio/etf-overlap`);
+  } catch {
+    return null;
+  }
+}
+
+// Anomaly Detection
+export async function getAnomalies(limit = 50): Promise<AnomalyEvent[]> {
+  try {
+    return await fetchJson<AnomalyEvent[]>(`${API_BASE_URL}/insights/anomalies?limit=${limit}`);
+  } catch {
+    return [];
+  }
+}
+
+export async function getUnreadAnomalyCount(): Promise<{ count: number }> {
+  try {
+    return await fetchJson<{ count: number }>(`${API_BASE_URL}/insights/anomalies/unread-count`);
+  } catch {
+    return { count: 0 };
+  }
+}
+
+export async function markAnomalyRead(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/insights/anomalies/${id}/read`, { method: 'PATCH' });
+}
+
+export async function markAllAnomaliesRead(): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/insights/anomalies/mark-all-read`, { method: 'POST' });
 }
