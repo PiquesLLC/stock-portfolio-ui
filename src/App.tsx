@@ -338,16 +338,23 @@ export default function App() {
     setHash(hashTab, stockTicker, viewingProfileId, leaderboardUserId, subtab);
   }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab]);
 
-  // Handle browser back/forward
+  // Handle browser back/forward — parse directly from hash, never sessionStorage
   useEffect(() => {
     const onHashChange = () => {
-      const nav = parseHash();
-      setActiveTab(nav.tab);
-      setViewingProfileId(nav.profile);
-      setLeaderboardUserId(nav.lbuser);
-      setInsightsSubTab(nav.subtab);
-      if (nav.stock) {
-        setViewingStock(prev => prev?.ticker === nav.stock ? prev : { ticker: nav.stock!, holding: null });
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const rawTab = params.get('tab') || 'portfolio';
+      const tab = VALID_TABS.has(rawTab as TabType) ? (rawTab as TabType) : 'portfolio';
+      const stock = params.get('stock') || null;
+      const profile = params.get('profile') || null;
+      const lbuser = params.get('lbuser') || null;
+      const subtab = params.get('subtab') || null;
+
+      setActiveTab(tab);
+      setViewingProfileId(profile);
+      setLeaderboardUserId(lbuser);
+      setInsightsSubTab(subtab);
+      if (stock) {
+        setViewingStock(prev => prev?.ticker === stock ? prev : { ticker: stock, holding: null });
       } else {
         setViewingStock(null);
       }
