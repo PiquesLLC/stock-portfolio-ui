@@ -17,8 +17,37 @@ import { CreateWatchlistModal } from './CreateWatchlistModal';
 import { ConfirmModal } from './ConfirmModal';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { MiniSparkline } from './MiniSparkline';
+import { StockLogo } from './StockLogo';
 import { PortfolioValueChart } from './PortfolioValueChart';
 import { formatCurrency, formatPercent } from '../utils/format';
+
+type DisplayMetric = 'lastPrice' | 'dayChangePct' | 'equity' | 'dayChange' | 'totalReturn' | 'totalReturnPct';
+
+const DISPLAY_METRICS: { key: DisplayMetric; label: string }[] = [
+  { key: 'lastPrice', label: 'Last price' },
+  { key: 'dayChangePct', label: 'Percent change' },
+  { key: 'equity', label: 'Your equity' },
+  { key: 'dayChange', label: "Today's return" },
+  { key: 'totalReturn', label: 'Total return' },
+  { key: 'totalReturnPct', label: 'Total percent change' },
+];
+
+function getWatchlistMetric(h: WatchlistHolding, metric: DisplayMetric): { text: string; isPositive: boolean; isNeutral: boolean } {
+  switch (metric) {
+    case 'lastPrice': return { text: formatCurrency(h.currentPrice), isPositive: true, isNeutral: true };
+    case 'dayChangePct': return { text: formatPercent(h.dayChangePercent), isPositive: h.dayChangePercent >= 0, isNeutral: false };
+    case 'equity': return { text: formatPercent(h.dayChangePercent), isPositive: h.dayChangePercent >= 0, isNeutral: false };
+    case 'dayChange': {
+      const sign = h.dayChange >= 0 ? '+' : '';
+      return { text: `${sign}${formatCurrency(h.dayChange)}`, isPositive: h.dayChange >= 0, isNeutral: false };
+    }
+    case 'totalReturn': {
+      const sign = h.profitLoss >= 0 ? '+' : '';
+      return { text: `${sign}${formatCurrency(h.profitLoss)}`, isPositive: h.profitLoss >= 0, isNeutral: false };
+    }
+    case 'totalReturnPct': return { text: formatPercent(h.profitLossPercent), isPositive: h.profitLossPercent >= 0, isNeutral: false };
+  }
+}
 
 interface WatchlistPageProps {
   onTickerClick: (ticker: string) => void;
@@ -66,6 +95,12 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
   // Sort state
   const [sortKey, setSortKey] = useState<SortKey>('currentValue');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  // Mobile display metric
+  const [displayMetric, setDisplayMetric] = useState<DisplayMetric>(
+    () => (localStorage.getItem('watchlistDisplayMetric') as DisplayMetric) || 'dayChangePct'
+  );
+  const [showDisplayMenu, setShowDisplayMenu] = useState(false);
 
   const loadWatchlists = useCallback(async () => {
     try {
@@ -285,39 +320,57 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
         </div>
 
         {/* Summary bar */}
-        {detail && detail.holdings.length > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-2 px-4 py-3 rounded-xl bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.04]">
-            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest bg-rh-green/10 text-rh-green/80 border border-rh-green/20">Watchlist</span>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Value</span>
-              <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">
-                {formatCurrency(detail.summary.totalValue)}
-              </span>
+        {detail && detail.holdings.length > 0 && (() => {
+          const s = detail.summary;
+          const hasAfterHours = (s.afterHoursChange ?? 0) !== 0;
+          const regChange = s.regularDayChange ?? s.dayChange;
+          const regPct = s.regularDayChangePercent ?? s.dayChangePercent;
+          const ahChange = s.afterHoursChange ?? 0;
+          const ahPct = s.afterHoursChangePercent ?? 0;
+          return (
+            <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-2 px-4 py-3 rounded-xl bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.04]">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Value</span>
+                <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">
+                  {formatCurrency(s.totalValue)}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Total P/L</span>
+                <span className={`text-sm font-bold ${s.totalPL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {formatCurrency(s.totalPL)}
+                </span>
+                <span className={`text-[10px] ${s.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                  {formatPercent(s.totalPLPercent)}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Day</span>
+                <span className={`text-sm font-bold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {formatCurrency(regChange)}
+                </span>
+                <span className={`text-[10px] ${regChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                  {formatPercent(regPct)}
+                </span>
+              </div>
+              {hasAfterHours && (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">After hrs</span>
+                  <span className={`text-sm font-bold ${ahChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {formatCurrency(ahChange)}
+                  </span>
+                  <span className={`text-[10px] ${ahChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                    {formatPercent(ahPct)}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Holdings</span>
+                <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{s.holdingsCount}</span>
+              </div>
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Total P/L</span>
-              <span className={`text-sm font-bold ${detail.summary.totalPL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatCurrency(detail.summary.totalPL)}
-              </span>
-              <span className={`text-[10px] ${detail.summary.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                {formatPercent(detail.summary.totalPLPercent)}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Day</span>
-              <span className={`text-sm font-bold ${detail.summary.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {formatCurrency(detail.summary.dayChange)}
-              </span>
-              <span className={`text-[10px] ${detail.summary.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                {formatPercent(detail.summary.dayChangePercent)}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Holdings</span>
-              <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{detail.summary.holdingsCount}</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Portfolio chart */}
         {detail && detail.holdings.length > 0 && selectedId && (
@@ -412,7 +465,49 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           </div>
         )}
 
-        {/* Holdings table */}
+        {/* Holdings header with display picker */}
+        {detail && detail.holdings.length > 0 && (
+          <div className="px-3 sm:px-0 flex items-center gap-2">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
+            <div className="relative md:hidden">
+              <button
+                onClick={() => setShowDisplayMenu(!showDisplayMenu)}
+                className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                title="Display data"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              {showDisplayMenu && (
+                <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
+                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
+                  {DISPLAY_METRICS.map((m) => (
+                    <button
+                      key={m.key}
+                      className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                      onClick={() => {
+                        setDisplayMetric(m.key);
+                        localStorage.setItem('watchlistDisplayMetric', m.key);
+                        setShowDisplayMenu(false);
+                      }}
+                    >
+                      <span>{m.label}</span>
+                      {displayMetric === m.key && (
+                        <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Holdings */}
         {detailLoading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent" />
@@ -433,131 +528,181 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto pb-1 scrollbar-hide">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200/30 dark:border-white/[0.04]">
-                  {([
-                    ['ticker', 'Ticker', 'text-left'],
-                  ] as [SortKey, string, string][]).map(([key, label, className]) => (
-                    <th
-                      key={key}
-                      onClick={() => handleSort(key)}
-                      className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-white/40 cursor-pointer hover:text-rh-light-text dark:hover:text-rh-text transition-colors select-none`}
-                    >
-                      {label}<SortIcon col={key} />
-                    </th>
-                  ))}
-                  <th className="py-2.5 px-2 hidden sm:table-cell text-center">
-                    <svg className="w-5 h-5 inline-block text-rh-light-muted/60 dark:text-white/35" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17l6-6 4 4 8-8" />
-                    </svg>
-                  </th>
-                  {([
-                    ['currentPrice', 'Price', 'text-right'],
-                    ['shares', 'Shares', 'text-right hidden xl:table-cell'],
-                    ['averageCost', 'Avg Cost', 'text-right hidden xl:table-cell'],
-                    ['currentValue', 'Mkt Val', 'text-right hidden md:table-cell'],
-                    ['dayChange', 'Day P/L', 'text-right'],
-                    ['weekChangePercent', 'Week', 'text-right hidden lg:table-cell w-[88px]'],
-                    ['monthChangePercent', 'Month', 'text-right hidden lg:table-cell w-[88px]'],
-                    ['yearChangePercent', '1Y', 'text-right hidden lg:table-cell w-[88px]'],
-                    ['peRatio', 'P/E', 'text-right hidden lg:table-cell w-[64px]'],
-                    ['profitLoss', 'Total P/L', 'text-right'],
-                  ] as [SortKey, string, string][]).map(([key, label, className]) => (
-                    <th
-                      key={key}
-                      onClick={() => handleSort(key)}
-                      className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-white/40 cursor-pointer hover:text-rh-light-text dark:hover:text-rh-text transition-colors select-none`}
-                    >
-                      {label}<SortIcon col={key} />
-                    </th>
-                  ))}
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {sortedHoldings.map((h) => (
-                  <tr
+          <>
+            {/* Mobile Card List */}
+            <div className="md:hidden">
+              {sortedHoldings.map((h, idx) => {
+                const metric = getWatchlistMetric(h, displayMetric);
+                return (
+                  <div
                     key={h.ticker}
+                    className={`flex items-center px-3 py-3 ${idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''} cursor-pointer active:bg-gray-100 dark:active:bg-white/[0.03]`}
                     onClick={() => onTickerClick(h.ticker)}
-                    className="border-b border-gray-200/20 dark:border-white/[0.03] hover:bg-gray-100/70 dark:hover:bg-white/[0.04] transition-colors group cursor-pointer"
                   >
-                    <td className="py-3 px-3">
-                      <span className="font-semibold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors">
-                        {h.ticker}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-2 text-center hidden sm:table-cell">
-                      <MiniSparkline ticker={h.ticker} positive={h.dayChange >= 0} period={chartPeriod} />
-                    </td>
-                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text">
-                      {formatCurrency(h.currentPrice)}
-                    </td>
-                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
-                      {h.shares.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                    </td>
-                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
-                      {formatCurrency(h.averageCost)}
-                    </td>
-                    <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text hidden md:table-cell">
-                      {formatCurrency(h.currentValue)}
-                    </td>
-                    <td className={`py-3 px-3 text-right tabular-nums ${h.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      <div className="text-sm">{formatCurrency(h.dayChange)}</div>
-                      <div className="text-[9px] opacity-50">{formatPercent(h.dayChangePercent)}</div>
-                    </td>
-                    <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.weekChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {formatPercent(h.weekChangePercent)}
-                    </td>
-                    <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.monthChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {formatPercent(h.monthChangePercent)}
-                    </td>
-                    <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.yearChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {formatPercent(h.yearChangePercent)}
-                    </td>
-                    <td className="py-3 px-3 text-right tabular-nums hidden lg:table-cell text-rh-light-muted dark:text-rh-muted">
-                      {h.peRatio !== null ? h.peRatio.toFixed(1) : '—'}
-                    </td>
-                    <td className={`py-3 px-3 text-right tabular-nums font-medium ${h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      <div className="text-sm">{formatCurrency(h.profitLoss)}</div>
-                      <div className="text-[9px] opacity-50">{formatPercent(h.profitLossPercent)}</div>
-                    </td>
-                    <td className="py-3 px-1">
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingHolding(h);
-                            setEditShares(String(h.shares));
-                            setEditCost(String(h.averageCost));
-                          }}
-                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
-                          title="Edit"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingHolding(h);
-                          }}
-                          className="p-1 rounded hover:bg-rh-red/10 text-rh-light-muted dark:text-rh-muted hover:text-rh-red transition-colors"
-                          title="Remove"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <StockLogo ticker={h.ticker} size="sm" />
+                      <div className="min-w-0">
+                        <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{h.ticker}</span>
+                        <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                          {h.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares
+                        </p>
                       </div>
-                    </td>
+                    </div>
+                    <div className="flex-shrink-0 px-3">
+                      <MiniSparkline ticker={h.ticker} positive={h.dayChange >= 0} period={chartPeriod} />
+                    </div>
+                    <div className="flex-1 text-right">
+                      <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+                        {formatCurrency(h.currentValue)}
+                      </p>
+                      <p className={`text-[11px] font-medium ${
+                        metric.isNeutral
+                          ? 'text-rh-light-muted dark:text-rh-muted'
+                          : metric.isPositive ? 'text-rh-green' : 'text-rh-red'
+                      }`}>
+                        {metric.text}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto pb-1 scrollbar-hide">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200/30 dark:border-white/[0.04]">
+                    {([
+                      ['ticker', 'Ticker', 'text-left'],
+                    ] as [SortKey, string, string][]).map(([key, label, className]) => (
+                      <th
+                        key={key}
+                        onClick={() => handleSort(key)}
+                        className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-white/40 cursor-pointer hover:text-rh-light-text dark:hover:text-rh-text transition-colors select-none`}
+                      >
+                        {label}<SortIcon col={key} />
+                      </th>
+                    ))}
+                    <th className="py-2.5 px-2 text-center">
+                      <svg className="w-5 h-5 inline-block text-rh-light-muted/60 dark:text-white/35" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17l6-6 4 4 8-8" />
+                      </svg>
+                    </th>
+                    {([
+                      ['currentPrice', 'Price', 'text-right'],
+                      ['shares', 'Shares', 'text-right hidden xl:table-cell'],
+                      ['averageCost', 'Avg Cost', 'text-right hidden xl:table-cell'],
+                      ['currentValue', 'Mkt Val', 'text-right'],
+                      ['dayChange', 'Day P/L', 'text-right'],
+                      ['weekChangePercent', 'Week', 'text-right hidden lg:table-cell w-[88px]'],
+                      ['monthChangePercent', 'Month', 'text-right hidden lg:table-cell w-[88px]'],
+                      ['yearChangePercent', '1Y', 'text-right hidden lg:table-cell w-[88px]'],
+                      ['peRatio', 'P/E', 'text-right hidden lg:table-cell w-[64px]'],
+                      ['profitLoss', 'Total P/L', 'text-right'],
+                    ] as [SortKey, string, string][]).map(([key, label, className]) => (
+                      <th
+                        key={key}
+                        onClick={() => handleSort(key)}
+                        className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-white/40 cursor-pointer hover:text-rh-light-text dark:hover:text-rh-text transition-colors select-none`}
+                      >
+                        {label}<SortIcon col={key} />
+                      </th>
+                    ))}
+                    <th className="w-8" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {sortedHoldings.map((h) => (
+                    <tr
+                      key={h.ticker}
+                      onClick={() => onTickerClick(h.ticker)}
+                      className="border-b border-gray-200/20 dark:border-white/[0.03] hover:bg-gray-100/70 dark:hover:bg-white/[0.04] transition-colors group cursor-pointer"
+                    >
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <StockLogo ticker={h.ticker} size="sm" />
+                          <span className="font-semibold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors">
+                            {h.ticker}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-2 text-center">
+                        <MiniSparkline ticker={h.ticker} positive={h.dayChange >= 0} period={chartPeriod} />
+                      </td>
+                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text">
+                        {formatCurrency(h.currentPrice)}
+                      </td>
+                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
+                        {h.shares.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                      </td>
+                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
+                        {formatCurrency(h.averageCost)}
+                      </td>
+                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text">
+                        {formatCurrency(h.currentValue)}
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums ${h.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        <div className="text-sm">{formatCurrency(h.dayChange)}</div>
+                        <div className="text-[9px] opacity-50">{formatPercent(h.dayChangePercent)}</div>
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.weekChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        {formatPercent(h.weekChangePercent)}
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.monthChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        {formatPercent(h.monthChangePercent)}
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.yearChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        {formatPercent(h.yearChangePercent)}
+                      </td>
+                      <td className="py-3 px-3 text-right tabular-nums hidden lg:table-cell text-rh-light-muted dark:text-rh-muted">
+                        {h.peRatio !== null ? h.peRatio.toFixed(1) : '—'}
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums font-medium ${h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        <div className="text-sm">{formatCurrency(h.profitLoss)}</div>
+                        <div className="text-[9px] opacity-50">{formatPercent(h.profitLossPercent)}</div>
+                      </td>
+                      <td className="py-3 px-1">
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingHolding(h);
+                              setEditShares(String(h.shares));
+                              setEditCost(String(h.averageCost));
+                            }}
+                            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                            title="Edit"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingHolding(h);
+                            }}
+                            className="p-1 rounded hover:bg-rh-red/10 text-rh-light-muted dark:text-rh-muted hover:text-rh-red transition-colors"
+                            title="Remove"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Click-outside handler for display data dropdown */}
+        {showDisplayMenu && (
+          <div className="fixed inset-0 z-40" onClick={() => setShowDisplayMenu(false)} />
         )}
 
         {/* Edit holding modal */}

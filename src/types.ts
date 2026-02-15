@@ -1203,6 +1203,10 @@ export interface WatchlistPortfolioSummary {
   totalPLPercent: number;
   dayChange: number;
   dayChangePercent: number;
+  regularDayChange?: number;
+  regularDayChangePercent?: number;
+  afterHoursChange?: number;
+  afterHoursChangePercent?: number;
   holdingsCount: number;
 }
 
