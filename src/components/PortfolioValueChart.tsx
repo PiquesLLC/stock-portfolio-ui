@@ -545,11 +545,15 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     if (isTwoFingerRef.current) {
+      // Prevent synthetic click events from firing after two-finger gesture
+      e.preventDefault();
       if (e.touches.length === 0) {
-        // Both fingers lifted — keep measurement visible, exit two-finger mode
+        // Both fingers lifted — clear measurement and exit two-finger mode
         isTwoFingerRef.current = false;
+        setMeasureA(null);
+        setMeasureB(null);
       }
-      // One finger still down — wait for both to lift
+      // One finger still down — keep measurement visible until both lift
       return;
     }
     // Original single-finger behavior

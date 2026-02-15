@@ -603,12 +603,17 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   }, [updateHoverFromClientX]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
-    // Two-finger measurement: keep measurement visible when fingers lift
+    // Two-finger measurement: clear when fingers lift (Robinhood-style)
     if (isTwoFingerRef.current) {
+      e.preventDefault();
       if (e.touches.length === 0) {
+        // Both fingers lifted — clear measurement and exit two-finger mode
         isTwoFingerRef.current = false;
+        setMeasureA(null);
+        setMeasureB(null);
+        setMeasureC(null);
       }
-      // One finger still down or both lifted — either way, keep measurement
+      // One finger still down — keep measurement visible until both lift
       return;
     }
 
