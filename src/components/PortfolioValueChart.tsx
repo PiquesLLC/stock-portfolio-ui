@@ -775,8 +775,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
             }`}>
               {formatCurrency(displayValue)}
             </p>
-            {/* Show separate regular + after-hours lines when applicable */}
-            {selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST' ? (
+            {/* Show separate regular + after-hours lines when outside regular hours */}
+            {selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session !== 'REG' ? (
               <>
                 <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
@@ -784,7 +784,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
                 </p>
                 <p className={`text-sm mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                   {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
-                  <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">After hours</span>
+                  <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">{session === 'PRE' ? 'Pre-market' : 'After hours'}</span>
                 </p>
               </>
             ) : (

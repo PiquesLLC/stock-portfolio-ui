@@ -105,10 +105,10 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
     <div className="px-6 py-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
-          Dividends
-        </h3>
         <div className="flex items-center gap-2">
+          <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
+            Dividends
+          </h3>
           {/* DRIP Toggle */}
           <button
             onClick={handleDripToggle}
@@ -123,27 +123,33 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
             <span className={`w-1.5 h-1.5 rounded-full ${dripEnabled ? 'bg-rh-green' : 'bg-rh-light-muted/30 dark:bg-rh-muted/30'}`} />
             DRIP
           </button>
+        </div>
+        <div className="flex items-center gap-3">
           {hasData && (
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+              className={`text-[10px] transition-colors ${showHistory ? 'text-rh-green' : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'}`}
             >
-              {showHistory ? 'Hide' : 'History'}
+              History
             </button>
           )}
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors disabled:opacity-50"
-            title="Sync dividend data from Yahoo Finance"
+            className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors disabled:opacity-50"
+            title="Sync dividend data"
           >
-            {syncing ? '...' : 'Sync'}
+            <svg className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors"
+            className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors"
           >
-            +
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
           </button>
         </div>
       </div>
@@ -186,15 +192,16 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
 
             return (
               <div className="mb-3">
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-2">
                   <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">Upcoming</p>
                   {totalEst > 0 && (
-                    <p className="text-xs text-rh-light-muted/40 dark:text-rh-muted/40">
-                      Est. total: <span className="text-rh-green font-medium">{formatCurrency(totalEst)}</span>
-                    </p>
+                    <div className="text-right">
+                      <p className="text-base font-semibold text-rh-green">{formatCurrency(totalEst)}</p>
+                      <p className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 -mt-0.5">estimated</p>
+                    </div>
                   )}
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {sorted.slice(0, 8).map(ev => {
                     const holding = holdingsByTicker.get(ev.ticker);
                     const estPayout = holding ? holding.shares * ev.amountPerShare : null;
@@ -206,22 +213,17 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                             onClick={(e) => { e.stopPropagation(); onTickerClick?.(ev.ticker); }}
                             className="font-medium text-rh-green hover:underline"
                           >{ev.ticker}</button>
-                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
-                            ${ev.amountPerShare.toFixed(4)}/sh
-                            {holding && <> &times; {holding.shares}</>}
-                          </span>
-                          {!exPassed && (
+                          {exPassed ? (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium">confirmed</span>
+                          ) : (
                             <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium">expected</span>
                           )}
-                          {exPassed && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium">confirmed</span>
-                          )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-rh-light-muted/50 dark:text-rh-muted/50">{shortDate(ev.payDate)}</span>
                           {estPayout !== null && (
                             <span className="text-rh-green font-medium">{formatCurrency(estPayout)}</span>
                           )}
-                          <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{shortDate(ev.payDate)}</span>
                         </div>
                       </div>
                     );
