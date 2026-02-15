@@ -105,47 +105,45 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
     <div className="px-6 py-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
-            Dividends
-          </h3>
+        <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
+          Dividends
+        </h3>
+        <div className="flex items-center gap-2">
+          {/* DRIP Toggle */}
+          <button
+            onClick={handleDripToggle}
+            disabled={dripLoading}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+              dripEnabled
+                ? 'bg-rh-green/10 text-rh-green'
+                : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+            title={dripEnabled ? 'DRIP enabled - dividends will be auto-reinvested' : 'Enable DRIP to auto-reinvest dividends'}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${dripEnabled ? 'bg-rh-green' : 'bg-rh-light-muted/30 dark:bg-rh-muted/30'}`} />
+            DRIP
+          </button>
           {hasData && (
             <button
               onClick={() => setShowHistory(!showHistory)}
               className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
             >
-              {showHistory ? 'Hide history' : 'History'}
+              {showHistory ? 'Hide' : 'History'}
             </button>
           )}
-          {/* DRIP Toggle */}
-          <button
-            onClick={handleDripToggle}
-            disabled={dripLoading}
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
-              dripEnabled
-                ? 'bg-rh-green/10 text-rh-green'
-                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-            }`}
-            title={dripEnabled ? 'DRIP enabled - dividends will be auto-reinvested' : 'Enable DRIP to auto-reinvest dividends'}
-          >
-            <span className={`w-2 h-2 rounded-full ${dripEnabled ? 'bg-rh-green' : 'bg-rh-light-muted/40 dark:bg-rh-muted/40'}`} />
-            DRIP {dripEnabled ? 'On' : 'Off'}
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-green transition-colors"
-          >
-            + Add
-          </button>
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-green transition-colors disabled:opacity-50"
+            className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors disabled:opacity-50"
             title="Sync dividend data from Yahoo Finance"
           >
-            {syncing ? 'Syncing...' : 'Sync'}
+            {syncing ? '...' : 'Sync'}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors"
+          >
+            +
           </button>
         </div>
       </div>
@@ -162,14 +160,15 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
         <>
           {/* Summary totals */}
           {summary && (summary.totalYTD > 0 || summary.totalAllTime > 0) && (
-            <div className="flex items-center gap-6 mb-3">
+            <div className="flex items-center gap-4 mb-3">
               <div>
                 <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">YTD</p>
-                <p className="text-lg font-semibold text-rh-green">{formatCurrency(summary.totalYTD)}</p>
+                <p className="text-base font-semibold text-rh-green">{formatCurrency(summary.totalYTD)}</p>
               </div>
+              <span className="text-rh-light-muted/15 dark:text-rh-muted/15">|</span>
               <div>
                 <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">All-time</p>
-                <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{formatCurrency(summary.totalAllTime)}</p>
+                <p className="text-base font-semibold text-rh-light-text dark:text-rh-text">{formatCurrency(summary.totalAllTime)}</p>
               </div>
             </div>
           )}
@@ -327,8 +326,8 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
         onReinvested={fetchData}
       />
 
-      <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/30 mt-3">
-        Dividend info may be updated by issuers. Not financial advice.
+      <p className="text-[9px] text-rh-light-muted/30 dark:text-rh-muted/20 mt-2">
+        Dividend data may be updated by issuers.
       </p>
     </div>
   );

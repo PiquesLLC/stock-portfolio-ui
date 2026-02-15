@@ -692,95 +692,104 @@ export default function App() {
             )}
 
             {portfolio && (
-              <div className="flex flex-wrap items-center gap-y-2 px-6 py-3 border-y border-white/[0.04] dark:border-white/[0.04] border-gray-200/30">
-                <div className="flex items-baseline gap-1.5 mr-8">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Value" advanced="Assets" /></span>
-                  <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
-                    {portfolio.totalAssets > 0 ? formatCurrency(portfolio.totalAssets) : '—'}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1.5 mr-10">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Owned" advanced="Equity" /></span>
-                  <span className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
-                    {formatCurrency(portfolio.netEquity)}
-                  </span>
-                </div>
-                {(portfolio.cashBalance > 0 || portfolio.marginDebt > 0) && (
-                  <div className="flex items-center gap-2 mr-10">
-                    {portfolio.cashBalance > 0 && (
-                      <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-green/[0.08] border border-rh-green/20">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-rh-green/60">Cash</span>
-                        <span className="text-xs font-bold text-rh-green">${portfolio.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-                    {portfolio.marginDebt > 0 && (
-                      <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-red/[0.08] border border-rh-red/20">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-rh-red/60">Margin</span>
-                        <span className="text-xs font-bold text-rh-red">-${portfolio.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="hidden md:block w-px h-5 bg-white/[0.08] dark:bg-white/[0.08] bg-gray-300/40 mr-10" />
+              <div className="px-6 py-4 border-y border-gray-200/30 dark:border-white/[0.04] space-y-3">
+                {/* Stats grid — 2 columns on mobile, inline on desktop */}
                 {chartMeasurement ? (
-                  <>
-                    <div className="flex items-baseline gap-1.5 mr-8">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    <div>
                       <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">
                         {new Date(chartMeasurement.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         {' → '}
                         {new Date(chartMeasurement.endTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </span>
-                      <span className={`text-sm font-extrabold ${
-                        chartMeasurement.dollarChange >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
-                      }`}>
-                        {chartMeasurement.dollarChange >= 0 ? '+' : '-'}${Math.abs(chartMeasurement.dollarChange).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                      <span className={`text-[10px] ${chartMeasurement.percentChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                        {chartMeasurement.percentChange >= 0 ? '+' : ''}{chartMeasurement.percentChange.toFixed(2)}%
-                      </span>
-                    </div>
-                    {chartMeasurement.outperformance !== null && (
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">vs SPY</span>
-                        <span className={`text-sm font-bold ${
-                          chartMeasurement.outperformance >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
+                        <span className={`text-sm font-extrabold ${
+                          chartMeasurement.dollarChange >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                         }`}>
-                          {chartMeasurement.outperformance >= 0 ? '+' : ''}{chartMeasurement.outperformance.toFixed(2)}%
+                          {chartMeasurement.dollarChange >= 0 ? '+' : '-'}${Math.abs(chartMeasurement.dollarChange).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <span className={`text-[10px] ${chartMeasurement.percentChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                          {chartMeasurement.percentChange >= 0 ? '+' : ''}{chartMeasurement.percentChange.toFixed(2)}%
                         </span>
                       </div>
+                    </div>
+                    {chartMeasurement.outperformance !== null && (
+                      <div>
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">vs SPY</span>
+                        <div>
+                          <span className={`text-sm font-bold ${
+                            chartMeasurement.outperformance >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
+                          }`}>
+                            {chartMeasurement.outperformance >= 0 ? '+' : ''}{chartMeasurement.outperformance.toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
                     )}
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <div className="flex items-baseline gap-1.5 mr-8">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    <div>
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Value" advanced="Assets" /></span>
+                      <div className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
+                        {portfolio.totalAssets > 0 ? formatCurrency(portfolio.totalAssets) : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Owned" advanced="Equity" /></span>
+                      <div className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
+                        {formatCurrency(portfolio.netEquity)}
+                      </div>
+                    </div>
+                    {(portfolio.cashBalance > 0 || portfolio.marginDebt > 0) && (
+                      <div className="flex items-center gap-2">
+                        {portfolio.cashBalance > 0 && (
+                          <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-green/[0.08] border border-rh-green/20">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-rh-green/60">Cash</span>
+                            <span className="text-xs font-bold text-rh-green">${portfolio.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                        {portfolio.marginDebt > 0 && (
+                          <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-red/[0.08] border border-rh-red/20">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-rh-red/60">Margin</span>
+                            <span className="text-xs font-bold text-rh-red">-${portfolio.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div>
                       <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="Today" advanced="Day" /></span>
-                      <span className={`text-sm font-bold ${
-                        portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
-                      }`}>
-                        {portfolio.holdings.length > 0 ? formatCurrency(portfolio.dayChange) : '—'}
-                      </span>
-                      {portfolio.holdings.length > 0 && (
-                        <span className={`text-[10px] ${portfolio.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                          {formatPercent(portfolio.dayChangePercent)}
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-sm font-bold ${
+                          portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
+                        }`}>
+                          {portfolio.holdings.length > 0 ? formatCurrency(portfolio.dayChange) : '—'}
                         </span>
-                      )}
+                        {portfolio.holdings.length > 0 && (
+                          <span className={`text-[10px] ${portfolio.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                            {formatPercent(portfolio.dayChangePercent)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-baseline gap-1.5">
+                    <div className="col-span-2">
                       <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="All-Time Gain/Loss" advanced="Total P/L" /></span>
-                      <span className={`text-sm font-extrabold ${
-                        portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
-                      }`}>
-                        {portfolio.holdings.length > 0 ? formatCurrency(portfolio.totalPL) : '—'}
-                      </span>
-                      {portfolio.holdings.length > 0 && (
-                        <span className={`text-[10px] ${portfolio.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                          {formatPercent(portfolio.totalPLPercent)}
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-sm font-extrabold ${
+                          portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
+                        }`}>
+                          {portfolio.holdings.length > 0 ? formatCurrency(portfolio.totalPL) : '—'}
                         </span>
-                      )}
+                        {portfolio.holdings.length > 0 && (
+                          <span className={`text-[10px] ${portfolio.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                            {formatPercent(portfolio.totalPLPercent)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </>
+                  </div>
                 )}
-                <div className="flex items-center gap-2 ml-auto">
+                {/* Action buttons */}
+                <div className="flex items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={() => holdingsActionsRef.current?.openCashMargin()}
@@ -808,12 +817,13 @@ export default function App() {
             )}
 
             {portfolio && (
-              <div className="flex flex-col md:flex-row md:items-start gap-4">
-                <div className="md:flex-1">
+              <div className="flex flex-col md:flex-row md:items-start">
+                <div className="md:flex-1 min-w-0">
                   <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
                 </div>
-                <div className="hidden md:block w-px self-stretch bg-white/[0.04] dark:bg-white/[0.04] bg-gray-200/30 my-4" />
-                <div className="md:flex-1">
+                <div className="hidden md:block w-px self-stretch bg-gray-200/20 dark:bg-white/[0.04] my-3" />
+                <div className="md:hidden h-px bg-gray-200/20 dark:bg-white/[0.04] mx-6" />
+                <div className="md:flex-1 min-w-0">
                   <DividendsSection refreshTrigger={portfolioRefreshCount} holdings={portfolio.holdings} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
                 </div>
               </div>
