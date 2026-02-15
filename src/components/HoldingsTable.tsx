@@ -786,29 +786,18 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                   </td>
                 </tr>
                 {viewMode === 'detailed' && hasValidPrice && (
-                  <tr className="md:hidden border-b border-rh-light-border/10 dark:border-rh-border/10 bg-gray-50/40 dark:bg-white/[0.015]">
-                    <td colSpan={99} className="px-4 py-1.5">
-                      <div className="grid grid-cols-5 gap-x-3 text-[10px]">
-                        <div>
-                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Shares</span>
-                          <p className="text-rh-light-text dark:text-rh-text font-medium">{holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-                        </div>
-                        <div>
-                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Avg Cost</span>
-                          <p className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency(holding.averageCost)}</p>
-                        </div>
-                        <div>
-                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Weight</span>
-                          <p className="text-rh-light-text dark:text-rh-text font-medium">{totalPortfolioValue > 0 ? `${(holding.currentValue / totalPortfolioValue * 100).toFixed(1)}%` : '—'}</p>
-                        </div>
-                        <div>
-                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Day</span>
-                          <p className={`font-medium ${holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{formatPL(holding.dayChange)}</p>
-                        </div>
-                        <div>
-                          <span className="text-rh-light-muted/60 dark:text-rh-muted/60">Day %</span>
-                          <p className={`font-medium ${holding.dayChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{formatPercent(holding.dayChangePercent)}</p>
-                        </div>
+                  <tr className="md:hidden border-b border-rh-light-border/10 dark:border-rh-border/10">
+                    <td colSpan={99} className="px-4 py-1 pb-2">
+                      <div className="flex items-center gap-3 text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                        <span>{holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares</span>
+                        <span>·</span>
+                        <span>avg {formatCurrency(holding.averageCost)}</span>
+                        <span>·</span>
+                        <span>{totalPortfolioValue > 0 ? `${(holding.currentValue / totalPortfolioValue * 100).toFixed(1)}%` : '—'}</span>
+                        <span>·</span>
+                        <span className={holding.dayChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}>
+                          {formatPL(holding.dayChange)} today
+                        </span>
                       </div>
                     </td>
                   </tr>
