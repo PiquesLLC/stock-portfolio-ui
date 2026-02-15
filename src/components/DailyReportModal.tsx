@@ -34,6 +34,11 @@ const TICKER_BLACKLIST = new Set([
   // Economic indicators / non-stock acronyms
   'CPI', 'GDP', 'PCE', 'PPI', 'PMI', 'ISM', 'FOMC', 'FED', 'SEC', 'IPO', 'ETF',
   'NYSE', 'YOY', 'QOQ', 'MOM', 'BPS', 'CEO', 'CFO', 'COO', 'CTO',
+  // Financial time periods and metrics
+  'YTD', 'QTD', 'MTD', 'ATH', 'ATL', 'EPS', 'ROE', 'ROA', 'ROI', 'NAV', 'AUM',
+  'DCF', 'FCF', 'EBIT', 'WACC', 'CAGR', 'GAAP', 'IFRS',
+  // Common partial company names / ambiguous 2-letter abbreviations
+  'SK', 'AI', 'EV', 'IV', 'PE', 'PB', 'PS',
 ]);
 
 function getTimeAgo(date: Date): string {

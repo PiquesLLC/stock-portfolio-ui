@@ -37,6 +37,28 @@ interface Props {
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
 type SortDir = 'asc' | 'desc';
 
+type DisplayMetric = 'lastPrice' | 'dayChangePct' | 'equity' | 'dayChange' | 'totalReturn' | 'totalReturnPct';
+
+const DISPLAY_METRICS: { key: DisplayMetric; label: string }[] = [
+  { key: 'lastPrice', label: 'Last price' },
+  { key: 'dayChangePct', label: 'Percent change' },
+  { key: 'equity', label: 'Your equity' },
+  { key: 'dayChange', label: "Today's return" },
+  { key: 'totalReturn', label: 'Total return' },
+  { key: 'totalReturnPct', label: 'Total percent change' },
+];
+
+function getMetricDisplay(h: Holding, metric: DisplayMetric): { text: string; isPositive: boolean; isNeutral: boolean } {
+  switch (metric) {
+    case 'lastPrice': return { text: formatCurrency(h.currentPrice), isPositive: true, isNeutral: true };
+    case 'dayChangePct': return { text: formatPercent(h.dayChangePercent), isPositive: h.dayChangePercent >= 0, isNeutral: false };
+    case 'equity': return { text: formatCurrency(h.currentValue), isPositive: true, isNeutral: true };
+    case 'dayChange': return { text: formatPL(h.dayChange), isPositive: h.dayChange >= 0, isNeutral: false };
+    case 'totalReturn': return { text: formatPL(h.profitLoss), isPositive: h.profitLoss >= 0, isNeutral: false };
+    case 'totalReturnPct': return { text: formatPercent(h.profitLossPercent), isPositive: h.profitLossPercent >= 0, isNeutral: false };
+  }
+}
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -87,6 +109,10 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     const stored = localStorage.getItem('holdingsView');
     return stored === 'detailed' ? 'detailed' : 'compact';
   });
+  const [displayMetric, setDisplayMetric] = useState<DisplayMetric>(
+    () => (localStorage.getItem('holdingsDisplayMetric') as DisplayMetric) || 'dayChangePct'
+  );
+  const [showDisplayMenu, setShowDisplayMenu] = useState(false);
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin' });
@@ -583,7 +609,8 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       <div className="px-3 sm:px-4 pb-4 pt-2 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
-          <div className="flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
+          {/* Desktop: Simple/Detailed toggle */}
+          <div className="hidden md:flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
             <button
               type="button"
               onClick={() => { setViewMode('compact'); localStorage.setItem('holdingsView', 'compact'); }}
@@ -595,6 +622,18 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
             >Detailed</button>
           </div>
+          {/* Mobile: gear icon for display data picker */}
+          <button
+            type="button"
+            onClick={() => setShowDisplayMenu(true)}
+            className="md:hidden p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+            title="Display data"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
         </div>
         {!actionsRef && (
           <div className="flex items-center gap-2">
@@ -624,7 +663,67 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           </div>
         )}
       </div>
-      <div className="overflow-x-auto">
+      {/* ── Mobile Card List ──────────────────────────────────────── */}
+      <div className="md:hidden">
+        {sortedHoldings.map((holding, idx) => {
+          const isUnavailable = holding.priceUnavailable;
+          const hasValidPrice = !isUnavailable && holding.currentPrice > 0;
+          const metric = hasValidPrice ? getMetricDisplay(holding, displayMetric) : null;
+
+          return (
+            <div
+              key={holding.id}
+              className={`flex items-center gap-3 px-3 py-3 ${idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''} ${onTickerClick ? 'cursor-pointer active:bg-white/[0.03]' : ''}`}
+              onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
+            >
+              {/* Left: Logo + Ticker + Shares */}
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <StockLogo ticker={holding.ticker} size="sm" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{holding.ticker}</span>
+                    {earningsBadges[holding.ticker] && (
+                      <span className="text-[9px] bg-amber-500/15 text-amber-500 dark:text-amber-400 px-1 py-0.5 rounded-full font-medium">
+                        {earningsBadges[holding.ticker].daysUntil === 0 ? 'ER' : `ER ${earningsBadges[holding.ticker].label}`}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                    {holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares
+                  </p>
+                </div>
+              </div>
+
+              {/* Center: Sparkline */}
+              <div className="flex-shrink-0">
+                {hasValidPrice && (
+                  <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} period={chartPeriod} />
+                )}
+              </div>
+
+              {/* Right: Metric pill */}
+              <div className="flex-shrink-0">
+                {metric ? (
+                  <span className={`inline-block px-2.5 py-1 rounded text-xs font-semibold border ${
+                    metric.isNeutral
+                      ? 'border-rh-light-border/30 dark:border-rh-border/30 text-rh-light-text dark:text-rh-text'
+                      : metric.isPositive
+                      ? 'border-rh-green/40 text-rh-green'
+                      : 'border-rh-red/40 text-rh-red'
+                  }`}>
+                    {metric.text}
+                  </span>
+                ) : (
+                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">—</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop Table ─────────────────────────────────────────── */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="sticky top-0 z-10 backdrop-blur-sm bg-rh-light-bg/90 dark:bg-rh-black/90">
             <tr className="border-t border-b border-rh-light-border/25 dark:border-rh-border/25 text-left text-xs uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60">
@@ -961,6 +1060,48 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ── Display Data Bottom Sheet (mobile) ──────────────────── */}
+      {showDisplayMenu && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          onClick={() => setShowDisplayMenu(false)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          {/* Sheet */}
+          <div
+            className="relative w-full max-w-lg bg-rh-light-card dark:bg-rh-card rounded-t-2xl pb-8 pt-3 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center mb-4">
+              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-white/20" />
+            </div>
+            <h3 className="text-center text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">Display data</h3>
+            <div className="px-4">
+              {DISPLAY_METRICS.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  className="flex items-center justify-between w-full px-4 py-3.5 text-sm text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] rounded-lg transition-colors"
+                  onClick={() => {
+                    setDisplayMetric(m.key);
+                    localStorage.setItem('holdingsDisplayMetric', m.key);
+                    setShowDisplayMenu(false);
+                  }}
+                >
+                  <span>{m.label}</span>
+                  {displayMetric === m.key && (
+                    <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

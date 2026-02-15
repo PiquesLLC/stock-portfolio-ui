@@ -27,11 +27,16 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(4px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'slide-up': {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
       },
       animation: {
         'slide-in-right': 'slide-in-right 0.2s ease-out',
         'fade-in-up': 'fade-in-up 0.5s ease-out both',
         'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
+        'slide-up': 'slide-up 0.25s ease-out',
       },
       colors: {
         // Dark mode colors (primary theme)
