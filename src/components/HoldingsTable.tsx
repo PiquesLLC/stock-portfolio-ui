@@ -622,18 +622,44 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
             >Detailed</button>
           </div>
-          {/* Mobile: gear icon for display data picker */}
-          <button
-            type="button"
-            onClick={() => setShowDisplayMenu(true)}
-            className="md:hidden p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
-            title="Display data"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
+          {/* Mobile: gear icon for display data picker (dropdown) */}
+          <div className="relative md:hidden">
+            <button
+              type="button"
+              onClick={() => setShowDisplayMenu(!showDisplayMenu)}
+              className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+              title="Display data"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            {showDisplayMenu && (
+              <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
+                <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
+                {DISPLAY_METRICS.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                    onClick={() => {
+                      setDisplayMetric(m.key);
+                      localStorage.setItem('holdingsDisplayMetric', m.key);
+                      setShowDisplayMenu(false);
+                    }}
+                  >
+                    <span>{m.label}</span>
+                    {displayMetric === m.key && (
+                      <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {!actionsRef && (
           <div className="flex items-center gap-2">
@@ -677,7 +703,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
             >
               {/* Left: Logo + Ticker + Shares */}
-              <div className="flex items-center gap-2.5 w-[120px] flex-shrink-0">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <StockLogo ticker={holding.ticker} size="sm" />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -695,14 +721,14 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               </div>
 
               {/* Center: Sparkline */}
-              <div className="flex-1 flex justify-center">
+              <div className="flex-shrink-0 px-3">
                 {hasValidPrice && (
                   <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} period={chartPeriod} />
                 )}
               </div>
 
               {/* Right: Equity + Metric stacked */}
-              <div className="flex-shrink-0 text-right min-w-[80px]">
+              <div className="flex-1 text-right">
                 {hasValidPrice ? (
                   <>
                     <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
@@ -1070,47 +1096,9 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           </div>
         </div>
       )}
-      {/* ── Display Data Bottom Sheet (mobile) ──────────────────── */}
+      {/* Click-outside handler for display data dropdown */}
       {showDisplayMenu && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          onClick={() => setShowDisplayMenu(false)}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          {/* Sheet */}
-          <div
-            className="relative w-full max-w-lg bg-rh-light-card dark:bg-rh-card rounded-t-2xl pb-8 pt-3 animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Handle bar */}
-            <div className="flex justify-center mb-4">
-              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-white/20" />
-            </div>
-            <h3 className="text-center text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">Display data</h3>
-            <div className="px-4">
-              {DISPLAY_METRICS.map((m) => (
-                <button
-                  key={m.key}
-                  type="button"
-                  className="flex items-center justify-between w-full px-4 py-3.5 text-sm text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] rounded-lg transition-colors"
-                  onClick={() => {
-                    setDisplayMetric(m.key);
-                    localStorage.setItem('holdingsDisplayMetric', m.key);
-                    setShowDisplayMenu(false);
-                  }}
-                >
-                  <span>{m.label}</span>
-                  {displayMetric === m.key && (
-                    <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <div className="fixed inset-0 z-40" onClick={() => setShowDisplayMenu(false)} />
       )}
       {confirmDeleteTicker && (
         <ConfirmModal
