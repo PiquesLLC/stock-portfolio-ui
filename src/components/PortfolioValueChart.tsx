@@ -949,9 +949,9 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
             {/* Stroke brightness gradient — boosted when market open */}
             <linearGradient id="stroke-fade" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor={lineColor} stopOpacity="0" />
-              <stop offset="4%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.6 : 0.45} />
-              <stop offset="50%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.85 : 0.7} />
-              <stop offset="96%" stopColor={lineColor} stopOpacity={isMarketOpen ? 1 : 1} />
+              <stop offset="3%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.7 : 0.5} />
+              <stop offset="40%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.95 : 0.8} />
+              <stop offset="97%" stopColor={lineColor} stopOpacity="1" />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
             {/* Water ripple distortion filter */}
@@ -964,10 +964,10 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
               <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </radialGradient>
-            {/* Area fill gradient under line — slightly stronger when market open */}
+            {/* Area fill gradient under line — richer gradient for more visual weight */}
             <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.12 : 0.06} />
-              <stop offset="80%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.03 : 0.01} />
+              <stop offset="0%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.22 : 0.12} />
+              <stop offset="50%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.08 : 0.04} />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
             {/* Measurement shading gradient */}
@@ -1078,8 +1078,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
             const dimOpacity = hoveredSession !== null ? 0.25 : 0.45;
             const activeOpacity = 1;
-            const dimWidth = 1.1;
-            const activeWidth = 1.6;
+            const dimWidth = 1.5;
+            const activeWidth = 2;
 
             return (
               <>
@@ -1103,7 +1103,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
               </>
             );
           })() : hasData && (
-            <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* ── Benchmark (SPY) overlay line — clipped to chart area ── */}

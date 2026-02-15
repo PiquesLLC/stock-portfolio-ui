@@ -810,7 +810,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           )}
 
           {/* Metadata grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 text-sm">
             {/* ETF-specific fields first */}
             {about?.category && (
               <div>

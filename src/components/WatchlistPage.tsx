@@ -286,7 +286,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
 
         {/* Summary bar */}
         {detail && detail.holdings.length > 0 && (
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3 rounded-xl bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.04]">
+          <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-2 px-4 py-3 rounded-xl bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.04]">
             <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest bg-rh-green/10 text-rh-green/80 border border-rh-green/20">Watchlist</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Value</span>

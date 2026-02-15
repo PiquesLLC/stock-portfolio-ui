@@ -52,7 +52,7 @@ function getMetricDisplay(h: Holding, metric: DisplayMetric): { text: string; is
   switch (metric) {
     case 'lastPrice': return { text: formatCurrency(h.currentPrice), isPositive: true, isNeutral: true };
     case 'dayChangePct': return { text: formatPercent(h.dayChangePercent), isPositive: h.dayChangePercent >= 0, isNeutral: false };
-    case 'equity': return { text: formatCurrency(h.currentValue), isPositive: true, isNeutral: true };
+    case 'equity': return { text: formatPercent(h.dayChangePercent), isPositive: h.dayChangePercent >= 0, isNeutral: false }; // equity shown on top, so show day change below
     case 'dayChange': return { text: formatPL(h.dayChange), isPositive: h.dayChange >= 0, isNeutral: false };
     case 'totalReturn': return { text: formatPL(h.profitLoss), isPositive: h.profitLoss >= 0, isNeutral: false };
     case 'totalReturnPct': return { text: formatPercent(h.profitLossPercent), isPositive: h.profitLossPercent >= 0, isNeutral: false };
@@ -673,11 +673,11 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           return (
             <div
               key={holding.id}
-              className={`flex items-center gap-3 px-3 py-3 ${idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''} ${onTickerClick ? 'cursor-pointer active:bg-white/[0.03]' : ''}`}
+              className={`flex items-center px-3 py-3 ${idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''} ${onTickerClick ? 'cursor-pointer active:bg-gray-100 dark:active:bg-white/[0.03]' : ''}`}
               onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
             >
               {/* Left: Logo + Ticker + Shares */}
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2.5 w-[120px] flex-shrink-0">
                 <StockLogo ticker={holding.ticker} size="sm" />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -695,24 +695,31 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               </div>
 
               {/* Center: Sparkline */}
-              <div className="flex-shrink-0">
+              <div className="flex-1 flex justify-center">
                 {hasValidPrice && (
                   <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} period={chartPeriod} />
                 )}
               </div>
 
-              {/* Right: Metric pill */}
-              <div className="flex-shrink-0">
-                {metric ? (
-                  <span className={`inline-block px-2.5 py-1 rounded text-xs font-semibold border ${
-                    metric.isNeutral
-                      ? 'border-rh-light-border/30 dark:border-rh-border/30 text-rh-light-text dark:text-rh-text'
-                      : metric.isPositive
-                      ? 'border-rh-green/40 text-rh-green'
-                      : 'border-rh-red/40 text-rh-red'
-                  }`}>
-                    {metric.text}
-                  </span>
+              {/* Right: Equity + Metric stacked */}
+              <div className="flex-shrink-0 text-right min-w-[80px]">
+                {hasValidPrice ? (
+                  <>
+                    <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+                      {formatCurrency(holding.currentValue)}
+                    </p>
+                    {metric && (
+                      <p className={`text-[11px] font-medium ${
+                        metric.isNeutral
+                          ? 'text-rh-light-muted dark:text-rh-muted'
+                          : metric.isPositive
+                          ? 'text-rh-green'
+                          : 'text-rh-red'
+                      }`}>
+                        {metric.text}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <span className="text-xs text-rh-light-muted dark:text-rh-muted">—</span>
                 )}
