@@ -480,7 +480,7 @@ function Treemap({
                       transition: 'fill 0.15s',
                     }}
                   >
-                    {sr.w < 30 ? sr.sector.name.slice(0, 3) : sr.w < 60 ? sr.sector.name.slice(0, 6) : sr.sector.name}
+                    {sr.w < 30 ? sr.sector.name.slice(0, 3) : sr.w < 60 ? sr.sector.name.slice(0, 7) : sr.sector.name}
                   </text>
                 </g>
               );
@@ -565,15 +565,22 @@ function Treemap({
                     const tileH = Math.max(0, r.h - GAP);
                     const halfGap = GAP / 2;
 
-                    const showTicker = isMobile ? (tileW > 26 && tileH > 14) : (tileW > 16 && tileH > 10);
+                    const showTicker = tileW > 6 && tileH > 5;
                     const showPct = isMobile ? (tileW > 34 && tileH > 22) : (tileW > 24 && tileH > 20);
                     const fontSize = tileW > 110 && tileH > 65 ? 15
                       : tileW > 80 && tileH > 50 ? 13
                       : tileW > 55 && tileH > 35 ? 11
                       : tileW > 35 && tileH > 22 ? 9
                       : tileW > 20 && tileH > 14 ? 7.5
-                      : 6.5;
+                      : tileW > 14 && tileH > 9 ? 5.5
+                      : tileW > 9 && tileH > 6 ? 4.5
+                      : 3.5;
                     const pctFontSize = Math.max(fontSize - 1.5, 6);
+                    // Abbreviate ticker for tiny tiles
+                    const tickerText = tileW > 26 && tileH > 14 ? r.stock.ticker
+                      : tileW > 18 && tileH > 10 ? r.stock.ticker.slice(0, 3)
+                      : tileW > 10 && tileH > 7 ? r.stock.ticker.slice(0, 2)
+                      : r.stock.ticker.slice(0, 1);
 
                     let opacity = 1;
                     if (hoveredStock) {
@@ -636,7 +643,7 @@ function Treemap({
                                 fill="#fff"
                                 style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
                               >
-                                {r.stock.ticker}
+                                {tickerText}
                               </text>
                               {showPct && (
                                 <text
