@@ -762,7 +762,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative pt-8 pb-3 ${
+    <div className={`relative pt-5 pb-3 ${
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
     }`}>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
@@ -1375,14 +1375,13 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       </div>
 
-      {/* Hint + Period selector */}
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-2 px-3 sm:px-6">
-        <div className="flex gap-0.5">
+      {/* Period selector — full width, evenly spaced */}
+      <div className="flex justify-between items-center mt-2 px-3 sm:px-6">
         {PERIODS.map(period => (
           <button
             key={period}
             onClick={() => handlePeriodChange(period)}
-            className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
+            className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
               selectedPeriod === period
                 ? `${isGain ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'}`
                 : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted hover:bg-gray-100/50 dark:hover:bg-white/[0.02]'
@@ -1391,11 +1390,12 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
             {period}
           </button>
         ))}
-        </div>
-        {/* SPY benchmark toggle */}
+      </div>
+      {/* Compare + hint — subtle secondary row */}
+      <div className="flex items-center justify-between mt-1 px-3 sm:px-6">
         <button
           onClick={() => setShowBenchmark(prev => !prev)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
             showBenchmark
               ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
               : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
@@ -1404,8 +1404,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
         </button>
         {showHint && hasData && !isMeasuring && (
-          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 ml-auto">
-            Tap chart or use two fingers to measure gains
+          <span className="text-[10px] text-rh-light-muted/30 dark:text-rh-muted/30">
+            {'ontouchstart' in window ? 'Tap chart or use two fingers to measure gains' : 'Click chart to measure gains between two dates'}
           </span>
         )}
       </div>
