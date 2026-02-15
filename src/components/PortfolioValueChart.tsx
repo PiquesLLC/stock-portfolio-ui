@@ -766,11 +766,11 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
     }`}>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
-      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ height: '140px' }}>
+      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ height: '150px' }}>
         {/* Hero value display — FOREGROUND: highest visual weight */}
         {!hasMeasurement && (
           <div>
-            <p className={`text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
+            <p className={`text-[40px] sm:text-5xl md:text-6xl font-black tracking-tighter leading-none text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
               isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
             }`}>
               {formatCurrency(displayValue)}
@@ -778,24 +778,24 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
             {/* Show separate regular + after-hours lines when applicable */}
             {selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST' ? (
               <>
-                <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
-                  <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+                  <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
                 </p>
-                <p className={`text-xs mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                <p className={`text-sm mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                   {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
-                  <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-[10px] ml-1.5">After hours</span>
+                  <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">After hours</span>
                 </p>
               </>
             ) : (
               <>
-                <p className={`text-sm mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                <p className={`text-base mt-2 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
                   {formatChange(displayChange)} ({formatPct(displayChangePct)})
                   {hoverIndex !== null && hoverLabel && (
-                    <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-xs ml-2">{hoverLabel}</span>
+                    <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-sm ml-2">{hoverLabel}</span>
                   )}
                   {hoverIndex === null && selectedPeriod === '1D' && (
-                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
                   )}
                 </p>
                 {/* Benchmark comparison on hover */}
@@ -1382,7 +1382,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           <button
             key={period}
             onClick={() => handlePeriodChange(period)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 ${
+            className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
               selectedPeriod === period
                 ? `${isGain ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'}`
                 : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted hover:bg-gray-100/50 dark:hover:bg-white/[0.02]'

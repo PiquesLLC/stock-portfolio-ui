@@ -726,16 +726,16 @@ export default function App() {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                     <div>
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Value" advanced="Assets" /></span>
-                      <div className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Value" advanced="Assets" /></span>
+                      <div className="text-base font-bold text-rh-light-text dark:text-rh-text">
                         {portfolio.totalAssets > 0 ? formatCurrency(portfolio.totalAssets) : '—'}
                       </div>
                     </div>
                     <div>
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Owned" advanced="Equity" /></span>
-                      <div className="text-sm font-bold text-rh-light-text/80 dark:text-rh-text/80">
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45"><Term beginner="Total Owned" advanced="Equity" /></span>
+                      <div className="text-base font-bold text-rh-light-text dark:text-rh-text">
                         {formatCurrency(portfolio.netEquity)}
                       </div>
                     </div>
@@ -744,42 +744,42 @@ export default function App() {
                         {portfolio.cashBalance > 0 && (
                           <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-green/[0.08] border border-rh-green/20">
                             <span className="text-[10px] font-medium uppercase tracking-wider text-rh-green/60">Cash</span>
-                            <span className="text-xs font-bold text-rh-green">${portfolio.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-sm font-bold text-rh-green">${portfolio.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                         )}
                         {portfolio.marginDebt > 0 && (
                           <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg bg-rh-red/[0.08] border border-rh-red/20">
                             <span className="text-[10px] font-medium uppercase tracking-wider text-rh-red/60">Margin</span>
-                            <span className="text-xs font-bold text-rh-red">-${portfolio.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-sm font-bold text-rh-red">-${portfolio.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                         )}
                       </div>
                     )}
                     <div>
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="Today" advanced="Day" /></span>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="Today" advanced="Day" /></span>
                       <div className="flex items-baseline gap-1.5">
-                        <span className={`text-sm font-bold ${
-                          portfolio.dayChange === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
+                        <span className={`text-base font-bold ${
+                          portfolio.dayChange === 0 ? 'text-rh-light-text dark:text-rh-text' : portfolio.dayChange > 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                         }`}>
                           {portfolio.holdings.length > 0 ? formatCurrency(portfolio.dayChange) : '—'}
                         </span>
                         {portfolio.holdings.length > 0 && (
-                          <span className={`text-[10px] ${portfolio.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                          <span className={`text-xs ${portfolio.dayChange >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
                             {formatPercent(portfolio.dayChangePercent)}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="col-span-2">
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="All-Time Gain/Loss" advanced="Total P/L" /></span>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35"><Term beginner="All-Time Gain/Loss" advanced="Total P/L" /></span>
                       <div className="flex items-baseline gap-1.5">
-                        <span className={`text-sm font-extrabold ${
-                          portfolio.totalPL === 0 ? 'text-rh-light-text/80 dark:text-rh-text/80' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
+                        <span className={`text-base font-extrabold ${
+                          portfolio.totalPL === 0 ? 'text-rh-light-text dark:text-rh-text' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                         }`}>
                           {portfolio.holdings.length > 0 ? formatCurrency(portfolio.totalPL) : '—'}
                         </span>
                         {portfolio.holdings.length > 0 && (
-                          <span className={`text-[10px] ${portfolio.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                          <span className={`text-xs ${portfolio.totalPL >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
                             {formatPercent(portfolio.totalPLPercent)}
                           </span>
                         )}
