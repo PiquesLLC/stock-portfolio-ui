@@ -877,7 +877,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
               {/* Clear hint */}
               <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">
-                Click chart to remeasure · Click outside to clear
+                {'ontouchstart' in window ? 'Tap chart to remeasure · Tap outside to clear' : 'Click chart to remeasure · Click outside to clear'}
               </div>
             </div>
           </div>

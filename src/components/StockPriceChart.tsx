@@ -2747,7 +2747,9 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
                 })()}
 
                 <div className="text-[9px] text-white/25 mt-0.5">
-                  {hasFullMeasurement ? 'Click chart to remeasure · ESC to clear' : 'Click a 3rd point for total · ESC to clear'}
+                  {'ontouchstart' in window
+                    ? (hasFullMeasurement ? 'Tap to remeasure · Tap outside to clear' : 'Tap a 3rd point for total · Tap outside to clear')
+                    : (hasFullMeasurement ? 'Click chart to remeasure · ESC to clear' : 'Click a 3rd point for total · ESC to clear')}
                 </div>
               </div>
             </div>
