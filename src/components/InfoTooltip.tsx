@@ -10,19 +10,23 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
 
   useEffect(() => {
     if (!show) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent | TouchEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setShow(false);
       }
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, [show]);
 
   return (
     <span className="relative inline-flex" ref={ref}>
       <button
-        onClick={() => setShow(!show)}
+        onClick={(e) => { e.stopPropagation(); setShow(!show); }}
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
         className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold
@@ -40,7 +44,7 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
           bg-gray-800/95 dark:bg-[#1e1e1e]/95 backdrop-blur-md
           border border-gray-700/50 dark:border-white/[0.1]
           text-gray-100 text-[11px] leading-relaxed rounded-xl shadow-xl
-          px-3.5 py-2.5 pointer-events-none
+          px-3.5 py-2.5
           animate-in fade-in duration-150"
         >
           {text}

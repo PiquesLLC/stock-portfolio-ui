@@ -242,6 +242,7 @@ function Treemap({
   const [hoveredSubSector, setHoveredSubSector] = useState<{ sector: string; subSector: string } | null>(null);
   const [hoveredSectorLabel, setHoveredSectorLabel] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [tappedStock, setTappedStock] = useState<{ stock: HeatmapStock; sectorName: string } | null>(null);
   const isDark = document.documentElement.classList.contains('dark');
 
   // Build sub-sector lookup for the popup
@@ -313,7 +314,7 @@ function Treemap({
       // Only show sub-sector nesting if sector is big enough and has >1 sub-sector
       const hasMultipleSubs = sector.subSectors.length > 1;
       const sectorAreaPx = innerW * innerH;
-      const showSubLabels = hasMultipleSubs && sectorAreaPx > 8000;
+      const showSubLabels = hasMultipleSubs && sectorAreaPx > 2000;
 
       if (!showSubLabels) {
         // Flat layout — all stocks directly
@@ -349,7 +350,7 @@ function Treemap({
 
       const subRects: SubSectorRect[] = subLayout.map((subL) => {
         const sub = subL.data;
-        const subLabelH = subL.h > 30 && subL.w > 50 ? SUB_SECTOR_LABEL_H : 0;
+        const subLabelH = subL.h > 16 && subL.w > 20 ? SUB_SECTOR_LABEL_H : 0;
         const stockX = subL.x + 1;
         const stockY = subL.y + subLabelH + 1;
         const stockW = subL.w - 2;
@@ -414,7 +415,9 @@ function Treemap({
     : null;
 
   return (
-    <div ref={containerRef} className="w-full relative" onMouseMove={handleMouseMove}>
+    <div ref={containerRef} className="w-full relative" onMouseMove={handleMouseMove}
+      onClick={() => { if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); } }}
+    >
       <div className="rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40"
         style={{ background: isDark ? (dims.width < 640 ? '#0f0f12' : 'rgba(15,15,18,0.85)') : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.9)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
       >
@@ -436,7 +439,7 @@ function Treemap({
               rx={1}
             />
             {/* Sector label bar — clicks through to sector ETF */}
-            {sr.w > 40 && (() => {
+            {sr.w > 10 && (() => {
               const etf = SECTOR_ETF[sr.sector.name];
               const isLabelHovered = hoveredSectorLabel === sr.sector.name;
               return (
@@ -457,35 +460,41 @@ function Treemap({
                     rx={1}
                     style={{ transition: 'fill 0.15s' }}
                   />
+                  <clipPath id={`slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')}`}>
+                    <rect x={sr.x + 2} y={sr.y} width={Math.max(0, sr.w - 4)} height={SECTOR_LABEL_H + 2} />
+                  </clipPath>
                   <text
                     x={sr.x + SECTOR_GAP + 4}
                     y={sr.y + SECTOR_LABEL_H - 4}
-                    fontSize={sr.w > 200 ? 9.5 : sr.w > 100 ? 8 : 6.5}
+                    fontSize={sr.w > 200 ? 9.5 : sr.w > 100 ? 8 : sr.w > 60 ? 6.5 : sr.w > 30 ? 5 : 4}
                     fontWeight={700}
                     fill={isLabelHovered
                       ? (isDark ? '#fff' : 'rgba(0,0,0,0.8)')
                       : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)')}
+                    clipPath={`url(#slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')})`}
                     style={{
                       pointerEvents: 'none',
                       fontFamily: 'system-ui, -apple-system, sans-serif',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.06em',
+                      letterSpacing: sr.w > 60 ? '0.06em' : '0.02em',
                       transition: 'fill 0.15s',
                     }}
                   >
-                    {sr.sector.name}
+                    {sr.w < 30 ? sr.sector.name.slice(0, 3) : sr.w < 60 ? sr.sector.name.slice(0, 6) : sr.sector.name}
                   </text>
                 </g>
               );
             })()}
             {/* Sub-sector groups */}
             {sr.subSectors.map((subR) => {
-              const subFontSize = subR.w > 120 ? 7.5 : 6;
+              const subFontSize = subR.w > 120 ? 7.5 : subR.w > 60 ? 6 : 4.5;
               const charW = subFontSize * 0.58;
-              const fullFits = subR.subSector.name.length * charW < subR.w - 8;
+              const fullFits = subR.subSector.name.length * charW < subR.w - 6;
               const abbr = abbreviateSubSector(subR.subSector.name);
-              const abbrFits = abbr.length * charW < subR.w - 8;
-              const showSubLabel = sr.sector.subSectors.length > 1 && subR.h > 30 && (fullFits || abbrFits) && dims.width >= 640;
+              const abbrFits = abbr.length * charW < subR.w - 6;
+              const maxChars = Math.max(3, Math.floor((subR.w - 6) / charW));
+              const truncName = subR.subSector.name.slice(0, maxChars);
+              const showSubLabel = sr.sector.subSectors.length > 1 && subR.h > 16 && subR.w > 20;
               const isSubHovered = hoveredSubSector?.sector === sr.sector.name
                 && hoveredSubSector?.subSector === subR.subSector.name;
               return (
@@ -505,27 +514,38 @@ function Treemap({
                   {/* Sub-sector label — abbreviated when tight, expands on hover */}
                   {showSubLabel && (() => {
                     const expanded = isSubHovered || fullFits;
-                    const labelText = expanded ? subR.subSector.name : abbr;
+                    const labelText = expanded ? subR.subSector.name : (abbrFits ? abbr : truncName);
                     const clipId = `sc-${sr.sector.name}-${subR.subSector.name}`.replace(/[^a-zA-Z0-9]/g, '_');
                     return (
                       <>
                         <clipPath id={clipId}>
                           <rect x={subR.x} y={subR.y} width={subR.w} height={SUB_SECTOR_LABEL_H} />
                         </clipPath>
+                        <rect
+                          x={subR.x + 1}
+                          y={subR.y + 1}
+                          width={Math.max(0, subR.w - 2)}
+                          height={SUB_SECTOR_LABEL_H - 1}
+                          fill={isSubHovered
+                            ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)')
+                            : (isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.05)')}
+                          rx={0.5}
+                          style={{ transition: 'fill 0.15s', pointerEvents: 'none' }}
+                        />
                         <text
                           x={subR.x + 3}
                           y={subR.y + SUB_SECTOR_LABEL_H - 3}
                           fontSize={subFontSize}
                           fontWeight={600}
                           fill={isSubHovered
-                            ? (isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.6)')
-                            : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)')}
-                          clipPath={expanded ? undefined : `url(#${clipId})`}
+                            ? (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.7)')
+                            : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)')}
+                          clipPath={`url(#${clipId})`}
                           style={{
                             pointerEvents: 'none',
                             fontFamily: 'system-ui, -apple-system, sans-serif',
                             textTransform: 'uppercase',
-                            letterSpacing: '0.04em',
+                            letterSpacing: subR.w > 60 ? '0.04em' : '0.02em',
                             transition: 'fill 0.15s',
                           }}
                         >
@@ -569,9 +589,25 @@ function Treemap({
                     return (
                       <g
                         key={r.stock.ticker}
-                        onClick={() => onTickerClick(r.stock.ticker)}
-                        onMouseEnter={() => handleStockHover(r.stock, r.sectorName)}
-                        onMouseLeave={handleStockLeave}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (tappedStock?.stock.ticker === r.stock.ticker) {
+                            // Second tap — navigate
+                            onTickerClick(r.stock.ticker);
+                            setTappedStock(null);
+                            setHoveredStock(null);
+                            setHoveredSubSector(null);
+                          } else {
+                            // First tap — show tooltip
+                            setTappedStock({ stock: r.stock, sectorName: r.sectorName });
+                            setHoveredStock(r.stock);
+                            setHoveredSubSector({ sector: r.sectorName, subSector: r.stock.subSector });
+                            const rect = containerRef.current?.getBoundingClientRect();
+                            if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                          }
+                        }}
+                        onMouseEnter={() => { if (!tappedStock) handleStockHover(r.stock, r.sectorName); }}
+                        onMouseLeave={() => { if (!tappedStock) handleStockLeave(); }}
                         style={{ cursor: 'pointer' }}
                       >
                         <rect
@@ -632,9 +668,9 @@ function Treemap({
       {/* Finviz-style sub-sector popup */}
       {hoveredStock && popupSubSector && (
         <div
-          className="absolute z-50 pointer-events-none rounded-xl shadow-2xl shadow-black/60 border text-xs
+          className={`absolute z-50 rounded-xl shadow-2xl shadow-black/60 border text-xs
             bg-white/95 dark:bg-[#1a1a1e]/90 border-white/20 dark:border-white/10
-            backdrop-blur-xl"
+            backdrop-blur-xl ${tappedStock ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
             left: Math.min(
               tooltipPos.x + 16,
@@ -698,6 +734,15 @@ function Treemap({
               </div>
             )}
           </div>
+          {/* Tap-again hint for mobile */}
+          {tappedStock && (
+            <button
+              className="w-full px-3 py-2 border-t border-white/10 dark:border-white/5 text-center text-[10px] font-medium text-rh-green hover:bg-rh-green/10 transition-colors rounded-b-xl"
+              onClick={(e) => { e.stopPropagation(); onTickerClick(tappedStock.stock.ticker); setTappedStock(null); setHoveredStock(null); }}
+            >
+              Tap to view {tappedStock.stock.ticker} →
+            </button>
+          )}
         </div>
       )}
     </div>

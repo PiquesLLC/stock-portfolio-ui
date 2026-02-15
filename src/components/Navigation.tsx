@@ -132,7 +132,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
             </button>
 
             {moreOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] py-1 rounded-xl shadow-2xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/[0.08] backdrop-blur-xl">
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] py-1 rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1b]">
                 {OVERFLOW_TABS.map((tab) => (
                   <button
                     key={tab.id}

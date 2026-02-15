@@ -61,9 +61,9 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
   return (
     <div>
       <div className="mb-3">
-        <div className="flex items-center justify-between text-[10px] mb-1">
-          <span className="text-rh-green font-medium">Gains {formatCurrency(totalGains)}</span>
-          <span className="text-rh-red font-medium">Losses {formatCurrency(-totalLosses)}</span>
+        <div className="flex items-center justify-between text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">
+          <span><span className="text-rh-green/70">{formatCurrency(totalGains)}</span></span>
+          <span><span className="text-rh-red/70">{formatCurrency(-totalLosses)}</span></span>
         </div>
         <div className="h-2 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.04]">
           <div className="h-full bg-rh-green/60 rounded-l-full transition-all duration-500" style={{ width: `${gainsWidth}%` }} />
@@ -94,7 +94,7 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
           </div>
         </div>
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3 min-w-0">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1 truncate">Top Concentration</div>
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1 truncate">Top Conc.</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
           <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">of movement</div>
         </div>
@@ -135,7 +135,7 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
 
   return (
     <div
-      className={`relative flex items-center gap-3 py-1.5 rounded-lg px-2 -mx-2 transition-all duration-200 ${
+      className={`relative flex items-center gap-2 sm:gap-3 py-1.5 rounded-lg px-2 -mx-2 transition-all duration-200 ${
         isDimmed ? 'opacity-30' : 'opacity-100'
       } ${!isDimmed ? 'hover:bg-gray-100/60 dark:hover:bg-white/[0.04]' : ''}`}
       onMouseEnter={() => { onHover(entry.ticker); setShowPopover(true); }}
@@ -473,47 +473,46 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
 
       {!loading && (
         <>
-          {/* Contributors + Detractors side by side */}
+          {/* Movers — Contributors + Detractors grouped */}
           {(contributors.length > 0 || detractors.length > 0) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Contributors */}
-              <div>
-                <h4 className="text-sm font-medium text-rh-green mb-2">Top Contributors</h4>
-                {contributors.length > 0 ? (
-                  contributors.map(c => (
-                    <ContributorBar
-                      key={c.ticker}
-                      entry={c}
-                      maxAbsDollar={maxAbsDollar}
-                      isPositive={true}
-                      onTickerClick={onTickerClick}
-                      totalAbsDollar={totalGainsDollar}
-                      isDimmed={hoveredTicker !== null && hoveredTicker !== c.ticker}
-                      onHover={setHoveredTicker}
-                    />
-                  ))
-                ) : (
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">No gainers this period</p>
+            <div>
+              <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-white/40 mb-3">Movers</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                {/* Contributors */}
+                {contributors.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-green/70 mb-1.5">Contributors</p>
+                    {contributors.map(c => (
+                      <ContributorBar
+                        key={c.ticker}
+                        entry={c}
+                        maxAbsDollar={maxAbsDollar}
+                        isPositive={true}
+                        onTickerClick={onTickerClick}
+                        totalAbsDollar={totalGainsDollar}
+                        isDimmed={hoveredTicker !== null && hoveredTicker !== c.ticker}
+                        onHover={setHoveredTicker}
+                      />
+                    ))}
+                  </div>
                 )}
-              </div>
-              {/* Detractors */}
-              <div>
-                <h4 className="text-sm font-medium text-red-400 mb-2">Top Detractors</h4>
-                {detractors.length > 0 ? (
-                  detractors.map(c => (
-                    <ContributorBar
-                      key={c.ticker}
-                      entry={c}
-                      maxAbsDollar={maxAbsDollar}
-                      isPositive={false}
-                      onTickerClick={onTickerClick}
-                      totalAbsDollar={totalLossesDollar}
-                      isDimmed={hoveredTicker !== null && hoveredTicker !== c.ticker}
-                      onHover={setHoveredTicker}
-                    />
-                  ))
-                ) : (
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">No losers this period</p>
+                {/* Detractors */}
+                {detractors.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-red-400/70 mb-1.5">Detractors</p>
+                    {detractors.map(c => (
+                      <ContributorBar
+                        key={c.ticker}
+                        entry={c}
+                        maxAbsDollar={maxAbsDollar}
+                        isPositive={false}
+                        onTickerClick={onTickerClick}
+                        totalAbsDollar={totalLossesDollar}
+                        isDimmed={hoveredTicker !== null && hoveredTicker !== c.ticker}
+                        onHover={setHoveredTicker}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
