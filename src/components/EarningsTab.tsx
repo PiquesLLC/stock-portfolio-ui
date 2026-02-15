@@ -138,7 +138,7 @@ export function EarningsTab({ holdings, onTickerClick }: EarningsTabProps) {
           </div>
         </div>
       ) : (
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] border border-gray-200/40 dark:border-white/[0.06] rounded-2xl p-6 text-center">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-2xl p-6 text-center">
           <p className="text-sm text-rh-light-muted dark:text-rh-muted">No upcoming earnings for your holdings</p>
         </div>
       )}
@@ -154,7 +154,7 @@ export function EarningsTab({ holdings, onTickerClick }: EarningsTabProps) {
               <button
                 key={e.ticker}
                 onClick={() => onTickerClick?.(e.ticker)}
-                className="shrink-0 bg-gray-50/80 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.08] rounded-xl px-4 py-3 hover:border-amber-400/30 transition-colors text-left min-w-[130px]"
+                className="shrink-0 bg-gray-50/40 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.05] rounded-xl px-4 py-3 hover:border-amber-400/30 transition-colors text-left min-w-[130px]"
               >
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{e.ticker}</span>
