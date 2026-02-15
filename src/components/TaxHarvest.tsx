@@ -36,16 +36,20 @@ export function TaxHarvest({ onTickerClick }: Props) {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="h-24 bg-gray-100 dark:bg-white/[0.04] rounded-xl animate-pulse" />
-        <div className="h-48 bg-gray-100 dark:bg-white/[0.04] rounded-xl animate-pulse" />
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-[72px] bg-gray-100/60 dark:bg-white/[0.03] rounded-xl animate-pulse" />
+          ))}
+        </div>
+        <div className="h-48 bg-gray-100/60 dark:bg-white/[0.03] rounded-xl animate-pulse" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] rounded-xl p-6 text-center text-sm text-rh-light-muted dark:text-rh-muted">
+      <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-6 text-center text-sm text-rh-light-muted dark:text-rh-muted">
         {error || 'Unable to load tax harvest data'}
       </div>
     );
@@ -96,7 +100,7 @@ export function TaxHarvest({ onTickerClick }: Props) {
 
       {/* Harvest Candidates Table */}
       {harvestCandidates.length > 0 ? (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-200/40 dark:border-white/[0.06]">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
               Harvest Candidates ({harvestCandidates.length})
@@ -105,7 +109,7 @@ export function TaxHarvest({ onTickerClick }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-rh-light-muted dark:text-rh-muted border-b border-gray-200/40 dark:border-white/[0.06]">
+                <tr className="text-rh-light-text/60 dark:text-rh-text/60 border-b border-gray-200/40 dark:border-white/[0.06]">
                   <th className="px-4 py-2 text-left font-medium">Ticker</th>
                   <th className="px-4 py-2 text-right font-medium">Cost Basis</th>
                   <th className="px-4 py-2 text-right font-medium">Current</th>
@@ -150,7 +154,7 @@ export function TaxHarvest({ onTickerClick }: Props) {
           </div>
         </div>
       ) : (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] rounded-xl p-6 text-center">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-6 text-center">
           <p className="text-sm text-rh-green font-medium">No unrealized losses in your portfolio</p>
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">All your positions are at a gain. Nothing to harvest.</p>
         </div>
@@ -158,7 +162,7 @@ export function TaxHarvest({ onTickerClick }: Props) {
 
       {/* AI Analysis */}
       {aiAnalysis && (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5">
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -199,7 +203,7 @@ export function TaxHarvest({ onTickerClick }: Props) {
 
 function SummaryCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-4">
+    <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-4">
       <div className="text-[10px] text-rh-light-muted dark:text-rh-muted mb-1">{label}</div>
       <div className={`text-base font-bold ${color}`}>{value}</div>
     </div>
