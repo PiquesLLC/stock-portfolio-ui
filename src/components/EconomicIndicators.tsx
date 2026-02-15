@@ -51,17 +51,44 @@ function RegionSection({
   extraHeaderRight?: ReactNode;
 }) {
   const isThisRegion = selected?.region === region;
-  // Determine which row the selected card is in (3 cols on lg, 2 on sm, 1 on xs)
-  // We use lg breakpoint (3 cols) for row calculation since that's the grid layout
   const selectedIdx = isThisRegion ? selected!.idx : -1;
+  const chartRef = useRef<HTMLDivElement>(null);
 
-  // Group indicators into rows of 3 (matching lg:grid-cols-3)
+  // Track actual column count based on viewport width
+  const [cols, setCols] = useState(() => {
+    const w = window.innerWidth;
+    return w >= 1024 ? 3 : w >= 640 ? 2 : 1;
+  });
+  useEffect(() => {
+    const check = () => {
+      const w = window.innerWidth;
+      setCols(w >= 1024 ? 3 : w >= 640 ? 2 : 1);
+    };
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Group indicators into rows matching actual grid columns
   const rows: EconomicIndicator[][] = [];
-  for (let i = 0; i < indicators.length; i += 3) {
-    rows.push(indicators.slice(i, i + 3));
+  for (let i = 0; i < indicators.length; i += cols) {
+    rows.push(indicators.slice(i, i + cols));
   }
 
-  const selectedRowIdx = selectedIdx >= 0 ? Math.floor(selectedIdx / 3) : -1;
+  const selectedRowIdx = selectedIdx >= 0 ? Math.floor(selectedIdx / cols) : -1;
+
+  // Scroll chart into view when it appears
+  const prevSelectedRef = useRef<SelectedCard | null>(null);
+  useEffect(() => {
+    const justSelected = selected && (!prevSelectedRef.current
+      || prevSelectedRef.current.region !== selected.region
+      || prevSelectedRef.current.idx !== selected.idx);
+    prevSelectedRef.current = selected;
+    if (justSelected && isThisRegion && chartRef.current) {
+      setTimeout(() => {
+        chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
+  }, [selected, isThisRegion]);
 
   return (
     <div id={id} className="space-y-3 scroll-mt-4">
@@ -97,7 +124,7 @@ function RegionSection({
               })}
             </div>
             {isThisRegion && selectedIndicator && selectedRowIdx === rowIdx && (
-              <div className="mt-4">
+              <div className="mt-4" ref={chartRef}>
                 <ChartPanel
                   indicator={selectedIndicator}
                   regionLabel={selectedRegionLabel}
