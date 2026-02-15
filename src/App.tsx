@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { Portfolio, Settings, PortfolioChartPeriod } from './types';
 import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus } from './api';
 import { REFRESH_INTERVAL } from './config';
-import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
+import { HoldingsTable } from './components/HoldingsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { PortfolioValueChart, ChartMeasurement } from './components/PortfolioValueChart';
@@ -144,7 +144,6 @@ export default function App() {
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
-  const holdingsActionsRef = useRef<HoldingsTableActions | null>(null);
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
   const clearNavigationState = useCallback(() => {
     setViewingProfileId(null);
@@ -692,7 +691,7 @@ export default function App() {
             )}
 
             {portfolio && (
-              <div className="px-6 py-4 border-y border-gray-200/30 dark:border-white/[0.04] space-y-3">
+              <div className="px-6 py-4 border-y border-gray-200/30 dark:border-white/[0.04]">
                 {/* Stats grid — 2 columns on mobile, inline on desktop */}
                 {chartMeasurement ? (
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2">
@@ -788,31 +787,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {/* Action buttons */}
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => holdingsActionsRef.current?.openCashMargin()}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
-                      text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Cash & Margin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => holdingsActionsRef.current?.openAdd()}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold
-                      hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Stock
-                  </button>
-                </div>
               </div>
             )}
 
@@ -837,7 +811,6 @@ export default function App() {
                 cashBalance={portfolio?.cashBalance ?? 0}
                 marginDebt={portfolio?.marginDebt ?? 0}
                 userId={currentUserId}
-                actionsRef={holdingsActionsRef}
                 chartPeriod={chartPeriod}
               />
               <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
