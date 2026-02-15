@@ -16,7 +16,7 @@ export function getMarketStatus(): { isOpen: boolean } {
 
 // ── Chart constants ──────────────────────────────────────────────
 export const CHART_W = 800;
-export const CHART_H = 260;
+export const CHART_H = 360;
 export const PAD_TOP = 24;
 export const PAD_BOTTOM = 12;
 export const PAD_LEFT = 0;

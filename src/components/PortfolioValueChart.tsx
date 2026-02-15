@@ -499,19 +499,43 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   // ── Touch hover (Robinhood-style press-drag crosshair) ────────
   const isTouchHoveringRef = useRef(false);
   const wasTouchRef = useRef(false);
+  const isTwoFingerRef = useRef(false);
 
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     wasTouchRef.current = true;
-    if (e.touches.length === 1 && svgRef.current && points.length >= 2) {
-      isTouchHoveringRef.current = true;
+
+    if (e.touches.length === 2 && svgRef.current && points.length >= 2) {
+      e.preventDefault();
+      isTwoFingerRef.current = true;
+      // Clear single-finger hover
+      isTouchHoveringRef.current = false;
+      setHoverIndex(null);
+      // Map both touch positions to data indices
       const rect = svgRef.current.getBoundingClientRect();
-      const svgX = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
-      setHoverIndex(findNearestIndex(svgX));
+      const svgX0 = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
+      const svgX1 = ((e.touches[1].clientX - rect.left) / rect.width) * CHART_W;
+      setMeasureA(findNearestIndex(svgX0));
+      setMeasureB(findNearestIndex(svgX1));
+      setShowHint(false);
+    } else if (e.touches.length === 1 && !isTwoFingerRef.current) {
+      if (svgRef.current && points.length >= 2) {
+        isTouchHoveringRef.current = true;
+        const rect = svgRef.current.getBoundingClientRect();
+        const svgX = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
+        setHoverIndex(findNearestIndex(svgX));
+      }
     }
   }, [points, findNearestIndex]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
-    if (e.touches.length === 1 && isTouchHoveringRef.current && svgRef.current) {
+    if (e.touches.length === 2 && isTwoFingerRef.current && svgRef.current) {
+      e.preventDefault();
+      const rect = svgRef.current.getBoundingClientRect();
+      const svgX0 = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
+      const svgX1 = ((e.touches[1].clientX - rect.left) / rect.width) * CHART_W;
+      setMeasureA(findNearestIndex(svgX0));
+      setMeasureB(findNearestIndex(svgX1));
+    } else if (e.touches.length === 1 && !isTwoFingerRef.current && isTouchHoveringRef.current && svgRef.current) {
       e.preventDefault();
       const rect = svgRef.current.getBoundingClientRect();
       const svgX = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
@@ -519,7 +543,16 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     }
   }, [findNearestIndex]);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (isTwoFingerRef.current) {
+      if (e.touches.length === 0) {
+        // Both fingers lifted — keep measurement visible, exit two-finger mode
+        isTwoFingerRef.current = false;
+      }
+      // One finger still down — wait for both to lift
+      return;
+    }
+    // Original single-finger behavior
     if (isTouchHoveringRef.current) {
       isTouchHoveringRef.current = false;
       setHoverIndex(null);
@@ -712,11 +745,11 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative px-3 sm:px-6 pt-8 pb-3 ${
+    <div className={`relative pt-8 pb-3 ${
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
     }`}>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
-      <div className="mb-5 relative z-10" style={{ height: '140px' }}>
+      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ height: '140px' }}>
         {/* Hero value display — FOREGROUND: highest visual weight */}
         {!hasMeasurement && (
           <div>
@@ -1326,7 +1359,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       </div>
 
       {/* Hint + Period selector */}
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-2 px-3 sm:px-6">
         <div className="flex gap-0.5">
         {PERIODS.map(period => (
           <button
@@ -1355,7 +1388,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
         </button>
         {showHint && hasData && !isMeasuring && (
           <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 ml-auto">
-            Click chart to measure gains between two dates
+            Tap chart or use two fingers to measure gains
           </span>
         )}
       </div>

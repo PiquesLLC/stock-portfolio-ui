@@ -672,7 +672,7 @@ export default function App() {
             )}
 
             {portfolio && (
-              <div className="space-y-0">
+              <div className="-mx-3 sm:-mx-6">
                 <PortfolioValueChart
                   currentValue={portfolio.netEquity}
                   dayChange={portfolio.dayChange}

@@ -179,6 +179,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   // Touch hover state (Robinhood-style press-and-drag crosshair)
   const isTouchHoveringRef = useRef(false);
   const wasTouchRef = useRef(false); // suppress click-to-measure after touch
+  const isTwoFingerRef = useRef(false);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   // Zoom bar drag state
   const [isBarDragging, setIsBarDragging] = useState(false);
@@ -516,9 +517,32 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
 
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     wasTouchRef.current = true; // default: suppress click handler (overridden on tap in touchEnd)
-    if (e.touches.length >= 2) return;
 
-    if (e.touches.length === 1) {
+    if (e.touches.length === 2 && svgRef.current) {
+      const pts = pointsRef.current;
+      if (pts.length >= 2) {
+        e.preventDefault();
+        isTwoFingerRef.current = true;
+        // Clear single-finger hover
+        isTouchHoveringRef.current = false;
+        singleTouchRef.current = null;
+        setHoverIndex(null);
+        onHoverPrice?.(null, null);
+        // Map both touches to data indices → measurement points
+        const rect = svgRef.current.getBoundingClientRect();
+        const svgX0 = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
+        const svgX1 = ((e.touches[1].clientX - rect.left) / rect.width) * CHART_W;
+        const idxA = findNearestIndexRef.current(svgX0);
+        const idxB = findNearestIndexRef.current(svgX1);
+        setMeasureA({ time: pts[idxA].time, price: pts[idxA].price });
+        setMeasureB({ time: pts[idxB].time, price: pts[idxB].price });
+        setMeasureC(null);
+        setShowMeasureHint(false);
+      }
+      return;
+    }
+
+    if (e.touches.length === 1 && !isTwoFingerRef.current) {
       touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       const pts = pointsRef.current;
       const zoom = zoomRangeRef.current;
@@ -535,9 +559,24 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
         updateHoverFromClientX(e.touches[0].clientX);
       }
     }
-  }, [updateHoverFromClientX]);
+  }, [updateHoverFromClientX, onHoverPrice]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    // Two-finger measurement: update both points in real-time
+    if (e.touches.length === 2 && isTwoFingerRef.current && svgRef.current) {
+      e.preventDefault();
+      const pts = pointsRef.current;
+      if (pts.length < 2) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const svgX0 = ((e.touches[0].clientX - rect.left) / rect.width) * CHART_W;
+      const svgX1 = ((e.touches[1].clientX - rect.left) / rect.width) * CHART_W;
+      const idxA = findNearestIndexRef.current(svgX0);
+      const idxB = findNearestIndexRef.current(svgX1);
+      setMeasureA({ time: pts[idxA].time, price: pts[idxA].price });
+      setMeasureB({ time: pts[idxB].time, price: pts[idxB].price });
+      return;
+    }
+
     if (e.touches.length >= 2) return;
     const pts = pointsRef.current;
     if (pts.length < 2) return;
@@ -564,6 +603,15 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   }, [updateHoverFromClientX]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    // Two-finger measurement: keep measurement visible when fingers lift
+    if (isTwoFingerRef.current) {
+      if (e.touches.length === 0) {
+        isTwoFingerRef.current = false;
+      }
+      // One finger still down or both lifted — either way, keep measurement
+      return;
+    }
+
     if (e.touches.length === 0) {
       // Detect tap vs drag: if finger barely moved, treat as a tap
       // so the synthesized click event fires the measurement system
