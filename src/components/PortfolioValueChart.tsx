@@ -500,6 +500,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const isTouchHoveringRef = useRef(false);
   const wasTouchRef = useRef(false);
   const isTwoFingerRef = useRef(false);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     wasTouchRef.current = true;
@@ -509,6 +510,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       isTwoFingerRef.current = true;
       // Clear single-finger hover
       isTouchHoveringRef.current = false;
+      touchStartPosRef.current = null;
       setHoverIndex(null);
       // Map both touch positions to data indices
       const rect = svgRef.current.getBoundingClientRect();
@@ -518,6 +520,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       setMeasureB(findNearestIndex(svgX1));
       setShowHint(false);
     } else if (e.touches.length === 1 && !isTwoFingerRef.current) {
+      touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       if (svgRef.current && points.length >= 2) {
         isTouchHoveringRef.current = true;
         const rect = svgRef.current.getBoundingClientRect();
@@ -556,7 +559,17 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       // One finger still down — keep measurement visible until both lift
       return;
     }
-    // Original single-finger behavior
+    // Detect tap vs drag: if finger barely moved, allow click handler to fire for measurement
+    if (e.touches.length === 0 && touchStartPosRef.current && e.changedTouches.length > 0) {
+      const endTouch = e.changedTouches[0];
+      const dx = Math.abs(endTouch.clientX - touchStartPosRef.current.x);
+      const dy = Math.abs(endTouch.clientY - touchStartPosRef.current.y);
+      if (dx < 10 && dy < 10) {
+        wasTouchRef.current = false; // allow synthetic click → places measurement point
+      }
+    }
+    touchStartPosRef.current = null;
+    // Clear single-finger hover
     if (isTouchHoveringRef.current) {
       isTouchHoveringRef.current = false;
       setHoverIndex(null);
