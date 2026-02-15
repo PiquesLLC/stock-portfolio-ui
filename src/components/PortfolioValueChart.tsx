@@ -160,7 +160,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
         let candles: IntradayCandle[];
         if (selectedPeriod === '1D') {
           candles = await getIntradayCandles('SPY');
-        } else if (selectedPeriod === '1W' || selectedPeriod === '1M') {
+        } else if (selectedPeriod === '1W' || selectedPeriod === '1M' || selectedPeriod === 'YTD') {
           candles = await getHourlyCandles('SPY', selectedPeriod);
         } else {
           setIntradayBenchmark([]);
@@ -247,11 +247,11 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       }
       return pts.length >= 2 ? pts : raw;
     }
-    // For 1W/1M: filter to active trading sessions only.
-    // The API returns 24h data including dead overnight periods and weekends
+    // For 1W/1M/YTD: filter to active trading sessions only.
+    // The API returns 24h hourly data including dead overnight periods and weekends
     // that create flat horizontal lines on the chart.
     // Robinhood-style: only show weekday 4 AM–8 PM ET data, index-based positioning.
-    if (selectedPeriod === '1W' || selectedPeriod === '1M') {
+    if (selectedPeriod === '1W' || selectedPeriod === '1M' || selectedPeriod === 'YTD') {
       const etHourFmt = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
       });
@@ -277,7 +277,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     if (!showBenchmark || points.length < 2) return null;
 
     // Choose the right candle set based on period
-    const candles = (selectedPeriod === '1D' || selectedPeriod === '1W' || selectedPeriod === '1M')
+    const candles = (selectedPeriod === '1D' || selectedPeriod === '1W' || selectedPeriod === '1M' || selectedPeriod === 'YTD')
       ? (intradayBenchmark.length > 0 ? intradayBenchmark : benchmarkCandles)
       : benchmarkCandles;
     if (candles.length === 0) return null;

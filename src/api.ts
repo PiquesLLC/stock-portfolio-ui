@@ -740,7 +740,7 @@ export async function getIntradayCandles(ticker: string): Promise<IntradayCandle
   return resp.candles;
 }
 
-export async function getHourlyCandles(ticker: string, period: '1W' | '1M'): Promise<IntradayCandle[]> {
+export async function getHourlyCandles(ticker: string, period: '1W' | '1M' | 'YTD'): Promise<IntradayCandle[]> {
   const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/hourly?period=${period}`);
   return resp.candles;
 }
