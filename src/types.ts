@@ -1284,13 +1284,7 @@ export interface NalaScoreResponse {
   ticker: string;
   composite: number;
   grade: NalaGrade;
-  dimensions: {
-    value: NalaDimension;
-    quality: NalaDimension;
-    growth: NalaDimension;
-    dividends: NalaDimension;
-    momentum: NalaDimension;
-  };
+  dimensions: Record<string, NalaDimension>;
   keyInsights: string[];
   dataAge: 'fresh' | 'cached' | 'stale';
   isETF: boolean;

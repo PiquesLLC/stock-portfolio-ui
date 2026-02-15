@@ -30,21 +30,22 @@ function getBarColorHex(score: number): string {
   return '#f87171';
 }
 
-const DIM_ORDER: (keyof NalaScoreResponse['dimensions'])[] = ['value', 'quality', 'growth', 'dividends', 'momentum'];
 const DIM_ICONS: Record<string, string> = {
   Value: 'V', Quality: 'Q', Growth: 'G', Dividends: 'D', Momentum: 'M',
+  'Cost Efficiency': 'C', Diversification: 'Di', Performance: 'P',
 };
 
 // ── Pentagon Radar Chart ─────────────────────────────────────────
 
-function PentagonChart({ dimensions, availableDimensions }: { dimensions: NalaScoreResponse['dimensions']; availableDimensions: string[] }) {
+function PentagonChart({ dimensions, availableDimensions }: { dimensions: Record<string, NalaDimension>; availableDimensions: string[] }) {
   const cx = 100, cy = 105, r = 72;
-  const dims = DIM_ORDER.map(k => dimensions[k]);
+  const dims = Object.values(dimensions);
+  const n = dims.length || 5;
   const labels = dims.map(d => d.name);
   const scores = dims.map(d => availableDimensions.includes(d.name) ? d.score : 0);
 
   function vertex(i: number, radius: number): [number, number] {
-    const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
     return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)];
   }
 
@@ -64,7 +65,7 @@ function PentagonChart({ dimensions, availableDimensions }: { dimensions: NalaSc
       {rings.map((pct, ri) => (
         <polygon
           key={ri}
-          points={polygon(Array(5).fill(r * pct))}
+          points={polygon(Array(n).fill(r * pct))}
           fill="none"
           className="stroke-gray-300/30 dark:stroke-white/[0.08]"
           strokeWidth="0.5"
@@ -72,7 +73,7 @@ function PentagonChart({ dimensions, availableDimensions }: { dimensions: NalaSc
       ))}
 
       {/* Axis lines */}
-      {Array.from({ length: 5 }, (_, i) => {
+      {Array.from({ length: n }, (_, i) => {
         const [vx, vy] = vertex(i, r);
         return <line key={i} x1={cx} y1={cy} x2={vx} y2={vy} className="stroke-gray-300/20 dark:stroke-white/[0.06]" strokeWidth="0.5" />;
       })}
@@ -243,7 +244,7 @@ function DimensionRow({ dimension, onClick, available }: { dimension: NalaDimens
       className="w-full flex items-center gap-3 py-2 group hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-lg px-1 transition-colors text-left"
     >
       <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${getBarColor(pct)} text-white flex-shrink-0`}>
-        {DIM_ICONS[dimension.name]}
+        {DIM_ICONS[dimension.name] || dimension.name[0]}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
@@ -302,8 +303,8 @@ export function NalaScore({ ticker }: NalaScoreProps) {
             Beta
           </span>
           {isETF && (
-            <span className="text-[9px] uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/40 bg-gray-200/40 dark:bg-white/[0.04] px-1.5 py-0.5 rounded">
-              Limited
+            <span className="text-[9px] uppercase tracking-wider text-blue-500/70 dark:text-blue-400/60 bg-blue-500/10 dark:bg-blue-400/10 px-1.5 py-0.5 rounded">
+              ETF
             </span>
           )}
         </div>
@@ -322,17 +323,25 @@ export function NalaScore({ ticker }: NalaScoreProps) {
       {showInfo && (
         <div className="mb-4 p-3.5 rounded-lg bg-blue-50/50 dark:bg-blue-500/[0.04] border border-blue-200/30 dark:border-blue-400/[0.08]">
           <p className="text-xs text-rh-light-text/80 dark:text-rh-text/70 leading-relaxed mb-2">
-            <span className="font-semibold">Nala Score</span> grades stocks across 5 key dimensions based on academic factor research. Each dimension contains 4 data-driven sub-metrics — tap any dimension to see the full breakdown.
+            <span className="font-semibold">Nala Score</span> grades {isETF ? 'ETFs' : 'stocks'} across 5 key dimensions. Each dimension contains 4 data-driven sub-metrics — tap any dimension to see the full breakdown.
           </p>
           <div className="space-y-1.5 text-[11px] text-rh-light-muted dark:text-rh-muted">
-            <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">V</span><span><strong>Value</strong> (25%) — Is the stock fairly priced? P/E, PEG, forward estimates, analyst targets</span></div>
-            <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">Q</span><span><strong>Quality</strong> (25%) — Well-run business? ROE, margins, debt, free cash flow</span></div>
-            <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">G</span><span><strong>Growth</strong> (20%) — Is it growing? Revenue, earnings, and cash flow growth rates</span></div>
-            <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">D</span><span><strong>Dividends</strong> (15%) — Rewards shareholders? Yield, payout ratio, growth streak</span></div>
-            <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">M</span><span><strong>Momentum</strong> (15%) — Market confirming? 52-week position, returns, analyst consensus</span></div>
+            {isETF ? (<>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">C</span><span><strong>Cost Efficiency</strong> (25%) — Expense ratio, fund size, holdings count, track record</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">Di</span><span><strong>Diversification</strong> (25%) — Category breadth, holdings depth, underlying valuations, income</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">P</span><span><strong>Performance</strong> (20%) — 52-week position, 6-month and 3-month returns, beta</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">D</span><span><strong>Dividends</strong> (15%) — Yield, payout ratio, growth streak, growth rate</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">M</span><span><strong>Momentum</strong> (15%) — 52-week position, returns, beta stability, analyst consensus</span></div>
+            </>) : (<>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">V</span><span><strong>Value</strong> (25%) — Is the stock fairly priced? P/E, PEG, forward estimates, analyst targets</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">Q</span><span><strong>Quality</strong> (25%) — Well-run business? ROE, margins, debt, free cash flow</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">G</span><span><strong>Growth</strong> (20%) — Is it growing? Revenue, earnings, and cash flow growth rates</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">D</span><span><strong>Dividends</strong> (15%) — Rewards shareholders? Yield, payout ratio, growth streak</span></div>
+              <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">M</span><span><strong>Momentum</strong> (15%) — Market confirming? 52-week position, returns, analyst consensus</span></div>
+            </>)}
           </div>
           <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40 mt-2.5">
-            Scores update daily. Quality & Value are weighted higher based on Fama-French factor research. This feature is in beta — scoring methodology may be refined over time.
+            Scores update daily. {isETF ? 'Cost Efficiency & Diversification' : 'Quality & Value'} are weighted highest. This feature is in beta — scoring methodology may be refined over time.
           </p>
         </div>
       )}
@@ -375,7 +384,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
 
       {/* Dimension Bars */}
       <div className="space-y-0.5 mb-3">
-        {DIM_ORDER.map(key => (
+        {Object.keys(dimensions).map(key => (
           <DimensionRow
             key={key}
             dimension={dimensions[key]}
