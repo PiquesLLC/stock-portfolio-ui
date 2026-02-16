@@ -236,6 +236,7 @@ export function LoginPage() {
                   {mode === 'login' && (
                     <button
                       type="button"
+                      tabIndex={-1}
                       className="text-xs text-rh-muted/60 hover:text-rh-muted transition-colors"
                       onClick={() => {
                         showToast('Password reset coming soon. Contact support for help.', 'info');
@@ -339,6 +340,7 @@ export function LoginPage() {
               </p>
               <button
                 type="button"
+                tabIndex={-1}
                 onClick={() => {
                   setMode('signup');
                   setError('');
@@ -357,6 +359,7 @@ export function LoginPage() {
           {(mode === 'set-password' || mode === 'signup') && (
             <button
               type="button"
+              tabIndex={-1}
               onClick={() => {
                 setMode('login');
                 setError('');
