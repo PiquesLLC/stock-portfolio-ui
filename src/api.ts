@@ -1501,3 +1501,61 @@ export async function markAnomalyRead(id: string): Promise<void> {
 export async function markAllAnomaliesRead(): Promise<void> {
   await fetchJson(`${API_BASE_URL}/insights/anomalies/mark-all-read`, { method: 'POST' });
 }
+
+// ── Plaid ──────────────────────────────────────────────
+
+export interface PlaidAccount {
+  id: string;
+  plaidAccountId: string;
+  name: string | null;
+  officialName: string | null;
+  type: string | null;
+  subtype: string | null;
+  mask: string | null;
+}
+
+export interface PlaidItem {
+  id: string;
+  institutionId: string | null;
+  institutionName: string | null;
+  status: string;
+  consentExpiresAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  plaidAccounts: PlaidAccount[];
+}
+
+export interface PlaidHolding {
+  ticker: string | null;
+  name: string | null;
+  quantity: number;
+  costBasis: number | null;
+  currentValue: number | null;
+  currentPrice: number | null;
+  accountId: string;
+  type: string | null;
+}
+
+export async function createPlaidLinkToken(): Promise<{ linkToken: string }> {
+  return fetchJson(`${API_BASE_URL}/plaid/link-token`, { method: 'POST' });
+}
+
+export async function exchangePlaidToken(publicToken: string): Promise<{ itemId: string; accounts: Array<{ id: string; name: string | null; mask: string | null; type: string | null }> }> {
+  return fetchJson(`${API_BASE_URL}/plaid/exchange-token`, {
+    method: 'POST',
+    body: JSON.stringify({ publicToken }),
+  });
+}
+
+export async function getPlaidItems(): Promise<{ items: PlaidItem[] }> {
+  return fetchJson(`${API_BASE_URL}/plaid/items`);
+}
+
+export async function getPlaidHoldings(itemId: string): Promise<{ holdings: PlaidHolding[] }> {
+  return fetchJson(`${API_BASE_URL}/plaid/items/${itemId}/holdings`);
+}
+
+export async function disconnectPlaidItem(itemId: string): Promise<{ success: boolean }> {
+  return fetchJson(`${API_BASE_URL}/plaid/items/${itemId}`, { method: 'DELETE' });
+}

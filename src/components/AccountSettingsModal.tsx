@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { PortfolioImport } from './PortfolioImport';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaSetupModal } from './MfaSetupModal';
+import { LinkedAccountsSection } from './LinkedAccountsSection';
 
 interface AccountSettingsModalProps {
   userId: string;
@@ -617,6 +618,9 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                   </button>
                 </div>
               </section>
+
+              {/* Linked Accounts Section */}
+              <LinkedAccountsSection />
 
               {/* Notifications Section */}
               <section>
