@@ -331,12 +331,26 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                     </button>
                   )
                 ) : (
-                  <button onClick={() => {
+                  <button onClick={async () => {
                     setEmailInput(status.email || '');
-                    setEmailStep(status.emailVerified ? 'verify-otp' : 'enter');
                     setEmailCode('');
                     setError('');
-                    setView('email-setup');
+                    if (status.emailVerified) {
+                      // Email already verified — send OTP before showing verify step
+                      setEmailLoading(true);
+                      setView('email-setup');
+                      setEmailStep('verify-otp');
+                      try {
+                        await setupEmailOtp();
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Failed to send code');
+                      } finally {
+                        setEmailLoading(false);
+                      }
+                    } else {
+                      setEmailStep('enter');
+                      setView('email-setup');
+                    }
                   }}
                     className="py-1.5 px-3 text-xs font-medium bg-rh-green/15 text-rh-green hover:bg-rh-green/25 rounded-lg transition-colors">
                     Set up

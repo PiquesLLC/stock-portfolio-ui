@@ -18,7 +18,7 @@ export function MfaVerifyStep({ challenge }: MfaVerifyStepProps) {
   const [method, setMethod] = useState<'totp' | 'email' | 'backup'>(() => {
     if (challenge.methods.includes('totp')) return 'totp';
     if (challenge.methods.includes('email')) return 'email';
-    return 'totp';
+    return 'backup';
   });
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
