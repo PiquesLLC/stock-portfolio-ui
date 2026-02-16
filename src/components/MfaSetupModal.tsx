@@ -344,6 +344,9 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                         await setupEmailOtp();
                       } catch (err) {
                         setError(err instanceof Error ? err.message : 'Failed to send code');
+                        // Revert to overview so user isn't stuck on OTP step without a code
+                        setView('overview');
+                        setEmailStep('enter');
                       } finally {
                         setEmailLoading(false);
                       }
