@@ -278,7 +278,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
         </div>
 
         {/* Content */}
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto space-y-6">
+        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto scrollbar-minimal space-y-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent" />
