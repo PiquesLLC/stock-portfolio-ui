@@ -105,6 +105,22 @@ function applyLocalBoosts(
 }
 
 /**
+ * Highlight matching substring in green
+ */
+function highlightMatch(text: string, query: string): JSX.Element {
+  if (!query || query.length < 1) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span className="text-rh-green font-medium">{text.slice(idx, idx + query.length)}</span>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+/**
  * Format volume number for display
  */
 function formatVolume(volume: number): string {
@@ -339,13 +355,13 @@ export function TickerAutocompleteInput({
         </p>
       )}
 
-      {/* Dropdown */}
+      {/* Dropdown — wider than input for full company names */}
       {isOpen && results.length > 0 && (
         <div
           ref={dropdownRef}
           className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card
-            border border-rh-light-border dark:border-rh-border rounded-lg shadow-lg
-            max-h-64 overflow-y-auto ${compact ? 'w-80 right-0' : 'w-full'}`}
+            border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl
+            max-h-80 overflow-y-auto ${compact ? 'min-w-full w-[420px] right-0' : 'w-full'}`}
           role="listbox"
         >
           {results.map((result, index) => (
@@ -359,57 +375,39 @@ export function TickerAutocompleteInput({
               }}
               onMouseEnter={() => {
                 setSelectedIndex(index);
-                // Pre-fetch disabled - was causing queue congestion
               }}
               role="option"
               aria-selected={selectedIndex === index}
-              className={`px-3 py-2 cursor-pointer transition-colors
+              className={`px-3.5 py-2.5 cursor-pointer transition-colors
                 ${selectedIndex === index
-                  ? 'bg-rh-green/10 dark:bg-rh-green/20'
+                  ? 'bg-rh-green/10 dark:bg-rh-green/15'
                   : 'hover:bg-gray-100 dark:hover:bg-rh-dark/50'
                 }`}
             >
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-rh-light-text dark:text-rh-text">
+                <span className="font-bold text-rh-light-text dark:text-rh-text min-w-[48px]">
                   {result.symbol}
                 </span>
 
-                {/* Popular tag - only for known popular tickers */}
-                {result.isPopular && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-rh-green/20 text-rh-green rounded">
-                    Popular
-                  </span>
-                )}
-
-                {/* Held indicator */}
                 {result.isHeld && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-500/20 text-blue-400 rounded">
+                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-500/20 text-blue-400 rounded flex-shrink-0">
                     Held
                   </span>
                 )}
 
                 <span className="flex-1 text-sm text-rh-light-muted dark:text-rh-muted truncate">
-                  {result.description}
+                  {highlightMatch(result.description, value)}
                 </span>
-              </div>
 
-              <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
-                {result.primaryExchange && (
-                  <span>{result.primaryExchange}</span>
-                )}
-                {result.primaryExchange && result.type && <span>·</span>}
-                {result.type && <span>{result.type}</span>}
                 {result.marketCapB && (
-                  <>
-                    <span>·</span>
-                    <span className="text-rh-green">${result.marketCapB >= 1000 ? `${(result.marketCapB / 1000).toFixed(1)}T` : `${result.marketCapB.toFixed(0)}B`}</span>
-                  </>
+                  <span className="text-xs text-rh-green flex-shrink-0 font-medium">
+                    ${result.marketCapB >= 1000 ? `${(result.marketCapB / 1000).toFixed(1)}T` : `${result.marketCapB.toFixed(0)}B`}
+                  </span>
                 )}
                 {!result.marketCapB && result.avgVolume && (
-                  <>
-                    <span>·</span>
-                    <span className="text-rh-light-muted dark:text-rh-muted">Vol: {formatVolume(result.avgVolume)}</span>
-                  </>
+                  <span className="text-xs text-rh-light-muted dark:text-rh-muted flex-shrink-0">
+                    Vol {formatVolume(result.avgVolume)}
+                  </span>
                 )}
               </div>
             </div>
@@ -421,7 +419,7 @@ export function TickerAutocompleteInput({
       {isOpen && results.length === 0 && !isLoading && value.length >= 1 && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg shadow-lg px-3 py-3 text-center text-sm text-rh-light-muted dark:text-rh-muted ${compact ? 'w-80 right-0' : 'w-full'}`}
+          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl px-3.5 py-3 text-center text-sm text-rh-light-muted dark:text-rh-muted ${compact ? 'min-w-full w-[420px] right-0' : 'w-full'}`}
         >
           No matches
         </div>

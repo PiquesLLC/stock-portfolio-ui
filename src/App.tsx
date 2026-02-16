@@ -28,7 +28,7 @@ import { Term } from './components/Term';
 
 import { formatCurrency, formatPercent } from './utils/format';
 import { getInitialTheme, applyTheme } from './utils/theme';
-import { getSessionDisplay, getLocalTzAbbr } from './utils/market';
+import { getLocalTzAbbr } from './utils/market';
 import { Channel, CHANNELS } from './utils/channels';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 
@@ -74,6 +74,19 @@ interface NavState {
 }
 
 const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch']);
+
+// Desktop-only tab list for the consolidated header bar
+const DESKTOP_TABS: { id: TabType; label: string }[] = [
+  { id: 'portfolio', label: 'Portfolio' },
+  { id: 'insights', label: 'Insights' },
+  { id: 'discover', label: 'Heatmap' },
+  { id: 'watchlists', label: 'Watchlists' },
+  { id: 'nala', label: 'Nala AI' },
+  { id: 'macro', label: 'Macro' },
+  { id: 'feed', label: 'Feed' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'watch', label: 'Watch' },
+];
 
 function parseHash(): NavState {
   const hash = window.location.hash.slice(1);
@@ -520,18 +533,17 @@ export default function App() {
       <div className="grain-overlay" />
       <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
       <header className="relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
-        <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="h-[35px] w-[35px] cursor-pointer"
-              onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
-            >
-              <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
-              <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
-            </div>
+        <div className="px-3 py-2 flex sm:hidden items-center gap-2">
+          {/* Mobile: logo + controls inline */}
+          <div
+            className="h-[35px] w-[35px] cursor-pointer flex-shrink-0"
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
+          >
+            <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
+            <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
           </div>
-          <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4">
-            <div className="flex-1 max-w-[400px] min-w-[120px]">
+          <div className="flex-1 flex items-center justify-end gap-2">
+            <div className="flex-1 max-w-[400px] sm:max-w-[260px] min-w-[120px]">
               <TickerAutocompleteInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -545,17 +557,6 @@ export default function App() {
                 compact
               />
             </div>
-            {portfolio?.session && (
-              <span
-                className={`text-xs px-2 py-1 rounded border font-medium cursor-default
-                  ${portfolio.session === 'CLOSED' ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' : ''}
-                  ${portfolio.session === 'REG' ? 'bg-green-500/20 text-green-400 border-green-500/30 animate-[breathing_1.2s_ease-in-out_infinite]' : ''}
-                  ${portfolio.session !== 'CLOSED' && portfolio.session !== 'REG' ? getSessionDisplay(portfolio.session).color : ''}`}
-                title={getSessionDisplay(portfolio.session).description}
-              >
-                {getSessionDisplay(portfolio.session).label}
-              </span>
-            )}
             {currentUserName && currentUserId && (
               <UserMenu
                 userName={currentUserName}
@@ -568,10 +569,10 @@ export default function App() {
             {currentUserId && (
               <button
                 onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
-                className="relative p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                className="relative p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
                 title="Today's Brief"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                 </svg>
               </button>
@@ -579,13 +580,13 @@ export default function App() {
             {currentUserId && <NotificationBell userId={currentUserId} />}
             <button
               onClick={toggleTheme}
-              className="hidden sm:flex group items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
-                bg-gray-100 dark:bg-rh-dark hover:bg-gray-200 dark:hover:bg-rh-border
+              className="hidden sm:flex items-center p-1.5 rounded-lg transition-colors
+                hover:bg-gray-100 dark:hover:bg-rh-dark
                 text-rh-light-muted dark:text-rh-muted"
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? (
-                <svg className="w-4 h-4 group-hover:text-yellow-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               ) : (
@@ -593,7 +594,6 @@ export default function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
-              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
             {lastUpdate && (
               <span className={`hidden sm:inline text-[11px] whitespace-nowrap flex items-center gap-1.5 ${
@@ -610,14 +610,114 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* Desktop: logo far-left, tabs aligned with content column, controls far-right */}
+        <div className="hidden sm:block relative">
+          {/* Logo — absolute far left */}
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10">
+            <div
+              className="h-[34px] w-[34px] cursor-pointer"
+              onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
+            >
+              <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
+              <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
+            </div>
+          </div>
+
+          {/* Controls — absolute far right */}
+          <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2">
+            <div className="w-[420px]">
+              <TickerAutocompleteInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSelect={(result) => {
+                  const held = findHolding(result.symbol);
+                  setViewingStock({ ticker: result.symbol, holding: held });
+                  setSearchQuery('');
+                }}
+                heldTickers={portfolio?.holdings.map(h => h.ticker) ?? []}
+                externalRef={searchRef}
+                compact
+              />
+            </div>
+            {currentUserName && currentUserId && (
+              <UserMenu
+                userName={currentUserName}
+                userId={currentUserId}
+                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
+                onSettingsClick={() => setSettingsModalOpen(true)}
+                onLogoutClick={logout}
+              />
+            )}
+            {currentUserId && (
+              <button
+                onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
+                className="relative p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                title="Today's Brief"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+              </button>
+            )}
+            {currentUserId && <NotificationBell userId={currentUserId} />}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center p-1.5 rounded-lg transition-colors
+                hover:bg-gray-100 dark:hover:bg-rh-dark
+                text-rh-light-muted dark:text-rh-muted"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          {/* Nav tabs — in content-aligned container so they line up with chart */}
+          <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6">
+            <nav className="flex items-center -ml-[29px]">
+              {DESKTOP_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setViewingProfileId(null);
+                    setViewingStock(null);
+                    setLeaderboardUserId(null);
+                  }}
+                  className={`relative px-2.5 py-3 text-[13px] font-medium transition-colors whitespace-nowrap
+                    ${activeTab === tab.id
+                      ? 'text-rh-green'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                    }`}
+                >
+                  {tab.label}
+                  <span className={`absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
+                    activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                  }`} />
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
       </header>
 
-      <Navigation activeTab={activeTab} onTabChange={(tab) => {
-        setActiveTab(tab);
-        setViewingProfileId(null);
-        setViewingStock(null);
-        setLeaderboardUserId(null);
-      }} />
+      {/* Mobile-only navigation */}
+      <div className="sm:hidden">
+        <Navigation activeTab={activeTab} onTabChange={(tab) => {
+          setActiveTab(tab);
+          setViewingProfileId(null);
+          setViewingStock(null);
+          setLeaderboardUserId(null);
+        }} />
+      </div>
       </div>
 
       <main className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${

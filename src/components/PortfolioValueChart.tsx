@@ -1381,8 +1381,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       </div>
 
-      {/* Period selector — full width, evenly spaced */}
-      <div className="flex justify-between items-center mt-2 px-3 sm:px-6">
+      {/* Period selector — left-aligned, compact */}
+      <div className="flex items-center gap-1 mt-2 px-3 sm:px-6">
         {PERIODS.map(period => (
           <button
             key={period}
