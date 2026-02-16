@@ -2,6 +2,8 @@ import { useState, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { setPassword as apiSetPassword, checkHasPassword } from '../api';
+import { PrivacyPolicyModal } from './PrivacyPolicyModal';
+import { MfaVerifyStep } from './MfaVerifyStep';
 
 // Eye icons for password visibility toggle
 const EyeIcon = () => (
@@ -33,7 +35,7 @@ const Spinner = () => (
 );
 
 export function LoginPage() {
-  const { login, signup } = useAuth();
+  const { login, signup, mfaChallenge } = useAuth();
   const { showToast } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPasswordValue] = useState('');
@@ -46,6 +48,9 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [staySignedIn, setStaySignedIn] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [privacyTab, setPrivacyTab] = useState<'privacy' | 'terms'>('privacy');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -75,7 +80,12 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        await signup(username, displayName, password);
+        if (!acceptedTerms) {
+          setError('You must accept the Privacy Policy and Terms of Service');
+          setIsLoading(false);
+          return;
+        }
+        await signup(username, displayName, password, { acceptedPrivacyPolicy: true, acceptedTerms: true });
       } else if (mode === 'set-password') {
         if (password !== confirmPassword) {
           setError('Passwords do not match');
@@ -161,6 +171,11 @@ export function LoginPage() {
 
         {/* Form Card */}
         <div className="bg-rh-card rounded-2xl p-6 shadow-2xl border border-rh-border/40">
+          {/* MFA Verify Step — shown when MFA challenge is active */}
+          {mfaChallenge ? (
+            <MfaVerifyStep challenge={mfaChallenge} />
+          ) : (
+          <>
           <h2 className="text-xl font-semibold text-white mb-6">
             {getTitle()}
           </h2>
@@ -299,6 +314,36 @@ export function LoginPage() {
                 </div>
               )}
 
+              {/* Consent Checkbox (Signup mode only) */}
+              {mode === 'signup' && (
+                <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded border-rh-border bg-rh-dark text-rh-green accent-rh-green focus:ring-rh-green/50 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-sm text-rh-muted group-hover:text-rh-muted/80 transition-colors leading-tight">
+                    I agree to the{' '}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setPrivacyTab('privacy'); setShowPrivacyPolicy(true); }}
+                      className="text-rh-green hover:underline"
+                    >
+                      Privacy Policy
+                    </button>{' '}
+                    and{' '}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setPrivacyTab('terms'); setShowPrivacyPolicy(true); }}
+                      className="text-rh-green hover:underline"
+                    >
+                      Terms of Service
+                    </button>
+                  </span>
+                </label>
+              )}
+
               {/* Stay Signed In (Login mode only) */}
               {mode === 'login' && (
                 <label className="flex items-center gap-2.5 cursor-pointer select-none group">
@@ -368,11 +413,14 @@ export function LoginPage() {
                 setDisplayName('');
                 setShowPassword(false);
                 setShowConfirmPassword(false);
+                setAcceptedTerms(false);
               }}
               className="w-full mt-5 text-sm text-rh-muted/70 hover:text-white transition-colors"
             >
               ← Back to Sign In
             </button>
+          )}
+          </>
           )}
         </div>
 
@@ -382,6 +430,12 @@ export function LoginPage() {
           <span>Your connection is secure</span>
         </div>
       </div>
+
+      <PrivacyPolicyModal
+        isOpen={showPrivacyPolicy}
+        onClose={() => setShowPrivacyPolicy(false)}
+        initialTab={privacyTab}
+      />
     </div>
   );
 }

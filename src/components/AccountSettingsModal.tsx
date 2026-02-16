@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, changePassword, deleteAccount, getPortfolio, HealthStatus, getNotificationStatus, NotificationStatus } from '../api';
 import { useToast } from '../context/ToastContext';
 import { PortfolioImport } from './PortfolioImport';
+import { PrivacyPolicyModal } from './PrivacyPolicyModal';
+import { MfaSetupModal } from './MfaSetupModal';
 
 interface AccountSettingsModalProps {
   userId: string;
@@ -56,6 +58,12 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
   const [notifyEarnings, setNotifyEarnings] = useState(() => {
     return localStorage.getItem('notifyEarnings') !== 'false';
   });
+
+  // Legal modal
+  const [showLegalModal, setShowLegalModal] = useState(false);
+
+  // MFA modal
+  const [showMfaModal, setShowMfaModal] = useState(false);
 
   // Delete account state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -587,6 +595,26 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                       </div>
                     </div>
                   )}
+
+                  {/* Two-Factor Authentication */}
+                  <button
+                    type="button"
+                    onClick={() => setShowMfaModal(true)}
+                    className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
+                      bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-rh-text
+                      hover:bg-gray-200 dark:hover:bg-rh-border/80 transition-colors
+                      flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <span>Two-Factor Authentication</span>
+                    </div>
+                    <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
               </section>
 
@@ -712,6 +740,31 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                 </div>
               </section>
 
+              {/* Legal */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+                  Legal
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowLegalModal(true)}
+                  className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
+                    bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-rh-text
+                    hover:bg-gray-200 dark:hover:bg-rh-border/80 transition-colors
+                    flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Privacy Policy & Terms of Service</span>
+                  </div>
+                  <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </section>
+
               {/* Danger Zone */}
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-red/80 mb-3">
@@ -821,6 +874,18 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
           onImportComplete={() => { setShowImport(false); onSave?.(); }}
         />
       )}
+
+      {/* Legal Modal */}
+      <PrivacyPolicyModal
+        isOpen={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+      />
+
+      {/* MFA Setup Modal */}
+      <MfaSetupModal
+        isOpen={showMfaModal}
+        onClose={() => setShowMfaModal(false)}
+      />
     </div>
   );
 }

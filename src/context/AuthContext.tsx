@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, setAuthExpiredHandler, isSameOriginApi } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi } from '../api';
 
 interface User {
   id: string;
@@ -7,12 +7,21 @@ interface User {
   displayName: string;
 }
 
+export interface MfaChallenge {
+  challengeToken: string;
+  methods: string[];
+  maskedEmail: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  mfaChallenge: MfaChallenge | null;
   login: (username: string, password: string) => Promise<void>;
-  signup: (username: string, displayName: string, password: string) => Promise<void>;
+  verifyMfa: (code: string, method: 'totp' | 'email' | 'backup') => Promise<void>;
+  clearMfaChallenge: () => void;
+  signup: (username: string, displayName: string, password: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }) => Promise<void>;
   logout: () => void;
 }
 
@@ -59,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return readCachedUser();
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
 
   // Check if user is authenticated on mount (cookie-based auth)
   useEffect(() => {
@@ -113,15 +123,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
   const login = useCallback(async (username: string, password: string) => {
-    // Login sets httpOnly cookie automatically
     const response = await apiLogin(username, password);
+    if (isMfaChallenge(response)) {
+      // MFA required — store challenge, don't set user yet
+      setMfaChallenge({
+        challengeToken: response.challengeToken,
+        methods: response.methods,
+        maskedEmail: response.maskedEmail,
+      });
+      return;
+    }
+    // No MFA — login sets httpOnly cookie automatically
     setUser(response.user);
     writeCachedUser(response.user);
   }, []);
 
-  const signup = useCallback(async (username: string, displayName: string, password: string) => {
+  const verifyMfa = useCallback(async (code: string, method: 'totp' | 'email' | 'backup') => {
+    if (!mfaChallenge) throw new Error('No MFA challenge active');
+    const response = await apiVerifyMfa(mfaChallenge.challengeToken, code, method);
+    setMfaChallenge(null);
+    setUser(response.user);
+    writeCachedUser(response.user);
+  }, [mfaChallenge]);
+
+  const clearMfaChallenge = useCallback(() => {
+    setMfaChallenge(null);
+  }, []);
+
+  const signup = useCallback(async (username: string, displayName: string, password: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }) => {
     // Signup sets httpOnly cookie automatically (auto-login)
-    const response = await apiSignup(username, displayName, password);
+    const response = await apiSignup(username, displayName, password, consent);
     setUser(response.user);
     writeCachedUser(response.user);
   }, []);
@@ -156,7 +187,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        mfaChallenge,
         login,
+        verifyMfa,
+        clearMfaChallenge,
         signup,
         logout,
       }}

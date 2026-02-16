@@ -13,6 +13,7 @@ import { UserMenu } from './components/UserMenu';
 import { AccountSettingsModal } from './components/AccountSettingsModal';
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
@@ -143,6 +144,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
   const [dailyReportHidden, setDailyReportHidden] = useState(false);
 
   // --- Keyboard shortcuts ---
@@ -937,6 +940,23 @@ export default function App() {
         <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
         </p>
+        <div className="flex items-center justify-center gap-3 mt-2 text-[11px] text-rh-light-muted/40 dark:text-rh-muted/40">
+          <button
+            onClick={() => { setPrivacyModalTab('privacy'); setShowPrivacyModal(true); }}
+            className="hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+          >
+            Privacy Policy
+          </button>
+          <span>·</span>
+          <button
+            onClick={() => { setPrivacyModalTab('terms'); setShowPrivacyModal(true); }}
+            className="hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+          >
+            Terms of Service
+          </button>
+          <span>·</span>
+          <span>Piques LLC</span>
+        </div>
       </footer>
 
       {showMiniPlayer && (
@@ -955,6 +975,11 @@ export default function App() {
         onClose={() => setSettingsModalOpen(false)}
         onSave={() => fetchData()}
         healthStatus={healthStatus}
+      />
+      <PrivacyPolicyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        initialTab={privacyModalTab}
       />
       {(showDailyReport || dailyReportHidden) && (
         <DailyReportModal

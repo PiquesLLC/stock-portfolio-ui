@@ -160,11 +160,109 @@ export interface LoginResponse {
   };
 }
 
-export async function login(username: string, password: string): Promise<LoginResponse> {
+export interface MfaChallengeResponse {
+  mfaRequired: true;
+  challengeToken: string;
+  methods: string[];
+  maskedEmail: string | null;
+}
+
+export type LoginResult = LoginResponse | MfaChallengeResponse;
+
+export function isMfaChallenge(result: LoginResult): result is MfaChallengeResponse {
+  return 'mfaRequired' in result && result.mfaRequired === true;
+}
+
+export async function login(username: string, password: string): Promise<LoginResult> {
   // Login sets httpOnly cookie automatically - no token in response body
-  return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/login`, {
+  // May return MFA challenge instead if user has MFA enabled
+  return fetchJson<LoginResult>(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     body: JSON.stringify({ username, password }),
+  });
+}
+
+// ─── MFA API ─────────────────────────────────────────────
+
+export interface MfaStatus {
+  methods: { type: string; enabled: boolean; verifiedAt: string | null }[];
+  email: string | null;
+  emailVerified: boolean;
+  backupCodesRemaining: number;
+}
+
+export async function getMfaStatus(): Promise<MfaStatus> {
+  return fetchJson<MfaStatus>(`${API_BASE_URL}/auth/mfa/status`);
+}
+
+export async function verifyMfa(challengeToken: string, code: string, method: 'totp' | 'email' | 'backup'): Promise<LoginResponse> {
+  return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/mfa/verify`, {
+    method: 'POST',
+    body: JSON.stringify({ challengeToken, code, method }),
+  });
+}
+
+export async function sendMfaEmailOtp(challengeToken: string): Promise<{ sent: boolean }> {
+  return fetchJson<{ sent: boolean }>(`${API_BASE_URL}/auth/mfa/email/send`, {
+    method: 'POST',
+    body: JSON.stringify({ challengeToken }),
+  });
+}
+
+export async function setupTotp(): Promise<{ qrCodeDataUrl: string; secret: string; issuer: string; accountName: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/totp/setup`, { method: 'POST' });
+}
+
+export async function verifyTotpSetup(code: string): Promise<{ enabled: boolean; backupCodes: string[] }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/totp/verify-setup`, {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function disableTotp(password: string): Promise<{ disabled: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/totp/disable`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+}
+
+export async function updateMfaEmail(email: string): Promise<{ email: string; verified: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/email`, {
+    method: 'PUT',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function verifyMfaEmail(code: string): Promise<{ verified: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/email/verify`, {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function setupEmailOtp(): Promise<{ codeSent: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/email-otp/setup`, { method: 'POST' });
+}
+
+export async function verifyEmailOtpSetup(code: string): Promise<{ enabled: boolean; backupCodes: string[] }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/email-otp/verify-setup`, {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function disableEmailOtp(password: string): Promise<{ disabled: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/email-otp/disable`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+}
+
+export async function regenerateBackupCodes(password: string): Promise<{ backupCodes: string[] }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/backup-codes/regenerate`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
   });
 }
 
@@ -189,10 +287,21 @@ export async function checkHasPassword(username: string): Promise<{ hasPassword:
   return fetchJson(`${API_BASE_URL}/auth/has-password/${encodeURIComponent(username)}`);
 }
 
-export async function signup(username: string, displayName: string, password: string): Promise<LoginResponse> {
+export async function signup(
+  username: string,
+  displayName: string,
+  password: string,
+  consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }
+): Promise<LoginResponse> {
   return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/signup`, {
     method: 'POST',
-    body: JSON.stringify({ username, displayName, password }),
+    body: JSON.stringify({
+      username,
+      displayName,
+      password,
+      acceptedPrivacyPolicy: consent?.acceptedPrivacyPolicy,
+      acceptedTerms: consent?.acceptedTerms,
+    }),
   });
 }
 
