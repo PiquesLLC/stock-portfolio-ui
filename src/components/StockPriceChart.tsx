@@ -807,6 +807,24 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     if (maxP === minP) { maxP += 1; minP -= 1; }
 
     if (selectedPeriod === '1D' && !zoomRange) {
+      // Scope y-axis to regular session (9:30 AM - 4 PM ET) + after-hours only.
+      // Pre-market outliers from thin liquidity stretch the y-axis and compress
+      // the regular session visually. Outlier data clips at plot boundary (Robinhood-style).
+      if (targetPts.length > 1) {
+        const refDate = new Date(targetPts[0].time);
+        const etDateStr2 = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
+        const noonUtc2 = new Date(`${etDateStr2}T12:00:00Z`);
+        const noonEtH2 = parseInt(new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+        }).format(noonUtc2).split(':')[0]);
+        const etOff2 = (noonEtH2 - 12) * 3600000;
+        const regOpenMs = new Date(`${etDateStr2}T09:30:00Z`).getTime() - etOff2;
+        const regPrices = targetPts.filter(p => p.time >= regOpenMs).map(p => p.price);
+        if (regPrices.length > 0) {
+          minP = Math.min(...regPrices, referencePrice);
+          maxP = Math.max(...regPrices, referencePrice);
+        }
+      }
       // Minimum 0.5% range to prevent flat-line appearance, but tight enough for dramatic moves
       const minRange = referencePrice * 0.005;
       if (maxP - minP < minRange) {

@@ -68,84 +68,118 @@ export function buildPoints(
           volume: c.volume,
         };
       });
-      // Prepend a point at previous close just before the first candle
-      // so the chart starts with a flat line from the open
+      // Anchor previousClose at 4 AM ET (pre-market open) so chart starts at the left edge.
+      // Hold flat at previousClose until the first real trade candle arrives.
       if (pts.length > 0) {
+        const firstCandleDate = new Date(pts[0].time);
+        const pmEtDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(firstCandleDate);
+        const pmNoonUtc = new Date(`${pmEtDate}T12:00:00Z`);
+        const pmNoonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+        }).format(pmNoonUtc).split(':')[0]);
+        const pmEtOff = (pmNoonEtH - 12) * 3600000;
+        const preMarketOpenMs = new Date(`${pmEtDate}T04:00:00Z`).getTime() - pmEtOff;
+
+        // Point at 4 AM ET (1 AM PST) — the left edge of the chart
         pts.unshift({
-          time: pts[0].time - 1000,
-          label: pts[0].label,
+          time: preMarketOpenMs,
+          label: new Date(preMarketOpenMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           price: previousClose,
           volume: 0,
         });
+        // If there's a gap to the first real candle, hold flat at previousClose until just before it
+        if (pts[1].time - preMarketOpenMs > 60000) {
+          pts.splice(1, 0, {
+            time: pts[1].time - 1000,
+            label: '',
+            price: previousClose,
+            volume: 0,
+          });
+        }
       }
-      // Bridge the gap between delayed candles and live/current data.
-      // Polygon candles are ~15 min behind; we interpolate so the chart
-      // looks continuous and every point in the gap is hoverable.
+      // Compute 8 PM ET of the candle data's trading day — the hard cap for bridging.
+      // Without this, weekends bridge thousands of points into Saturday/Sunday.
       {
+        const lastCandleDate = new Date(pts[pts.length - 1].time);
+        const candleEtDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(lastCandleDate);
+        const candleNoonUtc = new Date(`${candleEtDate}T12:00:00Z`);
+        const candleNoonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+        }).format(candleNoonUtc).split(':')[0]);
+        const etOffsetMs = (candleNoonEtH - 12) * 3600000;
+        const afterHoursCloseMs = new Date(`${candleEtDate}T20:00:00Z`).getTime() - etOffsetMs;
+
         const lastCandleTime = pts[pts.length - 1].time;
         const lastCandlePrice = pts[pts.length - 1].price;
-
-        // Collect live prices newer than the last candle
-        const newerLive = livePrices
-          .map(lp => ({ time: new Date(lp.time).getTime(), price: lp.price }))
-          .filter(lp => lp.time > lastCandleTime);
-
-        // Filter out spike data points — reject any live price that jumps
-        // more than 10% from the previous good price. This prevents bad
-        // quotes or stale data from creating visual spikes on the chart.
-        const filteredLive: typeof newerLive = [];
-        let anchor = lastCandlePrice;
-        for (const lp of newerLive) {
-          if (anchor === 0 || Math.abs(lp.price - anchor) / anchor < 0.10) {
-            filteredLive.push(lp);
-            anchor = lp.price;
-          }
-        }
-
-        // Validate currentPrice against the last known good price
-        const safeCurrentPrice = anchor === 0 || Math.abs(currentPrice - anchor) / anchor < 0.10
-          ? currentPrice : anchor;
-
-        // The target we're bridging toward: first live price, or current price
         const now = Date.now();
-        const bridgeTarget = filteredLive.length > 0
-          ? filteredLive[0]
-          : { time: now, price: safeCurrentPrice };
-        const gapMs = bridgeTarget.time - lastCandleTime;
+        const isStaleSession = now > afterHoursCloseMs;
 
-        // Fill gaps larger than 90s with interpolated points every 30s
-        if (gapMs > 90000) {
-          const stepMs = 30000;
-          for (let t = lastCandleTime + stepMs; t < bridgeTarget.time; t += stepMs) {
-            const ratio = (t - lastCandleTime) / gapMs;
-            const price = lastCandlePrice + (bridgeTarget.price - lastCandlePrice) * ratio;
+        if (isStaleSession) {
+          // Weekend/after-close: just extend flat to 8 PM ET, nothing more
+          if (afterHoursCloseMs - lastCandleTime > 5000) {
             pts.push({
-              time: t,
-              label: new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              price: Math.round(price * 100) / 100,
+              time: afterHoursCloseMs,
+              label: new Date(afterHoursCloseMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              price: lastCandlePrice,
               volume: 0,
             });
           }
-        }
+        } else {
+          // Live session: bridge to live prices / currentPrice (capped at 8 PM ET)
+          const effectiveNow = Math.min(now, afterHoursCloseMs);
 
-        // Append filtered live price points
-        for (const lp of filteredLive) {
-          pts.push({
-            time: lp.time,
-            label: new Date(lp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            price: lp.price,
-            volume: 0,
-          });
-        }
+          const newerLive = livePrices
+            .map(lp => ({ time: new Date(lp.time).getTime(), price: lp.price }))
+            .filter(lp => lp.time > lastCandleTime && lp.time <= afterHoursCloseMs);
 
-        // Always extend to current time so the chart reaches "now"
-        if (now - pts[pts.length - 1].time > 5000) {
-          pts.push({
-            time: now,
-            label: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            price: safeCurrentPrice,
-            volume: 0,
-          });
+          const filteredLive: typeof newerLive = [];
+          let anchor = lastCandlePrice;
+          for (const lp of newerLive) {
+            if (anchor === 0 || Math.abs(lp.price - anchor) / anchor < 0.10) {
+              filteredLive.push(lp);
+              anchor = lp.price;
+            }
+          }
+
+          const safeCurrentPrice = anchor === 0 || Math.abs(currentPrice - anchor) / anchor < 0.10
+            ? currentPrice : anchor;
+
+          const bridgeTarget = filteredLive.length > 0
+            ? filteredLive[0]
+            : { time: effectiveNow, price: safeCurrentPrice };
+          const gapMs = bridgeTarget.time - lastCandleTime;
+
+          if (gapMs > 90000) {
+            const stepMs = 30000;
+            for (let t = lastCandleTime + stepMs; t < bridgeTarget.time; t += stepMs) {
+              const ratio = (t - lastCandleTime) / gapMs;
+              const price = lastCandlePrice + (bridgeTarget.price - lastCandlePrice) * ratio;
+              pts.push({
+                time: t,
+                label: new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                price: Math.round(price * 100) / 100,
+                volume: 0,
+              });
+            }
+          }
+
+          for (const lp of filteredLive) {
+            pts.push({
+              time: lp.time,
+              label: new Date(lp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              price: lp.price,
+              volume: 0,
+            });
+          }
+
+          if (effectiveNow - pts[pts.length - 1].time > 5000) {
+            pts.push({
+              time: effectiveNow,
+              label: new Date(effectiveNow).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              price: safeCurrentPrice,
+              volume: 0,
+            });
+          }
         }
       }
       return pts;

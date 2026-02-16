@@ -221,14 +221,20 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     const raw = chartData?.points ?? [];
     if (raw.length === 0) return raw;
     if (selectedPeriod === '1D') {
-      // Find the last weekday point as reference date.
-      // On weekends the last raw point is a live-appended Sat/Sun timestamp
-      // which would set the cutoff to Saturday 4 AM, filtering out all Friday data.
+      // Find the last point during actual trading hours (weekday 4 AM–8 PM ET).
+      // Must check BOTH day-of-week AND hour — weekend polling can spill past midnight
+      // into Monday, and holidays (e.g. Presidents' Day) are weekdays with no trading.
       let refDate: Date = new Date(raw[raw.length - 1].time);
       const etDayFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' });
+      const etHourFmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+      });
       for (let i = raw.length - 1; i >= 0; i--) {
-        const wd = etDayFmt.format(new Date(raw[i].time));
-        if (wd !== 'Sat' && wd !== 'Sun') { refDate = new Date(raw[i].time); break; }
+        const d = new Date(raw[i].time);
+        const wd = etDayFmt.format(d);
+        if (wd === 'Sat' || wd === 'Sun') continue;
+        const h = parseInt(etHourFmt.format(d).split(':')[0]);
+        if (h >= 4 && h < 20) { refDate = d; break; }
       }
       const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
       const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
