@@ -43,11 +43,14 @@ const DiscoverPage = lazy(() => import('./components/DiscoverPage').then(m => ({
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 
+// Typed heatmap preload on window for cross-component cache seeding
+declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
+
 // Preload heatmap data 3s after boot so Heatmap tab opens instantly
 setTimeout(() => {
   import('./api').then(({ getMarketHeatmap }) => {
     getMarketHeatmap('1D', 'SP500').then(resp => {
-      (window as any).__heatmapPreload = { data: resp, ts: Date.now() };
+      window.__heatmapPreload = { data: resp, ts: Date.now() };
     }).catch(() => {});
   });
 }, 3000);
@@ -379,7 +382,6 @@ export default function App() {
         portfolioData.holdings.some(h => !lastValidPortfolio.current!.holdings.find(old => old.ticker === h.ticker));
 
       if (!hasValidData && lastValidPortfolio.current && !holdingsChanged) {
-        console.log('New data has unavailable quotes, keeping previous price data but updating settings');
         setPortfolio({
           ...lastValidPortfolio.current,
           cashBalance: portfolioData.cashBalance,
@@ -413,7 +415,6 @@ export default function App() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
       if (portfolio) {
-        console.log('Fetch failed, keeping previous state:', message);
         setIsStale(true);
       } else {
         setError(message);

@@ -937,10 +937,10 @@ function cacheKey(period: HeatmapPeriod, index: MarketIndex): string {
 }
 
 // Pick up preloaded data from App.tsx boot (stored on window)
-const preloaded = (window as any).__heatmapPreload as { data: HeatmapResponse; ts: number } | undefined;
+const preloaded = window.__heatmapPreload;
 if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
   heatmapCache.set(cacheKey('1D', 'SP500'), preloaded);
-  delete (window as any).__heatmapPreload;
+  delete window.__heatmapPreload;
 }
 
 

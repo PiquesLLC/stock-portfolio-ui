@@ -471,8 +471,7 @@ export async function uploadPortfolioScreenshot(file: File): Promise<CsvParseRes
   const formData = new FormData();
   formData.append('file', file);
 
-  const isDev = import.meta.env.DEV;
-  const url = `${API_BASE_URL}/portfolio/import/screenshot${isDev ? '?debug=1' : ''}`;
+  const url = `${API_BASE_URL}/portfolio/import/screenshot`;
 
   const doFetch = () => fetch(url, {
     method: 'POST',
@@ -494,9 +493,6 @@ export async function uploadPortfolioScreenshot(file: File): Promise<CsvParseRes
     throw new Error(body.error || `Screenshot upload failed (${response.status})`);
   }
   const data = await response.json();
-  if (isDev && data.debug?.rawLines) {
-    console.log('[OCR Debug] rawLines:', data.debug.rawLines);
-  }
   return data;
 }
 
