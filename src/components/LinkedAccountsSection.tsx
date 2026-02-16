@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
-import { createPlaidLinkToken, exchangePlaidToken, getPlaidItems, disconnectPlaidItem, PlaidItem } from '../api';
+import { createPlaidLinkToken, exchangePlaidToken, getPlaidItems, disconnectPlaidItem, PlaidItem, PlaidSyncResult } from '../api';
 import { useToast } from '../context/ToastContext';
 
 export function LinkedAccountsSection() {
@@ -9,6 +9,7 @@ export function LinkedAccountsSection() {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<PlaidSyncResult | null>(null);
   const { showToast } = useToast();
 
   const fetchItems = useCallback(async () => {
@@ -117,8 +118,16 @@ export function LinkedAccountsSection() {
               linkToken={linkToken}
               onSuccess={async (publicToken) => {
                 try {
-                  await exchangePlaidToken(publicToken);
-                  showToast('Account linked successfully!', 'success');
+                  const result = await exchangePlaidToken(publicToken);
+                  const sync = result.sync;
+                  if (sync && sync.created > 0) {
+                    showToast(`Imported ${sync.created} holding${sync.created !== 1 ? 's' : ''}!`, 'success');
+                  } else {
+                    showToast('Account linked successfully!', 'success');
+                  }
+                  if (sync && sync.skippedDetails.length > 0) {
+                    setLastSync(sync);
+                  }
                   setLinkToken(null);
                   setLinking(false);
                   fetchItems();
@@ -149,6 +158,37 @@ export function LinkedAccountsSection() {
                 <span>{linking ? 'Connecting...' : 'Connect Brokerage Account'}</span>
               </div>
             </button>
+          )}
+
+          {/* Skipped holdings notice */}
+          {lastSync && lastSync.skippedDetails.length > 0 && (
+            <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200/60 dark:border-yellow-700/30">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-yellow-800 dark:text-yellow-300 mb-1">
+                    {lastSync.skippedDetails.length} holding{lastSync.skippedDetails.length !== 1 ? 's' : ''} not imported
+                  </p>
+                  <ul className="space-y-0.5">
+                    {lastSync.skippedDetails.map((item, i) => (
+                      <li key={i} className="text-xs text-yellow-700 dark:text-yellow-400/80">
+                        <span className="font-medium">{item.ticker || item.name || 'Unknown'}</span>
+                        {' — '}
+                        {item.reason}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => setLastSync(null)}
+                    className="text-xs text-yellow-600 dark:text-yellow-400 hover:underline mt-1.5"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 px-1">

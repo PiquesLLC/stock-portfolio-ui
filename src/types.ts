@@ -19,6 +19,33 @@ export interface Holding {
   session?: MarketSession;
 }
 
+export interface OptionWithQuote {
+  id: string;
+  ticker: string;
+  shares: number;         // number of contracts
+  averageCost: number;
+  holdingType: string;
+  optionUnderlying: string | null;
+  optionStrike: number | null;
+  optionExpiry: string | null;
+  optionType: string | null;
+  currentPrice: number;   // mid-price per share
+  currentValue: number;   // contracts * 100 * currentPrice
+  totalCost: number;
+  profitLoss: number;
+  profitLossPercent: number;
+  bid: number;
+  ask: number;
+  impliedVolatility: number;
+  openInterest: number;
+  volume: number;
+  change: number;
+  percentChange: number;
+  daysToExpiry: number;
+  displayName: string;
+  priceUnavailable?: boolean;
+}
+
 export interface QuotesMeta {
   anyRepricing: boolean;
   quoteTimestamp: number;
@@ -29,6 +56,7 @@ export interface QuotesMeta {
 
 export interface Portfolio {
   holdings: Holding[];
+  options: OptionWithQuote[];
   cashBalance: number;
   marginDebt: number;
   holdingsValue: number;

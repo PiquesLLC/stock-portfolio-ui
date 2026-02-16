@@ -3,6 +3,7 @@ import { Portfolio, Settings, PortfolioChartPeriod } from './types';
 import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable } from './components/HoldingsTable';
+import { OptionsTable } from './components/OptionsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { PortfolioValueChart, ChartMeasurement } from './components/PortfolioValueChart';
@@ -917,6 +918,12 @@ export default function App() {
                 userId={currentUserId}
                 chartPeriod={chartPeriod}
               />
+              {(portfolio?.options?.length ?? 0) > 0 && (
+                <OptionsTable
+                  options={portfolio!.options}
+                  onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                />
+              )}
               <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
             </div>
           </>

@@ -1531,7 +1531,15 @@ export async function createPlaidLinkToken(): Promise<{ linkToken: string }> {
   return fetchJson(`${API_BASE_URL}/plaid/link-token`, { method: 'POST' });
 }
 
-export async function exchangePlaidToken(publicToken: string): Promise<{ itemId: string; accounts: Array<{ id: string; name: string | null; mask: string | null; type: string | null }> }> {
+export interface PlaidSyncResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  tickers: string[];
+  skippedDetails: Array<{ ticker: string | null; name: string | null; reason: string }>;
+}
+
+export async function exchangePlaidToken(publicToken: string): Promise<{ itemId: string; accounts: Array<{ id: string; name: string | null; mask: string | null; type: string | null }>; sync: PlaidSyncResult | null }> {
   return fetchJson(`${API_BASE_URL}/plaid/exchange-token`, {
     method: 'POST',
     body: JSON.stringify({ publicToken }),
