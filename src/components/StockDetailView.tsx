@@ -247,7 +247,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
   useEffect(() => {
     getDividendEvents(ticker).then(setTickerDividends).catch(() => {});
-    getDividendCredits(undefined, ticker).then(setTickerCredits).catch(() => {});
+    getDividendCredits(ticker).then(setTickerCredits).catch(() => {});
     // Fetch earnings for chart events
     getEarnings(ticker).then(setEarnings).catch(() => setEarnings(null));
     // Fetch trade events for chart events

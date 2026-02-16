@@ -4,10 +4,9 @@ import { updateSettings } from '../api';
 interface Props {
   currentDebt: number;
   onUpdate: () => void;
-  userId?: string;
 }
 
-export function MarginDebt({ currentDebt, onUpdate, userId }: Props) {
+export function MarginDebt({ currentDebt, onUpdate }: Props) {
   const [value, setValue] = useState(currentDebt.toString());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +28,7 @@ export function MarginDebt({ currentDebt, onUpdate, userId }: Props) {
 
     setLoading(true);
     try {
-      await updateSettings({ marginDebt: numValue }, userId);
+      await updateSettings({ marginDebt: numValue });
       onUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update');

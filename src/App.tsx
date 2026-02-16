@@ -375,7 +375,7 @@ export default function App() {
     if (!currentUserId) return;
     try {
       const portfolioData = await getPortfolio();  // Always use system/default portfolio
-      const settingsData = await getSettings(currentUserId);
+      const settingsData = await getSettings();
 
       const hasValidData = portfolioData.holdings.length === 0 ||
         portfolioData.holdings.some(h => !h.priceUnavailable && h.currentPrice > 0);

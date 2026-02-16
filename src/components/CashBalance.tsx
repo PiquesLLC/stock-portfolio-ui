@@ -4,10 +4,9 @@ import { updateSettings } from '../api';
 interface Props {
   currentBalance: number;
   onUpdate: () => void;
-  userId?: string;
 }
 
-export function CashBalance({ currentBalance, onUpdate, userId }: Props) {
+export function CashBalance({ currentBalance, onUpdate }: Props) {
   const [value, setValue] = useState(currentBalance.toString());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +28,7 @@ export function CashBalance({ currentBalance, onUpdate, userId }: Props) {
 
     setLoading(true);
     try {
-      await updateSettings({ cashBalance: numValue }, userId);
+      await updateSettings({ cashBalance: numValue });
       onUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update');

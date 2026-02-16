@@ -393,17 +393,15 @@ export async function deleteDividendEvent(id: string): Promise<void> {
   });
 }
 
-export async function getDividendCredits(userId?: string, ticker?: string): Promise<DividendCredit[]> {
+export async function getDividendCredits(ticker?: string): Promise<DividendCredit[]> {
   const params = new URLSearchParams();
-  if (userId) params.set('userId', userId);
   if (ticker) params.set('ticker', ticker);
   const qs = params.toString();
   return fetchJson<DividendCredit[]>(`${API_BASE_URL}/dividends/credits${qs ? `?${qs}` : ''}`);
 }
 
-export async function getDividendSummary(userId?: string): Promise<DividendSummary> {
-  const params = userId ? `?userId=${encodeURIComponent(userId)}` : '';
-  return fetchJson<DividendSummary>(`${API_BASE_URL}/dividends/summary${params}`);
+export async function getDividendSummary(): Promise<DividendSummary> {
+  return fetchJson<DividendSummary>(`${API_BASE_URL}/dividends/summary`);
 }
 
 export async function syncDividends(ticker?: string): Promise<any> {
@@ -418,46 +416,37 @@ export async function getDividendTimeline(creditId: string): Promise<DividendTim
   return fetchJson<DividendTimeline>(`${API_BASE_URL}/dividends/credits/${creditId}/timeline`);
 }
 
-export async function reinvestDividend(creditId: string, userId?: string): Promise<DividendReinvestment> {
+export async function reinvestDividend(creditId: string): Promise<DividendReinvestment> {
   return fetchJson<DividendReinvestment>(`${API_BASE_URL}/dividends/credits/${creditId}/reinvest`, {
     method: 'POST',
-    body: JSON.stringify({ userId }),
   });
 }
 
-export async function getDividendReinvestments(userId?: string, ticker?: string): Promise<DividendReinvestment[]> {
+export async function getDividendReinvestments(ticker?: string): Promise<DividendReinvestment[]> {
   const params = new URLSearchParams();
-  if (userId) params.set('userId', userId);
   if (ticker) params.set('ticker', ticker);
   const qs = params.toString();
   return fetchJson<DividendReinvestment[]>(`${API_BASE_URL}/dividends/reinvestments${qs ? `?${qs}` : ''}`);
 }
 
-export async function getDripSettings(userId?: string): Promise<{ enabled: boolean }> {
-  const params = userId ? `?userId=${encodeURIComponent(userId)}` : '';
-  return fetchJson<{ enabled: boolean }>(`${API_BASE_URL}/dividends/drip${params}`);
+export async function getDripSettings(): Promise<{ enabled: boolean }> {
+  return fetchJson<{ enabled: boolean }>(`${API_BASE_URL}/dividends/drip`);
 }
 
-export async function updateDripSettings(enabled: boolean, userId?: string): Promise<{ enabled: boolean }> {
+export async function updateDripSettings(enabled: boolean): Promise<{ enabled: boolean }> {
   return fetchJson<{ enabled: boolean }>(`${API_BASE_URL}/dividends/drip`, {
     method: 'PUT',
-    body: JSON.stringify({ enabled, userId }),
+    body: JSON.stringify({ enabled }),
   });
 }
 
 // Settings endpoints
-export async function getSettings(userId?: string): Promise<Settings> {
-  const url = userId
-    ? `${API_BASE_URL}/settings?userId=${encodeURIComponent(userId)}`
-    : `${API_BASE_URL}/settings`;
-  return fetchJson<Settings>(url);
+export async function getSettings(): Promise<Settings> {
+  return fetchJson<Settings>(`${API_BASE_URL}/settings`);
 }
 
-export async function updateSettings(input: SettingsUpdateInput, userId?: string): Promise<Settings> {
-  const url = userId
-    ? `${API_BASE_URL}/settings?userId=${encodeURIComponent(userId)}`
-    : `${API_BASE_URL}/settings`;
-  return fetchJson<Settings>(url, {
+export async function updateSettings(input: SettingsUpdateInput): Promise<Settings> {
+  return fetchJson<Settings>(`${API_BASE_URL}/settings`, {
     method: 'PUT',
     body: JSON.stringify(input),
   });

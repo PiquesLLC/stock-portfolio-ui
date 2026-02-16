@@ -191,7 +191,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     if (isNaN(margin) || margin < 0) { setCashMarginError('Margin debt must be non-negative'); return; }
     setCashMarginLoading(true);
     try {
-      await updateSettings({ cashBalance: cash, marginDebt: margin }, userId);
+      await updateSettings({ cashBalance: cash, marginDebt: margin });
       onUpdate();
       setShowCashMarginModal(false);
     } catch (err) {
@@ -372,7 +372,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
         const freshPortfolio = await getPortfolio(userId);
         const newMarginDebt = freshPortfolio.totalAssets - oldNetEquity;
         if (newMarginDebt > 0) {
-          await updateSettings({ marginDebt: newMarginDebt }, userId);
+          await updateSettings({ marginDebt: newMarginDebt });
         }
       }
 

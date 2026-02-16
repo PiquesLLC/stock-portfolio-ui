@@ -66,7 +66,7 @@ export function DividendDetailDrawer({ credit, open, onClose, onReinvested }: Pr
     setReinvesting(true);
     setError('');
     try {
-      await reinvestDividend(credit.id, credit.userId ?? undefined);
+      await reinvestDividend(credit.id);
       // Reload timeline to show reinvestment
       const updated = await getDividendTimeline(credit.id);
       setTimeline(updated);
