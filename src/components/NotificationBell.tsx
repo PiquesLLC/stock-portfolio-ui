@@ -73,7 +73,7 @@ export function NotificationBell({ userId }: Props) {
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
         getUnreadAnalystCount(),
-        getUnreadMilestoneCount(userId),
+        getUnreadMilestoneCount(),
         getUnreadAnomalyCount(),
       ]);
       setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
@@ -87,7 +87,7 @@ export function NotificationBell({ userId }: Props) {
         getAlertEvents(userId),
         getPriceAlertEvents(userId, 50),
         getAnalystEvents(50),
-        getMilestoneEvents(userId, 50),
+        getMilestoneEvents(50),
         getAnomalies(50),
       ]);
 
@@ -157,7 +157,7 @@ export function NotificationBell({ userId }: Props) {
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
         getUnreadAnalystCount(),
-        getUnreadMilestoneCount(userId),
+        getUnreadMilestoneCount(),
         getUnreadAnomalyCount(),
       ]);
       setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
@@ -241,7 +241,7 @@ export function NotificationBell({ userId }: Props) {
       await markAllAnalystEventsRead();
 
       // Mark all milestone events as read
-      await markAllMilestoneEventsRead(userId);
+      await markAllMilestoneEventsRead();
 
       // Mark all anomaly events as read
       await markAllAnomaliesRead();

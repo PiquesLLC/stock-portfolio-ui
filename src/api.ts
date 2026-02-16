@@ -1169,22 +1169,23 @@ export async function getEarnings(ticker: string): Promise<EarningsResponse> {
 // Milestone events (52-week high/low, all-time high/low)
 import { MilestoneEvent } from './types';
 
-export async function getMilestoneEvents(userId: string, limit?: number): Promise<MilestoneEvent[]> {
-  const params = new URLSearchParams({ userId });
+export async function getMilestoneEvents(limit?: number): Promise<MilestoneEvent[]> {
+  const params = new URLSearchParams();
   if (limit) params.set('limit', String(limit));
-  return fetchJson<MilestoneEvent[]>(`${API_BASE_URL}/milestones/events?${params}`);
+  const qs = params.toString();
+  return fetchJson<MilestoneEvent[]>(`${API_BASE_URL}/milestones/events${qs ? `?${qs}` : ''}`);
 }
 
-export async function getUnreadMilestoneCount(userId: string): Promise<{ count: number }> {
-  return fetchJson<{ count: number }>(`${API_BASE_URL}/milestones/events/unread-count?userId=${userId}`);
+export async function getUnreadMilestoneCount(): Promise<{ count: number }> {
+  return fetchJson<{ count: number }>(`${API_BASE_URL}/milestones/events/unread-count`);
 }
 
 export async function markMilestoneEventRead(eventId: string): Promise<void> {
   await fetchJson(`${API_BASE_URL}/milestones/events/${eventId}/read`, { method: 'POST' });
 }
 
-export async function markAllMilestoneEventsRead(userId: string): Promise<void> {
-  await fetchJson(`${API_BASE_URL}/milestones/events/read-all?userId=${userId}`, { method: 'POST' });
+export async function markAllMilestoneEventsRead(): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/milestones/events/read-all`, { method: 'POST' });
 }
 
 // ── Nala AI Research ──────────────────────────────────────────────
