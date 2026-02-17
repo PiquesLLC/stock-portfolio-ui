@@ -144,9 +144,22 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
 
       {/* Error */}
       {error && !loading && (
-        <div className="mt-4 text-sm text-rh-red">
-          {error}
-        </div>
+        (error.includes('upgrade_required') || error.includes('limit_reached')) ? (
+          <div className="mt-4 p-4 rounded-xl bg-gray-50/80 dark:bg-white/[0.04] text-center">
+            <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Upgrade to Premium to ask AI questions about stocks.</p>
+            <a
+              href="#pricing"
+              onClick={(e) => { e.preventDefault(); window.location.hash = '#pricing'; window.dispatchEvent(new HashChangeEvent('hashchange')); }}
+              className="inline-block px-4 py-1.5 rounded-lg text-xs font-semibold bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
+            >
+              Upgrade to Premium
+            </a>
+          </div>
+        ) : (
+          <div className="mt-4 text-sm text-rh-red">
+            {error}
+          </div>
+        )
       )}
 
       {/* Answer */}

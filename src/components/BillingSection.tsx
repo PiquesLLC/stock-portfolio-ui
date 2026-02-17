@@ -61,12 +61,30 @@ export function BillingSection() {
               <div className="w-3 h-3 border border-rh-light-muted/30 border-t-rh-light-muted rounded-full animate-spin" />
             )}
           </div>
-          {billing?.planExpiresAt && (
+          {billing?.cancelAtPeriodEnd && billing.graceEndsAt ? (
+            <span className="text-[11px] text-amber-500 font-medium">
+              Ends {new Date(billing.graceEndsAt).toLocaleDateString()}
+            </span>
+          ) : billing?.planExpiresAt ? (
             <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
               Renews {new Date(billing.planExpiresAt).toLocaleDateString()}
             </span>
-          )}
+          ) : null}
         </div>
+
+        {/* Grace period warning */}
+        {billing?.isGracePeriod && billing.graceEndsAt && (
+          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p className="text-xs text-amber-500">
+              Your {label.name} plan has been cancelled and will end on{' '}
+              <span className="font-semibold">{new Date(billing.graceEndsAt).toLocaleDateString()}</span>.
+              You'll keep access until then.
+            </p>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-2">

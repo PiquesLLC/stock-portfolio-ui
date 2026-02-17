@@ -134,6 +134,16 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     const msg = error.error || `HTTP ${response.status}`;
+
+    // 403 plan gating — throw a typed error so components can show upgrade prompts
+    if (response.status === 403 && (error.error === 'upgrade_required' || error.error === 'limit_reached')) {
+      const planError = new Error(msg) as Error & { status: number; requiredPlan?: string; limit?: number };
+      planError.status = 403;
+      planError.requiredPlan = error.requiredPlan || error.plan || 'pro';
+      planError.limit = error.limit;
+      throw planError;
+    }
+
     // Notify global toast for non-auth errors
     if (onApiError && !url.includes('/auth/')) {
       onApiError(msg);
@@ -1565,6 +1575,11 @@ export interface BillingStatus {
   planExpiresAt: string | null;
   planStartedAt: string | null;
   stripeCustomerId: string | null;
+  subscriptionStatus?: string | null;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string | null;
+  isGracePeriod?: boolean;
+  graceEndsAt?: string | null;
 }
 
 export async function getBillingStatus(): Promise<BillingStatus> {
