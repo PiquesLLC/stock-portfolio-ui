@@ -36,6 +36,7 @@ const OVERFLOW_TABS: { id: TabType; label: string }[] = [
   { id: 'feed', label: 'Feed' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'watch', label: 'Watch' },
+  { id: 'pricing', label: 'Pricing' },
 ];
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
