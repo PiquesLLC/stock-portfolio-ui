@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+tsconfig.tsbuildinfo
 
 # Environment files
 .env
@@ -33,3 +34,10 @@ android/local.properties
 
 # Capacitor environment
 .env.capacitor
+
+# Windows artifacts
+nul
+
+# Temp/debug files
+dist-remote/
+remote-server.cjs
