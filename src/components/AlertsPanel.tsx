@@ -114,7 +114,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                     <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">{meta.name}</span>
                     <button
                       onClick={() => handleToggle(alert)}
-                      className={`relative w-10 h-[22px] rounded-full transition-colors ${
+                      className={`relative w-10 h-[22px] rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
                         alert.enabled ? 'bg-rh-green' : 'bg-gray-300 dark:bg-gray-600'
                       }`}
                     >

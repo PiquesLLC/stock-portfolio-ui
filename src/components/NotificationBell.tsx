@@ -311,7 +311,7 @@ export function NotificationBell({ userId }: Props) {
             </span>
             <button
               onClick={toggleNotifications}
-              className={`relative w-10 h-5 rounded-full transition-colors ${
+              className={`relative w-10 h-5 rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
                 notificationsEnabled ? 'bg-rh-green' : 'bg-gray-600'
               }`}
               title={notificationsEnabled ? 'Turn off notifications' : 'Turn on notifications'}

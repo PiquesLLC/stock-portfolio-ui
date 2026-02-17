@@ -150,7 +150,7 @@ export function LoginPage() {
   const inputClasses = "w-full px-4 py-3 bg-rh-dark border border-rh-border rounded-lg text-white placeholder-rh-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/60 focus-visible:border-rh-green transition-all duration-150";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-rh-black px-4 py-8">
+    <div className="min-h-screen min-h-dvh flex items-center justify-center bg-rh-black px-4 py-8">
       <div className="w-full max-w-sm">
         {/* Logo/Title */}
         <div className="text-center mb-8">

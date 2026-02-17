@@ -811,7 +811,7 @@ function TopMovers({
             <button
               key={s.ticker}
               onClick={() => onTickerClick(s.ticker)}
-              className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between py-1.5 px-2 min-h-[44px] rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>
@@ -836,7 +836,7 @@ function TopMovers({
             <button
               key={s.ticker}
               onClick={() => onTickerClick(s.ticker)}
-              className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between py-1.5 px-2 min-h-[44px] rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>

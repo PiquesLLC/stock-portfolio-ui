@@ -482,7 +482,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
+      <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-rh-green border-t-transparent mx-auto mb-4"></div>
           <p className="text-rh-light-muted dark:text-rh-muted">Loading...</p>
@@ -497,7 +497,7 @@ export default function App() {
 
   if (loading && !portfolio) {
     return (
-      <div className="min-h-screen bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
+      <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
         <Starfield />
         <div className="relative z-10 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-rh-green border-t-transparent mx-auto mb-4"></div>
@@ -509,7 +509,7 @@ export default function App() {
 
   if (error && !portfolio) {
     return (
-      <div className="min-h-screen bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
+      <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
         <Starfield />
         <div className="relative z-10 text-center max-w-md mx-auto p-6">
           <div className="text-rh-red text-6xl mb-4">!</div>
@@ -527,7 +527,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Fixed shield covering the iOS status bar area so scrolling content is hidden behind it */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-rh-light-bg dark:bg-black" style={{ height: 'env(safe-area-inset-top)' }} />
       <Starfield />

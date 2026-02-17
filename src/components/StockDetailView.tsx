@@ -999,7 +999,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
         {/* Right Column - Intelligence Feed (desktop only, sticky sidebar) */}
         {showIntelFeed && !intelCollapsed && (
-          <div className="hidden lg:block lg:w-[360px] lg:shrink-0 lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto no-scrollbar">
+          <div className="hidden lg:block lg:w-[360px] lg:shrink-0 lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto no-scrollbar">
             {aiEvents?.events && aiEvents.events.length > 0 ? (
               <EventFeed events={aiEvents.events} ticker={ticker} />
             ) : (

@@ -130,7 +130,7 @@ export function PriceAlertsList({ alerts, onRefresh }: Props) {
               <button
                 onClick={() => handleToggle(alert)}
                 disabled={togglingId === alert.id}
-                className={`relative w-10 h-6 rounded-full transition-colors ${
+                className={`relative w-10 h-6 rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
                   alert.enabled ? 'bg-rh-green' : 'bg-rh-light-border dark:bg-rh-border'
                 } ${togglingId === alert.id ? 'opacity-50' : ''}`}
                 title={alert.enabled ? 'Disable alert' : 'Enable alert'}
@@ -147,7 +147,7 @@ export function PriceAlertsList({ alerts, onRefresh }: Props) {
             <button
               onClick={() => handleDelete(alert.id)}
               disabled={deletingId === alert.id}
-              className="p-1.5 text-rh-light-muted dark:text-rh-muted hover:text-rh-red transition-colors disabled:opacity-50"
+              className="relative p-1.5 text-rh-light-muted dark:text-rh-muted hover:text-rh-red transition-colors disabled:opacity-50 after:content-[''] after:absolute after:-inset-2"
               title="Delete alert"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
