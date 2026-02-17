@@ -44,6 +44,7 @@ const WatchlistPage = lazy(() => import('./components/WatchlistPage').then(m => 
 const DiscoverPage = lazy(() => import('./components/DiscoverPage').then(m => ({ default: m.DiscoverPage })));
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
+const PricingPage = lazy(() => import('./components/PricingPage').then(m => ({ default: m.PricingPage })));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -74,7 +75,7 @@ interface NavState {
   subtab: string | null;
 }
 
-const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch', 'pricing']);
 
 // Desktop-only tab list for the consolidated header bar
 const DESKTOP_TABS: { id: TabType; label: string }[] = [
@@ -87,6 +88,7 @@ const DESKTOP_TABS: { id: TabType; label: string }[] = [
   { id: 'feed', label: 'Feed' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'watch', label: 'Watch' },
+  { id: 'pricing', label: 'Pricing' },
 ];
 
 function parseHash(): NavState {
@@ -1028,6 +1030,12 @@ export default function App() {
                 onUserClick={handleViewProfile}
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
               />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'pricing' && (
+            <ErrorBoundary>
+              <PricingPage />
             </ErrorBoundary>
           )}
         </Suspense>

@@ -1,10 +1,14 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi } from '../api';
 
+export type PlanTier = 'free' | 'pro' | 'premium';
+
 interface User {
   id: string;
   username: string;
   displayName: string;
+  plan?: PlanTier;
+  planExpiresAt?: string | null;
 }
 
 export interface MfaChallenge {

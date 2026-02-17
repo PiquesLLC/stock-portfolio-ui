@@ -1,8 +1,10 @@
 import { ReactNode } from 'react';
+import { useAuth, PlanTier } from '../context/AuthContext';
 
 interface PremiumOverlayProps {
   featureName: string;
   description: string;
+  requiredPlan?: PlanTier;
   children?: ReactNode;
 }
 
@@ -44,7 +46,18 @@ function SkeletonPreview() {
   );
 }
 
-export function PremiumOverlay({ featureName, description, children }: PremiumOverlayProps) {
+export function PremiumOverlay({ featureName, description, requiredPlan = 'premium', children }: PremiumOverlayProps) {
+  const { user } = useAuth();
+  const currentPlan = user?.plan || 'free';
+
+  // Check if user has access
+  const planRank: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2 };
+  if (planRank[currentPlan] >= planRank[requiredPlan]) {
+    return <>{children}</>;
+  }
+
+  const planLabel = requiredPlan === 'pro' ? 'Pro' : 'Premium';
+
   return (
     <div className="relative">
       {/* Blurred content preview */}
@@ -64,7 +77,7 @@ export function PremiumOverlay({ featureName, description, children }: PremiumOv
 
           {/* Premium badge */}
           <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-500 border border-amber-500/20">
-            Premium
+            {planLabel}
           </span>
 
           {/* Feature name */}
@@ -77,11 +90,18 @@ export function PremiumOverlay({ featureName, description, children }: PremiumOv
             {description}
           </p>
 
-          {/* Coming soon indicator */}
-          <div className="flex items-center gap-1.5 mt-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />
-            <span className="text-[11px] font-medium text-rh-green">Coming Soon</span>
-          </div>
+          {/* Upgrade button */}
+          <a
+            href="#pricing"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.hash = '#pricing';
+              window.dispatchEvent(new HashChangeEvent('hashchange'));
+            }}
+            className="mt-1 px-6 py-2.5 rounded-xl text-sm font-semibold bg-rh-green text-white hover:bg-rh-green/90 transition-colors shadow-sm shadow-rh-green/20 min-h-[44px] flex items-center justify-center"
+          >
+            Upgrade to {planLabel}
+          </a>
         </div>
       </div>
     </div>

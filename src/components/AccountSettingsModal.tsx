@@ -5,6 +5,7 @@ import { PortfolioImport } from './PortfolioImport';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaSetupModal } from './MfaSetupModal';
 import { LinkedAccountsSection } from './LinkedAccountsSection';
+import { BillingSection } from './BillingSection';
 
 interface AccountSettingsModalProps {
   userId: string;
@@ -621,6 +622,9 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
 
               {/* Linked Accounts Section */}
               <LinkedAccountsSection />
+
+              {/* Subscription & Billing Section */}
+              <BillingSection />
 
               {/* Notifications Section */}
               <section>

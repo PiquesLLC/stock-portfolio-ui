@@ -1557,3 +1557,29 @@ export async function getPlaidHoldings(itemId: string): Promise<{ holdings: Plai
 export async function disconnectPlaidItem(itemId: string): Promise<{ success: boolean }> {
   return fetchJson(`${API_BASE_URL}/plaid/items/${itemId}`, { method: 'DELETE' });
 }
+
+// ─── Billing ────────────────────────────────────────────────────────────────
+
+export interface BillingStatus {
+  plan: 'free' | 'pro' | 'premium';
+  planExpiresAt: string | null;
+  planStartedAt: string | null;
+  stripeCustomerId: string | null;
+}
+
+export async function getBillingStatus(): Promise<BillingStatus> {
+  return fetchJson(`${API_BASE_URL}/billing/status`);
+}
+
+export async function createCheckoutSession(priceId: string): Promise<{ url: string }> {
+  return fetchJson(`${API_BASE_URL}/billing/checkout`, {
+    method: 'POST',
+    body: JSON.stringify({ priceId }),
+  });
+}
+
+export async function createPortalSession(): Promise<{ url: string }> {
+  return fetchJson(`${API_BASE_URL}/billing/portal`, {
+    method: 'POST',
+  });
+}
