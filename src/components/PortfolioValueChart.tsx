@@ -212,6 +212,14 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ── Clear stale measurement if points array shrinks (data refresh during gesture)
+  useEffect(() => {
+    if (measureA !== null && measureA >= (chartData?.points?.length ?? 0)) {
+      setMeasureA(null);
+      setMeasureB(null);
+    }
+  }, [chartData?.points?.length]);
+
   // ── Chart data ─────────────────────────────────────────────────
 
   // Extend chart to current time using the live portfolio value from props.
@@ -675,10 +683,13 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     if (measureA === null || measureB === null) return '';
     const lo = Math.min(measureA, measureB);
     const hi = Math.max(measureA, measureB);
+    if (lo < 0 || hi >= points.length) return ''; // guard stale indices after data refresh
     const pts = [];
     for (let i = lo; i <= hi; i++) {
+      if (!points[i]) break;
       pts.push(`${i === lo ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(points[i].value).toFixed(1)}`);
     }
+    if (pts.length < 2) return '';
     pts.push(`L${toX(hi).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`);
     pts.push(`L${toX(lo).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)} Z`);
     return pts.join(' ');

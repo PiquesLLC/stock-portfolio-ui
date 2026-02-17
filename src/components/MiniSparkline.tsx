@@ -126,7 +126,22 @@ function smoothPath(coords: { x: number; y: number }[]): string {
   return d;
 }
 
-export function MiniSparkline({ ticker, positive: _positive, period = '1D' }: MiniSparklineProps) {
+// For 1D sparklines, use first candle as anchor + regular session (9:30 AM ET = 14:30 UTC).
+// First candle (≈ previousClose) anchors the start so the gap-up/down at open is visible,
+// then regular session data gives clean shape without pre-market thin-liquidity noise.
+function toCloses(candles: IntradayCandle[], period: string): number[] {
+  if (period !== '1D') return candles.map((c) => c.close);
+  const regular = candles.filter((c) => {
+    const d = new Date(c.time);
+    return d.getUTCHours() > 14 || (d.getUTCHours() === 14 && d.getUTCMinutes() >= 30);
+  });
+  if (regular.length < 2) return candles.map((c) => c.close);
+  // Prepend first candle as anchor — it's near previousClose, so the sparkline
+  // direction (first vs last) matches the actual day change direction
+  return [candles[0].close, ...regular.map((c) => c.close)];
+}
+
+export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparklineProps) {
   const [rawPoints, setRawPoints] = useState<number[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -137,7 +152,7 @@ export function MiniSparkline({ ticker, positive: _positive, period = '1D' }: Mi
     // Check cache synchronously first
     const cached = getCachedData(ticker, period);
     if (cached) {
-      setRawPoints(cached.map((c) => c.close));
+      setRawPoints(toCloses(cached, period));
       setLoading(false);
       return;
     }
@@ -148,7 +163,7 @@ export function MiniSparkline({ ticker, positive: _positive, period = '1D' }: Mi
     fetchWithCache(ticker, period)
       .then((data) => {
         if (!cancelled) {
-          setRawPoints(data.map((c) => c.close));
+          setRawPoints(toCloses(data, period));
           setLoading(false);
         }
       })
@@ -214,8 +229,10 @@ export function MiniSparkline({ ticker, positive: _positive, period = '1D' }: Mi
   // No data or insufficient data
   if (!points || points.length < 2) return null;
 
-  // Derive color from actual data: is the last price above the first?
-  const dataPositive = points[points.length - 1] >= points[0];
+  // Use the parent's positive prop (based on dayChange vs previousClose) for color.
+  // This is the authoritative source — sparkline visual direction may differ from
+  // day change when stocks gap at open (e.g., gap down then recover intra-session).
+  const dataPositive = positive;
   const strokeColor = dataPositive ? '#00c805' : '#ff5000';
   const gradientId = `sparkGrad-${ticker}-${period}`;
   const lastPt = coords[coords.length - 1];

@@ -1454,9 +1454,9 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     }
   }
 
-  // Current price dot
+  // Current price dot — clamp Y to plot area so pre-market outliers don't escape the chart
   const lastX = points.length > 0 ? toX(points.length - 1) : CHART_W / 2;
-  const lastY = points.length > 0 ? toY(points[points.length - 1].price) : toY(currentPrice);
+  const lastY = Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, points.length > 0 ? toY(points[points.length - 1].price) : toY(currentPrice)));
 
   const hasData = points.length >= 2;
 
@@ -1670,7 +1670,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   // Hover crosshair data — guard against stale hoverIndex after period switch
   const safeHoverIndex = hoverIndex !== null && hoverIndex >= 0 && hoverIndex < points.length ? hoverIndex : null;
   const hoverX = safeHoverIndex !== null ? toX(safeHoverIndex) : null;
-  const hoverY = safeHoverIndex !== null ? toY(points[safeHoverIndex].price) : null;
+  const hoverY = safeHoverIndex !== null ? Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(points[safeHoverIndex].price))) : null;
   const hoverLabel = safeHoverIndex !== null ? points[safeHoverIndex].label : null;
 
   // MA values at hovered point
@@ -1843,7 +1843,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-          className="w-full h-full overflow-visible"
+          className="w-full h-full overflow-hidden"
           preserveAspectRatio="none"
           onMouseDown={handlePanStart}
           onMouseMove={handleMouseMove}
