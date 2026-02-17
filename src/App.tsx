@@ -20,6 +20,7 @@ import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { DailyReportModal } from './components/DailyReportModal';
 import { LandingPage } from './components/LandingPage';
+import { PrivacyPage } from './components/PrivacyPage';
 import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
 import type Hls from 'hls.js';
@@ -538,6 +539,12 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  // Public privacy/terms page (accessible without auth, needed for Plaid questionnaire)
+  const rawHash = window.location.hash.slice(1);
+  if (rawHash === 'privacy' || rawHash === 'terms') {
+    return <PrivacyPage initialTab={rawHash} />;
   }
 
   if (!isAuthenticated) {

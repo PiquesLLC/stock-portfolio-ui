@@ -22,7 +22,7 @@ function BulletList({ items }: { items: React.ReactNode[] }) {
   );
 }
 
-function PrivacyPolicyContent() {
+export function PrivacyPolicyContent() {
   return (
     <div>
       <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text mb-1">Privacy Policy</h2>
@@ -136,7 +136,7 @@ function PrivacyPolicyContent() {
   );
 }
 
-function TermsOfServiceContent() {
+export function TermsOfServiceContent() {
   return (
     <div>
       <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text mb-1">Terms of Service</h2>
