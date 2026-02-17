@@ -27,8 +27,8 @@ export const PLANS: PlanDefinition[] = [
   {
     id: 'pro',
     name: 'Pro',
-    monthlyPrice: 3.99,
-    yearlyPrice: 30,
+    monthlyPrice: 4.99,
+    yearlyPrice: 40,
     description: 'For active investors who want more',
     highlight: true,
     features: [
