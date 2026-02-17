@@ -12,12 +12,13 @@ interface WatchPageProps {
   channels: Channel[];
   activeChannel: Channel;
   onChannelChange: (channel: Channel) => void;
+  onPlay?: () => void;
   onTickerClick?: (ticker: string) => void;
 }
 
 export function WatchPage({
   pipEnabled, onPipToggle, status, hasError, videoContainerRef,
-  channels, activeChannel, onChannelChange, onTickerClick,
+  channels, activeChannel, onChannelChange, onPlay, onTickerClick,
 }: WatchPageProps) {
   const handleTickerClick = useCallback((ticker: string) => {
     onTickerClick?.(ticker);
@@ -207,6 +208,14 @@ export function WatchPage({
                     )}
                   </div>
                 </div>
+              ) : status === 'Click to play' ? (
+                <button
+                  onClick={onPlay}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black/70 backdrop-blur-sm pointer-events-auto hover:bg-black/80 transition-colors"
+                >
+                  <svg className="w-5 h-5 text-white/80" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                  <span className="text-sm text-white/80">Tap to play</span>
+                </button>
               ) : (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm">
                   <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />

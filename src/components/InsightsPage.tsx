@@ -118,15 +118,6 @@ const insightsCache: {
 // Cache TTL: 5 minutes before considering stale
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-function formatTimeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
-}
-
 const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings', 'etf-overlap', 'tax-harvest']);
 
 function EventsSection({ holdings }: { holdings: Holding[] }) {
@@ -186,7 +177,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Initialize state from cache
   const [healthScore, setHealthScore] = useState<HealthScoreType | null>(insightsCache.healthScore);
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(insightsCache.intelligence);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(insightsCache.lastFetchTime !== null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [anomalies, setAnomalies] = useState<AnomalyEvent[]>([]);
@@ -204,13 +194,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     insightsCache.intelligence = intelligence;
   }, [intelligence]);
 
-  const fetchInsights = useCallback(async (silent: boolean = false) => {
+  const fetchInsights = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
-
-    if (!silent) {
-      setIsRefreshing(true);
-    }
 
     try {
       // Fetch each insight independently - errors in one don't block others
@@ -231,9 +217,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       }
     } finally {
       fetchingRef.current = false;
-      if (mountedRef.current) {
-        setIsRefreshing(false);
-      }
     }
   }, []);
 
@@ -249,11 +232,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     const hasNoData = !insightsCache.healthScore && !insightsCache.intelligence;
 
     if (hasNoData) {
-      // No data at all - do a visible fetch
-      fetchInsights(false);
+      fetchInsights();
     } else if (cacheIsStale) {
-      // Have data but it's stale - do a silent background refresh
-      fetchInsights(true);
+      fetchInsights();
     }
     // If cache is fresh, don't fetch at all
 
@@ -261,10 +242,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       mountedRef.current = false;
     };
   }, [fetchInsights]);
-
-  const handleRefresh = () => {
-    fetchInsights(false);
-  };
 
   // Fetch holdings on mount (needed for Events on Intelligence tab + Allocation tab)
   useEffect(() => {
@@ -426,28 +403,8 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   return (
     <div className="space-y-4">
-      {/* Header: sub-tabs left, refresh + timestamp right */}
-      <div className="flex items-center justify-between">
-        <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <div className="flex items-center gap-3">
-          {insightsCache.lastFetchTime && (
-            <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 tabular-nums min-w-[90px] text-right">
-              Updated {formatTimeAgo(insightsCache.lastFetchTime)}
-            </span>
-          )}
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
-              hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors disabled:opacity-50"
-            title="Refresh insights"
-          >
-            <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      {/* Sub-tabs */}
+      <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
 
       {/* Portfolio Intelligence (includes Attribution Pulse) */}
       {intelligence ? (

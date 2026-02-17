@@ -19,7 +19,7 @@ import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { DailyReportModal } from './components/DailyReportModal';
-import { LoginPage } from './components/LoginPage';
+import { LandingPage } from './components/LandingPage';
 import { useAuth } from './context/AuthContext';
 import { Holding } from './types';
 import type Hls from 'hls.js';
@@ -61,7 +61,7 @@ setTimeout(() => {
 function PageFallback() {
   return (
     <div className="flex items-center justify-center py-20">
-      <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent" />
+      <img src="/north-signal-logo.png" alt="" className="h-8 w-8 animate-spin" />
     </div>
   );
 }
@@ -179,6 +179,46 @@ export default function App() {
     clearNavigationState,
   });
 
+  // --- Pull-to-refresh ---
+  const [pullY, setPullY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullTouchY = useRef(0);
+  const pullActive = useRef(false);
+  const fetchDataRef = useRef<() => void>(() => {});
+
+  const onPullStart = useCallback((e: React.TouchEvent) => {
+    if (refreshing) return;
+    if (window.scrollY <= 0) {
+      pullTouchY.current = e.touches[0].clientY;
+      pullActive.current = true;
+    }
+  }, [refreshing]);
+
+  const onPullMove = useCallback((e: React.TouchEvent) => {
+    if (!pullActive.current || refreshing) return;
+    const dy = e.touches[0].clientY - pullTouchY.current;
+    if (dy > 0) {
+      setPullY(Math.min(dy * 0.4, 80));
+    } else {
+      pullActive.current = false;
+      setPullY(0);
+    }
+  }, [refreshing]);
+
+  const onPullEnd = useCallback(() => {
+    if (!pullActive.current) return;
+    pullActive.current = false;
+    if (pullY > 50) {
+      setRefreshing(true);
+      setPullY(50);
+      fetchDataRef.current();
+      setSummaryRefreshTrigger(t => t + 1);
+      setTimeout(() => { setRefreshing(false); setPullY(0); }, 1200);
+    } else {
+      setPullY(0);
+    }
+  }, [pullY]);
+
   // --- Stream / PiP state ---
   const [pipEnabled, setPipEnabled] = useState(() => {
     const stored = localStorage.getItem('pipEnabled');
@@ -212,6 +252,13 @@ export default function App() {
       setStreamActive(false);
     }
   }, [activeTab, pipEnabled]);
+
+  const handleManualPlay = useCallback(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.play().then(() => setStreamStatus('')).catch(() => {});
+    }
+  }, []);
 
   const handleMiniPlayerClose = () => setStreamActive(false);
   const handleMiniPlayerExpand = () => {
@@ -442,6 +489,7 @@ export default function App() {
       setLoading(false);
     }
   }, [portfolio, currentUserId]);
+  fetchDataRef.current = fetchData;
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -486,15 +534,14 @@ export default function App() {
     return (
       <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-rh-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-rh-green border-t-transparent mx-auto mb-4"></div>
-          <p className="text-rh-light-muted dark:text-rh-muted">Loading...</p>
+          <img src="/north-signal-logo.png" alt="" className="h-12 w-12 animate-spin mx-auto mb-4" />
         </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return <LoginPage />;
+    return <LandingPage />;
   }
 
   if (loading && !portfolio) {
@@ -502,8 +549,7 @@ export default function App() {
       <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
         <Starfield />
         <div className="relative z-10 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-rh-green border-t-transparent mx-auto mb-4"></div>
-          <p className="text-rh-light-muted dark:text-rh-muted">Loading portfolio...</p>
+          <img src="/north-signal-logo.png" alt="" className="h-12 w-12 animate-spin mx-auto mb-4" />
         </div>
       </div>
     );
@@ -529,7 +575,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }} onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd}>
       {/* Fixed shield covering the iOS status bar area so scrolling content is hidden behind it */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-rh-light-bg dark:bg-black" style={{ height: 'env(safe-area-inset-top)' }} />
       <Starfield />
@@ -721,6 +767,22 @@ export default function App() {
           setLeaderboardUserId(null);
         }} />
       </div>
+      </div>
+
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="flex items-center justify-center overflow-hidden bg-rh-light-bg dark:bg-black"
+        style={{
+          height: pullY > 0 ? `${pullY}px` : '0px',
+          transition: pullActive.current ? 'none' : 'height 0.3s ease',
+        }}
+      >
+        <img
+          src="/north-signal-logo.png"
+          alt=""
+          className={`h-6 w-6 ${refreshing ? 'animate-spin' : ''}`}
+          style={{ opacity: pullY > 10 ? Math.min(pullY / 50, 1) : 0, transform: refreshing ? undefined : `rotate(${pullY * 4}deg)` }}
+        />
       </div>
 
       <main className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
@@ -1017,6 +1079,7 @@ export default function App() {
                   channels={CHANNELS}
                   activeChannel={activeChannel}
                   onChannelChange={setActiveChannel}
+                  onPlay={handleManualPlay}
                   onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
                 />
               </ErrorBoundary>

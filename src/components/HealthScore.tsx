@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { HealthScore as HealthScoreType, HealthCategoryDetail, HealthScoreDetails } from '../types';
 import { InfoTooltip } from './InfoTooltip';
 
@@ -81,11 +82,11 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
   const drivers = isMargin ? marginDetail.drivers : catDetail!.drivers;
   const fixes = isMargin ? marginDetail.quickFixes : catDetail!.quickFixes;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/40 z-[60] transition-opacity"
         onClick={onClose}
         aria-hidden
       />
@@ -95,11 +96,12 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
         tabIndex={-1}
         role="dialog"
         aria-label={`${title} explanation`}
-        className="fixed top-0 right-0 h-full w-full max-w-md bg-black/80 dark:bg-black/80 backdrop-blur-xl border-l border-gray-200/30 dark:border-white/[0.04]
-          shadow-xl z-50 overflow-y-auto outline-none animate-slide-in-right"
+        className="fixed top-0 right-0 h-full w-full max-w-md bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl border-l border-gray-200/30 dark:border-white/[0.04]
+          shadow-xl z-[70] overflow-y-auto outline-none animate-slide-in-right"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-black/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/30 dark:border-white/[0.04] px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl border-b border-gray-200/30 dark:border-white/[0.04] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
@@ -193,7 +195,8 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 
