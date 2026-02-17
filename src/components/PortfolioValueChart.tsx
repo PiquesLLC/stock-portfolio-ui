@@ -261,17 +261,22 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       }
       return pts.length >= 2 ? pts : raw;
     }
-    // For 1W/1M/YTD: filter to active trading sessions only.
+    // For ALL non-1D periods: filter to active trading sessions only.
     // The API returns 24h hourly data including dead overnight periods and weekends
     // that create flat horizontal lines on the chart.
     // Robinhood-style: only show weekday 4 AM–8 PM ET data, index-based positioning.
-    if (selectedPeriod === '1W' || selectedPeriod === '1M' || selectedPeriod === 'YTD') {
+    // IMPORTANT: This must cover ALL periods (1W, 1M, 3M, YTD, 1Y, ALL) — not just some.
+    // Previously only 1W/1M/YTD were filtered, leaving 3M/1Y/ALL with ugly flat lines.
+    {
       const etHourFmt = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
       });
       const etDayFmt = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York', weekday: 'short',
       });
+      const etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+
+      // Step 1: Filter weekends and outside-hours
       const filtered = raw.filter(p => {
         const d = new Date(p.time);
         const wd = etDayFmt.format(d);
@@ -280,9 +285,41 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
         const h = parseInt(hm.split(':')[0]);
         return h >= 4 && h < 20; // 4 AM – 8 PM ET
       });
-      return filtered.length >= 2 ? filtered : raw;
+
+      // Step 2: Remove holiday/no-trading days (data-driven detection).
+      // On market holidays (Presidents' Day, MLK Day, etc.) the API still polls
+      // but all values are identical because the market is closed. Group by ET
+      // calendar day and skip days where portfolio value doesn't change (<$1 range).
+      // This is more robust than a hardcoded holiday list — works automatically.
+      const dayMap = new Map<string, number[]>();
+      for (let i = 0; i < filtered.length; i++) {
+        const dateStr = etDateFmt.format(new Date(filtered[i].time));
+        if (!dayMap.has(dateStr)) dayMap.set(dateStr, []);
+        dayMap.get(dateStr)!.push(i);
+      }
+
+      const skipIndices = new Set<number>();
+      for (const [, indices] of dayMap) {
+        if (indices.length < 4) continue; // skip partial days at chart edges
+        const vals = indices.map(idx => filtered[idx].value);
+        const range = Math.max(...vals) - Math.min(...vals);
+        const avgValue = vals.reduce((a, b) => a + b, 0) / vals.length;
+        // Use relative threshold: if day's range < 0.1% of portfolio value,
+        // it's a market holiday. Real trading days move 0.5%+ typically.
+        // The API generates linearly interpolated points on holidays that
+        // create small artificial movement (~$200 on a $500K portfolio = 0.04%),
+        // so absolute thresholds like $1 don't work.
+        if (avgValue > 0 && (range / avgValue) < 0.001) {
+          indices.forEach(idx => skipIndices.add(idx));
+        }
+      }
+
+      const result = skipIndices.size > 0
+        ? filtered.filter((_, i) => !skipIndices.has(i))
+        : filtered;
+
+      return result.length >= 2 ? result : raw;
     }
-    return raw;
   }, [chartData, selectedPeriod, currentValue]);
   const periodStartValue = chartData?.periodStartValue ?? currentValue;
 
