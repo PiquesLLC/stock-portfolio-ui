@@ -702,8 +702,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* Desktop: logo far-left, tabs aligned with content column, controls far-right */}
-        <div className="hidden sm:flex items-center h-14 px-5 gap-4">
+        {/* Desktop header — content-aligned */}
+        <div className="hidden sm:block">
+          <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 h-14 flex items-center gap-4">
           {/* Logo */}
           <div
             className="h-[30px] w-[30px] cursor-pointer flex-shrink-0"
@@ -836,6 +837,7 @@ export default function App() {
                 onLogoutClick={logout}
               />
             )}
+          </div>
           </div>
         </div>
       </header>
