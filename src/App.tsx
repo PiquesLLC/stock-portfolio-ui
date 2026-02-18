@@ -175,6 +175,13 @@ export default function App() {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyResendCooldown, setVerifyResendCooldown] = useState(0);
 
+  // Listen for email-verify-needed events from API layer (403 on AI endpoints)
+  useEffect(() => {
+    const handler = () => setShowVerifyEmailModal(true);
+    window.addEventListener('email-verify-needed', handler);
+    return () => window.removeEventListener('email-verify-needed', handler);
+  }, []);
+
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
@@ -812,24 +819,6 @@ export default function App() {
             <p className="text-yellow-400 text-sm font-medium">
               You're offline — market data may be outdated
             </p>
-          </div>
-        )}
-        {user && user.emailVerified === false && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <p className="text-amber-400 text-sm font-medium truncate">
-                Verify your email to unlock AI features
-              </p>
-            </div>
-            <button
-              onClick={() => setShowVerifyEmailModal(true)}
-              className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors"
-            >
-              Verify
-            </button>
           </div>
         )}
         {viewingStock && (

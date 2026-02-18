@@ -144,6 +144,12 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       throw planError;
     }
 
+    // 403 email verification required — dispatch event so App shows verify modal
+    if (response.status === 403 && typeof error.error === 'string' && error.error.toLowerCase().includes('email verification required')) {
+      window.dispatchEvent(new CustomEvent('email-verify-needed'));
+      throw new Error(msg);
+    }
+
     // Notify global toast for non-auth errors
     if (onApiError && !url.includes('/auth/')) {
       onApiError(msg);
