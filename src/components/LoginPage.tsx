@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { setPassword as apiSetPassword, checkHasPassword } from '../api';
+import { setPassword as apiSetPassword, checkHasPassword, forgotPassword, resetPassword } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 
@@ -41,7 +41,13 @@ export function LoginPage() {
   const [password, setPasswordValue] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<'login' | 'set-password' | 'signup' | 'verify-email'>('login');
+  const [mode, setMode] = useState<'login' | 'set-password' | 'signup' | 'verify-email' | 'forgot-password' | 'reset-password'>('login');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -63,7 +69,49 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (mode === 'verify-email') {
+      if (mode === 'forgot-password') {
+        if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
+          setError('Please enter a valid email address');
+          setIsLoading(false);
+          return;
+        }
+        await forgotPassword(resetEmail);
+        setMode('reset-password');
+        setSuccessMessage('Reset code sent! Check your email.');
+        setError('');
+        setIsLoading(false);
+        return;
+      } else if (mode === 'reset-password') {
+        if (resetCode.length !== 6) {
+          setError('Please enter the 6-digit reset code');
+          setIsLoading(false);
+          return;
+        }
+        if (newPassword.length < 8) {
+          setError('Password must be at least 8 characters');
+          setIsLoading(false);
+          return;
+        }
+        if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+          setError('Password must include uppercase, lowercase, and a number');
+          setIsLoading(false);
+          return;
+        }
+        if (newPassword !== newPasswordConfirm) {
+          setError('Passwords do not match');
+          setIsLoading(false);
+          return;
+        }
+        await resetPassword(resetEmail, resetCode, newPassword);
+        setSuccessMessage('Password reset! You can now sign in.');
+        setMode('login');
+        setResetEmail('');
+        setResetCode('');
+        setNewPassword('');
+        setNewPasswordConfirm('');
+        setIsLoading(false);
+        return;
+      } else if (mode === 'verify-email') {
         if (verificationCode.length !== 6) {
           setError('Please enter the 6-digit verification code');
           setIsLoading(false);
@@ -178,6 +226,8 @@ export function LoginPage() {
       case 'signup': return 'Create Account';
       case 'set-password': return 'Set Password';
       case 'verify-email': return 'Verify Your Email';
+      case 'forgot-password': return 'Reset Password';
+      case 'reset-password': return 'Enter Reset Code';
       default: return 'Welcome Back';
     }
   };
@@ -187,6 +237,8 @@ export function LoginPage() {
       case 'signup': return 'Create Account';
       case 'set-password': return 'Set Password';
       case 'verify-email': return 'Verify';
+      case 'forgot-password': return 'Send Reset Code';
+      case 'reset-password': return 'Reset Password';
       default: return 'Sign In';
     }
   };
@@ -280,6 +332,128 @@ export function LoginPage() {
                   </button>
                   <span className="text-xs text-rh-muted/40">Check your spam folder</span>
                 </div>
+              </>) : mode === 'forgot-password' ? (<>
+                <p className="text-sm text-rh-muted leading-relaxed">
+                  Enter the email address associated with your account and we'll send you a reset code.
+                </p>
+                <div>
+                  <label htmlFor="resetEmail" className="block text-sm font-medium text-rh-muted mb-2">
+                    Email
+                  </label>
+                  <input
+                    id="resetEmail"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className={inputClasses}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(''); setSuccessMessage(''); }}
+                  className="text-sm text-rh-green hover:text-rh-green/80 transition-colors"
+                >
+                  Back to sign in
+                </button>
+              </>) : mode === 'reset-password' ? (<>
+                <p className="text-sm text-rh-muted leading-relaxed">
+                  Enter the 6-digit code sent to <span className="text-white font-medium">{resetEmail}</span> and choose a new password.
+                </p>
+                <div>
+                  <label htmlFor="resetCode" className="block text-sm font-medium text-rh-muted mb-2">
+                    Reset Code
+                  </label>
+                  <input
+                    id="resetCode"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={resetCode}
+                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className={`${inputClasses} text-center text-2xl tracking-[0.3em] font-mono`}
+                    placeholder="000000"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-rh-muted mb-2">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="newPassword"
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className={`${inputClasses} pr-11`}
+                      placeholder="Min. 8 chars, upper/lower/number"
+                      autoComplete="new-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-rh-muted/60 hover:text-white transition-colors rounded"
+                      tabIndex={-1}
+                    >
+                      {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="newPasswordConfirm" className="block text-sm font-medium text-rh-muted mb-2">
+                    Confirm New Password
+                  </label>
+                  <input
+                    id="newPasswordConfirm"
+                    type="password"
+                    value={newPasswordConfirm}
+                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                    className={inputClasses}
+                    placeholder="Re-enter new password"
+                    autoComplete="new-password"
+                    required
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (resetCooldown > 0) return;
+                      try {
+                        await forgotPassword(resetEmail);
+                        showToast('Reset code resent', 'success');
+                        setResetCooldown(60);
+                        const interval = setInterval(() => {
+                          setResetCooldown(prev => {
+                            if (prev <= 1) { clearInterval(interval); return 0; }
+                            return prev - 1;
+                          });
+                        }, 1000);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Failed to resend code');
+                      }
+                    }}
+                    disabled={resetCooldown > 0}
+                    className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-muted/40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {resetCooldown > 0 ? `Resend in ${resetCooldown}s` : 'Resend code'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('login'); setError(''); setSuccessMessage(''); setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); }}
+                    className="text-sm text-rh-muted/60 hover:text-rh-muted transition-colors"
+                  >
+                    Back to sign in
+                  </button>
+                </div>
               </>) : (<>
               {/* Username Field */}
               <div>
@@ -353,7 +527,9 @@ export function LoginPage() {
                       tabIndex={-1}
                       className="text-xs text-rh-muted/60 hover:text-rh-muted transition-colors"
                       onClick={() => {
-                        showToast('Password reset coming soon. Contact support for help.', 'info');
+                        setMode('forgot-password');
+                        setError('');
+                        setSuccessMessage('');
                       }}
                     >
                       Forgot password?

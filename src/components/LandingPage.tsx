@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { checkHasPassword } from '../api';
+import { checkHasPassword, forgotPassword, resetPassword } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { PLANS } from '../data/plans';
@@ -44,8 +44,13 @@ export function LandingPage() {
   // scrollToRef is defined in the pull-to-refresh block below
 
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-password' | 'reset-password'>('signup');
   const openAuth = (mode: 'login' | 'signup') => { setAuthMode(mode); setAuthOpen(true); };
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [resetCooldown, setResetCooldown] = useState(0);
 
   const [username, setUsername] = useState('');
   const [password, setPasswordValue] = useState('');
@@ -76,12 +81,26 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
-  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } }, [authOpen, authMode]);
+  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } }, [authOpen, authMode]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setError(''); setIsLoading(true);
     try {
-      if (authMode === 'signup') {
+      if (authMode === 'forgot-password') {
+        if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) { setError('Please enter a valid email address'); return; }
+        await forgotPassword(resetEmail);
+        setAuthMode('reset-password'); setError('');
+        return;
+      } else if (authMode === 'reset-password') {
+        if (resetCode.length !== 6) { setError('Please enter the 6-digit reset code'); return; }
+        if (newPassword.length < 8) { setError('Password must be at least 8 characters'); return; }
+        if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) { setError('Password must include uppercase, lowercase, and a number'); return; }
+        if (newPassword !== newPasswordConfirm) { setError('Passwords do not match'); return; }
+        await resetPassword(resetEmail, resetCode, newPassword);
+        showToast('Password reset! You can now sign in.', 'success');
+        setAuthMode('login'); setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm('');
+        return;
+      } else if (authMode === 'signup') {
         if (!username.trim() || !displayName.trim()) { setError('Username and display name are required'); return; }
         if (!landingEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(landingEmail)) { setError('Please enter a valid email address'); return; }
         if (password !== confirmPassword) { setError('Passwords do not match'); return; }
@@ -430,18 +449,32 @@ export function LandingPage() {
             <div className="text-center mb-6"><div className="inline-flex items-center gap-2"><img src="/north-signal-logo.png" alt="" className="h-7 w-7" /><span className="text-lg font-bold text-white tracking-tight">Nala</span></div></div>
             {mfaChallenge ? <MfaVerifyStep challenge={mfaChallenge} /> : (
               <>
-                <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
+                <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'signup' ? 'Create Account' : authMode === 'forgot-password' ? 'Reset Password' : authMode === 'reset-password' ? 'Enter Reset Code' : 'Welcome Back'}</h2>
                 {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-start gap-2" role="alert"><svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg><span>{error}</span></div>}
                 <form onSubmit={handleSubmit} noValidate><div className="space-y-4">
+                  {authMode === 'forgot-password' ? (<>
+                    <p className="text-[12px] text-white/30 leading-relaxed">Enter the email on your account and we'll send a reset code.</p>
+                    <div><label htmlFor="auth-reset-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-reset-email" type="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
+                    <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Send Reset Code'}</button>
+                    <div className="text-center"><button type="button" onClick={()=>{setAuthMode('login');setError('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
+                  </>) : authMode === 'reset-password' ? (<>
+                    <p className="text-[12px] text-white/30 leading-relaxed">Enter the 6-digit code sent to <span className="text-white/60 font-medium">{resetEmail}</span>.</p>
+                    <div><label htmlFor="auth-reset-code" className="block text-[12px] font-medium text-white/30 mb-1.5">Reset Code</label><input id="auth-reset-code" type="text" inputMode="numeric" maxLength={6} value={resetCode} onChange={e=>setResetCode(e.target.value.replace(/\D/g,'').slice(0,6))} className={`${ic} text-center text-xl tracking-[0.3em] font-mono`} placeholder="000000" autoComplete="one-time-code" autoFocus required /></div>
+                    <div><label htmlFor="auth-new-pw" className="block text-[12px] font-medium text-white/30 mb-1.5">New Password</label><input id="auth-new-pw" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className={ic} placeholder="Min. 8 chars, upper/lower/number" autoComplete="new-password" required /></div>
+                    <div><label htmlFor="auth-new-pw-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><input id="auth-new-pw-confirm" type="password" value={newPasswordConfirm} onChange={e=>setNewPasswordConfirm(e.target.value)} className={ic} placeholder="Re-enter new password" autoComplete="new-password" required /></div>
+                    <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Resetting...</span>:'Reset Password'}</button>
+                    <div className="flex items-center justify-between"><button type="button" onClick={async()=>{if(resetCooldown>0)return;try{await forgotPassword(resetEmail);showToast('Code resent','success');setResetCooldown(60);const i=setInterval(()=>setResetCooldown(p=>{if(p<=1){clearInterval(i);return 0;}return p-1;}),1000);}catch(err){setError(err instanceof Error?err.message:'Failed');}}} disabled={resetCooldown>0} className="text-[12px] text-rh-green hover:text-rh-green/80 disabled:text-white/15 transition-colors">{resetCooldown>0?`Resend in ${resetCooldown}s`:'Resend code'}</button><button type="button" onClick={()=>{setAuthMode('login');setError('');setResetEmail('');setResetCode('');setNewPassword('');setNewPasswordConfirm('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
+                  </>) : (<>
                   <div><label htmlFor="auth-username" className="block text-[12px] font-medium text-white/30 mb-1.5">Username</label><input id="auth-username" type="text" value={username} onChange={e=>setUsername(e.target.value)} onBlur={checkAndSwitchMode} className={ic} placeholder="e.g. nala_investor" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck="false" required /></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-displayName" className="block text-[12px] font-medium text-white/30 mb-1.5">Display Name</label><input id="auth-displayName" type="text" value={displayName} onChange={e=>setDisplayName(e.target.value)} className={ic} placeholder="How others will see you" autoComplete="name" required /></div>}
                   {authMode==='signup'&&<div><label htmlFor="auth-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-email" type="email" value={landingEmail} onChange={e=>setLandingEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoCapitalize="none" required /></div>}
-                  <div><div className="flex items-center justify-between mb-1.5"><label htmlFor="auth-password" className="block text-[12px] font-medium text-white/30">Password</label>{authMode==='login'&&<button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>showToast('Password reset coming soon.','info')}>Forgot?</button>}</div><div className="relative"><input id="auth-password" type={showPassword?'text':'password'} value={password} onChange={e=>setPasswordValue(e.target.value)} className={`${ic} pr-11`} placeholder={authMode==='login'?'••••••••':'Min. 8 chars, upper/lower/number'} autoComplete={authMode==='login'?'current-password':'new-password'} required /><button type="button" onClick={()=>setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>
+                  <div><div className="flex items-center justify-between mb-1.5"><label htmlFor="auth-password" className="block text-[12px] font-medium text-white/30">Password</label>{authMode==='login'&&<button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>{setAuthMode('forgot-password');setError('');}}>Forgot?</button>}</div><div className="relative"><input id="auth-password" type={showPassword?'text':'password'} value={password} onChange={e=>setPasswordValue(e.target.value)} className={`${ic} pr-11`} placeholder={authMode==='login'?'••••••••':'Min. 8 chars, upper/lower/number'} autoComplete={authMode==='login'?'current-password':'new-password'} required /><button type="button" onClick={()=>setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><div className="relative"><input id="auth-confirm" type={showConfirmPassword?'text':'password'} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className={`${ic} pr-11`} placeholder="Re-enter password" autoComplete="new-password" required /><button type="button" onClick={()=>setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showConfirmPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>}
                   {authMode==='signup'&&<label className="flex items-start gap-2.5 cursor-pointer"><input type="checkbox" checked={acceptedTerms} onChange={e=>setAcceptedTerms(e.target.checked)} className="w-4 h-4 mt-0.5 rounded border-white/10 bg-white/5 text-rh-green accent-rh-green" /><span className="text-[12px] text-white/25 leading-tight">I agree to the{' '}<button type="button" onClick={()=>{setPrivacyTab('privacy');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Privacy Policy</button>{' & '}<button type="button" onClick={()=>{setPrivacyTab('terms');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Terms</button></span></label>}
                   <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Please wait...</span>:authMode==='signup'?'Create Account':'Sign In'}</button>
+                  </>)}
                 </div></form>
-                <div className="mt-5 pt-4 border-t border-white/[0.04] text-center text-[12px] text-white/25">{authMode==='login'?<>New to Nala? <button onClick={()=>setAuthMode('signup')} className="text-white/60 hover:text-white">Create an account</button></>:<>Have an account? <button onClick={()=>setAuthMode('login')} className="text-white/60 hover:text-white">Sign in</button></>}</div>
+                {(authMode==='login'||authMode==='signup')&&<div className="mt-5 pt-4 border-t border-white/[0.04] text-center text-[12px] text-white/25">{authMode==='login'?<>New to Nala? <button onClick={()=>setAuthMode('signup')} className="text-white/60 hover:text-white">Create an account</button></>:<>Have an account? <button onClick={()=>setAuthMode('login')} className="text-white/60 hover:text-white">Sign in</button></>}</div>}
               </>
             )}
           </div>
