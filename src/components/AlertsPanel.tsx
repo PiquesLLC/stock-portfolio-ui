@@ -14,11 +14,6 @@ const ALERT_LABELS: Record<string, { name: string; description: string; unit: st
     description: 'Triggers when portfolio drawdown exceeds threshold',
     unit: '%',
   },
-  sector_exposure: {
-    name: 'Sector Concentration',
-    description: 'Triggers when any single sector exceeds threshold',
-    unit: '%',
-  },
   underperform_spy: {
     name: 'Underperforming SPY',
     description: 'Triggers after consecutive days trailing SPY',

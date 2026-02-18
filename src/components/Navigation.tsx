@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-export type TabType = 'portfolio' | 'nala' | 'insights' | 'watchlists' | 'discover' | 'macro' | 'leaderboard' | 'feed' | 'watch' | 'pricing';
+export type TabType = 'portfolio' | 'nala' | 'insights' | 'watchlists' | 'discover' | 'macro' | 'leaderboard' | 'feed' | 'watch' | 'pricing' | 'profile';
 
 interface NavigationProps {
   activeTab: TabType;

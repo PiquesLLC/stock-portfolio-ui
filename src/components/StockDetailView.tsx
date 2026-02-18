@@ -142,6 +142,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
   // AI-powered events from Perplexity
   const [aiEvents, setAiEvents] = useState<AIEventsResponse | null>(null);
+  const [aiEventsLoaded, setAiEventsLoaded] = useState(false);
 
 
 
@@ -273,8 +274,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       '1D': 0, '1W': 14, '1M': 45, '3M': 100, 'YTD': 365, '1Y': 730, 'MAX': 7300,
     };
     const days = periodDays[chartPeriod] || 90;
-    if (days === 0) { setAiEvents(null); return; } // skip 1D
-    getAIEvents(ticker, days).then(setAiEvents).catch(() => setAiEvents(null));
+    if (days === 0) { setAiEvents(null); setAiEventsLoaded(true); return; } // skip 1D
+    setAiEventsLoaded(false);
+    getAIEvents(ticker, days).then(r => { setAiEvents(r); setAiEventsLoaded(true); }).catch(() => { setAiEvents(null); setAiEventsLoaded(true); });
   }, [ticker, chartPeriod]);
 
   // Cache for prefetched hourly data
@@ -974,7 +976,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
                   </svg>
-                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : 'Loading intelligence events...'}
+                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : aiEventsLoaded ? 'No intelligence events found' : 'Loading intelligence events...'}
                 </div>
               </div>
             )}
@@ -1040,7 +1042,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
                   </svg>
-                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : 'Loading intelligence events...'}
+                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : aiEventsLoaded ? 'No intelligence events found' : 'Loading intelligence events...'}
                 </div>
               </div>
             )}

@@ -76,7 +76,7 @@ interface NavState {
   subtab: string | null;
 }
 
-const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch', 'pricing']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch', 'pricing', 'profile']);
 
 // Desktop-only tab list for the consolidated header bar
 const PRIMARY_TABS: { id: TabType; label: string }[] = [
@@ -434,12 +434,21 @@ export default function App() {
 
   const handleViewProfile = (userId: string) => setViewingProfileId(userId);
 
+  // Auto-set viewingProfileId when navigating to profile tab
+  useEffect(() => {
+    if (activeTab === 'profile' && !viewingProfileId && currentUserId) {
+      setViewingProfileId(currentUserId);
+    }
+  }, [activeTab, viewingProfileId, currentUserId]);
+
   // Sync navigation state → URL hash
   useEffect(() => {
     const stockTicker = viewingStock?.ticker || null;
     const subtab = activeTab === 'insights' ? insightsSubTab : null;
     const hashTab = activeTab;
-    setHash(hashTab, stockTicker, viewingProfileId, leaderboardUserId, subtab);
+    // Don't expose profile ID in URL for own profile tab — it's always the current user
+    const hashProfile = activeTab === 'profile' ? null : viewingProfileId;
+    setHash(hashTab, stockTicker, hashProfile, leaderboardUserId, subtab);
   }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab]);
 
   // Handle browser back/forward — parse directly from hash, never sessionStorage
@@ -652,7 +661,7 @@ export default function App() {
               <UserMenu
                 userName={currentUserName}
                 userId={currentUserId}
-                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
+                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
                 onSettingsClick={() => setSettingsModalOpen(true)}
                 onLogoutClick={logout}
               />
@@ -713,8 +722,9 @@ export default function App() {
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
           </div>
 
-          {/* Primary nav — ~45% */}
-          <nav className="flex items-center">
+          {/* Primary nav — left edge aligned with content container below */}
+          <nav className="flex items-center"
+            style={{ marginLeft: 'max(0px, calc((100vw - clamp(1080px, 64vw, 1530px)) / 2 - 72px))' }}>
             {PRIMARY_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -831,7 +841,7 @@ export default function App() {
               <UserMenu
                 userName={currentUserName}
                 userId={currentUserId}
-                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
+                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
                 onSettingsClick={() => setSettingsModalOpen(true)}
                 onLogoutClick={logout}
               />
@@ -942,7 +952,7 @@ export default function App() {
             )}
 
             {portfolio && (
-              <div className="px-6 py-4 border-y border-gray-200/30 dark:border-white/[0.04]">
+              <div className="-mx-3 sm:-mx-6 px-3 sm:px-6 py-4 border-y border-gray-200/30 dark:border-white/[0.04]">
                 {/* Stats grid — 2 columns on mobile, inline on desktop */}
                 {chartMeasurement ? (
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2">
@@ -1042,7 +1052,7 @@ export default function App() {
             )}
 
             {portfolio && (
-              <div className="flex flex-col md:flex-row md:items-start">
+              <div className="-mx-3 sm:-mx-6 flex flex-col md:flex-row md:items-start">
                 <div className="md:flex-1 min-w-0">
                   <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
                 </div>
@@ -1054,7 +1064,7 @@ export default function App() {
               </div>
             )}
 
-            <div className="space-y-8">
+            <div className="-mx-3 sm:-mx-6 space-y-8">
               <HoldingsTable
                 holdings={portfolio?.holdings ?? []}
                 onUpdate={handleUpdate}
@@ -1065,10 +1075,12 @@ export default function App() {
                 chartPeriod={chartPeriod}
               />
               {(portfolio?.options?.length ?? 0) > 0 && (
-                <OptionsTable
-                  options={portfolio!.options}
-                  onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
-                />
+                <div className="px-3 sm:px-6">
+                  <OptionsTable
+                    options={portfolio!.options}
+                    onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                  />
+                </div>
               )}
               <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
             </div>
@@ -1141,7 +1153,7 @@ export default function App() {
                 userId={viewingProfileId}
                 currentUserId={currentUserId}
                 session={portfolio?.session}
-                onBack={() => setViewingProfileId(null)}
+                onBack={() => { setViewingProfileId(null); if (activeTab === 'profile') setActiveTab('portfolio'); }}
                 onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
                 onUserClick={handleViewProfile}
                 onPortfolioUpdate={handleUpdate}

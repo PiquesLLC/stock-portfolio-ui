@@ -5,7 +5,6 @@ import { AlertsPanel } from './AlertsPanel';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
-  sector_exposure: 'Concentration',
   underperform_spy: 'Underperformance',
   '52w_high': '52W High',
   '52w_low': '52W Low',
@@ -14,7 +13,6 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   volume_spike: 'Volume Spike',
   price_spike: 'Price Spike',
   sector_divergence: 'Sector Move',
-  concentration: 'Concentration',
   dividend_change: 'Dividend Change',
 };
 

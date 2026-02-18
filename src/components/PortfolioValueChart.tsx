@@ -405,12 +405,16 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const { paddedMin, paddedMax } = useMemo(() => {
     if (points.length < 2) return { paddedMin: 0, paddedMax: 1 };
     const values = points.map(p => p.value);
+    // Include benchmark values so the y-axis accommodates both lines
+    if (benchmarkNormalized) {
+      for (const bp of benchmarkNormalized) values.push(bp.value);
+    }
     let minV = Math.min(...values, periodStartValue);
     let maxV = Math.max(...values, periodStartValue);
     if (maxV === minV) { maxV += 1; minV -= 1; }
     const range = maxV - minV;
     return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
-  }, [points, periodStartValue]);
+  }, [points, periodStartValue, benchmarkNormalized]);
 
   // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   // Derive the trading day from the data points (not "today") so it works after hours / weekends
@@ -1100,11 +1104,30 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
             </clipPath>
           </defs>
 
-          {/* Reference line */}
-          {hasData && (
+          {/* Reference line — session-colored for 1D */}
+          {hasData && sessionSplitIdx !== null ? (() => {
+            const closeIdx = sessionCloseIdx ?? points.length - 1;
+            const x0 = PAD_LEFT;
+            const xOpen = toX(sessionSplitIdx);
+            const xClose = toX(closeIdx);
+            const xEnd = CHART_W - PAD_RIGHT;
+            return (
+              <>
+                {/* Pre-market */}
+                <line x1={x0} y1={refY} x2={xOpen} y2={refY}
+                  stroke={lineColor} strokeWidth="0.6" strokeDasharray="5,5" opacity="0.25" />
+                {/* Regular hours */}
+                <line x1={xOpen} y1={refY} x2={xClose} y2={refY}
+                  stroke="#ffffff" strokeWidth="0.6" strokeDasharray="5,5" opacity="0.35" />
+                {/* After-hours */}
+                <line x1={xClose} y1={refY} x2={xEnd} y2={refY}
+                  stroke={lineColor} strokeWidth="0.6" strokeDasharray="5,5" opacity="0.25" />
+              </>
+            );
+          })() : hasData ? (
             <line x1={PAD_LEFT} y1={refY} x2={CHART_W - PAD_RIGHT} y2={refY}
               stroke="#6B7280" strokeWidth="0.6" strokeDasharray="5,5" opacity="0.25" />
-          )}
+          ) : null}
 
           {/* Area fill — split at market open when applicable */}
           {hasData && sessionSplitIdx !== null ? (
@@ -1538,8 +1561,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       </div>
 
-      {/* Period selector — left-aligned, compact */}
-      <div className="flex items-center gap-1 mt-2 px-3 sm:px-6">
+      {/* Period selector — left-aligned, compact; -ml-3 offsets first button's px-3 so text aligns with $ heading */}
+      <div className="flex items-center gap-1 mt-2 px-3 sm:px-6 -ml-3">
         {PERIODS.map(period => (
           <button
             key={period}
@@ -1554,8 +1577,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           </button>
         ))}
       </div>
-      {/* Compare + hint — subtle secondary row */}
-      <div className="flex items-center justify-between mt-1 px-3 sm:px-6">
+      {/* Compare + hint — subtle secondary row; -ml-2.5 offsets button's px-2.5 */}
+      <div className="flex items-center justify-between mt-1 px-3 sm:px-6 -ml-2.5">
         <button
           onClick={() => setShowBenchmark(prev => !prev)}
           className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
