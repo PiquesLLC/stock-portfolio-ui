@@ -174,7 +174,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
   return (
     <div className="max-w-xl mx-auto">
       {/* Header with controls */}
-      <div className="px-4 py-4 border-b border-rh-light-border/30 dark:border-white/10 flex items-center justify-between">
+      <div className="px-4 pt-1 pb-4 border-b border-rh-light-border/30 dark:border-white/10 flex items-center justify-between">
         <h1 className="text-xl font-bold text-rh-light-text dark:text-white">Activity</h1>
         <div className="flex items-center gap-2" ref={settingsRef}>
           {/* Threshold dropdown */}

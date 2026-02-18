@@ -197,10 +197,17 @@ function getPremiumBadge(plan: string | undefined, planStartedAt: string | undef
 }
 
 // ── Achievement badges ───────────────────────────────────────────────
-function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: string, planStartedAt?: string): { label: string; icon: string; color: string }[] {
+const DEVELOPER_USER_ID = '237198da-612e-411c-9ef8-f267c887a9f1';
+
+function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: string, planStartedAt?: string, profileUserId?: string): { label: string; icon: string; color: string }[] {
   const badges: { label: string; icon: string; color: string }[] = [];
 
-  // Premium tenure badge goes first (most prominent position)
+  // Developer badge — exclusive to the app creator
+  if (profileUserId === DEVELOPER_USER_ID) {
+    badges.push({ label: 'Developer', icon: '\u{1F6E0}\u{FE0F}', color: 'text-fuchsia-400 border-fuchsia-400/30 bg-fuchsia-400/[0.08]' });
+  }
+
+  // Premium tenure badge
   const premiumBadge = getPremiumBadge(plan, planStartedAt);
   if (premiumBadge) badges.push(premiumBadge);
 
@@ -218,7 +225,7 @@ function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: s
   const joinDate = new Date(createdAt);
   if (joinDate < new Date('2026-03-01')) badges.push({ label: 'Early Adopter', icon: '\u{1F680}', color: 'text-amber-400 border-amber-400/20 bg-amber-400/[0.06]' });
 
-  return badges.slice(0, 5);
+  return badges.slice(0, 6);
 }
 
 // ── Mini sparkline SVG ───────────────────────────────────────────────
@@ -353,10 +360,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     getUserIntelligence(userId, '1m')
       .then((data) => {
         const topContributor = data.contributors?.[0]
-          ? { ticker: data.contributors[0].ticker, pct: data.contributors[0].percentReturn ?? 0 }
+          ? { ticker: data.contributors[0].ticker, pct: data.contributors[0].percentReturn ?? 0, contributionDollar: data.contributors[0].contributionDollar ?? 0 }
           : null;
         const largestDrag = data.detractors?.[0]
-          ? { ticker: data.detractors[0].ticker, pct: data.detractors[0].percentReturn ?? 0 }
+          ? { ticker: data.detractors[0].ticker, pct: data.detractors[0].percentReturn ?? 0, contributionDollar: data.detractors[0].contributionDollar ?? 0 }
           : null;
         const topWeight = data.sectorExposure?.[0]?.exposurePercent ?? null;
         const topTicker = data.contributors?.[0]?.ticker ?? null;
@@ -411,7 +418,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const tagline = useMemo(() => generateTagline(profile?.performance ?? null), [profile?.performance]);
   const riskPosture = useMemo(() => getRiskPosture(profile?.performance ?? null), [profile?.performance]);
   const signalColors = useMemo(() => getSignalColors(signalRating.grade), [signalRating.grade]);
-  const badges = useMemo(() => profile ? computeBadges(profile.performance, profile.createdAt, profile.plan, profile.planStartedAt) : [], [profile?.performance, profile?.createdAt, profile?.plan, profile?.planStartedAt]);
+  const badges = useMemo(() => profile ? computeBadges(profile.performance, profile.createdAt, profile.plan, profile.planStartedAt, userId) : [], [profile?.performance, profile?.createdAt, profile?.plan, profile?.planStartedAt, userId]);
 
   if (showPortfolio && profile) {
     return (
@@ -480,7 +487,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-4xl mx-auto px-4 py-6"
+      className="max-w-4xl mx-auto px-4 pt-2 pb-6"
     >
       {/* Back button */}
       <motion.button
@@ -652,16 +659,17 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         {/* ── Performance identity row ────────────────────────────── */}
         {profile.profilePublic && hasPerformance && (
           <div className="relative mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
-            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3 text-center">Performance</h3>
-          <div className="relative flex items-center gap-0">
-            {/* Rank badge floating top-right of perf row */}
-            {rankPosition !== null && rankPosition <= 20 && (
-              <div className="absolute -top-1 right-0 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rh-green/[0.08] border border-rh-green/20">
-                <span className="text-[9px] text-rh-green/60">#</span>
-                <span className="text-[10px] font-bold text-rh-green tabular-nums">{rankPosition}</span>
-                <span className="text-[8px] text-rh-green/50 uppercase">this month</span>
-              </div>
-            )}
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider text-center">Performance</h3>
+              {rankPosition !== null && rankPosition <= 20 && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rh-green/[0.08] border border-rh-green/20">
+                  <span className="text-[9px] text-rh-green/60">#</span>
+                  <span className="text-[10px] font-bold text-rh-green tabular-nums">{rankPosition}</span>
+                  <span className="text-[8px] text-rh-green/50 uppercase">this month</span>
+                </div>
+              )}
+            </div>
+          <div className="flex items-center gap-0">
             <PerformanceStat
               value={chartReturnPct ?? perf?.twrPct ?? null}
               label="Return (1mo)"
@@ -691,6 +699,23 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 label="Beta"
                 formatFn={(v) => v.toFixed(2)}
               />
+            )}
+            {/* Fourth stat: Nala Signal Score */}
+            {signalRating.grade !== '--' && (
+              <>
+                <div className="w-px h-8 bg-gray-200/30 dark:bg-white/[0.06]" />
+                <div className="flex-1 flex flex-col items-center">
+                  <div className="relative w-9 h-9">
+                    <svg className="w-9 h-9 -rotate-90" viewBox="0 0 20 20">
+                      <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" className="text-gray-200/20 dark:text-white/[0.06]" strokeWidth="1.5" />
+                      <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" className={signalColors.text} strokeWidth="1.5" strokeLinecap="round"
+                        strokeDasharray={`${(signalRating.score / 100) * 50.27} 50.27`} />
+                    </svg>
+                    <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-semibold tabular-nums ${signalColors.text}`}>{signalRating.score}</span>
+                  </div>
+                  <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-0.5">Nala Score</p>
+                </div>
+              </>
             )}
           </div>
           </div>
@@ -898,35 +923,23 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           <div className="flex items-center gap-2.5 mb-3">
             <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
             <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
-            {signalRating.grade !== '--' && (
-              <div className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20">
-                  <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-gray-200/20 dark:text-white/[0.06]" />
-                  <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2.5"
-                    strokeDasharray={`${(signalRating.score / 100) * 50.27} 50.27`}
-                    strokeLinecap="round"
-                    transform="rotate(-90 10 10)"
-                    className={signalColors.text}
-                  />
-                </svg>
-                <span className={`text-[9px] font-semibold tabular-nums ${signalColors.text}`}>{signalRating.score}</span>
-              </div>
-            )}
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
             {intelligence?.topContributor && (
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2">
                 <span className="text-rh-light-muted dark:text-rh-muted">Top contributor</span>
-                <span className="text-rh-green font-medium">
-                  <button onClick={() => onStockClick?.(intelligence.topContributor!.ticker)} className="hover:underline">{intelligence.topContributor.ticker}</button> <span className="text-rh-green/70">+{intelligence.topContributor.pct.toFixed(1)}%</span>
+                <span className="text-rh-green font-medium whitespace-nowrap">
+                  <button onClick={() => onStockClick?.(intelligence.topContributor!.ticker)} className="hover:underline">{intelligence.topContributor.ticker}</button>{' '}
+                  <span className="text-rh-green/70">+{(topHoldings.find(h => h.ticker === intelligence.topContributor!.ticker)?.returnPct ?? intelligence.topContributor.pct).toFixed(1)}%</span>
                 </span>
               </div>
             )}
             {intelligence?.largestDrag && (
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2">
                 <span className="text-rh-light-muted dark:text-rh-muted">Largest drag</span>
-                <span className="text-rh-red font-medium">
-                  <button onClick={() => onStockClick?.(intelligence.largestDrag!.ticker)} className="hover:underline">{intelligence.largestDrag.ticker}</button> <span className="text-rh-red/70">{intelligence.largestDrag.pct.toFixed(1)}%</span>
+                <span className="text-rh-red font-medium whitespace-nowrap">
+                  <button onClick={() => onStockClick?.(intelligence.largestDrag!.ticker)} className="hover:underline">{intelligence.largestDrag.ticker}</button>{' '}
+                  <span className="text-rh-red/70">{intelligence.largestDrag.pct.toFixed(1)}%</span>
                 </span>
               </div>
             )}

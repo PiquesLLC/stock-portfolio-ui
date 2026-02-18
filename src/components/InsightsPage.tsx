@@ -278,7 +278,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // AI Briefing subtab (Premium)
   if (subTab === 'ai-briefing') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <PremiumOverlay
           featureName="AI Portfolio Briefing"
@@ -291,7 +291,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Earnings subtab
   if (subTab === 'earnings') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <EarningsTab holdings={holdings} onTickerClick={onTickerClick} />
       </div>
@@ -301,7 +301,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Behavior Coach subtab (Premium)
   if (subTab === 'ai-behavior') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <PremiumOverlay
           featureName="AI Behavior Coach"
@@ -314,7 +314,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Income subtab
   if (subTab === 'income') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <IncomeInsights refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} />
       </div>
@@ -324,7 +324,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Projections & Goals subtab
   if (subTab === 'projections-goals') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <ProjectionsAndGoals
           currentValue={currentValue}
@@ -339,7 +339,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'allocation') {
     const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <AllocationDonut
           holdings={holdings}
@@ -353,7 +353,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // What-If Simulator subtab
   if (subTab === 'what-if') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <WhatIfSimulator
           holdings={holdings}
@@ -369,7 +369,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // ETF Overlap subtab
   if (subTab === 'etf-overlap') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <ETFOverlap onTickerClick={onTickerClick} />
       </div>
@@ -379,7 +379,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Tax-Loss Harvesting subtab
   if (subTab === 'tax-harvest') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <TaxHarvest onTickerClick={onTickerClick} />
       </div>
@@ -389,7 +389,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Show initial loading only if we have no cached data at all
   if (!initialLoadComplete && !hasAnyData) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <SkeletonCard lines={4} height="180px" />
         <SkeletonCard lines={5} height="220px" />
@@ -402,7 +402,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Sub-tabs */}
       <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
 
