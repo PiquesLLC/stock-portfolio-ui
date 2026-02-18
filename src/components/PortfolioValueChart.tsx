@@ -1481,18 +1481,31 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           {hasData && hoverX !== null && hoverY !== null && !hasMeasurement && (
             <>
               {/* Time label above crosshair */}
-              {hoverLabel && (
-                <text
-                  x={hoverX}
-                  y={PAD_TOP - 4}
-                  textAnchor="middle"
-                  className="fill-rh-light-muted dark:fill-rh-muted"
-                  fontSize="11"
-                  fontWeight="500"
-                >
-                  {hoverLabel}
-                </text>
-              )}
+              {hoverLabel && (() => {
+                // Clamp label position to prevent text from being cut off at SVG edges
+                const halfTextW = 30;
+                let labelX = hoverX!;
+                let anchor: 'start' | 'middle' | 'end' = 'middle';
+                if (hoverX! + halfTextW > CHART_W) {
+                  labelX = CHART_W - 3;
+                  anchor = 'end';
+                } else if (hoverX! - halfTextW < 0) {
+                  labelX = 3;
+                  anchor = 'start';
+                }
+                return (
+                  <text
+                    x={labelX}
+                    y={PAD_TOP - 4}
+                    textAnchor={anchor}
+                    className="fill-rh-light-muted dark:fill-rh-muted"
+                    fontSize="11"
+                    fontWeight="500"
+                  >
+                    {hoverLabel}
+                  </text>
+                );
+              })()}
               <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
                 stroke="#9CA3AF" strokeWidth="1" strokeDasharray="4,3" opacity="0.3" />
               {/* Glow under hover dot */}

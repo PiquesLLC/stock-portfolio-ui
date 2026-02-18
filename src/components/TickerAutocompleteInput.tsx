@@ -361,7 +361,7 @@ export function TickerAutocompleteInput({
           ref={dropdownRef}
           className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card
             border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl
-            max-h-80 overflow-y-auto ${compact ? 'min-w-full w-[420px] right-0' : 'w-full'}`}
+            max-h-80 overflow-y-auto ${compact ? 'sm:min-w-full sm:w-[420px] sm:right-0 fixed sm:absolute left-3 right-3 sm:left-auto' : 'w-full'}`}
           role="listbox"
         >
           {results.map((result, index) => (
@@ -419,7 +419,7 @@ export function TickerAutocompleteInput({
       {isOpen && results.length === 0 && !isLoading && value.length >= 1 && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl px-3.5 py-3 text-center text-sm text-rh-light-muted dark:text-rh-muted ${compact ? 'min-w-full w-[420px] right-0' : 'w-full'}`}
+          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl px-3.5 py-3 text-center text-sm text-rh-light-muted dark:text-rh-muted ${compact ? 'sm:min-w-full sm:w-[420px] sm:right-0 fixed sm:absolute left-3 right-3 sm:left-auto' : 'w-full'}`}
         >
           No matches
         </div>

@@ -360,7 +360,7 @@ export function NotificationBell({ userId }: Props) {
                         )}
                       </div>
                       <p className="text-xs text-rh-light-text dark:text-rh-text mt-0.5 leading-relaxed">
-                        {notification.message}
+                        {notification.message.replace(/\*\*/g, '')}
                       </p>
                       <p className="text-[10px] text-rh-light-muted dark:text-rh-muted mt-1">
                         {timeAgo(notification.createdAt)}

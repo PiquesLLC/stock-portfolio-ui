@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { ChartPeriod, StockCandles, ParsedQuarterlyEarning, DividendEvent, DividendCredit, ActivityEvent, AnalystEvent } from '../types';
 import { AIEvent } from '../api';
 import { IntradayCandle } from '../api';
@@ -248,16 +248,22 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     });
   }, []);
 
-  // Clear state when period or data changes — set zoom window for the selected period
-  useEffect(() => {
+  // Clear state when period or data changes — set zoom window for the selected period.
+  // useLayoutEffect runs before the browser paints, preventing a flash of the wrong
+  // zoom level (e.g., showing ALL data for one frame before zooming to 3M).
+  useLayoutEffect(() => {
     setHoveredBreachIndex(null); setHoveredCrossIndex(null); setHoveredEventIdx(null);
     setPinnedEventIdx(null); setExpandedClusterIdx(null); setHoverIndex(null);
     zoomHistoryRef.current = [];
+    // Cancel any in-flight zoom animation
+    if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
+    zoomAnimRef.current = null;
 
     // For non-1D: period buttons set the visible zoom window on the full dataset
-    // MAX = full view (null), others = zoom to that period's time range
+    // MAX = full view (null), others = zoom to that period's time range.
+    // Set immediately (no animation) to prevent flash of wrong data.
     if (selectedPeriod === 'MAX' || selectedPeriod === '1D' || selectedPeriod === '1W' || selectedPeriod === '1M' || points.length < 2) {
-      animateZoomTo(null);
+      setZoomRange(null);
     } else {
       const now = Date.now();
       let startMs: number;
@@ -269,7 +275,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
       }
       const dataStart = points[0].time;
       const dataEnd = points[points.length - 1].time;
-      animateZoomTo({ startMs: Math.max(dataStart, startMs), endMs: dataEnd });
+      setZoomRange({ startMs: Math.max(dataStart, startMs), endMs: dataEnd });
     }
   }, [selectedPeriod, points.length]);
 
@@ -808,24 +814,11 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     if (maxP === minP) { maxP += 1; minP -= 1; }
 
     if (selectedPeriod === '1D' && !zoomRange) {
-      // Scope y-axis to regular session (9:30 AM - 4 PM ET) + after-hours only.
-      // Pre-market outliers from thin liquidity stretch the y-axis and compress
-      // the regular session visually. Outlier data clips at plot boundary (Robinhood-style).
-      if (targetPts.length > 1) {
-        const refDate = new Date(targetPts[0].time);
-        const etDateStr2 = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
-        const noonUtc2 = new Date(`${etDateStr2}T12:00:00Z`);
-        const noonEtH2 = parseInt(new Intl.DateTimeFormat('en-US', {
-          timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
-        }).format(noonUtc2).split(':')[0]);
-        const etOff2 = (noonEtH2 - 12) * 3600000;
-        const regOpenMs = new Date(`${etDateStr2}T09:30:00Z`).getTime() - etOff2;
-        const regPrices = targetPts.filter(p => p.time >= regOpenMs).map(p => p.price);
-        if (regPrices.length > 0) {
-          minP = Math.min(...regPrices, referencePrice);
-          maxP = Math.max(...regPrices, referencePrice);
-        }
-      }
+      // Include all data (pre-market, regular, after-hours) in the y-axis range,
+      // plus previousClose as reference. This matches Robinhood's approach: the chart
+      // shows a smooth curve from pre-market through regular session with no clipping.
+      minP = Math.min(minP, referencePrice);
+      maxP = Math.max(maxP, referencePrice);
       // Minimum 0.5% range to prevent flat-line appearance, but tight enough for dramatic moves
       const minRange = referencePrice * 0.005;
       if (maxP - minP < minRange) {
@@ -2465,9 +2458,24 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
               <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
                 stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6" />
               <circle cx={hoverX} cy={hoverY} r="4" fill={lineColor} stroke="#fff" strokeWidth="1.5" />
-              <text x={hoverX} y={PAD_TOP - 6} textAnchor="middle" className="fill-gray-400" fontSize="11" fontWeight="600">
-                {hoverLabel}
-              </text>
+              {(() => {
+                // Clamp label position to prevent text from being cut off at SVG edges
+                const halfTextW = 30; // ~half width of date labels like "Feb 18"
+                let labelX = hoverX;
+                let anchor: 'start' | 'middle' | 'end' = 'middle';
+                if (hoverX + halfTextW > CHART_W) {
+                  labelX = CHART_W - 3;
+                  anchor = 'end';
+                } else if (hoverX - halfTextW < 0) {
+                  labelX = 3;
+                  anchor = 'start';
+                }
+                return (
+                  <text x={labelX} y={PAD_TOP - 6} textAnchor={anchor} className="fill-gray-400" fontSize="11" fontWeight="600">
+                    {hoverLabel}
+                  </text>
+                );
+              })()}
             </>
           )}
 

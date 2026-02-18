@@ -57,11 +57,16 @@ async function fetchWithCache(ticker: string, period: PortfolioChartPeriod): Pro
   return promise;
 }
 
-// Downsample to target number of points using LTTB (Largest Triangle Three Buckets)
-function downsample(data: number[], target: number): number[] {
+interface SparkPoint {
+  close: number;
+  time: number; // ms timestamp
+}
+
+// Downsample SparkPoint[] to target count using LTTB (Largest Triangle Three Buckets)
+function downsamplePoints(data: SparkPoint[], target: number): SparkPoint[] {
   if (data.length <= target) return data;
 
-  const result: number[] = [data[0]]; // Always keep first
+  const result: SparkPoint[] = [data[0]]; // Always keep first
   const bucketSize = (data.length - 2) / (target - 2);
 
   let prevIndex = 0;
@@ -73,7 +78,7 @@ function downsample(data: number[], target: number): number[] {
     const nextStart = Math.floor(i * bucketSize) + 1;
     const nextEnd = Math.min(Math.floor((i + 1) * bucketSize) + 1, data.length - 1);
     let nextAvg = 0;
-    for (let j = nextStart; j < nextEnd; j++) nextAvg += data[j];
+    for (let j = nextStart; j < nextEnd; j++) nextAvg += data[j].close;
     nextAvg /= (nextEnd - nextStart) || 1;
 
     // Find point with max triangle area in current bucket
@@ -81,8 +86,8 @@ function downsample(data: number[], target: number): number[] {
     let bestIdx = bucketStart;
     for (let j = bucketStart; j < bucketEnd; j++) {
       const area = Math.abs(
-        (j - prevIndex) * (nextAvg - data[prevIndex]) -
-        (data[j] - data[prevIndex]) * ((nextEnd + nextStart) / 2 - prevIndex)
+        (j - prevIndex) * (nextAvg - data[prevIndex].close) -
+        (data[j].close - data[prevIndex].close) * ((nextEnd + nextStart) / 2 - prevIndex)
       );
       if (area > maxArea) {
         maxArea = area;
@@ -126,23 +131,18 @@ function smoothPath(coords: { x: number; y: number }[]): string {
   return d;
 }
 
-// For 1D sparklines, use first candle as anchor + regular session (9:30 AM ET = 14:30 UTC).
-// First candle (≈ previousClose) anchors the start so the gap-up/down at open is visible,
-// then regular session data gives clean shape without pre-market thin-liquidity noise.
-function toCloses(candles: IntradayCandle[], period: string): number[] {
-  if (period !== '1D') return candles.map((c) => c.close);
-  const regular = candles.filter((c) => {
-    const d = new Date(c.time);
-    return d.getUTCHours() > 14 || (d.getUTCHours() === 14 && d.getUTCMinutes() >= 30);
-  });
-  if (regular.length < 2) return candles.map((c) => c.close);
-  // Prepend first candle as anchor — it's near previousClose, so the sparkline
-  // direction (first vs last) matches the actual day change direction
-  return [candles[0].close, ...regular.map((c) => c.close)];
+// Convert candles to SparkPoint pairs (close + time).
+// For 1D, use ALL candles (including pre-market) so the sparkline shape
+// matches the stock chart. Time-based positioning handles partial days.
+function toSparkPoints(candles: IntradayCandle[]): SparkPoint[] {
+  return candles.map((c) => ({
+    close: c.close,
+    time: new Date(c.time).getTime(),
+  }));
 }
 
 export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparklineProps) {
-  const [rawPoints, setRawPoints] = useState<number[] | null>(null);
+  const [rawData, setRawData] = useState<SparkPoint[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -152,7 +152,7 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
     // Check cache synchronously first
     const cached = getCachedData(ticker, period);
     if (cached) {
-      setRawPoints(toCloses(cached, period));
+      setRawData(toSparkPoints(cached));
       setLoading(false);
       return;
     }
@@ -163,7 +163,7 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
     fetchWithCache(ticker, period)
       .then((data) => {
         if (!cancelled) {
-          setRawPoints(toCloses(data, period));
+          setRawData(toSparkPoints(data));
           setLoading(false);
         }
       })
@@ -186,22 +186,58 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
 
   // Downsample + compute coordinates
   const { linePath, areaPath, coords, points } = useMemo(() => {
-    if (!rawPoints || rawPoints.length < 2) return { linePath: '', areaPath: '', coords: [], points: [] as number[] };
+    if (!rawData || rawData.length < 2) return { linePath: '', areaPath: '', coords: [], points: [] as number[] };
 
-    const pts = downsample(rawPoints, 48);
+    const sampled = downsamplePoints(rawData, 48);
+    const closes = sampled.map(p => p.close);
 
-    const min = Math.min(...pts);
-    const max = Math.max(...pts);
+    const min = Math.min(...closes);
+    const max = Math.max(...closes);
     const range = max - min || 1;
 
     const innerW = WIDTH - PAD * 2 - DOT_R; // leave room for end dot
     const innerH = HEIGHT - PAD * 2;
-    const stepX = innerW / (pts.length - 1);
 
-    const crds = pts.map((p, i) => ({
-      x: PAD + i * stepX,
-      y: PAD + (1 - (p - min) / range) * innerH,
-    }));
+    let crds: { x: number; y: number }[];
+
+    if (period === '1D' && sampled.length > 0) {
+      // Time-based x positioning for 1D.
+      // Window: 4 AM ET to min(now, 8 PM ET). During the trading day, the window
+      // extends to "now" so the data fills to the right edge. After hours, it
+      // caps at 8 PM. This avoids the "full chart" illusion early in the day
+      // and keeps the shape proportional to the stock chart.
+      const firstDate = new Date(sampled[0].time);
+      const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(firstDate);
+      const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+      const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+      }).format(noonUtc).split(':')[0]);
+      const etOffsetMs = (noonEtH - 12) * 3600000;
+      const dayStartMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs; // 4 AM ET
+      const dayEndMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;   // 8 PM ET
+      const now = Date.now();
+      const windowEnd = now <= dayEndMs ? Math.max(now, sampled[sampled.length - 1].time) : dayEndMs;
+      const dayRange = Math.max(windowEnd - dayStartMs, 1);
+
+      // Anchor at left edge (4 AM ET) with first candle's price, then position
+      // real data by time. This fills the left side with a flat line, matching
+      // how the stock chart anchors previousClose at 4 AM.
+      const anchorY = PAD + (1 - (sampled[0].close - min) / range) * innerH;
+      crds = [
+        { x: PAD, y: anchorY },
+        ...sampled.map((p) => ({
+          x: PAD + Math.max(0, Math.min(1, (p.time - dayStartMs) / dayRange)) * innerW,
+          y: PAD + (1 - (p.close - min) / range) * innerH,
+        })),
+      ];
+    } else {
+      // Index-based positioning for all other periods
+      const stepX = innerW / (sampled.length - 1);
+      crds = sampled.map((p, i) => ({
+        x: PAD + i * stepX,
+        y: PAD + (1 - (p.close - min) / range) * innerH,
+      }));
+    }
 
     const line = smoothPath(crds);
 
@@ -210,8 +246,8 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
     const first = crds[0];
     const area = `${line} L${last.x.toFixed(1)},${HEIGHT} L${first.x.toFixed(1)},${HEIGHT} Z`;
 
-    return { linePath: line, areaPath: area, coords: crds, points: pts };
-  }, [rawPoints]);
+    return { linePath: line, areaPath: area, coords: crds, points: closes };
+  }, [rawData, period]);
 
   // Error state: render nothing
   if (error) return null;
