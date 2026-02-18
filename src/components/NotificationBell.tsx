@@ -60,6 +60,24 @@ function groupByDay(notifications: UnifiedNotification[]): { label: string; item
   return groups;
 }
 
+// Play a short notification chime using Web Audio API
+function playNotificationSound() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    osc.frequency.setValueAtTime(1108, ctx.currentTime + 0.08); // C#6
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.25);
+  } catch {}
+}
+
 interface Props {
   userId: string;
   onTickerClick?: (ticker: string) => void;
@@ -74,7 +92,13 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     const saved = localStorage.getItem('notificationsEnabled');
     return saved !== 'false'; // Default to true
   });
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('notificationSoundEnabled');
+    return saved !== 'false'; // Default to true
+  });
+  const prevUnreadRef = useRef(0);
   const ref = useRef<HTMLDivElement>(null);
+  const baseTitleRef = useRef(document.title.replace(/^\(\d+\)\s*/, ''));
 
   const toggleNotifications = () => {
     const newValue = !notificationsEnabled;
@@ -85,6 +109,13 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     } else {
       fetchCount(); // Refresh count when enabled
     }
+  };
+
+  const toggleSound = () => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    localStorage.setItem('notificationSoundEnabled', String(newValue));
+    if (newValue) playNotificationSound(); // Preview sound on enable
   };
 
   const fetchCount = useCallback(async () => {
@@ -215,6 +246,21 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     }
   }, [open]);
 
+  // Update tab title with unread count
+  useEffect(() => {
+    const base = baseTitleRef.current;
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${base}` : base;
+    return () => { document.title = base; };
+  }, [unreadCount]);
+
+  // Play sound when new notifications arrive
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current && soundEnabled && notificationsEnabled && !open) {
+      playNotificationSound();
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount, soundEnabled, notificationsEnabled, open]);
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
@@ -325,23 +371,41 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
             </div>
           </div>
 
-          {/* Notifications toggle */}
+          {/* Notifications toggle + sound toggle */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-rh-light-border dark:border-rh-border bg-rh-light-bg/50 dark:bg-rh-dark/50">
             <span className="text-xs text-rh-light-muted dark:text-rh-muted">
               Notifications {notificationsEnabled ? 'on' : 'off'}
             </span>
-            <button
-              onClick={toggleNotifications}
-              className={`relative w-10 h-5 rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
-                notificationsEnabled ? 'bg-rh-green' : 'bg-gray-600'
-              }`}
-              title={notificationsEnabled ? 'Turn off notifications' : 'Turn on notifications'}
-            >
-              <span
-                className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200"
-                style={{ left: notificationsEnabled ? '22px' : '2px' }}
-              />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleSound}
+                className={`p-1 rounded transition-colors ${soundEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-rh-muted/40'}`}
+                title={soundEnabled ? 'Sound on' : 'Sound off'}
+              >
+                {soundEnabled ? (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={toggleNotifications}
+                className={`relative w-10 h-5 rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
+                  notificationsEnabled ? 'bg-rh-green' : 'bg-gray-600'
+                }`}
+                title={notificationsEnabled ? 'Turn off notifications' : 'Turn on notifications'}
+              >
+                <span
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200"
+                  style={{ left: notificationsEnabled ? '22px' : '2px' }}
+                />
+              </button>
+            </div>
           </div>
 
           {notifications.length === 0 ? (
