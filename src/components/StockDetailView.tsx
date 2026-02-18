@@ -761,9 +761,35 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* Warning Panel */}
       {!loading && <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />}
 
+      {/* Section Nav */}
+      {!loading && (
+        <div className="sticky top-[calc(env(safe-area-inset-top)+88px)] sm:top-[calc(env(safe-area-inset-top)+52px)] z-20 -mx-3 sm:-mx-0 px-3 sm:px-0 py-2 bg-rh-light-bg/95 dark:bg-rh-black/95 backdrop-blur-md mb-4">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+            {[
+              ...(holding ? [{ id: 'section-position', label: 'Position' }] : []),
+              { id: 'section-about', label: 'About' },
+              { id: 'section-stats', label: 'Stats' },
+              { id: 'section-earnings', label: 'Earnings' },
+              { id: 'section-financials', label: 'Financials' },
+              { id: 'section-qa', label: 'Q&A' },
+              ...(etfHoldings?.isETF ? [{ id: 'section-etf', label: 'ETF Details' }] : []),
+              ...(priceAlerts.length > 0 ? [{ id: 'section-alerts', label: 'Alerts' }] : []),
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => document.getElementById(tab.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full border border-rh-light-border/40 dark:border-rh-border/40 text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-rh-green/40 hover:bg-rh-green/5 transition-colors"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Your Position */}
       {holding && (
-        <div className="mb-8">
+        <div id="section-position" className="mb-8 scroll-mt-32">
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Your Position</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <PositionCard label="Market Value" value={formatCurrency(holding.currentValue)} />
@@ -794,7 +820,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* About Section */}
       {(about?.description || profile?.name) && (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
+        <div id="section-about" className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6 scroll-mt-32">
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-3">About</h2>
 
           {/* Description */}
@@ -895,7 +921,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Key Statistics */}
       {!loading && (metrics || quote) && (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
+        <div id="section-stats" className="scroll-mt-32 bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Key Statistics</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-4">
             {profile && profile.marketCapM > 0 && (
@@ -957,16 +983,21 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       </div>
 
       {/* Financials & Earnings */}
-      <EarningsSection ticker={ticker} />
-      <FundamentalsSection ticker={ticker} />
+      <div id="section-earnings" className="scroll-mt-32">
+        <EarningsSection ticker={ticker} />
+      </div>
+      <div id="section-financials" className="scroll-mt-32">
+        <FundamentalsSection ticker={ticker} />
+      </div>
 
       {/* AI Research Q&A */}
-      <div className="mb-6">
+      <div id="section-qa" className="scroll-mt-32 mb-6">
         <StockQAPanel ticker={ticker} />
       </div>
 
       {/* ETF Details Panel - consolidated dividends + holdings for ETFs */}
       {etfHoldings?.isETF ? (
+        <div id="section-etf" className="scroll-mt-32">
         <ETFDetailsPanel
           ticker={ticker}
           dividendEvents={tickerDividends}
@@ -977,11 +1008,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             window.location.hash = `#stock/${t}`;
           }}
         />
+        </div>
       ) : null}
 
       {/* Price Alerts */}
       {priceAlerts.length > 0 && (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
+        <div id="section-alerts" className="scroll-mt-32 bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">Price Alerts</h2>
             <button

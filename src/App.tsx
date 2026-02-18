@@ -132,7 +132,7 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
 const savedInitialNav = parseHash();
 
 export default function App() {
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout, verifyEmail, resendVerification } = useAuth();
   const isOnline = useOnlineStatus();
   const initialNav = savedInitialNav;
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -169,6 +169,11 @@ export default function App() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
   const [dailyReportHidden, setDailyReportHidden] = useState(false);
+  const [showVerifyEmailModal, setShowVerifyEmailModal] = useState(false);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyError, setVerifyError] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResendCooldown, setVerifyResendCooldown] = useState(0);
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
@@ -809,6 +814,24 @@ export default function App() {
             </p>
           </div>
         )}
+        {user && user.emailVerified === false && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <p className="text-amber-400 text-sm font-medium truncate">
+                Verify your email to unlock AI features
+              </p>
+            </div>
+            <button
+              onClick={() => setShowVerifyEmailModal(true)}
+              className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors"
+            >
+              Verify
+            </button>
+          </div>
+        )}
         {viewingStock && (
           <Suspense fallback={<PageFallback />}>
             <StockDetailView
@@ -1183,6 +1206,78 @@ export default function App() {
       )}
       <ShortcutToast message={toastMessage} />
       <KeyboardCheatSheet isOpen={isCheatSheetOpen} onClose={closeCheatSheet} />
+      {showVerifyEmailModal && user?.email && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowVerifyEmailModal(false); setVerifyCode(''); setVerifyError(''); }} />
+          <div className="relative bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-2">Verify Your Email</h3>
+            <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-4">
+              Enter the 6-digit code sent to <span className="text-rh-light-text dark:text-rh-text font-medium">{user.email}</span>
+            </p>
+            {verifyError && (
+              <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{verifyError}</div>
+            )}
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (verifyCode.length !== 6 || verifyLoading) return;
+              setVerifyLoading(true);
+              setVerifyError('');
+              try {
+                await verifyEmail(user.email!, verifyCode);
+                setShowVerifyEmailModal(false);
+                setVerifyCode('');
+              } catch (err) {
+                setVerifyError(err instanceof Error ? err.message : 'Verification failed');
+              } finally {
+                setVerifyLoading(false);
+              }
+            }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full px-4 py-3 bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text text-center text-2xl tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-rh-green/60 focus:border-rh-green"
+                placeholder="000000"
+                autoComplete="one-time-code"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={verifyCode.length !== 6 || verifyLoading}
+                className="w-full mt-4 py-2.5 bg-rh-green hover:bg-rh-green/90 disabled:bg-rh-green/40 text-white font-semibold rounded-lg transition-colors"
+              >
+                {verifyLoading ? 'Verifying...' : 'Verify'}
+              </button>
+            </form>
+            <div className="flex items-center justify-between mt-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (verifyResendCooldown > 0) return;
+                  try {
+                    await resendVerification(user.email!);
+                    setVerifyResendCooldown(60);
+                    const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
+                  } catch { setVerifyError('Failed to resend code'); }
+                }}
+                disabled={verifyResendCooldown > 0}
+                className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-muted/40 dark:disabled:text-rh-muted/40 transition-colors"
+              >
+                {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Resend code'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowVerifyEmailModal(false); setVerifyCode(''); setVerifyError(''); }}
+                className="text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
