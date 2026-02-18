@@ -561,7 +561,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
         {showAddModal && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title-add"
@@ -944,7 +944,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       {/* Add Stock Modal */}
       {showAddModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title-add"
@@ -987,7 +987,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       {/* Edit Holding Modal */}
       {editingHolding && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title-edit"
@@ -1029,7 +1029,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
       {/* Cash & Margin Modal */}
       {showCashMarginModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 modal-overlay bg-black/60 backdrop-blur-sm" onClick={() => setShowCashMarginModal(false)} aria-hidden="true" />
           <div
             className="relative modal-container bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] p-0 dark:p-6 w-full max-w-[440px] dark:max-w-sm border border-white/20 dark:border-white/[0.1] [box-shadow:0_8px_32px_rgba(0,0,0,0.12)] dark:[box-shadow:0_8px_32px_rgba(0,0,0,0.5)]"
