@@ -638,7 +638,7 @@ export default function App() {
                 </svg>
               </button>
             )}
-            {currentUserId && <NotificationBell userId={currentUserId} />}
+            {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
             <button
               onClick={toggleTheme}
               className="hidden sm:flex items-center p-1.5 rounded-lg transition-colors
@@ -721,7 +721,7 @@ export default function App() {
                 </svg>
               </button>
             )}
-            {currentUserId && <NotificationBell userId={currentUserId} />}
+            {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
             <button
               onClick={toggleTheme}
               className="flex items-center p-1.5 rounded-lg transition-colors

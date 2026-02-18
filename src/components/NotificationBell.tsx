@@ -40,11 +40,32 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-interface Props {
-  userId: string;
+function groupByDay(notifications: UnifiedNotification[]): { label: string; items: UnifiedNotification[] }[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterday = today - 86400000;
+
+  const groups: { label: string; items: UnifiedNotification[] }[] = [];
+  let currentLabel = '';
+
+  for (const n of notifications) {
+    const t = new Date(n.createdAt).getTime();
+    const label = t >= today ? 'Today' : t >= yesterday ? 'Yesterday' : 'Earlier';
+    if (label !== currentLabel) {
+      currentLabel = label;
+      groups.push({ label, items: [] });
+    }
+    groups[groups.length - 1].items.push(n);
+  }
+  return groups;
 }
 
-export function NotificationBell({ userId }: Props) {
+interface Props {
+  userId: string;
+  onTickerClick?: (ticker: string) => void;
+}
+
+export function NotificationBell({ userId, onTickerClick }: Props) {
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
@@ -276,7 +297,7 @@ export function NotificationBell({ userId }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
+        <div className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-14 sm:top-full sm:mt-2 w-auto sm:w-80 max-h-[70vh] sm:max-h-96 overflow-y-auto
           bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border
           rounded-xl shadow-xl z-50 scrollbar-minimal"
         >
@@ -324,49 +345,66 @@ export function NotificationBell({ userId }: Props) {
           </div>
 
           {notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-rh-light-muted dark:text-rh-muted">
-              No notifications yet
+            <div className="px-4 py-10 text-center">
+              <svg className="w-8 h-8 mx-auto mb-2 text-rh-light-muted/30 dark:text-rh-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <p className="text-sm text-rh-light-muted dark:text-rh-muted">All caught up</p>
+              <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">No new notifications</p>
             </div>
           ) : (
             <div>
-              {notifications.slice(0, 20).map(notification => (
-                <div
-                  key={`${notification.type}-${notification.id}`}
-                  onClick={() => !notification.read && handleMarkRead(notification)}
-                  className={`px-4 py-3 border-b border-rh-light-border dark:border-rh-border last:border-b-0
-                    hover:bg-rh-light-bg dark:hover:bg-rh-dark/50 transition-colors cursor-pointer
-                    ${!notification.read ? 'bg-blue-500/5' : ''}`}
-                >
-                  <div className="flex items-start gap-2">
-                    {!notification.read && (
-                      <span className="mt-1.5 w-2 h-2 rounded-full bg-rh-green flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-medium uppercase tracking-wider ${
-                          notification.type === 'anomaly' ? 'text-orange-500' :
-                          notification.type === 'price_alert' ? 'text-rh-green' :
-                          notification.type === 'analyst' ? 'text-amber-500' :
-                          notification.label === '52W High' || notification.label === 'All-Time High' ? 'text-emerald-500' :
-                          notification.label === '52W Low' || notification.label === 'All-Time Low' ? 'text-rose-500' :
-                          'text-rh-light-muted dark:text-rh-muted'
-                        }`}>
-                          {notification.label}
-                        </span>
-                        {notification.ticker && (
-                          <span className="text-[10px] font-semibold text-rh-light-text dark:text-rh-text">
-                            {notification.ticker}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-rh-light-text dark:text-rh-text mt-0.5 leading-relaxed">
-                        {notification.message.replace(/\*\*/g, '')}
-                      </p>
-                      <p className="text-[10px] text-rh-light-muted dark:text-rh-muted mt-1">
-                        {timeAgo(notification.createdAt)}
-                      </p>
-                    </div>
+              {groupByDay(notifications.slice(0, 30)).map(group => (
+                <div key={group.label}>
+                  <div className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 bg-rh-light-bg/50 dark:bg-rh-dark/30 sticky top-0">
+                    {group.label}
                   </div>
+                  {group.items.map(notification => (
+                    <div
+                      key={`${notification.type}-${notification.id}`}
+                      onClick={() => {
+                        if (!notification.read) handleMarkRead(notification);
+                        if (notification.ticker && onTickerClick) {
+                          onTickerClick(notification.ticker);
+                          setOpen(false);
+                        }
+                      }}
+                      className={`px-4 py-3 border-b border-rh-light-border/50 dark:border-rh-border/50 last:border-b-0
+                        hover:bg-rh-light-bg dark:hover:bg-rh-dark/50 transition-colors cursor-pointer
+                        ${!notification.read ? 'bg-blue-500/5' : ''}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {!notification.read && (
+                          <span className="mt-1.5 w-2 h-2 rounded-full bg-rh-green flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-medium uppercase tracking-wider ${
+                              notification.type === 'anomaly' ? 'text-orange-500' :
+                              notification.type === 'price_alert' ? 'text-rh-green' :
+                              notification.type === 'analyst' ? 'text-amber-500' :
+                              notification.label === '52W High' || notification.label === 'All-Time High' ? 'text-emerald-500' :
+                              notification.label === '52W Low' || notification.label === 'All-Time Low' ? 'text-rose-500' :
+                              'text-rh-light-muted dark:text-rh-muted'
+                            }`}>
+                              {notification.label}
+                            </span>
+                            {notification.ticker && (
+                              <span className="text-[10px] font-semibold text-rh-green">
+                                {notification.ticker}
+                              </span>
+                            )}
+                            <span className="ml-auto text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 flex-shrink-0">
+                              {timeAgo(notification.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-rh-light-text dark:text-rh-text mt-0.5 leading-relaxed line-clamp-2">
+                            {notification.message.replace(/\*\*/g, '')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
