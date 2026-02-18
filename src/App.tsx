@@ -85,10 +85,10 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'discover', label: 'Heatmap' },
   { id: 'watchlists', label: 'Watchlists' },
   { id: 'nala', label: 'Nala AI' },
-  { id: 'leaderboard', label: 'Leaderboard' },
 ];
 
 const MORE_TABS: { id: TabType; label: string }[] = [
+  { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'macro', label: 'Macro' },
   { id: 'feed', label: 'Feed' },
   { id: 'watch', label: 'Watch' },
@@ -703,139 +703,139 @@ export default function App() {
         </div>
 
         {/* Desktop: logo far-left, tabs aligned with content column, controls far-right */}
-        <div className="hidden sm:block relative">
-          {/* Logo — absolute far left */}
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10">
-            <div
-              className="h-[34px] w-[34px] cursor-pointer"
-              onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
-            >
-              <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
-              <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
-            </div>
+        <div className="hidden sm:flex items-center h-14 px-5 gap-4">
+          {/* Logo */}
+          <div
+            className="h-[30px] w-[30px] cursor-pointer flex-shrink-0"
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
+          >
+            <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
+            <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
           </div>
 
-          {/* Nav tabs + controls — in content-aligned container so they line up with chart */}
-          <div className="max-w-[clamp(1080px,82vw,1600px)] mx-auto px-3 sm:px-6 flex items-center">
-            <nav className="flex items-center -ml-[29px]">
-              {PRIMARY_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setViewingProfileId(null);
-                    setViewingStock(null);
-                    setLeaderboardUserId(null);
-                  }}
-                  className={`relative px-3 py-3 text-[13px] transition-colors whitespace-nowrap
-                    ${activeTab === tab.id
-                      ? 'text-rh-green font-semibold'
-                      : 'text-rh-light-muted/70 dark:text-rh-muted/70 font-medium hover:text-rh-light-text dark:hover:text-rh-text'
-                    }`}
-                >
-                  {tab.label}
-                  <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
-                    activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
-                  }`} />
-                </button>
-              ))}
-              {/* More dropdown */}
-              <div className="relative" ref={moreDropdownRef}>
-                <button
-                  onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
-                  className={`relative px-3 py-3 text-[13px] font-medium transition-colors whitespace-nowrap flex items-center gap-1
-                    ${visibleMoreTabs.some(t => t.id === activeTab)
-                      ? 'text-rh-green font-semibold'
-                      : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-rh-text'
-                    }`}
-                >
-                  {visibleMoreTabs.find(t => t.id === activeTab)?.label || 'More'}
-                  <svg className={`w-3 h-3 transition-transform ${moreDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
-                    visibleMoreTabs.some(t => t.id === activeTab) ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
-                  }`} />
-                </button>
-                {moreDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-xl py-1 min-w-[160px] z-50">
-                    {visibleMoreTabs.map(tab => (
-                      <button
-                        key={tab.id}
-                        onClick={() => {
-                          setActiveTab(tab.id);
-                          setViewingProfileId(null);
-                          setViewingStock(null);
-                          setLeaderboardUserId(null);
-                          setMoreDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors
-                          ${activeTab === tab.id
-                            ? 'text-rh-green font-semibold bg-rh-green/5'
-                            : 'text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium'
-                          }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </nav>
-            <div className="ml-auto flex items-center gap-3">
-              <div className="w-[280px]">
-                <TickerAutocompleteInput
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  onSelect={(result) => {
-                    const held = findHolding(result.symbol);
-                    setViewingStock({ ticker: result.symbol, holding: held });
-                    setSearchQuery('');
-                  }}
-                  heldTickers={portfolio?.holdings.map(h => h.ticker) ?? []}
-                  externalRef={searchRef}
-                  compact
-                />
-              </div>
-              {currentUserName && currentUserId && (
-                <UserMenu
-                  userName={currentUserName}
-                  userId={currentUserId}
-                  onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
-                  onSettingsClick={() => setSettingsModalOpen(true)}
-                  onLogoutClick={logout}
-                />
-              )}
-              {currentUserId && (
-                <button
-                  onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
-                  className="relative p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
-                  title="Today's Brief"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                  </svg>
-                </button>
-              )}
-              {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
+          {/* Primary nav — ~45% */}
+          <nav className="flex items-center">
+            {PRIMARY_TABS.map((tab) => (
               <button
-                onClick={toggleTheme}
-                className="flex items-center p-1.5 rounded-lg transition-colors
-                  hover:bg-gray-100 dark:hover:bg-rh-dark
-                  text-rh-light-muted dark:text-rh-muted"
-                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setViewingProfileId(null);
+                  setViewingStock(null);
+                  setLeaderboardUserId(null);
+                }}
+                className={`relative px-3 py-2 text-[13px] rounded-md transition-all duration-150 whitespace-nowrap
+                  ${activeTab === tab.id
+                    ? 'text-rh-green font-semibold bg-rh-green/[0.08]'
+                    : 'text-rh-light-muted/60 dark:text-rh-muted/60 font-medium hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                  }`}
               >
-                {theme === 'dark' ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
+                {tab.label}
+                <span className={`absolute bottom-0 left-2.5 right-2.5 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
+                  activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                }`} />
               </button>
+            ))}
+            {/* More dropdown */}
+            <div className="relative" ref={moreDropdownRef}>
+              <button
+                onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+                className={`relative px-3 py-2 text-[13px] font-medium rounded-md transition-all duration-150 whitespace-nowrap flex items-center gap-1
+                  ${visibleMoreTabs.some(t => t.id === activeTab)
+                    ? 'text-rh-green font-semibold bg-rh-green/[0.08]'
+                    : 'text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                  }`}
+              >
+                {visibleMoreTabs.find(t => t.id === activeTab)?.label || 'More'}
+                <svg className={`w-3 h-3 transition-transform duration-150 ${moreDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                <span className={`absolute bottom-0 left-2.5 right-2.5 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
+                  visibleMoreTabs.some(t => t.id === activeTab) ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                }`} />
+              </button>
+              {moreDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl py-1.5 min-w-[160px] z-50">
+                  {visibleMoreTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setViewingProfileId(null);
+                        setViewingStock(null);
+                        setLeaderboardUserId(null);
+                        setMoreDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
+                        ${activeTab === tab.id
+                          ? 'text-rh-green font-semibold bg-rh-green/[0.06]'
+                          : 'text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium'
+                        }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+          </nav>
+
+          {/* Search — flexible middle zone */}
+          <div className="flex-1 max-w-[320px] min-w-[180px]">
+            <TickerAutocompleteInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSelect={(result) => {
+                const held = findHolding(result.symbol);
+                setViewingStock({ ticker: result.symbol, holding: held });
+                setSearchQuery('');
+              }}
+              heldTickers={portfolio?.holdings.map(h => h.ticker) ?? []}
+              externalRef={searchRef}
+              compact
+            />
+          </div>
+
+          {/* Right utilities — notifications, brief, theme, profile */}
+          <div className="flex items-center gap-1 ml-auto">
+            {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
+            {currentUserId && (
+              <button
+                onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
+                className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                title="Today's Brief"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg transition-all duration-150
+                hover:bg-gray-100 dark:hover:bg-rh-dark
+                text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+            {currentUserName && currentUserId && (
+              <UserMenu
+                userName={currentUserName}
+                userId={currentUserId}
+                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('leaderboard'); }}
+                onSettingsClick={() => setSettingsModalOpen(true)}
+                onLogoutClick={logout}
+              />
+            )}
           </div>
         </div>
       </header>
@@ -869,8 +869,8 @@ export default function App() {
 
       <main className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
         activeTab === 'discover' && !viewingStock
-          ? 'max-w-[clamp(1080px,85vw,1620px)] px-2 sm:px-3'
-          : 'max-w-[clamp(1080px,82vw,1600px)] px-3 sm:px-6'
+          ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
+          : 'max-w-[clamp(1080px,64vw,1530px)] px-3 sm:px-6'
       }`}>
         {!isOnline && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
