@@ -723,7 +723,7 @@ export default function App() {
               ))}
             </nav>
             <div className="ml-auto flex items-center gap-2">
-              <div className="w-[260px]">
+              <div className="w-[420px]">
                 <TickerAutocompleteInput
                   value={searchQuery}
                   onChange={setSearchQuery}
