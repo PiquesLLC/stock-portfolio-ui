@@ -10,6 +10,7 @@ import {
   findBenchmarkIndex, computeBenchmarkReturn,
   snapToNearest,
 } from '../utils/portfolio-chart';
+import { computeChartGroups } from '../utils/chart-groups';
 
 export interface ChartMeasurement {
   startTime: number;
@@ -321,6 +322,13 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       return result.length >= 2 ? result : raw;
     }
   }, [chartData, selectedPeriod, currentValue]);
+
+  // ── Chart groups for multi-period highlighting (1W=day, 1M=week, etc.) ──
+  const chartGroups = useMemo(
+    () => computeChartGroups(points, selectedPeriod),
+    [points, selectedPeriod],
+  );
+
   const periodStartValue = chartData?.periodStartValue ?? currentValue;
 
   // ── Normalized benchmark data for overlay ──────────────────────
@@ -829,51 +837,108 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
             }`}>
               {formatCurrency(displayValue)}
             </p>
-            {/* Show separate regular + after-hours lines when outside regular hours */}
-            {selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session !== 'REG' ? (
-              <>
-                <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
-                  <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
-                </p>
-                <p className={`text-sm mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
-                  {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
-                  <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">{session === 'PRE' ? 'Pre-market' : 'After hours'}</span>
-                </p>
-              </>
-            ) : (
-              <>
-                <p className={`text-base mt-2 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {formatChange(displayChange)} ({formatPct(displayChangePct)})
-                  {hoverIndex !== null && hoverLabel && (
-                    <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-sm ml-2">{hoverLabel}</span>
+            {/* Session-aware change lines for 1D pre-market/after-hours */}
+            {(() => {
+              // Determine which session the hover is in (1D only)
+              let hoverSession: 'pre' | 'market' | 'after' | null = null;
+              if (selectedPeriod === '1D' && hoverIndex !== null && sessionSplitIdx !== null) {
+                const closeIdx = sessionCloseIdx ?? points.length - 1;
+                if (hoverIndex < sessionSplitIdx) hoverSession = 'pre';
+                else if (hoverIndex <= closeIdx) hoverSession = 'market';
+                else hoverSession = 'after';
+              }
+
+              // Hovering on pre-market: "Today" line + "Pre-market" change at hovered point
+              if (hoverSession === 'pre') {
+                const regularCloseVal = periodStartValue + (regularDayChange ?? 0);
+                const pmChange = displayValue - regularCloseVal;
+                const pmChangePct = regularCloseVal > 0 ? (pmChange / regularCloseVal) * 100 : 0;
+                return (
+                  <>
+                    <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
+                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                    </p>
+                    <p className={`text-sm mt-0.5 font-medium ${pmChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                      {formatChange(pmChange)} ({formatPct(pmChangePct)})
+                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">Pre-market</span>
+                      {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                    </p>
+                  </>
+                );
+              }
+
+              // Hovering on after-hours: two lines — "Today" + "After hours" with time
+              if (hoverSession === 'after') {
+                const regularCloseVal = periodStartValue + (regularDayChange ?? 0);
+                const ahChange = displayValue - regularCloseVal;
+                const ahChangePct = regularCloseVal > 0 ? (ahChange / regularCloseVal) * 100 : 0;
+                return (
+                  <>
+                    <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
+                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                    </p>
+                    <p className={`text-sm mt-0.5 font-medium ${ahChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                      {formatChange(ahChange)} ({formatPct(ahChangePct)})
+                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">After hours</span>
+                      {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                    </p>
+                  </>
+                );
+              }
+
+              // Not hovering + outside regular hours: existing two-line behavior
+              if (selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session !== 'REG') {
+                return (
+                  <>
+                    <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
+                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                    </p>
+                    <p className={`text-sm mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                      {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
+                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">{session === 'PRE' ? 'Pre-market' : 'After hours'}</span>
+                    </p>
+                  </>
+                );
+              }
+
+              // Default: single line (regular hours hover, non-1D, etc.)
+              return (
+                <>
+                  <p className={`text-base mt-2 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {formatChange(displayChange)} ({formatPct(displayChangePct)})
+                    {hoverIndex !== null && hoverLabel && (
+                      <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-sm ml-2">{hoverLabel}</span>
+                    )}
+                    {hoverIndex === null && selectedPeriod === '1D' && (
+                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                    )}
+                  </p>
+                  {/* Benchmark comparison on hover */}
+                  {showBenchmark && hoverBenchmarkValue !== null && hoverIndex !== null && (
+                    (() => {
+                      const spyChange = hoverBenchmarkValue - periodStartValue;
+                      const spyChangePct = periodStartValue > 0 ? (spyChange / periodStartValue) * 100 : 0;
+                      const outperformPct = displayChangePct - spyChangePct;
+                      return (
+                        <p className="text-xs mt-0.5 text-rh-light-muted dark:text-rh-muted">
+                          <span className="opacity-60">SPY: </span>
+                          <span className={spyChangePct >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}>
+                            {formatPct(spyChangePct)}
+                          </span>
+                          <span className="mx-1.5 opacity-40">·</span>
+                          <span className={`font-semibold ${outperformPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                            {formatPct(outperformPct)} vs SPY
+                          </span>
+                        </p>
+                      );
+                    })()
                   )}
-                  {hoverIndex === null && selectedPeriod === '1D' && (
-                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
-                  )}
-                </p>
-                {/* Benchmark comparison on hover */}
-                {showBenchmark && hoverBenchmarkValue !== null && hoverIndex !== null && (
-                  (() => {
-                    const spyChange = hoverBenchmarkValue - periodStartValue;
-                    const spyChangePct = periodStartValue > 0 ? (spyChange / periodStartValue) * 100 : 0;
-                    const outperformPct = displayChangePct - spyChangePct;
-                    return (
-                      <p className="text-xs mt-0.5 text-rh-light-muted dark:text-rh-muted">
-                        <span className="opacity-60">SPY: </span>
-                        <span className={spyChangePct >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}>
-                          {formatPct(spyChangePct)}
-                        </span>
-                        <span className="mx-1.5 opacity-40">·</span>
-                        <span className={`font-semibold ${outperformPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                          {formatPct(outperformPct)} vs SPY
-                        </span>
-                      </p>
-                    );
-                  })()
-                )}
-              </>
-            )}
+                </>
+              );
+            })()}
 
             {/* Single-point selected indicator */}
             {isMeasuring && measureA !== null && points[measureA] && (
@@ -1073,6 +1138,14 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
                 );
               })()}
             </>
+          ) : hasData && chartGroups.length > 1 ? (
+            /* Multi-group: single continuous area fill */
+            <>
+              <path
+                d={`${pathD} L${toX(points.length - 1).toFixed(1)},${(CHART_H - PAD_BOTTOM)} L${toX(0).toFixed(1)},${(CHART_H - PAD_BOTTOM)} Z`}
+                fill="url(#area-fill)"
+              />
+            </>
           ) : hasData && (
             <path
               d={`${pathD} L${toX(points.length - 1).toFixed(1)},${(CHART_H - PAD_BOTTOM)} L${toX(0).toFixed(1)},${(CHART_H - PAD_BOTTOM)} Z`}
@@ -1110,6 +1183,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
               </g>
             );
           })())}
+
 
           {/* Price line — on 1D with session splits, render 3 segments with hover highlighting */}
           {hasData && sessionSplitIdx !== null ? (() => {
@@ -1156,7 +1230,29 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
                 )}
               </>
             );
-          })() : hasData && (
+          })() : hasData && chartGroups.length > 1 ? (
+            /* Multi-group: single continuous stroke with hover segment highlight */
+            <>
+              <path d={pathD} fill="none" stroke="url(#stroke-fade)"
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                opacity={hoverIndex !== null ? 0.35 : 1}
+                style={{ transition: 'opacity 0.15s' }} />
+              {hoverIndex !== null && (() => {
+                const hg = chartGroups.find(g => hoverIndex >= g.startIdx && hoverIndex <= g.endIdx);
+                if (!hg) return null;
+                const from = Math.max(0, hg.startIdx - 1);
+                const to = Math.min(points.length - 1, hg.endIdx + 1);
+                const seg = points.slice(from, to + 1).map((p, j) => {
+                  const idx = from + j;
+                  return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.value).toFixed(1)}`;
+                }).join(' ');
+                return (
+                  <path d={seg} fill="none" stroke={lineColor} strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" />
+                );
+              })()}
+            </>
+          ) : hasData && (
             <path d={pathD} fill="none" stroke="url(#stroke-fade)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           )}
 

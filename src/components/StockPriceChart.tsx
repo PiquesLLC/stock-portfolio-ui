@@ -28,6 +28,7 @@ import {
   PAD_RIGHT,
   PERIODS,
 } from '../utils/stock-chart';
+import { computeChartGroups } from '../utils/chart-groups';
 
 interface Props {
   ticker?: string;
@@ -845,6 +846,13 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
 
   // For 1D, use time-based x positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   const is1D = selectedPeriod === '1D' && points.length > 1;
+
+  // ── Chart groups for multi-period highlighting (1W=day, 1M=week, etc.) ──
+  const chartGroups = useMemo(
+    () => computeChartGroups(points, selectedPeriod),
+    [points, selectedPeriod],
+  );
+
   let dayStartMs = 0;
   let dayEndMs = 0;
   if (is1D) {
@@ -1914,6 +1922,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
             );
           })())}
 
+
           {/* Area fill — segmented for 1D to highlight market hours (matches portfolio chart) */}
           {hasData && stockOpenIdx !== null ? (() => {
             const closeIdx = stockCloseIdx ?? points.length - 1;
@@ -1941,7 +1950,12 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
                 )}
               </g>
             );
-          })() : hasData && (
+          })() : hasData && chartGroups.length > 1 ? (
+            /* Multi-group: single continuous area fill */
+            <g clipPath="url(#plot-clip)">
+              <path d={areaD} fill={`url(#grad-${selectedPeriod})`} style={{ transition: 'opacity 0.2s ease-out' }} />
+            </g>
+          ) : hasData && (
             <g clipPath="url(#plot-clip)">
               <path d={areaD} fill={`url(#grad-${selectedPeriod})`} style={{ transition: 'opacity 0.2s ease-out' }} />
             </g>
@@ -2020,7 +2034,29 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
                 )}
               </g>
             );
-          })() : hasData && (
+          })() : hasData && chartGroups.length > 1 ? (
+            /* Multi-group: single continuous stroke with hover segment highlight */
+            <g clipPath="url(#plot-clip)">
+              <path d={pathD} fill="none" stroke={lineColor}
+                strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"
+                opacity={hoverIndex !== null ? 0.35 : 1}
+                style={{ transition: 'opacity 0.15s' }} />
+              {hoverIndex !== null && (() => {
+                const hg = chartGroups.find(g => hoverIndex >= g.startIdx && hoverIndex <= g.endIdx);
+                if (!hg) return null;
+                const from = Math.max(0, hg.startIdx - 1);
+                const to = Math.min(points.length - 1, hg.endIdx + 1);
+                const seg = points.slice(from, to + 1).map((p, j) => {
+                  const idx = from + j;
+                  return `${j === 0 ? 'M' : 'L'}${toX(idx).toFixed(1)},${toY(p.price).toFixed(1)}`;
+                }).join(' ');
+                return (
+                  <path d={seg} fill="none" stroke={lineColor} strokeWidth="1.6"
+                    strokeLinecap="round" strokeLinejoin="round" />
+                );
+              })()}
+            </g>
+          ) : hasData && (
             <g clipPath="url(#plot-clip)">
               <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"
                 style={{ transition: 'opacity 0.2s ease-out' }} />
