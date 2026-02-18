@@ -79,18 +79,22 @@ interface NavState {
 const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch', 'pricing']);
 
 // Desktop-only tab list for the consolidated header bar
-const DESKTOP_TABS: { id: TabType; label: string }[] = [
+const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'portfolio', label: 'Portfolio' },
   { id: 'insights', label: 'Insights' },
   { id: 'discover', label: 'Heatmap' },
   { id: 'watchlists', label: 'Watchlists' },
   { id: 'nala', label: 'Nala AI' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+];
+
+const MORE_TABS: { id: TabType; label: string }[] = [
   { id: 'macro', label: 'Macro' },
   { id: 'feed', label: 'Feed' },
-  { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'watch', label: 'Watch' },
   { id: 'pricing', label: 'Pricing' },
 ];
+
 
 function parseHash(): NavState {
   const hash = window.location.hash.slice(1);
@@ -152,10 +156,12 @@ export default function App() {
   const currentUserId = user?.id || '';
   const currentUserName = user?.displayName || user?.username || '';
   const isPaidUser = user?.plan === 'pro' || user?.plan === 'premium';
-  const visibleDesktopTabs = useMemo(() =>
-    isPaidUser ? DESKTOP_TABS.filter(t => t.id !== 'pricing') : DESKTOP_TABS,
+  const visibleMoreTabs = useMemo(() =>
+    isPaidUser ? MORE_TABS.filter(t => t.id !== 'pricing') : MORE_TABS,
     [isPaidUser]
   );
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+  const moreDropdownRef = useRef<HTMLDivElement>(null);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
   const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.subtab);
@@ -174,6 +180,18 @@ export default function App() {
   const [verifyError, setVerifyError] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyResendCooldown, setVerifyResendCooldown] = useState(0);
+
+  // Close "More" dropdown on outside click
+  useEffect(() => {
+    if (!moreDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moreDropdownRef.current && !moreDropdownRef.current.contains(e.target as Node)) {
+        setMoreDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [moreDropdownOpen]);
 
   // Listen for email-verify-needed events from API layer (403 on AI endpoints)
   useEffect(() => {
@@ -700,7 +718,7 @@ export default function App() {
           {/* Nav tabs + controls — in content-aligned container so they line up with chart */}
           <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 flex items-center">
             <nav className="flex items-center -ml-[29px]">
-              {visibleDesktopTabs.map((tab) => (
+              {PRIMARY_TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => {
@@ -709,21 +727,63 @@ export default function App() {
                     setViewingStock(null);
                     setLeaderboardUserId(null);
                   }}
-                  className={`relative px-2.5 py-3 text-[13px] font-medium transition-colors whitespace-nowrap
+                  className={`relative px-3 py-3 text-[13px] transition-colors whitespace-nowrap
                     ${activeTab === tab.id
-                      ? 'text-rh-green'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                      ? 'text-rh-green font-semibold'
+                      : 'text-rh-light-muted/70 dark:text-rh-muted/70 font-medium hover:text-rh-light-text dark:hover:text-rh-text'
                     }`}
                 >
                   {tab.label}
-                  <span className={`absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
+                  <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
                     activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
                   }`} />
                 </button>
               ))}
+              {/* More dropdown */}
+              <div className="relative" ref={moreDropdownRef}>
+                <button
+                  onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+                  className={`relative px-3 py-3 text-[13px] font-medium transition-colors whitespace-nowrap flex items-center gap-1
+                    ${visibleMoreTabs.some(t => t.id === activeTab)
+                      ? 'text-rh-green font-semibold'
+                      : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-rh-text'
+                    }`}
+                >
+                  {visibleMoreTabs.find(t => t.id === activeTab)?.label || 'More'}
+                  <svg className={`w-3 h-3 transition-transform ${moreDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
+                    visibleMoreTabs.some(t => t.id === activeTab) ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                  }`} />
+                </button>
+                {moreDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-xl py-1 min-w-[160px] z-50">
+                    {visibleMoreTabs.map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          setViewingProfileId(null);
+                          setViewingStock(null);
+                          setLeaderboardUserId(null);
+                          setMoreDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors
+                          ${activeTab === tab.id
+                            ? 'text-rh-green font-semibold bg-rh-green/5'
+                            : 'text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium'
+                          }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </nav>
-            <div className="ml-auto flex items-center gap-2">
-              <div className="w-[420px]">
+            <div className="ml-auto flex items-center gap-3">
+              <div className="w-[280px]">
                 <TickerAutocompleteInput
                   value={searchQuery}
                   onChange={setSearchQuery}
