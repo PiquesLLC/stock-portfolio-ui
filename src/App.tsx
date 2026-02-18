@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Portfolio, Settings, PortfolioChartPeriod } from './types';
 import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus } from './api';
 import { REFRESH_INTERVAL } from './config';
@@ -151,6 +151,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>(initialNav.tab);
   const currentUserId = user?.id || '';
   const currentUserName = user?.displayName || user?.username || '';
+  const isPaidUser = user?.plan === 'pro' || user?.plan === 'premium';
+  const visibleDesktopTabs = useMemo(() =>
+    isPaidUser ? DESKTOP_TABS.filter(t => t.id !== 'pricing') : DESKTOP_TABS,
+    [isPaidUser]
+  );
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
   const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.subtab);
@@ -739,7 +744,7 @@ export default function App() {
           {/* Nav tabs — in content-aligned container so they line up with chart */}
           <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6">
             <nav className="flex items-center -ml-[29px]">
-              {DESKTOP_TABS.map((tab) => (
+              {visibleDesktopTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => {
@@ -767,7 +772,7 @@ export default function App() {
 
       {/* Mobile-only navigation */}
       <div className="sm:hidden">
-        <Navigation activeTab={activeTab} onTabChange={(tab) => {
+        <Navigation activeTab={activeTab} userPlan={user?.plan} onTabChange={(tab) => {
           setActiveTab(tab);
           setViewingProfileId(null);
           setViewingStock(null);

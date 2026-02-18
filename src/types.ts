@@ -671,6 +671,8 @@ export interface UserProfile {
   performance: PerformanceData | null;
   holdingsVisibility: string;
   bio?: string | null;
+  plan?: string;
+  planStartedAt?: string;
 }
 
 // Portfolio Chart types

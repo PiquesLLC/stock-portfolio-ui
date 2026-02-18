@@ -185,9 +185,25 @@ function getSignalColors(grade: string) {
   return { ring: 'ring-rh-red/40', bg: 'bg-rh-red/15', text: 'text-rh-red', badgeBg: 'bg-rh-red', badgeText: 'text-white', pulse: false };
 }
 
+// ── Premium tenure badge (Twitch-style) ──────────────────────────────
+function getPremiumBadge(plan: string | undefined, planStartedAt: string | undefined): { label: string; icon: string; color: string } | null {
+  if (!plan || plan === 'free' || !planStartedAt) return null;
+  const months = Math.floor((Date.now() - new Date(planStartedAt).getTime()) / (30.44 * 24 * 60 * 60 * 1000));
+  if (months >= 24) return { label: 'Legend', icon: '\u{1F3C6}', color: 'text-amber-300 border-amber-300/30 bg-amber-300/[0.08]' };
+  if (months >= 12) return { label: 'Veteran', icon: '\u{1F451}', color: 'text-amber-400 border-amber-400/30 bg-amber-400/[0.08]' };
+  if (months >= 6) return { label: 'Champion', icon: '\u{1F48E}', color: 'text-purple-400 border-purple-400/30 bg-purple-400/[0.08]' };
+  if (months >= 3) return { label: 'Patron', icon: '\u{1F6E1}\u{FE0F}', color: 'text-blue-400 border-blue-400/30 bg-blue-400/[0.08]' };
+  return { label: 'Supporter', icon: '\u{2B50}', color: 'text-rh-green border-rh-green/30 bg-rh-green/[0.08]' };
+}
+
 // ── Achievement badges ───────────────────────────────────────────────
-function computeBadges(perf: PerformanceData | null, createdAt: string): { label: string; icon: string; color: string }[] {
+function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: string, planStartedAt?: string): { label: string; icon: string; color: string }[] {
   const badges: { label: string; icon: string; color: string }[] = [];
+
+  // Premium tenure badge goes first (most prominent position)
+  const premiumBadge = getPremiumBadge(plan, planStartedAt);
+  if (premiumBadge) badges.push(premiumBadge);
+
   if (!perf || perf.snapshotCount < 5) return badges;
 
   if ((perf.alphaPct ?? 0) > 5) badges.push({ label: 'Alpha Hunter', icon: '\u{1F3AF}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
@@ -202,7 +218,7 @@ function computeBadges(perf: PerformanceData | null, createdAt: string): { label
   const joinDate = new Date(createdAt);
   if (joinDate < new Date('2026-03-01')) badges.push({ label: 'Early Adopter', icon: '\u{1F680}', color: 'text-amber-400 border-amber-400/20 bg-amber-400/[0.06]' });
 
-  return badges.slice(0, 4);
+  return badges.slice(0, 5);
 }
 
 // ── Mini sparkline SVG ───────────────────────────────────────────────
@@ -395,7 +411,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const tagline = useMemo(() => generateTagline(profile?.performance ?? null), [profile?.performance]);
   const riskPosture = useMemo(() => getRiskPosture(profile?.performance ?? null), [profile?.performance]);
   const signalColors = useMemo(() => getSignalColors(signalRating.grade), [signalRating.grade]);
-  const badges = useMemo(() => profile ? computeBadges(profile.performance, profile.createdAt) : [], [profile?.performance, profile?.createdAt]);
+  const badges = useMemo(() => profile ? computeBadges(profile.performance, profile.createdAt, profile.plan, profile.planStartedAt) : [], [profile?.performance, profile?.createdAt, profile?.plan, profile?.planStartedAt]);
 
   if (showPortfolio && profile) {
     return (

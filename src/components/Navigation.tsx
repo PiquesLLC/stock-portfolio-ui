@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 
 export type TabType = 'portfolio' | 'nala' | 'insights' | 'watchlists' | 'discover' | 'macro' | 'leaderboard' | 'feed' | 'watch' | 'pricing';
 
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  userPlan?: string;
 }
 
 const TAB_ICONS: Record<TabType, JSX.Element> = {
@@ -39,9 +40,14 @@ const OVERFLOW_TABS: { id: TabType; label: string }[] = [
   { id: 'pricing', label: 'Pricing' },
 ];
 
-export function Navigation({ activeTab, onTabChange }: NavigationProps) {
+export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const isPaid = userPlan === 'pro' || userPlan === 'premium';
+  const visibleOverflow = useMemo(() =>
+    isPaid ? OVERFLOW_TABS.filter(t => t.id !== 'pricing') : OVERFLOW_TABS,
+    [isPaid]
+  );
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,9 +65,9 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     };
   }, [moreOpen]);
 
-  const allTabs = [...PRIMARY_TABS, ...OVERFLOW_TABS];
-  const isOverflowActive = OVERFLOW_TABS.some(t => t.id === activeTab);
-  const activeOverflowLabel = OVERFLOW_TABS.find(t => t.id === activeTab)?.label;
+  const allTabs = [...PRIMARY_TABS, ...visibleOverflow];
+  const isOverflowActive = visibleOverflow.some(t => t.id === activeTab);
+  const activeOverflowLabel = visibleOverflow.find(t => t.id === activeTab)?.label;
 
   return (
     <nav className="border-b border-rh-light-border/60 dark:border-rh-border/60 bg-rh-light-bg/95 dark:bg-black/80 backdrop-blur-md">
@@ -135,7 +141,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
             {moreOpen && (
               <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] py-1 rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1b]">
-                {OVERFLOW_TABS.map((tab) => (
+                {visibleOverflow.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => { onTabChange(tab.id); setMoreOpen(false); }}
