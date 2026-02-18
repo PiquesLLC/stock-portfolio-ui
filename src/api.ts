@@ -282,7 +282,7 @@ export async function logout(): Promise<void> {
   });
 }
 
-export async function getCurrentUser(): Promise<{ id: string; username: string; displayName: string }> {
+export async function getCurrentUser(): Promise<{ id: string; username: string; displayName: string; email?: string; emailVerified?: boolean; plan?: string; planExpiresAt?: string | null }> {
   return fetchJson(`${API_BASE_URL}/auth/me`);
 }
 
@@ -297,21 +297,41 @@ export async function checkHasPassword(username: string): Promise<{ hasPassword:
   return fetchJson(`${API_BASE_URL}/auth/has-password/${encodeURIComponent(username)}`);
 }
 
+export interface SignupResponse extends LoginResponse {
+  emailVerificationRequired?: boolean;
+}
+
 export async function signup(
   username: string,
   displayName: string,
   password: string,
+  email: string,
   consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }
-): Promise<LoginResponse> {
-  return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/signup`, {
+): Promise<SignupResponse> {
+  return fetchJson<SignupResponse>(`${API_BASE_URL}/auth/signup`, {
     method: 'POST',
     body: JSON.stringify({
       username,
       displayName,
       password,
+      email,
       acceptedPrivacyPolicy: consent?.acceptedPrivacyPolicy,
       acceptedTerms: consent?.acceptedTerms,
     }),
+  });
+}
+
+export async function verifySignupEmail(email: string, code: string): Promise<{ message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/verify-email`, {
+    method: 'POST',
+    body: JSON.stringify({ email, code }),
+  });
+}
+
+export async function resendSignupVerification(email: string): Promise<{ message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/resend-verification`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
   });
 }
 

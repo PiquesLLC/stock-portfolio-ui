@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification } from '../api';
 
 export type PlanTier = 'free' | 'pro' | 'premium';
 
@@ -7,6 +7,8 @@ interface User {
   id: string;
   username: string;
   displayName: string;
+  email?: string;
+  emailVerified?: boolean;
   plan?: PlanTier;
   planExpiresAt?: string | null;
 }
@@ -17,6 +19,11 @@ export interface MfaChallenge {
   maskedEmail: string | null;
 }
 
+interface SignupResult {
+  emailVerificationRequired?: boolean;
+  email?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -25,7 +32,9 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   verifyMfa: (code: string, method: 'totp' | 'email' | 'backup') => Promise<void>;
   clearMfaChallenge: () => void;
-  signup: (username: string, displayName: string, password: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }) => Promise<void>;
+  signup: (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }) => Promise<SignupResult>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -92,8 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const current = await getCurrentUser();
         if (cancelled) return;
-        setUser(current);
-        writeCachedUser(current);
+        const u: User = { ...current, plan: current.plan as PlanTier | undefined };
+        setUser(u);
+        writeCachedUser(u);
         setIsLoading(false);
       } catch (err: any) {
         if (cancelled) return;
@@ -154,11 +164,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMfaChallenge(null);
   }, []);
 
-  const signup = useCallback(async (username: string, displayName: string, password: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }) => {
+  const signup = useCallback(async (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }): Promise<SignupResult> => {
     // Signup sets httpOnly cookie automatically (auto-login)
-    const response = await apiSignup(username, displayName, password, consent);
+    const response = await apiSignup(username, displayName, password, email, consent);
+    if (response.emailVerificationRequired) {
+      // Don't set user yet — show verification screen first
+      return { emailVerificationRequired: true, email };
+    }
     setUser(response.user);
     writeCachedUser(response.user);
+    return {};
+  }, []);
+
+  const verifyEmail = useCallback(async (email: string, code: string) => {
+    await apiVerifyEmail(email, code);
+    // After verification, fetch the updated user (now emailVerified=true)
+    const current = await getCurrentUser();
+    const u: User = { ...current, plan: current.plan as PlanTier | undefined };
+    setUser(u);
+    writeCachedUser(u);
+  }, []);
+
+  const resendVerification = useCallback(async (email: string) => {
+    await apiResendVerification(email);
   }, []);
 
   const logout = useCallback(async () => {
@@ -196,6 +224,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyMfa,
         clearMfaChallenge,
         signup,
+        verifyEmail,
+        resendVerification,
         logout,
       }}
     >

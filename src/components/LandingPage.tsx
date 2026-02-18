@@ -51,6 +51,7 @@ export function LandingPage() {
   const [password, setPasswordValue] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [landingEmail, setLandingEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -75,18 +76,24 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
-  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setAcceptedTerms(false); } }, [authOpen, authMode]);
+  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } }, [authOpen, authMode]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setError(''); setIsLoading(true);
     try {
       if (authMode === 'signup') {
         if (!username.trim() || !displayName.trim()) { setError('Username and display name are required'); return; }
+        if (!landingEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(landingEmail)) { setError('Please enter a valid email address'); return; }
         if (password !== confirmPassword) { setError('Passwords do not match'); return; }
         if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
         if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) { setError('Password must include uppercase, lowercase, and a number'); return; }
         if (!acceptedTerms) { setError('You must accept the Privacy Policy and Terms of Service'); return; }
-        await signup(username, displayName, password, { acceptedPrivacyPolicy: true, acceptedTerms: true });
+        const result = await signup(username, displayName, password, landingEmail, { acceptedPrivacyPolicy: true, acceptedTerms: true });
+        if (result.emailVerificationRequired) {
+          showToast('Account created! Check your email for a verification code.', 'success');
+          window.location.href = '/';
+          return;
+        }
       } else { await login(username, password); }
     } catch (err) { setError(err instanceof Error ? err.message : 'An error occurred'); } finally { setIsLoading(false); }
   };
@@ -428,6 +435,7 @@ export function LandingPage() {
                 <form onSubmit={handleSubmit} noValidate><div className="space-y-4">
                   <div><label htmlFor="auth-username" className="block text-[12px] font-medium text-white/30 mb-1.5">Username</label><input id="auth-username" type="text" value={username} onChange={e=>setUsername(e.target.value)} onBlur={checkAndSwitchMode} className={ic} placeholder="e.g. nala_investor" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck="false" required /></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-displayName" className="block text-[12px] font-medium text-white/30 mb-1.5">Display Name</label><input id="auth-displayName" type="text" value={displayName} onChange={e=>setDisplayName(e.target.value)} className={ic} placeholder="How others will see you" autoComplete="name" required /></div>}
+                  {authMode==='signup'&&<div><label htmlFor="auth-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-email" type="email" value={landingEmail} onChange={e=>setLandingEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoCapitalize="none" required /></div>}
                   <div><div className="flex items-center justify-between mb-1.5"><label htmlFor="auth-password" className="block text-[12px] font-medium text-white/30">Password</label>{authMode==='login'&&<button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>showToast('Password reset coming soon.','info')}>Forgot?</button>}</div><div className="relative"><input id="auth-password" type={showPassword?'text':'password'} value={password} onChange={e=>setPasswordValue(e.target.value)} className={`${ic} pr-11`} placeholder={authMode==='login'?'••••••••':'Min. 8 chars, upper/lower/number'} autoComplete={authMode==='login'?'current-password':'new-password'} required /><button type="button" onClick={()=>setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><div className="relative"><input id="auth-confirm" type={showConfirmPassword?'text':'password'} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className={`${ic} pr-11`} placeholder="Re-enter password" autoComplete="new-password" required /><button type="button" onClick={()=>setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showConfirmPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>}
                   {authMode==='signup'&&<label className="flex items-start gap-2.5 cursor-pointer"><input type="checkbox" checked={acceptedTerms} onChange={e=>setAcceptedTerms(e.target.checked)} className="w-4 h-4 mt-0.5 rounded border-white/10 bg-white/5 text-rh-green accent-rh-green" /><span className="text-[12px] text-white/25 leading-tight">I agree to the{' '}<button type="button" onClick={()=>{setPrivacyTab('privacy');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Privacy Policy</button>{' & '}<button type="button" onClick={()=>{setPrivacyTab('terms');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Terms</button></span></label>}

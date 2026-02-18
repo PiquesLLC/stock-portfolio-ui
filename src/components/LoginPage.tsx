@@ -35,22 +35,26 @@ const Spinner = () => (
 );
 
 export function LoginPage() {
-  const { login, signup, mfaChallenge } = useAuth();
+  const { login, signup, verifyEmail, resendVerification, mfaChallenge } = useAuth();
   const { showToast } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPasswordValue] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<'login' | 'set-password' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'set-password' | 'signup' | 'verify-email'>('login');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [staySignedIn, setStaySignedIn] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [privacyTab, setPrivacyTab] = useState<'privacy' | 'terms'>('privacy');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -59,9 +63,22 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (mode === 'signup') {
+      if (mode === 'verify-email') {
+        if (verificationCode.length !== 6) {
+          setError('Please enter the 6-digit verification code');
+          setIsLoading(false);
+          return;
+        }
+        await verifyEmail(verificationEmail, verificationCode);
+        // Success — AuthContext will set user and we'll navigate to app
+      } else if (mode === 'signup') {
         if (!username.trim() || !displayName.trim()) {
           setError('Username and display name are required');
+          setIsLoading(false);
+          return;
+        }
+        if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          setError('Please enter a valid email address');
           setIsLoading(false);
           return;
         }
@@ -85,7 +102,15 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        await signup(username, displayName, password, { acceptedPrivacyPolicy: true, acceptedTerms: true });
+        const result = await signup(username, displayName, password, email, { acceptedPrivacyPolicy: true, acceptedTerms: true });
+        if (result.emailVerificationRequired) {
+          setVerificationEmail(email);
+          setMode('verify-email');
+          setError('');
+          setSuccessMessage('');
+          setIsLoading(false);
+          return;
+        }
       } else if (mode === 'set-password') {
         if (password !== confirmPassword) {
           setError('Passwords do not match');
@@ -131,10 +156,28 @@ export function LoginPage() {
     }
   };
 
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      await resendVerification(verificationEmail);
+      showToast('Verification code resent', 'success');
+      setResendCooldown(60);
+      const interval = setInterval(() => {
+        setResendCooldown(prev => {
+          if (prev <= 1) { clearInterval(interval); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend code');
+    }
+  };
+
   const getTitle = () => {
     switch (mode) {
       case 'signup': return 'Create Account';
       case 'set-password': return 'Set Password';
+      case 'verify-email': return 'Verify Your Email';
       default: return 'Welcome Back';
     }
   };
@@ -143,6 +186,7 @@ export function LoginPage() {
     switch (mode) {
       case 'signup': return 'Create Account';
       case 'set-password': return 'Set Password';
+      case 'verify-email': return 'Verify';
       default: return 'Sign In';
     }
   };
@@ -202,6 +246,41 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} noValidate>
             <div className="space-y-5">
+              {/* Verify Email Mode */}
+              {mode === 'verify-email' ? (<>
+                <p className="text-sm text-rh-muted leading-relaxed">
+                  We sent a 6-digit code to <span className="text-white font-medium">{verificationEmail}</span>. Enter it below to verify your account.
+                </p>
+                <div>
+                  <label htmlFor="verificationCode" className="block text-sm font-medium text-rh-muted mb-2">
+                    Verification Code
+                  </label>
+                  <input
+                    id="verificationCode"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className={`${inputClasses} text-center text-2xl tracking-[0.3em] font-mono`}
+                    placeholder="000000"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={resendCooldown > 0}
+                    className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-muted/40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                  </button>
+                  <span className="text-xs text-rh-muted/40">Check your spam folder</span>
+                </div>
+              </>) : (<>
               {/* Username Field */}
               <div>
                 <label htmlFor="username" className="block text-sm font-medium text-rh-muted mb-2">
@@ -237,6 +316,26 @@ export function LoginPage() {
                     className={inputClasses}
                     placeholder="How others will see you"
                     autoComplete="name"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Email Field (Signup only) */}
+              {mode === 'signup' && (
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-rh-muted mb-2">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClasses}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    autoCapitalize="none"
                     required
                   />
                 </div>
@@ -359,6 +458,7 @@ export function LoginPage() {
                 </label>
               )}
 
+              </>)}
               {/* Submit Button */}
               <button
                 type="submit"
@@ -411,6 +511,7 @@ export function LoginPage() {
                 setSuccessMessage('');
                 setConfirmPassword('');
                 setDisplayName('');
+                setEmail('');
                 setShowPassword(false);
                 setShowConfirmPassword(false);
                 setAcceptedTerms(false);
