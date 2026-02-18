@@ -244,7 +244,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
       a.download = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to export portfolio');
     } finally {
       setExporting(false);

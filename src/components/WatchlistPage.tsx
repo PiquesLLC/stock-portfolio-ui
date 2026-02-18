@@ -146,7 +146,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
       setShowCreate(false);
       await loadWatchlists();
       emit('watchlist:changed');
-    } catch (err) {
+    } catch (_err) {
       // The error will show via toast
     }
   };

@@ -64,7 +64,6 @@ export function LandingPage() {
   const onPhoneScroll = useCallback(() => { const el = phoneRef.current; if (!el) return; setPhoneSlide(Math.round(el.scrollLeft / el.offsetWidth)); }, []);
   useEffect(() => {
     if (phoneSlide >= 4) { openAuth('signup'); setTimeout(() => { const el = phoneRef.current; if (el) el.scrollTo({ left: 0 }); setPhoneSlide(0); }, 300); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phoneSlide]);
 
   const [billing, setBilling] = useState<'yearly' | 'monthly'>('yearly');
