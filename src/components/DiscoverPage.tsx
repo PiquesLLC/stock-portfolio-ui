@@ -1062,8 +1062,8 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
 
   return (
     <div className="space-y-3">
-      {/* Hero header card + segmented control as one visual module */}
-      <div className="space-y-0">
+      {/* Hero header card + segmented control as one visual module — sticky below nav */}
+      <div className="space-y-0 sticky top-0 z-20 pb-3 bg-rh-light-bg dark:bg-[#050505]">
       {/* Hero header card */}
       <div
         className="relative overflow-hidden rounded-2xl"
