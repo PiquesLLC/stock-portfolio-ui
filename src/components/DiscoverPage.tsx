@@ -1077,9 +1077,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
               </div>
               <div>
                 <h2 className="text-lg font-extrabold tracking-tight" style={{ color: '#f5f7fa' }}>
-                  Top 100 <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
+                  Top 100 <span style={{ color: '#00c805', fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
                 </h2>
-                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Most actively traded stocks right now</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>Most actively traded stocks right now</p>
               </div>
             </div>
 
@@ -1105,13 +1105,13 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           </div>
 
           {/* Right: mini sparkline + updated time */}
-          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0">
+          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0 mr-2">
             {miniSparkPoints && (
               <svg width={120} height={28} className="opacity-60">
                 <path d={miniSparkPoints} fill="none" stroke="#00c805" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
-            <span className="text-[10px] tabular-nums" style={{ color: 'rgba(255,255,255,0.35)' }}>Updated {updatedTime}</span>
+            <span className="text-[11px] tabular-nums" style={{ color: 'rgba(255,255,255,0.45)' }}>Updated {updatedTime}</span>
           </div>
         </div>
       </div>
