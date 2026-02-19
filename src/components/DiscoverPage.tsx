@@ -969,11 +969,11 @@ const RANK_MEDALS: Record<number, { emoji: string; glow: string; bg: string; rin
 };
 
 type VolumeFilter = 'top100' | 'gainers' | 'losers' | 'unusual';
-const VOLUME_FILTERS: { id: VolumeFilter; label: string; icon: string }[] = [
-  { id: 'top100', label: 'Top 100', icon: '📊' },
-  { id: 'gainers', label: 'Gainers', icon: '🟢' },
-  { id: 'losers', label: 'Losers', icon: '🔴' },
-  { id: 'unusual', label: 'Unusual Vol', icon: '🔥' },
+const VOLUME_FILTERS: { id: VolumeFilter; label: string; dot?: string }[] = [
+  { id: 'top100', label: 'Top 100' },
+  { id: 'gainers', label: 'Gainers', dot: '#16c784' },
+  { id: 'losers', label: 'Losers', dot: '#ea3943' },
+  { id: 'unusual', label: 'Unusual Vol', dot: '#f5a524' },
 ];
 
 function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
@@ -1072,22 +1072,44 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         </div>
       </div>
 
-      {/* Filter toggle strip */}
-      <div className="flex gap-1 bg-gray-100/60 dark:bg-white/[0.03] rounded-xl p-1 w-fit">
-        {VOLUME_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              filter === f.id
-                ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-rh-text shadow-sm'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-            }`}
-          >
-            <span className="text-[11px]">{f.icon}</span>
-            {f.label}
-          </button>
-        ))}
+      {/* Segmented control */}
+      <div
+        className="inline-flex items-center p-1 w-fit flex-nowrap"
+        style={{
+          height: 32,
+          gap: 4,
+          borderRadius: 10,
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        {VOLUME_FILTERS.map((f) => {
+          const isActive = filter === f.id;
+          return (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`flex items-center gap-1.5 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/40 transition-all duration-[140ms] ease-out
+                ${isActive
+                  ? 'text-gray-900 dark:text-[#f5f7fa] bg-white dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.05))] border-gray-300/60 dark:border-[rgba(255,255,255,0.16)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]'
+                  : 'text-gray-500 dark:text-[rgba(255,255,255,0.72)] bg-transparent border-transparent hover:text-gray-700 dark:hover:text-[rgba(255,255,255,0.92)] hover:bg-gray-100/60 dark:hover:bg-[rgba(255,255,255,0.04)]'
+                }
+              `}
+              style={{
+                padding: '0 12px',
+                height: 24,
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
+                borderWidth: 1,
+                borderStyle: 'solid',
+              }}
+            >
+              {f.dot && <span className="shrink-0" style={{ width: 6, height: 6, borderRadius: '50%', background: f.dot }} />}
+              {f.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Column header */}
