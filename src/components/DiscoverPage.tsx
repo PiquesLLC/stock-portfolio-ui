@@ -1106,9 +1106,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
                 outline: 'none',
                 color: isActive ? '#f5f7fa' : 'rgba(255,255,255,0.72)',
-                background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-                border: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent',
-                boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
+                background: isActive ? 'rgba(255,255,255,0.07)' : 'transparent',
+                border: isActive ? '1px solid rgba(255,255,255,0.14)' : '1px solid transparent',
+                boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.07)' : 'none',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
