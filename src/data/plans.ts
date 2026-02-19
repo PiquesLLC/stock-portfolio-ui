@@ -27,8 +27,8 @@ export const PLANS: PlanDefinition[] = [
   {
     id: 'pro',
     name: 'Pro',
-    monthlyPrice: 4.99,
-    yearlyPrice: 40,
+    monthlyPrice: 9.99,
+    yearlyPrice: 80,
     description: 'For active investors who want more',
     highlight: true,
     features: [
@@ -44,8 +44,8 @@ export const PLANS: PlanDefinition[] = [
   {
     id: 'premium',
     name: 'Premium',
-    monthlyPrice: 8.99,
-    yearlyPrice: 80,
+    monthlyPrice: 17.99,
+    yearlyPrice: 160,
     description: 'AI-powered investing edge',
     features: [
       'Everything in Pro',

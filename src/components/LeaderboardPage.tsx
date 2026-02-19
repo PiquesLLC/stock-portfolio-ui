@@ -288,10 +288,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                   <tr
                     key={entry.userId}
                     onClick={() => setSelectedUserId(entry.userId)}
-                    className={`border-b border-gray-200/50 dark:border-white/[0.06] last:border-b-0 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] cursor-pointer transition-colors ${
-                      entry.flagged ? 'opacity-50' : ''
-                    }`}
-                    title={entry.flagged ? entry.flagReason ?? 'Flagged' : undefined}
+                    className="border-b border-gray-200/50 dark:border-white/[0.06] last:border-b-0 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
                   >
                     <td className="px-2 sm:px-4 py-3 text-sm text-rh-light-muted dark:text-rh-muted font-medium">
                       {index + 1}
@@ -304,11 +301,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                         {entry.isNew && (
                           <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shrink-0">
                             NEW
-                          </span>
-                        )}
-                        {entry.flagged && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-red-500/20 text-red-400 border border-red-500/30 shrink-0" title={entry.flagReason ?? ''}>
-                            FLAG
                           </span>
                         )}
                       </div>
@@ -335,7 +327,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                     </td>
                     <td className="px-2 sm:px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {entry.verified && !entry.flagged && (
+                        {entry.verified && (
                           <svg className="w-4 h-4 text-rh-green" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                           </svg>
