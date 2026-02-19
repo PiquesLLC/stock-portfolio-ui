@@ -1068,12 +1068,14 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
       <div
         className="relative overflow-hidden rounded-2xl"
         style={{
-          background: 'linear-gradient(135deg, rgba(26,26,30,1) 0%, rgba(30,30,36,1) 50%, rgba(26,26,30,1) 100%)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 0 24px rgba(0,200,5,0.03), inset 0 1px 0 rgba(255,255,255,0.04)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.04) 100%)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.03] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.04] via-transparent to-transparent" />
         <div className="relative px-5 py-3 flex items-center justify-between gap-4">
           {/* Left: icon + title + stats */}
           <div className="flex-1 min-w-0">
