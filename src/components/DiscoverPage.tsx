@@ -1122,7 +1122,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           </div>
 
           {/* Right: per-stock sparkline */}
-          <div className="flex flex-col items-end gap-1 shrink-0 mr-1 sm:mr-3">
+          <div className="flex flex-col items-end gap-1 shrink-0 mr-1 sm:mr-3 self-end">
             {heroStock && heroSparkline ? (
               <>
                 <div className="flex items-center gap-2">
