@@ -23,6 +23,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
   const [myIntel, setMyIntel] = useState<PortfolioIntelligenceResponse | null>(null);
   const [theirIntel, setTheirIntel] = useState<PortfolioIntelligenceResponse | null>(null);
 
+  // Load portfolios first for instant render, then lazy-load intelligence
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -31,21 +32,28 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
     Promise.all([
       getPortfolio(),
       getUserPortfolio(theirUserId),
-      getPortfolioIntelligence('1m').catch(() => null),
-      getUserIntelligence(theirUserId, '1m').catch(() => null),
     ])
-      .then(([mp, tp, mi, ti]) => {
+      .then(([mp, tp]) => {
         if (cancelled) return;
         setMyPortfolio(mp);
         setTheirPortfolio(tp);
-        setMyIntel(mi);
-        setTheirIntel(ti);
+        setLoading(false);
+
+        // Lazy-load intelligence (sector exposure, beta) in background
+        Promise.all([
+          getPortfolioIntelligence('1m').catch(() => null),
+          getUserIntelligence(theirUserId, '1m').catch(() => null),
+        ]).then(([mi, ti]) => {
+          if (cancelled) return;
+          setMyIntel(mi);
+          setTheirIntel(ti);
+        });
       })
       .catch((e) => {
-        if (!cancelled) setError(e.message || 'Failed to load comparison data');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setError(e.message || 'Failed to load comparison data');
+          setLoading(false);
+        }
       });
 
     return () => { cancelled = true; };
@@ -258,6 +266,12 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
       )}
 
       {/* Sector Comparison — bars touch, higher contrast labels */}
+      {!myIntel && !theirIntel && (
+        <div className="flex items-center justify-center py-6 gap-2">
+          <div className="w-3 h-3 border-2 border-rh-green/40 border-t-rh-green rounded-full animate-spin" />
+          <span className="text-xs text-gray-500 dark:text-gray-400">Loading sector data...</span>
+        </div>
+      )}
       {comparison.sectorComparison.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
