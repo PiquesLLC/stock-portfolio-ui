@@ -1078,8 +1078,8 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           {/* Left: icon + title + stats */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rh-green to-emerald-600 flex items-center justify-center shadow-lg shadow-rh-green/20 shrink-0">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.30)' }}>
+                <svg className="w-5 h-5" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
@@ -1087,24 +1087,24 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 <h2 className="text-lg font-extrabold tracking-tight" style={{ color: '#f5f7fa' }}>
                   Top 100 <span style={{ color: '#00c805', fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
                 </h2>
-                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.70)' }}>Most actively traded stocks right now</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.78)' }}>Most actively traded stocks right now</p>
               </div>
             </div>
 
             {/* Mini stats row */}
             <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.035)' }}>
                 <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Total Vol</span>
                 <span className="text-xs font-bold tabular-nums" style={{ color: '#f5f7fa' }}>{formatVolume(totalVol)}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.035)' }}>
                 <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Move</span>
                 <span className={`text-xs font-bold tabular-nums ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
                 </span>
               </div>
               {highVolCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(0,200,5,0.06)' }}>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(0,200,5,0.04)' }}>
                   <span className="text-[10px]">🔥</span>
                   <span className="text-xs font-bold text-rh-green">{highVolCount} unusual</span>
                 </div>
@@ -1117,9 +1117,19 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
             {heroStock && heroSparkline ? (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                    {getMarketStatus().isOpen ? 'live' : 'closed'}
-                  </span>
+                  {getMarketStatus().isOpen ? (
+                    <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      <span className="relative flex h-[6px] w-[6px]">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-60" />
+                        <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-rh-green" />
+                      </span>
+                      live
+                    </span>
+                  ) : (
+                    <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      closed
+                    </span>
+                  )}
                   <span className="text-[11px] font-bold" style={{ color: '#f5f7fa' }}>{heroStock.ticker}</span>
                   <span className={`text-[11px] font-bold tabular-nums ${heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
