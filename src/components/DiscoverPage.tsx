@@ -1084,8 +1084,8 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 </svg>
               </div>
               <div>
-                <h2 className="tracking-tight" style={{ color: '#f5f7fa', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>
-                  Top 100<span style={{ color: '#0ab44a', marginLeft: 4 }}>by Volume</span>
+                <h2 className="text-lg font-extrabold tracking-tight" style={{ color: '#f5f7fa' }}>
+                  Top 100 <span style={{ color: '#00c805', fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
                 </h2>
                 <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.78)' }}>Most actively traded stocks right now</p>
               </div>
