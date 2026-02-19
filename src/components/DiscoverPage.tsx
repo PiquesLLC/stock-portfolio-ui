@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { getMarketHeatmap, HeatmapPeriod, MarketIndex } from '../api';
+import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 import { StockLogo } from './StockLogo';
@@ -978,6 +978,35 @@ const VOLUME_FILTERS: { id: VolumeFilter; label: string; dot?: string }[] = [
 
 function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
   const [filter, setFilter] = useState<VolumeFilter>('top100');
+  const [heroTicker, setHeroTicker] = useState<string | null>(null);
+  const [heroSparkline, setHeroSparkline] = useState<string>('');
+  const [heroLoading, setHeroLoading] = useState(false);
+  const sparklineCacheRef = useRef<Map<string, string>>(new Map());
+
+  // Fetch sparkline for hero when ticker changes
+  useEffect(() => {
+    if (!heroTicker) { setHeroSparkline(''); return; }
+    const cached = sparklineCacheRef.current.get(heroTicker);
+    if (cached) { setHeroSparkline(cached); return; }
+    let cancelled = false;
+    setHeroLoading(true);
+    getIntradayCandles(heroTicker).then(candles => {
+      if (cancelled || candles.length < 2) return;
+      const prices = candles.map(c => c.close);
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const range = max - min || 1;
+      const w = 140, h = 32;
+      const path = prices.map((v, i) => {
+        const x = (i / (prices.length - 1)) * w;
+        const y = h - ((v - min) / range) * (h - 4) - 2;
+        return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+      }).join(' ');
+      sparklineCacheRef.current.set(heroTicker, path);
+      if (!cancelled) setHeroSparkline(path);
+    }).catch(() => {}).finally(() => { if (!cancelled) setHeroLoading(false); });
+    return () => { cancelled = true; };
+  }, [heroTicker]);
 
   const withVolume = useMemo(() => {
     return stocks.filter(s => (s.volume ?? 0) > 0);
@@ -1028,29 +1057,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
     );
   }
 
-  // Build a mini sparkline from the top 10 stocks' change %
-  const miniSparkPoints = useMemo(() => {
-    const pts = filtered.slice(0, 12).map((s) => s.changePercent);
-    if (pts.length < 2) return '';
-    const min = Math.min(...pts);
-    const max = Math.max(...pts);
-    const range = max - min || 1;
-    const w = 120, h = 28;
-    return pts.map((v, i) => {
-      const x = (i / (pts.length - 1)) * w;
-      const y = h - ((v - min) / range) * h;
-      return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-  }, [filtered]);
-
-  const updatedTime = useMemo(() => {
-    const now = new Date();
-    const h = now.getHours();
-    const m = now.getMinutes();
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm + ' ET';
-  }, [filtered]);
+  const heroStock = heroTicker ? filtered.find(s => s.ticker === heroTicker) ?? stocks.find(s => s.ticker === heroTicker) : null;
 
   return (
     <div className="space-y-3">
@@ -1104,14 +1111,25 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
             </div>
           </div>
 
-          {/* Right: mini sparkline + updated time */}
-          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0 mr-2">
-            {miniSparkPoints && (
-              <svg width={120} height={28} className="opacity-60">
-                <path d={miniSparkPoints} fill="none" stroke="#00c805" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+          {/* Right: per-stock sparkline */}
+          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0 mr-3">
+            {heroStock && heroSparkline ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold" style={{ color: '#f5f7fa' }}>{heroStock.ticker}</span>
+                  <span className={`text-[11px] font-bold tabular-nums ${heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
+                  </span>
+                </div>
+                <svg width={140} height={32} className="opacity-70">
+                  <path d={heroSparkline} fill="none" stroke={heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </>
+            ) : heroLoading ? (
+              <div className="w-[140px] h-[32px] rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+            ) : (
+              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.30)' }}>Click a stock to preview</span>
             )}
-            <span className="text-[11px] tabular-nums" style={{ color: 'rgba(255,255,255,0.45)' }}>Updated {updatedTime}</span>
           </div>
         </div>
       </div>
@@ -1207,7 +1225,10 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           return (
             <div
               key={stock.ticker}
-              onClick={() => onTickerClick(stock.ticker)}
+              onClick={() => {
+                if (heroTicker === stock.ticker) { onTickerClick(stock.ticker); }
+                else { setHeroTicker(stock.ticker); }
+              }}
               className={`relative group rounded-xl px-3 py-[7px] cursor-pointer transition-all duration-200
                 hover:scale-[1.005] active:scale-[0.998]
                 border
