@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
+import { getMarketStatus } from '../utils/portfolio-chart';
 import { StockLogo } from './StockLogo';
 
 interface DiscoverPageProps {
@@ -1116,6 +1117,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
             {heroStock && heroSparkline ? (
               <>
                 <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                    {getMarketStatus().isOpen ? 'live' : 'closed'}
+                  </span>
                   <span className="text-[11px] font-bold" style={{ color: '#f5f7fa' }}>{heroStock.ticker}</span>
                   <span className={`text-[11px] font-bold tabular-nums ${heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
