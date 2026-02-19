@@ -1168,9 +1168,11 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           padding: 4,
           gap: 4,
           borderRadius: 10,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          backdropFilter: 'blur(8px)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          backdropFilter: 'blur(16px) saturate(1.3)',
+          WebkitBackdropFilter: 'blur(16px) saturate(1.3)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}
       >
         {VOLUME_FILTERS.map((f) => {
