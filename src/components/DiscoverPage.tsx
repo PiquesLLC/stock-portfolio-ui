@@ -1196,11 +1196,11 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
                 outline: 'none',
                 color: isActive ? '#f5f7fa' : 'rgba(255,255,255,0.72)',
-                background: isActive ? 'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 100%)' : 'transparent',
-                border: isActive ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent',
-                boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.08)' : 'none',
-                backdropFilter: isActive ? 'blur(12px)' : 'none',
-                WebkitBackdropFilter: isActive ? 'blur(12px)' : 'none',
+                background: isActive ? 'linear-gradient(135deg, rgba(34,197,94,0.10) 0%, rgba(255,255,255,0.03) 50%, rgba(34,197,94,0.08) 100%)' : 'transparent',
+                border: isActive ? '1px solid rgba(34,197,94,0.22)' : '1px solid transparent',
+                boxShadow: isActive ? '0 2px 12px rgba(0,200,5,0.08), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.06)' : 'none',
+                backdropFilter: isActive ? 'blur(16px) saturate(1.3)' : 'none',
+                WebkitBackdropFilter: isActive ? 'blur(16px) saturate(1.3)' : 'none',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
