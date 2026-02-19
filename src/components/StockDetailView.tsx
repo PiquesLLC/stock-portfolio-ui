@@ -559,9 +559,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const exchangeLabel = profile?.exchange || inferExchangeLabel(ticker);
 
   return (
-    <div className="py-6">
+    <div className="pt-2 pb-6">
       {/* Back button */}
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors">
         <span>&larr;</span> Back
       </button>
 

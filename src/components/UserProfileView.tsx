@@ -769,7 +769,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 className={`p-2 rounded-lg transition-all ${
                   isMuted(userId)
                     ? 'bg-rh-red/10 text-rh-red hover:bg-rh-red/20'
-                    : 'bg-white/[0.04] text-white/30 hover:text-white/50 hover:bg-white/[0.06]'
+                    : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-muted dark:hover:text-white/50 hover:bg-gray-200/60 dark:hover:bg-white/[0.06]'
                 }`}
               >
                 {isMuted(userId) ? (
@@ -998,7 +998,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           </h3>
           <div className="relative">
             {/* Timeline spine */}
-            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.12] via-white/[0.06] to-transparent" />
+            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-gray-300 dark:from-white/[0.12] via-gray-200 dark:via-white/[0.06] to-transparent" />
             <div className="space-y-4 pl-6">
               {groupByDate(profile.recentActivity.slice(0, 8)).map((group) => (
                 <div key={group.date}>
