@@ -1028,50 +1028,96 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
     );
   }
 
+  // Build a mini sparkline from the top 10 stocks' change %
+  const miniSparkPoints = useMemo(() => {
+    const pts = filtered.slice(0, 12).map((s) => s.changePercent);
+    if (pts.length < 2) return '';
+    const min = Math.min(...pts);
+    const max = Math.max(...pts);
+    const range = max - min || 1;
+    const w = 120, h = 28;
+    return pts.map((v, i) => {
+      const x = (i / (pts.length - 1)) * w;
+      const y = h - ((v - min) / range) * h;
+      return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+  }, [filtered]);
+
+  const updatedTime = useMemo(() => {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm + ' ET';
+  }, [filtered]);
+
   return (
     <div className="space-y-3">
+      {/* Hero header card + segmented control as one visual module */}
+      <div className="space-y-0">
       {/* Hero header card */}
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200/50 dark:border-white/[0.06] bg-gradient-to-br from-gray-50 via-white to-gray-50/50 dark:from-[#1a1a1e] dark:via-[#1e1e24] dark:to-[#1a1a1e]">
-        <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.03] via-transparent to-emerald-500/[0.02]" />
-        <div className="relative px-5 py-4">
-          <div className="flex items-center justify-between">
+      <div
+        className="relative overflow-hidden rounded-2xl"
+        style={{
+          background: 'linear-gradient(135deg, rgba(26,26,30,1) 0%, rgba(30,30,36,1) 50%, rgba(26,26,30,1) 100%)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 0 24px rgba(0,200,5,0.03), inset 0 1px 0 rgba(255,255,255,0.04)',
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.03] via-transparent to-transparent" />
+        <div className="relative px-5 py-3 flex items-center justify-between gap-4">
+          {/* Left: icon + title + stats */}
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rh-green to-emerald-600 flex items-center justify-center shadow-lg shadow-rh-green/20">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rh-green to-emerald-600 flex items-center justify-center shadow-lg shadow-rh-green/20 shrink-0">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-extrabold text-rh-light-text dark:text-rh-text tracking-tight">
-                  Top 100 <span className="bg-gradient-to-r from-rh-green to-emerald-400 bg-clip-text text-transparent">by Volume</span>
+                <h2 className="text-lg font-extrabold tracking-tight" style={{ color: '#f5f7fa' }}>
+                  Top 100 <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
                 </h2>
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">Most actively traded stocks right now</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Most actively traded stocks right now</p>
               </div>
+            </div>
+
+            {/* Mini stats row */}
+            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Total Vol</span>
+                <span className="text-xs font-bold tabular-nums" style={{ color: '#f5f7fa' }}>{formatVolume(totalVol)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Move</span>
+                <span className={`text-xs font-bold tabular-nums ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
+                </span>
+              </div>
+              {highVolCount > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(0,200,5,0.06)' }}>
+                  <span className="text-[10px]">🔥</span>
+                  <span className="text-xs font-bold text-rh-green">{highVolCount} unusual</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Mini stats row */}
-          <div className="flex items-center gap-3 mt-3 flex-wrap">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04]">
-              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider font-semibold">Total Vol</span>
-              <span className="text-xs font-bold text-rh-light-text dark:text-rh-text tabular-nums">{formatVolume(totalVol)}</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04]">
-              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider font-semibold">Avg Move</span>
-              <span className={`text-xs font-bold tabular-nums ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
-              </span>
-            </div>
-            {highVolCount > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rh-green/[0.06] dark:bg-rh-green/[0.04]">
-                <span className="text-[10px]">🔥</span>
-                <span className="text-xs font-bold text-rh-green">{highVolCount} unusual</span>
-              </div>
+          {/* Right: mini sparkline + updated time */}
+          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0">
+            {miniSparkPoints && (
+              <svg width={120} height={28} className="opacity-60">
+                <path d={miniSparkPoints} fill="none" stroke="#00c805" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             )}
+            <span className="text-[10px] tabular-nums" style={{ color: 'rgba(255,255,255,0.35)' }}>Updated {updatedTime}</span>
           </div>
         </div>
       </div>
 
+      {/* Segmented control — docked tight to hero (-4px overlap) */}
+      <div className="pt-1.5">
       {/* Segmented control — forced dark tokens */}
       <div
         className="inline-flex items-center w-fit flex-nowrap"
@@ -1130,6 +1176,8 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
             </button>
           );
         })}
+      </div>
+      </div>
       </div>
 
       {/* Column header */}
