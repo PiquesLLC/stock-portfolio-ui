@@ -1224,10 +1224,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         })}
       </div>
       </div>
-      </div>
 
       {/* Column header */}
-      <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06]">
+      <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06] bg-rh-light-bg dark:bg-[#050505]">
         <div className="w-8 shrink-0" />
         {/* Logo placeholder */}
         <div className="w-8 shrink-0" />
@@ -1236,6 +1235,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         <div className="text-right shrink-0 w-[68px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Chg%</div>
         <div className="text-right shrink-0 w-[88px] hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Volume</div>
         <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Mkt Cap</div>
+      </div>
       </div>
 
       {/* Cards list */}
