@@ -92,6 +92,7 @@ const MORE_TABS: { id: TabType; label: string }[] = [
   { id: 'macro', label: 'Macro' },
   { id: 'feed', label: 'Feed' },
   { id: 'watch', label: 'Watch' },
+  { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];
 

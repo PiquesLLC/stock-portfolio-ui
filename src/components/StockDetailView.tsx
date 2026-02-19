@@ -33,8 +33,8 @@ interface Props {
 function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[11px] font-medium text-rh-light-muted/60 dark:text-white/25">{label}</span>
-      <span className="text-sm font-semibold text-rh-light-text dark:text-white/85">{value}</span>
+      <span className="text-[11px] font-medium text-rh-light-muted/60 dark:text-rh-muted/60">{label}</span>
+      <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{value}</span>
     </div>
   );
 }
@@ -47,10 +47,10 @@ function PositionCard({ label, value, valueColor, sub }: {
 }) {
   return (
     <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl px-4 py-3">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">{label}</div>
-      <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-white/90'}`}>{value}</div>
+      <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 mb-1">{label}</div>
+      <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>{value}</div>
       {sub && (
-        <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted/60 dark:text-white/30'}`}>{sub}</div>
+        <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted/60 dark:text-rh-muted/60'}`}>{sub}</div>
       )}
     </div>
   );

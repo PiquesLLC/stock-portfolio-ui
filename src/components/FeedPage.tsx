@@ -285,11 +285,11 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
         <>
           {/* Summary banner */}
           {!loading && filteredEvents.length > 0 && summary.total > 0 && (
-            <div className="mx-4 mt-3 px-3.5 py-2.5 rounded-xl bg-rh-light-bg/60 dark:bg-white/[0.04] border border-rh-light-border/20 dark:border-white/[0.06]">
+            <div className="mx-4 mt-3 px-3.5 py-2.5 rounded-xl bg-rh-light-bg/60 dark:bg-white/[0.04] border border-rh-light-border/40 dark:border-white/[0.06]">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />
-                  <span className="text-[13px] font-semibold text-rh-light-text dark:text-white">Today</span>
+                  <span className="text-[13px] font-semibold text-rh-light-text dark:text-rh-text">Today</span>
                 </div>
                 <div className="flex items-center gap-2 text-[12px]">
                   {summary.buys > 0 && (

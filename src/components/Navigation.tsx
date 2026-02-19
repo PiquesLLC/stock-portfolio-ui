@@ -38,6 +38,7 @@ const OVERFLOW_TABS: { id: TabType; label: string }[] = [
   { id: 'feed', label: 'Feed' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'watch', label: 'Watch' },
+  { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];
 
