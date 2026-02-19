@@ -1106,9 +1106,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
                 outline: 'none',
                 color: isActive ? '#f5f7fa' : 'rgba(255,255,255,0.72)',
-                background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
-                border: isActive ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent',
-                boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.10)' : 'none',
+                background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
+                border: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent',
+                boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
@@ -1133,7 +1133,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
       </div>
 
       {/* Column header */}
-      <div className="flex items-center gap-3 px-3 pb-1 border-b border-gray-200/60 dark:border-white/[0.06]">
+      <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06]">
         <div className="w-8 shrink-0" />
         {/* Logo placeholder */}
         <div className="w-8 shrink-0" />
