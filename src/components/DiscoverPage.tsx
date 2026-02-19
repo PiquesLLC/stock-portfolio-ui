@@ -1080,7 +1080,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           {/* Left: icon + title + stats */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.30)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.20)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(34,197,94,0.12)' }}>
                 <svg className="w-5 h-5" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
