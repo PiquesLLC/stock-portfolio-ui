@@ -46,6 +46,7 @@ const DiscoverPage = lazy(() => import('./components/DiscoverPage').then(m => ({
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 const PricingPage = lazy(() => import('./components/PricingPage').then(m => ({ default: m.PricingPage })));
+const PortfolioCompare = lazy(() => import('./components/PortfolioCompare').then(m => ({ default: m.PortfolioCompare })));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -167,6 +168,7 @@ export default function App() {
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
   const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.tab === 'insights' ? initialNav.subtab : null);
   const [discoverSubTab, setDiscoverSubTab] = useState<string | null>(initialNav.tab === 'discover' ? initialNav.subtab : null);
+  const [comparingUser, setComparingUser] = useState<{ userId: string; displayName: string } | null>(null);
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
@@ -209,6 +211,7 @@ export default function App() {
     setViewingProfileId(null);
     setViewingStock(null);
     setLeaderboardUserId(null);
+    setComparingUser(null);
   }, []);
   const { toastMessage, isCheatSheetOpen, closeCheatSheet } = useKeyboardShortcuts({
     activeTab,
@@ -435,6 +438,9 @@ export default function App() {
   }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible, destroyHls, resetVideoElement]);
 
   const handleViewProfile = (userId: string) => setViewingProfileId(userId);
+  const handleCompare = useCallback((userId: string, displayName: string) => {
+    setComparingUser({ userId, displayName });
+  }, []);
 
   // Auto-set viewingProfileId when navigating to profile tab
   useEffect(() => {
@@ -1140,7 +1146,18 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && (
+          {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
+            <ErrorBoundary>
+              <PortfolioCompare
+                theirUserId={comparingUser.userId}
+                theirDisplayName={comparingUser.displayName}
+                onBack={() => setComparingUser(null)}
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+              />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
             <ErrorBoundary>
               <LeaderboardPage
                 session={portfolio?.session}
@@ -1148,6 +1165,7 @@ export default function App() {
                 onStockClick={(ticker) => setViewingStock({ ticker, holding: null })}
                 selectedUserId={leaderboardUserId}
                 onSelectedUserChange={setLeaderboardUserId}
+                onCompare={handleCompare}
               />
             </ErrorBoundary>
           )}

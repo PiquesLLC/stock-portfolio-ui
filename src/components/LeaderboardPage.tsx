@@ -58,9 +58,10 @@ interface LeaderboardPageProps {
   onStockClick?: (ticker: string) => void;
   selectedUserId?: string | null;
   onSelectedUserChange?: (userId: string | null) => void;
+  onCompare?: (userId: string, displayName: string) => void;
 }
 
-export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange }: LeaderboardPageProps) {
+export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange, onCompare }: LeaderboardPageProps) {
   const [region, setRegion] = useState<LeaderboardRegion>('world');
   const [window, setWindow] = useState<LeaderboardWindow>('1M');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -181,6 +182,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
         currentUserId={currentUserId}
         onBack={() => setSelectedUserId(null)}
         onStockClick={onStockClick}
+        onCompare={onCompare}
       />
     );
   }
@@ -332,14 +334,30 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                       {formatCurrency(entry.currentAssets)}
                     </td>
                     <td className="px-2 sm:px-4 py-3 text-right">
-                      {entry.verified && !entry.flagged && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-2.108-2.108 3 3 0 01-5.304 0 3 3 0 00-2.108 2.108 3 3 0 010 5.304 3 3 0 002.108 2.108 3 3 0 015.304 0 3 3 0 002.108-2.108zM9.293 10.707a1 1 0 011.414-1.414l1 1a1 1 0 01-1.414 1.414l-1-1z" clipRule="evenodd" />
-                          </svg>
-                          <span className="hidden sm:inline">Verified</span>
-                        </span>
-                      )}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {entry.verified && !entry.flagged && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-2.108-2.108 3 3 0 01-5.304 0 3 3 0 00-2.108 2.108 3 3 0 010 5.304 3 3 0 002.108 2.108 3 3 0 015.304 0 3 3 0 002.108-2.108zM9.293 10.707a1 1 0 011.414-1.414l1 1a1 1 0 01-1.414 1.414l-1-1z" clipRule="evenodd" />
+                            </svg>
+                            <span className="hidden sm:inline">Verified</span>
+                          </span>
+                        )}
+                        {onCompare && currentUserId && currentUserId !== entry.userId && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCompare(entry.userId, entry.displayName);
+                            }}
+                            className="p-1 rounded hover:bg-gray-100/60 dark:hover:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-green transition-colors"
+                            title="Compare portfolios"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -5,6 +5,8 @@ interface AllocationDonutProps {
   holdings: Holding[];
   totalValue: number;
   onTickerClick?: (ticker: string) => void;
+  title?: string;
+  maxSlices?: number; // Collapse long tail into "Other" after this many slices
 }
 
 // 24 distinct colors that work well on dark backgrounds, avoiding pure red/green for accessibility
@@ -63,7 +65,7 @@ function formatCurrencyPrecise(value: number): string {
   }).format(value);
 }
 
-export function AllocationDonut({ holdings, totalValue, onTickerClick }: AllocationDonutProps) {
+export function AllocationDonut({ holdings, totalValue, onTickerClick, title = 'Portfolio Allocation', maxSlices }: AllocationDonutProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
@@ -89,17 +91,27 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick }: Allocat
 
   const total = totalValue > 0 ? totalValue : sortedHoldings.reduce((s, h) => s + h.currentValue, 0);
 
-  const majorHoldings: { ticker: string; value: number; percent: number }[] = [];
-  const minorHoldings: { ticker: string; value: number; percent: number }[] = [];
+  const allWithPct = sortedHoldings.map(h => ({
+    ticker: h.ticker,
+    value: h.currentValue,
+    percent: total > 0 ? (h.currentValue / total) * 100 : 0,
+  }));
 
-  sortedHoldings.forEach(h => {
-    const pct = total > 0 ? (h.currentValue / total) * 100 : 0;
-    if (pct >= 2) {
-      majorHoldings.push({ ticker: h.ticker, value: h.currentValue, percent: pct });
+  // Determine cutoff: use maxSlices if provided, otherwise group <2%
+  const sliceLimit = maxSlices ?? allWithPct.length;
+  const majorHoldings: typeof allWithPct = [];
+  const minorHoldings: typeof allWithPct = [];
+
+  allWithPct.forEach((h, i) => {
+    if (i < sliceLimit && h.percent >= 2) {
+      majorHoldings.push(h);
     } else {
-      minorHoldings.push({ ticker: h.ticker, value: h.currentValue, percent: pct });
+      minorHoldings.push(h);
     }
   });
+
+  // If maxSlices is set and we haven't hit the limit yet, also include items >= 2% up to the limit
+  // (already handled above: items before sliceLimit AND >= 2% go to major)
 
   // Build final segment list
   const segmentData: { ticker: string; value: number; percent: number; tickers?: string[] }[] = [
@@ -174,11 +186,11 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick }: Allocat
     >
       {/* Header + Concentration Summary */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted/70">
-          Portfolio Allocation
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          {title}
         </h3>
         {segments.length >= 3 && (
-          <span className="text-[10px] text-rh-light-muted dark:text-rh-muted/60">
+          <span className="text-[10px] text-gray-400 dark:text-gray-500">
             Top 3 = {segments.slice(0, 3).reduce((s, seg) => s + seg.percent, 0).toFixed(1)}% of portfolio
           </span>
         )}
@@ -250,13 +262,13 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick }: Allocat
               </>
             ) : (
               <>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted/60">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
                   Total
                 </span>
                 <span className="text-lg font-bold text-rh-light-text dark:text-rh-text leading-tight mt-0.5">
                   {formatCurrency(total)}
                 </span>
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted/50 mt-0.5">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                   {sortedHoldings.length} holding{sortedHoldings.length !== 1 ? 's' : ''}
                 </span>
               </>
@@ -288,10 +300,10 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick }: Allocat
                 <span className="text-xs font-medium text-rh-light-text dark:text-rh-text truncate">
                   {seg.ticker}
                 </span>
-                <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 ml-auto flex-shrink-0 tabular-nums">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto flex-shrink-0 tabular-nums">
                   {formatCurrency(seg.value)}
                 </span>
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted flex-shrink-0 tabular-nums w-10 text-right">
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums w-10 text-right">
                   {seg.percent.toFixed(1)}%
                 </span>
               </button>

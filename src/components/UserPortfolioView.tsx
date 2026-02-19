@@ -32,6 +32,7 @@ interface UserPortfolioViewProps {
   currentUserId?: string;
   onBack: () => void;
   onStockClick?: (ticker: string) => void;
+  onCompare?: (userId: string, displayName: string) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -43,7 +44,7 @@ function formatPercent(value: number): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-export function UserPortfolioView({ userId, displayName, returnPct, window, trackingStartAt, session, currentUserId, onBack, onStockClick }: UserPortfolioViewProps) {
+export function UserPortfolioView({ userId, displayName, returnPct, window, trackingStartAt, session, currentUserId, onBack, onStockClick, onCompare }: UserPortfolioViewProps) {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +213,14 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
             currentUserId={currentUserId}
             initialFollowing={isFollowing}
           />
+        )}
+        {onCompare && currentUserId && currentUserId !== userId && (
+          <button
+            onClick={() => onCompare(userId, displayName)}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg border border-rh-green/30 text-rh-green hover:bg-rh-green/10 transition-colors"
+          >
+            Compare
+          </button>
         )}
       </div>
 
