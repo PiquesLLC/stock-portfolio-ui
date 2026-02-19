@@ -165,7 +165,8 @@ export default function App() {
   const moreDropdownRef = useRef<HTMLDivElement>(null);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
-  const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.subtab);
+  const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.tab === 'insights' ? initialNav.subtab : null);
+  const [discoverSubTab, setDiscoverSubTab] = useState<string | null>(initialNav.tab === 'discover' ? initialNav.subtab : null);
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
@@ -445,12 +446,12 @@ export default function App() {
   // Sync navigation state → URL hash
   useEffect(() => {
     const stockTicker = viewingStock?.ticker || null;
-    const subtab = activeTab === 'insights' ? insightsSubTab : null;
+    const subtab = activeTab === 'insights' ? insightsSubTab : activeTab === 'discover' ? discoverSubTab : null;
     const hashTab = activeTab;
     // Don't expose profile ID in URL for own profile tab — it's always the current user
     const hashProfile = activeTab === 'profile' ? null : viewingProfileId;
     setHash(hashTab, stockTicker, hashProfile, leaderboardUserId, subtab);
-  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab]);
+  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab]);
 
   // Handle browser back/forward — parse directly from hash, never sessionStorage
   useEffect(() => {
@@ -466,7 +467,8 @@ export default function App() {
       setActiveTab(tab);
       setViewingProfileId(profile);
       setLeaderboardUserId(lbuser);
-      setInsightsSubTab(subtab);
+      if (tab === 'insights') setInsightsSubTab(subtab);
+      if (tab === 'discover') setDiscoverSubTab(subtab);
       if (stock) {
         setViewingStock(prev => prev?.ticker === stock ? prev : { ticker: stock, holding: null });
       } else {
@@ -1126,6 +1128,8 @@ export default function App() {
             <ErrorBoundary>
               <DiscoverPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                subTab={discoverSubTab}
+                onSubTabChange={setDiscoverSubTab}
               />
             </ErrorBoundary>
           )}

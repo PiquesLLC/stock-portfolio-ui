@@ -7,6 +7,8 @@ import { StockLogo } from './StockLogo';
 
 interface DiscoverPageProps {
   onTickerClick: (ticker: string) => void;
+  subTab?: string | null;
+  onSubTabChange?: (subtab: string) => void;
 }
 
 // --- Squarified treemap layout algorithm ---
@@ -1508,8 +1510,14 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
 
 /* ─── Discover Page (wrapper with sub-tabs) ─── */
 
-export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
-  const [subTab, setSubTab] = useState<DiscoverSubTab>('heatmap');
+export function DiscoverPage({ onTickerClick, subTab: externalSubTab, onSubTabChange }: DiscoverPageProps) {
+  const [subTab, setSubTabInternal] = useState<DiscoverSubTab>(
+    (externalSubTab === 'top100' ? 'top100' : 'heatmap')
+  );
+  const setSubTab = (tab: DiscoverSubTab) => {
+    setSubTabInternal(tab);
+    onSubTabChange?.(tab);
+  };
 
   // For Top 100, we need all stocks from the heatmap — load from cache or fetch
   const [allStocks, setAllStocks] = useState<HeatmapStock[]>([]);
