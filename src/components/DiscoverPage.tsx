@@ -1072,13 +1072,17 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         </div>
       </div>
 
-      {/* Segmented control */}
+      {/* Segmented control — forced dark tokens */}
       <div
-        className="inline-flex items-center p-1 w-fit flex-nowrap"
+        className="inline-flex items-center w-fit flex-nowrap"
         style={{
+          colorScheme: 'dark',
           height: 32,
+          padding: 4,
           gap: 4,
           borderRadius: 10,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
           backdropFilter: 'blur(8px)',
         }}
       >
@@ -1087,25 +1091,41 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           return (
             <button
               key={f.id}
+              data-active={isActive || undefined}
               onClick={() => setFilter(f.id)}
-              className={`flex items-center gap-1.5 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/40 transition-all duration-[140ms] ease-out
-                ${isActive
-                  ? 'text-gray-900 dark:text-[#f5f7fa] bg-white dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.05))] border-gray-300/60 dark:border-[rgba(255,255,255,0.16)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]'
-                  : 'text-gray-500 dark:text-[rgba(255,255,255,0.72)] bg-transparent border-transparent hover:text-gray-700 dark:hover:text-[rgba(255,255,255,0.92)] hover:bg-gray-100/60 dark:hover:bg-[rgba(255,255,255,0.04)]'
-                }
-              `}
+              className="flex items-center whitespace-nowrap"
               style={{
+                gap: 6,
                 padding: '0 12px',
                 height: 24,
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 fontVariantNumeric: 'tabular-nums',
-                borderWidth: 1,
-                borderStyle: 'solid',
+                cursor: 'pointer',
+                transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
+                outline: 'none',
+                color: isActive ? '#f5f7fa' : 'rgba(255,255,255,0.72)',
+                background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
+                border: isActive ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent',
+                boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.10)' : 'none',
               }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.92)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.72)';
+                }
+              }}
+              onFocus={(e) => { e.currentTarget.style.outline = '2px solid rgba(34,197,94,0.45)'; e.currentTarget.style.outlineOffset = '1px'; }}
+              onBlur={(e) => { e.currentTarget.style.outline = 'none'; }}
             >
-              {f.dot && <span className="shrink-0" style={{ width: 6, height: 6, borderRadius: '50%', background: f.dot }} />}
+              {f.dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: f.dot, flexShrink: 0 }} />}
               {f.label}
             </button>
           );
@@ -1117,11 +1137,11 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         <div className="w-8 shrink-0" />
         {/* Logo placeholder */}
         <div className="w-8 shrink-0" />
-        <div className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Symbol</div>
-        <div className="text-right shrink-0 w-[72px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Price</div>
-        <div className="text-right shrink-0 w-[68px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Chg%</div>
-        <div className="text-right shrink-0 w-[88px] hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Volume</div>
-        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Mkt Cap</div>
+        <div className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Symbol</div>
+        <div className="text-right shrink-0 w-[72px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Price</div>
+        <div className="text-right shrink-0 w-[68px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Chg%</div>
+        <div className="text-right shrink-0 w-[88px] hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Volume</div>
+        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Mkt Cap</div>
       </div>
 
       {/* Cards list */}
