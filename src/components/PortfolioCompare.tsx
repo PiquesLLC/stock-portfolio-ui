@@ -22,12 +22,14 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
   const [theirPortfolio, setTheirPortfolio] = useState<Portfolio | null>(null);
   const [myIntel, setMyIntel] = useState<PortfolioIntelligenceResponse | null>(null);
   const [theirIntel, setTheirIntel] = useState<PortfolioIntelligenceResponse | null>(null);
+  const [intelLoaded, setIntelLoaded] = useState(false);
 
   // Load portfolios first for instant render, then lazy-load intelligence
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError('');
+    setIntelLoaded(false);
 
     Promise.all([
       getPortfolio(),
@@ -47,6 +49,8 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
           if (cancelled) return;
           setMyIntel(mi);
           setTheirIntel(ti);
+        }).finally(() => {
+          if (!cancelled) setIntelLoaded(true);
         });
       })
       .catch((e) => {
@@ -266,7 +270,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
       )}
 
       {/* Sector Comparison — bars touch, higher contrast labels */}
-      {!myIntel && !theirIntel && (
+      {!intelLoaded && (
         <div className="flex items-center justify-center py-6 gap-2">
           <div className="w-3 h-3 border-2 border-rh-green/40 border-t-rh-green rounded-full animate-spin" />
           <span className="text-xs text-gray-500 dark:text-gray-400">Loading sector data...</span>
