@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getMarketHeatmap, HeatmapPeriod, MarketIndex } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
+import { StockLogo } from './StockLogo';
 
 interface DiscoverPageProps {
   onTickerClick: (ticker: string) => void;
@@ -955,141 +956,141 @@ function formatVolume(vol: number): string {
   return vol.toLocaleString();
 }
 
-type SortField = 'rank' | 'ticker' | 'price' | 'change' | 'volume' | 'avgVolume' | 'marketCap';
-type SortDir = 'asc' | 'desc';
+function formatMktCap(b: number): string {
+  if (b >= 1000) return `$${(b / 1000).toFixed(1)}T`;
+  if (b >= 1) return `$${b.toFixed(0)}B`;
+  return `$${(b * 1000).toFixed(0)}M`;
+}
+
+const RANK_MEDALS: Record<number, { emoji: string; glow: string; bg: string }> = {
+  1: { emoji: '🥇', glow: 'shadow-[0_0_12px_rgba(255,215,0,0.3)]', bg: 'bg-gradient-to-r from-yellow-500/10 dark:from-yellow-500/[0.06] to-transparent' },
+  2: { emoji: '🥈', glow: 'shadow-[0_0_10px_rgba(192,192,192,0.2)]', bg: 'bg-gradient-to-r from-gray-300/10 dark:from-gray-400/[0.04] to-transparent' },
+  3: { emoji: '🥉', glow: 'shadow-[0_0_10px_rgba(205,127,50,0.2)]', bg: 'bg-gradient-to-r from-orange-500/10 dark:from-orange-500/[0.04] to-transparent' },
+};
 
 function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
-  const [sortField, setSortField] = useState<SortField>('volume');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
-    } else {
-      setSortField(field);
-      setSortDir('desc');
-    }
-  };
-
-  const sorted = useMemo(() => {
-    const withVolume = stocks
+  const top100 = useMemo(() => {
+    return stocks
       .filter(s => (s.volume ?? 0) > 0)
       .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0))
       .slice(0, 100);
+  }, [stocks]);
 
-    if (sortField === 'volume') {
-      // Already sorted by volume; just apply direction
-      return sortDir === 'desc' ? withVolume : [...withVolume].reverse();
-    }
+  const maxVol = top100.length > 0 ? (top100[0].volume ?? 1) : 1;
 
-    const sorted = [...withVolume].sort((a, b) => {
-      let cmp = 0;
-      switch (sortField) {
-        case 'ticker': cmp = a.ticker.localeCompare(b.ticker); break;
-        case 'price': cmp = a.price - b.price; break;
-        case 'change': cmp = a.changePercent - b.changePercent; break;
-        case 'avgVolume': cmp = (a.avgVolume ?? 0) - (b.avgVolume ?? 0); break;
-        case 'marketCap': cmp = a.marketCapB - b.marketCapB; break;
-        default: cmp = 0;
-      }
-      return sortDir === 'desc' ? -cmp : cmp;
-    });
-    return sorted;
-  }, [stocks, sortField, sortDir]);
-
-  const indicator = (field: SortField) => {
-    if (sortField !== field) return '';
-    return sortDir === 'desc' ? ' ▾' : ' ▴';
-  };
-
-  const headerClass = (field: SortField, align: string = 'left') =>
-    `px-2 sm:px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors
-     ${align === 'right' ? 'text-right' : 'text-left'}
-     ${sortField === field ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'}`;
-
-  if (sorted.length === 0) {
+  if (top100.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-white/[0.03] mx-auto mb-4 flex items-center justify-center">
-          <svg className="w-7 h-7 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
+        <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/[0.03] mx-auto mb-4 flex items-center justify-center text-2xl">
+          📊
         </div>
         <p className="text-rh-light-text dark:text-rh-text font-medium mb-1">Volume data loading</p>
-        <p className="text-rh-light-muted/70 dark:text-rh-muted/70 text-sm">Top 100 stocks by 24hr volume will appear here once data is available.</p>
+        <p className="text-rh-light-muted/70 dark:text-rh-muted/70 text-sm">Top 100 by volume will appear once market data is available.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div>
-        <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">Top 100 by Volume</h2>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted">Most actively traded stocks in the last 24 hours</p>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rh-green/20 to-emerald-500/10 dark:from-rh-green/10 dark:to-emerald-500/5 flex items-center justify-center">
+          <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">Top 100 by Volume</h2>
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted">Most actively traded stocks today</p>
+        </div>
       </div>
 
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-x-auto">
-        <table className="w-full sm:min-w-[640px]">
-          <thead>
-            <tr className="border-b border-gray-200/50 dark:border-white/[0.06]">
-              <th className={headerClass('rank')} onClick={() => handleSort('rank')}>#</th>
-              <th className={headerClass('ticker')} onClick={() => handleSort('ticker')}>Stock{indicator('ticker')}</th>
-              <th className={headerClass('price', 'right')} onClick={() => handleSort('price')}>Price{indicator('price')}</th>
-              <th className={headerClass('change', 'right')} onClick={() => handleSort('change')}>Change{indicator('change')}</th>
-              <th className={headerClass('volume', 'right')} onClick={() => handleSort('volume')}>Volume{indicator('volume')}</th>
-              <th className={headerClass('avgVolume', 'right')} onClick={() => handleSort('avgVolume')}>Avg Vol{indicator('avgVolume')}</th>
-              <th className={headerClass('marketCap', 'right')} onClick={() => handleSort('marketCap')}>Mkt Cap{indicator('marketCap')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((stock, i) => {
-              const volRatio = (stock.avgVolume ?? 0) > 0
-                ? ((stock.volume ?? 0) / (stock.avgVolume ?? 1))
-                : null;
-              const isHighVol = volRatio != null && volRatio >= 1.5;
+      {/* Cards list */}
+      <div className="space-y-1.5">
+        {top100.map((stock, i) => {
+          const rank = i + 1;
+          const medal = RANK_MEDALS[rank];
+          const volPct = ((stock.volume ?? 0) / maxVol) * 100;
+          const volRatio = (stock.avgVolume ?? 0) > 0
+            ? ((stock.volume ?? 0) / (stock.avgVolume ?? 1))
+            : null;
+          const isHighVol = volRatio != null && volRatio >= 1.5;
+          const isUp = stock.changePercent >= 0;
 
-              return (
-                <tr
-                  key={stock.ticker}
-                  onClick={() => onTickerClick(stock.ticker)}
-                  className="border-b border-gray-200/30 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
-                >
-                  <td className="px-2 sm:px-3 py-2.5 text-sm text-rh-light-muted dark:text-rh-muted font-medium w-8">
-                    {i + 1}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2.5">
-                    <div>
-                      <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{stock.ticker}</span>
-                      <span className="text-xs text-rh-light-muted dark:text-rh-muted ml-2 hidden sm:inline truncate max-w-[160px]">{stock.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right text-rh-light-text dark:text-rh-text tabular-nums">
-                    ${stock.price.toFixed(2)}
-                  </td>
-                  <td className={`px-2 sm:px-3 py-2.5 text-sm text-right font-medium tabular-nums ${
-                    stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'
-                  }`}>
-                    {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
-                  </td>
-                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right tabular-nums">
-                    <span className={`${isHighVol ? 'text-rh-green font-semibold' : 'text-rh-light-text dark:text-rh-text'}`}>
-                      {formatVolume(stock.volume ?? 0)}
-                    </span>
+          return (
+            <div
+              key={stock.ticker}
+              onClick={() => onTickerClick(stock.ticker)}
+              className={`relative group rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-150
+                hover:scale-[1.005] active:scale-[0.998]
+                border border-transparent hover:border-gray-200/40 dark:hover:border-white/[0.06]
+                ${medal?.bg ?? 'hover:bg-gray-50/60 dark:hover:bg-white/[0.03]'}
+                ${medal ? medal.glow : ''}
+              `}
+            >
+              {/* Volume heat bar (background) */}
+              <div
+                className={`absolute inset-y-0 left-0 rounded-xl transition-all ${
+                  isUp ? 'bg-rh-green/[0.04] dark:bg-rh-green/[0.03]' : 'bg-rh-red/[0.04] dark:bg-rh-red/[0.03]'
+                }`}
+                style={{ width: `${Math.max(volPct, 2)}%` }}
+              />
+
+              {/* Content */}
+              <div className="relative flex items-center gap-3">
+                {/* Rank */}
+                <div className="w-7 text-center shrink-0">
+                  {medal ? (
+                    <span className="text-lg leading-none">{medal.emoji}</span>
+                  ) : (
+                    <span className={`text-sm font-bold tabular-nums ${
+                      rank <= 10 ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted/50 dark:text-rh-muted/50'
+                    }`}>{rank}</span>
+                  )}
+                </div>
+
+                {/* Logo + Info */}
+                <StockLogo ticker={stock.ticker} size="md" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{stock.ticker}</span>
                     {isHighVol && (
-                      <span className="ml-1 text-[10px] text-rh-green font-semibold">{volRatio!.toFixed(1)}x</span>
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rh-green/10 text-rh-green border border-rh-green/20">
+                        🔥 {volRatio!.toFixed(1)}x vol
+                      </span>
                     )}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right text-rh-light-muted dark:text-rh-muted tabular-nums">
-                    {(stock.avgVolume ?? 0) > 0 ? formatVolume(stock.avgVolume!) : '—'}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right text-rh-light-muted dark:text-rh-muted tabular-nums">
-                    ${stock.marketCapB >= 1 ? `${stock.marketCapB.toFixed(0)}B` : `${(stock.marketCapB * 1000).toFixed(0)}M`}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                  <span className="text-xs text-rh-light-muted dark:text-rh-muted truncate block">{stock.name}</span>
+                </div>
+
+                {/* Price + Change */}
+                <div className="text-right shrink-0 mr-2">
+                  <div className="text-sm font-semibold text-rh-light-text dark:text-rh-text tabular-nums">
+                    ${stock.price.toFixed(2)}
+                  </div>
+                  <div className={`text-xs font-semibold tabular-nums ${isUp ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                  </div>
+                </div>
+
+                {/* Volume */}
+                <div className="text-right shrink-0 w-20 hidden sm:block">
+                  <div className="text-sm font-semibold text-rh-light-text dark:text-rh-text tabular-nums">
+                    {formatVolume(stock.volume ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-rh-light-muted dark:text-rh-muted">volume</div>
+                </div>
+
+                {/* Mkt Cap */}
+                <div className="text-right shrink-0 w-16 hidden lg:block">
+                  <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted tabular-nums">
+                    {formatMktCap(stock.marketCapB)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
