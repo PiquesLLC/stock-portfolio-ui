@@ -1080,8 +1080,15 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           {/* Left: icon + title + stats */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.20)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(34,197,94,0.12)' }}>
-                <svg className="w-5 h-5" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
+              <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 50%, rgba(34,197,94,0.10) 100%)',
+                border: '1px solid rgba(34,197,94,0.25)',
+                backdropFilter: 'blur(20px) saturate(1.4)',
+                WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
+                boxShadow: '0 4px 20px rgba(0,200,5,0.12), 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.1)',
+              }}>
+                <div className="absolute inset-0 rounded-xl" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />
+                <svg className="relative w-5 h-5 drop-shadow-sm" fill="none" stroke="#22c55e" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 0 4px rgba(34,197,94,0.4))' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
