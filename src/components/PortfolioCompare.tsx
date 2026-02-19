@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Portfolio, PortfolioIntelligenceResponse } from '../types';
-import { getPortfolio, getUserPortfolio, getPortfolioIntelligence, getUserIntelligence } from '../api';
+import { Portfolio } from '../types';
+import { getPortfolio, getUserPortfolio } from '../api';
 import { AllocationDonut } from './AllocationDonut';
 import { StockLogo } from './StockLogo';
+import { computeSectorExposure } from '../utils/sectors';
 
 interface PortfolioCompareProps {
   theirUserId: string;
@@ -20,16 +21,11 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
   const [error, setError] = useState('');
   const [myPortfolio, setMyPortfolio] = useState<Portfolio | null>(null);
   const [theirPortfolio, setTheirPortfolio] = useState<Portfolio | null>(null);
-  const [myIntel, setMyIntel] = useState<PortfolioIntelligenceResponse | null>(null);
-  const [theirIntel, setTheirIntel] = useState<PortfolioIntelligenceResponse | null>(null);
-  const [intelLoaded, setIntelLoaded] = useState(false);
 
-  // Load portfolios first for instant render, then lazy-load intelligence
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError('');
-    setIntelLoaded(false);
 
     Promise.all([
       getPortfolio(),
@@ -39,25 +35,12 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
         if (cancelled) return;
         setMyPortfolio(mp);
         setTheirPortfolio(tp);
-        setLoading(false);
-
-        // Lazy-load intelligence (sector exposure, beta) in background
-        Promise.all([
-          getPortfolioIntelligence('1m').catch(() => null),
-          getUserIntelligence(theirUserId, '1m').catch(() => null),
-        ]).then(([mi, ti]) => {
-          if (cancelled) return;
-          setMyIntel(mi);
-          setTheirIntel(ti);
-        }).finally(() => {
-          if (!cancelled) setIntelLoaded(true);
-        });
       })
       .catch((e) => {
-        if (!cancelled) {
-          setError(e.message || 'Failed to load comparison data');
-          setLoading(false);
-        }
+        if (!cancelled) setError(e.message || 'Failed to load comparison data');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
 
     return () => { cancelled = true; };
@@ -85,17 +68,17 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
     const myWeights = new Map(myHoldings.map(h => [h.ticker, (h.currentValue / myTotal) * 100]));
     const theirWeights = new Map(theirHoldings.map(h => [h.ticker, (h.currentValue / theirTotal) * 100]));
 
-    // Sector comparison
-    const mySectors = myIntel?.sectorExposure ?? [];
-    const theirSectors = theirIntel?.sectorExposure ?? [];
+    // Sector comparison — computed client-side from holdings (no API call)
+    const mySec = computeSectorExposure(myHoldings);
+    const theirSec = computeSectorExposure(theirHoldings);
     const allSectorNames = new Set([
-      ...mySectors.map(s => s.sector),
-      ...theirSectors.map(s => s.sector),
+      ...mySec.map(s => s.sector),
+      ...theirSec.map(s => s.sector),
     ]);
     const sectorComparison = [...allSectorNames].map(sector => ({
       sector,
-      myPct: mySectors.find(s => s.sector === sector)?.exposurePercent ?? 0,
-      theirPct: theirSectors.find(s => s.sector === sector)?.exposurePercent ?? 0,
+      myPct: mySec.find(s => s.sector === sector)?.exposurePercent ?? 0,
+      theirPct: theirSec.find(s => s.sector === sector)?.exposurePercent ?? 0,
     })).sort((a, b) => Math.max(b.myPct, b.theirPct) - Math.max(a.myPct, a.theirPct));
 
     // Find biggest sector divergence for summary
@@ -114,7 +97,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
       hasTheirHoldings: theirHoldings.length > 0,
       biggestDivergence,
     };
-  }, [myPortfolio, theirPortfolio, myIntel, theirIntel]);
+  }, [myPortfolio, theirPortfolio]);
 
   if (loading) {
     return (
@@ -198,8 +181,8 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
         />
         <SummaryCard
           label="Beta"
-          myValue={myIntel?.beta?.portfolioBeta?.toFixed(2) ?? '—'}
-          theirValue={theirIntel?.beta?.portfolioBeta?.toFixed(2) ?? '—'}
+          myValue="—"
+          theirValue="—"
           theirName={theirDisplayName}
         />
       </div>
@@ -270,12 +253,6 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
       )}
 
       {/* Sector Comparison — bars touch, higher contrast labels */}
-      {!intelLoaded && (
-        <div className="flex items-center justify-center py-6 gap-2">
-          <div className="w-3 h-3 border-2 border-rh-green/40 border-t-rh-green rounded-full animate-spin" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">Loading sector data...</span>
-        </div>
-      )}
       {comparison.sectorComparison.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
