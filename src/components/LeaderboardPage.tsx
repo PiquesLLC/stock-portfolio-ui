@@ -276,7 +276,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 <th className={`${getHeaderClass('assets', 'right')} text-xs hidden sm:table-cell`} onClick={() => handleSort('assets')}>
                   {getSortIndicator('assets')}Assets
                 </th>
-                <th className="px-2 sm:px-4 py-3 text-xs font-medium text-rh-light-muted dark:text-rh-muted text-right w-16 sm:w-24">Status</th>
+                <th className="px-2 sm:px-4 py-3 w-10 sm:w-16"></th>
               </tr>
             </thead>
             <tbody>
@@ -336,12 +336,9 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                     <td className="px-2 sm:px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {entry.verified && !entry.flagged && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-2.108-2.108 3 3 0 01-5.304 0 3 3 0 00-2.108 2.108 3 3 0 010 5.304 3 3 0 002.108 2.108 3 3 0 015.304 0 3 3 0 002.108-2.108zM9.293 10.707a1 1 0 011.414-1.414l1 1a1 1 0 01-1.414 1.414l-1-1z" clipRule="evenodd" />
-                            </svg>
-                            <span className="hidden sm:inline">Verified</span>
-                          </span>
+                          <svg className="w-4 h-4 text-rh-green" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
                         )}
                         {onCompare && currentUserId && currentUserId !== entry.userId && (
                           <button
