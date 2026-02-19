@@ -139,14 +139,23 @@ function getHeatColor(pct: number): string {
 
 function getHeatColorLight(pct: number): string {
   const c = Math.max(-5, Math.min(5, pct));
+  // Power curve so even ±0.2% shows clear color — less grey overall
+  const bR = 200, bG = 202, bB = 206;
+
   if (c > 0) {
-    const t = Math.min(c / 3.5, 1);
-    return `rgb(${Math.round(200 - 80 * t)},${Math.round(225 - 20 * t)},${Math.round(200 - 80 * t)})`;
+    const t = Math.pow(Math.min(c / 2.5, 1), 0.55);
+    const r = Math.round(bR + (30 - bR) * t);
+    const g = Math.round(bG + (175 - bG) * t);
+    const b = Math.round(bB + (45 - bB) * t);
+    return `rgb(${r},${g},${b})`;
   } else if (c < 0) {
-    const t = Math.min(Math.abs(c) / 3.5, 1);
-    return `rgb(${Math.round(225 - 20 * t)},${Math.round(200 - 80 * t)},${Math.round(200 - 80 * t)})`;
+    const t = Math.pow(Math.min(Math.abs(c) / 2.5, 1), 0.55);
+    const r = Math.round(bR + (215 - bR) * t);
+    const g = Math.round(bG + (55 - bG) * t);
+    const b = Math.round(bB + (50 - bB) * t);
+    return `rgb(${r},${g},${b})`;
   }
-  return 'rgb(220,220,225)';
+  return `rgb(${bR},${bG},${bB})`;
 }
 
 // Dampen market cap so mega-caps don't eat the whole map.
@@ -411,7 +420,7 @@ function Treemap({
   }
 
   const GAP = dims.width < 640 ? GAP_MOBILE : GAP_DESKTOP;
-  const tileStroke = isDark ? '#1a1c28' : '#d0d0d0';
+  const tileStroke = isDark ? '#1a1c28' : '#aaa';
 
   // Get the sub-sector stocks for the popup
   const popupSubSector = hoveredSubSector
@@ -439,7 +448,7 @@ function Treemap({
               y={sr.y + 1}
               width={Math.max(0, sr.w - 2)}
               height={Math.max(0, sr.h - 2)}
-              fill={isDark ? '#1a1c28' : '#ddd'}
+              fill={isDark ? '#1a1c28' : '#c8c8c8'}
               rx={1}
             />
             {/* Sector label bar — clicks through to sector ETF */}
@@ -459,8 +468,8 @@ function Treemap({
                     width={Math.max(0, sr.w - 4)}
                     height={SECTOR_LABEL_H - 1}
                     fill={isLabelHovered
-                      ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)')
-                      : (isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.08)')}
+                      ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.25)')
+                      : (isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.20)')}
                     rx={1}
                     style={{ transition: 'fill 0.15s' }}
                   />
@@ -468,13 +477,13 @@ function Treemap({
                     <rect x={sr.x + 2} y={sr.y} width={Math.max(0, sr.w - 4)} height={SECTOR_LABEL_H + 2} />
                   </clipPath>
                   <text
-                    x={sr.x + SECTOR_GAP + 4}
+                    x={sr.x + SECTOR_GAP + 7}
                     y={sr.y + SECTOR_LABEL_H - 4}
                     fontSize={sr.w > 200 ? 9.5 : sr.w > 100 ? 8 : sr.w > 60 ? 6.5 : sr.w > 30 ? 5 : 4}
                     fontWeight={700}
                     fill={isLabelHovered
-                      ? (isDark ? '#fff' : 'rgba(0,0,0,0.8)')
-                      : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)')}
+                      ? (isDark ? '#fff' : 'rgba(0,0,0,0.9)')
+                      : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.75)')}
                     clipPath={`url(#slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')})`}
                     style={{
                       pointerEvents: 'none',
@@ -542,8 +551,8 @@ function Treemap({
                           fontSize={subFontSize}
                           fontWeight={600}
                           fill={isSubHovered
-                            ? (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.7)')
-                            : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)')}
+                            ? (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)')
+                            : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)')}
                           clipPath={`url(#${clipId})`}
                           style={{
                             pointerEvents: 'none',
@@ -589,8 +598,8 @@ function Treemap({
                     let opacity = 1;
                     if (hoveredStock) {
                       if (isHovered) opacity = 1;
-                      else if (isInHoveredSub) opacity = 0.85;
-                      else opacity = 0.45;
+                      else if (isInHoveredSub) opacity = 0.9;
+                      else opacity = 0.55;
                     } else if (highlightedSector) {
                       opacity = r.sectorName === highlightedSector ? 1 : 0.25;
                     }
@@ -679,8 +688,8 @@ function Treemap({
       {/* Finviz-style sub-sector popup */}
       {hoveredStock && popupSubSector && (
         <div
-          className={`absolute z-50 rounded-xl shadow-2xl shadow-black/60 border text-xs
-            bg-white/95 dark:bg-[#1a1a1e]/90 border-white/20 dark:border-white/10
+          className={`absolute z-50 rounded-xl shadow-lg shadow-black/25 dark:shadow-2xl dark:shadow-black/60 border text-xs
+            bg-white/95 dark:bg-[#1a1a1e]/90 border-gray-200/60 dark:border-white/10
             backdrop-blur-xl ${tappedStock ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
             left: Math.min(
@@ -770,13 +779,13 @@ function ColorLegend() {
       {steps.map((pct) => (
         <div key={pct} className="flex flex-col items-center">
           <div
-            className="w-8 h-3"
+            className="w-10 h-3.5"
             style={{
               background: isDark ? getHeatColor(pct) : getHeatColorLight(pct),
               borderRadius: pct === -3 ? '3px 0 0 3px' : pct === 3 ? '0 3px 3px 0' : 0,
             }}
           />
-          <span className="text-[8px] text-rh-light-muted dark:text-rh-muted mt-0.5">
+          <span className="text-[9px] font-medium text-gray-500 dark:text-rh-muted mt-0.5">
             {pct > 0 ? '+' : ''}{pct}%
           </span>
         </div>
@@ -1068,14 +1077,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
       <div className="space-y-0 sticky top-[90px] sm:top-[52px] z-20 pb-3 bg-rh-light-bg dark:bg-[#050505]">
       {/* Hero header card */}
       <div
-        className="relative overflow-hidden rounded-2xl"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.04) 100%)',
-          border: '1px solid rgba(255,255,255,0.10)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-        }}
+        className="relative overflow-hidden rounded-2xl bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.10] shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.04] via-transparent to-transparent" />
         <div className="relative px-5 py-3 flex items-center justify-between gap-4">
@@ -1095,27 +1097,27 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg font-extrabold tracking-tight" style={{ color: '#f5f7fa' }}>
-                  Top 100 <span style={{ color: '#00c805', fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
+                <h2 className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-[#f5f7fa]">
+                  Top 100 <span className="text-rh-green" style={{ fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
                 </h2>
-                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.78)' }}>Most actively traded stocks</p>
+                <p className="text-[11px] mt-0.5 text-gray-500 dark:text-white/[0.78]">Most actively traded stocks</p>
               </div>
             </div>
 
             {/* Mini stats row */}
             <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-                <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Total Vol</span>
-                <span className="text-xs font-bold tabular-nums" style={{ color: '#f5f7fa' }}>{formatVolume(totalVol)}</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08]">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/[0.55]">Total Vol</span>
+                <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-[#f5f7fa]">{formatVolume(totalVol)}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-                <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Move</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08]">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/[0.55]">Avg Move</span>
                 <span className={`text-xs font-bold tabular-nums ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
                 </span>
               </div>
               {highVolCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(34,197,94,0.02) 100%)', border: '1px solid rgba(34,197,94,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: 'inset 0 1px 0 rgba(34,197,94,0.08)' }}>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 dark:bg-green-500/[0.06] border border-green-200/60 dark:border-green-500/[0.15]">
                   <span className="text-[10px]">🔥</span>
                   <span className="text-xs font-bold text-rh-green">{highVolCount} unusual</span>
                 </div>
@@ -1409,7 +1411,7 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center py-32">
-        <img src="/north-signal-logo.png" alt="" className="h-10 w-10 animate-spin" />
+        <img src="/north-signal-logo-transparent.png" alt="" className="h-10 w-10 animate-spin" />
       </div>
     );
   }

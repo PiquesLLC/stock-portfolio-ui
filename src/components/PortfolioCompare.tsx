@@ -102,7 +102,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <img src="/north-signal-logo.png" alt="" className="h-10 w-10 animate-spin" />
+        <img src="/north-signal-logo-transparent.png" alt="" className="h-10 w-10 animate-spin" />
       </div>
     );
   }
