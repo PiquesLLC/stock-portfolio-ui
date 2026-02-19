@@ -1406,13 +1406,8 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
 
   if (loading && !data) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-8 w-40 bg-rh-light-border/30 dark:bg-rh-border/30 rounded-lg" />
-        <div className="h-[500px] bg-rh-light-border/20 dark:bg-rh-border/20 rounded-xl" />
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-48 bg-rh-light-border/20 dark:bg-rh-border/20 rounded-xl" />
-          <div className="h-48 bg-rh-light-border/20 dark:bg-rh-border/20 rounded-xl" />
-        </div>
+      <div className="flex items-center justify-center py-32">
+        <img src="/north-signal-logo.png" alt="" className="h-10 w-10 animate-spin" />
       </div>
     );
   }
