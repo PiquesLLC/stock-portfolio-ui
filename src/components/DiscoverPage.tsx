@@ -1122,7 +1122,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           </div>
 
           {/* Right: per-stock sparkline */}
-          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0 mr-3">
+          <div className="flex flex-col items-end gap-1 shrink-0 mr-1 sm:mr-3">
             {heroStock && heroSparkline ? (
               <>
                 <div className="flex items-center gap-2">
@@ -1144,12 +1144,12 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                     {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
                   </span>
                 </div>
-                <svg width={140} height={32} className="opacity-70">
+                <svg className="opacity-70 w-[100px] h-[28px] sm:w-[140px] sm:h-[32px]" viewBox="0 0 140 32" preserveAspectRatio="none">
                   <path d={heroSparkline} fill="none" stroke={heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </>
             ) : heroLoading ? (
-              <div className="w-[140px] h-[32px] rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              <div className="w-[100px] h-[28px] sm:w-[140px] sm:h-[32px] rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
             ) : (
               <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.30)' }}>Click a stock to preview</span>
             )}
