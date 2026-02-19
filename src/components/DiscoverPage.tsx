@@ -1078,33 +1078,33 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           {/* Left: icon + title + stats */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.30)' }}>
-                <svg className="w-4 h-4" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.30)' }}>
+                <svg className="w-5 h-5" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
               <div>
-                <h2 className="tracking-tight leading-none" style={{ color: '#f5f7fa', fontSize: 14.5, fontWeight: 700, letterSpacing: '-0.01em' }}>
+                <h2 className="tracking-tight" style={{ color: '#f5f7fa', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>
                   Top 100<span style={{ color: '#0ab44a', marginLeft: 4 }}>by Volume</span>
                 </h2>
-                <p className="text-[10.5px]" style={{ color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>Most actively traded stocks right now</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.78)' }}>Most actively traded stocks right now</p>
               </div>
             </div>
 
             {/* Mini stats row */}
-            <div className="flex items-center gap-2.5 mt-2 flex-wrap">
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.035)' }}>
+            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.035)' }}>
                 <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Total Vol</span>
                 <span className="text-xs font-bold tabular-nums" style={{ color: '#f5f7fa' }}>{formatVolume(totalVol)}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.035)' }}>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.035)' }}>
                 <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Move</span>
                 <span className={`text-xs font-bold tabular-nums ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
                 </span>
               </div>
               {highVolCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg" style={{ background: 'rgba(0,200,5,0.04)' }}>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(0,200,5,0.04)' }}>
                   <span className="text-[10px]">🔥</span>
                   <span className="text-xs font-bold text-rh-green">{highVolCount} unusual</span>
                 </div>
