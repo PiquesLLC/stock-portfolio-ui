@@ -962,23 +962,61 @@ function formatMktCap(b: number): string {
   return `$${(b * 1000).toFixed(0)}M`;
 }
 
-const RANK_MEDALS: Record<number, { emoji: string; glow: string; bg: string }> = {
-  1: { emoji: '🥇', glow: 'shadow-[0_0_12px_rgba(255,215,0,0.3)]', bg: 'bg-gradient-to-r from-yellow-500/10 dark:from-yellow-500/[0.06] to-transparent' },
-  2: { emoji: '🥈', glow: 'shadow-[0_0_10px_rgba(192,192,192,0.2)]', bg: 'bg-gradient-to-r from-gray-300/10 dark:from-gray-400/[0.04] to-transparent' },
-  3: { emoji: '🥉', glow: 'shadow-[0_0_10px_rgba(205,127,50,0.2)]', bg: 'bg-gradient-to-r from-orange-500/10 dark:from-orange-500/[0.04] to-transparent' },
+const RANK_MEDALS: Record<number, { emoji: string; glow: string; bg: string; ring: string }> = {
+  1: { emoji: '🥇', glow: 'shadow-[0_0_20px_rgba(255,215,0,0.35)]', bg: 'bg-gradient-to-r from-yellow-400/15 via-amber-300/8 dark:from-yellow-500/[0.08] dark:via-amber-400/[0.03] to-transparent', ring: 'ring-1 ring-yellow-400/30 dark:ring-yellow-400/20' },
+  2: { emoji: '🥈', glow: 'shadow-[0_0_16px_rgba(192,192,192,0.25)]', bg: 'bg-gradient-to-r from-gray-300/15 via-slate-200/8 dark:from-gray-400/[0.06] dark:via-slate-300/[0.02] to-transparent', ring: 'ring-1 ring-gray-300/30 dark:ring-gray-400/20' },
+  3: { emoji: '🥉', glow: 'shadow-[0_0_16px_rgba(205,127,50,0.25)]', bg: 'bg-gradient-to-r from-orange-400/15 via-amber-500/8 dark:from-orange-500/[0.06] dark:via-amber-500/[0.02] to-transparent', ring: 'ring-1 ring-orange-400/30 dark:ring-orange-400/20' },
 };
 
+type VolumeFilter = 'top100' | 'gainers' | 'losers' | 'unusual';
+const VOLUME_FILTERS: { id: VolumeFilter; label: string; icon: string }[] = [
+  { id: 'top100', label: 'Top 100', icon: '📊' },
+  { id: 'gainers', label: 'Gainers', icon: '🟢' },
+  { id: 'losers', label: 'Losers', icon: '🔴' },
+  { id: 'unusual', label: 'Unusual Vol', icon: '🔥' },
+];
+
 function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
-  const top100 = useMemo(() => {
-    return stocks
-      .filter(s => (s.volume ?? 0) > 0)
-      .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0))
-      .slice(0, 100);
+  const [filter, setFilter] = useState<VolumeFilter>('top100');
+
+  const withVolume = useMemo(() => {
+    return stocks.filter(s => (s.volume ?? 0) > 0);
   }, [stocks]);
 
-  const maxVol = top100.length > 0 ? (top100[0].volume ?? 1) : 1;
+  const filtered = useMemo(() => {
+    const byVol = [...withVolume].sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+    switch (filter) {
+      case 'gainers':
+        return byVol.filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, 100);
+      case 'losers':
+        return byVol.filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, 100);
+      case 'unusual':
+        return byVol.filter(s => {
+          if ((s.avgVolume ?? 0) <= 0) return false;
+          return ((s.volume ?? 0) / (s.avgVolume ?? 1)) >= 1.5;
+        }).slice(0, 100);
+      default:
+        return byVol.slice(0, 100);
+    }
+  }, [withVolume, filter]);
 
-  if (top100.length === 0) {
+  const maxVol = filtered.length > 0 ? Math.max(...filtered.map(s => s.volume ?? 0)) : 1;
+
+  // Stats for the hero banner
+  const top100ForStats = useMemo(() => {
+    return [...withVolume].sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0)).slice(0, 100);
+  }, [withVolume]);
+  const totalVol = useMemo(() => top100ForStats.reduce((s, st) => s + (st.volume ?? 0), 0), [top100ForStats]);
+  const avgChange = useMemo(() => {
+    if (top100ForStats.length === 0) return 0;
+    return top100ForStats.reduce((s, st) => s + st.changePercent, 0) / top100ForStats.length;
+  }, [top100ForStats]);
+  const highVolCount = useMemo(() => withVolume.filter(s => {
+    if ((s.avgVolume ?? 0) <= 0) return false;
+    return ((s.volume ?? 0) / (s.avgVolume ?? 1)) >= 1.5;
+  }).length, [withVolume]);
+
+  if (withVolume.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/[0.03] mx-auto mb-4 flex items-center justify-center text-2xl">
@@ -991,23 +1029,82 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rh-green/20 to-emerald-500/10 dark:from-rh-green/10 dark:to-emerald-500/5 flex items-center justify-center">
-          <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">Top 100 by Volume</h2>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted">Most actively traded stocks today</p>
+    <div className="space-y-3">
+      {/* Hero header card */}
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200/50 dark:border-white/[0.06] bg-gradient-to-br from-gray-50 via-white to-gray-50/50 dark:from-[#1a1a1e] dark:via-[#1e1e24] dark:to-[#1a1a1e]">
+        <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.03] via-transparent to-emerald-500/[0.02]" />
+        <div className="relative px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rh-green to-emerald-600 flex items-center justify-center shadow-lg shadow-rh-green/20">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-extrabold text-rh-light-text dark:text-rh-text tracking-tight">
+                  Top 100 <span className="bg-gradient-to-r from-rh-green to-emerald-400 bg-clip-text text-transparent">by Volume</span>
+                </h2>
+                <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">Most actively traded stocks right now</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mini stats row */}
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04]">
+              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider font-semibold">Total Vol</span>
+              <span className="text-xs font-bold text-rh-light-text dark:text-rh-text tabular-nums">{formatVolume(totalVol)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04]">
+              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider font-semibold">Avg Move</span>
+              <span className={`text-xs font-bold tabular-nums ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
+              </span>
+            </div>
+            {highVolCount > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rh-green/[0.06] dark:bg-rh-green/[0.04]">
+                <span className="text-[10px]">🔥</span>
+                <span className="text-xs font-bold text-rh-green">{highVolCount} unusual</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Filter toggle strip */}
+      <div className="flex gap-1 bg-gray-100/60 dark:bg-white/[0.03] rounded-xl p-1 w-fit">
+        {VOLUME_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              filter === f.id
+                ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-rh-text shadow-sm'
+                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+            }`}
+          >
+            <span className="text-[11px]">{f.icon}</span>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Column header */}
+      <div className="flex items-center gap-3 px-3 pb-1 border-b border-gray-200/60 dark:border-white/[0.06]">
+        <div className="w-8 shrink-0" />
+        {/* Logo placeholder */}
+        <div className="w-8 shrink-0" />
+        <div className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Symbol</div>
+        <div className="text-right shrink-0 w-[72px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Price</div>
+        <div className="text-right shrink-0 w-[68px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Chg%</div>
+        <div className="text-right shrink-0 w-[88px] hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Volume</div>
+        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-rh-muted/60">Mkt Cap</div>
+      </div>
+
       {/* Cards list */}
-      <div className="space-y-1.5">
-        {top100.map((stock, i) => {
+      <div className="space-y-0.5">
+        {filtered.map((stock, i) => {
           const rank = i + 1;
           const medal = RANK_MEDALS[rank];
           const volPct = ((stock.volume ?? 0) / maxVol) * 100;
@@ -1021,31 +1118,39 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
             <div
               key={stock.ticker}
               onClick={() => onTickerClick(stock.ticker)}
-              className={`relative group rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-150
+              className={`relative group rounded-xl px-3 py-[7px] cursor-pointer transition-all duration-200
                 hover:scale-[1.005] active:scale-[0.998]
-                border border-transparent hover:border-gray-200/40 dark:hover:border-white/[0.06]
-                ${medal?.bg ?? 'hover:bg-gray-50/60 dark:hover:bg-white/[0.03]'}
-                ${medal ? medal.glow : ''}
+                border
+                ${medal
+                  ? `${medal.bg} ${medal.glow} ${medal.ring}`
+                  : 'border-transparent hover:border-gray-200/50 dark:hover:border-white/[0.06] hover:bg-gray-50/80 dark:hover:bg-white/[0.025]'
+                }
+                hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20
               `}
             >
               {/* Volume heat bar (background) */}
               <div
-                className={`absolute inset-y-0 left-0 rounded-xl transition-all ${
-                  isUp ? 'bg-rh-green/[0.04] dark:bg-rh-green/[0.03]' : 'bg-rh-red/[0.04] dark:bg-rh-red/[0.03]'
-                }`}
-                style={{ width: `${Math.max(volPct, 2)}%` }}
+                className="absolute inset-y-0 left-0 rounded-xl transition-all duration-500"
+                style={{
+                  width: `${Math.max(volPct, 2)}%`,
+                  background: isUp
+                    ? 'linear-gradient(90deg, rgba(0,200,5,0.06) 0%, rgba(0,200,5,0.02) 70%, transparent 100%)'
+                    : 'linear-gradient(90deg, rgba(232,84,78,0.06) 0%, rgba(232,84,78,0.02) 70%, transparent 100%)',
+                }}
               />
 
               {/* Content */}
               <div className="relative flex items-center gap-3">
                 {/* Rank */}
-                <div className="w-7 text-center shrink-0">
+                <div className="w-8 text-center shrink-0">
                   {medal ? (
-                    <span className="text-lg leading-none">{medal.emoji}</span>
+                    <span className="text-xl leading-none drop-shadow-sm">{medal.emoji}</span>
+                  ) : rank <= 10 ? (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-white/10 dark:to-white/5 flex items-center justify-center mx-auto">
+                      <span className="text-[11px] font-extrabold tabular-nums text-rh-light-text dark:text-rh-text">{rank}</span>
+                    </div>
                   ) : (
-                    <span className={`text-sm font-bold tabular-nums ${
-                      rank <= 10 ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted/50 dark:text-rh-muted/50'
-                    }`}>{rank}</span>
+                    <span className="text-xs font-bold tabular-nums text-rh-light-muted/50 dark:text-rh-muted/40">{rank}</span>
                   )}
                 </div>
 
@@ -1053,37 +1158,50 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 <StockLogo ticker={stock.ticker} size="md" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{stock.ticker}</span>
+                    <span className="text-sm font-extrabold text-rh-light-text dark:text-rh-text tracking-tight">{stock.ticker}</span>
                     {isHighVol && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rh-green/10 text-rh-green border border-rh-green/20">
-                        🔥 {volRatio!.toFixed(1)}x vol
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-rh-green/15 to-emerald-500/10 dark:from-rh-green/10 dark:to-emerald-500/5 text-rh-green border border-rh-green/20">
+                        🔥 {volRatio!.toFixed(1)}x
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-rh-light-muted dark:text-rh-muted truncate block">{stock.name}</span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate block">{stock.name}</span>
                 </div>
 
-                {/* Price + Change */}
-                <div className="text-right shrink-0 mr-2">
-                  <div className="text-sm font-semibold text-rh-light-text dark:text-rh-text tabular-nums">
+                {/* Price */}
+                <div className="text-right shrink-0 w-[72px]">
+                  <div className="text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
                     ${stock.price.toFixed(2)}
                   </div>
-                  <div className={`text-xs font-semibold tabular-nums ${isUp ? 'text-rh-green' : 'text-rh-red'}`}>
+                </div>
+
+                {/* Change pill */}
+                <div className="shrink-0 w-[68px] flex justify-end">
+                  <div className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
+                    isUp
+                      ? 'bg-rh-green/10 dark:bg-rh-green/[0.08] text-rh-green'
+                      : 'bg-rh-red/10 dark:bg-rh-red/[0.08] text-rh-red'
+                  }`}>
                     {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
                   </div>
                 </div>
 
-                {/* Volume */}
-                <div className="text-right shrink-0 w-20 hidden sm:block">
-                  <div className="text-sm font-semibold text-rh-light-text dark:text-rh-text tabular-nums">
+                {/* Volume with mini bar */}
+                <div className="shrink-0 w-[88px] hidden sm:flex flex-col items-end gap-0.5">
+                  <div className="text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
                     {formatVolume(stock.volume ?? 0)}
                   </div>
-                  <div className="text-[10px] text-rh-light-muted dark:text-rh-muted">volume</div>
+                  <div className="w-full h-1 rounded-full bg-gray-200/80 dark:bg-white/[0.06] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${isUp ? 'bg-rh-green/60' : 'bg-rh-red/60'}`}
+                      style={{ width: `${volPct}%` }}
+                    />
+                  </div>
                 </div>
 
                 {/* Mkt Cap */}
-                <div className="text-right shrink-0 w-16 hidden lg:block">
-                  <div className="text-xs font-medium text-rh-light-muted dark:text-rh-muted tabular-nums">
+                <div className="text-right shrink-0 w-[64px] hidden lg:block">
+                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
                     {formatMktCap(stock.marketCapB)}
                   </div>
                 </div>
