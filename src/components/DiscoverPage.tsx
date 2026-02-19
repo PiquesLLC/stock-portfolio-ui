@@ -944,7 +944,160 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
+type DiscoverSubTab = 'heatmap' | 'top100';
+
+/* ─── Top 100 by Volume ─── */
+
+function formatVolume(vol: number): string {
+  if (vol >= 1_000_000_000) return `${(vol / 1_000_000_000).toFixed(1)}B`;
+  if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
+  if (vol >= 1_000) return `${(vol / 1_000).toFixed(0)}K`;
+  return vol.toLocaleString();
+}
+
+type SortField = 'rank' | 'ticker' | 'price' | 'change' | 'volume' | 'avgVolume' | 'marketCap';
+type SortDir = 'asc' | 'desc';
+
+function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
+  const [sortField, setSortField] = useState<SortField>('volume');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const withVolume = stocks
+      .filter(s => (s.volume ?? 0) > 0)
+      .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0))
+      .slice(0, 100);
+
+    if (sortField === 'volume') {
+      // Already sorted by volume; just apply direction
+      return sortDir === 'desc' ? withVolume : [...withVolume].reverse();
+    }
+
+    const sorted = [...withVolume].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'ticker': cmp = a.ticker.localeCompare(b.ticker); break;
+        case 'price': cmp = a.price - b.price; break;
+        case 'change': cmp = a.changePercent - b.changePercent; break;
+        case 'avgVolume': cmp = (a.avgVolume ?? 0) - (b.avgVolume ?? 0); break;
+        case 'marketCap': cmp = a.marketCapB - b.marketCapB; break;
+        default: cmp = 0;
+      }
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+    return sorted;
+  }, [stocks, sortField, sortDir]);
+
+  const indicator = (field: SortField) => {
+    if (sortField !== field) return '';
+    return sortDir === 'desc' ? ' ▾' : ' ▴';
+  };
+
+  const headerClass = (field: SortField, align: string = 'left') =>
+    `px-2 sm:px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors
+     ${align === 'right' ? 'text-right' : 'text-left'}
+     ${sortField === field ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'}`;
+
+  if (sorted.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-white/[0.03] mx-auto mb-4 flex items-center justify-center">
+          <svg className="w-7 h-7 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <p className="text-rh-light-text dark:text-rh-text font-medium mb-1">Volume data loading</p>
+        <p className="text-rh-light-muted/70 dark:text-rh-muted/70 text-sm">Top 100 stocks by 24hr volume will appear here once data is available.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">Top 100 by Volume</h2>
+        <p className="text-xs text-rh-light-muted dark:text-rh-muted">Most actively traded stocks in the last 24 hours</p>
+      </div>
+
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-x-auto">
+        <table className="w-full sm:min-w-[640px]">
+          <thead>
+            <tr className="border-b border-gray-200/50 dark:border-white/[0.06]">
+              <th className={headerClass('rank')} onClick={() => handleSort('rank')}>#</th>
+              <th className={headerClass('ticker')} onClick={() => handleSort('ticker')}>Stock{indicator('ticker')}</th>
+              <th className={headerClass('price', 'right')} onClick={() => handleSort('price')}>Price{indicator('price')}</th>
+              <th className={headerClass('change', 'right')} onClick={() => handleSort('change')}>Change{indicator('change')}</th>
+              <th className={headerClass('volume', 'right')} onClick={() => handleSort('volume')}>Volume{indicator('volume')}</th>
+              <th className={headerClass('avgVolume', 'right')} onClick={() => handleSort('avgVolume')}>Avg Vol{indicator('avgVolume')}</th>
+              <th className={headerClass('marketCap', 'right')} onClick={() => handleSort('marketCap')}>Mkt Cap{indicator('marketCap')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((stock, i) => {
+              const volRatio = (stock.avgVolume ?? 0) > 0
+                ? ((stock.volume ?? 0) / (stock.avgVolume ?? 1))
+                : null;
+              const isHighVol = volRatio != null && volRatio >= 1.5;
+
+              return (
+                <tr
+                  key={stock.ticker}
+                  onClick={() => onTickerClick(stock.ticker)}
+                  className="border-b border-gray-200/30 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
+                >
+                  <td className="px-2 sm:px-3 py-2.5 text-sm text-rh-light-muted dark:text-rh-muted font-medium w-8">
+                    {i + 1}
+                  </td>
+                  <td className="px-2 sm:px-3 py-2.5">
+                    <div>
+                      <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{stock.ticker}</span>
+                      <span className="text-xs text-rh-light-muted dark:text-rh-muted ml-2 hidden sm:inline truncate max-w-[160px]">{stock.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right text-rh-light-text dark:text-rh-text tabular-nums">
+                    ${stock.price.toFixed(2)}
+                  </td>
+                  <td className={`px-2 sm:px-3 py-2.5 text-sm text-right font-medium tabular-nums ${
+                    stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'
+                  }`}>
+                    {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                  </td>
+                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right tabular-nums">
+                    <span className={`${isHighVol ? 'text-rh-green font-semibold' : 'text-rh-light-text dark:text-rh-text'}`}>
+                      {formatVolume(stock.volume ?? 0)}
+                    </span>
+                    {isHighVol && (
+                      <span className="ml-1 text-[10px] text-rh-green font-semibold">{volRatio!.toFixed(1)}x</span>
+                    )}
+                  </td>
+                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right text-rh-light-muted dark:text-rh-muted tabular-nums">
+                    {(stock.avgVolume ?? 0) > 0 ? formatVolume(stock.avgVolume!) : '—'}
+                  </td>
+                  <td className="px-2 sm:px-3 py-2.5 text-sm text-right text-rh-light-muted dark:text-rh-muted tabular-nums">
+                    ${stock.marketCapB >= 1 ? `${stock.marketCapB.toFixed(0)}B` : `${(stock.marketCapB * 1000).toFixed(0)}M`}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Heatmap View (original DiscoverPage content) ─── */
+
+function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => void }) {
   const [period, setPeriod] = useState<HeatmapPeriod>('1D');
   const [index, setIndex] = useState<MarketIndex>('SP500');
   const [highlightedSector, setHighlightedSector] = useState<string | null>(null);
@@ -1096,6 +1249,64 @@ export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
         }}
       />
       <TopMovers stocks={allStocks} onTickerClick={onTickerClick} />
+    </div>
+  );
+}
+
+/* ─── Discover Page (wrapper with sub-tabs) ─── */
+
+export function DiscoverPage({ onTickerClick }: DiscoverPageProps) {
+  const [subTab, setSubTab] = useState<DiscoverSubTab>('heatmap');
+
+  // For Top 100, we need all stocks from the heatmap — load from cache or fetch
+  const [allStocks, setAllStocks] = useState<HeatmapStock[]>([]);
+
+  useEffect(() => {
+    // Try cache first
+    const cached = heatmapCache.get(cacheKey('1D', 'SP500'));
+    if (cached) {
+      setAllStocks(cached.data.sectors.flatMap(s => s.stocks));
+    }
+    // Also fetch fresh data for Top 100
+    getMarketHeatmap('1D', 'SP500').then(resp => {
+      setAllStocks(resp.sectors.flatMap(s => s.stocks));
+      heatmapCache.set(cacheKey('1D', 'SP500'), { data: resp, ts: Date.now() });
+    }).catch(() => {});
+
+    // Refresh every hour for Top 100
+    const interval = setInterval(() => {
+      getMarketHeatmap('1D', 'SP500').then(resp => {
+        setAllStocks(resp.sectors.flatMap(s => s.stocks));
+        heatmapCache.set(cacheKey('1D', 'SP500'), { data: resp, ts: Date.now() });
+      }).catch(() => {});
+    }, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const tabClass = (active: boolean) =>
+    `px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+      active
+        ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+    }`;
+
+  return (
+    <div className="space-y-3">
+      {/* Sub-tab bar */}
+      <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <button onClick={() => setSubTab('heatmap')} className={tabClass(subTab === 'heatmap')}>
+          Heatmap
+        </button>
+        <button onClick={() => setSubTab('top100')} className={tabClass(subTab === 'top100')}>
+          Top 100
+        </button>
+      </div>
+
+      {subTab === 'heatmap' ? (
+        <HeatmapView onTickerClick={onTickerClick} />
+      ) : (
+        <Top100View stocks={allStocks} onTickerClick={onTickerClick} />
+      )}
     </div>
   );
 }

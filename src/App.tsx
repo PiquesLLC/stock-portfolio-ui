@@ -82,7 +82,7 @@ const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlist
 const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'portfolio', label: 'Portfolio' },
   { id: 'insights', label: 'Insights' },
-  { id: 'discover', label: 'Heatmap' },
+  { id: 'discover', label: 'Discover' },
   { id: 'watchlists', label: 'Watchlists' },
   { id: 'nala', label: 'Nala AI' },
 ];

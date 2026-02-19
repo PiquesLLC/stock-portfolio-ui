@@ -28,7 +28,7 @@ const MoreIcon = <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="
 const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'portfolio', label: 'Portfolio' },
   { id: 'insights', label: 'Insights' },
-  { id: 'discover', label: 'Heatmap' },
+  { id: 'discover', label: 'Discover' },
   { id: 'watchlists', label: 'Watchlists' },
 ];
 

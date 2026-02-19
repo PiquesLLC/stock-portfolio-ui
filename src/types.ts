@@ -1270,6 +1270,8 @@ export interface HeatmapStock {
   dayChange: number;
   marketCapB: number;
   subSector: string;
+  volume?: number;
+  avgVolume?: number;
 }
 
 export interface HeatmapSubSector {
