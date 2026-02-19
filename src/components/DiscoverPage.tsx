@@ -1154,7 +1154,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
       <div className="pt-1.5">
       {/* Segmented control — forced dark tokens */}
       <div
-        className="inline-flex items-center w-fit flex-nowrap"
+        className="flex items-center w-full flex-nowrap"
         style={{
           colorScheme: 'dark',
           height: 32,
@@ -1173,8 +1173,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
               key={f.id}
               data-active={isActive || undefined}
               onClick={() => setFilter(f.id)}
-              className="flex items-center whitespace-nowrap"
+              className="flex items-center justify-center whitespace-nowrap"
               style={{
+                flex: 1,
                 gap: 6,
                 padding: '0 12px',
                 height: 24,
