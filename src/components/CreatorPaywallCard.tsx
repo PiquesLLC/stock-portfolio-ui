@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CreatorProfile, PerformanceData } from '../types';
 
 interface CreatorSubscribeButtonProps {
@@ -43,14 +44,15 @@ export function CreatorSubscribeButton({ creator, performance, onSubscribe, load
         {creator.trialDays > 0 ? `Free Trial · ${price}/mo` : `Subscribe ${price}/mo`}
       </button>
 
-      {open && (
+      {open && createPortal(
         <CreatorSubscribeModal
           creator={creator}
           performance={performance}
           onSubscribe={() => { onSubscribe(); setOpen(false); }}
           onClose={() => setOpen(false)}
           loading={loading}
-        />
+        />,
+        document.body
       )}
     </>
   );
