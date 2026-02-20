@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Portfolio, Holding, LeaderboardWindow, MarketSession, PortfolioIntelligenceResponse, IntelligenceWindow } from '../types';
-import { getUserPortfolio, getUserProfile, getUserIntelligence, getUserChart } from '../api';
+import { Portfolio, Holding, LeaderboardWindow, MarketSession, PortfolioIntelligenceResponse, IntelligenceWindow, CreatorProfile, CreatorEntitlement, PerformanceData } from '../types';
+import { getUserPortfolio, getUserProfile, getUserIntelligence, getUserChart, getCreatorEntitlement, subscribeToCreator } from '../api';
 import { PortfolioValueChart } from './PortfolioValueChart';
 import { FollowButton } from './FollowButton';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { StockDetailView } from './StockDetailView';
+import { CreatorPaywallCard } from './CreatorPaywallCard';
 
 type HoldingSortKey = 'ticker' | 'shares' | 'price' | 'value' | 'dayPL' | 'dayChg' | 'pl' | 'plPct';
 type SortDir = 'asc' | 'desc';
@@ -95,13 +96,47 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
     return `${base} ${alignCls} ${activeCls}`;
   };
 
-  // Fetch follow status
+  // Creator state
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [entitlement, setEntitlement] = useState<CreatorEntitlement | null>(null);
+  const [performance, setPerformance] = useState<PerformanceData | null>(null);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
+  const isOwner = currentUserId === userId;
+
+  // Fetch follow status + creator profile
   useEffect(() => {
     if (!currentUserId || currentUserId === userId) return;
     getUserProfile(userId, currentUserId)
-      .then((p) => setIsFollowing(p.viewerIsFollowing))
+      .then((p) => {
+        setIsFollowing(p.viewerIsFollowing);
+        setCreatorProfile(p.creator ?? null);
+        setPerformance(p.performance ?? null);
+      })
       .catch(() => {});
   }, [userId, currentUserId]);
+
+  // Creator entitlement
+  useEffect(() => {
+    if (creatorProfile?.status === 'active' && !isOwner) {
+      getCreatorEntitlement(userId).then(setEntitlement).catch(() => setEntitlement(null));
+    }
+  }, [creatorProfile?.status, userId, isOwner]);
+
+  const handleSubscribe = async () => {
+    setSubscribing(true);
+    setSubscribeError(null);
+    try {
+      await subscribeToCreator(userId);
+      // Refresh entitlement after subscribing
+      const ent = await getCreatorEntitlement(userId);
+      setEntitlement(ent);
+    } catch (err) {
+      setSubscribeError(err instanceof Error ? err.message : 'Failed to subscribe');
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   // Fetch intelligence for this user
   useEffect(() => {
@@ -241,6 +276,21 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
           </span>
         )}
       </div>
+
+      {/* Creator Paywall Card */}
+      {creatorProfile?.status === 'active' && !isOwner && entitlement?.level !== 'paid' && (
+        <div className="mb-4">
+          <CreatorPaywallCard
+            creator={creatorProfile}
+            performance={performance}
+            onSubscribe={handleSubscribe}
+            loading={subscribing}
+          />
+          {subscribeError && (
+            <p className="mt-2 text-xs text-red-500 dark:text-red-400 text-center">{subscribeError}</p>
+          )}
+        </div>
+      )}
 
       {error && <div className="text-rh-red text-sm mb-4">{error}</div>}
 
