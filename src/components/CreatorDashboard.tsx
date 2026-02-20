@@ -22,7 +22,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
   const [data, setData] = useState<CreatorDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [payoutLoading, setPayoutLoading] = useState(false);
-  const [payoutMessage, setPayoutMessage] = useState<string | null>(null);
+  const [payoutMessage, setPayoutMessage] = useState<{ text: string; isError: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadDashboard = useCallback(async () => {
@@ -44,10 +44,10 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
     setPayoutMessage(null);
     try {
       const result = await requestCreatorPayout();
-      setPayoutMessage(`Payout of ${formatCents(result.amountCents)} requested`);
+      setPayoutMessage({ text: `Payout of ${formatCents(result.amountCents)} requested`, isError: false });
       loadDashboard();
     } catch (err) {
-      setPayoutMessage(err instanceof Error ? err.message : 'Payout failed');
+      setPayoutMessage({ text: err instanceof Error ? err.message : 'Payout failed', isError: true });
     } finally {
       setPayoutLoading(false);
     }
@@ -195,7 +195,9 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
           </p>
         )}
         {payoutMessage && (
-          <p className="mt-2 text-xs text-rh-green">{payoutMessage}</p>
+          <p className={`mt-2 text-xs ${payoutMessage.isError ? 'text-red-600 dark:text-red-400' : 'text-rh-green'}`}>
+            {payoutMessage.text}
+          </p>
         )}
       </section>
 

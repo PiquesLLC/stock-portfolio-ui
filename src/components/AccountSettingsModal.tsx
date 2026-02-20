@@ -668,7 +668,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                               ? 'bg-rh-green/15 text-rh-green'
                               : creatorProfile.status === 'pending'
                               ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400'
-                              : 'bg-red-500/15 text-red-400'
+                              : 'bg-red-500/15 text-red-600 dark:text-red-400'
                           }`}>
                             {creatorProfile.status}
                           </span>
@@ -677,6 +677,8 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                       <p className="text-xs text-rh-light-muted dark:text-rh-muted">
                         {creatorProfile.status === 'active'
                           ? 'Your creator profile is live. Manage your settings and view earnings from the dashboard.'
+                          : creatorProfile.status === 'suspended'
+                          ? 'Your creator profile has been suspended. Contact support for details.'
                           : 'Your application is being reviewed.'}
                       </p>
                     </div>

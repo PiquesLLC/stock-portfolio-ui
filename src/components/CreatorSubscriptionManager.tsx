@@ -14,6 +14,7 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
   const [subscriptions, setSubscriptions] = useState<CreatorSubscriptionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     getMyCreatorSubscriptions()
@@ -25,13 +26,14 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
   const handleCancel = async (sub: CreatorSubscriptionInfo) => {
     if (!confirm(`Cancel subscription to ${sub.creatorDisplayName}? You'll retain access until the end of your billing period.`)) return;
     setCancelingId(sub.id);
+    setCancelError(null);
     try {
       await cancelCreatorSubscription(sub.creatorUserId);
       setSubscriptions(prev =>
         prev.map(s => s.id === sub.id ? { ...s, status: 'canceled', canceledAt: new Date().toISOString() } : s)
       );
     } catch (err) {
-      console.error('Cancel error:', err);
+      setCancelError(err instanceof Error ? err.message : 'Failed to cancel subscription');
     } finally {
       setCancelingId(null);
     }
@@ -84,7 +86,7 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
               <button
                 onClick={() => handleCancel(sub)}
                 disabled={cancelingId === sub.id}
-                className="text-xs text-red-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                className="text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors disabled:opacity-50"
               >
                 {cancelingId === sub.id ? '...' : 'Cancel'}
               </button>
@@ -92,6 +94,9 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
           </div>
         </div>
       ))}
+      {cancelError && (
+        <p className="mt-2 text-xs text-red-600 dark:text-red-400 text-center">{cancelError}</p>
+      )}
     </div>
   );
 }
