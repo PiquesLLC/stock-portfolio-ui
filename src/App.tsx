@@ -48,6 +48,9 @@ const StockDetailView = lazy(() => import('./components/StockDetailView').then(m
 const PricingPage = lazy(() => import('./components/PricingPage').then(m => ({ default: m.PricingPage })));
 const PortfolioCompare = lazy(() => import('./components/PortfolioCompare').then(m => ({ default: m.PortfolioCompare })));
 const CompareStocksPage = lazy(() => import('./components/CompareStocksPage').then(m => ({ default: m.CompareStocksPage })));
+const CreatorDashboardPage = lazy(() => import('./components/CreatorDashboard').then(m => ({ default: m.CreatorDashboard })));
+const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsPage').then(m => ({ default: m.CreatorSettingsPage })));
+const CreatorLedgerPage = lazy(() => import('./components/CreatorLedger').then(m => ({ default: m.CreatorLedger })));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -188,6 +191,7 @@ export default function App() {
   // Premium-gated: const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | 'ledger' | null>(null);
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -1279,6 +1283,33 @@ export default function App() {
               <PricingPage />
             </ErrorBoundary>
           )}
+
+          {creatorView === 'dashboard' && (
+            <ErrorBoundary>
+              <CreatorDashboardPage
+                onBack={() => setCreatorView(null)}
+                onSettingsClick={() => setCreatorView('settings')}
+                onLedgerClick={() => setCreatorView('ledger')}
+              />
+            </ErrorBoundary>
+          )}
+
+          {creatorView === 'settings' && (
+            <ErrorBoundary>
+              <CreatorSettingsPageComp
+                userId={currentUserId}
+                onBack={() => setCreatorView('dashboard')}
+              />
+            </ErrorBoundary>
+          )}
+
+          {creatorView === 'ledger' && (
+            <ErrorBoundary>
+              <CreatorLedgerPage
+                onBack={() => setCreatorView('dashboard')}
+              />
+            </ErrorBoundary>
+          )}
         </Suspense>
       </main>
 
@@ -1331,6 +1362,7 @@ export default function App() {
         onClose={() => setSettingsModalOpen(false)}
         onSave={() => fetchData()}
         healthStatus={healthStatus}
+        onCreatorNavigate={(view) => { setSettingsModalOpen(false); setCreatorView(view); }}
       />
       <PrivacyPolicyModal
         isOpen={showPrivacyModal}

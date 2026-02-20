@@ -17,9 +17,10 @@ interface AccountSettingsModalProps {
   onClose: () => void;
   onSave?: () => void;
   healthStatus?: HealthStatus | null;
+  onCreatorNavigate?: (view: 'dashboard' | 'settings' | 'ledger') => void;
 }
 
-export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthStatus }: AccountSettingsModalProps) {
+export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthStatus, onCreatorNavigate }: AccountSettingsModalProps) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -681,6 +682,25 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                           ? 'Your creator profile has been suspended. Contact support for details.'
                           : 'Your application is being reviewed.'}
                       </p>
+                      {creatorProfile.status === 'active' && onCreatorNavigate && (
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => onCreatorNavigate('dashboard')}
+                            className="px-3 py-1.5 text-xs font-medium rounded-lg
+                              bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
+                          >
+                            Dashboard
+                          </button>
+                          <button
+                            onClick={() => onCreatorNavigate('settings')}
+                            className="px-3 py-1.5 text-xs font-medium rounded-lg
+                              bg-gray-100 dark:bg-white/[0.08] text-rh-light-text dark:text-rh-text
+                              hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors"
+                          >
+                            Settings
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>
