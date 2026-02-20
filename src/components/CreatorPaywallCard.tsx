@@ -173,11 +173,6 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
           <div className="flex items-baseline gap-1 mb-2">
             <span className="text-2xl font-bold text-rh-green">{price}</span>
             <span className="text-sm text-rh-light-muted dark:text-rh-muted">/mo</span>
-            {creator.trialDays > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-rh-green/10 text-rh-green">
-                {creator.trialDays}-day free trial
-              </span>
-            )}
           </div>
 
           {/* Subscribe button */}
@@ -187,12 +182,7 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
             className="w-full py-2.5 rounded-lg bg-rh-green text-white text-sm font-semibold
               hover:bg-rh-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading
-              ? 'Loading...'
-              : creator.trialDays > 0
-                ? `Start ${creator.trialDays}-day free trial`
-                : `Subscribe — ${price}/mo`
-            }
+            {loading ? 'Loading...' : `Subscribe — ${price}/mo`}
           </button>
 
           {/* Trust strip */}

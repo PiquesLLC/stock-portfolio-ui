@@ -73,7 +73,6 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
             <p className="text-xs text-rh-light-muted dark:text-rh-muted">
               {formatPrice(sub.pricingCents)}
               {sub.status === 'canceled' && ' — cancels at end of period'}
-              {sub.trialEnd && new Date(sub.trialEnd) > new Date() && ' — trial'}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">

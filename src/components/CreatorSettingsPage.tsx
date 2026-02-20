@@ -54,7 +54,6 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
 
   // Form state
   const [pricing, setPricing] = useState<CreatorPricingCents>(500);
-  const [trialDays, setTrialDays] = useState<0 | 7>(0);
   const [pitch, setPitch] = useState('');
   const [showHoldings, setShowHoldings] = useState(true);
   const [showTradeHistory, setShowTradeHistory] = useState(false);
@@ -71,7 +70,6 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       setCreator(profile);
       // Populate form
       setPricing(profile.pricingCents);
-      setTrialDays(profile.trialDays as 0 | 7);
       setPitch(profile.pitch || '');
       setShowHoldings(profile.visibility.showHoldings);
       setShowTradeHistory(profile.visibility.showTradeHistory);
@@ -97,7 +95,6 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
     try {
       const settings: CreatorSettingsUpdate = {
         pricingCents: pricing,
-        trialDays,
         pitch: pitch.trim() || undefined,
         showHoldings,
         showTradeHistory,
@@ -220,24 +217,6 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
               {opt.label}
             </button>
           ))}
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-rh-light-text dark:text-rh-text">Free trial</span>
-          <div className="flex gap-1.5">
-            {([0, 7] as const).map(d => (
-              <button
-                key={d}
-                onClick={() => setTrialDays(d)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border ${
-                  trialDays === d
-                    ? 'border-rh-green bg-rh-green/10 text-rh-green'
-                    : 'border-gray-200 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted'
-                }`}
-              >
-                {d === 0 ? 'None' : '7 days'}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 

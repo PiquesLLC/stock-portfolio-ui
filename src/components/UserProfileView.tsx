@@ -292,20 +292,20 @@ function getAvatarGradient(grade: string): string {
   return 'conic-gradient(from 0deg, #E8544E, rgba(232,84,78,0.1), #E8544E)';
 }
 
-/** Lock overlay — blurs the content underneath, lock message stays sharp */
-function LockedOverlay({ label, onClick }: { label: string; onClick?: () => void }) {
+/** Lock overlay — minimal text + icon floating over blurred content */
+function LockedOverlay({ onClick }: { onClick?: () => void }) {
   return (
     <div
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center cursor-pointer"
+      className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer"
       onClick={onClick}
     >
-      <div className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl bg-white/80 dark:bg-white/[0.08] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.08] shadow-sm">
-        <svg className="w-4 h-4 text-rh-light-muted/60 dark:text-rh-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+      <div className="flex items-center gap-1.5 transition-opacity hover:opacity-70">
+        <svg className="w-4 h-4 text-yellow-500 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
-        <span className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted">
-          Subscribe to unlock {label.toLowerCase()}
+        <span className="text-sm font-semibold text-gray-400 dark:text-white/40">
+          Subscribe to unlock
         </span>
       </div>
     </div>
@@ -988,9 +988,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           variants={itemVariants}
           className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
-          {lockHoldings && <LockedOverlay label="Holdings" onClick={() => setShowSubscribeModal(true)} />}
-          <div className={lockHoldings ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
+          {lockHoldings && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
+          <div className={lockHoldings ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="flex items-center gap-3 px-1.5 mb-1">
             <span className="w-16 shrink-0"></span>
             <div className="flex-1"></div>
@@ -1034,12 +1034,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             'border-l-yellow-500/30'
           }`}
         >
-          {lockSignal && <LockedOverlay label="Signal Summary" onClick={() => setShowSubscribeModal(true)} />}
-          <div className={lockSignal ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="flex items-center gap-2.5 mb-3">
             <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
             <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
           </div>
+          {lockSignal && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
+          <div className={lockSignal ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
             {intelligence?.topContributor && (
               <div className="flex justify-between items-center gap-2">
@@ -1110,16 +1110,16 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           variants={itemVariants}
           className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
-          {lockActivity && <LockedOverlay label="Latest Moves" onClick={() => setShowSubscribeModal(true)} />}
-          <div className={lockActivity ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">
             Latest Moves
           </h3>
+          {lockActivity && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
+          <div className={lockActivity ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="relative">
             {/* Timeline spine */}
             <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-gray-300 dark:from-white/[0.12] via-gray-200 dark:via-white/[0.06] to-transparent" />
             <div className="space-y-4 pl-6">
-              {groupByDate(profile.recentActivity.slice(0, 8)).map((group) => (
+              {groupByDate(profile.recentActivity.slice(0, 4)).map((group) => (
                 <div key={group.date}>
                   <p className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider mb-1.5 -ml-1">{group.date}</p>
                   <div className="space-y-2.5">
