@@ -37,8 +37,10 @@ export default function Starfield() {
   const timeRef = useRef(0);
 
   useEffect(() => {
-    // Skip on mobile/tablet
+    // Desktop only
     if (window.innerWidth < 1024) return;
+    // User can disable via settings
+    if (localStorage.getItem('starfieldEnabled') === 'false') return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;

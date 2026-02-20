@@ -211,7 +211,11 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
       await Promise.allSettled(fetchPromises);
 
-      insightsCache.lastFetchTime = Date.now();
+      // Only mark cache as fresh if both data sources loaded — prevents
+      // caching a partial success that skips retrying the failed source
+      if (insightsCache.healthScore && insightsCache.intelligence) {
+        insightsCache.lastFetchTime = Date.now();
+      }
       if (mountedRef.current) {
         setInitialLoadComplete(true);
       }

@@ -168,8 +168,8 @@ export function LiveHeadlines({ channel, isLive, onTickerClick }: LiveHeadlinesP
                 key={ticker}
                 onClick={() => onTickerClick(ticker)}
                 className="flex-shrink-0 text-xs font-mono font-medium px-2.5 py-1 rounded-full
-                  bg-neutral-800 border border-neutral-700
-                  text-white/70 hover:bg-neutral-700 hover:text-green-400
+                  bg-gray-100 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700
+                  text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-neutral-700 hover:text-rh-green dark:hover:text-green-400
                   transition-colors duration-150 cursor-pointer"
               >
                 {ticker}

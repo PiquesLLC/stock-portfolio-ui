@@ -184,8 +184,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         ticker: e.ticker,
       }));
 
-      // Convert anomaly events to unified format
-      const unifiedAnomalies: UnifiedNotification[] = anomalyEvents.map((e: AnomalyEvent) => ({
+      // Convert anomaly events to unified format (exclude concentration — shown in Health Score instead)
+      const unifiedAnomalies: UnifiedNotification[] = anomalyEvents.filter((e: AnomalyEvent) => e.type !== 'concentration').map((e: AnomalyEvent) => ({
         id: e.id,
         type: 'anomaly' as const,
         label: ALERT_TYPE_LABELS[e.type] || e.type.replace('_', ' '),
@@ -202,15 +202,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
       setNotifications(merged);
 
-      // Refresh count
-      const [alertCount, priceAlertCount, analystCount, milestoneCount, anomalyCount] = await Promise.all([
-        getUnreadAlertCount(userId),
-        getUnreadPriceAlertCount(userId),
-        getUnreadAnalystCount(),
-        getUnreadMilestoneCount(),
-        getUnreadAnomalyCount(),
-      ]);
-      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
+      // Compute unread from filtered merged list (avoids counting excluded types like concentration)
+      setUnreadCount(merged.filter(n => !n.read).length);
     } catch {}
   }, [userId]);
 

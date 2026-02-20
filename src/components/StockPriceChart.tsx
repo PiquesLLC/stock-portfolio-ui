@@ -54,10 +54,11 @@ interface Props {
   onRequestResolution?: (level: 'daily' | 'hourly' | 'intraday', rangeStart: number, rangeEnd: number) => void;
   zoomData?: { time: number; label: string; price: number; volume?: number }[];
   // Comparison overlay — normalized % return lines from other tickers
-  comparisons?: { ticker: string; color: string; points: { time: number; price: number }[] }[];
+  comparisons?: { ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[];
+  overrideLineColor?: string; // Force main line to a specific color (used by Compare page)
 }
 
-export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons }: Props) {
+export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons, overrideLineColor }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -744,7 +745,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     : (points.length > 0 ? points[points.length - 1].price : currentPrice);
   const isGain = trendEndPrice >= referencePrice;
   // Chart line colors — muted (same as portfolio chart so fill intensity matches)
-  const lineColor = isGain ? '#0A9E10' : '#B87872';
+  const lineColor = overrideLineColor ?? (isGain ? '#0A9E10' : '#B87872');
 
   // Pre-compute visible MA values — computed on the ACTUAL displayed candles per timeframe
   const visibleMaData = useMemo(() => {
@@ -760,7 +761,9 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
         if (ma <= 10 && hasIntraday) {
           const prices = intradayCandles!.map(c => c.close);
           const sma = calcSMA(prices, ma);
-          result.push({ period: ma, values: [null, ...sma] });
+          const padCount = points.length - sma.length;
+          const padded = Array(Math.max(0, padCount)).fill(null).concat(sma);
+          result.push({ period: ma, values: padded });
         } else if (hasDaily) {
           // Flat line from latest daily SMA value
           const sma = calcSMA(candles!.closes, ma);
@@ -799,7 +802,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     return result;
   }, [candles, intradayCandles, hourlyCandles, points, selectedPeriod]);
 
-  // Compute stable Y-axis range (includes enabled MA values)
+  // Compute stable Y-axis range (includes enabled MA values + comparison overlays)
   const { paddedMin, paddedMax } = useMemo(() => {
     // When zoomed, rescale Y to visible points only for better detail
     const targetPts = zoomRange ? visiblePoints : points;
@@ -807,6 +810,21 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     const prices = targetPts.map(p => p.price);
     let minP = zoomRange ? Math.min(...prices) : Math.min(...prices, referencePrice);
     let maxP = zoomRange ? Math.max(...prices) : Math.max(...prices, referencePrice);
+
+    // Include comparison overlay data in Y range so lines don't clip
+    // Only include points within the visible time range
+    if (comparisons && comparisons.length > 0) {
+      const visStart = targetPts[0].time;
+      const visEnd = targetPts[targetPts.length - 1].time;
+      for (const comp of comparisons) {
+        for (const cp of comp.points) {
+          if (cp.time >= visStart && cp.time <= visEnd) {
+            if (cp.price < minP) minP = cp.price;
+            if (cp.price > maxP) maxP = cp.price;
+          }
+        }
+      }
+    }
 
     // Never include MAs in Y range — scale chart to price action only.
     // MAs that are far from price will clip at the plot boundary (Robinhood-style).
@@ -832,7 +850,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     }
     const range = maxP - minP;
     return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
-  }, [points, referencePrice, selectedPeriod, visibleMaData, enabledMAs, zoomRange, visiblePoints]);
+  }, [points, referencePrice, selectedPeriod, visibleMaData, enabledMAs, zoomRange, visiblePoints, comparisons]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
   const plotH = CHART_H - PAD_TOP - PAD_BOTTOM;
@@ -875,7 +893,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
       if (is1D) {
         // 1D intraday: time-based positioning within day window
         const t = points[i].time;
-        const ratio = (t - zoomRange.startMs) / (zoomRange.endMs - zoomRange.startMs);
+        const ratio = Math.max(0, Math.min(1, (t - zoomRange.startMs) / (zoomRange.endMs - zoomRange.startMs)));
         return PAD_LEFT + ratio * plotW;
       }
       // Multi-day: index-based within visible range — eliminates weekend/holiday gaps
@@ -884,7 +902,8 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
       return PAD_LEFT + ((i - visStartIdx) / count) * plotW;
     }
     if (is1D && dayRangeMs > 0) {
-      return PAD_LEFT + ((points[i].time - dayStartMs) / dayRangeMs) * plotW;
+      const ratio = Math.max(0, Math.min(1, (points[i].time - dayStartMs) / dayRangeMs));
+      return PAD_LEFT + ratio * plotW;
     }
     return PAD_LEFT + (points.length > 1 ? (i / (points.length - 1)) * plotW : plotW / 2);
   };
@@ -1389,24 +1408,30 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   const timeLabels: { label: string; x: number }[] = [];
   if (points.length > 1) {
     if (zoomRange) {
-      // Zoomed: generate labels from visible points only
+      // Zoomed: generate labels from visible points only, skip duplicates
       const maxTimeLabels = 5;
       const visCount = visEndIdx - visStartIdx + 1;
       const step = Math.max(1, Math.floor(visCount / maxTimeLabels));
       for (let j = 0; j < visCount; j += step) {
         const i = visStartIdx + j;
         if (i < points.length) {
-          timeLabels.push({ label: points[i].label, x: toX(i) });
+          const lbl = points[i].label;
+          if (timeLabels.length > 0 && timeLabels[timeLabels.length - 1].label === lbl) continue;
+          timeLabels.push({ label: lbl, x: toX(i) });
         }
       }
       // Include last visible point
       if (visEndIdx > visStartIdx) {
+        const lastLabel = points[visEndIdx].label;
         const lastX = toX(visEndIdx);
+        const prevLabel = timeLabels.length > 0 ? timeLabels[timeLabels.length - 1].label : '';
         const prevX = timeLabels.length > 0 ? timeLabels[timeLabels.length - 1].x : 0;
-        if (lastX - prevX > 70) {
-          timeLabels.push({ label: points[visEndIdx].label, x: lastX });
-        } else if (timeLabels.length > 0) {
-          timeLabels[timeLabels.length - 1] = { label: points[visEndIdx].label, x: lastX };
+        if (lastLabel !== prevLabel) {
+          if (lastX - prevX > 70) {
+            timeLabels.push({ label: lastLabel, x: lastX });
+          } else if (timeLabels.length > 0) {
+            timeLabels[timeLabels.length - 1] = { label: lastLabel, x: lastX };
+          }
         }
       }
     } else if (selectedPeriod === '1D') {
@@ -1434,22 +1459,32 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
         timeLabels.push({ label, x });
       }
     } else {
-      const maxTimeLabels = 5;
-      const step = Math.max(1, Math.floor(points.length / maxTimeLabels));
-      for (let i = 0; i < points.length; i += step) {
-        timeLabels.push({ label: points[i].label, x: toX(i) });
+      // Collect first occurrence of each unique date label with its x position
+      const uniqueDates: { label: string; x: number }[] = [];
+      for (let i = 0; i < points.length; i++) {
+        const lbl = points[i].label;
+        if (uniqueDates.length === 0 || uniqueDates[uniqueDates.length - 1].label !== lbl) {
+          uniqueDates.push({ label: lbl, x: toX(i) });
+        }
       }
-      // Always include the last data point so today's date shows at the right edge
-      const lastIdx = points.length - 1;
-      if (lastIdx > 0 && (lastIdx % step !== 0)) {
-        const lastX = toX(lastIdx);
-        const prevX = timeLabels.length > 0 ? timeLabels[timeLabels.length - 1].x : 0;
-        // Only add last label if it won't overlap with previous (need ~70px minimum gap)
-        if (lastX - prevX > 70) {
-          timeLabels.push({ label: points[lastIdx].label, x: lastX });
-        } else {
-          // Replace the previous label with the last one (prefer showing current date)
-          timeLabels[timeLabels.length - 1] = { label: points[lastIdx].label, x: lastX };
+      // Pick evenly from unique dates
+      const maxTimeLabels = 6;
+      if (uniqueDates.length <= maxTimeLabels) {
+        timeLabels.push(...uniqueDates);
+      } else {
+        const step = Math.max(1, Math.floor(uniqueDates.length / maxTimeLabels));
+        for (let i = 0; i < uniqueDates.length; i += step) {
+          timeLabels.push(uniqueDates[i]);
+        }
+        // Always include the last date
+        const last = uniqueDates[uniqueDates.length - 1];
+        const prev = timeLabels[timeLabels.length - 1];
+        if (prev.label !== last.label) {
+          if (last.x - prev.x > 70) {
+            timeLabels.push(last);
+          } else {
+            timeLabels[timeLabels.length - 1] = last;
+          }
         }
       }
     }
@@ -1688,6 +1723,26 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     return result;
   }, [hoverIndex, enabledMAs, visibleMaData]);
 
+  // Comparison values at hover position
+  const hoverCompValues = useMemo(() => {
+    if (hoverIndex === null || !comparisons || comparisons.length === 0) return [];
+    const hoverTime = points[hoverIndex].time;
+    return comparisons.map(comp => {
+      // Find nearest comparison point by time
+      let best = comp.points[0];
+      let bestDist = Math.abs(best.time - hoverTime);
+      for (const cp of comp.points) {
+        const dist = Math.abs(cp.time - hoverTime);
+        if (dist < bestDist) { best = cp; bestDist = dist; }
+      }
+      // price = normalized (for Y positioning), rawPrice = actual stock price (for display)
+      // Compute % change from the first visible comparison point
+      const firstRaw = comp.points[0].rawPrice;
+      const pctChange = firstRaw !== 0 ? ((best.rawPrice - firstRaw) / firstRaw) * 100 : 0;
+      return { ticker: comp.ticker, color: comp.color, price: best.price, rawPrice: best.rawPrice, pctChange };
+    });
+  }, [hoverIndex, comparisons, points]);
+
   // HUD data for hovered breach
   // Also trigger HUD when the chart crosshair hovers near a signal's index
   const effectiveBreachIndex = hoveredBreachIndex
@@ -1818,9 +1873,10 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
 
       {/* MA values bar — fixed height so chart never shifts */}
       <div className="h-[20px] min-h-[20px] mb-1 flex items-center">
-        {safeHoverIndex !== null && (hoverMaValues.length > 0 || volumeEnabled) && !hasMeasurement && (
+        {safeHoverIndex !== null && (hoverMaValues.length > 0 || hoverCompValues.length > 0 || volumeEnabled) && !hasMeasurement && (
           <div className="flex items-center gap-4 h-full">
-            <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {comparisons && comparisons.length > 0 && <span className="text-rh-light-muted dark:text-rh-muted font-medium">{ticker}</span>}
               ${points[safeHoverIndex].price.toFixed(2)}
             </span>
             {hoverMaValues.filter(ma => ma.value != null).map(ma => (
@@ -1828,6 +1884,16 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ma.color }} />
                 <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}</span>
                 <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${ma.value.toFixed(2)}</span>
+              </span>
+            ))}
+            {hoverCompValues.map(cv => (
+              <span key={cv.ticker} className="flex items-center gap-1 text-[11px]">
+                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cv.color }} />
+                <span className="text-rh-light-muted dark:text-rh-muted">{cv.ticker}</span>
+                <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${cv.rawPrice.toFixed(2)}</span>
+                <span className={`font-medium ${cv.pctChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {cv.pctChange >= 0 ? '+' : ''}{cv.pctChange.toFixed(2)}%
+                </span>
               </span>
             ))}
             {volumeEnabled && points[safeHoverIndex].volume != null && points[safeHoverIndex].volume! > 0 && (
@@ -2056,11 +2122,13 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
             </g>
           )}
 
-          {/* Moving average lines — clipped to plot area */}
+          {/* Moving average lines — clipped to plot area (dimmed when comparisons active) */}
           <g clipPath="url(#plot-clip)">
             {maPaths.map(({ period, d }) => (
               <path key={`ma-${period}`} d={d} fill="none" stroke={MA_COLORS[period]}
-                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.55" />
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                opacity={comparisons && comparisons.length > 0 ? 0.2 : 0.55}
+                style={{ transition: 'opacity 0.2s' }} />
             ))}
           </g>
 
@@ -2069,55 +2137,111 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
             <g clipPath="url(#plot-clip)">
               {comparisons.map(comp => {
                 if (comp.points.length < 2) return null;
+
+                // Filter comparison points to the visible time range to prevent
+                // pre-range points from clustering at X=0 (vertical line artifact)
+                const visStart = zoomRange ? points[visStartIdx].time : points[0].time;
+                const visEnd = zoomRange ? points[visEndIdx].time : points[points.length - 1].time;
+                const visibleCompPts = comp.points.filter(cp => cp.time >= visStart && cp.time <= visEnd);
+                if (visibleCompPts.length < 2) return null;
+
                 // Helper: find x position for a comparison point's timestamp
                 const compToX = (t: number): number => {
-                  if (zoomRange && !is1D) {
-                    // Multi-day zoomed: find nearest main point by time, use its index position
-                    let lo = visStartIdx, hi = visEndIdx;
-                    while (lo < hi) {
-                      const mid = (lo + hi) >> 1;
-                      if (points[mid].time < t) lo = mid + 1; else hi = mid;
+                  if (is1D) {
+                    if (zoomRange) {
+                      return PAD_LEFT + ((t - zoomRange.startMs) / (zoomRange.endMs - zoomRange.startMs)) * plotW;
                     }
-                    // lo is first index >= t; pick closer of lo vs lo-1
-                    if (lo > visStartIdx && Math.abs(points[lo - 1].time - t) < Math.abs(points[lo].time - t)) lo--;
-                    return toX(Math.max(visStartIdx, Math.min(visEndIdx, lo)));
+                    if (dayRangeMs > 0) {
+                      return PAD_LEFT + ((t - dayStartMs) / dayRangeMs) * plotW;
+                    }
+                    return PAD_LEFT;
                   }
-                  if (zoomRange && is1D) {
-                    return PAD_LEFT + ((t - zoomRange.startMs) / (zoomRange.endMs - zoomRange.startMs)) * plotW;
+                  // Non-1D: use index-based positioning (matches toX) via binary search
+                  const lo0 = zoomRange ? visStartIdx : 0;
+                  const hi0 = zoomRange ? visEndIdx : points.length - 1;
+                  let lo = lo0, hi = hi0;
+                  while (lo < hi) {
+                    const mid = (lo + hi) >> 1;
+                    if (points[mid].time < t) lo = mid + 1; else hi = mid;
                   }
-                  if (is1D && dayRangeMs > 0) {
-                    return PAD_LEFT + ((t - dayStartMs) / dayRangeMs) * plotW;
-                  }
-                  if (points.length > 1) {
-                    const startT = points[0].time;
-                    const endT = points[points.length - 1].time;
-                    const ratio = endT > startT ? (t - startT) / (endT - startT) : 0;
-                    return PAD_LEFT + ratio * plotW;
-                  }
-                  return PAD_LEFT;
+                  if (lo > lo0 && Math.abs(points[lo - 1].time - t) < Math.abs(points[lo].time - t)) lo--;
+                  return toX(Math.max(lo0, Math.min(hi0, lo)));
                 };
-                const compPath = comp.points.map((cp, j) => {
-                  const x = compToX(cp.time);
-                  const y = toY(cp.price);
-                  return `${j === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-                }).join(' ');
+
+                // Build path from a slice of comparison points
+                const buildCompSeg = (pts: typeof visibleCompPts) =>
+                  pts.map((cp, j) => `${j === 0 ? 'M' : 'L'}${compToX(cp.time).toFixed(1)},${toY(cp.price).toFixed(1)}`).join(' ');
+
+                const fullPath = buildCompSeg(visibleCompPts);
+                const dimOpacity = hoverIndex !== null ? 0.2 : 0.7;
+
+                // ── 1D: segment by pre-market / market / after-hours ──
+                if (is1D && stockOpenIdx !== null) {
+                  const closeIdx = stockCloseIdx ?? points.length - 1;
+                  // Map session boundaries to timestamps
+                  const openTime = points[stockOpenIdx].time;
+                  const closeTime = points[closeIdx].time;
+                  let hoveredSession: 'pre' | 'market' | 'after' | null = null;
+                  if (hoverIndex !== null) {
+                    if (hoverIndex < stockOpenIdx) hoveredSession = 'pre';
+                    else if (hoverIndex < closeIdx) hoveredSession = 'market';
+                    else hoveredSession = 'after';
+                  }
+                  const prePts = visibleCompPts.filter(cp => cp.time < openTime);
+                  const mktPts = visibleCompPts.filter(cp => cp.time >= openTime && cp.time <= closeTime);
+                  const ahPts = visibleCompPts.filter(cp => cp.time > closeTime);
+                  // Connect segments: add boundary points to avoid gaps
+                  if (prePts.length > 0 && mktPts.length > 0) mktPts.unshift(prePts[prePts.length - 1]);
+                  if (mktPts.length > 0 && ahPts.length > 0) ahPts.unshift(mktPts[mktPts.length - 1]);
+
+                  const segments: { pts: typeof visibleCompPts; session: 'pre' | 'market' | 'after' }[] = [];
+                  if (prePts.length >= 2) segments.push({ pts: prePts, session: 'pre' });
+                  if (mktPts.length >= 2) segments.push({ pts: mktPts, session: 'market' });
+                  if (ahPts.length >= 2) segments.push({ pts: ahPts, session: 'after' });
+
+                  return (
+                    <g key={comp.ticker}>
+                      {segments.map(s => (
+                        <path key={s.session} d={buildCompSeg(s.pts)} fill="none" stroke={comp.color}
+                          strokeWidth={hoveredSession === s.session ? 1.6 : 1.1}
+                          strokeLinecap="round" strokeLinejoin="round"
+                          opacity={hoveredSession === s.session ? 0.9 : (hoveredSession === null ? 0.55 : 0.2)}
+                              style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }} />
+                      ))}
+                    </g>
+                  );
+                }
+
+                // ── Multi-group (1W, 1M, etc.): highlight hovered day/week group ──
+                if (chartGroups.length > 1 && hoverIndex !== null) {
+                  const hg = chartGroups.find(g => hoverIndex >= g.startIdx && hoverIndex <= g.endIdx);
+                  let highlightSeg = '';
+                  if (hg) {
+                    const hgStart = points[Math.max(0, hg.startIdx - 1)].time;
+                    const hgEnd = points[Math.min(points.length - 1, hg.endIdx + 1)].time;
+                    const hgPts = visibleCompPts.filter(cp => cp.time >= hgStart && cp.time <= hgEnd);
+                    if (hgPts.length >= 2) highlightSeg = buildCompSeg(hgPts);
+                  }
+                  return (
+                    <g key={comp.ticker}>
+                      <path d={fullPath} fill="none" stroke={comp.color} strokeWidth="1.1"
+                        strokeLinecap="round" strokeLinejoin="round" opacity="0.25"
+                        style={{ transition: 'opacity 0.15s' }} />
+                      {highlightSeg && (
+                        <path d={highlightSeg} fill="none" stroke={comp.color} strokeWidth="1.6"
+                          strokeLinecap="round" strokeLinejoin="round" opacity="0.9"
+                          />
+                      )}
+                    </g>
+                  );
+                }
+
+                // ── Default: no hover or single group ──
                 return (
                   <g key={comp.ticker}>
-                    <path d={compPath} fill="none" stroke={comp.color} strokeWidth="1.3"
-                      strokeLinecap="round" strokeLinejoin="round" opacity="0.7"
-                      strokeDasharray="4,2" />
-                    {/* Label at end of line */}
-                    {(() => {
-                      const last = comp.points[comp.points.length - 1];
-                      const lx = compToX(last.time);
-                      const ly = toY(last.price);
-                      return (
-                        <text x={Math.min(lx + 4, CHART_W - PAD_RIGHT - 30)} y={ly + 3}
-                          fill={comp.color} fontSize="9" fontWeight="600" opacity="0.85">
-                          {comp.ticker}
-                        </text>
-                      );
-                    })()}
+                    <path d={fullPath} fill="none" stroke={comp.color} strokeWidth="1.3"
+                      strokeLinecap="round" strokeLinejoin="round" opacity={dimOpacity}
+                      style={{ transition: 'opacity 0.15s' }} />
                   </g>
                 );
               })}
@@ -2458,6 +2582,11 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
               <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
                 stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6" />
               <circle cx={hoverX} cy={hoverY} r="4" fill={lineColor} stroke="#fff" strokeWidth="1.5" />
+              {/* Comparison dots on crosshair */}
+              {hoverCompValues.map(cv => {
+                const cy = toY(cv.price);
+                return <circle key={cv.ticker} cx={hoverX} cy={cy} r="3.5" fill={cv.color} stroke="#000" strokeWidth="1.5" opacity="0.9" />;
+              })}
               {(() => {
                 // Clamp label position to prevent text from being cut off at SVG edges
                 const halfTextW = 30; // ~half width of date labels like "Feb 18"
@@ -2486,7 +2615,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
             const clampedX = Math.max(3, Math.min(CHART_W - 3, tl.x));
             const anchor = clampedX <= 5 ? 'start' : clampedX >= CHART_W - 5 ? 'end' : i === 0 ? 'start' : i === timeLabels.length - 1 ? 'end' : 'middle';
             return (
-              <text key={i} x={clampedX} y={CHART_H - 8} className="fill-gray-500" fontSize="10" textAnchor={anchor}>
+              <text key={i} x={clampedX} y={CHART_H - 8} className="fill-gray-600 dark:fill-gray-500" fontSize="10" textAnchor={anchor}>
                 {tl.label}
               </text>
             );

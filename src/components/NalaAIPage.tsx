@@ -196,7 +196,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
             className="w-full px-1 py-3 text-lg bg-transparent
               text-rh-light-text dark:text-white
               placeholder:text-rh-light-muted/40 dark:placeholder:text-white/25
-              border-b border-white/[0.12]
+              border-b border-gray-300/60 dark:border-white/[0.12]
               focus:border-b-2 focus:border-rh-green focus:shadow-[0_2px_15px_-3px_rgba(0,200,5,0.4)]
               focus:outline-none
               disabled:opacity-50

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout, PriceAlert, EarningsResponse, ActivityEvent, AnalystEvent } from '../types';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getFastQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts, getEarnings, getTickerActivity, getTickerNews, getAnalystEvents, getAIEvents, AIEventsResponse, MarketNewsItem } from '../api';
+import { getStockDetails, getStockQuote, getFastQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts, getEarnings, getTickerActivity, getTickerNews, getAnalystEvents, getAIEvents, AIEventsResponse, MarketNewsItem, followStock, unfollowStock, getStockFollowStatus } from '../api';
 import { DividendEvent, DividendCredit } from '../types';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
@@ -150,50 +150,96 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [compareTickers, setCompareTickers] = useState<string[]>([]);
   const [compareInput, setCompareInput] = useState('');
   const [showCompareInput, setShowCompareInput] = useState(false);
-  const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number }[] }[]>([]);
+  const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[]>([]);
 
-  const COMPARE_COLORS = ['#8B5CF6', '#F59E0B', '#EC4899']; // purple, amber, pink
+  const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, amber, pink, cyan
 
   // Fetch comparison data whenever compareTickers or chartPeriod changes
   useEffect(() => {
     if (compareTickers.length === 0) { setCompareData([]); return; }
 
     const fetchComps = async () => {
+      // Determine main ticker's reference price for normalization
+      // For daily-candle periods (3M/YTD/1Y), use the price at the period start, not first candle ever
+      let mainRefPrice = data?.quote?.currentPrice ?? 0;
+      if (chartPeriod === '1D' && intradayCandles.length > 0) {
+        mainRefPrice = intradayCandles[0].close;
+      } else if ((chartPeriod === '1W' || chartPeriod === '1M') && hourlyCandles.length > 0) {
+        mainRefPrice = hourlyCandles[0].close;
+      } else if (data?.candles && data.candles.closes.length > 0) {
+        // For daily candle periods, find the candle at the period start date
+        const cc = data.candles;
+        const now = Date.now();
+        let periodStartMs: number;
+        switch (chartPeriod) {
+          case '3M': periodStartMs = now - 90 * 86400000; break;
+          case 'YTD': periodStartMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
+          case '1Y': periodStartMs = now - 365 * 86400000; break;
+          default: periodStartMs = 0; break; // MAX: use first candle
+        }
+        // Find first candle on or after the period start
+        let refIdx = 0;
+        for (let i = 0; i < cc.dates.length; i++) {
+          if (new Date(cc.dates[i] + 'T12:00:00').getTime() >= periodStartMs) { refIdx = i; break; }
+        }
+        mainRefPrice = cc.closes[refIdx];
+      }
+      if (!mainRefPrice) return; // no reference yet
+
       const results: typeof compareData = [];
       for (let ci = 0; ci < compareTickers.length; ci++) {
         const ct = compareTickers[ci];
         try {
-          let compCandles: IntradayCandle[] = [];
+          let points: { time: number; price: number; rawPrice: number }[] = [];
+
           if (chartPeriod === '1D') {
-            compCandles = await getIntradayCandles(ct);
-          } else if (chartPeriod === '1W') {
-            compCandles = await getHourlyCandles(ct, '1W');
-          } else if (chartPeriod === '1M') {
-            compCandles = await getHourlyCandles(ct, '1M');
+            const compCandles = await getIntradayCandles(ct);
+            if (compCandles.length >= 2) {
+              const compStart = compCandles[0].close;
+              points = compCandles.map(c => ({
+                time: new Date(c.time).getTime(),
+                price: mainRefPrice * (1 + (c.close - compStart) / compStart),
+                rawPrice: c.close,
+              }));
+            }
+          } else if (chartPeriod === '1W' || chartPeriod === '1M') {
+            const compCandles = await getHourlyCandles(ct, chartPeriod);
+            if (compCandles.length >= 2) {
+              const compStart = compCandles[0].close;
+              points = compCandles.map(c => ({
+                time: new Date(c.time).getTime(),
+                price: mainRefPrice * (1 + (c.close - compStart) / compStart),
+                rawPrice: c.close,
+              }));
+            }
+          } else {
+            // 3M, YTD, 1Y, MAX — use daily candles with period-aware normalization
+            const compDetails = await getStockDetails(ct);
+            if (compDetails.candles && compDetails.candles.closes.length >= 2) {
+              const cc = compDetails.candles;
+              // Find comparison start price at the same period start date
+              const now = Date.now();
+              let periodStartMs: number;
+              switch (chartPeriod) {
+                case '3M': periodStartMs = now - 90 * 86400000; break;
+                case 'YTD': periodStartMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
+                case '1Y': periodStartMs = now - 365 * 86400000; break;
+                default: periodStartMs = 0; break; // MAX
+              }
+              let compRefIdx = 0;
+              for (let i = 0; i < cc.dates.length; i++) {
+                if (new Date(cc.dates[i] + 'T12:00:00').getTime() >= periodStartMs) { compRefIdx = i; break; }
+              }
+              const compStart = cc.closes[compRefIdx];
+              points = cc.dates.map((date, i) => ({
+                time: new Date(date + 'T12:00:00').getTime(),
+                price: mainRefPrice * (1 + (cc.closes[i] - compStart) / compStart),
+                rawPrice: cc.closes[i],
+              }));
+            }
           }
 
-          // For longer periods, use the existing candles structure — fetch via getStockDetails
-          // For now we use intraday/hourly for 1D/1W/1M and skip comparison on longer periods
-          if (compCandles.length >= 2) {
-            // Normalize: compute % return and map to main ticker's price scale
-            const mainStartPrice = data?.quote?.currentPrice ?? 0;
-            // Get main chart's starting price for the period
-            let mainRefPrice = mainStartPrice;
-            if (chartPeriod === '1D' && intradayCandles.length > 0) {
-              mainRefPrice = intradayCandles[0].close;
-            } else if ((chartPeriod === '1W' || chartPeriod === '1M') && hourlyCandles.length > 0) {
-              mainRefPrice = hourlyCandles[0].close;
-            } else if (data?.candles && data.candles.closes.length > 0) {
-              mainRefPrice = data.candles.closes[0];
-            }
-
-            const compStartPrice = compCandles[0].close;
-            const points = compCandles.map(c => {
-              const compReturn = (c.close - compStartPrice) / compStartPrice; // % return
-              const normalizedPrice = mainRefPrice * (1 + compReturn); // map to main scale
-              return { time: new Date(c.time).getTime(), price: normalizedPrice };
-            });
-
+          if (points.length >= 2) {
             results.push({
               ticker: ct,
               color: COMPARE_COLORS[ci % COMPARE_COLORS.length],
@@ -210,7 +256,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
   const addCompareTicker = (t: string) => {
     const upper = t.trim().toUpperCase();
-    if (!upper || upper === ticker || compareTickers.includes(upper) || compareTickers.length >= 3) return;
+    if (!upper || upper === ticker || compareTickers.includes(upper) || compareTickers.length >= 4) return;
     setCompareTickers(prev => [...prev, upper]);
     setCompareInput('');
     setShowCompareInput(false);
@@ -219,6 +265,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const removeCompareTicker = (t: string) => {
     setCompareTickers(prev => prev.filter(ct => ct !== t));
   };
+
+  // Stock follow
+  const [isFollowingStock, setIsFollowingStock] = useState(false);
 
   // Price alerts
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
@@ -266,6 +315,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       .catch(() => setAbout(null));
     // Fetch price alerts
     fetchPriceAlerts();
+    // Fetch stock follow status
+    getStockFollowStatus(ticker)
+      .then(({ following }) => setIsFollowingStock(following))
+      .catch(() => setIsFollowingStock(false));
   }, [ticker, fetchPriceAlerts]);
 
   // Fetch AI-powered events (Perplexity) — period-aware
@@ -607,6 +660,29 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               Watch
             </button>
             <button
+              onClick={async () => {
+                const wasFollowing = isFollowingStock;
+                setIsFollowingStock(!wasFollowing);
+                try {
+                  if (wasFollowing) await unfollowStock(ticker);
+                  else await followStock(ticker);
+                } catch {
+                  setIsFollowingStock(wasFollowing);
+                }
+              }}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                isFollowingStock
+                  ? 'border-purple-500/25 text-purple-400 hover:bg-purple-500/10'
+                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+              }`}
+              title={isFollowingStock ? 'Unfollow stock' : 'Follow stock'}
+            >
+              <svg className="w-3.5 h-3.5" fill={isFollowingStock ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {isFollowingStock ? 'Following' : 'Follow'}
+            </button>
+            <button
               onClick={() => setShowAlertModal(true)}
               className="relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
             >
@@ -730,12 +806,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
               style={{ borderColor: COMPARE_COLORS[i % COMPARE_COLORS.length] + '40', color: COMPARE_COLORS[i % COMPARE_COLORS.length] }}
             >
-              <span className="w-2 h-0.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[i % COMPARE_COLORS.length], display: 'inline-block' }} />
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[i % COMPARE_COLORS.length], display: 'inline-block' }} />
               {ct}
               <button onClick={() => removeCompareTicker(ct)} className="ml-0.5 opacity-60 hover:opacity-100">&times;</button>
             </span>
           ))}
-          {compareTickers.length < 3 && (
+          {compareTickers.length < 4 && (
             showCompareInput ? (
               <div className="inline-flex items-center relative" style={{ width: '120px' }}>
                 <TickerAutocompleteInput
@@ -744,7 +820,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                   onSelect={(result) => { addCompareTicker(result.symbol); setShowCompareInput(false); }}
                   placeholder="TICKER"
                   autoFocus
-                  className="!w-full !px-1.5 !py-0.5 !text-[11px] !font-semibold !bg-transparent !border-white/[0.12] dark:!border-white/[0.12] !rounded !text-rh-light-text dark:!text-rh-text"
+                  className="!w-full !px-1.5 !py-0.5 !text-[11px] !font-semibold !bg-transparent !border-gray-300/60 dark:!border-white/[0.12] !rounded !text-rh-light-text dark:!text-rh-text"
                 />
               </div>
             ) : (
@@ -756,6 +832,17 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 + Compare
               </button>
             )
+          )}
+          {compareTickers.length >= 1 && (
+            <button
+              onClick={() => {
+                const all = [ticker, ...compareTickers];
+                window.location.hash = new URLSearchParams({ tab: 'compare', stocks: all.join(',') }).toString();
+              }}
+              className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold text-rh-green border border-rh-green/30 hover:bg-rh-green/10 transition-all"
+            >
+              Full Compare →
+            </button>
           )}
         </div>
       </div>

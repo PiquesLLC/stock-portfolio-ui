@@ -142,10 +142,7 @@ export function PricingPage() {
               <div className={`relative flex flex-col flex-1 rounded-3xl p-6 overflow-hidden ${
                 isCenter
                   ? 'bg-gradient-to-b from-[#1a2a1a] via-[#0d1a0d] to-[#0a0f0a] dark:from-[#1a2a1a] dark:via-[#0d1a0d] dark:to-[#0a0f0a] border border-rh-green/30 shadow-[0_0_60px_rgba(0,200,5,0.15)]'
-                  : 'bg-[#111613] dark:bg-[#111613] border border-white/[0.08] shadow-xl'
-              } ${
-                /* Light mode overrides for non-center */
-                !isCenter ? 'sm:bg-gray-50/80 sm:dark:bg-[#111613] sm:border-gray-200/60 sm:dark:border-white/[0.08]' : ''
+                  : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
               }`}>
 
                 {/* Decorative orb for center card */}
@@ -214,7 +211,7 @@ export function PricingPage() {
                       <button
                         onClick={handleManage}
                         disabled={loadingPlan === 'manage'}
-                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-white/10 text-rh-light-muted dark:text-white/50 hover:bg-white/5 transition-colors min-h-[48px]"
+                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/50 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                       >
                         {loadingPlan === 'manage' ? 'Opening...' : 'Manage Subscription'}
                       </button>
@@ -246,7 +243,7 @@ export function PricingPage() {
                     <button
                       onClick={handleManage}
                       disabled={loadingPlan === 'manage'}
-                      className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 hover:bg-white/5 transition-colors min-h-[48px]"
+                      className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                     >
                       {loadingPlan === 'manage' ? 'Opening...' : 'Change Plan'}
                     </button>
@@ -290,7 +287,7 @@ export function PricingPage() {
                 <div className={`relative rounded-3xl p-6 flex flex-col min-h-[420px] transition-all duration-300 ${
                   plan.highlight
                     ? 'bg-gradient-to-b from-[#1a2a1a] via-[#0d1a0d] to-[#0a0f0a] border border-rh-green/30 shadow-[0_0_40px_rgba(0,200,5,0.12)]'
-                    : 'bg-[#111613] border border-white/[0.08] shadow-xl'
+                    : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
                 } ${isActive ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-80'}`}>
 
                   {/* Decorative orb */}
@@ -354,12 +351,12 @@ export function PricingPage() {
                         <button
                           onClick={handleManage}
                           disabled={loadingPlan === 'manage'}
-                          className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-white/10 text-white/50 hover:bg-white/5 transition-colors min-h-[48px]"
+                          className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/50 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                         >
                           {loadingPlan === 'manage' ? 'Opening...' : 'Manage Subscription'}
                         </button>
                       ) : (
-                        <div className="w-full py-3 px-4 rounded-2xl text-sm font-medium text-center border border-white/10 text-white/40 min-h-[48px] flex items-center justify-center">
+                        <div className="w-full py-3 px-4 rounded-2xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 min-h-[48px] flex items-center justify-center">
                           Selected plan
                         </div>
                       )
@@ -386,7 +383,7 @@ export function PricingPage() {
                       <button
                         onClick={handleManage}
                         disabled={loadingPlan === 'manage'}
-                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-white/10 text-white/40 hover:bg-white/5 transition-colors min-h-[48px]"
+                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                       >
                         {loadingPlan === 'manage' ? 'Opening...' : 'Change Plan'}
                       </button>

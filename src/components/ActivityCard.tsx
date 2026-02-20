@@ -162,13 +162,13 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute }: Act
   const isMixed = hasBuys && hasSells;
 
   // Glassmorphed avatar with buy/sell accent glow
-  const glassBase = 'bg-white/[0.03] backdrop-blur-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.4)]';
+  const glassBase = 'bg-gray-200/60 dark:bg-white/[0.03] backdrop-blur-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.4)]';
   let accentRing = '';
   let avatarTextColor = '';
 
   if (isMixed) {
-    accentRing = 'ring-1 ring-white/10';
-    avatarTextColor = 'text-white/70';
+    accentRing = 'ring-1 ring-gray-300 dark:ring-white/10';
+    avatarTextColor = 'text-gray-600 dark:text-white/70';
   } else if (hasSells) {
     accentRing = 'ring-1 ring-rh-red/25';
     avatarTextColor = 'text-rh-red/80';

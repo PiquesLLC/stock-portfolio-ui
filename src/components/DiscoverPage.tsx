@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex } from '../api';
+import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 import { getMarketStatus } from '../utils/portfolio-chart';
@@ -431,7 +431,7 @@ function Treemap({
     <div ref={containerRef} className="w-full relative" onMouseMove={handleMouseMove}
       onClick={() => { if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); } }}
     >
-      <div className="rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40"
+      <div className="rounded-2xl overflow-hidden border border-gray-200/60 dark:border-white/[0.08] shadow-2xl shadow-black/40"
         style={{ background: isDark ? (dims.width < 640 ? '#0f0f12' : 'rgba(15,15,18,0.85)') : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.9)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
       >
       <svg
@@ -814,7 +814,7 @@ function TopMovers({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
+      <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
         <h3 className="text-sm font-semibold text-rh-green mb-3 flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
           Top Gainers
@@ -839,7 +839,7 @@ function TopMovers({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
+      <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
         <h3 className="text-sm font-semibold text-rh-red mb-3 flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
           Top Losers
@@ -877,7 +877,7 @@ function SectorBars({ sectors, highlightedSector, onSectorClick }: { sectors: He
   const maxAbs = Math.max(...sorted.map(s => Math.abs(s.avgChangePercent)), 1);
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4 mt-4">
+    <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4 mt-4">
       <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">Sector Performance</h3>
       <div className="space-y-2">
         {sorted.map((s) => {
@@ -975,17 +975,18 @@ function formatMktCap(b: number): string {
 }
 
 const RANK_MEDALS: Record<number, { emoji: string; glow: string; bg: string; ring: string }> = {
-  1: { emoji: '🥇', glow: 'shadow-[0_0_20px_rgba(255,215,0,0.35)]', bg: 'bg-gradient-to-r from-yellow-400/15 via-amber-300/8 dark:from-yellow-500/[0.08] dark:via-amber-400/[0.03] to-transparent', ring: 'ring-1 ring-yellow-400/30 dark:ring-yellow-400/20' },
-  2: { emoji: '🥈', glow: 'shadow-[0_0_16px_rgba(192,192,192,0.25)]', bg: 'bg-gradient-to-r from-gray-300/15 via-slate-200/8 dark:from-gray-400/[0.06] dark:via-slate-300/[0.02] to-transparent', ring: 'ring-1 ring-gray-300/30 dark:ring-gray-400/20' },
-  3: { emoji: '🥉', glow: 'shadow-[0_0_16px_rgba(205,127,50,0.25)]', bg: 'bg-gradient-to-r from-orange-400/15 via-amber-500/8 dark:from-orange-500/[0.06] dark:via-amber-500/[0.02] to-transparent', ring: 'ring-1 ring-orange-400/30 dark:ring-orange-400/20' },
+  1: { emoji: '🥇', glow: 'shadow-[0_0_16px_rgba(59,130,246,0.18)]', bg: 'bg-gradient-to-r from-blue-200/30 via-sky-100/15 dark:from-blue-500/[0.10] dark:via-sky-400/[0.03] to-transparent', ring: 'ring-1 ring-blue-300/35 dark:ring-blue-400/20' },
+  2: { emoji: '🥈', glow: 'shadow-[0_0_12px_rgba(99,102,241,0.14)]', bg: 'bg-gradient-to-r from-indigo-200/25 via-indigo-100/12 dark:from-indigo-400/[0.07] dark:via-indigo-300/[0.02] to-transparent', ring: 'ring-1 ring-indigo-300/30 dark:ring-indigo-400/15' },
+  3: { emoji: '🥉', glow: 'shadow-[0_0_10px_rgba(100,116,139,0.12)]', bg: 'bg-gradient-to-r from-slate-300/20 via-blue-100/10 dark:from-slate-400/[0.06] dark:via-blue-300/[0.02] to-transparent', ring: 'ring-1 ring-slate-300/25 dark:ring-slate-400/12' },
 };
 
-type VolumeFilter = 'top100' | 'gainers' | 'losers' | 'unusual';
+type VolumeFilter = 'top100' | 'gainers' | 'losers' | 'unusual' | 'mostFollowed';
 const VOLUME_FILTERS: { id: VolumeFilter; label: string; dot?: string }[] = [
   { id: 'top100', label: 'Top 100' },
   { id: 'gainers', label: 'Gainers', dot: '#16c784' },
   { id: 'losers', label: 'Losers', dot: '#ea3943' },
   { id: 'unusual', label: 'Unusual Vol', dot: '#f5a524' },
+  { id: 'mostFollowed', label: 'Most Followed', dot: '#a855f7' },
 ];
 
 function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
@@ -994,6 +995,26 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
   const [heroSparkline, setHeroSparkline] = useState<string>('');
   const [heroLoading, setHeroLoading] = useState(false);
   const sparklineCacheRef = useRef<Map<string, string>>(new Map());
+  const isDark = document.documentElement.classList.contains('dark');
+
+  // Most Followed data
+  const [mostFollowedMap, setMostFollowedMap] = useState<Map<string, number>>(new Map());
+  const [mostFollowedLoading, setMostFollowedLoading] = useState(false);
+  const mostFollowedFetched = useRef(false);
+
+  useEffect(() => {
+    if (filter !== 'mostFollowed' || mostFollowedFetched.current) return;
+    setMostFollowedLoading(true);
+    getMostFollowedStocks()
+      .then(data => {
+        const map = new Map<string, number>();
+        for (const d of data) map.set(d.symbol, d.followerCount);
+        setMostFollowedMap(map);
+        mostFollowedFetched.current = true;
+      })
+      .catch(() => {})
+      .finally(() => setMostFollowedLoading(false));
+  }, [filter]);
 
   // Fetch sparkline for hero when ticker changes
   useEffect(() => {
@@ -1036,10 +1057,15 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           if ((s.avgVolume ?? 0) <= 0) return false;
           return ((s.volume ?? 0) / (s.avgVolume ?? 1)) >= 1.5;
         }).slice(0, 100);
+      case 'mostFollowed':
+        return [...withVolume]
+          .filter(s => mostFollowedMap.has(s.ticker))
+          .sort((a, b) => (mostFollowedMap.get(b.ticker) ?? 0) - (mostFollowedMap.get(a.ticker) ?? 0))
+          .slice(0, 100);
       default:
         return byVol.slice(0, 100);
     }
-  }, [withVolume, filter]);
+  }, [withVolume, filter, mostFollowedMap]);
 
   const maxVol = filtered.length > 0 ? Math.max(...filtered.map(s => s.volume ?? 0)) : 1;
 
@@ -1060,8 +1086,8 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
   if (withVolume.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/[0.03] mx-auto mb-4 flex items-center justify-center text-2xl">
-          📊
+        <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <img src="/north-signal-logo-transparent.png" alt="" className="h-10 w-10 animate-spin" />
         </div>
         <p className="text-rh-light-text dark:text-rh-text font-medium mb-1">Volume data loading</p>
         <p className="text-rh-light-muted/70 dark:text-rh-muted/70 text-sm">Top 100 by volume will appear once market data is available.</p>
@@ -1081,27 +1107,17 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
       >
         <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.04] via-transparent to-transparent" />
         <div className="relative px-5 py-3 flex items-center justify-between gap-4">
-          {/* Left: icon + title + stats */}
+          {/* Left: title + stats */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{
-                background: 'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 50%, rgba(34,197,94,0.10) 100%)',
-                border: '1px solid rgba(34,197,94,0.25)',
-                backdropFilter: 'blur(20px) saturate(1.4)',
-                WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
-                boxShadow: '0 4px 20px rgba(0,200,5,0.12), 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.1)',
-              }}>
-                <div className="absolute inset-0 rounded-xl" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%)' }} />
-                <svg className="relative w-5 h-5 drop-shadow-sm" fill="none" stroke="#22c55e" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 0 4px rgba(34,197,94,0.4))' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-[#f5f7fa]">
-                  Top 100 <span className="text-rh-green" style={{ fontSize: '0.85em', fontWeight: 700 }}>by Volume</span>
-                </h2>
-                <p className="text-[11px] mt-0.5 text-gray-500 dark:text-white/[0.78]">Most actively traded stocks</p>
-              </div>
+            <div>
+              <h2 className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-[#f5f7fa]">
+                Top 100 <span className={filter === 'losers' ? 'text-rh-red' : filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-green'} style={{ fontSize: '0.85em', fontWeight: 700 }}>
+                  {filter === 'mostFollowed' ? 'by Following' : filter === 'gainers' || filter === 'losers' ? 'by Percentage' : 'by Volume'}
+                </span>
+              </h2>
+              <p className="text-[11px] mt-0.5 text-gray-500 dark:text-white/[0.78]">
+                {filter === 'mostFollowed' ? 'Stocks with the most followers on Nala' : filter === 'gainers' ? 'Biggest percentage gainers today' : filter === 'losers' ? 'Biggest percentage losers today' : filter === 'unusual' ? 'Stocks with unusually high volume' : 'Most actively traded stocks'}
+              </p>
             </div>
 
             {/* Mini stats row */}
@@ -1131,7 +1147,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
               <>
                 <div className="flex items-center gap-2">
                   {getMarketStatus().isOpen ? (
-                    <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                    <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/40">
                       <span className="relative flex h-[6px] w-[6px]">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-60" />
                         <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-rh-green" />
@@ -1139,11 +1155,11 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                       live
                     </span>
                   ) : (
-                    <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/40">
                       closed
                     </span>
                   )}
-                  <span className="text-[11px] font-bold" style={{ color: '#f5f7fa' }}>{heroStock.ticker}</span>
+                  <span className="text-[11px] font-bold text-gray-900 dark:text-[#f5f7fa]">{heroStock.ticker}</span>
                   <span className={`text-[11px] font-bold tabular-nums ${heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
                   </span>
@@ -1153,9 +1169,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 </svg>
               </>
             ) : heroLoading ? (
-              <div className="w-[100px] h-[28px] sm:w-[140px] sm:h-[32px] rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              <div className="w-[100px] h-[28px] sm:w-[140px] sm:h-[32px] rounded-lg animate-pulse bg-gray-200/60 dark:bg-white/[0.04]" />
             ) : (
-              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.30)' }}>Click a stock to preview</span>
+              <span className="text-[11px] text-gray-500 dark:text-white/30">Click a stock to preview</span>
             )}
           </div>
         </div>
@@ -1163,20 +1179,23 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
 
       {/* Segmented control — docked tight to hero (-4px overlap) */}
       <div className="pt-1.5">
-      {/* Segmented control — forced dark tokens */}
+      {/* Segmented control */}
       <div
         className="flex items-center w-full flex-nowrap"
         style={{
-          colorScheme: 'dark',
           height: 32,
           padding: 4,
           gap: 4,
           borderRadius: 10,
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%)'
+            : 'linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.01) 50%, rgba(0,0,0,0.03) 100%)',
+          border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.08)',
           backdropFilter: 'blur(16px) saturate(1.3)',
           WebkitBackdropFilter: 'blur(16px) saturate(1.3)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)',
+          boxShadow: isDark
+            ? '0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)'
+            : '0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)',
         }}
       >
         {VOLUME_FILTERS.map((f) => {
@@ -1199,23 +1218,35 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 cursor: 'pointer',
                 transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
                 outline: 'none',
-                color: isActive ? '#f5f7fa' : 'rgba(255,255,255,0.72)',
-                background: isActive ? 'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 100%)' : 'transparent',
-                border: isActive ? '1px solid rgba(255,255,255,0.16)' : '1px solid transparent',
-                boxShadow: isActive ? '0 2px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
+                color: isActive
+                  ? (isDark ? '#f5f7fa' : '#111')
+                  : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.40)'),
+                background: isActive
+                  ? (isDark
+                    ? 'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 100%)'
+                    : 'rgba(255,255,255,0.85)')
+                  : 'transparent',
+                border: isActive
+                  ? (isDark ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(0,0,0,0.12)')
+                  : '1px solid transparent',
+                boxShadow: isActive
+                  ? (isDark
+                    ? '0 2px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08)'
+                    : '0 1px 6px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04)')
+                  : 'none',
                 backdropFilter: isActive ? 'blur(16px) saturate(1.3)' : 'none',
                 WebkitBackdropFilter: isActive ? 'blur(16px) saturate(1.3)' : 'none',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.92)';
+                  e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.70)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.72)';
+                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.40)';
                 }
               }}
               onFocus={(e) => { e.currentTarget.style.outline = '2px solid rgba(34,197,94,0.45)'; e.currentTarget.style.outlineOffset = '1px'; }}
@@ -1234,15 +1265,26 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         <div className="w-8 shrink-0" />
         {/* Logo placeholder */}
         <div className="w-8 shrink-0" />
-        <div className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Symbol</div>
-        <div className="text-right shrink-0 w-[72px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Price</div>
-        <div className="text-right shrink-0 w-[68px] text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Chg%</div>
-        <div className="text-right shrink-0 w-[88px] hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Volume</div>
-        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-[rgba(255,255,255,0.55)]">Mkt Cap</div>
+        <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Symbol</div>
+        <div className="text-right shrink-0 w-[72px] text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Price</div>
+        <div className="text-right shrink-0 w-[68px] text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Chg%</div>
+        <div className="text-right shrink-0 w-[88px] hidden sm:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>{filter === 'mostFollowed' ? 'Followers' : 'Volume'}</div>
+        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Mkt Cap</div>
       </div>
       </div>
 
       {/* Cards list */}
+      {filter === 'mostFollowed' && mostFollowedLoading && (
+        <div className="text-center py-8">
+          <img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin mx-auto mb-2" />
+          <p className="text-sm text-rh-light-muted dark:text-white/40">Loading most followed stocks...</p>
+        </div>
+      )}
+      {filter === 'mostFollowed' && !mostFollowedLoading && filtered.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-sm text-rh-light-muted dark:text-white/40">No followed stocks yet. Follow stocks to see them here.</p>
+        </div>
+      )}
       <div className="space-y-0.5">
         {filtered.map((stock, i) => {
           const rank = i + 1;
@@ -1271,14 +1313,24 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20
               `}
             >
-              {/* Volume heat bar (background) */}
+              {/* Left accent strip — only on non-medal rows */}
+              {!medal && (
+                <div
+                  className="absolute left-0 top-[6px] bottom-[6px] w-[3px] rounded-full transition-opacity duration-200"
+                  style={{
+                    background: isUp ? '#00c805' : '#ea3943',
+                    opacity: isDark ? 0.35 : 0.5,
+                  }}
+                />
+              )}
+              {/* Volume heat bar (background) — neutral tint, chips carry sentiment */}
               <div
-                className="absolute inset-y-0 left-0 rounded-xl transition-all duration-500"
+                className="absolute inset-y-0 left-0 rounded-xl transition-all duration-500 group-hover:opacity-100"
                 style={{
                   width: `${Math.max(volPct, 2)}%`,
-                  background: isUp
-                    ? 'linear-gradient(90deg, rgba(0,200,5,0.06) 0%, rgba(0,200,5,0.02) 70%, transparent 100%)'
-                    : 'linear-gradient(90deg, rgba(232,84,78,0.06) 0%, rgba(232,84,78,0.02) 70%, transparent 100%)',
+                  background: isDark
+                    ? 'linear-gradient(90deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0.005) 70%, transparent 100%)'
+                    : 'linear-gradient(90deg, rgba(0,0,0,0.015) 0%, rgba(0,0,0,0.005) 70%, transparent 100%)',
                 }}
               />
 
@@ -1293,7 +1345,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                       <span className="text-[11px] font-extrabold tabular-nums text-rh-light-text dark:text-rh-text">{rank}</span>
                     </div>
                   ) : (
-                    <span className="text-xs font-bold tabular-nums text-rh-light-muted/50 dark:text-rh-muted/40">{rank}</span>
+                    <span className="text-xs font-bold tabular-nums text-gray-500 dark:text-rh-muted/60">{rank}</span>
                   )}
                 </div>
 
@@ -1308,7 +1360,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate block">{stock.name}</span>
+                  <span className="text-[11px] text-gray-600 dark:text-gray-400 truncate block">{stock.name}</span>
                 </div>
 
                 {/* Price */}
@@ -1329,22 +1381,33 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                   </div>
                 </div>
 
-                {/* Volume with mini bar */}
+                {/* Volume / Followers cell */}
                 <div className="shrink-0 w-[88px] hidden sm:flex flex-col items-end gap-0.5">
-                  <div className="text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
-                    {formatVolume(stock.volume ?? 0)}
-                  </div>
-                  <div className="w-full h-1 rounded-full bg-gray-200/80 dark:bg-white/[0.06] overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${isUp ? 'bg-rh-green/60' : 'bg-rh-red/60'}`}
-                      style={{ width: `${volPct}%` }}
-                    />
-                  </div>
+                  {filter === 'mostFollowed' ? (
+                    <>
+                      <div className="text-sm font-bold text-purple-500 dark:text-purple-400 tabular-nums">
+                        {(mostFollowedMap.get(stock.ticker) ?? 0).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-rh-light-muted/50 dark:text-white/30">followers</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
+                        {formatVolume(stock.volume ?? 0)}
+                      </div>
+                      <div className="w-full h-1 rounded-full bg-gray-200/80 dark:bg-white/[0.06] overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700 bg-gray-400/50 dark:bg-white/20 group-hover:bg-gray-500/60 dark:group-hover:bg-white/30"
+                          style={{ width: `${volPct}%` }}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Mkt Cap */}
                 <div className="text-right shrink-0 w-[64px] hidden lg:block">
-                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
+                  <div className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
                     {formatMktCap(stock.marketCapB)}
                   </div>
                 </div>

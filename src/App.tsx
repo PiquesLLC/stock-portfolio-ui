@@ -47,6 +47,7 @@ const UserProfileView = lazy(() => import('./components/UserProfileView').then(m
 const StockDetailView = lazy(() => import('./components/StockDetailView').then(m => ({ default: m.StockDetailView })));
 const PricingPage = lazy(() => import('./components/PricingPage').then(m => ({ default: m.PricingPage })));
 const PortfolioCompare = lazy(() => import('./components/PortfolioCompare').then(m => ({ default: m.PortfolioCompare })));
+const CompareStocksPage = lazy(() => import('./components/CompareStocksPage').then(m => ({ default: m.CompareStocksPage })));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -98,11 +99,22 @@ const MORE_TABS: { id: TabType; label: string }[] = [
 ];
 
 
-function parseHash(): NavState {
+function parseHash(): NavState & { compareStocks?: string[] } {
   const hash = window.location.hash.slice(1);
   if (hash) {
     const params = new URLSearchParams(hash);
     const rawTab = params.get('tab') || 'portfolio';
+
+    // Handle compare page on initial load
+    if (rawTab === 'compare') {
+      const stocksRaw = params.get('stocks')?.split(',').filter(Boolean) ?? [];
+      const normalized = [...new Set(stocksRaw.map(s => s.trim().toUpperCase()).filter(Boolean))].slice(0, 4);
+      if (normalized.length >= 2) {
+        sessionStorage.setItem('navState', JSON.stringify({ tab: 'compare', stock: null, profile: null, lbuser: null, subtab: null }));
+        return { tab: 'portfolio', stock: null, profile: null, lbuser: null, subtab: null, compareStocks: normalized };
+      }
+    }
+
     const state: NavState = {
       tab: VALID_TABS.has(rawTab as TabType) ? (rawTab as TabType) : 'portfolio',
       stock: params.get('stock') || null,
@@ -172,6 +184,7 @@ export default function App() {
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
+  const [compareStocks, setCompareStocks] = useState<string[] | null>(initialNav.compareStocks ?? null);
   // Premium-gated: const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -451,25 +464,46 @@ export default function App() {
 
   // Sync navigation state → URL hash
   useEffect(() => {
+    // Compare page has its own hash format
+    if (compareStocks && compareStocks.length >= 2) {
+      const p = new URLSearchParams();
+      p.set('tab', 'compare');
+      p.set('stocks', compareStocks.join(','));
+      window.location.hash = p.toString();
+      sessionStorage.setItem('navState', JSON.stringify({ tab: 'compare', stock: null, profile: null, lbuser: null, subtab: null }));
+      return;
+    }
     const stockTicker = viewingStock?.ticker || null;
     const subtab = activeTab === 'insights' ? insightsSubTab : activeTab === 'discover' ? discoverSubTab : null;
     const hashTab = activeTab;
     // Don't expose profile ID in URL for own profile tab — it's always the current user
     const hashProfile = activeTab === 'profile' ? null : viewingProfileId;
     setHash(hashTab, stockTicker, hashProfile, leaderboardUserId, subtab);
-  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab]);
+  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab, compareStocks]);
 
   // Handle browser back/forward — parse directly from hash, never sessionStorage
   useEffect(() => {
     const onHashChange = () => {
       const params = new URLSearchParams(window.location.hash.slice(1));
       const rawTab = params.get('tab') || 'portfolio';
-      const tab = VALID_TABS.has(rawTab as TabType) ? (rawTab as TabType) : 'portfolio';
       const stock = params.get('stock') || null;
       const profile = params.get('profile') || null;
       const lbuser = params.get('lbuser') || null;
       const subtab = params.get('subtab') || null;
 
+      // Handle compare page (not a nav tab — transient overlay like StockDetailView)
+      if (rawTab === 'compare') {
+        const stocksRaw = params.get('stocks')?.split(',').filter(Boolean) ?? [];
+        const normalized = [...new Set(stocksRaw.map(s => s.trim().toUpperCase()).filter(Boolean))].slice(0, 4);
+        if (normalized.length >= 2) {
+          setCompareStocks(normalized);
+          setViewingStock(null);
+          return;
+        }
+      }
+      setCompareStocks(null);
+
+      const tab = VALID_TABS.has(rawTab as TabType) ? (rawTab as TabType) : 'portfolio';
       setActiveTab(tab);
       setViewingProfileId(profile);
       setLeaderboardUserId(lbuser);
@@ -646,7 +680,7 @@ export default function App() {
           {/* Mobile: logo + controls inline */}
           <div
             className="h-[35px] w-[35px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -725,7 +759,7 @@ export default function App() {
           {/* Logo */}
           <div
             className="h-[30px] w-[30px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); }}
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -742,6 +776,7 @@ export default function App() {
                   setViewingProfileId(null);
                   setViewingStock(null);
                   setLeaderboardUserId(null);
+                  setCompareStocks(null);
                 }}
                 className={`relative px-3 py-2 text-[13px] rounded-md transition-all duration-150 whitespace-nowrap
                   ${activeTab === tab.id
@@ -783,6 +818,7 @@ export default function App() {
                         setViewingProfileId(null);
                         setViewingStock(null);
                         setLeaderboardUserId(null);
+                        setCompareStocks(null);
                         setMoreDropdownOpen(false);
                       }}
                       className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
@@ -800,7 +836,7 @@ export default function App() {
           </nav>
 
           {/* Search — flexible middle zone */}
-          <div className="flex-1 max-w-[320px] min-w-[180px]">
+          <div className="flex-1 max-w-[420px] min-w-[180px]">
             <TickerAutocompleteInput
               value={searchQuery}
               onChange={setSearchQuery}
@@ -866,6 +902,7 @@ export default function App() {
           setViewingProfileId(null);
           setViewingStock(null);
           setLeaderboardUserId(null);
+          setCompareStocks(null);
         }} />
       </div>
       </div>
@@ -898,7 +935,25 @@ export default function App() {
             </p>
           </div>
         )}
-        {viewingStock && (
+        {compareStocks && compareStocks.length >= 2 && (
+          <Suspense fallback={<PageFallback />}>
+            <CompareStocksPage
+              tickers={compareStocks}
+              onBack={() => {
+                const first = compareStocks[0];
+                setCompareStocks(null);
+                setViewingStock({ ticker: first, holding: findHolding(first) });
+              }}
+              onTickerClick={(ticker) => {
+                setCompareStocks(null);
+                setViewingStock({ ticker, holding: findHolding(ticker) });
+              }}
+              onUpdateTickers={(tickers) => setCompareStocks(tickers)}
+            />
+          </Suspense>
+        )}
+
+        {viewingStock && !compareStocks && (
           <Suspense fallback={<PageFallback />}>
             <StockDetailView
               ticker={viewingStock.ticker}
@@ -923,7 +978,7 @@ export default function App() {
           </Suspense>
         )}
 
-        {activeTab === 'portfolio' && !viewingStock && (
+        {activeTab === 'portfolio' && !viewingStock && !compareStocks && (
           <>
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">

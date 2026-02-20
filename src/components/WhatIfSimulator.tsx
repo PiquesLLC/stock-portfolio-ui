@@ -305,7 +305,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
           className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
             showScenarios
               ? 'bg-blue-500/15 text-blue-400'
-              : 'bg-white/[0.04] text-rh-light-muted dark:text-rh-muted hover:bg-white/10'
+              : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted hover:bg-gray-200 dark:hover:bg-white/10'
           }`}
         >
           Scenarios {showScenarios ? '\u25B4' : '\u25BE'}

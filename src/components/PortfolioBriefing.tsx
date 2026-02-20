@@ -15,7 +15,7 @@ function getSentimentEmoji(_verdict?: string, sections?: PortfolioBriefingRespon
 function getSentimentPill(sentiment?: string) {
   if (sentiment === 'positive') return { label: 'Tailwind', cls: 'bg-rh-green/15 text-rh-green' };
   if (sentiment === 'negative') return { label: 'Headwind', cls: 'bg-rh-red/15 text-rh-red' };
-  return { label: 'Neutral', cls: 'bg-white/[0.08] text-white/50' };
+  return { label: 'Neutral', cls: 'bg-gray-200/80 dark:bg-white/[0.08] text-rh-light-muted dark:text-white/50' };
 }
 
 // Extract numbers/percentages from text for highlighting
