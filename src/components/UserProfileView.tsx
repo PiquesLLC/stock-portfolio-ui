@@ -291,6 +291,22 @@ function getAvatarGradient(grade: string): string {
   return 'conic-gradient(from 0deg, #E8544E, rgba(232,84,78,0.1), #E8544E)';
 }
 
+/** Blurred lock overlay for creator paywall sections */
+function LockedOverlay({ label }: { label: string }) {
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center
+      bg-white/70 dark:bg-[#1a1a1e]/80 backdrop-blur-[6px]">
+      <svg className="w-5 h-5 text-rh-light-muted/40 dark:text-rh-muted/40 mb-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+      <span className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted">
+        Subscribe to unlock {label.toLowerCase()}
+      </span>
+    </div>
+  );
+}
+
 interface UserProfileViewProps {
   userId: string;
   currentUserId: string;
@@ -437,6 +453,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       getCreatorEntitlement(userId).then(setEntitlement).catch(() => setEntitlement(null));
     }
   }, [profile?.creator?.status, userId, isOwner]);
+
+  // Creator paywall: determine which sections are locked for non-subscribers
+  const isCreatorProfile = profile?.creator?.status === 'active' && !isOwner;
+  const viewerHasAccess = entitlement?.level === 'paid';
+  const creatorVis = profile?.creator?.visibility;
+  const lockHoldings = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showHoldings;
+  const lockSignal = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showRiskMetrics;
+  const lockActivity = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showTradeHistory;
 
   const [subscribeError, setSubscribeError] = useState<string | null>(null);
 
@@ -944,8 +968,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && topHoldings.length > 0 && (
         <motion.div
           variants={itemVariants}
-          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+          className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
+          {lockHoldings && <LockedOverlay label="Holdings" />}
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
           <div className="flex items-center gap-3 px-1.5 mb-1">
             <span className="w-16 shrink-0"></span>
@@ -983,12 +1008,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && hasPerformance && (
         <motion.div
           variants={itemVariants}
-          className={`bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] border-l-2 ${
+          className={`relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] border-l-2 overflow-hidden ${
             riskPosture.level === 'Low' ? 'border-l-rh-green/30' :
             riskPosture.level === 'High' ? 'border-l-rh-red/30' :
             'border-l-yellow-500/30'
           }`}
         >
+          {lockSignal && <LockedOverlay label="Signal Summary" />}
           <div className="flex items-center gap-2.5 mb-3">
             <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
             <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
@@ -1060,8 +1086,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && profile.recentActivity && profile.recentActivity.length > 0 && (
         <motion.div
           variants={itemVariants}
-          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+          className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
+          {lockActivity && <LockedOverlay label="Latest Moves" />}
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">
             Latest Moves
           </h3>
@@ -1136,23 +1163,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {/* ═══════════════════════════════════════════════════════════════
           5. VIEW PORTFOLIO CTA
           ═══════════════════════════════════════════════════════════════ */}
-      {profile.profilePublic && (
-        <motion.button
-          variants={itemVariants}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setShowPortfolio(true)}
-          className="w-full py-3.5 text-sm font-semibold rounded-xl bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08]
-            text-rh-light-text dark:text-rh-text hover:bg-rh-green/5 hover:border-rh-green/30 hover:text-rh-green hover:shadow-[0_0_24px_-6px_rgba(0,200,5,0.15)] transition-all group shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] mb-2"
-        >
-          <span className="flex items-center justify-center gap-2">
-            View Full Portfolio
-            <svg className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </span>
-        </motion.button>
-      )}
+      {/* View Full Portfolio removed — now in header button row */}
 
       {/* ═══════════════════════════════════════════════════════════════
           6. PROFILE SETTINGS — merged (owner only)
