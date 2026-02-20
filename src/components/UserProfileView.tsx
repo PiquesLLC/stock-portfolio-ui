@@ -8,6 +8,7 @@ import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
 import { PortfolioImport } from './PortfolioImport';
 import { useMutedUsers } from '../hooks/useMutedUsers';
+import { API_BASE_URL } from '../config';
 
 const REGION_OPTIONS = [
   { value: 'NA', label: 'North America', short: 'NA' },
@@ -650,10 +651,35 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               )}
               {/* Share button */}
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}?profile=${userId}`);
-                  const btn = document.getElementById('share-toast');
-                  if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = ''; }, 1500); }
+                onClick={async () => {
+                  const toast = document.getElementById('share-toast');
+                  const showToast = (msg: string) => {
+                    if (toast) { toast.textContent = msg; setTimeout(() => { toast.textContent = ''; }, 2000); }
+                  };
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/social/${userId}/share-card`);
+                    if (!res.ok) throw new Error('fetch failed');
+                    const blob = await res.blob();
+                    const file = new File([blob], `nala-${profile?.username ?? 'profile'}.png`, { type: 'image/png' });
+                    const profileUrl = `${window.location.origin}?profile=${userId}`;
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
+                      await navigator.share({ files: [file], title: `${profile?.displayName ?? 'Portfolio'} on Nala`, url: profileUrl });
+                    } else {
+                      // Desktop: download image + copy link
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = file.name;
+                      a.click();
+                      URL.revokeObjectURL(a.href);
+                      await navigator.clipboard.writeText(profileUrl);
+                      showToast('Saved + Copied!');
+                    }
+                  } catch {
+                    // Final fallback: just copy URL
+                    navigator.clipboard.writeText(`${window.location.origin}?profile=${userId}`);
+                    showToast('Link copied!');
+                  }
                 }}
                 className="shrink-0 ml-auto p-1.5 rounded-lg text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green hover:bg-rh-green/[0.06] transition-all"
                 title="Share profile"
