@@ -40,7 +40,7 @@ export function CreatorSubscribeButton({ creator, performance, onSubscribe, load
         onClick={() => setOpen(true)}
         className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
       >
-        Subscribe {price}/mo
+        {creator.trialDays > 0 ? `Free Trial · ${price}/mo` : `Subscribe ${price}/mo`}
       </button>
 
       {open && (

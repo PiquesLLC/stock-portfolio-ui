@@ -793,29 +793,17 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             </>
           )}
 
-          {/* Follow + Mute buttons - pushed to right */}
+          {/* Action buttons - pushed to right */}
           {!isOwner && (
             <div className="ml-auto flex items-center gap-2">
-              <button
-                onClick={() => toggleMute(userId, profile.displayName)}
-                title={isMuted(userId) ? 'Unmute activity' : 'Mute activity'}
-                className={`p-2 rounded-lg transition-all ${
-                  isMuted(userId)
-                    ? 'bg-rh-red/10 text-rh-red hover:bg-rh-red/20'
-                    : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-muted dark:hover:text-white/50 hover:bg-gray-200/60 dark:hover:bg-white/[0.06]'
-                }`}
-              >
-                {isMuted(userId) ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                )}
-              </button>
+              {profile.creator?.status === 'active' && entitlement?.level !== 'paid' && (
+                <CreatorSubscribeButton
+                  creator={profile.creator}
+                  performance={perf}
+                  onSubscribe={handleSubscribe}
+                  loading={subscribing}
+                />
+              )}
               <FollowButton
                 targetUserId={userId}
                 currentUserId={currentUserId}
@@ -830,20 +818,35 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   );
                 }}
               />
-              {profile.creator?.status === 'active' && entitlement?.level !== 'paid' && (
-                <CreatorSubscribeButton
-                  creator={profile.creator}
-                  performance={perf}
-                  onSubscribe={handleSubscribe}
-                  loading={subscribing}
-                />
-              )}
               <button
                 onClick={() => setShowPortfolio(true)}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-white/[0.12]
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-white/[0.12]
                   text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
               >
-                View Portfolio
+                Portfolio
+                <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => toggleMute(userId, profile.displayName)}
+                title={isMuted(userId) ? 'Unmute activity' : 'Mute activity'}
+                className={`p-1.5 rounded-lg transition-all ${
+                  isMuted(userId)
+                    ? 'bg-rh-red/10 text-rh-red hover:bg-rh-red/20'
+                    : 'text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40'
+                }`}
+              >
+                {isMuted(userId) ? (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                )}
               </button>
             </div>
           )}
