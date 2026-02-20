@@ -5,7 +5,7 @@ import { PortfolioValueChart } from './PortfolioValueChart';
 import { FollowButton } from './FollowButton';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { StockDetailView } from './StockDetailView';
-import { CreatorPaywallCard } from './CreatorPaywallCard';
+import { CreatorSubscribeButton } from './CreatorPaywallCard';
 
 type HoldingSortKey = 'ticker' | 'shares' | 'price' | 'value' | 'dayPL' | 'dayChg' | 'pl' | 'plPct';
 type SortDir = 'asc' | 'desc';
@@ -257,6 +257,14 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
             Compare
           </button>
         )}
+        {creatorProfile?.status === 'active' && !isOwner && entitlement?.level !== 'paid' && (
+          <CreatorSubscribeButton
+            creator={creatorProfile}
+            performance={performance}
+            onSubscribe={handleSubscribe}
+            loading={subscribing}
+          />
+        )}
       </div>
 
       {/* Status line: last updated + repricing */}
@@ -277,22 +285,10 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
         )}
       </div>
 
-      {/* Creator Paywall Card */}
-      {creatorProfile?.status === 'active' && !isOwner && entitlement?.level !== 'paid' && (
-        <div className="mb-4">
-          <CreatorPaywallCard
-            creator={creatorProfile}
-            performance={performance}
-            onSubscribe={handleSubscribe}
-            loading={subscribing}
-          />
-          {subscribeError && (
-            <p className="mt-2 text-xs text-red-500 dark:text-red-400 text-center">{subscribeError}</p>
-          )}
-        </div>
-      )}
-
       {error && <div className="text-rh-red text-sm mb-4">{error}</div>}
+      {subscribeError && (
+        <p className="mb-2 text-xs text-red-500 dark:text-red-400">{subscribeError}</p>
+      )}
 
       {loading && !portfolio ? (
         <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading portfolio...</div>

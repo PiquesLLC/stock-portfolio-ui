@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, CreatorEntitlement } from '../types';
 import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings, getCreatorEntitlement, subscribeToCreator } from '../api';
-import { CreatorPaywallCard } from './CreatorPaywallCard';
+import { CreatorSubscribeButton } from './CreatorPaywallCard';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
 import { PortfolioImport } from './PortfolioImport';
@@ -829,6 +829,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   );
                 }}
               />
+              {profile.creator?.status === 'active' && entitlement?.level !== 'paid' && (
+                <CreatorSubscribeButton
+                  creator={profile.creator}
+                  performance={perf}
+                  onSubscribe={handleSubscribe}
+                  loading={subscribing}
+                />
+              )}
             </div>
           )}
         </div>
@@ -901,21 +909,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       </AnimatePresence>
 
 
-      {/* ═══════════════════════════════════════════════════════════════
-          2a. CREATOR SUBSCRIPTION CARD (non-owner viewing a creator)
-          ═══════════════════════════════════════════════════════════════ */}
-      {profile.creator?.status === 'active' && !isOwner && entitlement?.level !== 'paid' && (
-        <motion.div variants={itemVariants} className="mb-2">
-          <CreatorPaywallCard
-            creator={profile.creator}
-            performance={perf}
-            onSubscribe={handleSubscribe}
-            loading={subscribing}
-          />
-          {subscribeError && (
-            <p className="mt-2 text-xs text-red-500 dark:text-red-400 text-center">{subscribeError}</p>
-          )}
-        </motion.div>
+      {subscribeError && (
+        <p className="mb-2 text-xs text-red-500 dark:text-red-400">{subscribeError}</p>
       )}
 
       {/* Subscriber badge */}
