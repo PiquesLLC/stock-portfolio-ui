@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, CreatorEntitlement } from '../types';
 import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings, getCreatorEntitlement, subscribeToCreator } from '../api';
-import { CreatorSubscribeButton } from './CreatorPaywallCard';
+import { CreatorSubscribeButton, CreatorSubscribeModal } from './CreatorPaywallCard';
+import { createPortal } from 'react-dom';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
 import { PortfolioImport } from './PortfolioImport';
@@ -292,12 +293,14 @@ function getAvatarGradient(grade: string): string {
 }
 
 /** Lock overlay — blurs the content underneath, lock message stays sharp */
-function LockedOverlay({ label }: { label: string }) {
+function LockedOverlay({ label, onClick }: { label: string; onClick?: () => void }) {
   return (
-    <>
-      {/* Blur the sibling content via parent's [data-locked] */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
-        <svg className="w-5 h-5 text-rh-light-muted/50 dark:text-rh-muted/50 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl bg-white/80 dark:bg-white/[0.08] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.08] shadow-sm">
+        <svg className="w-4 h-4 text-rh-light-muted/60 dark:text-rh-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
@@ -305,7 +308,7 @@ function LockedOverlay({ label }: { label: string }) {
           Subscribe to unlock {label.toLowerCase()}
         </span>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -464,6 +467,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const lockSignal = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showRiskMetrics;
   const lockActivity = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showTradeHistory;
 
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [subscribeError, setSubscribeError] = useState<string | null>(null);
 
   const handleSubscribe = async () => {
@@ -950,6 +954,18 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         <p className="mb-2 text-xs text-red-500 dark:text-red-400">{subscribeError}</p>
       )}
 
+      {/* Subscribe modal — opened from locked section overlays */}
+      {showSubscribeModal && profile.creator && createPortal(
+        <CreatorSubscribeModal
+          creator={profile.creator}
+          performance={perf}
+          onSubscribe={() => { handleSubscribe(); setShowSubscribeModal(false); }}
+          onClose={() => setShowSubscribeModal(false)}
+          loading={subscribing}
+        />,
+        document.body
+      )}
+
       {/* Subscriber badge */}
       {profile.creator?.status === 'active' && !isOwner && entitlement?.level === 'paid' && (
         <motion.div variants={itemVariants}
@@ -972,8 +988,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           variants={itemVariants}
           className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
-          {lockHoldings && <LockedOverlay label="Holdings" />}
-          <div className={lockHoldings ? 'blur-[6px] select-none pointer-events-none' : ''}>
+          {lockHoldings && <LockedOverlay label="Holdings" onClick={() => setShowSubscribeModal(true)} />}
+          <div className={lockHoldings ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
           <div className="flex items-center gap-3 px-1.5 mb-1">
             <span className="w-16 shrink-0"></span>
@@ -1018,8 +1034,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             'border-l-yellow-500/30'
           }`}
         >
-          {lockSignal && <LockedOverlay label="Signal Summary" />}
-          <div className={lockSignal ? 'blur-[6px] select-none pointer-events-none' : ''}>
+          {lockSignal && <LockedOverlay label="Signal Summary" onClick={() => setShowSubscribeModal(true)} />}
+          <div className={lockSignal ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="flex items-center gap-2.5 mb-3">
             <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
             <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
@@ -1094,8 +1110,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           variants={itemVariants}
           className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
-          {lockActivity && <LockedOverlay label="Latest Moves" />}
-          <div className={lockActivity ? 'blur-[6px] select-none pointer-events-none' : ''}>
+          {lockActivity && <LockedOverlay label="Latest Moves" onClick={() => setShowSubscribeModal(true)} />}
+          <div className={lockActivity ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">
             Latest Moves
           </h3>

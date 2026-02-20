@@ -62,7 +62,7 @@ export function CreatorSubscribeButton({ creator, performance, onSubscribe, load
 export const CreatorPaywallCard = CreatorSubscribeButton;
 
 /** Modal with full creator info, pricing, unlock details */
-function CreatorSubscribeModal({ creator, performance, onSubscribe, onClose, loading }: {
+export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClose, loading }: {
   creator: CreatorProfile;
   performance?: PerformanceData | null;
   onSubscribe: () => void;
