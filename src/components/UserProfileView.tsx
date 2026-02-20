@@ -902,6 +902,37 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
 
       {/* ═══════════════════════════════════════════════════════════════
+          2a. CREATOR SUBSCRIPTION CARD (non-owner viewing a creator)
+          ═══════════════════════════════════════════════════════════════ */}
+      {profile.creator?.status === 'active' && !isOwner && entitlement?.level !== 'paid' && (
+        <motion.div variants={itemVariants} className="mb-2">
+          <CreatorPaywallCard
+            creator={profile.creator}
+            performance={perf}
+            onSubscribe={handleSubscribe}
+            loading={subscribing}
+          />
+          {subscribeError && (
+            <p className="mt-2 text-xs text-red-500 dark:text-red-400 text-center">{subscribeError}</p>
+          )}
+        </motion.div>
+      )}
+
+      {/* Subscriber badge */}
+      {profile.creator?.status === 'active' && !isOwner && entitlement?.level === 'paid' && (
+        <motion.div variants={itemVariants}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2
+            bg-rh-green/[0.06] border border-rh-green/20">
+          <svg className="w-4 h-4 text-rh-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-xs font-medium text-rh-green">
+            Subscribed — you have full access to {profile.displayName}'s insights
+          </span>
+        </motion.div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
           2b. TOP HOLDINGS PREVIEW
           ═══════════════════════════════════════════════════════════════ */}
       {profile.profilePublic && topHoldings.length > 0 && (
@@ -1093,36 +1124,6 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               ))}
             </div>
           </div>
-        </motion.div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════
-          4b. CREATOR SUBSCRIPTION CARD (non-owner viewing a creator)
-          ═══════════════════════════════════════════════════════════════ */}
-      {profile.creator?.status === 'active' && !isOwner && entitlement?.level !== 'paid' && (
-        <motion.div variants={itemVariants} className="mb-2">
-          <CreatorPaywallCard
-            creator={profile.creator}
-            onSubscribe={handleSubscribe}
-            loading={subscribing}
-          />
-          {subscribeError && (
-            <p className="mt-2 text-xs text-red-500 dark:text-red-400 text-center">{subscribeError}</p>
-          )}
-        </motion.div>
-      )}
-
-      {/* Subscriber badge */}
-      {profile.creator?.status === 'active' && !isOwner && entitlement?.level === 'paid' && (
-        <motion.div variants={itemVariants}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2
-            bg-rh-green/[0.06] border border-rh-green/20">
-          <svg className="w-4 h-4 text-rh-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs font-medium text-rh-green">
-            Subscribed — you have full access to {profile.displayName}'s insights
-          </span>
         </motion.div>
       )}
 
