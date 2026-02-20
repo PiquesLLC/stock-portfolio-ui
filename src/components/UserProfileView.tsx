@@ -291,19 +291,21 @@ function getAvatarGradient(grade: string): string {
   return 'conic-gradient(from 0deg, #E8544E, rgba(232,84,78,0.1), #E8544E)';
 }
 
-/** Blurred lock overlay for creator paywall sections */
+/** Lock overlay — blurs the content underneath, lock message stays sharp */
 function LockedOverlay({ label }: { label: string }) {
   return (
-    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center
-      bg-white/90 dark:bg-[#1a1a1e]/95 backdrop-blur-xl">
-      <svg className="w-5 h-5 text-rh-light-muted/40 dark:text-rh-muted/40 mb-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-      <span className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted">
-        Subscribe to unlock {label.toLowerCase()}
-      </span>
-    </div>
+    <>
+      {/* Blur the sibling content via parent's [data-locked] */}
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
+        <svg className="w-5 h-5 text-rh-light-muted/50 dark:text-rh-muted/50 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted">
+          Subscribe to unlock {label.toLowerCase()}
+        </span>
+      </div>
+    </>
   );
 }
 
@@ -971,6 +973,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
           {lockHoldings && <LockedOverlay label="Holdings" />}
+          <div className={lockHoldings ? 'blur-[6px] select-none pointer-events-none' : ''}>
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
           <div className="flex items-center gap-3 px-1.5 mb-1">
             <span className="w-16 shrink-0"></span>
@@ -999,6 +1002,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               </button>
             ))}
           </div>
+          </div>
         </motion.div>
       )}
 
@@ -1015,6 +1019,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           }`}
         >
           {lockSignal && <LockedOverlay label="Signal Summary" />}
+          <div className={lockSignal ? 'blur-[6px] select-none pointer-events-none' : ''}>
           <div className="flex items-center gap-2.5 mb-3">
             <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
             <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
@@ -1077,6 +1082,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               ))}
             </div>
           )}
+          </div>
         </motion.div>
       )}
 
@@ -1089,6 +1095,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
           {lockActivity && <LockedOverlay label="Latest Moves" />}
+          <div className={lockActivity ? 'blur-[6px] select-none pointer-events-none' : ''}>
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">
             Latest Moves
           </h3>
@@ -1156,6 +1163,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 </div>
               ))}
             </div>
+          </div>
           </div>
         </motion.div>
       )}
