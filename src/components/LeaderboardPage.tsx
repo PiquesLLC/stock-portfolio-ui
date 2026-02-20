@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession } from '../types';
 import { getLeaderboard } from '../api';
-import { UserPortfolioView } from './UserPortfolioView';
+import { UserProfileView } from './UserProfileView';
 
 const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
   { id: '1D', label: '1D' },
@@ -170,19 +170,14 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   };
 
   if (selectedUserId) {
-    const entry = entries.find((e) => e.userId === selectedUserId);
     return (
-      <UserPortfolioView
+      <UserProfileView
         userId={selectedUserId}
-        displayName={entry?.displayName ?? 'User'}
-        returnPct={entry?.returnPct ?? null}
-        window={window}
-        trackingStartAt={entry?.trackingStartAt}
+        currentUserId={currentUserId ?? ''}
         session={session}
-        currentUserId={currentUserId}
         onBack={() => setSelectedUserId(null)}
         onStockClick={onStockClick}
-        onCompare={onCompare}
+        onUserClick={(uid) => setSelectedUserId(uid)}
       />
     );
   }

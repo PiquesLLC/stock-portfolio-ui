@@ -32,6 +32,7 @@ interface UserPortfolioViewProps {
   session?: MarketSession;
   currentUserId?: string;
   onBack: () => void;
+  backLabel?: string;
   onStockClick?: (ticker: string) => void;
   onCompare?: (userId: string, displayName: string) => void;
 }
@@ -45,7 +46,7 @@ function formatPercent(value: number): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-export function UserPortfolioView({ userId, displayName, returnPct, window, trackingStartAt, session, currentUserId, onBack, onStockClick, onCompare }: UserPortfolioViewProps) {
+export function UserPortfolioView({ userId, displayName, returnPct, window, trackingStartAt, session, currentUserId, onBack, backLabel, onStockClick, onCompare }: UserPortfolioViewProps) {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -224,7 +225,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
         onClick={onBack}
         className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors"
       >
-        <span>&larr;</span> Back to Leaderboard
+        <span>&larr;</span> {backLabel ?? 'Back to Leaderboard'}
       </button>
 
       {/* User header */}

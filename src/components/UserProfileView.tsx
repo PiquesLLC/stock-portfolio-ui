@@ -462,6 +462,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         session={session}
         currentUserId={currentUserId}
         onBack={() => setShowPortfolio(false)}
+        backLabel="Back to Profile"
         onStockClick={onStockClick}
       />
     );
@@ -837,6 +838,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   loading={subscribing}
                 />
               )}
+              <button
+                onClick={() => setShowPortfolio(true)}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-white/[0.12]
+                  text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+              >
+                View Portfolio
+              </button>
             </div>
           )}
         </div>
