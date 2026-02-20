@@ -6,6 +6,10 @@ import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaSetupModal } from './MfaSetupModal';
 import { LinkedAccountsSection } from './LinkedAccountsSection';
 import { BillingSection } from './BillingSection';
+import { CreatorApplicationModal } from './CreatorApplicationModal';
+import { CreatorSubscriptionManager } from './CreatorSubscriptionManager';
+import { getCreatorProfile } from '../api';
+import { CreatorProfile } from '../types';
 
 interface AccountSettingsModalProps {
   userId: string;
@@ -42,6 +46,11 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
     return stored !== null ? stored === 'true' : true;
   });
 
+  // Starfield background from localStorage (default: enabled)
+  const [starfieldEnabled, setStarfieldEnabled] = useState(() => {
+    return localStorage.getItem('starfieldEnabled') !== 'false';
+  });
+
   // Password change state
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -66,6 +75,10 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
 
   // MFA modal
   const [showMfaModal, setShowMfaModal] = useState(false);
+
+  // Creator monetization state
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [showCreatorApply, setShowCreatorApply] = useState(false);
 
   // Delete account state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -105,6 +118,9 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
           setError(err.message || 'Failed to load settings');
         })
         .finally(() => setLoading(false));
+
+      // Load creator profile (non-blocking)
+      getCreatorProfile(userId).then(setCreatorProfile).catch(() => setCreatorProfile(null));
     }
   }, [isOpen, userId]);
 
@@ -177,6 +193,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
         document.documentElement.classList.remove('dark');
       }
       localStorage.setItem('showExtendedHours', String(extendedHours));
+      localStorage.setItem('starfieldEnabled', String(starfieldEnabled));
       localStorage.setItem('notifyPriceAlerts', String(notifyPriceAlerts));
       localStorage.setItem('notifyFollowedActivity', String(notifyFollowedActivity));
       localStorage.setItem('notifyEarnings', String(notifyEarnings));
@@ -456,6 +473,15 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                     </div>
                     <ToggleSwitch checked={extendedHours} onChange={setExtendedHours} />
                   </label>
+
+                  {/* Starfield Background */}
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Starfield Background</span>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted">Animated stars in dark mode (desktop only)</p>
+                    </div>
+                    <ToggleSwitch checked={starfieldEnabled} onChange={setStarfieldEnabled} />
+                  </label>
                 </div>
               </section>
 
@@ -625,6 +651,60 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
 
               {/* Subscription & Billing Section */}
               <BillingSection />
+
+              {/* Creator Monetization Section */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+                  Creator
+                </h3>
+                <div className="space-y-3">
+                  {creatorProfile ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Creator Status</span>
+                          <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded-full ${
+                            creatorProfile.status === 'active'
+                              ? 'bg-rh-green/15 text-rh-green'
+                              : creatorProfile.status === 'pending'
+                              ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400'
+                              : 'bg-red-500/15 text-red-400'
+                          }`}>
+                            {creatorProfile.status}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+                        {creatorProfile.status === 'active'
+                          ? 'Your creator profile is live. Manage your settings and view earnings from the dashboard.'
+                          : 'Your application is being reviewed.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-rh-light-text dark:text-rh-text mb-1">Become a Creator</p>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">
+                        Share your portfolio insights and earn money from subscribers. Keep 80% of revenue.
+                      </p>
+                      <button
+                        onClick={() => setShowCreatorApply(true)}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg
+                          bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
+                      >
+                        Apply Now
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* My Creator Subscriptions */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+                  Creator Subscriptions
+                </h3>
+                <CreatorSubscriptionManager />
+              </section>
 
               {/* Notifications Section */}
               <section>
@@ -893,6 +973,16 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
       <MfaSetupModal
         isOpen={showMfaModal}
         onClose={() => setShowMfaModal(false)}
+      />
+
+      {/* Creator Application Modal */}
+      <CreatorApplicationModal
+        isOpen={showCreatorApply}
+        onClose={() => setShowCreatorApply(false)}
+        onSuccess={() => {
+          getCreatorProfile(userId).then(setCreatorProfile).catch(() => {});
+          showToast('Creator application submitted!', 'success');
+        }}
       />
     </div>
   );

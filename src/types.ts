@@ -673,6 +673,8 @@ export interface UserProfile {
   bio?: string | null;
   plan?: string;
   planStartedAt?: string;
+  creator?: CreatorProfile | null;
+  viewerAccessLevel?: CreatorAccessLevel;
 }
 
 // Portfolio Chart types
@@ -1426,6 +1428,84 @@ export interface TaxHarvestResponse {
 }
 
 // Anomaly Detection types
+// ─── Creator Monetization Marketplace ────────────────────────────────────
+
+export type CreatorStatus = 'pending' | 'active' | 'suspended';
+export type CreatorPricingCents = 500 | 1500 | 4900;
+export type CreatorAccessLevel = 'public' | 'follower' | 'paid';
+export type CreatorSubscriptionStatus = 'active' | 'canceled' | 'expired' | 'past_due';
+
+export interface CreatorVisibility {
+  showHoldings: boolean;
+  showTradeHistory: boolean;
+  showRationale: boolean;
+  showSectors: boolean;
+  showRiskMetrics: boolean;
+  showWatchlists: boolean;
+  tradeDelayHours: number;
+  hideShareCount: boolean;
+}
+
+export interface CreatorProfile {
+  userId: string;
+  username: string;
+  displayName: string;
+  status: CreatorStatus;
+  pitch: string | null;
+  pricingCents: CreatorPricingCents;
+  trialDays: number;
+  stripeConnectOnboarded: boolean;
+  complianceAcceptedAt: string | null;
+  visibility: CreatorVisibility;
+  subscriberCount?: number;
+  createdAt: string;
+}
+
+export interface CreatorEntitlement {
+  level: CreatorAccessLevel;
+  accessibleSections: string[];
+  subscriptionStatus?: CreatorSubscriptionStatus;
+  currentPeriodEnd?: string;
+  trialEnd?: string;
+}
+
+export interface CreatorDashboard {
+  mrr: number;
+  activeSubscribers: number;
+  churnRatePct: number;
+  totalEarningsCents: number;
+  payoutBalanceCents: number;
+  monthlyEarnings: { month: string; amountCents: number }[];
+  recentEvents: { type: string; description: string; createdAt: string }[];
+}
+
+export interface CreatorSubscriptionInfo {
+  id: string;
+  creatorUserId: string;
+  creatorUsername: string;
+  creatorDisplayName: string;
+  status: CreatorSubscriptionStatus;
+  pricingCents: number;
+  currentPeriodEnd: string | null;
+  trialEnd: string | null;
+  canceledAt: string | null;
+  createdAt: string;
+}
+
+export interface CreatorSettingsUpdate {
+  pricingCents?: CreatorPricingCents;
+  trialDays?: 0 | 7;
+  pitch?: string;
+  showHoldings?: boolean;
+  showTradeHistory?: boolean;
+  showRationale?: boolean;
+  showSectors?: boolean;
+  showRiskMetrics?: boolean;
+  showWatchlists?: boolean;
+  tradeDelayHours?: 0 | 24 | 48 | 72;
+  hideShareCount?: boolean;
+}
+
 export type AnomalyType = 'volume_spike' | 'price_spike' | 'drawdown' | 'sector_divergence' | 'concentration' | 'dividend_change';
 export type AnomalySeverity = 'info' | 'warning' | 'critical';
 

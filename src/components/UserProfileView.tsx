@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent } from '../types';
-import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings } from '../api';
+import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, CreatorEntitlement } from '../types';
+import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings, getCreatorEntitlement, subscribeToCreator } from '../api';
+import { CreatorPaywallCard } from './CreatorPaywallCard';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
 import { PortfolioImport } from './PortfolioImport';
@@ -418,7 +419,38 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const tagline = useMemo(() => generateTagline(profile?.performance ?? null), [profile?.performance]);
   const riskPosture = useMemo(() => getRiskPosture(profile?.performance ?? null), [profile?.performance]);
   const signalColors = useMemo(() => getSignalColors(signalRating.grade), [signalRating.grade]);
-  const badges = useMemo(() => profile ? computeBadges(profile.performance, profile.createdAt, profile.plan, profile.planStartedAt, userId) : [], [profile?.performance, profile?.createdAt, profile?.plan, profile?.planStartedAt, userId]);
+  const badges = useMemo(() => {
+    if (!profile) return [];
+    const b = computeBadges(profile.performance, profile.createdAt, profile.plan, profile.planStartedAt, userId);
+    if (profile.creator?.status === 'active') {
+      b.unshift({ label: 'Creator', icon: '\u{2728}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
+    }
+    return b;
+  }, [profile?.performance, profile?.createdAt, profile?.plan, profile?.planStartedAt, profile?.creator?.status, userId]);
+
+  // Creator entitlement for current viewer
+  const [entitlement, setEntitlement] = useState<CreatorEntitlement | null>(null);
+  const [subscribing, setSubscribing] = useState(false);
+
+  useEffect(() => {
+    if (profile?.creator?.status === 'active' && !isOwner) {
+      getCreatorEntitlement(userId).then(setEntitlement).catch(() => setEntitlement(null));
+    }
+  }, [profile?.creator?.status, userId, isOwner]);
+
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
+
+  const handleSubscribe = async () => {
+    setSubscribing(true);
+    setSubscribeError(null);
+    try {
+      const { url } = await subscribeToCreator(userId);
+      window.location.href = url;
+    } catch (err) {
+      setSubscribing(false);
+      setSubscribeError(err instanceof Error ? err.message : 'Failed to start subscription');
+    }
+  };
 
   if (showPortfolio && profile) {
     return (
@@ -1061,6 +1093,36 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               ))}
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          4b. CREATOR SUBSCRIPTION CARD (non-owner viewing a creator)
+          ═══════════════════════════════════════════════════════════════ */}
+      {profile.creator?.status === 'active' && !isOwner && entitlement?.level !== 'paid' && (
+        <motion.div variants={itemVariants} className="mb-2">
+          <CreatorPaywallCard
+            creator={profile.creator}
+            onSubscribe={handleSubscribe}
+            loading={subscribing}
+          />
+          {subscribeError && (
+            <p className="mt-2 text-xs text-red-500 dark:text-red-400 text-center">{subscribeError}</p>
+          )}
+        </motion.div>
+      )}
+
+      {/* Subscriber badge */}
+      {profile.creator?.status === 'active' && !isOwner && entitlement?.level === 'paid' && (
+        <motion.div variants={itemVariants}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2
+            bg-rh-green/[0.06] border border-rh-green/20">
+          <svg className="w-4 h-4 text-rh-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-xs font-medium text-rh-green">
+            Subscribed — you have full access to {profile.displayName}'s insights
+          </span>
         </motion.div>
       )}
 

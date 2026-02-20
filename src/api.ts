@@ -824,6 +824,27 @@ export async function unfollowUser(targetUserId: string, followerId: string): Pr
   });
 }
 
+// ── Stock follows ─────────────────────────────────────────────
+export async function followStock(symbol: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/stock-follows/${symbol}`, { method: 'POST' });
+}
+
+export async function unfollowStock(symbol: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/stock-follows/${symbol}`, { method: 'DELETE' });
+}
+
+export async function getStockFollowStatus(symbol: string): Promise<{ following: boolean; followerCount: number }> {
+  return fetchJson<{ following: boolean; followerCount: number }>(`${API_BASE_URL}/stock-follows/${symbol}/status`);
+}
+
+export async function getMostFollowedStocks(): Promise<{ symbol: string; followerCount: number }[]> {
+  return fetchJson<{ symbol: string; followerCount: number }[]>(`${API_BASE_URL}/stock-follows/most-followed`);
+}
+
+export async function getMyFollowedStocks(): Promise<string[]> {
+  return fetchJson<string[]>(`${API_BASE_URL}/stock-follows/mine`);
+}
+
 export async function getFeed(userId: string, before?: string): Promise<{ events: ActivityEvent[] }> {
   const params = new URLSearchParams({ userId });
   if (before) params.append('before', before);
@@ -1636,5 +1657,91 @@ export async function createCheckoutSession(priceId: string): Promise<{ url: str
 export async function createPortalSession(): Promise<{ url: string }> {
   return fetchJson(`${API_BASE_URL}/billing/portal`, {
     method: 'POST',
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Creator Monetization API
+// ═══════════════════════════════════════════════════════════════════════════
+
+import {
+  CreatorProfile,
+  CreatorEntitlement,
+  CreatorDashboard,
+  CreatorSubscriptionInfo,
+  CreatorSettingsUpdate,
+} from './types';
+
+export async function applyAsCreator(pitch?: string): Promise<CreatorProfile> {
+  return fetchJson<CreatorProfile>(`${API_BASE_URL}/creator/apply`, {
+    method: 'POST',
+    body: JSON.stringify({ pitch }),
+  });
+}
+
+export async function getCreatorProfile(userId: string): Promise<CreatorProfile> {
+  return fetchJson<CreatorProfile>(`${API_BASE_URL}/creator/${userId}`);
+}
+
+export async function getCreatorEntitlement(creatorUserId: string): Promise<CreatorEntitlement> {
+  return fetchJson<CreatorEntitlement>(`${API_BASE_URL}/creator/${creatorUserId}/entitlement`);
+}
+
+export async function getCreatorLockedContent(
+  creatorUserId: string,
+  section: string
+): Promise<Record<string, unknown>> {
+  return fetchJson<Record<string, unknown>>(
+    `${API_BASE_URL}/creator/${creatorUserId}/locked-content?section=${encodeURIComponent(section)}`
+  );
+}
+
+export async function getCreatorDashboard(): Promise<CreatorDashboard> {
+  return fetchJson<CreatorDashboard>(`${API_BASE_URL}/creator/dashboard`);
+}
+
+export async function updateCreatorSettings(settings: CreatorSettingsUpdate): Promise<CreatorProfile> {
+  return fetchJson<CreatorProfile>(`${API_BASE_URL}/creator/settings`, {
+    method: 'PATCH',
+    body: JSON.stringify(settings),
+  });
+}
+
+export async function createCreatorConnectOnboarding(): Promise<{ url: string }> {
+  return fetchJson<{ url: string }>(`${API_BASE_URL}/creator/connect-onboarding`, {
+    method: 'POST',
+  });
+}
+
+export async function requestCreatorPayout(): Promise<{ payoutId: string; amountCents: number }> {
+  return fetchJson<{ payoutId: string; amountCents: number }>(`${API_BASE_URL}/creator/payout`, {
+    method: 'POST',
+  });
+}
+
+export async function getMyCreatorSubscriptions(): Promise<CreatorSubscriptionInfo[]> {
+  return fetchJson<CreatorSubscriptionInfo[]>(`${API_BASE_URL}/creator/my-subscriptions`);
+}
+
+export async function subscribeToCreator(creatorUserId: string): Promise<{ url: string }> {
+  return fetchJson<{ url: string }>(`${API_BASE_URL}/creator/${creatorUserId}/subscribe`, {
+    method: 'POST',
+  });
+}
+
+export async function cancelCreatorSubscription(creatorUserId: string): Promise<{ canceledAt: string }> {
+  return fetchJson<{ canceledAt: string }>(`${API_BASE_URL}/creator/${creatorUserId}/subscribe`, {
+    method: 'DELETE',
+  });
+}
+
+export async function reportCreator(
+  creatorUserId: string,
+  reason: string,
+  description?: string
+): Promise<{ reportId: string }> {
+  return fetchJson<{ reportId: string }>(`${API_BASE_URL}/creator/${creatorUserId}/report`, {
+    method: 'POST',
+    body: JSON.stringify({ reason, description }),
   });
 }
