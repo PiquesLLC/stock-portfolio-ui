@@ -1670,6 +1670,8 @@ import {
   CreatorDashboard,
   CreatorSubscriptionInfo,
   CreatorSettingsUpdate,
+  CreatorLedgerResponse,
+  CreatorLedgerEntryType,
 } from './types';
 
 export async function applyAsCreator(pitch?: string): Promise<CreatorProfile> {
@@ -1733,6 +1735,25 @@ export async function cancelCreatorSubscription(creatorUserId: string): Promise<
   return fetchJson<{ canceledAt: string }>(`${API_BASE_URL}/creator/${creatorUserId}/subscribe`, {
     method: 'DELETE',
   });
+}
+
+export async function getCreatorLedger(params?: {
+  limit?: number;
+  cursor?: string;
+  type?: CreatorLedgerEntryType;
+  from?: string;
+  to?: string;
+}): Promise<CreatorLedgerResponse> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.cursor) qs.set('cursor', params.cursor);
+  if (params?.type) qs.set('type', params.type);
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  const query = qs.toString();
+  return fetchJson<CreatorLedgerResponse>(
+    `${API_BASE_URL}/creator/ledger${query ? '?' + query : ''}`
+  );
 }
 
 export async function reportCreator(

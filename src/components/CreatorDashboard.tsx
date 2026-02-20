@@ -6,6 +6,7 @@ import { CreatorDashboard as CreatorDashboardData } from '../types';
 interface CreatorDashboardProps {
   onBack: () => void;
   onSettingsClick: () => void;
+  onLedgerClick: () => void;
 }
 
 function formatCents(cents: number): string {
@@ -18,7 +19,7 @@ function formatDollars(cents: number): string {
 
 const PAYOUT_MIN_CENTS = 5000; // $50.00 minimum — must match API
 
-export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardProps) {
+export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: CreatorDashboardProps) {
   const [data, setData] = useState<CreatorDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [payoutLoading, setPayoutLoading] = useState(false);
@@ -199,6 +200,12 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
             {payoutMessage.text}
           </p>
         )}
+        <button
+          onClick={onLedgerClick}
+          className="mt-3 text-xs font-medium text-rh-green hover:text-rh-green/80 transition-colors"
+        >
+          View transaction history &rarr;
+        </button>
       </section>
 
       {/* Recent events */}

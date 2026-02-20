@@ -1492,6 +1492,38 @@ export interface CreatorSubscriptionInfo {
   createdAt: string;
 }
 
+// ─── Creator Ledger ──────────────────────────────────────────────────────
+
+export type CreatorLedgerEntryType = 'earning' | 'platform_fee' | 'refund' | 'payout';
+
+export interface CreatorLedgerEntry {
+  id: string;
+  createdAt: string;
+  type: CreatorLedgerEntryType;
+  amountCents: number;
+  description: string;
+  subscriptionId: string | null;
+}
+
+export interface CreatorLedgerPage {
+  cursor?: string;
+  nextCursor?: string;
+  limit: number;
+  hasMore: boolean;
+}
+
+export interface CreatorLedgerSummary {
+  availableCents: number;
+  reservedCents: number;
+  pendingPayoutCents: number;
+}
+
+export interface CreatorLedgerResponse {
+  items: CreatorLedgerEntry[];
+  page: CreatorLedgerPage;
+  summary: CreatorLedgerSummary;
+}
+
 export interface CreatorSettingsUpdate {
   pricingCents?: CreatorPricingCents;
   trialDays?: 0 | 7;
