@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { getCreatorDashboard, requestCreatorPayout } from '../api';
+import { getCreatorDashboard, requestCreatorPayout, getReferralStats, ReferralStats } from '../api';
 import { CreatorDashboard as CreatorDashboardData } from '../types';
 
 interface CreatorDashboardProps {
@@ -21,6 +21,7 @@ const PAYOUT_MIN_CENTS = 5000; // $50.00 minimum — must match API
 
 export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: CreatorDashboardProps) {
   const [data, setData] = useState<CreatorDashboardData | null>(null);
+  const [referralData, setReferralData] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutMessage, setPayoutMessage] = useState<{ text: string; isError: boolean } | null>(null);
@@ -28,8 +29,12 @@ export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: Cre
 
   const loadDashboard = useCallback(async () => {
     try {
-      const dashboard = await getCreatorDashboard();
+      const [dashboard, referrals] = await Promise.all([
+        getCreatorDashboard(),
+        getReferralStats().catch(() => null),
+      ]);
       setData(dashboard);
+      setReferralData(referrals);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     } finally {
@@ -230,6 +235,46 @@ export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: Cre
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Referral stats */}
+      {referralData && referralData.totalReferrals > 0 && (
+        <section className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
+          bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-4">
+          <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+            Referrals
+          </h2>
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="text-center">
+              <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{referralData.totalReferrals}</p>
+              <p className="text-[10px] text-rh-light-muted dark:text-rh-muted">Total</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-rh-green">{referralData.activeReferrals}</p>
+              <p className="text-[10px] text-rh-light-muted dark:text-rh-muted">Active</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{referralData.conversionRate}%</p>
+              <p className="text-[10px] text-rh-light-muted dark:text-rh-muted">Conversion</p>
+            </div>
+          </div>
+          {referralData.recentReferrals.length > 0 && (
+            <div className="space-y-1.5">
+              {referralData.recentReferrals.slice(0, 5).map(r => (
+                <div key={r.id} className="flex items-center justify-between text-xs">
+                  <span className="text-rh-light-text dark:text-rh-text">@{r.username}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    r.status === 'active' ? 'bg-rh-green/10 text-rh-green'
+                    : r.status === 'verified' ? 'bg-blue-500/10 text-blue-500'
+                    : 'bg-gray-200 dark:bg-white/10 text-rh-light-muted dark:text-rh-muted'
+                  }`}>
+                    {r.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 

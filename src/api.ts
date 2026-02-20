@@ -312,7 +312,8 @@ export async function signup(
   displayName: string,
   password: string,
   email: string,
-  consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }
+  consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean },
+  referralCode?: string
 ): Promise<SignupResponse> {
   return fetchJson<SignupResponse>(`${API_BASE_URL}/auth/signup`, {
     method: 'POST',
@@ -323,8 +324,31 @@ export async function signup(
       email,
       acceptedPrivacyPolicy: consent?.acceptedPrivacyPolicy,
       acceptedTerms: consent?.acceptedTerms,
+      ...(referralCode ? { referralCode } : {}),
     }),
   });
+}
+
+export interface ReferralStats {
+  totalReferrals: number;
+  verifiedReferrals: number;
+  activeReferrals: number;
+  conversionRate: number;
+  recentReferrals: Array<{
+    id: string;
+    username: string;
+    displayName: string;
+    status: string;
+    joinedAt: string;
+  }>;
+}
+
+export async function getReferralStats(): Promise<ReferralStats> {
+  return fetchJson<ReferralStats>(`${API_BASE_URL}/referral/stats`);
+}
+
+export async function validateReferralCode(code: string): Promise<{ valid: boolean; displayName?: string }> {
+  return fetchJson<{ valid: boolean; displayName?: string }>(`${API_BASE_URL}/referral/validate/${encodeURIComponent(code)}`);
 }
 
 export async function verifySignupEmail(email: string, code: string): Promise<{ message: string }> {

@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { setPassword as apiSetPassword, checkHasPassword, forgotPassword, resetPassword } from '../api';
@@ -61,6 +61,17 @@ export function LoginPage() {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [privacyTab, setPrivacyTab] = useState<'privacy' | 'terms'>('privacy');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [referralCode, setReferralCode] = useState('');
+
+  // Capture referral code from URL (?ref=username)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+      setMode('signup');
+    }
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -150,7 +161,7 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        const result = await signup(username, displayName, password, email, { acceptedPrivacyPolicy: true, acceptedTerms: true });
+        const result = await signup(username, displayName, password, email, { acceptedPrivacyPolicy: true, acceptedTerms: true }, referralCode || undefined);
         if (result.emailVerificationRequired) {
           setVerificationEmail(email);
           setMode('verify-email');
@@ -586,6 +597,13 @@ export function LoginPage() {
                       {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Referral badge (Signup mode only) */}
+              {mode === 'signup' && referralCode && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rh-green/10 dark:bg-rh-green/5 border border-rh-green/20">
+                  <span className="text-rh-green text-sm font-medium">Invited by @{referralCode}</span>
                 </div>
               )}
 

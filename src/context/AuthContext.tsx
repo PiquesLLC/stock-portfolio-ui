@@ -32,7 +32,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   verifyMfa: (code: string, method: 'totp' | 'email' | 'backup') => Promise<void>;
   clearMfaChallenge: () => void;
-  signup: (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }) => Promise<SignupResult>;
+  signup: (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }, referralCode?: string) => Promise<SignupResult>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
   logout: () => void;
@@ -164,9 +164,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMfaChallenge(null);
   }, []);
 
-  const signup = useCallback(async (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }): Promise<SignupResult> => {
+  const signup = useCallback(async (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }, referralCode?: string): Promise<SignupResult> => {
     // Signup sets httpOnly cookie automatically (auto-login)
-    const response = await apiSignup(username, displayName, password, email, consent);
+    const response = await apiSignup(username, displayName, password, email, consent, referralCode);
     if (response.emailVerificationRequired) {
       // Don't set user yet — show verification screen first
       return { emailVerificationRequired: true, email };
