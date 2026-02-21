@@ -30,6 +30,18 @@ function getBarColorHex(score: number): string {
   return '#f87171';
 }
 
+function formatRelativeTime(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 const DIM_ICONS: Record<string, string> = {
   Value: 'V', Quality: 'Q', Growth: 'G', Dividends: 'D', Momentum: 'M',
   'Cost Efficiency': 'C', Diversification: 'Di', Performance: 'P',
@@ -291,7 +303,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
 
   if (!data || data.availableDimensions.length < 2) return null;
 
-  const { composite, grade, dimensions, keyInsights, availableDimensions, isETF } = data;
+  const { composite, grade, dimensions, keyInsights, availableDimensions, isETF, dataAge, lastUpdated } = data;
 
   return (
     <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
@@ -379,6 +391,20 @@ export function NalaScore({ ticker }: NalaScoreProps) {
           }`}>
             {grade}
           </span>
+          {lastUpdated && (
+            <div className="flex items-center gap-1 mt-1.5">
+              {dataAge === 'stale' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+              )}
+              <span className={`text-[10px] ${
+                dataAge === 'stale'
+                  ? 'text-amber-500/80 dark:text-amber-400/70'
+                  : 'text-rh-light-muted/50 dark:text-rh-muted/40'
+              }`}>
+                {dataAge === 'stale' ? 'Data may be stale' : `Updated ${formatRelativeTime(lastUpdated)}`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
