@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { getCreatorDashboard, requestCreatorPayout, getReferralStats, ReferralStats } from '../api';
-import { CreatorDashboard as CreatorDashboardData } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getCreatorDashboard, getCreatorLedger, requestCreatorPayout, getReferralStats, ReferralStats } from '../api';
+import { CreatorDashboard as CreatorDashboardData, CreatorLedgerEntry, CreatorLedgerEntryType, CreatorLedgerSummary } from '../types';
 
 // ── Toggle this to preview with rich demo data ──
 const USE_MOCK = true;
@@ -46,6 +46,33 @@ const MOCK_REFERRALS: ReferralStats = {
   ],
 };
 
+const MOCK_LEDGER_SUMMARY: CreatorLedgerSummary = {
+  availableCents: 7_840,
+  reservedCents: 1_200,
+  pendingPayoutCents: 0,
+};
+
+const MOCK_LEDGER_ENTRIES: CreatorLedgerEntry[] = [
+  { id: 'l1', createdAt: '2026-02-20T14:22:00Z', type: 'earning', amountCents: 400, description: 'Subscription — @TechTrader99', subscriptionId: 's1' },
+  { id: 'l2', createdAt: '2026-02-20T14:22:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @TechTrader99', subscriptionId: 's1' },
+  { id: 'l3', createdAt: '2026-02-19T09:15:00Z', type: 'earning', amountCents: 400, description: 'Renewal — @MarketMaven', subscriptionId: 's2' },
+  { id: 'l4', createdAt: '2026-02-19T09:15:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @MarketMaven', subscriptionId: 's2' },
+  { id: 'l5', createdAt: '2026-02-18T18:30:00Z', type: 'earning', amountCents: 400, description: 'Subscription — @AlphaSeeker', subscriptionId: 's3' },
+  { id: 'l6', createdAt: '2026-02-18T18:30:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @AlphaSeeker', subscriptionId: 's3' },
+  { id: 'l7', createdAt: '2026-02-15T16:00:00Z', type: 'earning', amountCents: 400, description: 'Subscription — @SwingQueen', subscriptionId: 's4' },
+  { id: 'l8', createdAt: '2026-02-15T16:00:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @SwingQueen', subscriptionId: 's4' },
+  { id: 'l9', createdAt: '2026-02-14T22:10:00Z', type: 'refund', amountCents: -400, description: 'Refund — @BudgetBull (payment failed)', subscriptionId: 's5' },
+  { id: 'l10', createdAt: '2026-02-10T12:00:00Z', type: 'payout', amountCents: -5000, description: 'Payout to bank account — ****4829', subscriptionId: null },
+  { id: 'l11', createdAt: '2026-02-08T10:00:00Z', type: 'earning', amountCents: 400, description: 'Renewal — @DividendKing', subscriptionId: 's6' },
+  { id: 'l12', createdAt: '2026-02-08T10:00:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @DividendKing', subscriptionId: 's6' },
+  { id: 'l13', createdAt: '2026-02-05T08:00:00Z', type: 'earning', amountCents: 400, description: 'Renewal — @ValueHunter', subscriptionId: 's7' },
+  { id: 'l14', createdAt: '2026-02-05T08:00:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @ValueHunter', subscriptionId: 's7' },
+  { id: 'l15', createdAt: '2026-02-01T06:00:00Z', type: 'earning', amountCents: 400, description: 'Subscription — @GrowthGuru', subscriptionId: 's8' },
+  { id: 'l16', createdAt: '2026-02-01T06:00:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @GrowthGuru', subscriptionId: 's8' },
+  { id: 'l17', createdAt: '2026-01-28T14:00:00Z', type: 'earning', amountCents: 400, description: 'Renewal — @OptionsOracle', subscriptionId: 's9' },
+  { id: 'l18', createdAt: '2026-01-28T14:00:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @OptionsOracle', subscriptionId: 's9' },
+];
+
 interface CreatorDashboardProps {
   onBack: () => void;
   onSettingsClick: () => void;
@@ -65,10 +92,36 @@ function formatCompact(cents: number): string {
 
 const PAYOUT_MIN_CENTS = 5000;
 
+function ledgerTypeColor(type: CreatorLedgerEntryType): string {
+  switch (type) {
+    case 'earning': return 'text-rh-green';
+    case 'refund': return 'text-red-500 dark:text-red-400';
+    case 'payout': return 'text-blue-500 dark:text-blue-400';
+    case 'platform_fee': return 'text-rh-light-muted dark:text-rh-muted';
+  }
+}
+
+function ledgerTypeLabel(type: CreatorLedgerEntryType): string {
+  switch (type) {
+    case 'earning': return 'Earning';
+    case 'refund': return 'Refund';
+    case 'payout': return 'Payout';
+    case 'platform_fee': return 'Fee';
+  }
+}
+
+const LEDGER_FILTERS: { value: CreatorLedgerEntryType | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'earning', label: 'Earnings' },
+  { value: 'refund', label: 'Refunds' },
+  { value: 'payout', label: 'Payouts' },
+  { value: 'platform_fee', label: 'Fees' },
+];
+
 const CARD = 'rounded-xl border border-gray-200/40 dark:border-white/[0.06] bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl';
 const SECTION_TITLE = 'text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted';
 
-export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: CreatorDashboardProps) {
+export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardProps) {
   const [data, setData] = useState<CreatorDashboardData | null>(USE_MOCK ? MOCK_DATA : null);
   const [referralData, setReferralData] = useState<ReferralStats | null>(USE_MOCK ? MOCK_REFERRALS : null);
   const [loading, setLoading] = useState(!USE_MOCK);
@@ -76,6 +129,13 @@ export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: Cre
   const [payoutMessage, setPayoutMessage] = useState<{ text: string; isError: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const [showLedger, setShowLedger] = useState(false);
+  const [ledgerEntries, setLedgerEntries] = useState<CreatorLedgerEntry[]>(USE_MOCK ? MOCK_LEDGER_ENTRIES : []);
+  const [ledgerSummary, setLedgerSummary] = useState<CreatorLedgerSummary | null>(USE_MOCK ? MOCK_LEDGER_SUMMARY : null);
+  const [ledgerFilter, setLedgerFilter] = useState<CreatorLedgerEntryType | 'all'>('all');
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerCursor, setLedgerCursor] = useState<string | undefined>();
+  const [ledgerHasMore, setLedgerHasMore] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     if (USE_MOCK) return;
@@ -109,6 +169,43 @@ export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: Cre
       setPayoutLoading(false);
     }
   };
+
+  const openLedger = useCallback(async () => {
+    setShowLedger(true);
+    if (USE_MOCK) return;
+    setLedgerLoading(true);
+    try {
+      const res = await getCreatorLedger({ limit: 25 });
+      setLedgerEntries(res.items);
+      setLedgerSummary(res.summary);
+      setLedgerCursor(res.page.nextCursor);
+      setLedgerHasMore(res.page.hasMore);
+    } catch { /* silent */ } finally {
+      setLedgerLoading(false);
+    }
+  }, []);
+
+  const loadMoreLedger = useCallback(async () => {
+    if (!ledgerCursor || ledgerLoading || USE_MOCK) return;
+    setLedgerLoading(true);
+    try {
+      const res = await getCreatorLedger({
+        limit: 25,
+        cursor: ledgerCursor,
+        type: ledgerFilter === 'all' ? undefined : ledgerFilter,
+      });
+      setLedgerEntries(prev => [...prev, ...res.items]);
+      setLedgerCursor(res.page.nextCursor);
+      setLedgerHasMore(res.page.hasMore);
+    } catch { /* silent */ } finally {
+      setLedgerLoading(false);
+    }
+  }, [ledgerCursor, ledgerLoading, ledgerFilter]);
+
+  const filteredLedger = useMemo(() => {
+    if (ledgerFilter === 'all') return ledgerEntries;
+    return ledgerEntries.filter(e => e.type === ledgerFilter);
+  }, [ledgerEntries, ledgerFilter]);
 
   const payoutProgress = useMemo(() => {
     if (!data) return 0;
@@ -185,7 +282,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: Cre
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={onLedgerClick}
+            onClick={openLedger}
             className="px-3 py-1.5 text-xs font-medium rounded-lg
               bg-gray-100 dark:bg-white/[0.06] text-rh-light-text dark:text-rh-text
               hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-colors"
@@ -308,7 +405,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: Cre
               <p className="text-[10px] text-rh-light-muted dark:text-rh-muted">Total Estimated Revenue</p>
               <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCents(data.totalEarningsCents)}</p>
             </div>
-            <button onClick={onLedgerClick} className="text-xs text-rh-green hover:text-rh-green/80 transition-colors">
+            <button onClick={openLedger} className="text-xs text-rh-green hover:text-rh-green/80 transition-colors">
               View Ledger
             </button>
           </div>
@@ -510,6 +607,128 @@ export function CreatorDashboard({ onBack, onSettingsClick, onLedgerClick }: Cre
           )}
         </section>
       )}
+      {/* ─── Ledger Modal ─── */}
+      <AnimatePresence>
+        {showLedger && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-20 px-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowLedger(false); }}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+
+            {/* Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-2xl max-h-[75vh] flex flex-col
+                bg-white dark:bg-[#1a1a1e] rounded-2xl border border-gray-200/60 dark:border-white/[0.08]
+                shadow-2xl overflow-hidden"
+            >
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/40 dark:border-white/[0.06]">
+                <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Transaction History</h2>
+                <button
+                  onClick={() => setShowLedger(false)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
+                >
+                  <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Summary strip */}
+              {ledgerSummary && (
+                <div className="grid grid-cols-3 divide-x divide-gray-200/40 dark:divide-white/[0.06] border-b border-gray-200/40 dark:border-white/[0.06]">
+                  <div className="py-3 px-4 text-center">
+                    <p className="text-lg font-bold text-rh-green">{formatCents(ledgerSummary.availableCents)}</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Available</p>
+                  </div>
+                  <div className="py-3 px-4 text-center">
+                    <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCents(ledgerSummary.reservedCents)}</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Reserved</p>
+                  </div>
+                  <div className="py-3 px-4 text-center">
+                    <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCents(ledgerSummary.pendingPayoutCents)}</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Pending</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Filters */}
+              <div className="flex gap-1.5 px-5 py-3 border-b border-gray-200/40 dark:border-white/[0.06]">
+                {LEDGER_FILTERS.map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => setLedgerFilter(f.value)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors border ${
+                      ledgerFilter === f.value
+                        ? 'border-rh-green bg-rh-green/10 text-rh-green'
+                        : 'border-gray-200 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:border-gray-300 dark:hover:border-white/20'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Entries */}
+              <div className="flex-1 overflow-y-auto scrollbar-minimal">
+                {ledgerLoading && filteredLedger.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-rh-light-muted dark:text-rh-muted">Loading...</div>
+                ) : filteredLedger.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-rh-light-muted dark:text-rh-muted">No transactions yet.</div>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+                    {filteredLedger.map(entry => (
+                      <div key={entry.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider ${ledgerTypeColor(entry.type)}`}>
+                              {ledgerTypeLabel(entry.type)}
+                            </span>
+                            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+                              {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                          {entry.description && (
+                            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{entry.description}</p>
+                          )}
+                        </div>
+                        <span className={`text-sm font-semibold flex-shrink-0 ml-3 ${
+                          entry.amountCents >= 0 ? 'text-rh-green' : 'text-red-500 dark:text-red-400'
+                        }`}>
+                          {entry.amountCents >= 0 ? '+' : ''}{formatCents(entry.amountCents)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Load more */}
+                {ledgerHasMore && !USE_MOCK && (
+                  <div className="text-center py-3 border-t border-gray-200/40 dark:border-white/[0.06]">
+                    <button
+                      onClick={loadMoreLedger}
+                      disabled={ledgerLoading}
+                      className="text-xs font-medium text-rh-green hover:text-rh-green/80 transition-colors disabled:opacity-50"
+                    >
+                      {ledgerLoading ? 'Loading...' : 'Load more'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
