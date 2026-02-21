@@ -50,7 +50,6 @@ const PortfolioCompare = lazy(() => import('./components/PortfolioCompare').then
 const CompareStocksPage = lazy(() => import('./components/CompareStocksPage').then(m => ({ default: m.CompareStocksPage })));
 const CreatorDashboardPage = lazy(() => import('./components/CreatorDashboard').then(m => ({ default: m.CreatorDashboard })));
 const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsPage').then(m => ({ default: m.CreatorSettingsPage })));
-const CreatorLedgerPage = lazy(() => import('./components/CreatorLedger').then(m => ({ default: m.CreatorLedger })));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -191,7 +190,7 @@ export default function App() {
   // Premium-gated: const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | 'ledger' | null>(null);
+  const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
   const [isCreator, setIsCreator] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -732,6 +731,17 @@ export default function App() {
               </button>
             )}
             {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
+            {isCreator && (
+              <button
+                onClick={() => setCreatorView('dashboard')}
+                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                title="Creator Dashboard"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h4v8H3v-8zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+                </svg>
+              </button>
+            )}
             <button
               onClick={toggleTheme}
               className="hidden sm:flex items-center p-1.5 rounded-lg transition-colors
@@ -1310,7 +1320,6 @@ export default function App() {
               <CreatorDashboardPage
                 onBack={() => setCreatorView(null)}
                 onSettingsClick={() => setCreatorView('settings')}
-                onLedgerClick={() => setCreatorView('ledger')}
               />
             </ErrorBoundary>
           )}
@@ -1324,13 +1333,6 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {creatorView === 'ledger' && (
-            <ErrorBoundary>
-              <CreatorLedgerPage
-                onBack={() => setCreatorView('dashboard')}
-              />
-            </ErrorBoundary>
-          )}
         </Suspense>
       </main>
 

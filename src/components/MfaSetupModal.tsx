@@ -69,6 +69,13 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const totpEnabled = status?.methods.some(m => m.type === 'totp' && m.enabled);

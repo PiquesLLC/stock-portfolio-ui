@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PrivacyPolicyModalProps {
   isOpen: boolean;
@@ -239,6 +239,13 @@ export function TermsOfServiceContent() {
 
 export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: PrivacyPolicyModalProps) {
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms'>(initialTab);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

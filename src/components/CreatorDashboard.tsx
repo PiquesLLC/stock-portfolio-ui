@@ -1,24 +1,30 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCreatorDashboard, getCreatorLedger, requestCreatorPayout, getReferralStats, ReferralStats } from '../api';
 import { CreatorDashboard as CreatorDashboardData, CreatorLedgerEntry, CreatorLedgerEntryType, CreatorLedgerSummary } from '../types';
 
-// ── Toggle this to preview with rich demo data ──
+// ── Use mock data until real creator subscriptions exist ──
 const USE_MOCK = true;
 
 const MOCK_DATA: CreatorDashboardData = {
-  mrr: 126_00 * 5, // $630/mo MRR (126 subs × $5)
+  mrr: 126_00 * 5,
   activeSubscribers: 126,
   churnRatePct: 3.2,
-  totalEarningsCents: 4_218_40, // $4,218.40 lifetime
-  payoutBalanceCents: 7_840, // $78.40 — above threshold
+  totalEarningsCents: 4_218_40,
+  payoutBalanceCents: 7_840,
   monthlyEarnings: [
-    { month: '2025-09', amountCents: 18_000 },
-    { month: '2025-10', amountCents: 32_400 },
-    { month: '2025-11', amountCents: 41_200 },
-    { month: '2025-12', amountCents: 55_800 },
-    { month: '2026-01', amountCents: 68_000 },
-    { month: '2026-02', amountCents: 63_000 },
+    { month: '2025-03', amountCents: 4_200, referralBonusCents: 0 },
+    { month: '2025-04', amountCents: 7_800, referralBonusCents: 500 },
+    { month: '2025-05', amountCents: 11_600, referralBonusCents: 500 },
+    { month: '2025-06', amountCents: 14_400, referralBonusCents: 1_000 },
+    { month: '2025-07', amountCents: 16_200, referralBonusCents: 1_500 },
+    { month: '2025-08', amountCents: 15_800, referralBonusCents: 1_000 },
+    { month: '2025-09', amountCents: 18_000, referralBonusCents: 2_000 },
+    { month: '2025-10', amountCents: 32_400, referralBonusCents: 3_200 },
+    { month: '2025-11', amountCents: 41_200, referralBonusCents: 4_000 },
+    { month: '2025-12', amountCents: 55_800, referralBonusCents: 5_500 },
+    { month: '2026-01', amountCents: 68_000, referralBonusCents: 6_800 },
+    { month: '2026-02', amountCents: 63_000, referralBonusCents: 5_200 },
   ],
   recentEvents: [
     { type: 'created', description: 'New subscription from @TechTrader99', createdAt: '2026-02-20T14:22:00Z' },
@@ -73,10 +79,15 @@ const MOCK_LEDGER_ENTRIES: CreatorLedgerEntry[] = [
   { id: 'l18', createdAt: '2026-01-28T14:00:00Z', type: 'platform_fee', amountCents: -100, description: 'Platform fee (20%) — @OptionsOracle', subscriptionId: 's9' },
 ];
 
+function mockFilterEntries(entries: CreatorLedgerEntry[], filter: CreatorLedgerEntryType | 'all'): CreatorLedgerEntry[] {
+  if (filter === 'all') return entries;
+  return entries.filter(e => e.type === filter);
+}
+
 interface CreatorDashboardProps {
   onBack: () => void;
   onSettingsClick: () => void;
-  onLedgerClick: () => void;
+  onUserClick?: (username: string) => void;
 }
 
 function formatCents(cents: number): string {
@@ -90,7 +101,7 @@ function formatCompact(cents: number): string {
   return `$${dollars.toFixed(2)}`;
 }
 
-const PAYOUT_MIN_CENTS = 5000;
+const PAYOUT_MIN_CENTS = 500;
 
 function ledgerTypeColor(type: CreatorLedgerEntryType): string {
   switch (type) {
@@ -121,7 +132,53 @@ const LEDGER_FILTERS: { value: CreatorLedgerEntryType | 'all'; label: string }[]
 const CARD = 'rounded-xl border border-gray-200/40 dark:border-white/[0.06] bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl';
 const SECTION_TITLE = 'text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted';
 
-export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardProps) {
+function UsernameLink({ username, onUserClick }: { username: string; onUserClick?: (username: string) => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onUserClick?.(username); }}
+      className="text-rh-green hover:underline font-medium cursor-pointer"
+    >
+      @{username}
+    </button>
+  );
+}
+
+function DescriptionWithLinks({ text, onUserClick }: { text: string; onUserClick?: (username: string) => void }) {
+  const parts = text.split(/(@\w+)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('@')) {
+          return <UsernameLink key={i} username={part.slice(1)} onUserClick={onUserClick} />;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+function InfoTip({ text }: { text: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span className="relative inline-flex ml-1"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <span className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-white/20 flex items-center justify-center cursor-help text-[9px] font-semibold text-gray-400 dark:text-white/30 leading-none select-none">
+        i
+      </span>
+      {show && (
+        <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-lg
+          bg-gray-800 dark:bg-white/90 text-white dark:text-gray-900 text-[10px] leading-tight
+          whitespace-normal w-52 text-center shadow-lg pointer-events-none">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: CreatorDashboardProps) {
   const [data, setData] = useState<CreatorDashboardData | null>(USE_MOCK ? MOCK_DATA : null);
   const [referralData, setReferralData] = useState<ReferralStats | null>(USE_MOCK ? MOCK_REFERRALS : null);
   const [loading, setLoading] = useState(!USE_MOCK);
@@ -129,6 +186,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
   const [payoutMessage, setPayoutMessage] = useState<{ text: string; isError: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const [earningsPeriod, setEarningsPeriod] = useState<'D' | 'W' | 'M' | 'YR' | 'ALL'>('ALL');
   const [showLedger, setShowLedger] = useState(false);
   const [ledgerEntries, setLedgerEntries] = useState<CreatorLedgerEntry[]>(USE_MOCK ? MOCK_LEDGER_ENTRIES : []);
   const [ledgerSummary, setLedgerSummary] = useState<CreatorLedgerSummary | null>(USE_MOCK ? MOCK_LEDGER_SUMMARY : null);
@@ -136,6 +194,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [ledgerCursor, setLedgerCursor] = useState<string | undefined>();
   const [ledgerHasMore, setLedgerHasMore] = useState(false);
+  const ledgerRequestId = useRef(0);
 
   const loadDashboard = useCallback(async () => {
     if (USE_MOCK) return;
@@ -157,6 +216,10 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
 
   const handlePayout = async () => {
     if (!data) return;
+    if (USE_MOCK) {
+      setPayoutMessage({ text: `Payout of ${formatCents(data.payoutBalanceCents)} requested (demo)`, isError: false });
+      return;
+    }
     setPayoutLoading(true);
     setPayoutMessage(null);
     try {
@@ -170,42 +233,55 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
     }
   };
 
-  const openLedger = useCallback(async () => {
-    setShowLedger(true);
-    if (USE_MOCK) return;
-    setLedgerLoading(true);
-    try {
-      const res = await getCreatorLedger({ limit: 25 });
-      setLedgerEntries(res.items);
-      setLedgerSummary(res.summary);
-      setLedgerCursor(res.page.nextCursor);
-      setLedgerHasMore(res.page.hasMore);
-    } catch { /* silent */ } finally {
-      setLedgerLoading(false);
+  const fetchLedger = useCallback(async (filter: CreatorLedgerEntryType | 'all', cursor?: string) => {
+    if (USE_MOCK) {
+      setLedgerEntries(mockFilterEntries(MOCK_LEDGER_ENTRIES, filter));
+      setLedgerSummary(MOCK_LEDGER_SUMMARY);
+      setLedgerHasMore(false);
+      return;
     }
-  }, []);
-
-  const loadMoreLedger = useCallback(async () => {
-    if (!ledgerCursor || ledgerLoading || USE_MOCK) return;
+    const reqId = ++ledgerRequestId.current;
     setLedgerLoading(true);
     try {
       const res = await getCreatorLedger({
         limit: 25,
-        cursor: ledgerCursor,
-        type: ledgerFilter === 'all' ? undefined : ledgerFilter,
+        cursor,
+        type: filter === 'all' ? undefined : filter,
       });
-      setLedgerEntries(prev => [...prev, ...res.items]);
+      if (reqId !== ledgerRequestId.current) return;
+      if (cursor) {
+        setLedgerEntries(prev => [...prev, ...res.items]);
+      } else {
+        setLedgerEntries(res.items);
+      }
+      setLedgerSummary(res.summary);
       setLedgerCursor(res.page.nextCursor);
       setLedgerHasMore(res.page.hasMore);
     } catch { /* silent */ } finally {
-      setLedgerLoading(false);
+      if (reqId === ledgerRequestId.current) setLedgerLoading(false);
     }
-  }, [ledgerCursor, ledgerLoading, ledgerFilter]);
+  }, []);
 
-  const filteredLedger = useMemo(() => {
-    if (ledgerFilter === 'all') return ledgerEntries;
-    return ledgerEntries.filter(e => e.type === ledgerFilter);
-  }, [ledgerEntries, ledgerFilter]);
+  const openLedger = useCallback(() => {
+    setShowLedger(true);
+    setLedgerFilter('all');
+    fetchLedger('all');
+  }, [fetchLedger]);
+
+  const handleLedgerFilterChange = useCallback((filter: CreatorLedgerEntryType | 'all') => {
+    setLedgerFilter(filter);
+    if (!USE_MOCK) {
+      setLedgerEntries([]);
+      setLedgerCursor(undefined);
+      setLedgerHasMore(false);
+    }
+    fetchLedger(filter);
+  }, [fetchLedger]);
+
+  const loadMoreLedger = useCallback(() => {
+    if (!ledgerCursor || ledgerLoading || USE_MOCK) return;
+    fetchLedger(ledgerFilter, ledgerCursor);
+  }, [ledgerCursor, ledgerLoading, ledgerFilter, fetchLedger]);
 
   const payoutProgress = useMemo(() => {
     if (!data) return 0;
@@ -213,6 +289,27 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
   }, [data]);
 
   const payoutMet = data ? data.payoutBalanceCents >= PAYOUT_MIN_CENTS : false;
+
+  // Escape key to close ledger modal
+  useEffect(() => {
+    if (!showLedger) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowLedger(false); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [showLedger]);
+
+  // Earnings period filter
+  const filteredEarnings = useMemo(() => {
+    if (!data) return [];
+    const all = data.monthlyEarnings;
+    switch (earningsPeriod) {
+      case 'D': return all.slice(-1);
+      case 'W': return all.slice(-2);
+      case 'M': return all.slice(-3);
+      case 'YR': return all.slice(-12);
+      case 'ALL': default: return all;
+    }
+  }, [data, earningsPeriod]);
 
   if (loading) {
     return (
@@ -244,11 +341,11 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
   }
 
   // ── Chart calculations ──
-  const earnings = data.monthlyEarnings;
-  const maxEarning = Math.max(...earnings.map(e => e.amountCents), 100);
+  const earnings = filteredEarnings;
+  const maxEarning = Math.max(...earnings.map(e => e.amountCents + (e.referralBonusCents ?? 0)), 100);
   const CHART_W = 720;
   const CHART_H = 200;
-  const PAD = { l: 52, r: 16, t: 12, b: 28 };
+  const PAD = { l: 52, r: 16, t: 32, b: 28 };
   const plotW = CHART_W - PAD.l - PAD.r;
   const plotH = CHART_H - PAD.t - PAD.b;
 
@@ -303,18 +400,18 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
       {/* ─── Stat Strip ─── */}
       <div className={`${CARD} p-0 grid grid-cols-5 divide-x divide-gray-200/40 dark:divide-white/[0.06]`}>
         {[
-          { value: formatCents(data.totalEarningsCents), label: 'Revenue', accent: true },
-          { value: formatCents(data.mrr), label: 'MRR', accent: true },
-          { value: String(data.activeSubscribers), label: 'Subscribers' },
-          { value: `${data.churnRatePct.toFixed(1)}%`, label: 'Churn' },
-          { value: String(referralCount), label: 'Referrals' },
+          { value: formatCents(data.totalEarningsCents), label: 'Revenue', accent: true, tip: 'Total lifetime earnings from all subscription revenue (your 80% share)' },
+          { value: formatCents(data.mrr), label: 'MRR', accent: true, tip: 'Monthly Recurring Revenue — projected monthly income from active subscribers' },
+          { value: String(data.activeSubscribers), label: 'Subscribers', tip: 'Number of currently active paid subscribers' },
+          { value: `${data.churnRatePct.toFixed(1)}%`, label: 'Churn', tip: 'Percentage of subscribers who canceled in the last 30 days' },
+          { value: String(referralCount), label: 'Referrals', tip: 'Users who signed up for Premium through your referral link' },
         ].map((stat) => (
           <div key={stat.label} className="py-3.5 px-3 text-center">
             <p className={`text-xl font-bold ${stat.accent ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text'}`}>
               {stat.value}
             </p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5">
-              {stat.label}
+            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5 flex items-center justify-center gap-0">
+              {stat.label}<InfoTip text={stat.tip} />
             </p>
           </div>
         ))}
@@ -324,9 +421,32 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
       <section className={`${CARD} p-4`}>
         <div className="flex items-center justify-between mb-2">
           <h2 className={SECTION_TITLE}>Monthly Earnings</h2>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-rh-green/70" />
-            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Subscriptions</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              {(['D', 'W', 'M', 'YR', 'ALL'] as const).map(period => (
+                <button
+                  key={period}
+                  onClick={() => setEarningsPeriod(period)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
+                    earningsPeriod === period
+                      ? 'bg-rh-green/10 text-rh-green'
+                      : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted'
+                  }`}
+                >
+                  {period}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 ml-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-rh-green/70" />
+                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Subscriptions</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-blue-500/70" />
+                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Referrals</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -363,25 +483,52 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
             {earnings.map((e, i) => {
               const n = earnings.length;
               const gap = Math.max(6, plotW * 0.06 / n);
-              const barW = Math.max(16, (plotW - gap * (n + 1)) / n);
-              const x = PAD.l + gap + i * (barW + gap);
-              const barH = Math.max(2, (e.amountCents / maxEarning) * plotH);
-              const y = PAD.t + plotH - barH;
+              const rawBarW = Math.max(16, (plotW - gap * (n + 1)) / n);
+              const barW = Math.min(rawBarW, 48);
+              const totalBarsW = n * barW + (n + 1) * gap;
+              const offsetX = (plotW - totalBarsW) / 2;
+              const x = PAD.l + offsetX + gap + i * (barW + gap);
+              const refBonus = e.referralBonusCents ?? 0;
+              const totalCents = e.amountCents + refBonus;
+              const totalH = Math.max(2, (totalCents / maxEarning) * plotH);
+              const subH = Math.max(refBonus > 0 ? 0 : 2, (e.amountCents / maxEarning) * plotH);
+              const refH = totalH - subH;
+              const yTotal = PAD.t + plotH - totalH;
+              const ySub = PAD.t + plotH - subH;
               const isHovered = hoveredBar === i;
+              const clipId = `bar-clip-${i}`;
 
               return (
                 <g key={e.month} onMouseEnter={() => setHoveredBar(i)} style={{ cursor: 'pointer' }}>
+                  <defs>
+                    <clipPath id={clipId}>
+                      <rect x={x} y={yTotal} width={barW} height={totalH} rx={3} />
+                    </clipPath>
+                  </defs>
                   <rect x={x - gap / 2} y={PAD.t} width={barW + gap} height={plotH + PAD.b} fill="transparent" />
-                  <rect
-                    x={x} y={y} width={barW} height={barH} rx={3}
-                    className={isHovered ? 'fill-rh-green' : 'fill-rh-green/60'}
-                    style={{ transition: 'fill 0.15s' }}
-                  />
+                  <g clipPath={`url(#${clipId})`}>
+                    {/* Subscription (green, full height — blue overlays the top) */}
+                    <rect
+                      x={x} y={ySub} width={barW} height={subH}
+                      fill={isHovered ? '#00c805' : '#00c805'}
+                      opacity={isHovered ? 1 : 0.85}
+                      style={{ transition: 'opacity 0.15s' }}
+                    />
+                    {/* Referral (blue, stacked on top) */}
+                    {refH > 0 && (
+                      <rect
+                        x={x} y={yTotal} width={barW} height={refH}
+                        fill={isHovered ? '#3b82f6' : '#3b82f6'}
+                        opacity={isHovered ? 1 : 0.85}
+                        style={{ transition: 'opacity 0.15s' }}
+                      />
+                    )}
+                  </g>
                   {isHovered && (
                     <>
-                      <rect x={x + barW / 2 - 34} y={y - 24} width={68} height={18} rx={4} className="fill-gray-800 dark:fill-white/90" />
-                      <text x={x + barW / 2} y={y - 12} textAnchor="middle" className="fill-white dark:fill-gray-900" style={{ fontSize: '10px', fontWeight: 600 }}>
-                        {formatCents(e.amountCents)}
+                      <rect x={x + barW / 2 - 46} y={yTotal - 24} width={92} height={18} rx={4} className="fill-gray-800 dark:fill-white/90" />
+                      <text x={x + barW / 2} y={yTotal - 12} textAnchor="middle" className="fill-white dark:fill-gray-900" style={{ fontSize: '10px', fontWeight: 600 }}>
+                        {formatCents(totalCents)}
                       </text>
                     </>
                   )}
@@ -402,7 +549,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
           <h2 className={`${SECTION_TITLE} mb-3`}>Revenue Sources</h2>
           <div className="flex items-baseline justify-between mb-3">
             <div>
-              <p className="text-[10px] text-rh-light-muted dark:text-rh-muted">Total Estimated Revenue</p>
+              <p className="text-[10px] text-rh-light-muted dark:text-rh-muted flex items-center">Total Estimated Revenue<InfoTip text="Sum of all earnings credited to your account" /></p>
               <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCents(data.totalEarningsCents)}</p>
             </div>
             <button onClick={openLedger} className="text-xs text-rh-green hover:text-rh-green/80 transition-colors">
@@ -465,7 +612,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
           </table>
           <div className="mt-3 pt-2.5 border-t border-gray-200/40 dark:border-white/[0.06]">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted">Monthly Revenue per Sub</span>
+              <span className="text-xs text-rh-light-muted dark:text-rh-muted flex items-center">Monthly Revenue per Sub<InfoTip text="Your MRR divided by active subscriber count" /></span>
               <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
                 {data.activeSubscribers > 0 ? formatCents(Math.round(data.mrr / data.activeSubscribers)) : '—'}
               </span>
@@ -478,7 +625,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Payout Threshold */}
         <section className={`${CARD} p-4`}>
-          <h2 className={`${SECTION_TITLE} mb-3`}>Payout Threshold</h2>
+          <h2 className={`${SECTION_TITLE} mb-3 flex items-center`}>Payout Threshold<InfoTip text="You need at least $5.00 in available balance to request a payout" /></h2>
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Current Progress</span>
             <span className="text-sm text-rh-light-text dark:text-rh-text">
@@ -518,7 +665,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
 
         {/* Payout Eligibility */}
         <section className={`${CARD} p-4`}>
-          <h2 className={`${SECTION_TITLE} mb-3`}>Payout Eligibility</h2>
+          <h2 className={`${SECTION_TITLE} mb-3 flex items-center`}>Payout Eligibility<InfoTip text="Your account status and payout method configuration" /></h2>
           <div className="space-y-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1">Payable Status</p>
@@ -526,7 +673,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
               <p className="mt-1 text-xs text-rh-light-muted dark:text-rh-muted">Your creator account is active and in good standing.</p>
             </div>
             <div className="border-t border-gray-200/40 dark:border-white/[0.06] pt-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1">Revenue Split</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1 flex items-center">Revenue Split<InfoTip text="Nala takes 20% platform fee, you receive 80% of subscription revenue" /></p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-3 rounded-full overflow-hidden flex">
                   <div className="h-full bg-rh-green" style={{ width: '80%' }} />
@@ -561,7 +708,9 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
                   : event.type === 'payment_failed' ? 'bg-yellow-500'
                   : 'bg-gray-400'
                 }`} />
-                <span className="text-sm text-rh-light-text dark:text-rh-text flex-1">{event.description}</span>
+                <span className="text-sm text-rh-light-text dark:text-rh-text flex-1">
+                  <DescriptionWithLinks text={event.description} onUserClick={onUserClick} />
+                </span>
                 <span className="text-xs text-rh-light-muted dark:text-rh-muted flex-shrink-0">
                   {new Date(event.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
@@ -574,7 +723,10 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
       {/* ─── Referrals (only if they have data — stat strip already shows count) ─── */}
       {referralData && referralData.totalReferrals > 0 && (
         <section className={`${CARD} p-4`}>
-          <h2 className={`${SECTION_TITLE} mb-3`}>Referral Breakdown</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={SECTION_TITLE}>Referral Breakdown</h2>
+            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Credited on Premium signup</span>
+          </div>
           <div className="grid grid-cols-3 gap-3 mb-3">
             <div className="text-center">
               <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{referralData.totalReferrals}</p>
@@ -582,7 +734,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-rh-green">{referralData.activeReferrals}</p>
-              <p className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Active</p>
+              <p className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Premium</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{referralData.conversionRate}%</p>
@@ -593,13 +745,13 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
             <div className="border-t border-gray-200/40 dark:border-white/[0.06] pt-2.5 divide-y divide-gray-200/20 dark:divide-white/[0.03]">
               {referralData.recentReferrals.slice(0, 5).map(r => (
                 <div key={r.id} className="flex items-center justify-between py-1.5 text-sm">
-                  <span className="text-rh-light-text dark:text-rh-text">@{r.username}</span>
+                  <UsernameLink username={r.username} onUserClick={onUserClick} />
                   <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
                     r.status === 'active' ? 'bg-rh-green/15 text-rh-green'
                     : r.status === 'verified' ? 'bg-blue-500/15 text-blue-500'
                     : 'bg-gray-200 dark:bg-white/10 text-rh-light-muted dark:text-rh-muted'
                   }`}>
-                    {r.status}
+                    {r.status === 'active' ? 'premium' : r.status}
                   </span>
                 </div>
               ))}
@@ -667,7 +819,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
                 {LEDGER_FILTERS.map(f => (
                   <button
                     key={f.value}
-                    onClick={() => setLedgerFilter(f.value)}
+                    onClick={() => handleLedgerFilterChange(f.value)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors border ${
                       ledgerFilter === f.value
                         ? 'border-rh-green bg-rh-green/10 text-rh-green'
@@ -681,13 +833,13 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
 
               {/* Entries */}
               <div className="flex-1 overflow-y-auto scrollbar-minimal">
-                {ledgerLoading && filteredLedger.length === 0 ? (
+                {ledgerLoading && ledgerEntries.length === 0 ? (
                   <div className="py-12 text-center text-sm text-rh-light-muted dark:text-rh-muted">Loading...</div>
-                ) : filteredLedger.length === 0 ? (
+                ) : ledgerEntries.length === 0 ? (
                   <div className="py-12 text-center text-sm text-rh-light-muted dark:text-rh-muted">No transactions yet.</div>
                 ) : (
                   <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
-                    {filteredLedger.map(entry => (
+                    {ledgerEntries.map(entry => (
                       <div key={entry.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
@@ -699,7 +851,9 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
                             </span>
                           </div>
                           {entry.description && (
-                            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{entry.description}</p>
+                            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">
+                              <DescriptionWithLinks text={entry.description} onUserClick={onUserClick} />
+                            </p>
                           )}
                         </div>
                         <span className={`text-sm font-semibold flex-shrink-0 ml-3 ${
@@ -713,7 +867,7 @@ export function CreatorDashboard({ onBack, onSettingsClick }: CreatorDashboardPr
                 )}
 
                 {/* Load more */}
-                {ledgerHasMore && !USE_MOCK && (
+                {ledgerHasMore && (
                   <div className="text-center py-3 border-t border-gray-200/40 dark:border-white/[0.06]">
                     <button
                       onClick={loadMoreLedger}

@@ -17,7 +17,7 @@ interface AccountSettingsModalProps {
   onClose: () => void;
   onSave?: () => void;
   healthStatus?: HealthStatus | null;
-  onCreatorNavigate?: (view: 'dashboard' | 'settings' | 'ledger') => void;
+  onCreatorNavigate?: (view: 'dashboard' | 'settings') => void;
 }
 
 export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthStatus, onCreatorNavigate }: AccountSettingsModalProps) {
@@ -99,6 +99,19 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
       getNotificationStatus().then(setNotifStatus).catch(() => {});
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Don't close parent if a sub-modal is open
+        if (showLegalModal || showMfaModal || showCreatorApply || showDeleteConfirm || showImport || showPasswordChange) return;
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose, showLegalModal, showMfaModal, showCreatorApply, showDeleteConfirm, showImport, showPasswordChange]);
 
   useEffect(() => {
     if (isOpen && userId) {

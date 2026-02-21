@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { applyAsCreator } from '../api';
 
 interface CreatorApplicationModalProps {
@@ -13,6 +13,13 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

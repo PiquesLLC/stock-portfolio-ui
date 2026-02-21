@@ -1431,7 +1431,7 @@ export interface TaxHarvestResponse {
 // ─── Creator Monetization Marketplace ────────────────────────────────────
 
 export type CreatorStatus = 'pending' | 'active' | 'suspended';
-export type CreatorPricingCents = 500 | 1500 | 4900;
+export type CreatorPricingCents = number;
 export type CreatorAccessLevel = 'public' | 'follower' | 'paid';
 export type CreatorSubscriptionStatus = 'active' | 'canceled' | 'expired' | 'past_due';
 
@@ -1475,7 +1475,7 @@ export interface CreatorDashboard {
   churnRatePct: number;
   totalEarningsCents: number;
   payoutBalanceCents: number;
-  monthlyEarnings: { month: string; amountCents: number }[];
+  monthlyEarnings: { month: string; amountCents: number; referralBonusCents?: number }[];
   recentEvents: { type: string; description: string; createdAt: string }[];
 }
 
