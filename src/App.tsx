@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Portfolio, Settings, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus } from './api';
+import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus, getCreatorProfile } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -192,6 +192,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | 'ledger' | null>(null);
+  const [isCreator, setIsCreator] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -590,6 +591,12 @@ export default function App() {
     return () => clearInterval(interval);
   }, [fetchData, currentUserId]);
 
+  // Check if current user is a creator (for header button)
+  useEffect(() => {
+    if (!currentUserId) { setIsCreator(false); return; }
+    getCreatorProfile(currentUserId).then(p => setIsCreator(p?.status === 'active')).catch(() => setIsCreator(false));
+  }, [currentUserId]);
+
   useEffect(() => {
     if (!currentUserId || !portfolio) return;
     const today = new Date().toDateString();
@@ -684,7 +691,7 @@ export default function App() {
           {/* Mobile: logo + controls inline */}
           <div
             className="h-[35px] w-[35px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); }}
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -763,7 +770,7 @@ export default function App() {
           {/* Logo */}
           <div
             className="h-[30px] w-[30px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); }}
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -781,6 +788,7 @@ export default function App() {
                   setViewingStock(null);
                   setLeaderboardUserId(null);
                   setCompareStocks(null);
+                  setCreatorView(null);
                 }}
                 className={`relative px-3 py-2 text-[13px] rounded-md transition-all duration-150 whitespace-nowrap
                   ${activeTab === tab.id
@@ -823,6 +831,7 @@ export default function App() {
                         setViewingStock(null);
                         setLeaderboardUserId(null);
                         setCompareStocks(null);
+                        setCreatorView(null);
                         setMoreDropdownOpen(false);
                       }}
                       className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
@@ -858,6 +867,17 @@ export default function App() {
           {/* Right utilities — notifications, brief, theme, profile */}
           <div className="flex items-center gap-1 ml-auto">
             {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
+            {isCreator && (
+              <button
+                onClick={() => setCreatorView('dashboard')}
+                className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                title="Creator Dashboard"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h4v8H3v-8zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+                </svg>
+              </button>
+            )}
             {currentUserId && (
               <button
                 onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
@@ -907,6 +927,7 @@ export default function App() {
           setViewingStock(null);
           setLeaderboardUserId(null);
           setCompareStocks(null);
+          setCreatorView(null);
         }} />
       </div>
       </div>
@@ -939,7 +960,7 @@ export default function App() {
             </p>
           </div>
         )}
-        {compareStocks && compareStocks.length >= 2 && (
+        {!creatorView && compareStocks && compareStocks.length >= 2 && (
           <Suspense fallback={<PageFallback />}>
             <CompareStocksPage
               tickers={compareStocks}
@@ -957,7 +978,7 @@ export default function App() {
           </Suspense>
         )}
 
-        {viewingStock && !compareStocks && (
+        {!creatorView && viewingStock && !compareStocks && (
           <Suspense fallback={<PageFallback />}>
             <StockDetailView
               ticker={viewingStock.ticker}
@@ -982,7 +1003,7 @@ export default function App() {
           </Suspense>
         )}
 
-        {activeTab === 'portfolio' && !viewingStock && !compareStocks && (
+        {!creatorView && activeTab === 'portfolio' && !viewingStock && !compareStocks && (
           <>
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
@@ -1162,14 +1183,14 @@ export default function App() {
         )}
 
         <Suspense fallback={<PageFallback />}>
-          {activeTab === 'nala' && !viewingStock && (
+          {!creatorView && activeTab === 'nala' && !viewingStock && (
             <PremiumOverlay
               featureName="Nala AI"
               description="AI-powered stock research and analysis. Get personalized stock picks, risk assessments, and actionable insights powered by real financial data."
             />
           )}
 
-          {activeTab === 'insights' && !viewingStock && (
+          {!creatorView && activeTab === 'insights' && !viewingStock && (
             <ErrorBoundary>
               <InsightsPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
@@ -1185,7 +1206,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'watchlists' && (
+          {!creatorView && activeTab === 'watchlists' && (
             <div style={viewingStock ? { display: 'none' } : undefined}>
               <ErrorBoundary>
                 <WatchlistPage
@@ -1195,7 +1216,7 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'discover' && !viewingStock && (
+          {!creatorView && activeTab === 'discover' && !viewingStock && (
             <ErrorBoundary>
               <DiscoverPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
@@ -1205,13 +1226,13 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'macro' && !viewingStock && (
+          {!creatorView && activeTab === 'macro' && !viewingStock && (
             <ErrorBoundary>
               <EconomicIndicators />
             </ErrorBoundary>
           )}
 
-          {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
+          {!creatorView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
             <ErrorBoundary>
               <PortfolioCompare
                 theirUserId={comparingUser.userId}
@@ -1222,7 +1243,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
+          {!creatorView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
             <ErrorBoundary>
               <LeaderboardPage
                 session={portfolio?.session}
@@ -1235,7 +1256,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {viewingProfileId && !viewingStock && (
+          {!creatorView && viewingProfileId && !viewingStock && (
             <ErrorBoundary>
               <UserProfileView
                 userId={viewingProfileId}
@@ -1249,7 +1270,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'watch' && (
+          {!creatorView && activeTab === 'watch' && (
             <div className={viewingStock ? 'hidden' : undefined}>
               <ErrorBoundary>
                 <WatchPage
@@ -1268,7 +1289,7 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'feed' && !viewingProfileId && !viewingStock && (
+          {!creatorView && activeTab === 'feed' && !viewingProfileId && !viewingStock && (
             <ErrorBoundary>
               <FeedPage
                 currentUserId={currentUserId}
@@ -1278,7 +1299,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'pricing' && (
+          {!creatorView && activeTab === 'pricing' && (
             <ErrorBoundary>
               <PricingPage />
             </ErrorBoundary>
