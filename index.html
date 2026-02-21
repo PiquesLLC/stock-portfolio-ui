@@ -11,15 +11,17 @@
     <meta name="apple-mobile-web-app-title" content="Nala" />
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' https://cdn.plaid.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      script-src 'self' 'unsafe-inline' https://cdn.plaid.com https://accounts.google.com https://appleid.cdn-apple.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
       img-src 'self' https: data:;
-      connect-src 'self' http://localhost:3001 http://127.0.0.1:3001 https://stream.livenewsplay.com https://www.bloomberg.com https://d1ewctnvcwvvvu.cloudfront.net https://*.fastly.net https://*.plaid.com;
+      connect-src 'self' http://localhost:3001 http://127.0.0.1:3001 https://stream.livenewsplay.com https://www.bloomberg.com https://d1ewctnvcwvvvu.cloudfront.net https://*.fastly.net https://*.plaid.com https://accounts.google.com https://oauth2.googleapis.com https://appleid.apple.com;
       media-src 'self' blob: https://stream.livenewsplay.com https://www.bloomberg.com https://d1ewctnvcwvvvu.cloudfront.net https://*.fastly.net;
       font-src 'self' https://fonts.gstatic.com;
-      frame-src https://cdn.plaid.com;
+      frame-src https://cdn.plaid.com https://accounts.google.com https://appleid.apple.com;
       worker-src 'self';
       object-src 'none';
+      base-uri 'self';
+      form-action 'self';
     ">
     <title>Portfolio Data | Nala</title>
     <script>
