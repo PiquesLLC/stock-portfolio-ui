@@ -848,6 +848,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               </button>
             </>
           )}
+          {profile.creator?.status === 'active' && (
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{profile.creator.subscriberCount ?? 0}</span>
+              <span className="text-xs text-rh-light-muted dark:text-rh-muted">Subscribers</span>
+            </div>
+          )}
 
           {/* Action buttons - pushed to right */}
           {!isOwner && (
@@ -1003,6 +1009,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           <span className="text-xs font-medium text-rh-green">
             Subscribed — you have full access to {profile.displayName}'s insights
           </span>
+        </motion.div>
+      )}
+
+      {/* Creator pitch */}
+      {isCreatorProfile && profile.creator?.pitch && (
+        <motion.div variants={itemVariants}
+          className="px-3 py-2.5 rounded-xl mb-2 bg-white/80 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.08]">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted italic">&ldquo;{profile.creator.pitch}&rdquo;</p>
         </motion.div>
       )}
 

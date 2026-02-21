@@ -64,6 +64,18 @@ export function LandingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [privacyTab, setPrivacyTab] = useState<'privacy' | 'terms'>('privacy');
+  const [referralCode, setReferralCode] = useState('');
+
+  // Capture referral code from URL (?ref=username) and auto-open signup
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+      setAuthOpen(true);
+      setAuthMode('signup');
+    }
+  }, []);
 
   const [phoneSlide, setPhoneSlide] = useState(0);
   const phoneRef = useRef<HTMLDivElement>(null);
@@ -107,7 +119,7 @@ export function LandingPage() {
         if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
         if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) { setError('Password must include uppercase, lowercase, and a number'); return; }
         if (!acceptedTerms) { setError('You must accept the Privacy Policy and Terms of Service'); return; }
-        const result = await signup(username, displayName, password, landingEmail, { acceptedPrivacyPolicy: true, acceptedTerms: true });
+        const result = await signup(username, displayName, password, landingEmail, { acceptedPrivacyPolicy: true, acceptedTerms: true }, referralCode || undefined);
         if (result.emailVerificationRequired) {
           showToast('Account created! Check your email for a verification code.', 'success');
           window.location.href = '/';
@@ -217,6 +229,14 @@ export function LandingPage() {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
+
+      {/* ═══ REFERRAL BANNER ═══ */}
+      {referralCode && (
+        <div className="text-center py-3 px-4 bg-rh-green/[0.08] border-b border-rh-green/20">
+          <p className="text-sm text-rh-green font-medium">@{referralCode} invited you to join Nala</p>
+          <button onClick={() => openAuth('signup')} className="text-xs text-rh-green/70 underline mt-0.5">Create your free account</button>
+        </div>
+      )}
 
       {/* ═══ HERO ═══ */}
       <section className="pt-6 sm:pt-12 pb-16 sm:pb-24 px-5 sm:px-8">
@@ -470,6 +490,7 @@ export function LandingPage() {
                   {authMode==='signup'&&<div><label htmlFor="auth-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-email" type="email" value={landingEmail} onChange={e=>setLandingEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoCapitalize="none" required /></div>}
                   <div><div className="flex items-center justify-between mb-1.5"><label htmlFor="auth-password" className="block text-[12px] font-medium text-white/30">Password</label>{authMode==='login'&&<button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>{setAuthMode('forgot-password');setError('');}}>Forgot?</button>}</div><div className="relative"><input id="auth-password" type={showPassword?'text':'password'} value={password} onChange={e=>setPasswordValue(e.target.value)} className={`${ic} pr-11`} placeholder={authMode==='login'?'••••••••':'Min. 8 chars, upper/lower/number'} autoComplete={authMode==='login'?'current-password':'new-password'} required /><button type="button" onClick={()=>setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><div className="relative"><input id="auth-confirm" type={showConfirmPassword?'text':'password'} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className={`${ic} pr-11`} placeholder="Re-enter password" autoComplete="new-password" required /><button type="button" onClick={()=>setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showConfirmPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>}
+                  {authMode==='signup'&&referralCode&&<div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rh-green/10 border border-rh-green/20"><span className="text-rh-green text-sm font-medium">Invited by @{referralCode}</span></div>}
                   {authMode==='signup'&&<label className="flex items-start gap-2.5 cursor-pointer"><input type="checkbox" checked={acceptedTerms} onChange={e=>setAcceptedTerms(e.target.checked)} className="w-4 h-4 mt-0.5 rounded border-white/10 bg-white/5 text-rh-green accent-rh-green" /><span className="text-[12px] text-white/25 leading-tight">I agree to the{' '}<button type="button" onClick={()=>{setPrivacyTab('privacy');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Privacy Policy</button>{' & '}<button type="button" onClick={()=>{setPrivacyTab('terms');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Terms</button></span></label>}
                   <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Please wait...</span>:authMode==='signup'?'Create Account':'Sign In'}</button>
                   </>)}
