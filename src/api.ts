@@ -198,6 +198,33 @@ export async function login(username: string, password: string): Promise<LoginRe
   });
 }
 
+// ─── OAuth API ───────────────────────────────────────────
+
+export interface OAuthLoginResponse {
+  user: { id: string; username: string; displayName: string };
+  isNewUser: boolean;
+}
+
+export type OAuthLoginResult = OAuthLoginResponse | MfaChallengeResponse;
+
+export async function oauthGoogleLogin(accessToken: string): Promise<OAuthLoginResult> {
+  return fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/google/callback`, {
+    method: 'POST',
+    body: JSON.stringify({ access_token: accessToken }),
+  });
+}
+
+export async function oauthAppleLogin(
+  idToken: string,
+  user?: { firstName?: string; lastName?: string },
+  nonce?: string,
+): Promise<OAuthLoginResult> {
+  return fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/apple/callback`, {
+    method: 'POST',
+    body: JSON.stringify({ id_token: idToken, user, ...(nonce ? { nonce } : {}) }),
+  });
+}
+
 // ─── MFA API ─────────────────────────────────────────────
 
 export interface MfaStatus {
@@ -682,6 +709,13 @@ export async function clearPortfolio(): Promise<{ cleared: boolean; holdingsRemo
   return fetchJson<{ cleared: boolean; holdingsRemoved: number }>(
     `${API_BASE_URL}/portfolio/clear`,
     { method: 'POST', body: JSON.stringify({ confirmation: 'CLEAR' }) }
+  );
+}
+
+export async function seedSamplePortfolio(): Promise<{ seeded: boolean; holdings: number }> {
+  return fetchJson<{ seeded: boolean; holdings: number }>(
+    `${API_BASE_URL}/portfolio/seed-sample`,
+    { method: 'POST' }
   );
 }
 

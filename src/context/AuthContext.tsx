@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple } from '../api';
 
 export type PlanTier = 'free' | 'pro' | 'premium';
 
@@ -11,6 +11,7 @@ interface User {
   emailVerified?: boolean;
   plan?: PlanTier;
   planExpiresAt?: string | null;
+  createdAt?: string;
 }
 
 export interface MfaChallenge {
@@ -35,6 +36,8 @@ interface AuthContextType {
   signup: (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }, referralCode?: string) => Promise<SignupResult>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<{ isNewUser: boolean }>;
+  loginWithApple: (idToken: string, user?: { firstName?: string; lastName?: string }, nonce?: string) => Promise<{ isNewUser: boolean }>;
   logout: () => void;
 }
 
@@ -189,6 +192,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await apiResendVerification(email);
   }, []);
 
+  const loginWithGoogle = useCallback(async (credential: string): Promise<{ isNewUser: boolean }> => {
+    const response = await apiOauthGoogle(credential);
+    if (isMfaChallenge(response)) {
+      setMfaChallenge({
+        challengeToken: response.challengeToken,
+        methods: response.methods,
+        maskedEmail: response.maskedEmail,
+      });
+      return { isNewUser: false };
+    }
+    setUser(response.user);
+    writeCachedUser(response.user);
+    return { isNewUser: response.isNewUser };
+  }, []);
+
+  const loginWithApple = useCallback(async (
+    idToken: string,
+    appleUser?: { firstName?: string; lastName?: string },
+    nonce?: string,
+  ): Promise<{ isNewUser: boolean }> => {
+    const response = await apiOauthApple(idToken, appleUser, nonce);
+    if (isMfaChallenge(response)) {
+      setMfaChallenge({
+        challengeToken: response.challengeToken,
+        methods: response.methods,
+        maskedEmail: response.maskedEmail,
+      });
+      return { isNewUser: false };
+    }
+    setUser(response.user);
+    writeCachedUser(response.user);
+    return { isNewUser: response.isNewUser };
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       // Call logout endpoint to clear cookie server-side
@@ -226,6 +263,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         verifyEmail,
         resendVerification,
+        loginWithGoogle,
+        loginWithApple,
         logout,
       }}
     >
