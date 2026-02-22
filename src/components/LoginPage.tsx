@@ -47,6 +47,7 @@ export function LoginPage() {
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
   const [resetCooldown, setResetCooldown] = useState(0);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -422,16 +423,26 @@ export function LoginPage() {
                   <label htmlFor="newPasswordConfirm" className="block text-sm font-medium text-rh-muted mb-2">
                     Confirm New Password
                   </label>
-                  <input
-                    id="newPasswordConfirm"
-                    type="password"
-                    value={newPasswordConfirm}
-                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                    className={inputClasses}
-                    placeholder="Re-enter new password"
-                    autoComplete="new-password"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      id="newPasswordConfirm"
+                      type={showNewPasswordConfirm ? 'text' : 'password'}
+                      value={newPasswordConfirm}
+                      onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                      className={`${inputClasses} pr-11`}
+                      placeholder="Re-enter new password"
+                      autoComplete="new-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPasswordConfirm(!showNewPasswordConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-rh-muted/60 hover:text-white transition-colors rounded"
+                      tabIndex={-1}
+                    >
+                      {showNewPasswordConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <button
