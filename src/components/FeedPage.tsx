@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ActivityEvent } from '../types';
 import { getFeed } from '../api';
 import { ActivityCard } from './ActivityCard';
+import { ReportModal } from './ReportModal';
 import { useMutedUsers } from '../hooks/useMutedUsers';
 import { useDataEvents } from '../context/DataEventContext';
 
@@ -112,6 +113,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const { isMuted, toggleMute, mutedList, unmute } = useMutedUsers();
+  const [reportTarget, setReportTarget] = useState<{ userId: string; username: string } | null>(null);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -361,6 +363,8 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
                           onUserClick={onUserClick}
                           onTickerClick={onTickerClick}
                           onMute={toggleMute}
+                          onReport={(userId, username) => setReportTarget({ userId, username })}
+                          currentUserId={currentUserId}
                         />
                       ))}
                     </div>
@@ -371,6 +375,13 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
           )}
         </>
       )}
+      <ReportModal
+        isOpen={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetUserId={reportTarget?.userId ?? ''}
+        targetUsername={reportTarget?.username ?? ''}
+        context="activity feed"
+      />
     </div>
   );
 }

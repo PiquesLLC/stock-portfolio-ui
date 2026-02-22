@@ -1824,3 +1824,15 @@ export async function reportCreator(
     body: JSON.stringify({ reason, description }),
   });
 }
+
+export async function reportUser(
+  userId: string,
+  reason: string,
+  description?: string,
+  context?: string
+): Promise<{ id: string }> {
+  return fetchJson<{ id: string }>(`${API_BASE_URL}/users/${userId}/report`, {
+    method: 'POST',
+    body: JSON.stringify({ reason, description, context }),
+  });
+}

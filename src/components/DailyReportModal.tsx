@@ -202,6 +202,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
 
   return (
     <div className="fixed inset-0 z-50 bg-black overflow-hidden"
+      role="dialog" aria-modal="true"
       style={{ paddingTop: 'env(safe-area-inset-top)', display: hidden ? 'none' : undefined }}
     >
       <div className="h-full overflow-y-auto"
@@ -213,7 +214,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
             onClick={onClose}
             className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back

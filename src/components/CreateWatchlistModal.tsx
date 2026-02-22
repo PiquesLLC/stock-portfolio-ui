@@ -50,7 +50,7 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[999] flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
         className="relative w-[90%] max-w-md bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] border border-white/20 dark:border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-6"
@@ -60,8 +60,8 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
           <h3 className="text-base font-bold text-rh-light-text dark:text-white">
             {isEdit ? 'Edit Watchlist' : 'New Watchlist'}
           </h3>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

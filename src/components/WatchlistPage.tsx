@@ -707,7 +707,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
 
         {/* Edit holding modal */}
         {editingHolding && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center" onClick={() => setEditingHolding(null)}>
+          <div className="fixed inset-0 z-[999] flex items-center justify-center" role="dialog" aria-modal="true" onClick={() => setEditingHolding(null)}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div
               className="relative w-[90%] max-w-sm bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] border border-white/20 dark:border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-6"

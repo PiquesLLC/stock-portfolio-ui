@@ -151,7 +151,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
     referencePriceType === 'avgCost' ? 'your avg cost' : 'current price';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={onClose}>
       <div
         className="bg-white/90 dark:bg-white/[0.06] backdrop-blur-xl border border-gray-200/50 dark:border-white/[0.08] rounded-xl p-5 w-full max-w-sm mx-4 shadow-2xl dark:shadow-black/40"
         onClick={(e) => e.stopPropagation()}
@@ -163,9 +163,10 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

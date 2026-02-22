@@ -59,7 +59,7 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
         className="relative bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
@@ -71,6 +71,7 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors text-lg leading-none"
           >
             &times;

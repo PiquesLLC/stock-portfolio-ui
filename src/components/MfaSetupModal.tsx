@@ -201,7 +201,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
   const inputClasses = "w-full px-3 py-2 rounded-lg border border-rh-border bg-rh-black text-white text-sm focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-rh-card border border-rh-border/40 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -213,8 +213,8 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
             {view === 'backup-codes' && 'Backup Codes'}
             {view === 'regenerate-backup' && 'Regenerate Backup Codes'}
           </h2>
-          <button onClick={onClose} className="p-1 text-rh-muted hover:text-white transition-colors rounded">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={onClose} aria-label="Close" className="p-1 text-rh-muted hover:text-white transition-colors rounded">
+            <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

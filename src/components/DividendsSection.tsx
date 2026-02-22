@@ -373,7 +373,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   const inputClass = "w-full px-3 py-2 text-sm bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={onClose}>
       <div
         className="bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/20 dark:border-white/[0.1] shadow-2xl rounded-2xl p-6 w-full max-w-[340px]"
         onClick={e => e.stopPropagation()}

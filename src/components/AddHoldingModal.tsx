@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Holding } from '../types';
 import { addHolding } from '../api';
 import { useToast } from '../context/ToastContext';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface AddHoldingModalProps {
   ticker: string;
@@ -17,6 +18,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const trapRef = useFocusTrap(true);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -46,9 +48,10 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
+        ref={trapRef}
         className="relative w-full max-w-sm bg-white dark:bg-[#0a0a0b] rounded-xl border border-gray-200/60 dark:border-white/[0.08] p-5 modal-container backdrop-blur-xl"
         onClick={e => e.stopPropagation()}
       >
@@ -56,8 +59,8 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">
             {holding ? 'Update Holding' : 'Add to Portfolio'}
           </h2>
-          <button onClick={onClose} className="text-rh-light-muted/60 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={onClose} aria-label="Close" className="text-rh-light-muted/60 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white transition-colors">
+            <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

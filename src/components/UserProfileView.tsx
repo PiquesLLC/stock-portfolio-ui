@@ -8,6 +8,7 @@ import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
 import { PortfolioImport } from './PortfolioImport';
 import { useMutedUsers } from '../hooks/useMutedUsers';
+import { ReportModal } from './ReportModal';
 import { API_BASE_URL } from '../config';
 
 const REGION_OPTIONS = [
@@ -344,6 +345,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
   const isOwner = userId === currentUserId;
   const { isMuted, toggleMute } = useMutedUsers();
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -910,6 +912,15 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   </svg>
                 )}
               </button>
+              <button
+                onClick={() => setShowReportModal(true)}
+                title="Report user"
+                className="p-1.5 rounded-lg text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40 transition-all"
+              >
+                <svg className="w-3.5 h-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21v-18m0 0l9 4 9-4v12l-9 4-9-4" />
+                </svg>
+              </button>
             </div>
           )}
         </div>
@@ -1311,6 +1322,15 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           <p className="text-sm text-rh-light-muted dark:text-rh-muted">This profile is private</p>
         </motion.div>
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetUserId={userId}
+        targetUsername={profile.username}
+        context="profile"
+      />
     </motion.div>
   );
 }

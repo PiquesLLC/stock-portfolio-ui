@@ -190,6 +190,7 @@ function Drawer({ open, onClose, dimension }: DrawerProps) {
   return createPortal(
     <div
       className={`fixed inset-0 z-[60] transition-opacity duration-200 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      role="dialog" aria-modal="true"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -213,8 +214,8 @@ function Drawer({ open, onClose, dimension }: DrawerProps) {
                 <span className={`text-lg font-bold ${getScoreColor(scorePct)}`}>{scorePct}/100</span>
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-black/5 dark:hover:bg-white/[0.08] transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-black/5 dark:hover:bg-white/[0.08] transition-colors">
+              <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
