@@ -170,12 +170,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = useCallback(async (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }, referralCode?: string): Promise<SignupResult> => {
     // Signup sets httpOnly cookie automatically (auto-login)
     const response = await apiSignup(username, displayName, password, email, consent, referralCode);
-    if (response.emailVerificationRequired) {
-      // Don't set user yet — show verification screen first
-      return { emailVerificationRequired: true, email };
-    }
+    // Always set user — App.tsx hard gate checks emailVerified === false
     setUser(response.user);
     writeCachedUser(response.user);
+    if (response.emailVerificationRequired) {
+      return { emailVerificationRequired: true, email };
+    }
     return {};
   }, []);
 

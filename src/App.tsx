@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Portfolio, Settings, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus, getCreatorProfile } from './api';
+import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus, seedSamplePortfolio } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -50,6 +50,7 @@ const PortfolioCompare = lazy(() => import('./components/PortfolioCompare').then
 const CompareStocksPage = lazy(() => import('./components/CompareStocksPage').then(m => ({ default: m.CompareStocksPage })));
 const CreatorDashboardPage = lazy(() => import('./components/CreatorDashboard').then(m => ({ default: m.CreatorDashboard })));
 const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsPage').then(m => ({ default: m.CreatorSettingsPage })));
+const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m => ({ default: m.OnboardingTour })));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -196,11 +197,11 @@ export default function App() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
   const [dailyReportHidden, setDailyReportHidden] = useState(false);
-  const [showVerifyEmailModal, setShowVerifyEmailModal] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
   const [verifyError, setVerifyError] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyResendCooldown, setVerifyResendCooldown] = useState(0);
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
 
   // Close "More" dropdown on outside click
   useEffect(() => {
@@ -214,12 +215,6 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [moreDropdownOpen]);
 
-  // Listen for email-verify-needed events from API layer (403 on AI endpoints)
-  useEffect(() => {
-    const handler = () => setShowVerifyEmailModal(true);
-    window.addEventListener('email-verify-needed', handler);
-    return () => window.removeEventListener('email-verify-needed', handler);
-  }, []);
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
@@ -591,13 +586,19 @@ export default function App() {
   }, [fetchData, currentUserId]);
 
   // Check if current user is a creator (for header button)
+  // Uses raw fetch to avoid global toast on 404 for non-creators
   useEffect(() => {
     if (!currentUserId) { setIsCreator(false); return; }
-    getCreatorProfile(currentUserId).then(p => setIsCreator(p?.status === 'active')).catch(() => setIsCreator(false));
+    fetch(`/api/creator/${currentUserId}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(p => setIsCreator(p?.status === 'active'))
+      .catch(() => setIsCreator(false));
   }, [currentUserId]);
 
   useEffect(() => {
     if (!currentUserId || !portfolio) return;
+    // Don't show daily briefing during onboarding tour
+    if (showOnboardingTour) return;
     const today = new Date().toDateString();
     const lastShown = localStorage.getItem('dailyReportLastShown');
     const disabled = localStorage.getItem('dailyReportDisabled') === 'true';
@@ -606,6 +607,21 @@ export default function App() {
       localStorage.setItem('dailyReportLastShown', today);
     }
   }, [currentUserId, portfolio]);
+
+  // Show onboarding tour for new users (account created within last 5 minutes)
+  useEffect(() => {
+    if (!currentUserId || !portfolio || loading) return;
+    if (localStorage.getItem('nala_tour_completed')) return;
+    // Only show for genuinely new accounts — not existing users seeing the update
+    const createdAt = user?.createdAt ? new Date(user.createdAt).getTime() : 0;
+    const isNewAccount = createdAt > 0 && (Date.now() - createdAt) < 5 * 60 * 1000;
+    if (isNewAccount) {
+      setShowOnboardingTour(true);
+    } else {
+      // Existing user seeing this for the first time — silently mark completed
+      localStorage.setItem('nala_tour_completed', '1');
+    }
+  }, [currentUserId, portfolio, loading, user?.createdAt]);
 
   // Fetch provider health status periodically
   useEffect(() => {
@@ -648,6 +664,107 @@ export default function App() {
     return <LandingPage />;
   }
 
+  // Hard gate: block entire app until email is verified
+  if (user && user.emailVerified === false) {
+    // Missing email edge case — show recovery path
+    if (!user.email) {
+      return (
+        <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent flex items-center justify-center px-4">
+          <Starfield />
+          <div className="relative z-10 w-full max-w-sm">
+            <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-2xl p-6 shadow-2xl text-center">
+              <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-10 w-10 mx-auto mb-3" />
+              <h2 className="text-xl font-bold text-rh-light-text dark:text-rh-text mb-2">Email Required</h2>
+              <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-4">
+                Your account needs a verified email to continue. Please contact support or log out and try again.
+              </p>
+              <button onClick={() => logout()} className="text-sm text-rh-light-muted dark:text-rh-muted hover:text-red-400 transition-colors">
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent flex items-center justify-center px-4">
+        <Starfield />
+        <div className="relative z-10 w-full max-w-sm">
+          <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-2xl p-6 shadow-2xl">
+            <div className="text-center mb-6">
+              <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-10 w-10 mx-auto mb-3" />
+              <h2 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Verify Your Email</h2>
+              <p className="text-sm text-rh-light-muted dark:text-rh-muted mt-1">
+                Enter the 6-digit code sent to <span className="text-rh-light-text dark:text-rh-text font-medium">{user.email}</span>
+              </p>
+            </div>
+            {verifyError && (
+              <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{verifyError}</div>
+            )}
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (verifyCode.length !== 6 || verifyLoading) return;
+              setVerifyLoading(true);
+              setVerifyError('');
+              try {
+                await verifyEmail(user.email!, verifyCode);
+                setVerifyCode('');
+              } catch (err) {
+                setVerifyError(err instanceof Error ? err.message : 'Verification failed');
+              } finally {
+                setVerifyLoading(false);
+              }
+            }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full px-4 py-3 bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text text-center text-2xl tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-rh-green/60 focus:border-rh-green"
+                placeholder="000000"
+                autoComplete="one-time-code"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={verifyCode.length !== 6 || verifyLoading}
+                className="w-full mt-4 py-2.5 bg-rh-green hover:bg-rh-green/90 disabled:bg-rh-green/40 text-white font-semibold rounded-lg transition-colors"
+              >
+                {verifyLoading ? 'Verifying...' : 'Verify'}
+              </button>
+            </form>
+            <div className="flex items-center justify-between mt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (verifyResendCooldown > 0) return;
+                  try {
+                    await resendVerification(user.email!);
+                    setVerifyResendCooldown(60);
+                    const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
+                  } catch { setVerifyError('Failed to resend code'); }
+                }}
+                disabled={verifyResendCooldown > 0}
+                className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-muted/40 dark:disabled:text-rh-muted/40 transition-colors"
+              >
+                {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Resend code'}
+              </button>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="text-sm text-rh-light-muted dark:text-rh-muted hover:text-red-400 transition-colors"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading && !portfolio) {
     return (
       <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent flex items-center justify-center">
@@ -684,6 +801,25 @@ export default function App() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-rh-light-bg dark:bg-black" style={{ height: 'env(safe-area-inset-top)' }} />
       <Starfield />
       <div className="grain-overlay" />
+      {/* Onboarding tour for new users */}
+      {showOnboardingTour && (
+        <Suspense fallback={null}>
+          <OnboardingTour
+            onComplete={async () => {
+              try {
+                await seedSamplePortfolio();
+              } catch { /* 409 if already seeded — fine */ }
+              localStorage.setItem('nala_tour_completed', '1');
+              setShowOnboardingTour(false);
+              fetchData();
+            }}
+            onSkip={() => {
+              localStorage.setItem('nala_tour_completed', '1');
+              setShowOnboardingTour(false);
+            }}
+          />
+        </Suspense>
+      )}
       <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
       <header className="relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
         <div className="px-3 py-2 flex sm:hidden items-center gap-2">
@@ -1404,78 +1540,6 @@ export default function App() {
       )}
       <ShortcutToast message={toastMessage} />
       <KeyboardCheatSheet isOpen={isCheatSheetOpen} onClose={closeCheatSheet} />
-      {showVerifyEmailModal && user?.email && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowVerifyEmailModal(false); setVerifyCode(''); setVerifyError(''); }} />
-          <div className="relative bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-2">Verify Your Email</h3>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-4">
-              Enter the 6-digit code sent to <span className="text-rh-light-text dark:text-rh-text font-medium">{user.email}</span>
-            </p>
-            {verifyError && (
-              <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{verifyError}</div>
-            )}
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (verifyCode.length !== 6 || verifyLoading) return;
-              setVerifyLoading(true);
-              setVerifyError('');
-              try {
-                await verifyEmail(user.email!, verifyCode);
-                setShowVerifyEmailModal(false);
-                setVerifyCode('');
-              } catch (err) {
-                setVerifyError(err instanceof Error ? err.message : 'Verification failed');
-              } finally {
-                setVerifyLoading(false);
-              }
-            }}>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={verifyCode}
-                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full px-4 py-3 bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text text-center text-2xl tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-rh-green/60 focus:border-rh-green"
-                placeholder="000000"
-                autoComplete="one-time-code"
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={verifyCode.length !== 6 || verifyLoading}
-                className="w-full mt-4 py-2.5 bg-rh-green hover:bg-rh-green/90 disabled:bg-rh-green/40 text-white font-semibold rounded-lg transition-colors"
-              >
-                {verifyLoading ? 'Verifying...' : 'Verify'}
-              </button>
-            </form>
-            <div className="flex items-center justify-between mt-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  if (verifyResendCooldown > 0) return;
-                  try {
-                    await resendVerification(user.email!);
-                    setVerifyResendCooldown(60);
-                    const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
-                  } catch { setVerifyError('Failed to resend code'); }
-                }}
-                disabled={verifyResendCooldown > 0}
-                className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-muted/40 dark:disabled:text-rh-muted/40 transition-colors"
-              >
-                {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Resend code'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowVerifyEmailModal(false); setVerifyCode(''); setVerifyError(''); }}
-                className="text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
-              >
-                Later
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

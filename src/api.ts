@@ -144,9 +144,8 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       throw planError;
     }
 
-    // 403 email verification required — dispatch event so App shows verify modal
+    // 403 email verification required — hard-gated at App.tsx level now
     if (response.status === 403 && typeof error.error === 'string' && error.error.toLowerCase().includes('email verification required')) {
-      window.dispatchEvent(new CustomEvent('email-verify-needed'));
       throw new Error(msg);
     }
 
@@ -378,10 +377,11 @@ export async function validateReferralCode(code: string): Promise<{ valid: boole
   return fetchJson<{ valid: boolean; displayName?: string }>(`${API_BASE_URL}/referral/validate/${encodeURIComponent(code)}`);
 }
 
-export async function verifySignupEmail(email: string, code: string): Promise<{ message: string }> {
+export async function verifySignupEmail(_email: string, code: string): Promise<{ message: string }> {
+  // email param kept for API compat but server resolves from authenticated session
   return fetchJson(`${API_BASE_URL}/auth/verify-email`, {
     method: 'POST',
-    body: JSON.stringify({ email, code }),
+    body: JSON.stringify({ code }),
   });
 }
 
