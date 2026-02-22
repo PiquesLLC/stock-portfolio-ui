@@ -4,7 +4,7 @@ import { getCreatorDashboard, getCreatorLedger, requestCreatorPayout, getReferra
 import { CreatorDashboard as CreatorDashboardData, CreatorLedgerEntry, CreatorLedgerEntryType, CreatorLedgerSummary } from '../types';
 
 // ── Use mock data until real creator subscriptions exist ──
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 const MOCK_DATA: CreatorDashboardData = {
   mrr: 126_00 * 5,
@@ -316,7 +316,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-3">
           <div className="h-8 w-56 bg-gray-200 dark:bg-white/10 rounded" />
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="h-[72px] bg-gray-200 dark:bg-white/10 rounded-xl" />
             ))}
@@ -331,11 +331,29 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
     );
   }
 
-  if (error || !data) {
+  if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">{error || 'No data available'}</p>
-        <button onClick={onBack} className="mt-3 text-sm text-rh-green hover:underline">Go back</button>
+        <p className="text-sm text-red-500 dark:text-red-400 mb-3">{error}</p>
+        <div className="flex items-center justify-center gap-3">
+          <button onClick={() => { setError(null); setLoading(true); loadDashboard(); }} className="text-sm font-medium text-rh-green hover:underline">Retry</button>
+          <button onClick={onBack} className="text-sm text-rh-light-muted dark:text-rh-muted hover:underline">Go back</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
+          <svg className="w-7 h-7 text-gray-400 dark:text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </div>
+        <h3 className="text-base font-semibold text-gray-700 dark:text-white/80 mb-1">No subscribers yet</h3>
+        <p className="text-sm text-rh-light-muted dark:text-rh-muted max-w-sm mx-auto">Share your creator page to start earning. Revenue and subscriber data will appear here once people subscribe.</p>
+        <button onClick={onBack} className="mt-4 text-sm text-rh-green hover:underline">Go back</button>
       </div>
     );
   }
@@ -365,19 +383,19 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
       className="max-w-4xl mx-auto px-4 py-5 space-y-3"
     >
       {/* ─── Header ─── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors flex-shrink-0">
             <svg className="w-5 h-5 text-rh-light-text dark:text-rh-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <div>
-            <h1 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Creator Dashboard</h1>
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold text-rh-light-text dark:text-rh-text truncate">Creator Dashboard</h1>
             <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">As of {dateStr}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={openLedger}
             className="px-3 py-1.5 text-xs font-medium rounded-lg
@@ -398,7 +416,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
       </div>
 
       {/* ─── Stat Strip ─── */}
-      <div className={`${CARD} p-0 grid grid-cols-5 divide-x divide-gray-200/40 dark:divide-white/[0.06]`}>
+      <div className={`${CARD} p-0 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 divide-x divide-gray-200/40 dark:divide-white/[0.06]`}>
         {[
           { value: formatCents(data.totalEarningsCents), label: 'Revenue', accent: true, tip: 'Total lifetime earnings from all subscription revenue (your 80% share)' },
           { value: formatCents(data.mrr), label: 'MRR', accent: true, tip: 'Monthly Recurring Revenue — projected monthly income from active subscribers' },
@@ -419,9 +437,9 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
 
       {/* ─── Revenue Chart ─── */}
       <section className={`${CARD} p-4`}>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
           <h2 className={SECTION_TITLE}>Monthly Earnings</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1">
               {(['D', 'W', 'M', 'YR', 'ALL'] as const).map(period => (
                 <button

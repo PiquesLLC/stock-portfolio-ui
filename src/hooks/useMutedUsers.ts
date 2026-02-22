@@ -1,10 +1,13 @@
 import { useState, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 
-const STORAGE_KEY = 'nala:muted-users';
+function storageKey(currentUserId: string | undefined): string {
+  return currentUserId ? `nala:muted-users:${currentUserId}` : 'nala:muted-users';
+}
 
-function loadMuted(): Map<string, string> {
+function loadMuted(key: string): Map<string, string> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return new Map();
     const parsed: [string, string][] = JSON.parse(raw);
     return new Map(parsed);
@@ -13,16 +16,18 @@ function loadMuted(): Map<string, string> {
   }
 }
 
-function saveMuted(map: Map<string, string>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(map.entries())));
+function saveMuted(key: string, map: Map<string, string>) {
+  localStorage.setItem(key, JSON.stringify(Array.from(map.entries())));
 }
 
 /**
  * Hook for managing muted users in the activity feed.
- * Stores userId → displayName pairs in localStorage.
+ * Stores userId → displayName pairs in localStorage, scoped per current user.
  */
 export function useMutedUsers() {
-  const [mutedMap, setMutedMap] = useState<Map<string, string>>(loadMuted);
+  const { user } = useAuth();
+  const key = storageKey(user?.id);
+  const [mutedMap, setMutedMap] = useState<Map<string, string>>(() => loadMuted(key));
 
   const isMuted = useCallback((userId: string) => mutedMap.has(userId), [mutedMap]);
 
@@ -34,19 +39,19 @@ export function useMutedUsers() {
       } else {
         next.set(userId, displayName);
       }
-      saveMuted(next);
+      saveMuted(key, next);
       return next;
     });
-  }, []);
+  }, [key]);
 
   const unmute = useCallback((userId: string) => {
     setMutedMap((prev) => {
       const next = new Map(prev);
       next.delete(userId);
-      saveMuted(next);
+      saveMuted(key, next);
       return next;
     });
-  }, []);
+  }, [key]);
 
   return {
     mutedMap,

@@ -293,7 +293,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/20 dark:border-white/[0.1] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+      <div className="relative w-full max-w-lg mx-2 sm:mx-4 bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/20 dark:border-white/[0.1] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/40 dark:border-white/[0.08]">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
@@ -310,7 +310,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
         </div>
 
         {/* Content */}
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto scrollbar-minimal space-y-6">
+        <div className="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto scrollbar-minimal space-y-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent" />
