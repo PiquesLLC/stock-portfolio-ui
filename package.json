@@ -25,7 +25,7 @@
     "http-proxy-middleware": "^3.0.5",
     "papaparse": "^5.5.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.2.4",
     "react-plaid-link": "^4.1.1"
   },
   "devDependencies": {
@@ -35,7 +35,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
     "@vitejs/plugin-react": "^4.3.3",
