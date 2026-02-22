@@ -23,6 +23,7 @@
     "framer-motion": "^12.33.0",
     "hls.js": "^1.6.15",
     "http-proxy-middleware": "^3.0.5",
+    "papaparse": "^5.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-plaid-link": "^4.1.1"
@@ -32,6 +33,7 @@
     "@capacitor/cli": "^8.0.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@typescript-eslint/eslint-plugin": "^8.56.0",

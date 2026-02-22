@@ -634,6 +634,7 @@ export interface CsvParsedRow {
 export interface CsvParseResult {
   parsed: CsvParsedRow[];
   warnings: { rowNumber: number; message: string; line?: string }[];
+  trades?: { date: string; ticker: string; type: string; shares: number; price: number }[];
   totalRows: number;
   validRows: number;
   skippedRows: number;
@@ -695,13 +696,85 @@ export async function uploadPortfolioScreenshot(file: File): Promise<CsvParseRes
   return data;
 }
 
+// Mapped CSV import (column-mapping wizard)
+export interface ColumnMappings {
+  ticker: string;
+  date?: string;
+  price?: string;
+  shares?: string;
+  totalAmount?: string;
+  action?: string;
+}
+
+export interface MappedTrade {
+  date: string;
+  ticker: string;
+  type: string;
+  shares: number;
+  price: number;
+  rowIndex: number;
+  sourceBroker: string;
+  rawAction: string;
+}
+
+export interface ImportTelemetry {
+  rowsParsed: number;
+  rowsSkipped: number;
+  skipReasons: Record<string, number>;
+  brokerDetected: string | null;
+  parseDurationMs: number;
+}
+
+export interface MappedCsvResult extends CsvParseResult {
+  trades: MappedTrade[];
+  telemetry: ImportTelemetry;
+  reviewRequired: boolean;
+  editableFields: string[];
+}
+
+export async function submitMappedCsv(
+  file: File,
+  mappings: ColumnMappings,
+  excludedRows?: number[],
+): Promise<MappedCsvResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('mappings', JSON.stringify(mappings));
+  if (excludedRows && excludedRows.length > 0) {
+    formData.append('excludedRows', JSON.stringify(excludedRows));
+  }
+  formData.append('sourceBroker', 'mapped');
+
+  const doFetch = () => fetch(`${API_BASE_URL}/portfolio/import/csv/mapped`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: {
+      'Bypass-Tunnel-Reminder': 'true',
+      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+    },
+  });
+
+  let response = await doFetch();
+  if (response.status === 401) {
+    const refreshed = await refreshOnce();
+    if (refreshed) response = await doFetch();
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Mapped CSV upload failed (${response.status})`);
+  }
+  return response.json();
+}
+
 export async function confirmPortfolioImport(
   holdings: { ticker: string; shares: number; averageCost: number }[],
-  mode: 'replace' | 'merge'
+  mode: 'replace' | 'merge',
+  trades?: { date: string; ticker: string; type: string; shares: number; price: number; sourceBroker?: string; rawAction?: string }[],
 ): Promise<{ added: number; updated: number; removed: number }> {
   return fetchJson<{ added: number; updated: number; removed: number }>(
     `${API_BASE_URL}/portfolio/import/confirm`,
-    { method: 'POST', body: JSON.stringify({ holdings, mode }) }
+    { method: 'POST', body: JSON.stringify({ holdings, mode, trades }) }
   );
 }
 
