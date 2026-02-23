@@ -361,7 +361,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={step !== 'uploading' && step !== 'confirming' && step !== 'processing' ? onClose : undefined} />
-      <div className={`relative bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/20 dark:border-white/[0.1] rounded-2xl w-full max-h-[85vh] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col transition-all duration-300 ${
+      <div className={`relative bg-white/90 dark:bg-[#1a1a1e]/95 backdrop-blur-2xl border border-white/20 dark:border-white/[0.1] rounded-2xl w-full max-h-[85vh] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col transition-all duration-300 ${
         isWideStep ? 'max-w-4xl' : 'max-w-lg'
       }`}>
         {/* Header */}
