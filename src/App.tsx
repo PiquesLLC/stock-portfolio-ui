@@ -1169,7 +1169,7 @@ export default function App() {
               </div>
             )}
 
-            {portfolio && (
+            {portfolio && portfolio.holdings.length > 0 && (
               <div className="-mx-3 sm:-mx-6">
                 <PortfolioValueChart
                   currentValue={portfolio.netEquity}
