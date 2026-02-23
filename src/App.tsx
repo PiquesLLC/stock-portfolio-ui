@@ -1189,7 +1189,7 @@ export default function App() {
               </div>
             )}
 
-            {portfolio && (
+            {portfolio && portfolio.holdings.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {chartMeasurement ? (
                   <>
@@ -1297,7 +1297,7 @@ export default function App() {
               </div>
             )}
 
-            {portfolio && (
+            {portfolio && portfolio.holdings.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl shadow-sm shadow-black/[0.03] dark:shadow-none overflow-hidden">
                   <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
@@ -1326,7 +1326,9 @@ export default function App() {
                   />
                 </div>
               )}
-              <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+              {(portfolio?.holdings?.length ?? 0) > 0 && (
+                <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+              )}
             </div>
           </>
         )}
