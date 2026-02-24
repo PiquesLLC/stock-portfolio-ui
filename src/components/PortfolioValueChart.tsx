@@ -41,6 +41,12 @@ interface Props {
 }
 
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
+const HERO_VALUE_ANIMATIONS = [
+  'hero-value-anim-pop',
+  'hero-value-anim-swing',
+  'hero-value-anim-flip',
+  'hero-value-anim-glitch',
+] as const;
 
 export function PortfolioValueChart({ currentValue, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session }: Props) {
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
@@ -86,9 +92,16 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const [intradayBenchmark, setIntradayBenchmark] = useState<BenchmarkCandle[]>([]);
   const [showHint, setShowHint] = useState(true);
   const [showBenchmark, setShowBenchmark] = useState(false);
+  const [heroAnimationIndex, setHeroAnimationIndex] = useState(0);
+  const [heroAnimationRunId, setHeroAnimationRunId] = useState(0);
 
   const isMeasuring = measureA !== null;
   const hasMeasurement = measureA !== null && measureB !== null;
+
+  const handleHeroValueClick = () => {
+    setHeroAnimationIndex(prev => (prev + 1) % HERO_VALUE_ANIMATIONS.length);
+    setHeroAnimationRunId(prev => prev + 1);
+  };
 
   // ── Data fetching (debounced: one in-flight at a time, queue latest) ──
 
@@ -836,11 +849,22 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
         {/* Hero value display — FOREGROUND: highest visual weight */}
         {!hasMeasurement && (
           <div>
-            <p className={`text-[40px] sm:text-5xl md:text-6xl font-black tracking-tighter leading-none text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
-              isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
-            }`}>
-              {formatCurrency(displayValue)}
-            </p>
+            <button
+              type="button"
+              onClick={handleHeroValueClick}
+              className="text-left cursor-pointer group"
+              aria-label="Animate portfolio value"
+              title="Click to cycle value animation"
+            >
+              <span
+                key={`hero-value-${heroAnimationRunId}`}
+                className={`block text-[40px] sm:text-5xl md:text-6xl font-black tracking-tighter leading-none text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
+                  isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
+                } ${heroAnimationRunId > 0 ? HERO_VALUE_ANIMATIONS[heroAnimationIndex] : ''}`}
+              >
+                {formatCurrency(displayValue)}
+              </span>
+            </button>
             {/* Session-aware change lines for 1D pre-market/after-hours */}
             {(() => {
               // Determine which session the hover is in (1D only)

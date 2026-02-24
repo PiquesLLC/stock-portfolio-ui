@@ -52,6 +52,9 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [trades, setTrades] = useState<MappedTrade[]>([]);
   const [telemetry, setTelemetry] = useState<ImportTelemetry | null>(null);
   const [excludedTradeRows, setExcludedTradeRows] = useState<Set<number>>(new Set());
+  const [excludedPositionRows, setExcludedPositionRows] = useState<Set<number>>(new Set());
+  const [hideSmallPositions, setHideSmallPositions] = useState(false);
+  const [marginDebt, setMarginDebt] = useState<string>('');
   const [globalWarning, setGlobalWarning] = useState('');
   const [result, setResult] = useState<{ added: number; updated: number; removed: number } | null>(null);
   const [uploadSource, setUploadSource] = useState<'csv' | 'screenshot'>('csv');
@@ -311,19 +314,67 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     }
   }, [trades]);
 
+  // Position review toggles
+  const handleTogglePositionRow = useCallback((rowIndex: number) => {
+    setExcludedPositionRows(prev => {
+      const next = new Set(prev);
+      if (next.has(rowIndex)) {
+        next.delete(rowIndex);
+      } else {
+        next.add(rowIndex);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleAllPositions = useCallback((selected: boolean) => {
+    if (selected) {
+      setExcludedPositionRows(new Set());
+    } else {
+      setExcludedPositionRows(new Set(rows.map((_, i) => i)));
+    }
+  }, [rows]);
+
+  const handleToggleSmallPositions = useCallback(() => {
+    setHideSmallPositions(prev => {
+      const next = !prev;
+      if (next) {
+        // Add positions with < 1 share to excluded set
+        setExcludedPositionRows(prevExcl => {
+          const updated = new Set(prevExcl);
+          rows.forEach((r, i) => { if (r.shares < 1) updated.add(i); });
+          return updated;
+        });
+      } else {
+        // Remove auto-excluded small positions (re-include them)
+        setExcludedPositionRows(prevExcl => {
+          const updated = new Set(prevExcl);
+          rows.forEach((r, i) => { if (r.shares < 1) updated.delete(i); });
+          return updated;
+        });
+      }
+      return next;
+    });
+  }, [rows]);
+
+  const includedPositionCount = rows.length - excludedPositionRows.size;
+
   // Confirm import
   const handleConfirm = async () => {
     setStep('confirming');
     setError('');
     try {
-      const holdings = rows.map(r => ({ ticker: r.ticker, shares: r.shares, averageCost: r.averageCost }));
+      const holdings = rows
+        .filter((_, i) => !excludedPositionRows.has(i))
+        .map(r => ({ ticker: r.ticker, shares: r.shares, averageCost: r.averageCost }));
 
       // Filter excluded trades
       const filteredTrades = trades.length > 0
         ? trades.filter(t => !excludedTradeRows.has(t.rowIndex))
         : undefined;
 
-      const res = await confirmPortfolioImport(holdings, importMode, filteredTrades);
+      const parsedMargin = parseFloat(marginDebt);
+      const res = await confirmPortfolioImport(holdings, importMode, filteredTrades, parsedMargin > 0 ? parsedMargin : undefined);
       setResult(res);
       setStep('done');
     } catch (err) {
@@ -667,15 +718,44 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               {/* Positions table */}
               {rows.length > 0 && (
                 <>
-                  <div className="flex items-center gap-2 mt-2">
-                    <h3 className="text-xs font-semibold text-rh-light-text dark:text-rh-text uppercase tracking-wider">
-                      Resulting Positions ({rows.length})
-                    </h3>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs font-semibold text-rh-light-text dark:text-rh-text uppercase tracking-wider">
+                        Resulting Positions ({includedPositionCount} of {rows.length})
+                      </h3>
+                      <button
+                        onClick={() => {
+                          const allSelected = excludedPositionRows.size === 0;
+                          handleToggleAllPositions(!allSelected);
+                        }}
+                        className="text-[10px] text-rh-green hover:text-green-400 transition-colors"
+                      >
+                        {excludedPositionRows.size === 0 ? 'Deselect all' : 'Select all'}
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleToggleSmallPositions}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                        hideSmallPositions
+                          ? 'border-rh-green/40 text-rh-green bg-rh-green/5'
+                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                      }`}
+                    >
+                      Hide &lt; 1 share
+                    </button>
                   </div>
                   <div className="border border-gray-200/40 dark:border-white/[0.08] rounded-xl overflow-visible">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 dark:bg-white/[0.03] text-xs text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
+                          <th className="px-2 py-2 w-8">
+                            <input
+                              type="checkbox"
+                              checked={excludedPositionRows.size === 0}
+                              onChange={() => handleToggleAllPositions(excludedPositionRows.size > 0)}
+                              className="w-3.5 h-3.5 accent-[#00c805] cursor-pointer"
+                            />
+                          </th>
                           <th className="px-3 py-2 text-left">Ticker</th>
                           <th className="px-3 py-2 text-right">Shares</th>
                           <th className="px-3 py-2 text-right">Avg Cost</th>
@@ -684,7 +764,15 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                       </thead>
                       <tbody>
                         {rows.map((row, i) => (
-                          <tr key={i} className="border-t border-gray-200/20 dark:border-white/[0.06]">
+                          <tr key={i} className={`border-t border-gray-200/20 dark:border-white/[0.06] transition-opacity ${excludedPositionRows.has(i) ? 'opacity-35' : ''}`}>
+                            <td className="px-2 py-1.5">
+                              <input
+                                type="checkbox"
+                                checked={!excludedPositionRows.has(i)}
+                                onChange={() => handleTogglePositionRow(i)}
+                                className="w-3.5 h-3.5 accent-[#00c805] cursor-pointer"
+                              />
+                            </td>
                             <td className="px-3 py-1.5 relative">
                               <input
                                 value={row.ticker}
@@ -789,6 +877,24 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   : 'Updates existing tickers and adds new ones. Keeps unmentioned holdings.'}
               </p>
 
+              {/* Margin balance */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-rh-light-muted dark:text-rh-muted">Margin balance:</span>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-rh-light-muted/50 dark:text-rh-muted/40">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={marginDebt}
+                    onChange={(e) => setMarginDebt(e.target.value)}
+                    className="w-32 pl-6 pr-2 py-1 rounded-lg border border-gray-200/40 dark:border-white/[0.08] bg-transparent text-sm text-rh-light-text dark:text-rh-text text-right focus:outline-none focus:border-rh-green/40 tabular-nums"
+                  />
+                </div>
+                <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">optional</span>
+              </div>
+
               {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
@@ -801,6 +907,9 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     setTrades([]);
                     setTelemetry(null);
                     setExcludedTradeRows(new Set());
+                    setExcludedPositionRows(new Set());
+                    setHideSmallPositions(false);
+                    setMarginDebt('');
                     setCsvFile(null);
                     setCsvHeaders([]);
                     setCsvRows([]);
@@ -815,10 +924,10 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 </button>
                 <button
                   onClick={handleConfirm}
-                  disabled={rows.length === 0}
+                  disabled={includedPositionCount === 0}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-rh-green text-black font-semibold hover:bg-green-600 disabled:opacity-50 transition-all text-sm"
                 >
-                  Import {rows.length} Holdings
+                  Import {includedPositionCount} Holdings
                 </button>
               </div>
             </div>

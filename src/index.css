@@ -498,6 +498,62 @@ button:active:not(:disabled) {
   animation: twinkle 4s infinite ease-in-out;
 }
 
+@keyframes heroValuePop {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(1.08); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes heroValueSwing {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(-2deg); }
+  60% { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes heroValueFlip {
+  0% { transform: perspective(800px) rotateX(0deg); }
+  50% { transform: perspective(800px) rotateX(10deg); }
+  100% { transform: perspective(800px) rotateX(0deg); }
+}
+
+@keyframes heroValueGlitch {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+
+.hero-value-anim-pop {
+  transform-origin: center;
+  animation: heroValuePop 380ms ease-out;
+}
+
+.hero-value-anim-swing {
+  transform-origin: center;
+  animation: heroValueSwing 420ms ease-out;
+}
+
+.hero-value-anim-flip {
+  transform-origin: center;
+  animation: heroValueFlip 420ms ease-out;
+}
+
+.hero-value-anim-glitch {
+  animation: heroValueGlitch 280ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-value-anim-pop,
+  .hero-value-anim-swing,
+  .hero-value-anim-flip,
+  .hero-value-anim-glitch {
+    animation: none !important;
+  }
+}
+
 /* Hidden scrollbar — scrollable but no visible bar */
 .no-scrollbar {
   scrollbar-width: none;

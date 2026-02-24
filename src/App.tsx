@@ -1487,7 +1487,7 @@ export default function App() {
         style={{ background: '#000', display: 'none' }}
       />
 
-      <footer className="relative z-10 border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
+      <footer className="relative z-[3] border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
         <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
         </p>

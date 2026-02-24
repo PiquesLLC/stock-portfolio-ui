@@ -771,10 +771,11 @@ export async function confirmPortfolioImport(
   holdings: { ticker: string; shares: number; averageCost: number }[],
   mode: 'replace' | 'merge',
   trades?: { date: string; ticker: string; type: string; shares: number; price: number; sourceBroker?: string; rawAction?: string }[],
+  marginDebt?: number,
 ): Promise<{ added: number; updated: number; removed: number }> {
   return fetchJson<{ added: number; updated: number; removed: number }>(
     `${API_BASE_URL}/portfolio/import/confirm`,
-    { method: 'POST', body: JSON.stringify({ holdings, mode, trades }) }
+    { method: 'POST', body: JSON.stringify({ holdings, mode, trades, marginDebt }) }
   );
 }
 
