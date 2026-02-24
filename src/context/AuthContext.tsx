@@ -39,6 +39,7 @@ interface AuthContextType {
   loginWithGoogle: (credential: string) => Promise<{ isNewUser: boolean }>;
   loginWithApple: (idToken: string, user?: { firstName?: string; lastName?: string }, nonce?: string) => Promise<{ isNewUser: boolean }>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -237,6 +238,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeCachedUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const current = await getCurrentUser();
+      const u: User = { ...current, plan: current.plan as PlanTier | undefined };
+      setUser(u);
+      writeCachedUser(u);
+    } catch {
+      // Silently fail — user stays with cached state
+    }
+  }, []);
+
   // When any API call gets an unrecoverable 401, force back to login
   useEffect(() => {
     setAuthExpiredHandler(() => {
@@ -266,6 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         loginWithApple,
         logout,
+        refreshUser,
       }}
     >
       {children}

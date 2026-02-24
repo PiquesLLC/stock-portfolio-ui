@@ -22,6 +22,7 @@ import { DailyReportModal } from './components/DailyReportModal';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { useAuth } from './context/AuthContext';
+import { useToast } from './context/ToastContext';
 import { Holding } from './types';
 import type Hls from 'hls.js';
 import Starfield from './components/Starfield';
@@ -153,7 +154,8 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
 const savedInitialNav = parseHash();
 
 export default function App() {
-  const { user, isAuthenticated, isLoading: authLoading, logout, verifyEmail, resendVerification } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout, verifyEmail, resendVerification, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const isOnline = useOnlineStatus();
   const initialNav = savedInitialNav;
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -214,6 +216,24 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [moreDropdownOpen]);
 
+
+  // --- Handle Stripe checkout redirect ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get('checkout');
+    if (!checkoutStatus) return;
+
+    // Clean the query param from URL immediately
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+
+    if (checkoutStatus === 'success') {
+      showToast('Upgrade successful! Your plan is now active.', 'success');
+      // Refresh user data to pick up the updated plan from the webhook
+      refreshUser();
+    } else if (checkoutStatus === 'cancel') {
+      showToast('Checkout cancelled. You can upgrade anytime.', 'info');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
