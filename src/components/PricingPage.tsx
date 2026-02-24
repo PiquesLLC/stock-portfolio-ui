@@ -4,11 +4,6 @@ import { createCheckoutSession, createPortalSession } from '../api';
 import { useToast } from '../context/ToastContext';
 import { PLANS } from '../data/plans';
 
-const PRICE_IDS: Record<string, string> = {
-  pro: import.meta.env.VITE_STRIPE_PRO_PRICE_ID || 'pro',
-  premium: import.meta.env.VITE_STRIPE_PREMIUM_PRICE_ID || 'premium',
-};
-
 export function PricingPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -17,6 +12,15 @@ export function PricingPage() {
   const [activeSlide, setActiveSlide] = useState(1); // start on Pro (center)
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentPlan = user?.plan || 'free';
+  const [priceIds, setPriceIds] = useState<Record<string, { monthly: string | null; yearly: string | null }>>({});
+
+  // Fetch real Stripe price IDs from the API
+  useEffect(() => {
+    fetch('/api/billing/prices')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setPriceIds(data); })
+      .catch(() => {});
+  }, []);
 
   // Track scroll position to update dot indicators
   const handleScroll = useCallback(() => {
@@ -39,7 +43,8 @@ export function PricingPage() {
     if (planId === 'free' || planId === currentPlan) return;
     setLoadingPlan(planId);
     try {
-      const priceId = PRICE_IDS[planId];
+      const planPrices = priceIds[planId];
+      const priceId = planPrices ? (billing === 'yearly' ? planPrices.yearly : planPrices.monthly) : null;
       if (!priceId) {
         showToast('Plan not available yet', 'error');
         return;
