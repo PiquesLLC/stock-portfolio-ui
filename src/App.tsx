@@ -665,7 +665,8 @@ export default function App() {
   }
 
   // Hard gate: block entire app until email is verified
-  if (user && user.emailVerified === false) {
+  // TODO: Re-enable once Resend is active in production
+  if (false && user && user.emailVerified === false) {
     // Missing email edge case — show recovery path
     if (!user.email) {
       return (
