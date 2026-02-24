@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
-import { uploadPortfolioCsv, uploadPortfolioScreenshot, confirmPortfolioImport, clearPortfolio, searchSymbols, submitMappedCsv, CsvParsedRow, ColumnMappings, MappedTrade, ImportTelemetry } from '../api';
+import { uploadPortfolioCsv, uploadPortfolioScreenshot, confirmPortfolioImport, clearPortfolio, searchSymbols, submitMappedCsv, CsvParsedRow, CsvParseResult, ColumnMappings, MappedTrade, ImportTelemetry } from '../api';
 import { SymbolSearchResult } from '../types';
 import { WizardStepIndicator, WIZARD_STEPS, type WizardStepKey } from './WizardStepIndicator';
 import { CsvPreviewTable } from './CsvPreviewTable';
@@ -50,6 +50,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [stats, setStats] = useState({ totalRows: 0, validRows: 0, skippedRows: 0 });
   const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace');
   const [trades, setTrades] = useState<MappedTrade[]>([]);
+  const [ledgerEvents, setLedgerEvents] = useState<CsvParseResult['ledgerEvents']>([]);
   const [telemetry, setTelemetry] = useState<ImportTelemetry | null>(null);
   const [excludedTradeRows, setExcludedTradeRows] = useState<Set<number>>(new Set());
   const [excludedPositionRows, setExcludedPositionRows] = useState<Set<number>>(new Set());
@@ -150,6 +151,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       setWarnings(data.warnings);
       setGlobalWarning(data.warning || '');
       setTrades((data.trades || []) as MappedTrade[]);
+      setLedgerEvents(data.ledgerEvents || []);
       setStats({ totalRows: data.totalRows, validRows: data.validRows, skippedRows: data.skippedRows });
       setStep('review');
     } catch (err) {
@@ -283,6 +285,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       setWarnings(data.warnings);
       setGlobalWarning(data.warning || '');
       setTrades(data.trades);
+      setLedgerEvents(data.ledgerEvents || []);
       setTelemetry(data.telemetry);
       setStats({ totalRows: data.totalRows, validRows: data.validRows, skippedRows: data.skippedRows });
       setUploadSource('csv');
@@ -374,7 +377,8 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
         : undefined;
 
       const parsedMargin = parseFloat(marginDebt);
-      const res = await confirmPortfolioImport(holdings, importMode, filteredTrades, parsedMargin > 0 ? parsedMargin : undefined);
+      const filteredLedgerEvents = ledgerEvents && ledgerEvents.length > 0 ? ledgerEvents : undefined;
+      const res = await confirmPortfolioImport(holdings, importMode, filteredTrades, parsedMargin > 0 ? parsedMargin : undefined, filteredLedgerEvents);
       setResult(res);
       setStep('done');
     } catch (err) {
@@ -895,6 +899,18 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">optional</span>
               </div>
 
+              {/* Chart accuracy note */}
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-100/60 dark:bg-white/[0.03] border border-gray-200/30 dark:border-white/[0.05]">
+                <svg className="w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/40 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40 leading-relaxed">
+                  {trades.length > 0
+                    ? 'Your charts will be reconstructed from your trade history. Accuracy depends on data completeness — small differences from your broker are normal.'
+                    : 'Your 1-day chart will be accurate immediately. Weekly and longer charts are estimated from current holdings until enough history is collected.'}
+                </p>
+              </div>
+
               {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
@@ -905,6 +921,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     setGlobalWarning('');
                     setError('');
                     setTrades([]);
+                    setLedgerEvents([]);
                     setTelemetry(null);
                     setExcludedTradeRows(new Set());
                     setExcludedPositionRows(new Set());

@@ -634,7 +634,8 @@ export interface CsvParsedRow {
 export interface CsvParseResult {
   parsed: CsvParsedRow[];
   warnings: { rowNumber: number; message: string; line?: string }[];
-  trades?: { date: string; ticker: string; type: string; shares: number; price: number }[];
+  trades?: { date: string; ticker: string; type: string; shares: number; price: number; rowIndex?: number; sourceBroker?: string; rawAction?: string }[];
+  ledgerEvents?: { eventType: string; effectiveDate: string; settleDate?: string | null; ticker?: string | null; shares?: number | null; price?: number | null; amount: number; fees?: number; rowIndex?: number; sourceBroker?: string; rawAction?: string }[];
   totalRows: number;
   validRows: number;
   skippedRows: number;
@@ -772,10 +773,11 @@ export async function confirmPortfolioImport(
   mode: 'replace' | 'merge',
   trades?: { date: string; ticker: string; type: string; shares: number; price: number; sourceBroker?: string; rawAction?: string }[],
   marginDebt?: number,
+  ledgerEvents?: CsvParseResult['ledgerEvents'],
 ): Promise<{ added: number; updated: number; removed: number }> {
   return fetchJson<{ added: number; updated: number; removed: number }>(
     `${API_BASE_URL}/portfolio/import/confirm`,
-    { method: 'POST', body: JSON.stringify({ holdings, mode, trades, marginDebt }) }
+    { method: 'POST', body: JSON.stringify({ holdings, mode, trades, marginDebt, ledgerEvents }) }
   );
 }
 
