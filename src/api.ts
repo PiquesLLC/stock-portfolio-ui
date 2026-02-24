@@ -1527,6 +1527,30 @@ export async function removeWatchlistHolding(watchlistId: string, ticker: string
   });
 }
 
+// Performance Report
+export async function getPerformanceReport(period: PerformanceWindow, benchmark: string = 'SPY', theme: 'light' | 'dark' = 'light'): Promise<string> {
+  const url = `${API_BASE_URL}/portfolio/report?period=${period}&benchmark=${benchmark}&theme=${theme}`;
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: {
+      'Bypass-Tunnel-Reminder': 'true',
+      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+    },
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ error: 'Failed to generate report' }));
+    throw new Error(body.error || `HTTP ${response.status}`);
+  }
+  return response.text();
+}
+
+export async function emailPerformanceReport(period: PerformanceWindow, benchmark: string = 'SPY', theme: 'light' | 'dark' = 'light'): Promise<{ sent: boolean; to: string }> {
+  return fetchJson<{ sent: boolean; to: string }>(`${API_BASE_URL}/portfolio/report/email`, {
+    method: 'POST',
+    body: JSON.stringify({ period, benchmark, theme }),
+  });
+}
+
 // Health / Status
 export interface ProviderStatus {
   configured: boolean;

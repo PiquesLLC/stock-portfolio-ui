@@ -241,7 +241,7 @@ function MiniSparkline({ points, isPositive, id }: { points: { time: number; val
   const max = Math.max(...values);
   const range = max - min || 1;
 
-  const w = 320, h = 28, pad = 1;
+  const w = 320, h = 48, pad = 1;
   const d = points.map((p, i) => {
     const x = (i / (points.length - 1)) * (w - pad * 2) + pad;
     const y = h - pad - ((p.value - min) / range) * (h - pad * 2);
@@ -256,7 +256,7 @@ function MiniSparkline({ points, isPositive, id }: { points: { time: number; val
   const endY = h - pad - ((lastPoint.value - min) / range) * (h - pad * 2);
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-7" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-12" preserveAspectRatio="none">
       <defs>
         <linearGradient id={`sf-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.12" />
@@ -546,7 +546,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const perf = profile.performance;
   const hasPerformance = perf && perf.snapshotCount >= 2;
   const isNewAccount = profile.followerCount === 0 && profile.followingCount === 0;
-  const isPositive = (perf?.twrPct ?? 0) >= 0;
+  const isPositive = (chartReturnPct ?? perf?.twrPct ?? 0) >= 0;
 
   return (
     <motion.div
@@ -812,12 +812,6 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           </div>
         )}
 
-        {/* ── Mini sparkline ───────────────────────────────────── */}
-        {profile.profilePublic && hasPerformance && chartPoints.length > 3 && (
-          <div className="mt-3 -mx-1 opacity-70">
-            <MiniSparkline points={chartPoints} isPositive={isPositive} id={userId} />
-          </div>
-        )}
 
         {/* ── Social strip ────────────────────────────────────────── */}
         <div className="flex items-center gap-4 mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">

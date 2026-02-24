@@ -3,6 +3,7 @@ import { PerformanceSummary as PerformanceSummaryType } from '../types';
 import { getPerformanceSummary } from '../api';
 import { Acronym } from './Acronym';
 import { TransactionManager } from './TransactionManager';
+import { PerformanceReportModal } from './PerformanceReportModal';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -34,6 +35,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
   const [data, setData] = useState<PerformanceSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -84,7 +86,18 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Box 1: Current Holdings P/L (LEFT) */}
         <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl p-6 shadow-sm shadow-black/[0.03] dark:shadow-none">
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rh-light-muted/70 dark:text-rh-muted/70 mb-1">Current Holdings <Acronym label="P/L" /></h3>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rh-light-muted/70 dark:text-rh-muted/70">Current Holdings <Acronym label="P/L" /></h3>
+            <button
+              onClick={() => setShowReportModal(true)}
+              title="Generate performance report"
+              className="p-1 rounded-md text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-green hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </button>
+          </div>
           <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mb-4">Unrealized gains only</p>
 
           <div className="mb-3">
@@ -254,6 +267,10 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
             User-provided data from broker account
           </p>
         </div>
+      )}
+
+      {showReportModal && (
+        <PerformanceReportModal onClose={() => setShowReportModal(false)} />
       )}
     </div>
   );
