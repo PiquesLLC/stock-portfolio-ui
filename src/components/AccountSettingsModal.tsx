@@ -676,30 +676,20 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                   Creator
                 </h3>
                 <div className="space-y-3">
-                  {creatorProfile ? (
+                  {creatorProfile?.status === 'active' ? (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Creator Status</span>
-                          <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded-full ${
-                            creatorProfile.status === 'active'
-                              ? 'bg-rh-green/15 text-rh-green'
-                              : creatorProfile.status === 'pending'
-                              ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400'
-                              : 'bg-red-500/15 text-red-600 dark:text-red-400'
-                          }`}>
-                            {creatorProfile.status}
+                          <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-rh-green/15 text-rh-green">
+                            active
                           </span>
                         </div>
                       </div>
                       <p className="text-xs text-rh-light-muted dark:text-rh-muted">
-                        {creatorProfile.status === 'active'
-                          ? 'Your creator profile is live. Manage your settings and view earnings from the dashboard.'
-                          : creatorProfile.status === 'suspended'
-                          ? 'Your creator profile has been suspended. Contact support for details.'
-                          : 'Your application is being reviewed.'}
+                        Your creator profile is live. Manage your settings and view earnings from the dashboard.
                       </p>
-                      {creatorProfile.status === 'active' && onCreatorNavigate && (
+                      {onCreatorNavigate && (
                         <div className="flex gap-2 mt-2">
                           <button
                             onClick={() => onCreatorNavigate('dashboard')}
@@ -719,19 +709,31 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                         </div>
                       )}
                     </div>
+                  ) : creatorProfile?.status === 'suspended' ? (
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Creator Status</span>
+                      <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-red-500/15 text-red-600 dark:text-red-400">suspended</span>
+                      <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+                        Your creator profile has been suspended. Contact support for details.
+                      </p>
+                    </div>
                   ) : (
                     <div>
-                      <p className="text-sm text-rh-light-text dark:text-rh-text mb-1">Become a Creator</p>
+                      <p className="text-sm text-rh-light-text dark:text-rh-text mb-1">
+                        {creatorProfile?.status === 'pending' ? 'Continue Creator Setup' : 'Start Earning as a Creator'}
+                      </p>
                       <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">
                         Share your portfolio insights and earn money from subscribers. Keep 80% of revenue.
                       </p>
-                      <button
-                        onClick={() => setShowCreatorApply(true)}
-                        className="px-3 py-1.5 text-xs font-medium rounded-lg
-                          bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
-                      >
-                        Apply Now
-                      </button>
+                      {onCreatorNavigate && (
+                        <button
+                          onClick={() => onCreatorNavigate('dashboard')}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg
+                            bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
+                        >
+                          {creatorProfile?.status === 'pending' ? 'Continue Setup' : 'Get Started'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

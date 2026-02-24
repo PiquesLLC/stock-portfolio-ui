@@ -1860,6 +1860,24 @@ export async function getCreatorDashboard(): Promise<CreatorDashboard> {
   return fetchJson<CreatorDashboard>(`${API_BASE_URL}/creator/dashboard`);
 }
 
+export interface CreatorSetupStatus {
+  hasApplied: boolean;
+  hasSetPrice: boolean;
+  hasConnectedStripe: boolean;
+  hasConfiguredVisibility: boolean;
+  status: string | null;
+}
+
+export async function getCreatorSetupStatus(): Promise<CreatorSetupStatus> {
+  return fetchJson<CreatorSetupStatus>(`${API_BASE_URL}/creator/setup-status`);
+}
+
+export async function selfActivateCreator(): Promise<{ ok: boolean }> {
+  return fetchJson<{ ok: boolean }>(`${API_BASE_URL}/creator/self-activate`, {
+    method: 'POST',
+  });
+}
+
 export async function updateCreatorSettings(settings: CreatorSettingsUpdate): Promise<CreatorProfile> {
   return fetchJson<CreatorProfile>(`${API_BASE_URL}/creator/settings`, {
     method: 'PATCH',

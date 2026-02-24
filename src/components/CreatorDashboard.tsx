@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getCreatorDashboard, getCreatorLedger, requestCreatorPayout, getReferralStats, ReferralStats } from '../api';
+import { getCreatorDashboard, getCreatorLedger, getCreatorSetupStatus, requestCreatorPayout, getReferralStats, selfActivateCreator, ReferralStats, CreatorSetupStatus } from '../api';
+import { CreatorApplicationModal } from './CreatorApplicationModal';
 import { CreatorDashboard as CreatorDashboardData, CreatorLedgerEntry, CreatorLedgerEntryType, CreatorLedgerSummary } from '../types';
 
 // ── Use mock data until real creator subscriptions exist ──
@@ -88,6 +89,8 @@ interface CreatorDashboardProps {
   onBack: () => void;
   onSettingsClick: () => void;
   onUserClick?: (username: string) => void;
+  setupStatus?: import('../api').CreatorSetupStatus | null;
+  onSetupComplete?: () => void;
 }
 
 function formatCents(cents: number): string {
@@ -178,7 +181,7 @@ function InfoTip({ text }: { text: string }) {
   );
 }
 
-export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: CreatorDashboardProps) {
+export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupStatus: initialSetupStatus, onSetupComplete }: CreatorDashboardProps) {
   const [data, setData] = useState<CreatorDashboardData | null>(USE_MOCK ? MOCK_DATA : null);
   const [referralData, setReferralData] = useState<ReferralStats | null>(USE_MOCK ? MOCK_REFERRALS : null);
   const [loading, setLoading] = useState(!USE_MOCK);
@@ -195,6 +198,30 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
   const [ledgerCursor, setLedgerCursor] = useState<string | undefined>();
   const [ledgerHasMore, setLedgerHasMore] = useState(false);
   const ledgerRequestId = useRef(0);
+  const [setupStatus, setSetupStatus] = useState<CreatorSetupStatus | null>(initialSetupStatus ?? null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const isActive = setupStatus?.status === 'active';
+
+  const refreshSetupStatus = useCallback(async () => {
+    try {
+      const s = await getCreatorSetupStatus();
+      setSetupStatus(s);
+    } catch { /* ignore */ }
+  }, []);
+
+  // Refresh setup status when returning from settings
+  useEffect(() => { refreshSetupStatus(); }, [refreshSetupStatus]);
+
+  const handleGoLive = useCallback(async () => {
+    setActivating(true);
+    try {
+      await selfActivateCreator();
+      await refreshSetupStatus();
+      onSetupComplete?.();
+    } catch { /* error handled by UI */ }
+    finally { setActivating(false); }
+  }, [refreshSetupStatus, onSetupComplete]);
 
   const loadDashboard = useCallback(async () => {
     if (USE_MOCK) return;
@@ -414,6 +441,90 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
           </button>
         </div>
       </div>
+
+      {/* ─── Activation Checklist ─── */}
+      {setupStatus && !isActive && (
+        <div className={`${CARD} p-5 space-y-4`}>
+          <div>
+            <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Get Started as a Creator</h2>
+            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">Complete these steps to start earning</p>
+          </div>
+          <div className="space-y-2.5">
+            {[
+              {
+                done: setupStatus.hasApplied,
+                label: 'Agree to creator terms',
+                action: setupStatus.hasApplied ? undefined : () => setShowTermsModal(true),
+                actionLabel: 'Accept Terms',
+              },
+              {
+                done: setupStatus.hasSetPrice,
+                label: 'Set your subscription price',
+                action: () => onSettingsClick(),
+                actionLabel: 'Set Price',
+              },
+              {
+                done: setupStatus.hasConnectedStripe,
+                label: 'Connect Stripe for payouts',
+                action: () => onSettingsClick(),
+                actionLabel: 'Connect',
+              },
+              {
+                done: setupStatus.hasConfiguredVisibility,
+                label: 'Configure content visibility',
+                action: () => onSettingsClick(),
+                actionLabel: 'Configure',
+              },
+            ].map((step, i) => (
+              <div key={i} className={`flex items-center justify-between py-2.5 px-3.5 rounded-lg ${
+                step.done
+                  ? 'bg-rh-green/[0.06] border border-rh-green/20'
+                  : 'bg-gray-50 dark:bg-white/[0.03] border border-gray-200/40 dark:border-white/[0.06]'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    step.done
+                      ? 'bg-rh-green text-white'
+                      : 'border-2 border-gray-300 dark:border-white/20'
+                  }`}>
+                    {step.done && (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={`text-sm font-medium ${
+                    step.done
+                      ? 'text-rh-green'
+                      : 'text-rh-light-text dark:text-rh-text'
+                  }`}>
+                    {step.label}
+                  </span>
+                </div>
+                {step.done ? (
+                  <span className="text-xs font-medium text-rh-green/70">Done</span>
+                ) : step.action ? (
+                  <button
+                    onClick={step.action}
+                    className="text-xs font-medium text-rh-green hover:text-rh-green/80 transition-colors"
+                  >
+                    {step.actionLabel} &rsaquo;
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={handleGoLive}
+            disabled={!setupStatus.hasApplied || !setupStatus.hasSetPrice || !setupStatus.hasConnectedStripe || !setupStatus.hasConfiguredVisibility || activating}
+            className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
+              bg-rh-green text-white hover:bg-rh-green/90
+              disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {activating ? 'Activating...' : 'Go Live'}
+          </button>
+        </div>
+      )}
 
       {/* ─── Stat Strip ─── */}
       <div className={`${CARD} p-0 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 divide-x divide-gray-200/40 dark:divide-white/[0.06]`}>
@@ -901,6 +1012,16 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick }: Creat
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Terms acceptance modal for step 1 */}
+      <CreatorApplicationModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onSuccess={() => {
+          setShowTermsModal(false);
+          refreshSetupStatus();
+        }}
+      />
     </motion.div>
   );
 }

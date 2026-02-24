@@ -167,7 +167,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
         <h1 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Creator Settings</h1>
         {creator.status === 'pending' && (
           <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-yellow-500/15 text-yellow-600 dark:text-yellow-400">
-            Pending Approval
+            Setup in Progress
           </span>
         )}
       </div>

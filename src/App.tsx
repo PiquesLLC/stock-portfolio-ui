@@ -192,7 +192,6 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
-  const [isCreator, setIsCreator] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -585,15 +584,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, [fetchData, currentUserId]);
 
-  // Check if current user is a creator (for header button)
-  // Uses raw fetch to avoid global toast on 404 for non-creators
-  useEffect(() => {
-    if (!currentUserId) { setIsCreator(false); return; }
-    fetch(`/api/creator/${currentUserId}`, { credentials: 'include' })
+  // Check creator setup status (for header button + dashboard checklist)
+  const [creatorSetupStatus, setCreatorSetupStatus] = useState<import('./api').CreatorSetupStatus | null>(null);
+  const refreshCreatorSetupStatus = useCallback(() => {
+    if (!currentUserId) { setCreatorSetupStatus(null); return; }
+    fetch('/api/creator/setup-status', { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
-      .then(p => setIsCreator(p?.status === 'active'))
-      .catch(() => setIsCreator(false));
+      .then(s => setCreatorSetupStatus(s))
+      .catch(() => setCreatorSetupStatus(null));
   }, [currentUserId]);
+  useEffect(() => { refreshCreatorSetupStatus(); }, [refreshCreatorSetupStatus]);
 
   useEffect(() => {
     if (!currentUserId || !portfolio) return;
@@ -870,7 +870,7 @@ export default function App() {
               </button>
             )}
             {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
-            {isCreator && (
+            {currentUserId && (
               <button
                 onClick={() => setCreatorView('dashboard')}
                 className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
@@ -1016,7 +1016,7 @@ export default function App() {
           {/* Right utilities — notifications, brief, theme, profile */}
           <div className="flex items-center gap-1 ml-auto">
             {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
-            {isCreator && (
+            {currentUserId && (
               <button
                 onClick={() => setCreatorView('dashboard')}
                 className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
@@ -1467,6 +1467,8 @@ export default function App() {
               <CreatorDashboardPage
                 onBack={() => setCreatorView(null)}
                 onSettingsClick={() => setCreatorView('settings')}
+                setupStatus={creatorSetupStatus}
+                onSetupComplete={refreshCreatorSetupStatus}
               />
             </ErrorBoundary>
           )}

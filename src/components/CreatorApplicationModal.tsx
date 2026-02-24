@@ -8,7 +8,6 @@ interface CreatorApplicationModalProps {
 }
 
 export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorApplicationModalProps) {
-  const [pitch, setPitch] = useState('');
   const [acceptedCompliance, setAcceptedCompliance] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,11 +29,10 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
     setSaving(true);
     setError(null);
     try {
-      await applyAsCreator(pitch.trim() || undefined);
+      await applyAsCreator();
       onSuccess();
-      onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit application');
+      setError(err instanceof Error ? err.message : 'Failed to accept terms');
     } finally {
       setSaving(false);
     }
@@ -54,7 +52,7 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/40 dark:border-white/[0.08]">
           <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
-            Become a Creator
+            Creator Terms
           </h2>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors">
             <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,27 +68,6 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
             Share your portfolio insights and earn money from subscribers.
             You set your price, and keep 80% of subscription revenue.
           </p>
-
-          {/* Pitch */}
-          <div>
-            <label className="block text-xs font-medium text-rh-light-text dark:text-rh-text mb-1.5">
-              Your pitch <span className="text-rh-light-muted dark:text-rh-muted font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={pitch}
-              onChange={(e) => setPitch(e.target.value)}
-              maxLength={500}
-              rows={3}
-              placeholder="Tell subscribers why they should follow your portfolio..."
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.1]
-                bg-white dark:bg-white/[0.04] text-sm text-rh-light-text dark:text-rh-text
-                placeholder:text-rh-light-muted dark:placeholder:text-rh-muted
-                focus:outline-none focus:ring-2 focus:ring-rh-green/50 resize-none"
-            />
-            <p className="mt-0.5 text-right text-[10px] text-rh-light-muted dark:text-rh-muted">
-              {pitch.length}/500
-            </p>
-          </div>
 
           {/* Compliance checkboxes */}
           <div className="space-y-3">
@@ -148,7 +125,7 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
               bg-rh-green text-white hover:bg-rh-green/90 transition-colors
               disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? 'Submitting...' : 'Apply'}
+            {saving ? 'Accepting...' : 'Accept & Continue'}
           </button>
         </div>
       </div>
