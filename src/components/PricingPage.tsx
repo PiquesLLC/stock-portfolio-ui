@@ -3,6 +3,7 @@ import { useAuth, PlanTier } from '../context/AuthContext';
 import { createCheckoutSession, createPortalSession } from '../api';
 import { useToast } from '../context/ToastContext';
 import { PLANS } from '../data/plans';
+import { API_BASE_URL } from '../config';
 
 export function PricingPage() {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ export function PricingPage() {
 
   // Fetch real Stripe price IDs from the API
   useEffect(() => {
-    fetch('/api/billing/prices')
+    fetch(`${API_BASE_URL}/billing/prices`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setPriceIds(data); })
       .catch(() => {});
