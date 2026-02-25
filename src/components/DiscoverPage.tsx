@@ -18,6 +18,7 @@ interface DiscoverPageProps {
 function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; heatmapIndex?: MarketIndex } {
   if (!raw) return { subTab: 'heatmap' };
   if (raw === 'top100') return { subTab: 'top100' };
+  if (raw === 'screener') return { subTab: 'screener' };
   if (raw === 'creators') return { subTab: 'creators' };
   if (raw.startsWith('heatmap:')) {
     const idx = raw.slice(8) as MarketIndex;
@@ -1133,7 +1134,7 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'heatmap' | 'top100' | 'creators';
+type DiscoverSubTab = 'heatmap' | 'top100' | 'screener' | 'creators';
 
 /* ─── Top 100 by Volume ─── */
 
@@ -1596,6 +1597,320 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
   );
 }
 
+/* ─── Stock Screener ─── */
+
+type ScreenerSortKey = 'ticker' | 'name' | 'price' | 'changePercent' | 'marketCapB' | 'pe' | 'dividendYield' | 'beta' | 'week52Pos' | 'sector';
+type CapRange = 'all' | 'small' | 'mid' | 'large' | 'mega';
+type PeRange = 'all' | 'low' | 'mid' | 'high' | 'very_high';
+type DivRange = 'all' | 'gt1' | 'gt2' | 'gt4';
+type WeekRange = 'all' | 'near_low' | 'mid' | 'near_high';
+
+const CAP_RANGES: { id: CapRange; label: string }[] = [
+  { id: 'all', label: 'All Caps' },
+  { id: 'small', label: '< $2B' },
+  { id: 'mid', label: '$2-10B' },
+  { id: 'large', label: '$10-200B' },
+  { id: 'mega', label: '> $200B' },
+];
+const PE_RANGES: { id: PeRange; label: string }[] = [
+  { id: 'all', label: 'Any P/E' },
+  { id: 'low', label: '< 15' },
+  { id: 'mid', label: '15-25' },
+  { id: 'high', label: '25-50' },
+  { id: 'very_high', label: '50+' },
+];
+const DIV_RANGES: { id: DivRange; label: string }[] = [
+  { id: 'all', label: 'Any Div' },
+  { id: 'gt1', label: '> 1%' },
+  { id: 'gt2', label: '> 2%' },
+  { id: 'gt4', label: '> 4%' },
+];
+const WEEK_RANGES: { id: WeekRange; label: string }[] = [
+  { id: 'all', label: 'Any 52W' },
+  { id: 'near_low', label: 'Near Low' },
+  { id: 'mid', label: 'Mid Range' },
+  { id: 'near_high', label: 'Near High' },
+];
+
+function getWeek52Pos(stock: HeatmapStock): number | null {
+  if (stock.week52High == null || stock.week52Low == null || stock.week52High <= stock.week52Low) return null;
+  return (stock.price - stock.week52Low) / (stock.week52High - stock.week52Low);
+}
+
+function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
+  const [sectorFilter, setSectorFilter] = useState<string>('all');
+  const [capFilter, setCapFilter] = useState<CapRange>('all');
+  const [peFilter, setPeFilter] = useState<PeRange>('all');
+  const [divFilter, setDivFilter] = useState<DivRange>('all');
+  const [weekFilter, setWeekFilter] = useState<WeekRange>('all');
+  const [sortKey, setSortKey] = useState<ScreenerSortKey>('marketCapB');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const sectors = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of stocks) if (s.sector) set.add(s.sector);
+    return Array.from(set).sort();
+  }, [stocks]);
+
+  const filtered = useMemo(() => {
+    let result = stocks.filter(s => s.price > 0);
+
+    if (sectorFilter !== 'all') result = result.filter(s => s.sector === sectorFilter);
+
+    if (capFilter !== 'all') {
+      result = result.filter(s => {
+        const cap = s.marketCapB;
+        switch (capFilter) {
+          case 'small': return cap < 2;
+          case 'mid': return cap >= 2 && cap < 10;
+          case 'large': return cap >= 10 && cap < 200;
+          case 'mega': return cap >= 200;
+          default: return true;
+        }
+      });
+    }
+
+    if (peFilter !== 'all') {
+      result = result.filter(s => {
+        const pe = s.pe;
+        if (pe == null || pe <= 0) return false;
+        switch (peFilter) {
+          case 'low': return pe < 15;
+          case 'mid': return pe >= 15 && pe < 25;
+          case 'high': return pe >= 25 && pe < 50;
+          case 'very_high': return pe >= 50;
+          default: return true;
+        }
+      });
+    }
+
+    if (divFilter !== 'all') {
+      result = result.filter(s => {
+        const dy = s.dividendYield;
+        if (dy == null) return false;
+        const pct = dy * 100;
+        switch (divFilter) {
+          case 'gt1': return pct > 1;
+          case 'gt2': return pct > 2;
+          case 'gt4': return pct > 4;
+          default: return true;
+        }
+      });
+    }
+
+    if (weekFilter !== 'all') {
+      result = result.filter(s => {
+        const pos = getWeek52Pos(s);
+        if (pos == null) return false;
+        switch (weekFilter) {
+          case 'near_low': return pos < 0.2;
+          case 'mid': return pos >= 0.2 && pos <= 0.8;
+          case 'near_high': return pos > 0.8;
+          default: return true;
+        }
+      });
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let aVal: number, bVal: number;
+      switch (sortKey) {
+        case 'ticker': return sortDir === 'asc' ? a.ticker.localeCompare(b.ticker) : b.ticker.localeCompare(a.ticker);
+        case 'name': return sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+        case 'price': aVal = a.price; bVal = b.price; break;
+        case 'changePercent': aVal = a.changePercent; bVal = b.changePercent; break;
+        case 'marketCapB': aVal = a.marketCapB; bVal = b.marketCapB; break;
+        case 'pe': aVal = a.pe ?? -1; bVal = b.pe ?? -1; break;
+        case 'dividendYield': aVal = a.dividendYield ?? -1; bVal = b.dividendYield ?? -1; break;
+        case 'beta': aVal = a.beta ?? -1; bVal = b.beta ?? -1; break;
+        case 'week52Pos': aVal = getWeek52Pos(a) ?? -1; bVal = getWeek52Pos(b) ?? -1; break;
+        case 'sector': return sortDir === 'asc' ? (a.sector ?? '').localeCompare(b.sector ?? '') : (b.sector ?? '').localeCompare(a.sector ?? '');
+        default: aVal = 0; bVal = 0;
+      }
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    return result;
+  }, [stocks, sectorFilter, capFilter, peFilter, divFilter, weekFilter, sortKey, sortDir]);
+
+  const handleSort = (key: ScreenerSortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'ticker' || key === 'name' || key === 'sector' ? 'asc' : 'desc');
+    }
+  };
+
+  const sortIcon = (key: ScreenerSortKey) => {
+    if (sortKey !== key) return null;
+    return <span className="ml-0.5 text-[9px]">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>;
+  };
+
+  const pillClass = (active: boolean) =>
+    `px-2.5 py-1 text-[11px] font-medium rounded-md transition-all cursor-pointer whitespace-nowrap ${
+      active
+        ? 'bg-rh-green/15 text-rh-green ring-1 ring-rh-green/30'
+        : 'bg-gray-100 dark:bg-white/[0.04] text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+    }`;
+
+  const thClass = 'px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-white/30 cursor-pointer hover:text-gray-600 dark:hover:text-white/50 select-none whitespace-nowrap';
+
+  return (
+    <div className="space-y-3">
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-1.5">
+        {/* Sector dropdown */}
+        <select
+          value={sectorFilter}
+          onChange={e => setSectorFilter(e.target.value)}
+          className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-gray-100 dark:bg-white/[0.04] text-gray-600 dark:text-white/50 border-0 outline-none cursor-pointer"
+        >
+          <option value="all">All Sectors</option>
+          {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+
+        {/* Cap range pills */}
+        {CAP_RANGES.map(c => (
+          <button key={c.id} onClick={() => setCapFilter(capFilter === c.id ? 'all' : c.id)} className={pillClass(capFilter === c.id && c.id !== 'all')}>
+            {c.label}
+          </button>
+        ))}
+
+        <div className="w-px bg-gray-200 dark:bg-white/10 mx-1 self-stretch" />
+
+        {/* PE pills */}
+        {PE_RANGES.map(p => (
+          <button key={p.id} onClick={() => setPeFilter(peFilter === p.id ? 'all' : p.id)} className={pillClass(peFilter === p.id && p.id !== 'all')}>
+            {p.label}
+          </button>
+        ))}
+
+        <div className="w-px bg-gray-200 dark:bg-white/10 mx-1 self-stretch" />
+
+        {/* Dividend pills */}
+        {DIV_RANGES.map(d => (
+          <button key={d.id} onClick={() => setDivFilter(divFilter === d.id ? 'all' : d.id)} className={pillClass(divFilter === d.id && d.id !== 'all')}>
+            {d.label}
+          </button>
+        ))}
+
+        <div className="w-px bg-gray-200 dark:bg-white/10 mx-1 self-stretch" />
+
+        {/* 52-week pills */}
+        {WEEK_RANGES.map(w => (
+          <button key={w.id} onClick={() => setWeekFilter(weekFilter === w.id ? 'all' : w.id)} className={pillClass(weekFilter === w.id && w.id !== 'all')}>
+            {w.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Results count */}
+      <div className="text-[11px] text-gray-400 dark:text-white/25 font-medium">
+        {filtered.length} stocks
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f12]">
+        <table className="w-full text-left">
+          <thead className="sticky top-0 bg-gray-50 dark:bg-white/[0.03] z-10">
+            <tr>
+              <th className={`${thClass} pl-3 text-left`} onClick={() => handleSort('ticker')}>Ticker{sortIcon('ticker')}</th>
+              <th className={`${thClass} text-left hidden md:table-cell`} onClick={() => handleSort('name')}>Name{sortIcon('name')}</th>
+              <th className={`${thClass} text-right`} onClick={() => handleSort('price')}>Price{sortIcon('price')}</th>
+              <th className={`${thClass} text-right`} onClick={() => handleSort('changePercent')}>Chg%{sortIcon('changePercent')}</th>
+              <th className={`${thClass} text-right hidden sm:table-cell`} onClick={() => handleSort('marketCapB')}>Mkt Cap{sortIcon('marketCapB')}</th>
+              <th className={`${thClass} text-right hidden lg:table-cell`} onClick={() => handleSort('pe')}>P/E{sortIcon('pe')}</th>
+              <th className={`${thClass} text-right hidden lg:table-cell`} onClick={() => handleSort('dividendYield')}>Div%{sortIcon('dividendYield')}</th>
+              <th className={`${thClass} text-right hidden xl:table-cell`} onClick={() => handleSort('beta')}>Beta{sortIcon('beta')}</th>
+              <th className={`${thClass} text-right hidden xl:table-cell`} onClick={() => handleSort('week52Pos')}>52W Range{sortIcon('week52Pos')}</th>
+              <th className={`${thClass} text-right hidden 2xl:table-cell`} onClick={() => handleSort('sector')}>Sector{sortIcon('sector')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.slice(0, 200).map((stock) => {
+              const w52pos = getWeek52Pos(stock);
+              return (
+                <tr
+                  key={stock.ticker}
+                  onClick={() => onTickerClick(stock.ticker)}
+                  className="border-t border-gray-100 dark:border-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors"
+                >
+                  <td className="px-2 py-2 pl-3">
+                    <div className="flex items-center gap-2">
+                      <StockLogo ticker={stock.ticker} size="sm" />
+                      <span className="text-xs font-bold text-gray-800 dark:text-white">{stock.ticker}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 hidden md:table-cell">
+                    <span className="text-[11px] text-gray-500 dark:text-white/40 truncate max-w-[180px] block">{stock.name}</span>
+                  </td>
+                  <td className="px-2 py-2 text-right">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-white/80 tabular-nums">${stock.price.toFixed(2)}</span>
+                  </td>
+                  <td className="px-2 py-2 text-right">
+                    <span className={`text-xs font-bold tabular-nums ${stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-right hidden sm:table-cell">
+                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">{formatMktCap(stock.marketCapB)}</span>
+                  </td>
+                  <td className="px-2 py-2 text-right hidden lg:table-cell">
+                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">
+                      {stock.pe != null && stock.pe > 0 ? stock.pe.toFixed(1) : '--'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-right hidden lg:table-cell">
+                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">
+                      {stock.dividendYield != null ? `${(stock.dividendYield * 100).toFixed(2)}%` : '--'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-right hidden xl:table-cell">
+                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">
+                      {stock.beta != null ? stock.beta.toFixed(2) : '--'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-right hidden xl:table-cell">
+                    {w52pos != null ? (
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-rh-green"
+                            style={{ width: `${Math.round(w52pos * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-gray-400 dark:text-white/30 tabular-nums w-[28px] text-right">
+                          {Math.round(w52pos * 100)}%
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-gray-400 dark:text-white/30">--</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-2 text-right hidden 2xl:table-cell">
+                    <span className="text-[10px] text-gray-400 dark:text-white/30 truncate max-w-[100px] block text-right">{stock.sector ?? '--'}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="py-12 text-center text-sm text-gray-400 dark:text-white/25">
+            No stocks match your filters
+          </div>
+        )}
+        {filtered.length > 200 && (
+          <div className="py-3 text-center text-[11px] text-gray-400 dark:text-white/25">
+            Showing 200 of {filtered.length} results
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Heatmap View (original DiscoverPage content) ─── */
 
 function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
@@ -1826,6 +2141,9 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <button onClick={() => setSubTab('top100')} className={tabClass(subTab === 'top100')}>
           Top 100
         </button>
+        <button onClick={() => setSubTab('screener')} className={tabClass(subTab === 'screener')}>
+          Screener
+        </button>
         <button onClick={() => setSubTab('creators')} className={tabClass(subTab === 'creators')}>
           Creators
         </button>
@@ -1835,6 +2153,8 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
       ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} />
+      ) : subTab === 'screener' ? (
+        <ScreenerView stocks={allStocks} onTickerClick={onTickerClick} />
       ) : (
         <Suspense fallback={<div className="flex items-center justify-center py-20"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
           <CreatorDiscoverSection onUserClick={onUserClick} />

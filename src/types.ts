@@ -1280,6 +1280,13 @@ export interface HeatmapStock {
   volume?: number;
   avgVolume?: number;
   noTradeData?: boolean;
+  // Screener fundamentals
+  sector?: string;
+  pe?: number | null;
+  dividendYield?: number | null;
+  beta?: number | null;
+  week52High?: number | null;
+  week52Low?: number | null;
 }
 
 export interface HeatmapSubSector {
