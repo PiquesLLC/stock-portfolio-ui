@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Portfolio, Settings, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus, seedSamplePortfolio } from './api';
+import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -829,10 +829,7 @@ export default function App() {
       {showOnboardingTour && (
         <Suspense fallback={null}>
           <OnboardingTour
-            onComplete={async () => {
-              try {
-                await seedSamplePortfolio();
-              } catch { /* 409 if already seeded — fine */ }
+            onComplete={() => {
               localStorage.setItem('nala_tour_completed', '1');
               setShowOnboardingTour(false);
               fetchData();
