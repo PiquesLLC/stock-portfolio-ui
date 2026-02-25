@@ -57,7 +57,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [hideSmallPositions, setHideSmallPositions] = useState(false);
   const [marginDebt, setMarginDebt] = useState<string>('');
   const [globalWarning, setGlobalWarning] = useState('');
-  const [result, setResult] = useState<{ added: number; updated: number; removed: number } | null>(null);
+  const [result, setResult] = useState<{ added: number; updated: number; removed: number; skippedDuplicates?: number } | null>(null);
   const [uploadSource, setUploadSource] = useState<'csv' | 'screenshot'>('csv');
 
   // Clear confirm
@@ -984,6 +984,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   {result.added > 0 && <span className="text-rh-green">{result.added} added</span>}
                   {result.updated > 0 && <span className="text-amber-400">{result.updated} updated</span>}
                   {result.removed > 0 && <span className="text-rh-light-muted dark:text-rh-muted">{result.removed} removed</span>}
+                  {(result.skippedDuplicates ?? 0) > 0 && <span className="text-rh-light-muted/50 dark:text-rh-muted/50">{result.skippedDuplicates} duplicates skipped</span>}
                 </div>
               </div>
               <button

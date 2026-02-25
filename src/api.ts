@@ -793,8 +793,8 @@ export async function confirmPortfolioImport(
   trades?: { date: string; ticker: string; type: string; shares: number; price: number; sourceBroker?: string; rawAction?: string }[],
   marginDebt?: number,
   ledgerEvents?: CsvParseResult['ledgerEvents'],
-): Promise<{ added: number; updated: number; removed: number }> {
-  return fetchJson<{ added: number; updated: number; removed: number }>(
+): Promise<{ added: number; updated: number; removed: number; skippedDuplicates?: number }> {
+  return fetchJson<{ added: number; updated: number; removed: number; skippedDuplicates?: number }>(
     `${API_BASE_URL}/portfolio/import/confirm`,
     { method: 'POST', body: JSON.stringify({ holdings, mode, trades, marginDebt, ledgerEvents }) }
   );
