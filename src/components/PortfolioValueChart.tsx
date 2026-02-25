@@ -40,6 +40,17 @@ interface Props {
   session?: MarketSessionProp;
 }
 
+export function shouldShowEstimatedBadge(
+  period: PortfolioChartPeriod,
+  points: Array<{ confidence?: number; estimated?: boolean }>,
+  chartEstimated?: boolean,
+  confidenceThreshold = 80,
+): boolean {
+  if (period === '1D') return false;
+  if (chartEstimated === true) return true;
+  return points.some(p => p.estimated === true || (typeof p.confidence === 'number' && p.confidence < confidenceThreshold));
+}
+
 const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
 const HERO_VALUE_ANIMATIONS = [
   'hero-value-anim-pop',
@@ -429,9 +440,11 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const displayChange = displayValue - periodStartValue;
   const displayChangePct = periodStartValue > 0 ? (displayChange / periodStartValue) * 100 : 0;
   const confidenceThreshold = chartData?.confidenceThreshold ?? 80;
-  const hasEstimatedData = selectedPeriod !== '1D' && (
-    chartData?.estimated === true ||
-    points.some(p => p.estimated === true || (typeof p.confidence === 'number' && p.confidence < confidenceThreshold))
+  const hasEstimatedData = shouldShowEstimatedBadge(
+    selectedPeriod,
+    points,
+    chartData?.estimated,
+    confidenceThreshold,
   );
 
   // Emit period return to parent (for benchmark widget consistency)
