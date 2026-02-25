@@ -789,7 +789,7 @@ export async function submitMappedCsv(
 
 export async function confirmPortfolioImport(
   holdings: { ticker: string; shares: number; averageCost: number }[],
-  mode: 'replace' | 'merge',
+  mode: 'replace' | 'merge' | 'incremental',
   trades?: { date: string; ticker: string; type: string; shares: number; price: number; sourceBroker?: string; rawAction?: string }[],
   marginDebt?: number,
   ledgerEvents?: CsvParseResult['ledgerEvents'],

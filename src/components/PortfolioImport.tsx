@@ -48,7 +48,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [rows, setRows] = useState<CsvParsedRow[]>([]);
   const [warnings, setWarnings] = useState<{ rowNumber: number; message: string; line?: string }[]>([]);
   const [stats, setStats] = useState({ totalRows: 0, validRows: 0, skippedRows: 0 });
-  const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace');
+  const [importMode, setImportMode] = useState<'replace' | 'merge' | 'incremental'>('replace');
   const [trades, setTrades] = useState<MappedTrade[]>([]);
   const [ledgerEvents, setLedgerEvents] = useState<CsvParseResult['ledgerEvents']>([]);
   const [telemetry, setTelemetry] = useState<ImportTelemetry | null>(null);
@@ -873,11 +873,23 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   >
                     Merge
                   </button>
+                  <button
+                    onClick={() => setImportMode('incremental')}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      importMode === 'incremental'
+                        ? 'bg-rh-green/10 text-rh-green'
+                        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                    }`}
+                  >
+                    Update
+                  </button>
                 </div>
               </div>
               <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/40">
                 {importMode === 'replace'
                   ? 'Removes all existing holdings and replaces with these.'
+                  : importMode === 'incremental'
+                  ? 'Applies trades to your existing holdings. Buys add shares, sells reduce them.'
                   : 'Updates existing tickers and adds new ones. Keeps unmentioned holdings.'}
               </p>
 
