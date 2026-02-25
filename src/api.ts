@@ -1574,7 +1574,7 @@ export async function getHealthStatus(): Promise<HealthStatus> {
 
 // Discover / Heatmap
 export type HeatmapPeriod = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y';
-export type MarketIndex = 'SP500' | 'DOW30' | 'NASDAQ100';
+export type MarketIndex = 'SP500' | 'DOW30' | 'NASDAQ100' | 'THEMES';
 
 export async function getMarketHeatmap(period: HeatmapPeriod = '1D', index?: MarketIndex): Promise<import('./types').HeatmapResponse> {
   const params = new URLSearchParams({ period });
@@ -2027,4 +2027,10 @@ export async function reportUser(
     method: 'POST',
     body: JSON.stringify({ reason, description, context }),
   });
+}
+
+// ── Themes Heatmap ──────────────────────────────────────────────
+
+export async function getThemesHeatmap(): Promise<import('./types').HeatmapResponse> {
+  return fetchJson(`${API_BASE_URL}/market/themes/heatmap`);
 }

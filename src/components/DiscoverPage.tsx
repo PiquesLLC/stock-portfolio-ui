@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
-import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks } from '../api';
+import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 import { getMarketStatus } from '../utils/portfolio-chart';
@@ -12,6 +12,20 @@ interface DiscoverPageProps {
   onUserClick?: (userId: string) => void;
   subTab?: string | null;
   onSubTabChange?: (subtab: string) => void;
+}
+
+/** Parse subtab string like "heatmap:THEMES" into { subTab, heatmapIndex } */
+function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; heatmapIndex?: MarketIndex } {
+  if (!raw) return { subTab: 'heatmap' };
+  if (raw === 'top100') return { subTab: 'top100' };
+  if (raw === 'creators') return { subTab: 'creators' };
+  if (raw.startsWith('heatmap:')) {
+    const idx = raw.slice(8) as MarketIndex;
+    if (['SP500', 'DOW30', 'NASDAQ100', 'THEMES'].includes(idx)) {
+      return { subTab: 'heatmap', heatmapIndex: idx };
+    }
+  }
+  return { subTab: 'heatmap' };
 }
 
 // --- Squarified treemap layout algorithm ---
@@ -119,8 +133,8 @@ function doLayout<T>(
 function getHeatColor(pct: number): string {
   const c = Math.max(-5, Math.min(5, pct));
 
-  // Finviz-style palette: dark blue-gray base with rich (not neon) green/red
-  const bR = 50, bG = 54, bB = 68;
+  // Finviz-style palette: lifted blue-gray base with rich (not neon) green/red
+  const bR = 62, bG = 66, bB = 78;
 
   if (c > 0) {
     const t = Math.min(c / 3, 1);
@@ -215,10 +229,10 @@ interface SectorRect {
 
 const GAP_DESKTOP = 1.5;
 const GAP_MOBILE = 0.75;
-const SECTOR_LABEL_H = 15;
+const SECTOR_LABEL_H = 18;
 const SUB_SECTOR_LABEL_H = 12;
-const SECTOR_GAP_DESKTOP = 2;
-const SECTOR_GAP_MOBILE = 1;
+const SECTOR_GAP_DESKTOP = 3;
+const SECTOR_GAP_MOBILE = 1.5;
 
 /** Abbreviate multi-word sub-sector names to initials, e.g. "Machinery & Equipment" → "M & E" */
 function abbreviateSubSector(name: string): string {
@@ -246,11 +260,13 @@ function Treemap({
   onTickerClick,
   highlightedSector,
   stockCount,
+  isThemes,
 }: {
   sectors: HeatmapSector[];
   onTickerClick: (ticker: string) => void;
   highlightedSector?: string | null;
   stockCount?: number;
+  isThemes?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 0, height: 0 });
@@ -260,6 +276,14 @@ function Treemap({
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [tappedStock, setTappedStock] = useState<{ stock: HeatmapStock; sectorName: string } | null>(null);
   const isDark = document.documentElement.classList.contains('dark');
+
+  // Themes drilldown: click subtheme → show individual tickers
+  const [drilldownTheme, setDrilldownTheme] = useState<{ theme: string; subtheme: string } | null>(null);
+  const isThemesDefault = !!(isThemes && !drilldownTheme);
+  const isThemesDrilldown = !!(isThemes && drilldownTheme);
+
+  // Reset drilldown when switching tabs
+  useEffect(() => { setDrilldownTheme(null); }, [isThemes]);
 
   // Build sub-sector lookup for the popup
   const subSectorMap = useMemo(() => {
@@ -332,8 +356,8 @@ function Treemap({
       const sectorAreaPx = innerW * innerH;
       const showSubLabels = hasMultipleSubs && sectorAreaPx > 2000;
 
-      if (!showSubLabels) {
-        // Flat layout — all stocks directly
+      if (!showSubLabels || isThemesDefault) {
+        // Flat layout — all stocks directly (for themes: subtheme tiles, no individual stocks)
         const filteredStocks = sector.stocks.filter(s => s.marketCapB > 0);
         const stockCaps = filteredStocks.map(s => s.marketCapB);
         const dampenedStockCaps = dampenCapWithFloor(stockCaps, dampenExponent, minFloorRatio);
@@ -399,7 +423,58 @@ function Treemap({
 
       return { x: sl.x, y: sl.y, w: sl.w, h: sl.h, sector, subSectors: subRects };
     });
-  }, [sectors, dims, dampenExponent, minFloorRatio, SECTOR_GAP]);
+  }, [sectors, dims, dampenExponent, minFloorRatio, SECTOR_GAP, isThemesDefault]);
+
+  // Drilldown layout: when user clicks a subtheme, show its individual tickers
+  const drilldownRects = useMemo((): SectorRect[] | null => {
+    if (!isThemesDrilldown || dims.width === 0 || !drilldownTheme) return null;
+    const theme = sectors.find(s => s.name === drilldownTheme.theme);
+    const sub = theme?.subSectors.find(s => s.name === drilldownTheme.subtheme);
+    if (!theme || !sub) return null;
+
+    const pad = SECTOR_GAP;
+    const innerX = pad;
+    const innerY = SECTOR_LABEL_H + pad;
+    const innerW = dims.width - pad * 2;
+    const innerH = dims.height - SECTOR_LABEL_H - pad * 2;
+
+    const filteredStocks = sub.stocks.filter(s => s.marketCapB > 0);
+    const stockCaps = filteredStocks.map(s => s.marketCapB);
+    const dampenedCaps = dampenCapWithFloor(stockCaps, dampenExponent, minFloorRatio);
+    const items: LayoutItem<HeatmapStock>[] = filteredStocks
+      .map((s, i) => ({ value: dampenedCaps[i], data: s }));
+
+    const layout = squarifyLayout(items, innerX, innerY, innerW, innerH);
+
+    const singleSub: SubSectorRect = {
+      x: innerX, y: innerY, w: innerW, h: innerH,
+      subSector: sub,
+      sectorName: drilldownTheme.theme,
+      children: layout.map(r => ({
+        x: r.x, y: r.y, w: r.w, h: r.h,
+        stock: r.data,
+        sectorName: drilldownTheme.theme,
+        subSectorName: drilldownTheme.subtheme,
+      })),
+    };
+
+    return [{
+      x: 0, y: 0, w: dims.width, h: dims.height,
+      sector: {
+        name: drilldownTheme.theme,
+        stocks: sub.stocks,
+        subSectors: [sub],
+        totalMarketCapB: sub.totalMarketCapB,
+        avgChangePercent: sub.avgChangePercent,
+        gainers: sub.stocks.filter(s => s.changePercent > 0).length,
+        losers: sub.stocks.filter(s => s.changePercent < 0).length,
+      },
+      subSectors: [singleSub],
+    }];
+  }, [sectors, dims, dampenExponent, minFloorRatio, SECTOR_GAP, isThemesDrilldown, drilldownTheme]);
+
+  // Use drilldown rects when drilling into a subtheme, otherwise normal layout
+  const displayRects = drilldownRects || sectorRects;
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -423,7 +498,7 @@ function Treemap({
   }
 
   const GAP = dims.width < 640 ? GAP_MOBILE : GAP_DESKTOP;
-  const tileStroke = isDark ? '#1a1c28' : '#aaa';
+  const tileStroke = isDark ? '#2a2d3a' : '#999';
 
   // Get the sub-sector stocks for the popup
   const popupSubSector = hoveredSubSector
@@ -434,8 +509,21 @@ function Treemap({
     <div ref={containerRef} className="w-full relative" onMouseMove={handleMouseMove}
       onClick={() => { if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); } }}
     >
+      {/* Back button for themes drilldown */}
+      {isThemesDrilldown && drilldownTheme && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setDrilldownTheme(null); setHoveredStock(null); setHoveredSubSector(null); setTappedStock(null); }}
+          className="absolute top-1 left-2 z-40 flex items-center gap-1.5 px-2.5 py-1 rounded-lg
+            bg-black/60 dark:bg-black/70 backdrop-blur-sm
+            text-white/90 text-[10px] font-semibold uppercase tracking-wide
+            hover:bg-black/80 transition-colors cursor-pointer"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          {drilldownTheme.theme}
+        </button>
+      )}
       <div className="rounded-2xl overflow-hidden border border-gray-200/60 dark:border-white/[0.08] shadow-2xl shadow-black/40"
-        style={{ background: isDark ? (dims.width < 640 ? '#0f0f12' : 'rgba(15,15,18,0.85)') : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.9)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
+        style={{ background: isDark ? '#0f0f12' : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.95)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
       >
       <svg
         width={dims.width}
@@ -443,7 +531,7 @@ function Treemap({
         className="block"
         style={{ background: 'transparent' }}
       >
-        {sectorRects.map((sr) => (
+        {displayRects.map((sr) => (
           <g key={sr.sector.name}>
             {/* Sector background */}
             <rect
@@ -451,7 +539,7 @@ function Treemap({
               y={sr.y + 1}
               width={Math.max(0, sr.w - 2)}
               height={Math.max(0, sr.h - 2)}
-              fill={isDark ? '#1a1c28' : '#c8c8c8'}
+              fill={isDark ? '#1e2030' : '#c8c8c8'}
               rx={1}
             />
             {/* Sector label bar — clicks through to sector ETF */}
@@ -482,11 +570,11 @@ function Treemap({
                   <text
                     x={sr.x + SECTOR_GAP + 7}
                     y={sr.y + SECTOR_LABEL_H - 4}
-                    fontSize={sr.w > 200 ? 9.5 : sr.w > 100 ? 8 : sr.w > 60 ? 6.5 : sr.w > 30 ? 5 : 4}
-                    fontWeight={700}
+                    fontSize={sr.w > 200 ? 10.5 : sr.w > 100 ? 9 : sr.w > 60 ? 7 : sr.w > 30 ? 5.5 : 4}
+                    fontWeight={800}
                     fill={isLabelHovered
-                      ? (isDark ? '#fff' : 'rgba(0,0,0,0.9)')
-                      : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.75)')}
+                      ? (isDark ? '#fff' : 'rgba(0,0,0,0.95)')
+                      : (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)')}
                     clipPath={`url(#slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')})`}
                     style={{
                       pointerEvents: 'none',
@@ -496,7 +584,9 @@ function Treemap({
                       transition: 'fill 0.15s',
                     }}
                   >
-                    {sr.w < 30 ? sr.sector.name.slice(0, 3) : sr.w < 60 ? sr.sector.name.slice(0, 7) : sr.sector.name}
+                    {isThemesDrilldown && drilldownTheme
+                      ? `${drilldownTheme.subtheme}`
+                      : sr.w < 30 ? sr.sector.name.slice(0, 3) : sr.w < 60 ? sr.sector.name.slice(0, 7) : sr.sector.name}
                   </text>
                 </g>
               );
@@ -554,8 +644,8 @@ function Treemap({
                           fontSize={subFontSize}
                           fontWeight={600}
                           fill={isSubHovered
-                            ? (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)')
-                            : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)')}
+                            ? (isDark ? 'rgba(255,255,255,0.90)' : 'rgba(0,0,0,0.85)')
+                            : (isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)')}
                           clipPath={`url(#${clipId})`}
                           style={{
                             pointerEvents: 'none',
@@ -570,33 +660,15 @@ function Treemap({
                       </>
                     );
                   })()}
-                  {/* Stock tiles */}
+                  {/* Stock / subtheme tiles */}
                   {subR.children.map((r) => {
                     const isHovered = hoveredStock?.ticker === r.stock.ticker;
-                    // Dim stocks NOT in the hovered sub-sector
                     const isInHoveredSub = hoveredSubSector
                       ? r.sectorName === hoveredSubSector.sector && r.subSectorName === hoveredSubSector.subSector
                       : false;
                     const tileW = Math.max(0, r.w - GAP);
                     const tileH = Math.max(0, r.h - GAP);
                     const halfGap = GAP / 2;
-
-                    const showTicker = tileW > 6 && tileH > 5;
-                    const showPct = isMobile ? (tileW > 34 && tileH > 22) : (tileW > 24 && tileH > 20);
-                    const fontSize = tileW > 110 && tileH > 65 ? 15
-                      : tileW > 80 && tileH > 50 ? 13
-                      : tileW > 55 && tileH > 35 ? 11
-                      : tileW > 35 && tileH > 22 ? 9
-                      : tileW > 20 && tileH > 14 ? 7.5
-                      : tileW > 14 && tileH > 9 ? 5.5
-                      : tileW > 9 && tileH > 6 ? 4.5
-                      : 3.5;
-                    const pctFontSize = Math.max(fontSize - 1.5, 6);
-                    // Abbreviate ticker for tiny tiles
-                    const tickerText = tileW > 26 && tileH > 14 ? r.stock.ticker
-                      : tileW > 18 && tileH > 10 ? r.stock.ticker.slice(0, 3)
-                      : tileW > 10 && tileH > 7 ? r.stock.ticker.slice(0, 2)
-                      : r.stock.ticker.slice(0, 1);
 
                     let opacity = 1;
                     if (hoveredStock) {
@@ -607,21 +679,100 @@ function Treemap({
                       opacity = r.sectorName === highlightedSector ? 1 : 0.25;
                     }
 
-                    const tileClipId = `tc-${r.stock.ticker}`;
+                    const tileClipId = `tc-${r.sectorName}-${r.stock.ticker}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                    // --- Themes mode: area-based left-aligned text for long subtheme names ---
+                    if (isThemesDefault) {
+                      const area = tileW * tileH;
+                      const showLabel = area >= 900;
+                      const showPct = area >= 2400;
+                      const fontSize = area >= 4200 ? 11 : area >= 1800 ? 10 : 9;
+                      const pctFontSize = Math.max(fontSize - 1, 7);
+                      const pad = area >= 4200 ? 6 : area >= 1800 ? 4 : 3;
+                      const charW = fontSize * 0.58;
+                      const maxChars = Math.max(1, Math.floor((tileW - pad * 2) / charW));
+                      const fullLabel = r.stock.ticker;
+                      const labelText = fullLabel.length > maxChars
+                        ? fullLabel.slice(0, Math.max(1, maxChars - 1)) + '\u2026'
+                        : fullLabel;
+                      const labelY = r.y + halfGap + pad + fontSize;
+                      const pctY = showPct ? labelY + fontSize + 1 : 0;
+
+                      return (
+                        <g
+                          key={`${r.sectorName}::${r.stock.ticker}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDrilldownTheme({ theme: r.sectorName, subtheme: r.stock.ticker });
+                            setHoveredStock(null);
+                            setHoveredSubSector(null);
+                            setTappedStock(null);
+                          }}
+                          onMouseEnter={() => { if (!tappedStock) handleStockHover(r.stock, r.sectorName); }}
+                          onMouseLeave={() => { if (!tappedStock) handleStockLeave(); }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <rect
+                            x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
+                            fill={isDark ? getHeatColor(r.stock.changePercent) : getHeatColorLight(r.stock.changePercent)}
+                            stroke={isHovered ? '#fff' : tileStroke}
+                            strokeWidth={isHovered ? 1.5 : 0.5}
+                            opacity={opacity}
+                            style={{ transition: 'opacity 0.15s' }}
+                          />
+                          {showLabel && (
+                            <>
+                              <clipPath id={tileClipId}>
+                                <rect x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH} />
+                              </clipPath>
+                              <g clipPath={`url(#${tileClipId})`} opacity={opacity}>
+                                <text
+                                  x={r.x + halfGap + pad} y={labelY}
+                                  textAnchor="start" fontSize={fontSize} fontWeight={700} fill="#fff"
+                                  style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)' }}
+                                >
+                                  {labelText}
+                                </text>
+                                {showPct && (
+                                  <text
+                                    x={r.x + halfGap + pad} y={pctY}
+                                    textAnchor="start" fontSize={pctFontSize} fontWeight={600} fill="rgba(255,255,255,0.92)"
+                                    style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)' }}
+                                  >
+                                    {r.stock.changePercent >= 0 ? '+' : ''}{r.stock.changePercent.toFixed(2)}%
+                                  </text>
+                                )}
+                              </g>
+                            </>
+                          )}
+                        </g>
+                      );
+                    }
+
+                    // --- Stock heatmap mode (S&P 500, DOW, NASDAQ): centered text, dimension-scaled fonts ---
+                    const showTicker = tileW > 6 && tileH > 5;
+                    const showPct = isMobile ? (tileW > 38 && tileH > 24) : (tileW > 28 && tileH > 22);
+                    const fontSize = tileW > 110 && tileH > 65 ? 15
+                      : tileW > 80 && tileH > 50 ? 13
+                      : tileW > 55 && tileH > 35 ? 11
+                      : tileW > 35 && tileH > 22 ? 9
+                      : tileW > 20 && tileH > 14 ? 7.5
+                      : tileW > 14 && tileH > 9 ? 5.5
+                      : tileW > 9 && tileH > 6 ? 4.5
+                      : 3.5;
+                    const pctFontSize = fontSize > 10 ? fontSize - 2 : fontSize * 0.8;
 
                     return (
                       <g
-                        key={r.stock.ticker}
+                        key={`${r.sectorName}::${r.stock.ticker}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (tappedStock?.stock.ticker === r.stock.ticker) {
-                            // Second tap — navigate
                             onTickerClick(r.stock.ticker);
                             setTappedStock(null);
                             setHoveredStock(null);
                             setHoveredSubSector(null);
                           } else {
-                            // First tap — show tooltip
                             setTappedStock({ stock: r.stock, sectorName: r.sectorName });
                             setHoveredStock(r.stock);
                             setHoveredSubSector({ sector: r.sectorName, subSector: r.stock.subSector });
@@ -634,10 +785,7 @@ function Treemap({
                         style={{ cursor: 'pointer' }}
                       >
                         <rect
-                          x={r.x + halfGap}
-                          y={r.y + halfGap}
-                          width={tileW}
-                          height={tileH}
+                          x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
                           fill={isDark ? getHeatColor(r.stock.changePercent) : getHeatColorLight(r.stock.changePercent)}
                           stroke={isHovered ? '#fff' : tileStroke}
                           strokeWidth={isHovered ? 1.5 : 0.5}
@@ -653,23 +801,17 @@ function Treemap({
                               <text
                                 x={r.x + halfGap + tileW / 2}
                                 y={r.y + halfGap + tileH / 2 + (showPct ? -pctFontSize * 0.35 : fontSize * 0.35)}
-                                textAnchor="middle"
-                                fontSize={fontSize}
-                                fontWeight={700}
-                                fill="#fff"
-                                style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
+                                textAnchor="middle" fontSize={fontSize} fontWeight={700} fill="#fff"
+                                style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)' }}
                               >
-                                {tickerText}
+                                {r.stock.ticker}
                               </text>
                               {showPct && (
                                 <text
                                   x={r.x + halfGap + tileW / 2}
-                                  y={r.y + halfGap + tileH / 2 + pctFontSize * 1.1}
-                                  textAnchor="middle"
-                                  fontSize={pctFontSize}
-                                  fontWeight={500}
-                                  fill="rgba(255,255,255,0.9)"
-                                  style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)', transition: 'opacity 0.15s' }}
+                                  y={r.y + halfGap + tileH / 2 + pctFontSize * 0.9}
+                                  textAnchor="middle" fontSize={pctFontSize} fontWeight={600} fill="rgba(255,255,255,0.92)"
+                                  style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)' }}
                                 >
                                   {r.stock.changePercent >= 0 ? '+' : ''}{r.stock.changePercent.toFixed(2)}%
                                 </text>
@@ -707,23 +849,42 @@ function Treemap({
           {/* Header: SECTOR - SUBSECTOR */}
           <div className="px-3 py-2 border-b border-white/10 dark:border-white/5">
             <div className="font-bold text-[10px] tracking-wide uppercase text-rh-light-muted dark:text-rh-muted">
-              {popupSubSector.sector.name} — {popupSubSector.subSector.name}
+              {popupSubSector.sector.name === popupSubSector.subSector.name
+                ? popupSubSector.sector.name
+                : `${popupSubSector.sector.name} — ${popupSubSector.subSector.name}`}
             </div>
           </div>
 
-          {/* Hovered stock highlight */}
-          <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{hoveredStock.ticker}</span>
-              <span className={`text-sm font-bold ${hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                {hoveredStock.changePercent >= 0 ? '+' : ''}{hoveredStock.changePercent.toFixed(2)}%
-              </span>
+          {/* Hovered stock highlight — shown for normal stocks and drilldown tickers */}
+          {!isThemesDefault && (
+            <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{hoveredStock.ticker}</span>
+                <span className={`text-sm font-bold ${hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {hoveredStock.changePercent >= 0 ? '+' : ''}{hoveredStock.changePercent.toFixed(2)}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className="text-rh-light-muted dark:text-rh-muted truncate mr-2">{hoveredStock.name}</span>
+                <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency(hoveredStock.price)}</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between mt-0.5">
-              <span className="text-rh-light-muted dark:text-rh-muted truncate mr-2">{hoveredStock.name}</span>
-              <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency(hoveredStock.price)}</span>
+          )}
+
+          {/* Themes default: show avg change for subtheme */}
+          {isThemesDefault && (
+            <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-rh-light-muted dark:text-rh-muted">Avg change</span>
+                <span className={`text-sm font-bold ${hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {hoveredStock.changePercent >= 0 ? '+' : ''}{hoveredStock.changePercent.toFixed(2)}%
+                </span>
+              </div>
+              <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
+                {popupSubSector.subSector.stocks.length} stocks in this subtheme
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Top stocks in this sub-sector (no scroll) */}
           <div>
@@ -731,11 +892,13 @@ function Treemap({
               .sort((a, b) => b.marketCapB - a.marketCapB)
               .slice(0, 6)
               .map((s) => {
-                const isActive = s.ticker === hoveredStock.ticker;
+                const isActive = !isThemesDefault && s.ticker === hoveredStock.ticker;
                 return (
                   <div
                     key={s.ticker}
                     className={`flex items-center justify-between px-3 py-1 ${isActive ? 'bg-white/40 dark:bg-white/10' : ''}`}
+                    onClick={isThemesDefault ? (e) => { e.stopPropagation(); onTickerClick(s.ticker); setTappedStock(null); setHoveredStock(null); } : undefined}
+                    style={isThemesDefault ? { cursor: 'pointer' } : undefined}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`font-semibold text-[11px] w-[42px] shrink-0 ${isActive ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>
@@ -758,7 +921,7 @@ function Treemap({
             )}
           </div>
           {/* Tap-again hint for mobile */}
-          {tappedStock && (
+          {tappedStock && !isThemesDefault && (
             <button
               className="w-full px-3 py-2 border-t border-white/10 dark:border-white/5 text-center text-[10px] font-medium text-rh-green hover:bg-rh-green/10 transition-colors rounded-b-xl"
               onClick={(e) => { e.stopPropagation(); onTickerClick(tappedStock.stock.ticker); setTappedStock(null); setHoveredStock(null); }}
@@ -806,13 +969,22 @@ function TopMovers({
   stocks: HeatmapStock[];
   onTickerClick: (ticker: string) => void;
 }) {
+  // Deduplicate stocks by ticker (a stock can appear in multiple themes/sectors)
+  const uniqueStocks = useMemo(() => {
+    const seen = new Map<string, HeatmapStock>();
+    for (const s of stocks) {
+      if (!seen.has(s.ticker)) seen.set(s.ticker, s);
+    }
+    return [...seen.values()];
+  }, [stocks]);
+
   const gainers = useMemo(() =>
-    [...stocks].sort((a, b) => b.changePercent - a.changePercent).slice(0, 8),
-    [stocks],
+    [...uniqueStocks].sort((a, b) => b.changePercent - a.changePercent).slice(0, 8),
+    [uniqueStocks],
   );
   const losers = useMemo(() =>
-    [...stocks].sort((a, b) => a.changePercent - b.changePercent).slice(0, 8),
-    [stocks],
+    [...uniqueStocks].sort((a, b) => a.changePercent - b.changePercent).slice(0, 8),
+    [uniqueStocks],
   );
 
   return (
@@ -872,7 +1044,7 @@ function TopMovers({
 
 // --- Sector performance bars ---
 
-function SectorBars({ sectors, highlightedSector, onSectorClick }: { sectors: HeatmapSector[]; highlightedSector?: string | null; onSectorClick?: (name: string) => void }) {
+function SectorBars({ sectors, highlightedSector, onSectorClick, isThemes }: { sectors: HeatmapSector[]; highlightedSector?: string | null; onSectorClick?: (name: string) => void; isThemes?: boolean }) {
   const sorted = useMemo(() =>
     [...sectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent),
     [sectors],
@@ -881,7 +1053,7 @@ function SectorBars({ sectors, highlightedSector, onSectorClick }: { sectors: He
 
   return (
     <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4 mt-4">
-      <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">Sector Performance</h3>
+      <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">{isThemes ? 'Theme Performance' : 'Sector Performance'}</h3>
       <div className="space-y-2">
         {sorted.map((s) => {
           const pct = s.avgChangePercent;
@@ -943,6 +1115,7 @@ const INDEXES: { id: MarketIndex; label: string; fullName: string }[] = [
   { id: 'SP500', label: 'S&P 500', fullName: 'S&P 500' },
   { id: 'DOW30', label: 'DOW', fullName: 'Dow Jones Industrial Average' },
   { id: 'NASDAQ100', label: 'NASDAQ', fullName: 'NASDAQ-100' },
+  { id: 'THEMES', label: 'Themes', fullName: 'Market Themes' },
 ];
 
 // In-memory cache keyed by "period-index" so switching is instant
@@ -1425,13 +1598,21 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
 
 /* ─── Heatmap View (original DiscoverPage content) ─── */
 
-function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => void }) {
+function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
+  onTickerClick: (ticker: string) => void;
+  initialIndex?: MarketIndex;
+  onIndexChange?: (index: MarketIndex) => void;
+}) {
   const [period, setPeriod] = useState<HeatmapPeriod>('1D');
-  const [index, setIndex] = useState<MarketIndex>('SP500');
+  const [index, setIndexInternal] = useState<MarketIndex>(initialIndex ?? 'SP500');
+  const setIndex = (idx: MarketIndex) => {
+    setIndexInternal(idx);
+    onIndexChange?.(idx);
+  };
   const [highlightedSector, setHighlightedSector] = useState<string | null>(null);
   const treemapRef = useRef<HTMLDivElement>(null);
   // Initialize from cache so first render is instant on re-mount
-  const initialKey = cacheKey('1D', 'SP500');
+  const initialKey = cacheKey('1D', index);
   const initialCache = heatmapCache.get(initialKey);
   const [data, setData] = useState<HeatmapResponse | null>(initialCache?.data ?? null);
   const [loading, setLoading] = useState(!initialCache);
@@ -1451,7 +1632,9 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
     const load = async () => {
       try {
         if (!cached) setLoading(true);
-        const resp = await getMarketHeatmap(period, index);
+        const resp = index === 'THEMES'
+          ? await getThemesHeatmap()
+          : await getMarketHeatmap(period, index);
         if (!cancelled) {
           setData(resp);
           heatmapCache.set(key, { data: resp, ts: Date.now() });
@@ -1507,7 +1690,10 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
             {INDEXES.find(i => i.id === index)?.fullName ?? 'Market'} Heatmap
           </h2>
           <p className="text-xs text-rh-light-muted dark:text-rh-muted">
-            {allStocks.length} stocks across {data.sectors.length} sectors — sized by market cap, colored by {PERIOD_LABELS[period]}
+            {index === 'THEMES'
+              ? `${allStocks.length} subthemes across ${data.sectors.length} themes — colored by daily change`
+              : `${allStocks.length} stocks across ${data.sectors.length} sectors — sized by market cap, colored by ${PERIOD_LABELS[period]}`
+            }
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1536,28 +1722,32 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
           ))}
         </div>
 
-        <div className="hidden sm:block w-px h-5 bg-rh-light-border/30 dark:bg-rh-border/30" />
+        {index !== 'THEMES' && (
+          <>
+            <div className="hidden sm:block w-px h-5 bg-rh-light-border/30 dark:bg-rh-border/30" />
 
-        {/* Period selector */}
-        <div className="flex items-center gap-1">
-          {PERIODS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPeriod(p.id)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
-                ${period === p.id
-                  ? 'bg-rh-green text-black'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-white/5'
-                }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+            {/* Period selector */}
+            <div className="flex items-center gap-1">
+              {PERIODS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setPeriod(p.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
+                    ${period === p.id
+                      ? 'bg-rh-green text-black'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-white/5'
+                    }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div ref={treemapRef}>
-        <Treemap sectors={data.sectors} onTickerClick={onTickerClick} highlightedSector={highlightedSector} stockCount={allStocks.length} />
+        <Treemap sectors={data.sectors} onTickerClick={onTickerClick} highlightedSector={highlightedSector} stockCount={allStocks.length} isThemes={index === 'THEMES'} />
       </div>
       <ColorLegend />
       <SectorBars
@@ -1570,8 +1760,9 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
             treemapRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }}
+        isThemes={index === 'THEMES'}
       />
-      <TopMovers stocks={allStocks} onTickerClick={onTickerClick} />
+      {index !== 'THEMES' && <TopMovers stocks={allStocks} onTickerClick={onTickerClick} />}
     </div>
   );
 }
@@ -1579,12 +1770,18 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
 /* ─── Discover Page (wrapper with sub-tabs) ─── */
 
 export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTab, onSubTabChange }: DiscoverPageProps) {
-  const [subTab, setSubTabInternal] = useState<DiscoverSubTab>(
-    externalSubTab === 'top100' ? 'top100' : externalSubTab === 'creators' ? 'creators' : 'heatmap'
-  );
+  const parsed = useMemo(() => parseSubTab(externalSubTab), [externalSubTab]);
+  const [subTab, setSubTabInternal] = useState<DiscoverSubTab>(parsed.subTab);
+  const [heatmapIndex, setHeatmapIndex] = useState<MarketIndex>(parsed.heatmapIndex ?? 'SP500');
+
   const setSubTab = (tab: DiscoverSubTab) => {
     setSubTabInternal(tab);
-    onSubTabChange?.(tab);
+    onSubTabChange?.(tab === 'heatmap' ? `heatmap:${heatmapIndex}` : tab);
+  };
+
+  const handleIndexChange = (idx: MarketIndex) => {
+    setHeatmapIndex(idx);
+    onSubTabChange?.(`heatmap:${idx}`);
   };
 
   // For Top 100, we need all stocks from the heatmap — load from cache or fetch
@@ -1635,7 +1832,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       </div>
 
       {subTab === 'heatmap' ? (
-        <HeatmapView onTickerClick={onTickerClick} />
+        <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
       ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} />
       ) : (
