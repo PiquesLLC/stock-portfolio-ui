@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState } from '../api';
 
 export type PlanTier = 'free' | 'pro' | 'premium';
 
@@ -152,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     // No MFA — login sets httpOnly cookie automatically
+    resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
   }, []);
@@ -160,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!mfaChallenge) throw new Error('No MFA challenge active');
     const response = await apiVerifyMfa(mfaChallenge.challengeToken, code, method);
     setMfaChallenge(null);
+    resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
   }, [mfaChallenge]);
@@ -172,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Signup sets httpOnly cookie automatically (auto-login)
     const response = await apiSignup(username, displayName, password, email, consent, referralCode);
     // Always set user — App.tsx hard gate checks emailVerified === false
+    resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
     if (response.emailVerificationRequired) {
@@ -203,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { isNewUser: false };
     }
+    resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
     return { isNewUser: response.isNewUser };
@@ -222,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { isNewUser: false };
     }
+    resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
     return { isNewUser: response.isNewUser };

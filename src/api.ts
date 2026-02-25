@@ -82,6 +82,8 @@ export function isSameOriginApi(): boolean {
 
 // Refresh token mutex: only one refresh at a time, others wait
 let refreshPromise: Promise<boolean> | null = null;
+// Once refresh fails, stop retrying until next successful login
+let authDead = false;
 
 async function tryRefreshToken(): Promise<boolean> {
   try {
@@ -90,16 +92,28 @@ async function tryRefreshToken(): Promise<boolean> {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
     });
-    return res.ok;
+    if (res.ok) {
+      authDead = false;
+      return true;
+    }
+    authDead = true;
+    return false;
   } catch {
+    authDead = true;
     return false;
   }
 }
 
 async function refreshOnce(): Promise<boolean> {
+  if (authDead) return false;
   if (refreshPromise) return refreshPromise;
   refreshPromise = tryRefreshToken().finally(() => { refreshPromise = null; });
   return refreshPromise;
+}
+
+/** Reset auth-dead flag after successful login */
+export function resetAuthState(): void {
+  authDead = false;
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -118,6 +132,10 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 
   // On 401, try refreshing tokens once then retry the original request
   if (response.status === 401 && !url.includes('/auth/refresh') && !url.includes('/auth/login')) {
+    if (authDead) {
+      // Session already known dead — don't retry, just throw
+      throw new Error('Session expired');
+    }
     const refreshed = await refreshOnce();
     if (refreshed) {
       response = await doFetch();
@@ -128,6 +146,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       } else {
         console.warn('[Auth] 401 with cross-origin API base — cookies likely blocked. Skipping auto-logout.');
       }
+      throw new Error('Session expired');
     }
   }
 
