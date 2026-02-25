@@ -65,6 +65,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
   const [showWatchlists, setShowWatchlists] = useState(false);
   const [tradeDelayHours, setTradeDelayHours] = useState<0 | 24 | 48 | 72>(0);
   const [hideShareCount, setHideShareCount] = useState(false);
+  const [discoverable, setDiscoverable] = useState(true);
 
   const loadCreator = useCallback(async () => {
     try {
@@ -81,6 +82,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       setShowWatchlists(profile.visibility.showWatchlists);
       setTradeDelayHours(profile.visibility.tradeDelayHours as 0 | 24 | 48 | 72);
       setHideShareCount(profile.visibility.hideShareCount);
+      setDiscoverable(profile.visibility.discoverable ?? true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load creator settings');
     } finally {
@@ -106,6 +108,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
         showWatchlists,
         tradeDelayHours,
         hideShareCount,
+        discoverable,
       };
       const updated = await updateCreatorSettings(settings);
       setCreator(updated);
@@ -304,6 +307,12 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
           </div>
         </div>
         <Toggle label="Hide exact share counts" enabled={hideShareCount} onChange={setHideShareCount} />
+        <div className="border-t border-gray-200/40 dark:border-white/[0.06] mt-2 pt-2">
+          <Toggle label="Show profile in Discover" enabled={discoverable} onChange={setDiscoverable} />
+          <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 ml-0.5">
+            When off, your profile won't appear in search results or the creator directory.
+          </p>
+        </div>
       </section>
 
       {/* Pitch */}

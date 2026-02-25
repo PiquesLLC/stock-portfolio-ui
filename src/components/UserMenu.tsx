@@ -54,16 +54,16 @@ export function UserMenu({
           {initial}
         </div>
 
-        {/* Username - hidden on mobile */}
-        <span className="hidden sm:inline text-sm font-semibold text-rh-light-text/90 dark:text-rh-text/90
+        {/* Username - hidden on mobile + landscape phones */}
+        <span className="hidden lg:inline text-sm font-semibold text-rh-light-text/90 dark:text-rh-text/90
           group-hover:text-rh-light-text dark:group-hover:text-rh-text
           transition-colors">
           {userName}
         </span>
 
-        {/* Chevron - hidden on mobile */}
+        {/* Chevron - hidden on mobile + landscape phones */}
         <svg
-          className={`hidden sm:block w-3 h-3 text-rh-light-muted dark:text-rh-muted transition-transform duration-150
+          className={`hidden lg:block w-3 h-3 text-rh-light-muted dark:text-rh-muted transition-transform duration-150
             ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"

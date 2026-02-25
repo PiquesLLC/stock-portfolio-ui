@@ -88,7 +88,9 @@ const GROUP_ORDER: Record<string, number> = {
 };
 
 function formatDate(dateStr: string): string {
+  if (!dateStr || dateStr === 'None') return 'Date unavailable';
   const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return 'Date unavailable';
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
@@ -140,6 +142,7 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
           // Process quarterly earnings
           for (const q of earningsData.quarterly) {
             const reportDate = new Date(q.reportedDate + 'T00:00:00');
+            if (isNaN(reportDate.getTime())) continue;
             const isUpcoming = q.reportedEPS === null || reportDate > now;
             const isRecent = !isUpcoming && reportDate >= thirtyDaysAgo;
 
@@ -181,6 +184,7 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
           for (const d of dividendData) {
             if (!heldTickers.has(d.ticker.toUpperCase())) continue;
             const exDateMs = new Date(d.exDate + 'T00:00:00').getTime();
+            if (isNaN(exDateMs)) continue;
             allEvents.push({
               type: 'dividend',
               ticker: d.ticker,
@@ -366,7 +370,7 @@ function DayGroupCard({ date, events, onTickerClick }: { date: string; events: C
         <div className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">
-              {events.length} events
+              {expanded ? 'Collapse' : 'Expand'} {events.length} events
             </span>
             {earningsCount > 0 && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/15 text-amber-500 dark:text-amber-400 border border-amber-400/20">
@@ -386,10 +390,10 @@ function DayGroupCard({ date, events, onTickerClick }: { date: string; events: C
 
         {/* Chevron */}
         <svg
-          className={`w-4 h-4 text-rh-light-muted dark:text-rh-muted transition-transform duration-200 shrink-0 ${expanded ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-rh-light-text/50 dark:text-white/40 transition-transform duration-200 shrink-0 ${expanded ? 'rotate-180' : ''}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
@@ -432,13 +436,13 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
       : 'bg-gray-100/60 dark:bg-white/[0.02] border-gray-200/40 dark:border-white/[0.06]';
 
   return (
-    <div className={noBorder ? 'py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4'}>
+    <div className={noBorder ? 'py-3 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4'}>
       {/* Top row: date + ticker + badges + EPS */}
-      <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+      <div className="flex items-center gap-2.5 sm:gap-4 w-full sm:w-auto">
         {/* Date column — hidden when nested */}
         {!noBorder && (
           <>
-            <div className="text-center min-w-[48px] sm:min-w-[52px] shrink-0">
+            <div className="text-center min-w-[44px] sm:min-w-[52px] shrink-0">
               <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.date)}</p>
             </div>
             <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06] shrink-0" />
@@ -447,7 +451,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
 
         {/* Main content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-0.5 sm:mb-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
             <button onClick={() => onTickerClick?.(event.ticker)} className="font-semibold text-sm text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{event.ticker}</button>
             <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-amber-400/15 text-amber-500 dark:text-amber-400 border border-amber-400/20">
               Earnings
@@ -495,11 +499,11 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
 
 function DividendCard({ event, onTickerClick, noBorder }: { event: DividendCalendarEvent; onTickerClick?: (ticker: string) => void; noBorder?: boolean }) {
   return (
-    <div className={noBorder ? 'py-3 flex items-center gap-3 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4'}>
+    <div className={noBorder ? 'py-3 flex items-center gap-2.5 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3.5 sm:p-4 flex items-center gap-2.5 sm:gap-4'}>
       {/* Date column — hidden when nested */}
       {!noBorder && (
         <>
-          <div className="text-center min-w-[48px] sm:min-w-[52px] shrink-0">
+          <div className="text-center min-w-[44px] sm:min-w-[52px] shrink-0">
             <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.exDate)}</p>
           </div>
           <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06] shrink-0" />

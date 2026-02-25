@@ -239,7 +239,7 @@ function BreakdownRow({
 
   const content = (
     <>
-      <span className="text-sm text-rh-light-muted dark:text-rh-muted w-28">{label}</span>
+      <span className="text-sm text-rh-light-text/70 dark:text-white/50 w-28">{label}</span>
       <div className="flex-1 h-2 bg-rh-light-border dark:bg-rh-border rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
@@ -297,7 +297,7 @@ export function HealthScore({ data }: HealthScoreProps) {
 
   return (
     <>
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
+      <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none border border-gray-200/20 dark:border-white/[0.04]">
         {/* Compact header: score circle + label + title on one row */}
         <div className="flex items-center gap-4 mb-4">
           <div className="relative w-16 h-16 shrink-0">
@@ -339,7 +339,7 @@ export function HealthScore({ data }: HealthScoreProps) {
               aria-label={`Margin Penalty: -${breakdown.margin} points — click for details`}
               disabled={!hasDetails}
             >
-              <span className="text-sm text-rh-light-muted dark:text-rh-muted w-28">Margin Penalty</span>
+              <span className="text-sm text-rh-light-text/70 dark:text-white/50 w-28">Margin Penalty</span>
               <span className="text-sm text-rh-red">-{breakdown.margin} points</span>
               {hasDetails && (
                 <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +353,7 @@ export function HealthScore({ data }: HealthScoreProps) {
         {/* Reasons — show top 2, expandable */}
         {reasons.length > 0 && (
           <div className="mb-4">
-            <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">Key Drivers</h4>
+            <h4 className="text-xs font-medium uppercase tracking-wider text-blue-500/60 dark:text-blue-400/60 mb-2">Key Drivers</h4>
             <ul className="space-y-1">
               {visibleReasons.map((reason, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-rh-light-muted dark:text-rh-muted">

@@ -1721,6 +1721,39 @@ export async function markAllAnomaliesRead(): Promise<void> {
   await fetchJson(`${API_BASE_URL}/insights/anomalies/mark-all-read`, { method: 'POST' });
 }
 
+// ── Account History ──────────────────────────────────────────────
+
+export interface AccountHistoryEntry {
+  id: string;
+  source: 'activity' | 'trade' | 'ledger';
+  category: 'trade' | 'cash' | 'adjustment';
+  type: string;
+  ticker: string | null;
+  shares: number | null;
+  price: number | null;
+  amount: number | null;
+  date: string;
+  description: string;
+  sourceBroker: string | null;
+}
+
+export async function getAccountHistory(params?: {
+  limit?: number;
+  cursor?: string;
+  category?: string;
+  ticker?: string;
+}): Promise<{ entries: AccountHistoryEntry[]; nextCursor: string | null }> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.cursor) qs.set('cursor', params.cursor);
+  if (params?.category) qs.set('category', params.category);
+  if (params?.ticker) qs.set('ticker', params.ticker);
+  const query = qs.toString();
+  return fetchJson<{ entries: AccountHistoryEntry[]; nextCursor: string | null }>(
+    `${API_BASE_URL}/portfolio/account-history${query ? '?' + query : ''}`
+  );
+}
+
 // ── Plaid ──────────────────────────────────────────────
 
 export interface PlaidAccount {
@@ -1831,6 +1864,47 @@ import {
   CreatorLedgerResponse,
   CreatorLedgerEntryType,
 } from './types';
+
+// Creator Discovery
+export interface DiscoverCreatorEntry {
+  userId: string;
+  username: string;
+  displayName: string;
+  pitch: string | null;
+  pricingCents: number | null;
+  subscriberCount: number;
+  returnPct: number | null;
+  isVerified: boolean;
+  isCreator: boolean;
+  sectionsUnlocked: string[];
+  createdAt: string;
+  // Streak data (optional — API may not provide yet)
+  rolling5dPct?: number | null;
+  streakDays?: number | null;
+  dataPointCount?: number;
+  lastUpdatedAt?: string | null;
+}
+
+export async function discoverCreators(params?: {
+  limit?: number;
+  cursor?: string;
+  sort?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  search?: string;
+}): Promise<{ creators: DiscoverCreatorEntry[]; nextCursor: string | null; total: number | null }> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.cursor) qs.set('cursor', params.cursor);
+  if (params?.sort) qs.set('sort', params.sort);
+  if (params?.minPrice) qs.set('minPrice', String(params.minPrice));
+  if (params?.maxPrice) qs.set('maxPrice', String(params.maxPrice));
+  if (params?.search) qs.set('search', params.search);
+  const query = qs.toString();
+  return fetchJson<{ creators: DiscoverCreatorEntry[]; nextCursor: string | null; total: number }>(
+    `${API_BASE_URL}/creator/discover${query ? '?' + query : ''}`
+  );
+}
 
 export async function applyAsCreator(pitch?: string): Promise<CreatorProfile> {
   return fetchJson<CreatorProfile>(`${API_BASE_URL}/creator/apply`, {

@@ -52,6 +52,7 @@ const CompareStocksPage = lazy(() => import('./components/CompareStocksPage').th
 const CreatorDashboardPage = lazy(() => import('./components/CreatorDashboard').then(m => ({ default: m.CreatorDashboard })));
 const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsPage').then(m => ({ default: m.CreatorSettingsPage })));
 const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m => ({ default: m.OnboardingTour })));
+const AccountHistorySection = lazy(() => import('./components/AccountHistorySection'));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -468,7 +469,10 @@ export default function App() {
     return () => { cancelled = true; };
   }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible, destroyHls, resetVideoElement]);
 
-  const handleViewProfile = (userId: string) => setViewingProfileId(userId);
+  const handleViewProfile = (userId: string) => {
+    setViewingProfileId(userId);
+    window.scrollTo(0, 0);
+  };
   const handleCompare = useCallback((userId: string, displayName: string) => {
     setComparingUser({ userId, displayName });
   }, []);
@@ -1354,6 +1358,12 @@ export default function App() {
                 <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
               )}
             </div>
+
+            {portfolio && portfolio.holdings.length > 0 && (
+              <Suspense fallback={<PageFallback />}>
+                <AccountHistorySection />
+              </Suspense>
+            )}
           </>
         )}
 
@@ -1391,10 +1401,11 @@ export default function App() {
             </div>
           )}
 
-          {!creatorView && activeTab === 'discover' && !viewingStock && (
+          {!creatorView && activeTab === 'discover' && !viewingStock && !viewingProfileId && (
             <ErrorBoundary>
               <DiscoverPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                onUserClick={handleViewProfile}
                 subTab={discoverSubTab}
                 onSubTabChange={setDiscoverSubTab}
               />

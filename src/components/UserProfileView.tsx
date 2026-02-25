@@ -831,16 +831,18 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   );
                 }}
               />
-              <button
-                onClick={() => setShowPortfolio(true)}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-white/[0.12]
-                  text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-              >
-                Portfolio
-                <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+              {!lockHoldings && (
+                <button
+                  onClick={() => setShowPortfolio(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-white/[0.12]
+                    text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+                >
+                  Portfolio
+                  <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={() => toggleMute(userId, profile.displayName)}
                 title={isMuted(userId) ? 'Unmute activity' : 'Mute activity'}

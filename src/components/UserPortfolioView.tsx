@@ -58,6 +58,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding } | null>(null);
   const [chartRefreshCount, setChartRefreshCount] = useState(0);
+  const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
   const lastValidPortfolio = useRef<Portfolio | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -231,11 +232,11 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       {/* User header */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
         <h1 className="text-lg sm:text-xl font-bold text-rh-light-text dark:text-rh-text">{displayName}</h1>
-        {returnPct !== null && (
+        {(chartReturnPct ?? returnPct) !== null && (
           <span className={`px-2 py-0.5 text-xs sm:text-sm font-medium rounded ${
-            returnPct >= 0 ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'
+            (chartReturnPct ?? returnPct ?? 0) >= 0 ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'
           }`}>
-            {formatPercent(returnPct)} ({window})
+            {formatPercent(chartReturnPct ?? returnPct ?? 0)} ({window})
           </span>
         )}
         {trackingStartAt && (
@@ -302,6 +303,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
             dayChangePercent={portfolio.dayChangePercent}
             refreshTrigger={chartRefreshCount}
             fetchFn={(period) => getUserChart(userId, period)}
+            onReturnChange={setChartReturnPct}
           />
 
           {/* Summary cards */}

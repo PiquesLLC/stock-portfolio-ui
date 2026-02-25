@@ -1444,6 +1444,7 @@ export interface CreatorVisibility {
   showWatchlists: boolean;
   tradeDelayHours: number;
   hideShareCount: boolean;
+  discoverable: boolean;
 }
 
 export interface CreatorProfile {
@@ -1536,6 +1537,7 @@ export interface CreatorSettingsUpdate {
   showWatchlists?: boolean;
   tradeDelayHours?: 0 | 24 | 48 | 72;
   hideShareCount?: boolean;
+  discoverable?: boolean;
 }
 
 export type AnomalyType = 'volume_spike' | 'price_spike' | 'drawdown' | 'sector_divergence' | 'concentration' | 'dividend_change';

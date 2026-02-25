@@ -1,12 +1,15 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 import { getMarketStatus } from '../utils/portfolio-chart';
 import { StockLogo } from './StockLogo';
 
+const CreatorDiscoverSection = lazy(() => import('./CreatorDiscoverSection').then(m => ({ default: m.CreatorDiscoverSection })));
+
 interface DiscoverPageProps {
   onTickerClick: (ticker: string) => void;
+  onUserClick?: (userId: string) => void;
   subTab?: string | null;
   onSubTabChange?: (subtab: string) => void;
 }
@@ -957,7 +960,7 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'heatmap' | 'top100';
+type DiscoverSubTab = 'heatmap' | 'top100' | 'creators';
 
 /* ─── Top 100 by Volume ─── */
 
@@ -1575,9 +1578,9 @@ function HeatmapView({ onTickerClick }: { onTickerClick: (ticker: string) => voi
 
 /* ─── Discover Page (wrapper with sub-tabs) ─── */
 
-export function DiscoverPage({ onTickerClick, subTab: externalSubTab, onSubTabChange }: DiscoverPageProps) {
+export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTab, onSubTabChange }: DiscoverPageProps) {
   const [subTab, setSubTabInternal] = useState<DiscoverSubTab>(
-    (externalSubTab === 'top100' ? 'top100' : 'heatmap')
+    externalSubTab === 'top100' ? 'top100' : externalSubTab === 'creators' ? 'creators' : 'heatmap'
   );
   const setSubTab = (tab: DiscoverSubTab) => {
     setSubTabInternal(tab);
@@ -1626,12 +1629,19 @@ export function DiscoverPage({ onTickerClick, subTab: externalSubTab, onSubTabCh
         <button onClick={() => setSubTab('top100')} className={tabClass(subTab === 'top100')}>
           Top 100
         </button>
+        <button onClick={() => setSubTab('creators')} className={tabClass(subTab === 'creators')}>
+          Creators
+        </button>
       </div>
 
       {subTab === 'heatmap' ? (
         <HeatmapView onTickerClick={onTickerClick} />
-      ) : (
+      ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} />
+      ) : (
+        <Suspense fallback={<div className="flex items-center justify-center py-20"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
+          <CreatorDiscoverSection onUserClick={onUserClick} />
+        </Suspense>
       )}
     </div>
   );

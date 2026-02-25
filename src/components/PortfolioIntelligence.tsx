@@ -61,9 +61,9 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
   return (
     <div>
       <div className="mb-3">
-        <div className="flex items-center justify-between text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">
-          <span><span className="text-rh-green/70">{formatCurrency(totalGains)}</span></span>
-          <span><span className="text-rh-red/70">{formatCurrency(-totalLosses)}</span></span>
+        <div className="flex items-center justify-between text-[9px] text-rh-light-muted/80 dark:text-rh-muted/80 mb-1">
+          <span><span className="text-rh-green/80">{formatCurrency(totalGains)}</span></span>
+          <span><span className="text-rh-red/80">{formatCurrency(-totalLosses)}</span></span>
         </div>
         <div className="h-2 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.04]">
           <div className="h-full bg-rh-green/60 rounded-l-full transition-all duration-500" style={{ width: `${gainsWidth}%` }} />
@@ -71,32 +71,32 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
         </div>
       </div>
 
-      <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-white/40 mb-3">
+      <h4 className="text-xs font-medium uppercase tracking-wider text-blue-500/70 dark:text-blue-400/70 mb-3 border-l-2 border-blue-500/40 pl-3">
         Portfolio Pulse
       </h4>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Win Rate</div>
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1" title="Percentage of holdings that moved up">Win Rate</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
             {totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0}%
           </div>
-          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">{winCount} up / {lossCount} down</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/90 dark:text-white/50 mt-0.5">{winCount} up / {lossCount} down</div>
         </div>
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">Biggest Mover</div>
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1" title="The holding with the largest dollar impact on your portfolio">Biggest Mover</div>
           <button className={`text-base sm:text-lg font-bold hover:opacity-80 transition-opacity ${biggestMover.contributionDollar >= 0 ? 'text-rh-green' : 'text-rh-red'}`}
             onClick={() => onTickerClick?.(biggestMover.ticker)}>
             {biggestMover.ticker}
           </button>
-          <div className={`text-[9px] sm:text-[10px] mt-0.5 tabular-nums ${biggestMover.contributionDollar >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+          <div className={`text-[9px] sm:text-[10px] mt-0.5 tabular-nums ${biggestMover.contributionDollar >= 0 ? 'text-rh-green/80' : 'text-rh-red/80'}`}>
             {formatCurrency(biggestMover.contributionDollar)}
           </div>
         </div>
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3 min-w-0">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1 truncate">Top Conc.</div>
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1 truncate" title="Top Concentration — how much of total movement comes from the single biggest mover">Top Conc.</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
-          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">of movement</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/90 dark:text-white/50 mt-0.5">of movement</div>
         </div>
       </div>
 
@@ -217,19 +217,19 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
               <div>
-                <span className="text-rh-light-muted/60 dark:text-white/30">Shares</span>
+                <span className="text-rh-light-muted/70 dark:text-white/40">Shares</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">{entry.shares!.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               </div>
               <div>
-                <span className="text-rh-light-muted/60 dark:text-white/30">Price</span>
+                <span className="text-rh-light-muted/70 dark:text-white/40">Price</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentPrice!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div>
-                <span className="text-rh-light-muted/60 dark:text-white/30">Avg Cost</span>
+                <span className="text-rh-light-muted/70 dark:text-white/40">Avg Cost</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.avgCost!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div>
-                <span className="text-rh-light-muted/60 dark:text-white/30">Position</span>
+                <span className="text-rh-light-muted/70 dark:text-white/40">Position</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentValue!.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
               </div>
             </div>
@@ -291,7 +291,7 @@ function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[];
                 onClick={() => toggle(s.sector)}
                 className={`flex items-center gap-2.5 w-full rounded-lg px-3 py-2 transition-all duration-200 border-l-[3px] ${c.border} ${
                   isActive
-                    ? 'bg-gray-100/80 dark:bg-white/[0.06]'
+                    ? 'bg-gray-100/80 dark:bg-white/[0.06] pb-1'
                     : 'bg-gray-50/40 dark:bg-white/[0.02] hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
                 }`}
               >
@@ -303,18 +303,33 @@ function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[];
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {isActive && s.tickers && (
-                <div className="flex flex-wrap gap-2 mt-2.5 mb-1 ml-3">
-                  {s.tickers.map(t => (
-                    <button
-                      key={t.ticker}
-                      onClick={() => onTickerClick?.(t.ticker)}
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${c.chip} hover:border-rh-green/40 hover:bg-rh-green/[0.06] transition-all group`}
-                    >
-                      <span className={`text-xs font-bold group-hover:text-rh-green transition-colors ${c.text}`}>{t.ticker}</span>
-                      <span className="text-[11px] font-medium text-rh-light-text/70 dark:text-rh-text/70 tabular-nums">{t.valuePercent}%</span>
-                    </button>
-                  ))}
+              {s.tickers && (
+                <div
+                  className="overflow-hidden transition-all duration-150 ease-in-out"
+                  style={{
+                    maxHeight: isActive ? `${Math.ceil(Math.min(s.tickers.length, 5) / 3) * 44 + 28}px` : '0px',
+                    opacity: isActive ? 1 : 0,
+                    marginTop: isActive ? '12px' : '0px',
+                    marginBottom: isActive ? '4px' : '0px',
+                  }}
+                >
+                  <div className="flex flex-wrap gap-2 ml-3">
+                    {s.tickers.slice(0, 5).map(t => (
+                      <button
+                        key={t.ticker}
+                        onClick={() => onTickerClick?.(t.ticker)}
+                        className={`inline-flex items-center gap-2 px-3 h-8 rounded-lg border ${c.chip} hover:border-rh-green/40 hover:bg-rh-green/[0.06] transition-all group`}
+                      >
+                        <span className={`text-xs font-bold group-hover:text-rh-green transition-colors ${c.text}`}>{t.ticker}</span>
+                        <span className="text-[11px] font-medium text-rh-light-text/70 dark:text-rh-text/70 tabular-nums">{t.valuePercent}%</span>
+                      </button>
+                    ))}
+                    {s.tickers.length > 5 && (
+                      <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[11px] font-medium text-rh-light-muted dark:text-rh-muted bg-gray-100/60 dark:bg-white/[0.04]">
+                        +{s.tickers.length - 5} more
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -419,7 +434,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
           </div>
         </div>
         {allEntries.length > 0 && (
-          <div className={`text-lg font-bold tabular-nums ${netPnL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+          <div className={`text-2xl font-bold tabular-nums ${netPnL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
             {formatDollar(netPnL)} <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted">{WINDOW_LABELS[selectedWindow].toLowerCase()}</span>
           </div>
         )}
@@ -428,7 +443,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
       {/* Headline insight — punchy first line + muted detail */}
       {headline && (
         <div>
-          <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+          <p className="text-base font-semibold text-rh-light-text dark:text-rh-text">
             {renderRichText(headline)}{detail ? '.' : ''}
           </p>
           {detail && (
@@ -476,12 +491,13 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
           {/* Movers — Contributors + Detractors grouped */}
           {(contributors.length > 0 || detractors.length > 0) && (
             <div>
-              <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-white/40 mb-3">Movers</h4>
+              <h4 className="text-xs font-medium uppercase tracking-wider text-blue-500/70 dark:text-blue-400/70 mb-3 border-l-2 border-blue-500/40 pl-3">Movers</h4>
+              <div className="bg-gray-50/30 dark:bg-white/[0.015] rounded-lg p-3 sm:p-4 -mx-1 sm:mx-0">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 {/* Contributors */}
                 {contributors.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-green/70 mb-1.5">Contributors</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-green/80 mb-1.5">Contributors</p>
                     {contributors.map(c => (
                       <ContributorBar
                         key={c.ticker}
@@ -499,7 +515,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                 {/* Detractors */}
                 {detractors.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-red-400/70 mb-1.5">Detractors</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-red-400/80 mb-1.5">Detractors</p>
                     {detractors.map(c => (
                       <ContributorBar
                         key={c.ticker}
@@ -515,30 +531,34 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                   </div>
                 )}
               </div>
+              </div>
             </div>
           )}
 
           {/* Sector Exposure */}
           {sectorExposure.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-3">Sector Exposure</h4>
-              <SectorBar sectors={sectorExposure} onTickerClick={onTickerClick} />
+              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-3 border-l-2 border-blue-500/40 pl-3">Sector Exposure</h4>
+              <div className="bg-gray-50/30 dark:bg-white/[0.015] rounded-lg p-3 sm:p-4 -mx-1 sm:mx-0">
+                <SectorBar sectors={sectorExposure} onTickerClick={onTickerClick} />
+              </div>
             </div>
           )}
 
           {/* Beta Card */}
           {beta && (
-            <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3">
-              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2"><Acronym label="Beta" /> vs <Acronym label="SPY" /></h4>
+            <div>
+              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2 border-l-2 border-blue-500/40 pl-3"><Acronym label="Beta" /> vs <Acronym label="SPY" /></h4>
+              <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">Portfolio <Acronym label="Beta" /></p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="How much your portfolio moves relative to the S&P 500. 1.0 = moves with the market">Portfolio <Acronym label="Beta" /></p>
                   <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                     {beta.portfolioBeta.toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted"><Acronym label="Alpha (ann.)" /></p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="Annualized excess return above what market exposure alone would predict"><Acronym label="Alpha (ann.)" /></p>
                   <p className={`text-lg font-semibold ${beta.alphaPercent >= 0 ? 'text-rh-green' : 'text-red-400'}`}>
                     {formatPct(beta.alphaPercent)}
                   </p>
@@ -551,7 +571,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                 </div>
                 {beta.betaContributionPercent !== null && (
                   <div>
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted">Market Contrib.</p>
+                    <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="How much of your portfolio return is explained by market movement alone">Market Contrib.</p>
                     <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                       {beta.betaContributionPercent.toFixed(1)}%
                     </p>
@@ -559,6 +579,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                 )}
               </div>
               <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">{beta.dataNote}</p>
+              </div>
             </div>
           )}
 

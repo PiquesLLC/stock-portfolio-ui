@@ -7,7 +7,6 @@ import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
 // Premium-gated: import PortfolioBriefing from './PortfolioBriefing';
 // Premium-gated: import BehaviorInsights from './BehaviorInsights';
-import EventsCalendar from './EventsCalendar';
 import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
 import { EarningsTab } from './EarningsTab';
@@ -15,8 +14,7 @@ import { SkeletonCard } from './SkeletonCard';
 import { PremiumOverlay } from './PremiumOverlay';
 import { ETFOverlap } from './ETFOverlap';
 import { TaxHarvest } from './TaxHarvest';
-import { MarketSession, AnomalyEvent } from '../types';
-import { getAnomalies } from '../api';
+import { MarketSession } from '../types';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap' | 'tax-harvest';
 
@@ -120,38 +118,6 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 
 const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings', 'etf-overlap', 'tax-harvest']);
 
-function EventsSection({ holdings }: { holdings: Holding[] }) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors"
-      >
-        <div className="flex items-center gap-2.5">
-          <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Events</span>
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">Earnings &amp; Dividends</span>
-        </div>
-        <svg
-          className={`w-4 h-4 text-rh-light-muted dark:text-rh-muted transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {expanded && (
-        <div className="px-5 pb-5">
-          <EventsCalendar holdings={holdings} />
-        </div>
-      )}
-    </div>
-  );
-}
-
 interface InsightsPageProps {
   onTickerClick?: (ticker: string) => void;
   currentValue: number;
@@ -179,8 +145,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(insightsCache.intelligence);
   const [initialLoadComplete, setInitialLoadComplete] = useState(insightsCache.lastFetchTime !== null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [anomalies, setAnomalies] = useState<AnomalyEvent[]>([]);
-
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const holdingsFetchedRef = useRef(false);
@@ -247,7 +211,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     };
   }, [fetchInsights]);
 
-  // Fetch holdings on mount (needed for Events on Intelligence tab + Allocation tab)
+  // Fetch holdings on mount (needed for Allocation + What-If tabs)
   useEffect(() => {
     if (!holdingsFetchedRef.current) {
       holdingsFetchedRef.current = true;
@@ -256,8 +220,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           if (mountedRef.current) setHoldings(p.holdings);
         })
         .catch((e) => console.error('Failed to fetch holdings:', e));
-      // Also fetch recent anomalies for intelligence tab
-      getAnomalies(10).then(a => { if (mountedRef.current) setAnomalies(a); }).catch(() => {});
     }
   }, []);
 
@@ -406,7 +368,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {/* Sub-tabs */}
       <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
 
@@ -419,58 +381,6 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
       {/* Health Score */}
       {healthScore && <HealthScore data={healthScore} />}
-
-      {/* AI Anomaly Alerts */}
-      {anomalies.length > 0 && (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            AI Anomaly Detection
-          </h3>
-          <div className="space-y-2">
-            {anomalies.slice(0, 5).map(anomaly => (
-              <div
-                key={anomaly.id}
-                className={`p-3 rounded-lg ${
-                  anomaly.severity === 'critical' ? 'border-l-[3px] border-l-red-500 bg-red-50/30 dark:bg-red-500/[0.05]' :
-                  anomaly.severity === 'warning' ? 'border-l-[3px] border-l-amber-500 bg-amber-50/30 dark:bg-amber-500/[0.05]' :
-                  'border-l-[3px] border-l-blue-500 bg-blue-50/30 dark:bg-blue-500/[0.05]'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-orange-500">
-                    {anomaly.type.replace(/_/g, ' ')}
-                  </span>
-                  <span
-                    className="text-xs font-bold text-rh-light-text dark:text-rh-text cursor-pointer hover:text-rh-green transition-colors"
-                    onClick={() => onTickerClick?.(anomaly.ticker)}
-                  >
-                    {anomaly.ticker}
-                  </span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
-                    anomaly.severity === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                    anomaly.severity === 'warning' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                  }`}>
-                    {anomaly.severity}
-                  </span>
-                </div>
-                <p className="text-xs text-rh-light-text dark:text-rh-text leading-relaxed">{anomaly.title}</p>
-                {anomaly.analysis && (
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1 leading-relaxed">{anomaly.analysis}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Events Timeline — collapsible */}
-      {holdings.length > 0 && (
-        <EventsSection holdings={holdings} />
-      )}
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (

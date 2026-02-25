@@ -6,6 +6,15 @@
 @tailwind utilities;
 
 /* Safe area background for iOS notch/dynamic island */
+/* Prevent iOS landscape auto-zoom on text */
+/* Prevent horizontal overflow/scroll on all devices */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html {
   background-color: #050505;
 }
