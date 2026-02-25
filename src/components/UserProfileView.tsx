@@ -232,49 +232,6 @@ function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: s
   return badges.slice(0, 6);
 }
 
-// ── Mini sparkline SVG ───────────────────────────────────────────────
-function MiniSparkline({ points, isPositive, id }: { points: { time: number; value: number }[]; isPositive: boolean; id: string }) {
-  if (points.length < 3) return null;
-
-  const values = points.map(p => p.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
-  const w = 320, h = 48, pad = 1;
-  const d = points.map((p, i) => {
-    const x = (i / (points.length - 1)) * (w - pad * 2) + pad;
-    const y = h - pad - ((p.value - min) / range) * (h - pad * 2);
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-
-  const color = isPositive ? '#00C805' : '#E8544E';
-  const lastX = w - pad;
-  const firstX = pad;
-  const lastPoint = points[points.length - 1];
-  const endX = lastX;
-  const endY = h - pad - ((lastPoint.value - min) / range) * (h - pad * 2);
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-12" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={`sf-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.12" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${d} L${lastX},${h} L${firstX},${h} Z`} fill={`url(#sf-${id})`} />
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-      {/* Endpoint pulse dot */}
-      <circle cx={endX} cy={endY} r="3" fill={color} opacity="0.9">
-        <animate attributeName="r" values="2.5;4;2.5" dur="2s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite" />
-      </circle>
-      <circle cx={endX} cy={endY} r="1.5" fill={color} />
-    </svg>
-  );
-}
-
 // ── Group events by date ─────────────────────────────────────────────
 function groupByDate(events: ActivityEvent[]): { date: string; events: ActivityEvent[] }[] {
   const groups: Map<string, ActivityEvent[]> = new Map();
@@ -399,7 +356,6 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
   // Top holdings preview
   const [topHoldings, setTopHoldings] = useState<{ ticker: string; weight: number; returnPct: number }[]>([]);
-  const [chartPoints, setChartPoints] = useState<{ time: number; value: number }[]>([]);
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
 
@@ -424,14 +380,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     if (!profile?.profilePublic) return;
     getUserChart(userId, '1M')
       .then((data) => {
-        setChartPoints(data.points);
         // Compute return from chart data (matches what user sees on portfolio chart)
         if (data.points.length >= 2 && data.periodStartValue > 0) {
           const lastVal = data.points[data.points.length - 1].value;
           setChartReturnPct(Math.round(((lastVal - data.periodStartValue) / data.periodStartValue) * 10000) / 100);
         }
       })
-      .catch(() => setChartPoints([]));
+      .catch(() => {});
   }, [userId, profile?.profilePublic]);
 
   // Sync bio text when profile loads
