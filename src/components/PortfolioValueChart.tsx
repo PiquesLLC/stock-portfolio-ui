@@ -107,6 +107,9 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
   const isFetchingRef = useRef(false);
   const pendingFetchRef = useRef<{ period: PortfolioChartPeriod; silent: boolean } | null>(null);
+  // Track current period so in-flight fetches for stale periods don't overwrite chartData
+  const selectedPeriodRef = useRef(selectedPeriod);
+  useEffect(() => { selectedPeriodRef.current = selectedPeriod; }, [selectedPeriod]);
 
   const fetchChart = useCallback(async (period: PortfolioChartPeriod, silent = false) => {
     // If already fetching, queue this request for after completion
@@ -119,7 +122,12 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     try {
       const fetcher = fetchFn || getPortfolioChart;
       const data = await fetcher(period);
-      setChartData(data);
+      // Only update displayed data if this period is still selected.
+      // Prevents stale 1D auto-refresh from overwriting 1W/1M data
+      // when the user switches periods mid-fetch.
+      if (period === selectedPeriodRef.current) {
+        setChartData(data);
+      }
       chartCacheRef.current.set(period, data);
     } catch (e) {
       console.error('Chart fetch error:', e);
@@ -144,6 +152,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       // Still fetch fresh data in background
       fetchChart(selectedPeriod, true);
     } else {
+      // Clear stale data from previous period to prevent mismatched filtering
+      setChartData(null);
       fetchChart(selectedPeriod);
     }
   }, [selectedPeriod, fetchChart]);
@@ -290,51 +300,78 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       });
       const etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
 
-      // Step 1: Filter weekends and outside-hours
+      // Detect if data is daily-resolution (snapshot data: ~1 point per day).
+      // Daily data has timestamps at arbitrary times, so time-of-day filtering
+      // would randomly remove entire days. Only filter weekends for daily data.
+      const isDailyResolution = raw.length >= 2 && (() => {
+        const gaps: number[] = [];
+        for (let i = 1; i < Math.min(raw.length, 10); i++) {
+          gaps.push(raw[i].time - raw[i - 1].time);
+        }
+        const medianGap = gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
+        return medianGap > 12 * 3600000; // >12h between points = daily data
+      })();
+
+      // Step 1: Filter weekends (always) and outside-hours (only for intraday data)
       const filtered = raw.filter(p => {
         const d = new Date(p.time);
         const wd = etDayFmt.format(d);
         if (wd === 'Sat' || wd === 'Sun') return false;
+        // Skip time-of-day filter for daily-resolution data (snapshot points).
+        // Snapshot timestamps can fall at any hour; filtering to 4AM-8PM
+        // would randomly drop entire days worth of data.
+        if (isDailyResolution) return true;
         const hm = etHourFmt.format(d);
         const h = parseInt(hm.split(':')[0]);
         return h >= 4 && h < 20; // 4 AM – 8 PM ET
       });
 
       // Step 2: Remove holiday/no-trading days (data-driven detection).
-      // On market holidays (Presidents' Day, MLK Day, etc.) the API still polls
-      // but all values are identical because the market is closed. Group by ET
-      // calendar day and skip days where portfolio value doesn't change (<$1 range).
-      // This is more robust than a hardcoded holiday list — works automatically.
-      const dayMap = new Map<string, number[]>();
-      for (let i = 0; i < filtered.length; i++) {
-        const dateStr = etDateFmt.format(new Date(filtered[i].time));
-        if (!dayMap.has(dateStr)) dayMap.set(dateStr, []);
-        dayMap.get(dateStr)!.push(i);
-      }
+      // Only applies to intraday data where multiple points per day exist.
+      // On market holidays the API still polls but values are flat.
+      // Skip for daily-resolution data — with 1 point per day there's no
+      // intra-day range to detect holidays.
+      if (!isDailyResolution) {
+        const dayMap = new Map<string, number[]>();
+        for (let i = 0; i < filtered.length; i++) {
+          const dateStr = etDateFmt.format(new Date(filtered[i].time));
+          if (!dayMap.has(dateStr)) dayMap.set(dateStr, []);
+          dayMap.get(dateStr)!.push(i);
+        }
 
-      const skipIndices = new Set<number>();
-      for (const [, indices] of dayMap) {
-        if (indices.length < 4) continue; // skip partial days at chart edges
-        const vals = indices.map(idx => filtered[idx].value);
-        const range = Math.max(...vals) - Math.min(...vals);
-        const avgValue = vals.reduce((a, b) => a + b, 0) / vals.length;
-        // Use relative threshold: if day's range < 0.1% of portfolio value,
-        // it's a market holiday. Real trading days move 0.5%+ typically.
-        // The API generates linearly interpolated points on holidays that
-        // create small artificial movement (~$200 on a $500K portfolio = 0.04%),
-        // so absolute thresholds like $1 don't work.
-        if (avgValue > 0 && (range / avgValue) < 0.001) {
-          indices.forEach(idx => skipIndices.add(idx));
+        // Find the latest date so we never remove today (always partial data)
+        const allDateKeys = [...dayMap.keys()].sort();
+        const latestDate = allDateKeys[allDateKeys.length - 1];
+
+        const skipIndices = new Set<number>();
+        for (const [dateStr, indices] of dayMap) {
+          // Never remove the latest day — it's always partial (especially
+          // outside market hours) and looks like a holiday to the detector.
+          if (dateStr === latestDate) continue;
+          // Need enough points to distinguish a real holiday from a partial
+          // day at chart edges. A real trading day at 15-min resolution has
+          // ~64 points (16 hours × 4/hr). Require 20+ to run detection.
+          if (indices.length < 20) continue;
+          const vals = indices.map(idx => filtered[idx].value);
+          const range = Math.max(...vals) - Math.min(...vals);
+          const avgValue = vals.reduce((a, b) => a + b, 0) / vals.length;
+          // Use relative threshold: if day's range < 0.1% of portfolio value,
+          // it's a market holiday. Real trading days move 0.5%+ typically.
+          if (avgValue > 0 && (range / avgValue) < 0.001) {
+            indices.forEach(idx => skipIndices.add(idx));
+          }
+        }
+
+        if (skipIndices.size > 0) {
+          const result = filtered.filter((_, i) => !skipIndices.has(i));
+          return result.length >= 2 ? result : raw;
         }
       }
 
-      const result = skipIndices.size > 0
-        ? filtered.filter((_, i) => !skipIndices.has(i))
-        : filtered;
-
-      return result.length >= 2 ? result : raw;
+      return filtered.length >= 2 ? filtered : raw;
     }
   }, [chartData, selectedPeriod, currentValue]);
+
 
   // ── Chart groups for multi-period highlighting (1W=day, 1M=week, etc.) ──
   const chartGroups = useMemo(
@@ -537,7 +574,20 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     for (let g = 0; g < dayBounds.length; g += step) {
       timeLabels.push({ label: dayBounds[g].label, x: toX(dayBounds[g].midIdx) });
     }
+    // Always include today (last date) so the chart's right edge is labeled.
+    // If it's too close to the previous label, replace it to avoid cramping.
+    const lastDay = dayBounds[dayBounds.length - 1];
+    if (lastDay && timeLabels[timeLabels.length - 1]?.label !== lastDay.label) {
+      const lastLabel = { label: lastDay.label, x: toX(lastDay.midIdx) };
+      const prev = timeLabels[timeLabels.length - 1];
+      if (prev && lastLabel.x - prev.x < plotW * 0.12) {
+        timeLabels[timeLabels.length - 1] = lastLabel; // replace cramped label
+      } else {
+        timeLabels.push(lastLabel);
+      }
+    }
   }
+
 
   // ── Mouse → SVG X coordinate ───────────────────────────────────
 

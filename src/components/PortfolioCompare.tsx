@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Portfolio } from '../types';
-import { getPortfolio, getUserPortfolio } from '../api';
+import { Portfolio, CreatorEntitlement } from '../types';
+import { getPortfolio, getUserPortfolio, getUserProfile, getCreatorEntitlement, subscribeToCreator } from '../api';
 import { AllocationDonut } from './AllocationDonut';
 import { StockLogo } from './StockLogo';
 import { computeSectorExposure } from '../utils/sectors';
@@ -21,6 +21,10 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
   const [error, setError] = useState('');
   const [myPortfolio, setMyPortfolio] = useState<Portfolio | null>(null);
   const [theirPortfolio, setTheirPortfolio] = useState<Portfolio | null>(null);
+  const [entitlement, setEntitlement] = useState<CreatorEntitlement | null>(null);
+  const [isCreator, setIsCreator] = useState(false);
+  const [creatorShowHoldings, setCreatorShowHoldings] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,11 +34,24 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
     Promise.all([
       getPortfolio(),
       getUserPortfolio(theirUserId),
+      getUserProfile(theirUserId).catch(() => null),
     ])
-      .then(([mp, tp]) => {
+      .then(async ([mp, tp, profile]) => {
         if (cancelled) return;
         setMyPortfolio(mp);
         setTheirPortfolio(tp);
+
+        // Check creator paywall status
+        if (profile?.creator?.status === 'active') {
+          setIsCreator(true);
+          setCreatorShowHoldings(!!profile.creator.visibility?.showHoldings);
+          try {
+            const ent = await getCreatorEntitlement(theirUserId);
+            if (!cancelled) setEntitlement(ent);
+          } catch {
+            if (!cancelled) setEntitlement(null);
+          }
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e.message || 'Failed to load comparison data');
@@ -45,6 +62,19 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
 
     return () => { cancelled = true; };
   }, [theirUserId]);
+
+  // Determine if holdings are locked behind creator paywall
+  const holdingsLocked = isCreator && creatorShowHoldings && entitlement?.level !== 'paid';
+
+  const handleSubscribe = async () => {
+    setSubscribing(true);
+    try {
+      const { url } = await subscribeToCreator(theirUserId);
+      window.location.href = url;
+    } catch {
+      setSubscribing(false);
+    }
+  };
 
   // Compute comparison data
   const comparison = useMemo(() => {
@@ -121,7 +151,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
 
   if (!myPortfolio || !theirPortfolio || !comparison) return null;
 
-  const theirRestricted = !comparison.hasTheirHoldings;
+  const theirRestricted = !comparison.hasTheirHoldings || holdingsLocked;
   const maxSectorPct = comparison.sectorComparison.reduce((m, s) => Math.max(m, s.myPct, s.theirPct), 0) || 1;
   const totalUnique = comparison.shared.length + comparison.onlyMine.length + comparison.onlyTheirs.length;
 
@@ -202,9 +232,31 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
         </div>
       ) : (
         <div className="bg-gray-50/40 dark:bg-white/[0.03] rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-6 text-center">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {theirDisplayName}'s holdings are private. Sector comparison is shown below.
-          </p>
+          {holdingsLocked ? (
+            <>
+              <svg className="w-6 h-6 text-yellow-500 mx-auto mb-2 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <p className="text-rh-light-text dark:text-rh-text text-sm font-medium mb-1">
+                {theirDisplayName}'s holdings are subscriber-only
+              </p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs mb-3">
+                Subscribe to see their full portfolio breakdown and compare holdings side-by-side.
+              </p>
+              <button
+                onClick={handleSubscribe}
+                disabled={subscribing}
+                className="px-4 py-2 rounded-lg bg-rh-green text-black text-sm font-semibold hover:bg-rh-green/90 transition-colors disabled:opacity-50"
+              >
+                {subscribing ? 'Redirecting...' : 'Subscribe to Unlock'}
+              </button>
+            </>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              {theirDisplayName}'s holdings are private. Sector comparison is shown below.
+            </p>
+          )}
         </div>
       )}
 

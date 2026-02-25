@@ -90,12 +90,12 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'portfolio', label: 'Portfolio' },
   { id: 'insights', label: 'Insights' },
   { id: 'discover', label: 'Discover' },
+  { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'watchlists', label: 'Watchlists' },
   { id: 'nala', label: 'Nala AI' },
 ];
 
 const MORE_TABS: { id: TabType; label: string }[] = [
-  { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'macro', label: 'Macro' },
   { id: 'feed', label: 'Feed' },
   { id: 'watch', label: 'Watch' },
@@ -182,6 +182,9 @@ export default function App() {
   );
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const moreDropdownRef = useRef<HTMLDivElement>(null);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [utilsMenuOpen, setUtilsMenuOpen] = useState(false);
+  const utilsMenuRef = useRef<HTMLDivElement>(null);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
   const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
   const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.tab === 'insights' ? initialNav.subtab : null);
@@ -217,6 +220,17 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [moreDropdownOpen]);
 
+  // Close utils overflow menu on outside click
+  useEffect(() => {
+    if (!utilsMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (utilsMenuRef.current && !utilsMenuRef.current.contains(e.target as Node)) {
+        setUtilsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [utilsMenuOpen]);
 
   // --- Handle Stripe checkout redirect ---
   useEffect(() => {
@@ -937,7 +951,7 @@ export default function App() {
         </div>
 
         {/* Desktop: logo far-left, tabs aligned with content column, controls far-right */}
-        <div className="hidden sm:flex items-center h-14 px-5 gap-4">
+        <div className="hidden sm:flex relative items-center h-11 lg:h-14 px-3 lg:px-5 gap-2 lg:gap-4">
           {/* Logo */}
           <div
             className="h-[30px] w-[30px] cursor-pointer flex-shrink-0"
@@ -950,7 +964,10 @@ export default function App() {
           {/* Primary nav — left edge aligned with content container below */}
           <nav className="flex items-center"
             style={{ marginLeft: 'max(0px, calc((100vw - clamp(1080px, 64vw, 1530px)) / 2 - 72px))' }}>
-            {PRIMARY_TABS.map((tab) => (
+            {PRIMARY_TABS.map((tab) => {
+              // At sm–lg: show Portfolio, Insights, Discover, Leaderboard; collapse Watchlists + Nala AI into More
+              const collapseAtSmLg = tab.id === 'watchlists' || tab.id === 'nala';
+              return (
               <button
                 key={tab.id}
                 onClick={() => {
@@ -962,6 +979,7 @@ export default function App() {
                   setCreatorView(null);
                 }}
                 className={`relative px-3 py-2 text-[13px] rounded-md transition-all duration-150 whitespace-nowrap
+                  ${collapseAtSmLg ? 'hidden lg:inline-flex' : ''}
                   ${activeTab === tab.id
                     ? 'text-rh-green font-semibold bg-rh-green/[0.08]'
                     : 'text-rh-light-muted/60 dark:text-rh-muted/60 font-medium hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
@@ -972,27 +990,70 @@ export default function App() {
                   activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
                 }`} />
               </button>
-            ))}
+              );
+            })}
             {/* More dropdown */}
             <div className="relative" ref={moreDropdownRef}>
+              {(() => {
+                // Tabs collapsed into More at sm–lg (hidden from primary nav)
+                const collapsedPrimaryTabs: { id: TabType; label: string }[] = [
+                  { id: 'watchlists', label: 'Watchlists' },
+                  { id: 'nala', label: 'Nala AI' },
+                ];
+                const allMoreTabs = [...collapsedPrimaryTabs, ...visibleMoreTabs];
+                const activeInMore = visibleMoreTabs.some(t => t.id === activeTab);
+                const activeInCollapsed = collapsedPrimaryTabs.some(t => t.id === activeTab);
+                const activeLabel = allMoreTabs.find(t => t.id === activeTab)?.label || 'More';
+                return (
+                  <>
               <button
                 onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
                 className={`relative px-3 py-2 text-[13px] font-medium rounded-md transition-all duration-150 whitespace-nowrap flex items-center gap-1
-                  ${visibleMoreTabs.some(t => t.id === activeTab)
+                  ${activeInMore
                     ? 'text-rh-green font-semibold bg-rh-green/[0.08]'
-                    : 'text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                    : activeInCollapsed
+                      ? 'lg:text-rh-light-muted/60 lg:dark:text-rh-muted/60 text-rh-green font-semibold lg:font-medium bg-rh-green/[0.08] lg:bg-transparent lg:hover:text-rh-light-text lg:dark:hover:text-rh-text lg:hover:bg-gray-100/60 lg:dark:hover:bg-white/[0.04]'
+                      : 'text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
                   }`}
               >
-                {visibleMoreTabs.find(t => t.id === activeTab)?.label || 'More'}
+                {/* sm–lg: show collapsed tab label or 'More' */}
+                <span className="lg:hidden">{activeLabel}</span>
+                {/* lg+: only show visibleMoreTabs label (collapsed tabs visible in primary nav) */}
+                <span className="hidden lg:inline">{visibleMoreTabs.find(t => t.id === activeTab)?.label || 'More'}</span>
                 <svg className={`w-3 h-3 transition-transform duration-150 ${moreDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
                 <span className={`absolute bottom-0 left-2.5 right-2.5 h-0.5 bg-rh-green rounded-full transition-all duration-200 ${
-                  visibleMoreTabs.some(t => t.id === activeTab) ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                  activeInMore ? 'scale-x-100 opacity-100'
+                    : activeInCollapsed ? 'scale-x-100 opacity-100 lg:scale-x-0 lg:opacity-0'
+                    : 'scale-x-0 opacity-0'
                 }`} />
               </button>
               {moreDropdownOpen && (
                 <div className="absolute top-full left-0 mt-1.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl py-1.5 min-w-[160px] z-50">
+                  {/* Overflow primary tabs — visible in More only at sm–lg */}
+                  {collapsedPrimaryTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setViewingProfileId(null);
+                        setViewingStock(null);
+                        setLeaderboardUserId(null);
+                        setCompareStocks(null);
+                        setCreatorView(null);
+                        setMoreDropdownOpen(false);
+                      }}
+                      className={`lg:hidden w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
+                        ${activeTab === tab.id
+                          ? 'text-rh-green font-semibold bg-rh-green/[0.06]'
+                          : 'text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium'
+                        }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                  <div className="lg:hidden border-b border-rh-light-border/20 dark:border-rh-border/20 my-1" />
                   {visibleMoreTabs.map(tab => (
                     <button
                       key={tab.id}
@@ -1016,11 +1077,14 @@ export default function App() {
                   ))}
                 </div>
               )}
+                  </>
+                );
+              })()}
             </div>
           </nav>
 
-          {/* Search — flexible middle zone */}
-          <div className="flex-1 max-w-[420px] min-w-[180px]">
+          {/* Search — full bar at lg+, icon at sm–lg (grouped with right controls) */}
+          <div className="hidden lg:flex flex-1 max-w-[420px] min-w-[180px]">
             <TickerAutocompleteInput
               value={searchQuery}
               onChange={setSearchQuery}
@@ -1035,48 +1099,150 @@ export default function App() {
             />
           </div>
 
-          {/* Right utilities — notifications, brief, theme, profile */}
+          {/* Expanded search overlay — covers header when active at sm–lg */}
+          {searchExpanded && (
+            <div className="lg:hidden absolute inset-0 z-50 flex items-center px-3 gap-2 bg-rh-light-bg dark:bg-black/95">
+              <div className="flex-1">
+                <TickerAutocompleteInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSelect={(result) => {
+                    const held = findHolding(result.symbol);
+                    setViewingStock({ ticker: result.symbol, holding: held });
+                    setSearchQuery('');
+                    setSearchExpanded(false);
+                  }}
+                  heldTickers={portfolio?.holdings.map(h => h.ticker) ?? []}
+                  externalRef={searchRef}
+                  compact
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={() => setSearchExpanded(false)}
+                className="text-sm text-rh-light-muted dark:text-rh-muted px-2 py-1 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Right utilities — order: notification, [lg: icons], search icon (sm–lg), "..." (sm–lg), avatar */}
           <div className="flex items-center gap-1 ml-auto">
             {currentUserId && <NotificationBell userId={currentUserId} onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />}
-            {currentUserId && (
-              <button
-                onClick={() => setCreatorView('dashboard')}
-                className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
-                title="Creator Dashboard"
-              >
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h4v8H3v-8zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
-                </svg>
-              </button>
-            )}
-            {currentUserId && (
-              <button
-                onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
-                className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
-                title="Today's Brief"
-              >
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                </svg>
-              </button>
-            )}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg transition-all duration-150
-                hover:bg-gray-100 dark:hover:bg-rh-dark
-                text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? (
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
+
+            {/* Full utility icons — lg+ only */}
+            <div className="hidden lg:flex items-center gap-1">
+              {currentUserId && (
+                <button
+                  onClick={() => setCreatorView('dashboard')}
+                  className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                  title="Creator Dashboard"
+                >
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h4v8H3v-8zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+                  </svg>
+                </button>
               )}
+              {currentUserId && (
+                <button
+                  onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
+                  className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                  title="Today's Brief"
+                >
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg transition-all duration-150
+                  hover:bg-gray-100 dark:hover:bg-rh-dark
+                  text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? (
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            {/* Search icon — sm to lg only, grouped with right controls */}
+            <button
+              className="lg:hidden p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+              onClick={() => setSearchExpanded(true)}
+              title="Search stocks"
+            >
+              <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </button>
+
+            {/* Overflow "..." — sm to lg only */}
+            <div className="relative lg:hidden" ref={utilsMenuRef}>
+              <button
+                onClick={() => setUtilsMenuOpen(!utilsMenuOpen)}
+                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                title="More options"
+              >
+                <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="5" cy="12" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="19" cy="12" r="2" />
+                </svg>
+              </button>
+              {utilsMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl py-1.5 min-w-[180px] z-[60]"
+                  style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+                  {currentUserId && (
+                    <button
+                      onClick={() => { setCreatorView('dashboard'); setUtilsMenuOpen(false); }}
+                      className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
+                    >
+                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h4v8H3v-8zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+                      </svg>
+                      Creator Dashboard
+                    </button>
+                  )}
+                  {currentUserId && (
+                    <button
+                      onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); setUtilsMenuOpen(false); }}
+                      className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
+                    >
+                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                      </svg>
+                      Today's Brief
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { toggleTheme(); setUtilsMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
+                  >
+                    {theme === 'dark' ? (
+                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                    )}
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* User menu — always visible, rightmost item */}
             {currentUserName && currentUserId && (
               <UserMenu
                 userName={currentUserName}

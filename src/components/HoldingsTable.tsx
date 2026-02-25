@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Reorder } from 'framer-motion';
 import { Holding } from '../types';
 import { useToast } from '../context/ToastContext';
 import { deleteHolding, addHolding, updateSettings, getPortfolio, getEarningsSummary } from '../api';
@@ -7,6 +8,7 @@ import { MiniSparkline } from './MiniSparkline';
 import { StockLogo } from './StockLogo';
 import { ConfirmModal } from './ConfirmModal';
 import { PortfolioImport } from './PortfolioImport';
+import { DraggableHoldingCard } from './DraggableHoldingCard';
 
 // Earnings badge data per ticker
 interface EarningsBadge {
@@ -34,7 +36,7 @@ interface Props {
   chartPeriod?: import('../types').PortfolioChartPeriod;
 }
 
-type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent';
+type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent' | 'custom';
 type SortDir = 'asc' | 'desc';
 
 type DisplayMetric = 'lastPrice' | 'dayChangePct' | 'equity' | 'dayChange' | 'totalReturn' | 'totalReturnPct';
@@ -46,6 +48,16 @@ const DISPLAY_METRICS: { key: DisplayMetric; label: string }[] = [
   { key: 'dayChange', label: "Today's return" },
   { key: 'totalReturn', label: 'Total return' },
   { key: 'totalReturnPct', label: 'Total percent change' },
+];
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'ticker', label: 'Name' },
+  { key: 'currentValue', label: 'Market value' },
+  { key: 'dayChange', label: "Today's change" },
+  { key: 'dayChangePercent', label: "Today's %" },
+  { key: 'profitLoss', label: 'Total P/L' },
+  { key: 'profitLossPercent', label: 'Total %' },
+  { key: 'currentPrice', label: 'Price' },
 ];
 
 function getMetricDisplay(h: Holding, metric: DisplayMetric): { text: string; isPositive: boolean; isNeutral: boolean } {
@@ -78,7 +90,7 @@ function formatPL(value: number): string {
 
 // Check if a value is valid for sorting (not NaN, not unavailable)
 function isValidValue(holding: Holding, key: SortKey): boolean {
-  if (key === 'ticker') return true;
+  if (key === 'ticker' || key === 'custom') return true;
   if (key === 'shares' || key === 'averageCost') return !isNaN(holding[key]);
   // For price-dependent fields, check if price is available
   if (holding.priceUnavailable || holding.currentPrice <= 0) return false;
@@ -88,6 +100,7 @@ function isValidValue(holding: Holding, key: SortKey): boolean {
 // Get sortable value from holding
 function getSortValue(holding: Holding, key: SortKey): string | number {
   if (key === 'ticker') return holding.ticker.toLowerCase();
+  if (key === 'custom') return 0; // Custom sort handled separately
   return holding[key];
 }
 
@@ -113,9 +126,25 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     () => (localStorage.getItem('holdingsDisplayMetric') as DisplayMetric) || 'dayChangePct'
   );
   const [showDisplayMenu, setShowDisplayMenu] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin' });
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+
+  // Custom order for drag-to-reorder (scoped by userId)
+  const customOrderKey = `holdingsCustomOrder:${userId || 'default'}`;
+  const [customOrder, setCustomOrder] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem(customOrderKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [showReorderHint, setShowReorderHint] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem('holdingsReorderHintShown');
+  });
 
   // Extract held tickers for autocomplete boost
   const heldTickers = useMemo(() => holdings.map(h => h.ticker), [holdings]);
@@ -240,6 +269,17 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
   // Memoized sorted holdings
   const sortedHoldings = useMemo(() => {
+    if (sortKey === 'custom' && customOrder.length > 0) {
+      return [...holdings].sort((a, b) => {
+        const aIdx = customOrder.indexOf(a.id);
+        const bIdx = customOrder.indexOf(b.id);
+        // Items not in custom order go to end, sorted alphabetically
+        if (aIdx === -1 && bIdx === -1) return a.ticker.localeCompare(b.ticker);
+        if (aIdx === -1) return 1;
+        if (bIdx === -1) return -1;
+        return aIdx - bIdx;
+      });
+    }
     return [...holdings].sort((a, b) => {
       const aValid = isValidValue(a, sortKey);
       const bValid = isValidValue(b, sortKey);
@@ -266,7 +306,39 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
       return sortDir === 'desc' ? -comparison : comparison;
     });
-  }, [holdings, sortKey, sortDir]);
+  }, [holdings, sortKey, sortDir, customOrder]);
+
+  // Ordered IDs for Reorder.Group
+  const orderedIds = useMemo(() => sortedHoldings.map(h => h.id), [sortedHoldings]);
+
+  // Reorder callback — sets custom order and switches sort to 'custom'
+  const handleReorder = useCallback((newOrder: string[]) => {
+    setCustomOrder(newOrder);
+    setSortKey('custom');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(customOrderKey, JSON.stringify(newOrder));
+    }
+    // Dismiss the reorder hint
+    if (showReorderHint) {
+      setShowReorderHint(false);
+      localStorage.setItem('holdingsReorderHintShown', '1');
+    }
+  }, [customOrderKey, showReorderHint]);
+
+  // Reconcile custom order when holdings change (add/remove)
+  useEffect(() => {
+    if (customOrder.length === 0) return;
+    const holdingIds = new Set(holdings.map(h => h.id));
+    const filtered = customOrder.filter(id => holdingIds.has(id));
+    const newIds = holdings.filter(h => !customOrder.includes(h.id)).map(h => h.id);
+    if (filtered.length !== customOrder.length || newIds.length > 0) {
+      const reconciled = [...filtered, ...newIds];
+      setCustomOrder(reconciled);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(customOrderKey, JSON.stringify(reconciled));
+      }
+    }
+  }, [holdings, customOrder, customOrderKey]);
 
   // Get sort indicator for a column
   const getSortIndicator = (key: SortKey) => {
@@ -622,43 +694,110 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
             >Detailed</button>
           </div>
-          {/* Mobile: gear icon for display data picker (dropdown) */}
-          <div className="relative md:hidden">
-            <button
-              type="button"
-              onClick={() => setShowDisplayMenu(!showDisplayMenu)}
-              className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
-              title="Display data"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
-            {showDisplayMenu && (
-              <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
-                <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
-                {DISPLAY_METRICS.map((m) => (
-                  <button
-                    key={m.key}
-                    type="button"
-                    className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
-                    onClick={() => {
-                      setDisplayMetric(m.key);
-                      localStorage.setItem('holdingsDisplayMetric', m.key);
-                      setShowDisplayMenu(false);
-                    }}
-                  >
-                    <span>{m.label}</span>
-                    {displayMetric === m.key && (
-                      <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
+          {/* Mobile: sort icon + gear icon */}
+          <div className="flex items-center gap-1 md:hidden">
+            {/* Sort picker */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setShowSortMenu(!showSortMenu); setShowDisplayMenu(false); }}
+                className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                title="Sort holdings"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h5m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+              </button>
+              {showSortMenu && (
+                <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
+                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Sort by</p>
+                  {customOrder.length > 0 && (
+                    <button
+                      type="button"
+                      className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                      onClick={() => {
+                        setSortKey('custom');
+                        setShowSortMenu(false);
+                      }}
+                    >
+                      <span>Custom</span>
+                      {sortKey === 'custom' && (
+                        <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  {SORT_OPTIONS.map((s) => {
+                    const isActive = sortKey === s.key;
+                    return (
+                      <button
+                        key={s.key}
+                        type="button"
+                        className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                        onClick={() => {
+                          if (isActive) {
+                            setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+                          } else {
+                            setSortKey(s.key);
+                            setSortDir(s.key === 'ticker' ? 'asc' : 'desc');
+                            // Clear custom order when selecting a standard sort
+                            setCustomOrder([]);
+                            if (typeof window !== 'undefined') {
+                              localStorage.removeItem(customOrderKey);
+                            }
+                          }
+                          setShowSortMenu(false);
+                        }}
+                      >
+                        <span>{s.label}</span>
+                        {isActive && (
+                          <span className="text-rh-green text-xs font-medium">{sortDir === 'desc' ? '▼' : '▲'}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Display data picker */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setShowDisplayMenu(!showDisplayMenu); setShowSortMenu(false); }}
+                className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                title="Display data"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              {showDisplayMenu && (
+                <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
+                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
+                  {DISPLAY_METRICS.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                      onClick={() => {
+                        setDisplayMetric(m.key);
+                        localStorage.setItem('holdingsDisplayMetric', m.key);
+                        setShowDisplayMenu(false);
+                      }}
+                    >
+                      <span>{m.label}</span>
+                      {displayMetric === m.key && (
+                        <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {!actionsRef && (
@@ -691,68 +830,31 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       </div>
       {/* ── Mobile Card List ──────────────────────────────────────── */}
       <div className="md:hidden">
-        {sortedHoldings.map((holding, idx) => {
-          const isUnavailable = holding.priceUnavailable;
-          const hasValidPrice = !isUnavailable && holding.currentPrice > 0;
-          const metric = hasValidPrice ? getMetricDisplay(holding, displayMetric) : null;
-
-          return (
-            <div
+        {showReorderHint && customOrder.length === 0 && holdings.length > 1 && (
+          <div className="flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            Press and hold to reorder
+          </div>
+        )}
+        <Reorder.Group axis="y" values={orderedIds} onReorder={handleReorder} as="div">
+          {sortedHoldings.map((holding, idx) => (
+            <DraggableHoldingCard
               key={holding.id}
-              className={`flex items-center px-3 py-3 ${idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''} ${onTickerClick ? 'cursor-pointer active:bg-gray-100 dark:active:bg-white/[0.03]' : ''}`}
-              onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
-            >
-              {/* Left: Logo + Ticker + Shares */}
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <StockLogo ticker={holding.ticker} size="sm" />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{holding.ticker}</span>
-                    {earningsBadges[holding.ticker] && (
-                      <span className="text-[9px] bg-amber-500/15 text-amber-500 dark:text-amber-400 px-1 py-0.5 rounded-full font-medium">
-                        {earningsBadges[holding.ticker].daysUntil === 0 ? 'ER' : `ER ${earningsBadges[holding.ticker].label}`}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
-                    {holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares
-                  </p>
-                </div>
-              </div>
-
-              {/* Center: Sparkline */}
-              <div className="flex-shrink-0 px-3">
-                {hasValidPrice && (
-                  <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} period={chartPeriod} />
-                )}
-              </div>
-
-              {/* Right: Equity + Metric stacked */}
-              <div className="flex-1 text-right">
-                {hasValidPrice ? (
-                  <>
-                    <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-                      {formatCurrency(holding.currentValue)}
-                    </p>
-                    {metric && (
-                      <p className={`text-[11px] font-medium ${
-                        metric.isNeutral
-                          ? 'text-rh-light-muted dark:text-rh-muted'
-                          : metric.isPositive
-                          ? 'text-rh-green'
-                          : 'text-rh-red'
-                      }`}>
-                        {metric.text}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">—</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              holding={holding}
+              idx={idx}
+              displayMetric={displayMetric}
+              chartPeriod={chartPeriod}
+              earningsBadge={earningsBadges[holding.ticker]}
+              onTickerClick={onTickerClick}
+              getMetricDisplay={getMetricDisplay}
+              formatCurrency={formatCurrency}
+              dragActiveId={dragActiveId}
+              onDragActiveChange={setDragActiveId}
+            />
+          ))}
+        </Reorder.Group>
       </div>
 
       {/* ── Desktop Table ─────────────────────────────────────────── */}
@@ -1083,9 +1185,9 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           </div>
         </div>
       )}
-      {/* Click-outside handler for display data dropdown */}
-      {showDisplayMenu && (
-        <div className="fixed inset-0 z-40" onClick={() => setShowDisplayMenu(false)} />
+      {/* Click-outside handler for dropdowns */}
+      {(showDisplayMenu || showSortMenu) && (
+        <div className="fixed inset-0 z-40" onClick={() => { setShowDisplayMenu(false); setShowSortMenu(false); }} />
       )}
       {confirmDeleteTicker && (
         <ConfirmModal

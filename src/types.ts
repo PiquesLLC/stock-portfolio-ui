@@ -689,6 +689,11 @@ export interface PortfolioChartData {
   points: PortfolioChartPoint[];
   periodStartValue: number;
   period: PortfolioChartPeriod;
+  source: 'snapshot' | 'model' | 'hiRes' | 'daily';
+  // Debug fields — only present when ?debug=1
+  rebaselineApplied?: boolean;
+  pointCountRaw?: number;
+  pointCountFinal?: number;
 }
 
 // Benchmark Performance types
