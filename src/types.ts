@@ -1279,6 +1279,7 @@ export interface HeatmapStock {
   subSector: string;
   volume?: number;
   avgVolume?: number;
+  noTradeData?: boolean;
 }
 
 export interface HeatmapSubSector {

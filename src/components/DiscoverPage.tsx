@@ -860,8 +860,8 @@ function Treemap({
             <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{hoveredStock.ticker}</span>
-                <span className={`text-sm font-bold ${hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {hoveredStock.changePercent >= 0 ? '+' : ''}{hoveredStock.changePercent.toFixed(2)}%
+                <span className={`text-sm font-bold ${hoveredStock.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {hoveredStock.noTradeData ? '--' : `${hoveredStock.changePercent >= 0 ? '+' : ''}${hoveredStock.changePercent.toFixed(2)}%`}
                 </span>
               </div>
               <div className="flex items-center justify-between mt-0.5">
@@ -908,8 +908,8 @@ function Treemap({
                         {formatCurrency(s.price)}
                       </span>
                     </div>
-                    <span className={`text-[11px] font-semibold shrink-0 ${s.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {s.changePercent >= 0 ? '+' : ''}{s.changePercent.toFixed(2)}%
+                    <span className={`text-[11px] font-semibold shrink-0 ${s.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : s.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {s.noTradeData ? '--' : `${s.changePercent >= 0 ? '+' : ''}${s.changePercent.toFixed(2)}%`}
                     </span>
                   </div>
                 );
