@@ -107,7 +107,18 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
 export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef, chartPeriod = '1D' }: Props) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>('ticker');
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    // If user has a saved custom order, default to 'custom' so it persists across tab switches
+    if (typeof window === 'undefined') return 'ticker';
+    try {
+      const stored = localStorage.getItem(`holdingsCustomOrder:${userId || 'default'}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return 'custom';
+      }
+    } catch {}
+    return 'ticker';
+  });
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
