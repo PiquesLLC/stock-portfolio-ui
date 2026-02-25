@@ -683,6 +683,8 @@ export type PortfolioChartPeriod = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'A
 export interface PortfolioChartPoint {
   time: number; // ms timestamp
   value: number;
+  confidence?: number;
+  estimated?: boolean;
 }
 
 export interface PortfolioChartData {
@@ -690,10 +692,13 @@ export interface PortfolioChartData {
   periodStartValue: number;
   period: PortfolioChartPeriod;
   source: 'snapshot' | 'model' | 'hiRes' | 'daily';
+  estimated?: boolean;
+  confidenceThreshold?: number;
   // Debug fields — only present when ?debug=1
   rebaselineApplied?: boolean;
   pointCountRaw?: number;
   pointCountFinal?: number;
+  gaps?: { start: string; end: string; reason: string }[];
 }
 
 // Benchmark Performance types
