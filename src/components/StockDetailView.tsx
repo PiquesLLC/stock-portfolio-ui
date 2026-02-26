@@ -487,10 +487,22 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     }
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     let startPrice = candles.closes[0];
-    for (let i = 0; i < candles.dates.length; i++) {
-      if (candles.dates[i] >= cutoffStr) {
-        startPrice = candles.closes[i];
-        break;
+    if (chartPeriod === 'YTD') {
+      // YTD: use the last close of the prior year (Dec 31 or last trading day)
+      // This matches Robinhood/Finviz convention
+      const yearStartStr = `${now.getFullYear()}-01-01`;
+      for (let i = candles.dates.length - 1; i >= 0; i--) {
+        if (candles.dates[i] < yearStartStr) {
+          startPrice = candles.closes[i];
+          break;
+        }
+      }
+    } else {
+      for (let i = 0; i < candles.dates.length; i++) {
+        if (candles.dates[i] >= cutoffStr) {
+          startPrice = candles.closes[i];
+          break;
+        }
       }
     }
     // Use the most recent price (extended/after-hours if available) for period change
