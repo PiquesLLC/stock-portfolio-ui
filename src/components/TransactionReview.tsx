@@ -93,7 +93,7 @@ export function TransactionReview({ trades, telemetry, excludedRows, onToggleRow
               <th className="px-2 py-2 text-left">Type</th>
               <th className="px-2 py-2 text-left">Ticker</th>
               <th className="px-2 py-2 text-right">Shares</th>
-              <th className="px-2 py-2 text-right">Price</th>
+              <th className="px-2 py-2 text-right">Avg Cost</th>
               <th className="px-2 py-2 text-right">Total</th>
             </tr>
           </thead>
