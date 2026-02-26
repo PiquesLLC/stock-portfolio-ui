@@ -185,10 +185,36 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
   const DOT_R = 2;
 
   // Downsample + compute coordinates
-  const { linePath, areaPath, coords, points } = useMemo(() => {
-    if (!rawData || rawData.length < 2) return { linePath: '', areaPath: '', coords: [], points: [] as number[] };
+  const { linePath, areaPath, coords, points, isPreMarketStale } = useMemo(() => {
+    if (!rawData || rawData.length < 2) return { linePath: '', areaPath: '', coords: [], points: [] as number[], isPreMarketStale: false };
 
-    const sampled = downsamplePoints(rawData, 48);
+    let filteredData = rawData;
+
+    // For 1D: filter to today's candles only (ET timezone).
+    // During pre-market, the API returns yesterday's full session data —
+    // without this filter, the sparkline renders yesterday's chart.
+    if (period === '1D') {
+      const now = Date.now();
+      const etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+      const todayET = etDateFmt.format(new Date(now));
+      const todayData = rawData.filter(p => etDateFmt.format(new Date(p.time)) === todayET);
+
+      if (todayData.length < 2) {
+        // No today data yet (pre-market hasn't started or no activity).
+        // Show a flat dashed reference line instead of yesterday's chart.
+        const midY = HEIGHT / 2;
+        return {
+          linePath: `M${PAD},${midY} L${WIDTH - PAD},${midY}`,
+          areaPath: '',
+          coords: [{ x: PAD, y: midY }, { x: WIDTH - PAD, y: midY }],
+          points: [],
+          isPreMarketStale: true,
+        };
+      }
+      filteredData = todayData;
+    }
+
+    const sampled = downsamplePoints(filteredData, 48);
     const closes = sampled.map(p => p.close);
 
     const min = Math.min(...closes);
@@ -202,21 +228,19 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
 
     if (period === '1D' && sampled.length > 0) {
       // Time-based x positioning for 1D.
-      // Window: 4 AM ET to min(now, 8 PM ET). During the trading day, the window
-      // extends to "now" so the data fills to the right edge. After hours, it
-      // caps at 8 PM. This avoids the "full chart" illusion early in the day
-      // and keeps the shape proportional to the stock chart.
-      const firstDate = new Date(sampled[0].time);
-      const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(firstDate);
-      const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+      // Always use the full trading day window (4 AM – 8 PM ET) so that
+      // pre-market data fills only a proportional slice of the sparkline,
+      // matching Robinhood's behavior.
+      const now = Date.now();
+      const todayET = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(now));
+      const noonUtc = new Date(`${todayET}T12:00:00Z`);
       const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
       }).format(noonUtc).split(':')[0]);
       const etOffsetMs = (noonEtH - 12) * 3600000;
-      const dayStartMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs; // 4 AM ET
-      const dayEndMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;   // 8 PM ET
-      const now = Date.now();
-      const windowEnd = now <= dayEndMs ? Math.max(now, sampled[sampled.length - 1].time) : dayEndMs;
+      const dayStartMs = new Date(`${todayET}T04:00:00Z`).getTime() - etOffsetMs; // 4 AM ET
+      const dayEndMs = new Date(`${todayET}T20:00:00Z`).getTime() - etOffsetMs;   // 8 PM ET
+      const windowEnd = Math.min(Math.max(now, sampled[sampled.length - 1].time), dayEndMs);
       const dayRange = Math.max(windowEnd - dayStartMs, 1);
 
       // Anchor at left edge (4 AM ET) with first candle's price, then position
@@ -246,7 +270,7 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
     const first = crds[0];
     const area = `${line} L${last.x.toFixed(1)},${HEIGHT} L${first.x.toFixed(1)},${HEIGHT} Z`;
 
-    return { linePath: line, areaPath: area, coords: crds, points: closes };
+    return { linePath: line, areaPath: area, coords: crds, points: closes, isPreMarketStale: false };
   }, [rawData, period]);
 
   // Error state: render nothing
@@ -263,7 +287,7 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
   }
 
   // No data or insufficient data
-  if (!points || points.length < 2) return null;
+  if (!isPreMarketStale && (!points || points.length < 2)) return null;
 
   // Use the parent's positive prop (based on dayChange vs previousClose) for color.
   // This is the authoritative source — sparkline visual direction may differ from
@@ -272,6 +296,29 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
   const strokeColor = dataPositive ? '#00c805' : '#ff5000';
   const gradientId = `sparkGrad-${ticker}-${period}`;
   const lastPt = coords[coords.length - 1];
+
+  // Pre-market with no today data: flat dashed reference line
+  if (isPreMarketStale) {
+    return (
+      <svg
+        width={WIDTH}
+        height={HEIGHT}
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="inline-block flex-shrink-0"
+        style={{ verticalAlign: 'middle' }}
+        aria-hidden="true"
+      >
+        <path
+          d={linePath}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={1}
+          strokeDasharray="2 2"
+          opacity={0.4}
+        />
+      </svg>
+    );
+  }
 
   return (
     <svg
