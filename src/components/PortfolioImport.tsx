@@ -953,10 +953,12 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 </button>
                 <button
                   onClick={handleConfirm}
-                  disabled={includedPositionCount === 0}
+                  disabled={includedPositionCount === 0 && trades.length === 0}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-rh-green text-black font-semibold hover:bg-green-600 disabled:opacity-50 transition-all text-sm"
                 >
-                  Import {includedPositionCount} Holdings
+                  {includedPositionCount > 0
+                    ? `Import ${includedPositionCount} Holdings`
+                    : `Import ${trades.length} Trades`}
                 </button>
               </div>
             </div>

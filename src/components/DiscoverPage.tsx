@@ -134,18 +134,18 @@ function doLayout<T>(
 function getHeatColor(pct: number): string {
   const c = Math.max(-5, Math.min(5, pct));
 
-  // Finviz-style palette: lifted blue-gray base with rich (not neon) green/red
+  // Finviz-style palette: power curve so even ±0.3% shows visible color
   const bR = 62, bG = 66, bB = 78;
 
   if (c > 0) {
-    const t = Math.min(c / 3, 1);
+    const t = Math.pow(Math.min(c / 2.5, 1), 0.55);
     // Dark base → rich green (rgb(18,170,36))
     const r = Math.round(bR + (18 - bR) * t);
     const g = Math.round(bG + (170 - bG) * t);
     const b = Math.round(bB + (36 - bB) * t);
     return `rgb(${r},${g},${b})`;
   } else if (c < 0) {
-    const t = Math.min(Math.abs(c) / 3, 1);
+    const t = Math.pow(Math.min(Math.abs(c) / 2.5, 1), 0.55);
     // Dark base → deep red (rgb(200,58,50))
     const r = Math.round(bR + (200 - bR) * t);
     const g = Math.round(bG + (58 - bG) * t);
@@ -1764,10 +1764,11 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
         <select
           value={sectorFilter}
           onChange={e => setSectorFilter(e.target.value)}
-          className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-gray-100 dark:bg-white/[0.04] text-gray-600 dark:text-white/50 border-0 outline-none cursor-pointer"
+          className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-[#1a1a1e] text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E")` }}
         >
-          <option value="all">All Sectors</option>
-          {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+          <option value="all" className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">All Sectors</option>
+          {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">{s}</option>)}
         </select>
 
         {/* Cap range pills */}
