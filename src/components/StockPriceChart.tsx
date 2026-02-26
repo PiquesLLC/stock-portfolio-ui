@@ -263,31 +263,39 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
     // For non-1D: period buttons set the visible zoom window on the full dataset
     // MAX = full view (null), others = zoom to that period's time range.
     // Set immediately (no animation) to prevent flash of wrong data.
-    if (selectedPeriod === 'MAX' || selectedPeriod === '1D' || selectedPeriod === '1W' || selectedPeriod === '1M' || points.length < 2) {
-      setZoomRange(null);
-    } else {
-      const now = Date.now();
-      let startMs: number;
-      switch (selectedPeriod) {
-        case '3M': startMs = now - 90 * 86400000; break;
-        case 'YTD': startMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
-        case '1Y': startMs = now - 365 * 86400000; break;
-        default: startMs = now - 365 * 86400000; break;
-      }
-      const dataStart = points[0].time;
-      const dataEnd = points[points.length - 1].time;
-      setZoomRange({ startMs: Math.max(dataStart, startMs), endMs: dataEnd });
-    }
+    setZoomRange(getDefaultZoomForPeriod(selectedPeriod, points));
   }, [selectedPeriod, points.length]);
+
+  // Compute the default zoom range for the current period
+  function getDefaultZoomForPeriod(period: ChartPeriod, pts: typeof points): { startMs: number; endMs: number } | null {
+    if (period === 'MAX' || period === '1D' || period === '1W' || period === '1M' || pts.length < 2) {
+      return null;
+    }
+    const now = Date.now();
+    let startMs: number;
+    switch (period) {
+      case '3M': startMs = now - 90 * 86400000; break;
+      case 'YTD': startMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
+      case '1Y': startMs = now - 365 * 86400000; break;
+      default: startMs = now - 365 * 86400000; break;
+    }
+    const dataStart = pts[0].time;
+    const dataEnd = pts[pts.length - 1].time;
+    return { startMs: Math.max(dataStart, startMs), endMs: dataEnd };
+  }
 
   // ESC clears measurement and pinned events
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setPinnedEventIdx(null); setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); setZoomRange(null); }
+      if (e.key === 'Escape') {
+        setPinnedEventIdx(null); setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false);
+        setZoomRange(getDefaultZoomForPeriod(selectedPeriod, pointsRef.current));
+        zoomHistoryRef.current = [];
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [selectedPeriod]);
 
 
   // Click outside chart clears measurement and pinned events
@@ -332,7 +340,13 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
   }, [isDraggingCard, isDraggingSignal]);
 
   // Double-click resets zoom
-  const handleDoubleClick = useCallback(() => { if (zoomRange) setZoomRange(null); }, [zoomRange]);
+  const handleDoubleClick = useCallback(() => {
+    if (zoomRange) {
+      const def = getDefaultZoomForPeriod(selectedPeriod, pointsRef.current);
+      setZoomRange(def);
+      zoomHistoryRef.current = [];
+    }
+  }, [zoomRange, selectedPeriod]);
 
   // ── Drag-to-pan when zoomed ──────────────────────────────────────────
   const handlePanStart = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -2982,12 +2996,35 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
 
         {/* Signal HUD moved to outer wrapper */}
 
-        {/* Zoom navigation buttons */}
-        {zoomRange && (
-          <div className="absolute top-1 left-1 z-20 flex gap-1">
-            {zoomHistoryRef.current.length > 1 && (
+        {/* Zoom navigation buttons — positioned above chart with spacing */}
+        {zoomRange && (() => {
+          const defaultRange = getDefaultZoomForPeriod(selectedPeriod, points);
+          const isZoomedBeyondDefault = defaultRange
+            ? (zoomRange.startMs !== defaultRange.startMs || zoomRange.endMs !== defaultRange.endMs)
+            : true; // if no default range, any zoom is beyond default
+          if (!isZoomedBeyondDefault) return null;
+          return (
+            <div className="absolute -top-6 left-0 z-20 flex gap-1">
+              {zoomHistoryRef.current.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); goBackZoom(); }}
+                  className="px-2 py-0.5 rounded text-[10px] font-medium
+                             text-rh-light-muted dark:text-white/50
+                             bg-gray-100/80 dark:bg-white/[0.06]
+                             hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
+                             border border-gray-200/40 dark:border-white/[0.08]
+                             backdrop-blur transition-all"
+                >
+                  &larr; Back
+                </button>
+              )}
               <button
-                onClick={(e) => { e.stopPropagation(); goBackZoom(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const def = getDefaultZoomForPeriod(selectedPeriod, points);
+                  setZoomRange(def);
+                  zoomHistoryRef.current = [];
+                }}
                 className="px-2 py-0.5 rounded text-[10px] font-medium
                            text-rh-light-muted dark:text-white/50
                            bg-gray-100/80 dark:bg-white/[0.06]
@@ -2995,22 +3032,11 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
                            border border-gray-200/40 dark:border-white/[0.08]
                            backdrop-blur transition-all"
               >
-                &larr; Back
+                Reset Zoom
               </button>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); setZoomRange(null); zoomHistoryRef.current = []; }}
-              className="px-2 py-0.5 rounded text-[10px] font-medium
-                         text-rh-light-muted dark:text-white/50
-                         bg-gray-100/80 dark:bg-white/[0.06]
-                         hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
-                         border border-gray-200/40 dark:border-white/[0.08]
-                         backdrop-blur transition-all"
-            >
-              Reset Zoom
-            </button>
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {/* No data overlay */}
         {!hasData && (
