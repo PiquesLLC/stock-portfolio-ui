@@ -568,27 +568,48 @@ function Treemap({
                   <clipPath id={`slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')}`}>
                     <rect x={sr.x + 2} y={sr.y} width={Math.max(0, sr.w - 4)} height={SECTOR_LABEL_H + 2} />
                   </clipPath>
-                  <text
-                    x={sr.x + SECTOR_GAP + 7}
-                    y={sr.y + SECTOR_LABEL_H - 4}
-                    fontSize={sr.w > 200 ? 10.5 : sr.w > 100 ? 9 : sr.w > 60 ? 7 : sr.w > 30 ? 5.5 : 4}
-                    fontWeight={800}
-                    fill={isLabelHovered
-                      ? (isDark ? '#fff' : 'rgba(0,0,0,0.95)')
-                      : (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)')}
-                    clipPath={`url(#slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')})`}
-                    style={{
-                      pointerEvents: 'none',
-                      fontFamily: 'system-ui, -apple-system, sans-serif',
-                      textTransform: 'uppercase',
-                      letterSpacing: sr.w > 60 ? '0.06em' : '0.02em',
-                      transition: 'fill 0.15s',
-                    }}
-                  >
-                    {isThemesDrilldown && drilldownTheme
-                      ? `${drilldownTheme.subtheme}`
-                      : sr.w < 30 ? sr.sector.name.slice(0, 3) : sr.w < 60 ? sr.sector.name.slice(0, 7) : sr.sector.name}
-                  </text>
+                  {(() => {
+                    const rawLabel = isThemesDrilldown && drilldownTheme
+                      ? drilldownTheme.subtheme
+                      : sr.sector.name;
+                    const labelPad = SECTOR_GAP + 7 + 4; // left padding + right margin
+                    const availW = sr.w - labelPad;
+
+                    // Fit full label: compute font size from available width.
+                    // 0.75 accounts for uppercase bold + letter-spacing. Max 8px to
+                    // keep labels compact (matches the 70 % zoom aesthetic).
+                    const CHAR_W_RATIO = 0.75;
+                    const idealSize = availW / (rawLabel.length * CHAR_W_RATIO);
+                    const labelFontSize = Math.min(8, Math.max(3.5, idealSize));
+
+                    // Last-resort truncation when even min font overflows
+                    const maxCharsAtSize = Math.max(3, Math.floor(availW / (labelFontSize * CHAR_W_RATIO)));
+                    const labelText = rawLabel.length > maxCharsAtSize
+                      ? rawLabel.slice(0, maxCharsAtSize).trimEnd()
+                      : rawLabel;
+
+                    return (
+                      <text
+                        x={sr.x + SECTOR_GAP + 7}
+                        y={sr.y + SECTOR_LABEL_H - 4}
+                        fontSize={labelFontSize}
+                        fontWeight={800}
+                        fill={isLabelHovered
+                          ? (isDark ? '#fff' : 'rgba(0,0,0,0.95)')
+                          : (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)')}
+                        clipPath={`url(#slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')})`}
+                        style={{
+                          pointerEvents: 'none',
+                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                          textTransform: 'uppercase',
+                          letterSpacing: labelFontSize > 5.5 ? '0.04em' : '0.01em',
+                          transition: 'fill 0.15s',
+                        }}
+                      >
+                        {labelText}
+                      </text>
+                    );
+                  })()}
                 </g>
               );
             })()}

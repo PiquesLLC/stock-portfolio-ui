@@ -26,6 +26,7 @@ import { useToast } from './context/ToastContext';
 import { Holding } from './types';
 import type Hls from 'hls.js';
 import Starfield from './components/Starfield';
+import { MarketStrip } from './components/MarketStrip';
 import { MiniPlayer } from './components/MiniPlayer';
 import { Term } from './components/Term';
 
@@ -1268,6 +1269,11 @@ export default function App() {
         }} />
       </div>
       </div>
+
+      {/* Market indices strip — portfolio, discover, insights only */}
+      {!viewingStock && !creatorView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
+        <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
+      )}
 
       {/* Pull-to-refresh indicator */}
       <div
