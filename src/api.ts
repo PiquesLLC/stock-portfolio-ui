@@ -96,10 +96,14 @@ async function tryRefreshToken(): Promise<boolean> {
       authDead = false;
       return true;
     }
-    authDead = true;
+    // Only mark auth dead on definitive auth failures (4xx), not server errors
+    if (res.status >= 400 && res.status < 500) {
+      authDead = true;
+    }
     return false;
   } catch {
-    authDead = true;
+    // Network error (server down, timeout) — don't kill auth,
+    // the session may still be valid once the server comes back
     return false;
   }
 }
@@ -139,8 +143,10 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     const refreshed = await refreshOnce();
     if (refreshed) {
       response = await doFetch();
-    } else if (onAuthExpired) {
-      // Refresh failed — session is dead, kick to login
+    } else if (authDead && onAuthExpired) {
+      // Refresh failed with a definitive auth error (4xx) — session is dead, kick to login.
+      // If refresh failed due to network error, authDead stays false and we
+      // don't log the user out — their session may still be valid.
       if (isSameOriginApi()) {
         onAuthExpired();
       } else {
