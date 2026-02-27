@@ -906,6 +906,17 @@ export async function getUserPortfolio(userId: string): Promise<Portfolio> {
   return fetchJson<Portfolio>(`${API_BASE_URL}/users/${userId}/portfolio`);
 }
 
+// Username lookup for shareable profile URLs (public, no auth required)
+export async function getUserByUsername(username: string): Promise<{ id: string; username: string; displayName: string; profilePublic: boolean } | null> {
+  try {
+    return await fetchJson<{ id: string; username: string; displayName: string; profilePublic: boolean }>(
+      `${API_BASE_URL}/users/by-username/${encodeURIComponent(username)}`
+    );
+  } catch {
+    return null;
+  }
+}
+
 // Social endpoints
 export async function getUserProfile(userId: string, viewerId?: string): Promise<UserProfile> {
   const params = viewerId ? `?viewerId=${viewerId}` : '';

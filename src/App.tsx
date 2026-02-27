@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Portfolio, Settings, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus } from './api';
+import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus, getUserByUsername } from './api';
 import { REFRESH_INTERVAL } from './config';
 import { HoldingsTable } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -155,6 +155,36 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
 
 const savedInitialNav = parseHash();
 
+// Detect shareable profile URL: nalaai.com/<username>
+// Strict guard: single path segment, no file extension, valid username chars,
+// not a reserved path. Only true username candidates hit the API.
+// This set MUST stay aligned with RESERVED_USERNAMES in auth.validators.ts.
+const _pathname = window.location.pathname;
+const _pathSegments = _pathname.split('/').filter(Boolean);
+const _RESERVED_PATHS = new Set([
+  // Build / dev / static
+  'assets', 'src', 'node_modules',
+  // API route prefixes (mirrored from auth.validators.ts)
+  'auth', 'health', 'market', 'portfolio', 'dividends', 'settings', 'insights',
+  'goals', 'intelligence', 'leaderboard', 'users', 'social', 'transactions',
+  'alerts', 'analyst', 'milestones', 'fundamentals', 'watchlists', 'creator',
+  'referral', 'notifications', 'plaid', 'billing',
+  // UI tab names / routes
+  'profile', 'discover', 'feed', 'watch', 'pricing', 'macro', 'nala',
+  // Common reserved words
+  'api', 'www', 'app', 'help', 'support', 'about', 'login', 'signup', 'register',
+  'account', 'dashboard', 'home', 'index', 'privacy', 'terms', 'tos',
+  'admin', 'system', 'favicon', 'robots', 'sitemap',
+]);
+const _candidate = _pathSegments.length === 1 ? _pathSegments[0] : null;
+const _pendingUsername: string | null =
+  _candidate &&
+  !_RESERVED_PATHS.has(_candidate.toLowerCase()) &&
+  !/\.\w+$/.test(_candidate) &&
+  /^[a-zA-Z0-9_]{3,20}$/.test(_candidate)
+    ? _candidate
+    : null;
+
 export default function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout, verifyEmail, resendVerification, refreshUser } = useAuth();
   const { showToast } = useToast();
@@ -250,6 +280,27 @@ export default function App() {
       showToast('Checkout cancelled. You can upgrade anytime.', 'info');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Resolve shareable profile URL: /username → profile view ---
+  useEffect(() => {
+    if (!_pendingUsername) return;
+    getUserByUsername(_pendingUsername).then((found) => {
+      if (!found) {
+        // Not a valid username — clean the URL and fall through to normal app
+        window.history.replaceState(null, '', '/');
+        return;
+      }
+      // If profile is private and visitor is not the owner, don't route into a broken state
+      if (!found.profilePublic && found.id !== currentUserId) {
+        window.history.replaceState(null, '', '/');
+        return;
+      }
+      setViewingProfileId(found.id);
+      setActiveTab('profile');
+      // Replace clean URL with hash-based navigation
+      window.history.replaceState(null, '', '/#profile=' + found.id);
+    });
+  }, [currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);

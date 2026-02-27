@@ -618,7 +618,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                     if (!res.ok) throw new Error('fetch failed');
                     const blob = await res.blob();
                     const file = new File([blob], `nala-${profile?.username ?? 'profile'}.png`, { type: 'image/png' });
-                    const profileUrl = `${window.location.origin}?profile=${userId}`;
+                    const profileUrl = `${window.location.origin}/${profile?.username ?? userId}`;
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
                       await navigator.share({ files: [file], title: `${profile?.displayName ?? 'Portfolio'} on Nala`, url: profileUrl });
@@ -634,7 +634,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                     }
                   } catch {
                     // Final fallback: just copy URL
-                    navigator.clipboard.writeText(`${window.location.origin}?profile=${userId}`);
+                    navigator.clipboard.writeText(`${window.location.origin}/${profile?.username ?? userId}`);
                     showToast('Link copied!');
                   }
                 }}
