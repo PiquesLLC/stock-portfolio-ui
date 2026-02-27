@@ -44,11 +44,15 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
     fetchData();
   }, [fetchData, refreshTrigger]);
 
-  // Use chart return when available so "You" matches the chart exactly
-  const youPct = chartReturnPct != null ? Math.round(chartReturnPct * 100) / 100 : (data?.simpleReturnPct ?? data?.twrPct ?? null);
+  // Use chart return when available so "You" matches the chart exactly.
+  // For non-1D periods, only use chartReturnPct (don't fall back to API) because
+  // the API performance endpoint doesn't account for snapshot-only coverage.
+  const youPct = chartReturnPct != null
+    ? Math.round(chartReturnPct * 100) / 100
+    : (window === '1D' ? (data?.simpleReturnPct ?? data?.twrPct ?? null) : null);
   const effectiveAlpha = (youPct !== null && data?.benchmarkReturnPct != null)
     ? Math.round((youPct - data.benchmarkReturnPct) * 100) / 100
-    : data?.alphaPct ?? null;
+    : null;
 
   const beating = effectiveAlpha !== null && effectiveAlpha >= 0;
   const alphaColor = effectiveAlpha === null
@@ -98,7 +102,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
               {fmt(effectiveAlpha)}
             </span>
             <span className={`text-xs font-medium ${beating ? 'text-rh-green/70' : effectiveAlpha !== null && effectiveAlpha < 0 ? 'text-rh-red/70' : 'text-rh-light-muted/40 dark:text-rh-muted/40'}`}>
-              {beating ? 'outperforming' : 'trailing'} {windowLabel}
+              {effectiveAlpha !== null ? (beating ? 'outperforming' : 'trailing') : 'vs benchmark'} {windowLabel}
             </span>
           </div>
 

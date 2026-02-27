@@ -938,6 +938,7 @@ export interface UserSettings {
   bio?: string | null;
   dripEnabled: boolean;
   cashInterestRate?: number | null;
+  ytdBaselineValue?: number | null;
   createdAt: string;
 }
 
@@ -950,6 +951,7 @@ export interface UserSettingsUpdate {
   bio?: string | null;
   dripEnabled?: boolean;
   cashInterestRate?: number | null;
+  ytdBaselineValue?: number | null;
 }
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {

@@ -692,6 +692,7 @@ export interface PortfolioChartData {
   periodStartValue: number;
   period: PortfolioChartPeriod;
   source: 'snapshot' | 'model' | 'hiRes' | 'daily';
+  insufficientData?: boolean;
   estimated?: boolean;
   confidenceThreshold?: number;
   // Debug fields — only present when ?debug=1

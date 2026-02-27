@@ -448,9 +448,12 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   );
 
   // Emit period return to parent (for benchmark widget consistency)
-  const periodReturnPct = periodStartValue > 0
-    ? ((currentValue - periodStartValue) / periodStartValue) * 100
-    : null;
+  // When data is insufficient, emit null so benchmark widget shows dashes
+  const periodReturnPct = chartData?.insufficientData ? null : (
+    periodStartValue > 0
+      ? ((currentValue - periodStartValue) / periodStartValue) * 100
+      : null
+  );
   useEffect(() => {
     onReturnChange?.(periodReturnPct != null ? Math.round(periodReturnPct * 100) / 100 : null);
   }, [periodReturnPct, onReturnChange]);
@@ -1126,6 +1129,17 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       {/* Chart — MIDGROUND: recessed, context only */}
       <div className="relative w-full chart-layer chart-fade-in" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
+        {/* Insufficient data state — shown when API returns insufficientData for non-1D periods */}
+        {!loading && chartData?.insufficientData && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-gray-300 dark:text-white/20 mb-3">
+              <path d="M3 17L9 11L13 15L21 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M17 7H21V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <p className="text-sm font-medium text-gray-400 dark:text-white/30">Not enough data for this period yet</p>
+            <p className="text-xs text-gray-300 dark:text-white/15 mt-1">Your chart will build automatically over time</p>
+          </div>
+        )}
         {loading && (
           <div className="absolute inset-0 z-10">
             <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full h-full" preserveAspectRatio="none">

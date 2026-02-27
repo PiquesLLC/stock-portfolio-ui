@@ -36,6 +36,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
   const [holdingsVisibility, setHoldingsVisibility] = useState<'all' | 'top5' | 'sectors' | 'hidden'>('all');
   const [dripEnabled, setDripEnabled] = useState(false);
   const [cashInterestRate, setCashInterestRate] = useState('');
+  const [ytdBaseline, setYtdBaseline] = useState('');
 
   // Theme from localStorage (managed separately from API)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -128,6 +129,7 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
           setHoldingsVisibility(data.holdingsVisibility);
           setDripEnabled(data.dripEnabled);
           setCashInterestRate(data.cashInterestRate != null ? String(data.cashInterestRate) : '');
+          setYtdBaseline(data.ytdBaselineValue != null ? String(data.ytdBaselineValue) : '');
         })
         .catch((err) => {
           setError(err.message || 'Failed to load settings');
@@ -199,6 +201,9 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
       if (dripEnabled !== settings.dripEnabled) updates.dripEnabled = dripEnabled;
       const rateVal = cashInterestRate ? parseFloat(cashInterestRate) : null;
       if (rateVal !== (settings.cashInterestRate ?? null)) updates.cashInterestRate = rateVal;
+      const parsedBaseline = parseFloat(ytdBaseline);
+      const baselineVal = ytdBaseline && Number.isFinite(parsedBaseline) ? parsedBaseline : null;
+      if (baselineVal !== (settings.ytdBaselineValue ?? null)) updates.ytdBaselineValue = baselineVal;
 
       // Save local preferences
       localStorage.setItem('theme', theme);
@@ -537,6 +542,28 @@ export function AccountSettingsModal({ userId, isOpen, onClose, onSave, healthSt
                         className="w-full px-3 py-1.5 pr-7 text-sm bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-lg text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">%</span>
+                    </div>
+                  </div>
+
+                  {/* Jan 1 Portfolio Value */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <div>
+                        <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Jan 1 Portfolio Value</span>
+                        <p className="text-xs text-rh-light-muted dark:text-rh-muted">Your total portfolio value on January 1st — enables accurate YTD returns</p>
+                      </div>
+                    </div>
+                    <div className="relative w-40">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={ytdBaseline}
+                        onChange={e => setYtdBaseline(e.target.value)}
+                        placeholder="e.g. 125000"
+                        className="w-full px-3 py-1.5 pl-7 text-sm bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-lg text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20"
+                      />
                     </div>
                   </div>
                 </div>
