@@ -560,7 +560,7 @@ export default function App() {
   const lastTotalAssets = useRef<number | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || authLoading) return;
     try {
       const portfolioData = await getPortfolio();  // Always use system/default portfolio
       const settingsData = await getSettings();
@@ -613,11 +613,11 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [portfolio, currentUserId]);
+  }, [portfolio, currentUserId, authLoading]);
   fetchDataRef.current = fetchData;
 
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId || authLoading) return;
     fetchData();
     const interval = setInterval(fetchData, REFRESH_INTERVAL);
     return () => clearInterval(interval);
