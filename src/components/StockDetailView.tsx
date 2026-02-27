@@ -60,6 +60,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [data, setData] = useState<StockDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [quickLoaded, setQuickLoaded] = useState(false); // Price loaded, details pending
+  const [candlesLoaded, setCandlesLoaded] = useState(false); // Phase 2 candles loaded
   const [error, setError] = useState<string | null>(null);
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(() => {
     const saved = localStorage.getItem('stockChartPeriod');
@@ -337,6 +338,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
   // Initial fetch — progressive loading: quote + chart first (fast), then full details
   const fetchInitial = useCallback(async () => {
+    setCandlesLoaded(false);
     try {
       // PHASE 1: Quick load - quote + chart candles via Yahoo Finance (all fast, no queue)
       const [quoteResult, intraday, hourly1W, hourly1M] = await Promise.all([
@@ -372,6 +374,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       setData(result);
       setIntradayCandles(intraday.length > 0 ? intraday : intradayCandles);
       setQuickLoaded(true);
+      setCandlesLoaded(true);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load stock details');
@@ -776,6 +779,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         <StockPriceChart
           ticker={ticker}
           candles={data.candles}
+          candlesLoaded={candlesLoaded}
           intradayCandles={intradayCandles}
           hourlyCandles={hourlyCandles}
           livePrices={livePrices}

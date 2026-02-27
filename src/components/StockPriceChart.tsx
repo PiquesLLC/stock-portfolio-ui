@@ -33,6 +33,7 @@ import { computeChartGroups } from '../utils/chart-groups';
 interface Props {
   ticker?: string;
   candles: StockCandles | null;
+  candlesLoaded?: boolean; // true after Phase 2 historical candles load completes
   intradayCandles?: IntradayCandle[];
   hourlyCandles?: IntradayCandle[];
   livePrices: { time: string; price: number }[];
@@ -58,7 +59,7 @@ interface Props {
   overrideLineColor?: string; // Force main line to a specific color (used by Compare page)
 }
 
-export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons, overrideLineColor }: Props) {
+export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons, overrideLineColor }: Props) {
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -3111,7 +3112,7 @@ export function StockPriceChart({ ticker, candles, intradayCandles, hourlyCandle
       <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
         <div className="flex gap-1">
           {PERIODS.map(period => {
-            const disabled = period !== '1D' && (!candles || candles.closes.length === 0);
+            const disabled = period !== '1D' && candlesLoaded === true && (!candles || candles.closes.length === 0);
             return (
               <button
                 key={period}
