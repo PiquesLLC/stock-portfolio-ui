@@ -2050,6 +2050,135 @@ export async function reportUser(
 
 // ── Themes Heatmap ──────────────────────────────────────────────
 
-export async function getThemesHeatmap(): Promise<import('./types').HeatmapResponse> {
-  return fetchJson(`${API_BASE_URL}/market/themes/heatmap`);
+export async function getThemesHeatmap(period: HeatmapPeriod = '1D'): Promise<import('./types').HeatmapResponse> {
+  return fetchJson(`${API_BASE_URL}/market/themes/heatmap?period=${period}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NALA AI Deep Research
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface DeepResearchReport {
+  executiveSummary: string;
+  bullCase: string;
+  baseCase: string;
+  bearCase: string;
+  keyRisks: string[];
+  keyCatalysts: string[];
+  valuation: {
+    method: string;
+    comparables: string[];
+    summary: string;
+  };
+  citations: Array<{
+    title: string;
+    url: string;
+    snippet: string;
+  }>;
+  confidenceNotes: string;
+}
+
+export interface DeepResearchJobSummary {
+  id: string;
+  ticker: string | null;
+  prompt: string;
+  researchType: string;
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface ThinkingSummary {
+  text: string;
+  timestamp: string;
+  index: number;
+}
+
+export interface DeepResearchJobStatus {
+  id: string;
+  status: string;
+  researchType: string;
+  ticker: string | null;
+  submittedAt: string | null;
+  completedAt: string | null;
+  pollCount: number;
+  estimatedTimeRemainingMs: number | null;
+  errorMessage: string | null;
+  thinkingSummaries: ThinkingSummary[];
+}
+
+export interface DeepResearchJobResult {
+  id: string;
+  status: string;
+  ticker: string | null;
+  researchType: string;
+  report: DeepResearchReport | null;
+  resultText: string | null;
+  parseError: string | null;
+  costTelemetry: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    searchCalls: number | null;
+    costUsdEstimate: number | null;
+    modelUsed: string | null;
+  };
+  completedAt: string | null;
+}
+
+export interface DeepResearchListResponse {
+  jobs: DeepResearchJobSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function startDeepResearch(
+  prompt: string,
+  opts?: { ticker?: string; researchType?: string; clientRequestId?: string }
+): Promise<{ jobId: string; status: string }> {
+  return fetchJson(`${API_BASE_URL}/nala/deep-research/start`, {
+    method: 'POST',
+    body: JSON.stringify({ prompt, ...opts }),
+  });
+}
+
+export async function listDeepResearchJobs(
+  opts?: { page?: number; limit?: number; status?: string }
+): Promise<DeepResearchListResponse> {
+  const qs = new URLSearchParams();
+  if (opts?.page) qs.set('page', String(opts.page));
+  if (opts?.limit) qs.set('limit', String(opts.limit));
+  if (opts?.status) qs.set('status', opts.status);
+  const query = qs.toString();
+  return fetchJson<DeepResearchListResponse>(
+    `${API_BASE_URL}/nala/deep-research${query ? '?' + query : ''}`
+  );
+}
+
+export async function getDeepResearchStatus(jobId: string): Promise<DeepResearchJobStatus> {
+  return fetchJson<DeepResearchJobStatus>(
+    `${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/status`
+  );
+}
+
+export async function getDeepResearchResult(jobId: string): Promise<DeepResearchJobResult> {
+  return fetchJson<DeepResearchJobResult>(
+    `${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/result`
+  );
+}
+
+export async function submitDeepResearchFollowUp(
+  jobId: string,
+  question: string
+): Promise<{ jobId: string; status: string }> {
+  return fetchJson(`${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/followup`, {
+    method: 'POST',
+    body: JSON.stringify({ question }),
+  });
+}
+
+export async function cancelDeepResearch(jobId: string): Promise<{ id: string; status: string }> {
+  return fetchJson(`${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/cancel`, {
+    method: 'POST',
+  });
 }

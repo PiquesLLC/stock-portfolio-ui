@@ -1970,7 +1970,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
       try {
         if (!cached) setLoading(true);
         const resp = index === 'THEMES'
-          ? await getThemesHeatmap()
+          ? await getThemesHeatmap(period)
           : await getMarketHeatmap(period, index);
         if (!cancelled) {
           setData(resp);
@@ -2028,7 +2028,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
           </h2>
           <p className="text-xs text-rh-light-muted dark:text-rh-muted">
             {index === 'THEMES'
-              ? `${allStocks.length} subthemes across ${data.sectors.length} themes — colored by daily change`
+              ? `${allStocks.length} subthemes across ${data.sectors.length} themes — colored by ${PERIOD_LABELS[period]}`
               : `${allStocks.length} stocks across ${data.sectors.length} sectors — sized by market cap, colored by ${PERIOD_LABELS[period]}`
             }
           </p>
@@ -2059,28 +2059,24 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
           ))}
         </div>
 
-        {index !== 'THEMES' && (
-          <>
-            <div className="hidden sm:block w-px h-5 bg-rh-light-border/30 dark:bg-rh-border/30" />
+        <div className="hidden sm:block w-px h-5 bg-rh-light-border/30 dark:bg-rh-border/30" />
 
-            {/* Period selector */}
-            <div className="flex items-center gap-1">
-              {PERIODS.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setPeriod(p.id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
-                    ${period === p.id
-                      ? 'bg-rh-green text-black'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-white/5'
-                    }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        {/* Period selector */}
+        <div className="flex items-center gap-1">
+          {PERIODS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
+                ${period === p.id
+                  ? 'bg-rh-green text-black'
+                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-white/5'
+                }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div ref={treemapRef}>
