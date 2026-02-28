@@ -631,6 +631,36 @@ input[type="number"] {
   background: rgba(0, 0, 0, 0.15);
 }
 
+/* Glassmorphic scrollbar — landing page */
+.scrollbar-glass {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+.scrollbar-glass::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollbar-glass::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-glass::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.scrollbar-glass:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.scrollbar-glass::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    NALA AI Deep Research
    ═══════════════════════════════════════════════════════════════ */

@@ -14,7 +14,7 @@ const SHOW_ROADMAP = false;
 const ROADMAP = [
   {
     quarter: 'Q1 2026', theme: 'Foundation', status: 'SHIPPED' as const,
-    items: ['Portfolio tracking & live charts', 'AI Intelligence & daily brief', 'Monthly competition with cash prizes', 'Market heatmap & stock screener'],
+    items: ['Portfolio tracking & live charts', 'AI Intelligence & daily brief', 'Social activity feed & leaderboard', 'Market heatmap & stock screener'],
   },
   {
     quarter: 'Q2 2026', theme: 'Social & Intelligence', status: 'IN PROGRESS' as const,
@@ -38,25 +38,21 @@ const CheckIcon = ({ className = '' }: { className?: string }) => (<svg classNam
 const sf = { fontFamily: "'DM Serif Display', Georgia, serif" };
 const noScroll = { scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties;
 
-const FEATURES = {
-  primary: [
-    { id: 0, src: '/screenshots/creator-profile.png', label: '01 — Follow', title: 'Follow the smartest investors', desc: 'See their holdings, track their performance, and subscribe to unlock their full strategy. Social investing, built for the next generation.' },
-    { id: 1, src: '/screenshots/deep-research.png', label: '02 — Research', title: 'Institutional-grade AI research', desc: 'Ask any investment question. NALA AI delivers comprehensive research reports — in minutes, not hours.' },
-  ],
-  secondary: [
-    { id: 2, src: '/screenshots/creators-marketplace.png', title: 'Discover top creators', desc: 'Browse verified creators ranked by real performance. Free or paid — you choose who to follow.' },
-    { id: 3, src: '/screenshots/heatmap-new.png', title: 'See where the money moves', desc: 'Visual sector and market-cap breakdown. Spot rotations at a glance.' },
-    { id: 4, src: '/screenshots/creator-dashboard.png', title: 'Monetize your strategy', desc: 'Built for finfluencers. Track subscribers, revenue, and payouts — 80% goes to you.' },
-  ],
-};
-const ALL_FEATURES = [...FEATURES.primary, ...FEATURES.secondary];
+const FEATURES = [
+  { id: 0, src: '/screenshots/creator-profile.png', label: '01 — Follow', title: 'Follow the smartest investors', desc: 'See their holdings, track their performance, and subscribe to unlock their full strategy. Social investing, built for the next generation.' },
+  { id: 1, src: '/screenshots/creator-dashboard.png', label: '02 — Monetize', title: 'Monetize your strategy', desc: 'Built for finfluencers. Track subscribers, revenue, and payouts — 80% goes to you.' },
+  { id: 2, src: '/screenshots/creators-marketplace.png', label: '03 — Discover', title: 'Discover top creators', desc: 'Browse verified creators ranked by real performance. Free or paid — you choose who to follow.' },
+  { id: 3, src: '/screenshots/activity.jpg', label: '04 — Activity', title: 'Real-time activity feed', desc: 'See what the community is buying, selling, and watching — in real time. Stay connected to the market pulse.' },
+  { id: 4, src: '/screenshots/deep-research.png', label: '05 — Research', title: 'Institutional-grade AI research', desc: 'Ask any investment question. NALA AI delivers comprehensive research reports — in minutes, not hours.' },
+  { id: 5, src: '/screenshots/heatmap-new.png', label: '06 — Heatmap', title: 'See where the money moves', desc: 'Visual sector and market-cap breakdown. Spot rotations at a glance.' },
+];
+const ALL_FEATURES = FEATURES;
 
 const FAQ_ITEMS = [
-  { q: 'What is Nala?', a: 'Nala is a social investing platform with AI-powered portfolio intelligence. Track your holdings, compete on the leaderboard, and win monthly cash prizes — all in one place.' },
-  { q: 'How do monthly competitions work?', a: 'Every month, we track portfolio performance across all participants. The top 3 performers win cash prizes ($1,000, $500, $250). Performance is verified and calculated automatically.' },
+  { q: 'What is Nala?', a: 'Nala is a social investing platform with AI-powered portfolio intelligence. Track your holdings, follow top creators, and get deep research — all in one place.' },
   { q: 'Is the activity feed public?', a: 'You control your privacy. You can share trades, milestones, and performance — or keep your portfolio completely private. It\'s up to you.' },
   { q: 'Do you store my brokerage credentials?', a: 'Never. Brokerage linking is handled securely through Plaid with AES-256 encryption. We never have access to your login credentials.' },
-  { q: 'Is Nala free?', a: 'Yes! The free plan includes portfolio tracking, charts, heatmap, leaderboard access, and the activity feed. Upgrade for AI features, unlimited holdings, and competition entry.' },
+  { q: 'Is Nala free?', a: 'Yes! The free plan includes portfolio tracking, charts, heatmap, leaderboard access, and the activity feed. Upgrade for AI features, unlimited holdings, and creator subscriptions.' },
 ];
 
 export function LandingPage() {
@@ -348,7 +344,7 @@ export function LandingPage() {
       {/* ═══ SCROLLABLE CONTENT ═══ */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-glass"
         style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -376,7 +372,7 @@ export function LandingPage() {
                     {[
                       { src: '/screenshots/chart-spy.jpg', alt: 'Portfolio chart with SPY comparison' },
                       { src: '/screenshots/heatmap.jpg', alt: 'Market Heatmap' },
-                      { src: '/screenshots/leaderboard.jpg', alt: 'Monthly competition leaderboard' },
+                      { src: '/screenshots/leaderboard.jpg', alt: 'Investor leaderboard' },
                       { src: '/screenshots/activity.jpg', alt: 'Community activity feed' },
                       { src: '/screenshots/daily-brief.jpg', alt: 'Daily AI Brief' },
                     ].map((s, i) => (
@@ -397,7 +393,7 @@ export function LandingPage() {
               The market is public.<br />Your strategy <em className="italic">should be too.</em>
             </h1>
             <p className="text-sm sm:text-base text-white/30 max-w-lg mx-auto mb-8 leading-relaxed">
-              Track your portfolio, compete with thousands of investors, and win monthly cash prizes — powered by AI.
+              Track your portfolio, follow top investors, and get AI-powered insights — all in one place.
             </p>
             <div className="flex items-center justify-center gap-3">
               <button onClick={() => scrollToRef(featuresRef)} className="px-6 py-2.5 text-[13px] text-white/60 font-medium border border-white/[0.12] rounded-full hover:border-white/25 hover:text-white transition-all">Learn More</button>
@@ -406,50 +402,8 @@ export function LandingPage() {
           </div>
 
           <div className="flex items-center justify-center gap-8 sm:gap-16 mt-14 sm:mt-28 pt-10 border-t border-white/[0.04]">
-            {[{ v: '10,000+', l: 'Investors' }, { v: '$21,000', l: 'Prizes Awarded' }, { v: '5', l: 'AI Models' }].map(s => (
+            {[{ v: '10,000+', l: 'Investors' }, { v: '50+', l: 'Creators' }, { v: '5', l: 'AI Models' }].map(s => (
               <div key={s.l} className="text-center"><div className="text-lg sm:text-xl font-bold text-white/80">{s.v}</div><div className="text-[10px] text-white/20 mt-0.5">{s.l}</div></div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ MONTHLY COMPETITION ═══ */}
-      <section className="py-20 sm:py-28 px-5 sm:px-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-4 text-white/95" style={sf}>Win <em className="italic">cash & prizes</em> every month</h2>
-            <p className="text-sm sm:text-base text-white/30 max-w-lg mx-auto">Track your real portfolio performance. The top performers each month take home real cash prizes.</p>
-          </div>
-
-          {/* Prize tiers */}
-          <div className="grid grid-cols-3 gap-4 sm:gap-6 max-w-2xl mx-auto mb-16">
-            {[
-              { place: '2nd Place', prize: '$500', emoji: '🥈', h: 'h-32 sm:h-40', bg: 'from-slate-400/10 to-slate-600/5', border: 'border-slate-400/15' },
-              { place: '1st Place', prize: '$1,000', emoji: '🥇', h: 'h-40 sm:h-52', bg: 'from-yellow-400/15 to-amber-600/5', border: 'border-yellow-400/20' },
-              { place: '3rd Place', prize: '$250', emoji: '🥉', h: 'from-amber-600/10 to-amber-800/5', bg: 'from-amber-600/10 to-amber-800/5', border: 'border-amber-600/15' },
-            ].map((tier, i) => (
-              <div key={tier.place} className={`flex flex-col items-center justify-end ${i === 1 ? '' : 'pt-8 sm:pt-12'}`}>
-                <div className={`w-full rounded-2xl border ${tier.border} bg-gradient-to-b ${tier.bg} flex flex-col items-center justify-center ${i === 1 ? 'h-40 sm:h-52' : 'h-32 sm:h-40'} transition-all`}>
-                  <span className="text-3xl sm:text-4xl mb-2">{tier.emoji}</span>
-                  <div className="text-xl sm:text-2xl font-bold text-white/90">{tier.prize}</div>
-                  <div className="text-[10px] sm:text-[11px] text-white/30 mt-1">{tier.place}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* How it works */}
-          <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            {[
-              { step: '01', title: 'Track your portfolio', desc: 'Add your real holdings or connect your brokerage via Plaid. Your performance is tracked automatically.' },
-              { step: '02', title: 'Compete monthly', desc: 'Your portfolio return is calculated each month. Climb the leaderboard and watch your rank in real time.' },
-              { step: '03', title: 'Win cash prizes', desc: 'Top 3 performers each month win real cash prizes deposited directly to their account.' },
-            ].map(s => (
-              <div key={s.step} className="text-center sm:text-left">
-                <div className="text-[11px] text-rh-green font-bold mb-2">{s.step}</div>
-                <h3 className="text-[15px] font-semibold text-white/70 mb-2">{s.title}</h3>
-                <p className="text-[12px] text-white/25 leading-relaxed">{s.desc}</p>
-              </div>
             ))}
           </div>
         </div>
@@ -464,73 +418,33 @@ export function LandingPage() {
             <p className="text-sm sm:text-base text-white/30 max-w-xl mx-auto">Follow top-performing investors, run AI-powered research, and see what Wall Street won't show you.</p>
           </div>
 
-          {/* Primary Feature 1 — Social Trading */}
-          <div className="mb-16 sm:mb-20">
-            <div className="text-[11px] font-bold text-rh-green tracking-wider mb-4 text-center lg:text-left">{FEATURES.primary[0].label}</div>
-            <div className="relative group cursor-pointer" onClick={() => setLightbox(0)}>
-              <div className="absolute -inset-4 bg-rh-green/[0.02] rounded-3xl blur-[60px] pointer-events-none" />
-              <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden transition-colors duration-500 group-hover:border-white/[0.12]">
-                <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-                <div className="grid lg:grid-cols-2">
-                  {/* Copy */}
-                  <div className="flex flex-col justify-center p-8 sm:p-10 lg:p-12 order-2 lg:order-1">
-                    <h3 className="text-xl sm:text-2xl font-semibold text-white/90 mb-3" style={sf}>{FEATURES.primary[0].title}</h3>
-                    <p className="text-sm sm:text-[15px] text-white/35 leading-relaxed">{FEATURES.primary[0].desc}</p>
-                  </div>
-                  {/* Screenshot */}
-                  <div className="relative overflow-hidden order-1 lg:order-2">
-                    <img src={FEATURES.primary[0].src} alt={FEATURES.primary[0].title} className="w-full h-full max-h-[400px] lg:max-h-none object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
-                    <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0a0a0a] to-transparent hidden lg:block pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Primary Feature 2 — AI Deep Research (flipped) */}
-          <div className="mb-16 sm:mb-20">
-            <div className="text-[11px] font-bold text-rh-green tracking-wider mb-4 text-center lg:text-left">{FEATURES.primary[1].label}</div>
-            <div className="relative group cursor-pointer" onClick={() => setLightbox(1)}>
-              <div className="absolute -inset-4 bg-rh-green/[0.02] rounded-3xl blur-[60px] pointer-events-none" />
-              <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden transition-colors duration-500 group-hover:border-white/[0.12]">
-                <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-                <div className="grid lg:grid-cols-2">
-                  {/* Screenshot (left on desktop) */}
-                  <div className="relative overflow-hidden">
-                    <img src={FEATURES.primary[1].src} alt={FEATURES.primary[1].title} className="w-full h-full max-h-[400px] lg:max-h-none object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
-                    <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0a0a0a] to-transparent hidden lg:block pointer-events-none" />
-                  </div>
-                  {/* Copy (right on desktop) */}
-                  <div className="flex flex-col justify-center p-8 sm:p-10 lg:p-12">
-                    <h3 className="text-xl sm:text-2xl font-semibold text-white/90 mb-3" style={sf}>{FEATURES.primary[1].title}</h3>
-                    <p className="text-sm sm:text-[15px] text-white/35 leading-relaxed">{FEATURES.primary[1].desc}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Secondary Features — 03 Act */}
-          <div>
-            <div className="text-[11px] font-bold text-rh-green tracking-wider mb-4 text-center lg:text-left">03 — Discover</div>
-            {/* Mobile: horizontal scroll, sm: 2-col, lg: 3-col */}
-            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory sm:snap-none sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-5 pb-2 sm:pb-0" style={noScroll}>
-              {FEATURES.secondary.map(f => (
-                <div key={f.id} className="snap-start shrink-0 w-[75vw] sm:w-auto cursor-pointer group" onClick={() => setLightbox(f.id)}>
-                  <div className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden transition-colors duration-300 group-hover:border-white/[0.12]">
-                    <div className="overflow-hidden">
-                      <img src={f.src} alt={f.title} className="w-full h-48 sm:h-52 object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
-                    </div>
-                    <div className="p-5">
-                      <h3 className="text-[14px] font-semibold text-white/70 mb-1.5" style={sf}>{f.title}</h3>
-                      <p className="text-[12px] text-white/25 leading-relaxed">{f.desc}</p>
+          {/* Feature cards — alternating layout */}
+          {FEATURES.map((f, i) => {
+            const flipped = i % 2 === 1;
+            return (
+              <div key={f.id} className="mb-16 sm:mb-20">
+                <div className="text-[11px] font-bold text-rh-green tracking-wider mb-4 text-center lg:text-left">{f.label}</div>
+                <div className="relative group cursor-pointer" onClick={() => setLightbox(f.id)}>
+                  <div className="absolute -inset-4 bg-rh-green/[0.02] rounded-3xl blur-[60px] pointer-events-none" />
+                  <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden transition-colors duration-500 group-hover:border-white/[0.12]">
+                    <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                    <div className="grid lg:grid-cols-2">
+                      {/* Copy */}
+                      <div className={`flex flex-col justify-center p-8 sm:p-10 lg:p-12 order-2 ${!flipped ? 'lg:order-1' : ''}`}>
+                        <h3 className="text-xl sm:text-2xl font-semibold text-white/90 mb-3" style={sf}>{f.title}</h3>
+                        <p className="text-sm sm:text-[15px] text-white/35 leading-relaxed">{f.desc}</p>
+                      </div>
+                      {/* Screenshot */}
+                      <div className={`relative overflow-hidden order-1 ${!flipped ? 'lg:order-2' : ''}`}>
+                        <img src={f.src} alt={f.title} className="w-full h-full max-h-[400px] lg:max-h-none object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
+                        <div className={`absolute inset-y-0 ${flipped ? 'right-0 w-16 bg-gradient-to-l' : 'left-0 w-16 bg-gradient-to-r'} from-[#0a0a0a] to-transparent hidden lg:block pointer-events-none`} />
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))}
-              <div className="shrink-0 w-5 sm:hidden" aria-hidden="true" />
-            </div>
-          </div>
+              </div>
+            );
+          })}
 
           {/* Section CTA */}
           <div className="mt-16 text-center">
@@ -709,8 +623,8 @@ export function LandingPage() {
 
       {/* ═══ CTA ═══ */}
       <section className="py-20 sm:py-28 px-5 sm:px-8 text-center">
-        <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-5 text-white/95" style={sf}>{WAITLIST_ENABLED ? <>Get early access to<br /><span className="text-rh-green italic">Nala</span> today</> : <>Start competing in less than<br /><span className="text-rh-green italic">10 minutes</span> today</>}</h2>
-        <p className="text-sm text-white/25 mb-10 max-w-sm mx-auto">{WAITLIST_ENABLED ? 'Join the waitlist, get approved, and start tracking your portfolio.' : 'Create your free account, add your holdings, and join this month\'s competition.'}</p>
+        <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-5 text-white/95" style={sf}>{WAITLIST_ENABLED ? <>Get early access to<br /><span className="text-rh-green italic">Nala</span> today</> : <>Start investing smarter in<br /><span className="text-rh-green italic">10 minutes</span> today</>}</h2>
+        <p className="text-sm text-white/25 mb-10 max-w-sm mx-auto">{WAITLIST_ENABLED ? 'Join the waitlist, get approved, and start tracking your portfolio.' : 'Create your free account, add your holdings, and follow top investors.'}</p>
         <div className="flex items-center justify-center gap-3 mb-10">
           {(WAITLIST_ENABLED ? ['Join waitlist','Get approved','Start earning'] : ['Sign up','Add holdings','Start earning']).map((step,i)=>(
             <div key={step} className="flex items-center gap-3">
