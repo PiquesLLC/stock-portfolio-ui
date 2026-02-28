@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, ApiError } from '../api';
 
 export type PlanTier = 'free' | 'pro' | 'premium';
 
@@ -111,9 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       } catch (err: any) {
         if (cancelled) return;
-        const msg = (err?.message || '').toLowerCase();
-        const isAuthError = msg.includes('401') || msg.includes('not authenticated') || msg.includes('unauthorized') || msg.includes('session expired') || msg.includes('token expired');
-        if (isAuthError) {
+        // Only log out on confirmed terminal auth failure (SESSION_EXPIRED).
+        // SERVER_UNAVAILABLE, NETWORK_ERROR, HTTP_ERROR are all retryable.
+        const isAuthDead = err instanceof ApiError && err.code === 'SESSION_EXPIRED';
+        if (isAuthDead) {
           if (isSameOriginApi()) {
             setUser(null);
             writeCachedUser(null);

@@ -57,6 +57,20 @@ import {
   HistoricalCAGR,
 } from './types';
 
+// Typed API error codes — callers check .code instead of string matching on .message
+export type ApiErrorCode = 'SESSION_EXPIRED' | 'SERVER_UNAVAILABLE' | 'HTTP_ERROR' | 'NETWORK_ERROR';
+
+export class ApiError extends Error {
+  code: ApiErrorCode;
+  status?: number;
+  constructor(message: string, code: ApiErrorCode, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
 // Global API error callback — set by ToastProvider to show error toasts
 let onApiError: ((message: string) => void) | null = null;
 export function setApiErrorHandler(handler: ((message: string) => void) | null) {
@@ -96,8 +110,9 @@ async function tryRefreshToken(): Promise<boolean> {
       authDead = false;
       return true;
     }
-    // Only mark auth dead on definitive auth failures (4xx), not server errors
-    if (res.status >= 400 && res.status < 500) {
+    // Only mark auth dead on 401 (definitive token failure).
+    // Other 4xx (e.g. 429 rate-limit, 400 validation) are NOT terminal auth failures.
+    if (res.status === 401) {
       authDead = true;
     }
     return false;
@@ -137,22 +152,21 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   // On 401, try refreshing tokens once then retry the original request
   if (response.status === 401 && !url.includes('/auth/refresh') && !url.includes('/auth/login')) {
     if (authDead) {
-      // Session already known dead — don't retry, just throw
-      throw new Error('Session expired');
+      throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
     }
     const refreshed = await refreshOnce();
     if (refreshed) {
       response = await doFetch();
-    } else if (authDead && onAuthExpired) {
-      // Refresh failed with a definitive auth error (4xx) — session is dead, kick to login.
-      // If refresh failed due to network error, authDead stays false and we
-      // don't log the user out — their session may still be valid.
-      if (isSameOriginApi()) {
+    } else if (authDead) {
+      // Refresh failed with a definitive auth error (4xx) — session is dead.
+      if (onAuthExpired && isSameOriginApi()) {
         onAuthExpired();
-      } else {
-        console.warn('[Auth] 401 with cross-origin API base — cookies likely blocked. Skipping auto-logout.');
       }
-      throw new Error('Session expired');
+      throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
+    } else {
+      // Refresh failed due to network error (server down, timeout).
+      // Session may still be valid once the server comes back.
+      throw new ApiError('Server unavailable', 'SERVER_UNAVAILABLE');
     }
   }
 
@@ -186,6 +200,17 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   }
 
   return response.json();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Waitlist API
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function joinWaitlist(email: string): Promise<{ success: boolean; status: string }> {
+  return fetchJson(`${API_BASE_URL}/waitlist/join`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2071,6 +2096,45 @@ export async function reportUser(
 
 export async function getThemesHeatmap(period: HeatmapPeriod = '1D'): Promise<import('./types').HeatmapResponse> {
   return fetchJson(`${API_BASE_URL}/market/themes/heatmap?period=${period}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Waitlist Admin API
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface WaitlistEntry {
+  id: string;
+  email: string;
+  status: string;
+  createdAt: string;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  approvedBy: string | null;
+  convertedAt: string | null;
+}
+
+export interface WaitlistResponse {
+  entries: WaitlistEntry[];
+  total: number;
+  approved: number;
+  pending: number;
+}
+
+export async function getWaitlistEntries(status?: string): Promise<WaitlistResponse> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return fetchJson<WaitlistResponse>(`${API_BASE_URL}/waitlist${qs}`);
+}
+
+export async function approveWaitlistEntry(id: string): Promise<{ entry: WaitlistEntry }> {
+  return fetchJson<{ entry: WaitlistEntry }>(`${API_BASE_URL}/waitlist/${encodeURIComponent(id)}/approve`, {
+    method: 'POST',
+  });
+}
+
+export async function rejectWaitlistEntry(id: string): Promise<{ entry: WaitlistEntry }> {
+  return fetchJson<{ entry: WaitlistEntry }>(`${API_BASE_URL}/waitlist/${encodeURIComponent(id)}/reject`, {
+    method: 'POST',
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

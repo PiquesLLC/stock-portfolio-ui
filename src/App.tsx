@@ -54,6 +54,7 @@ const CreatorDashboardPage = lazy(() => import('./components/CreatorDashboard').
 const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsPage').then(m => ({ default: m.CreatorSettingsPage })));
 const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m => ({ default: m.OnboardingTour })));
 const AccountHistorySection = lazy(() => import('./components/AccountHistorySection'));
+const WaitlistAdminPage = lazy(() => import('./components/WaitlistAdminPage').then(m => ({ default: m.WaitlistAdminPage })));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -229,6 +230,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
+  const [adminView, setAdminView] = useState<'waitlist' | null>(null);
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -1196,6 +1198,17 @@ export default function App() {
                   </svg>
                 </button>
               )}
+              {currentUserId && currentUserId === import.meta.env.VITE_ADMIN_USER_ID && (
+                <button
+                  onClick={() => setAdminView('waitlist')}
+                  className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                  title="Admin — Waitlist"
+                >
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </button>
+              )}
               {currentUserId && (
                 <button
                   onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
@@ -1264,6 +1277,17 @@ export default function App() {
                       Creator Dashboard
                     </button>
                   )}
+                  {currentUserId && currentUserId === import.meta.env.VITE_ADMIN_USER_ID && (
+                    <button
+                      onClick={() => { setAdminView('waitlist'); setUtilsMenuOpen(false); }}
+                      className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
+                    >
+                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                      Admin — Waitlist
+                    </button>
+                  )}
                   {currentUserId && (
                     <button
                       onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); setUtilsMenuOpen(false); }}
@@ -1317,12 +1341,13 @@ export default function App() {
           setLeaderboardUserId(null);
           setCompareStocks(null);
           setCreatorView(null);
+          setAdminView(null);
         }} />
       </div>
       </div>
 
       {/* Market indices strip — portfolio, discover, insights only */}
-      {!viewingStock && !creatorView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
+      {!viewingStock && !creatorView && !adminView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
         <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
       )}
 
@@ -1354,7 +1379,7 @@ export default function App() {
             </p>
           </div>
         )}
-        {!creatorView && compareStocks && compareStocks.length >= 2 && (
+        {!creatorView && !adminView && compareStocks && compareStocks.length >= 2 && (
           <Suspense fallback={<PageFallback />}>
             <CompareStocksPage
               tickers={compareStocks}
@@ -1372,7 +1397,7 @@ export default function App() {
           </Suspense>
         )}
 
-        {!creatorView && viewingStock && !compareStocks && (
+        {!creatorView && !adminView && viewingStock && !compareStocks && (
           <Suspense fallback={<PageFallback />}>
             <StockDetailView
               ticker={viewingStock.ticker}
@@ -1397,7 +1422,7 @@ export default function App() {
           </Suspense>
         )}
 
-        {!creatorView && activeTab === 'portfolio' && !viewingStock && !compareStocks && (
+        {!creatorView && !adminView && activeTab === 'portfolio' && !viewingStock && !compareStocks && (
           <>
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
@@ -1591,7 +1616,7 @@ export default function App() {
         )}
 
         <Suspense fallback={<PageFallback />}>
-          {!creatorView && activeTab === 'nala' && !viewingStock && (
+          {!creatorView && !adminView && activeTab === 'nala' && !viewingStock && (
             <PremiumOverlay
               featureName="NALA AI Deep Research"
               description="Institutional-quality research reports powered by Google Deep Research. Get deep-dive stock analysis, portfolio risk assessments, and structured bull/bear/base scenarios."
@@ -1605,7 +1630,7 @@ export default function App() {
             </PremiumOverlay>
           )}
 
-          {!creatorView && activeTab === 'insights' && !viewingStock && (
+          {!creatorView && !adminView && activeTab === 'insights' && !viewingStock && (
             <ErrorBoundary>
               <InsightsPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
@@ -1621,7 +1646,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && activeTab === 'watchlists' && (
+          {!creatorView && !adminView && activeTab === 'watchlists' && (
             <div style={viewingStock ? { display: 'none' } : undefined}>
               <ErrorBoundary>
                 <WatchlistPage
@@ -1631,7 +1656,7 @@ export default function App() {
             </div>
           )}
 
-          {!creatorView && activeTab === 'discover' && !viewingStock && !viewingProfileId && (
+          {!creatorView && !adminView && activeTab === 'discover' && !viewingStock && !viewingProfileId && (
             <ErrorBoundary>
               <DiscoverPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
@@ -1642,13 +1667,13 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && activeTab === 'macro' && !viewingStock && (
+          {!creatorView && !adminView && activeTab === 'macro' && !viewingStock && (
             <ErrorBoundary>
               <EconomicIndicators />
             </ErrorBoundary>
           )}
 
-          {!creatorView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
+          {!creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
             <ErrorBoundary>
               <PortfolioCompare
                 theirUserId={comparingUser.userId}
@@ -1659,7 +1684,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
+          {!creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
             <ErrorBoundary>
               <LeaderboardPage
                 session={portfolio?.session}
@@ -1672,7 +1697,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && viewingProfileId && !viewingStock && (
+          {!creatorView && !adminView && viewingProfileId && !viewingStock && (
             <ErrorBoundary>
               <UserProfileView
                 userId={viewingProfileId}
@@ -1686,7 +1711,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && activeTab === 'watch' && (
+          {!creatorView && !adminView && activeTab === 'watch' && (
             <div className={viewingStock ? 'hidden' : undefined}>
               <ErrorBoundary>
                 <WatchPage
@@ -1705,7 +1730,7 @@ export default function App() {
             </div>
           )}
 
-          {!creatorView && activeTab === 'feed' && !viewingProfileId && !viewingStock && (
+          {!creatorView && !adminView && activeTab === 'feed' && !viewingProfileId && !viewingStock && (
             <ErrorBoundary>
               <FeedPage
                 currentUserId={currentUserId}
@@ -1715,7 +1740,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && activeTab === 'pricing' && (
+          {!creatorView && !adminView && activeTab === 'pricing' && (
             <ErrorBoundary>
               <PricingPage />
             </ErrorBoundary>
@@ -1738,6 +1763,12 @@ export default function App() {
                 userId={currentUserId}
                 onBack={() => setCreatorView('dashboard')}
               />
+            </ErrorBoundary>
+          )}
+
+          {adminView === 'waitlist' && (
+            <ErrorBoundary>
+              <WaitlistAdminPage onBack={() => setAdminView(null)} />
             </ErrorBoundary>
           )}
 

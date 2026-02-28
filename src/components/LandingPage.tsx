@@ -1,13 +1,14 @@
 import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { checkHasPassword, forgotPassword, resetPassword } from '../api';
+import { checkHasPassword, forgotPassword, resetPassword, joinWaitlist } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { PLANS } from '../data/plans';
 const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = !!import.meta.env.VITE_APPLE_CLIENT_ID;
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
+const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
 
 const EyeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>);
 const EyeOffIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>);
@@ -48,8 +49,11 @@ export function LandingPage() {
   // scrollToRef is defined in the pull-to-refresh block below
 
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-password' | 'reset-password'>('signup');
-  const openAuth = (mode: 'login' | 'signup') => { setAuthMode(mode); setAuthOpen(true); };
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'waitlist' | 'forgot-password' | 'reset-password'>('signup');
+  const openAuth = (mode: 'login' | 'signup' | 'waitlist') => { setAuthMode(mode); setAuthOpen(true); };
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
+  const ctaMode = WAITLIST_ENABLED ? 'waitlist' as const : 'signup' as const;
   const [resetEmail, setResetEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -77,7 +81,7 @@ export function LandingPage() {
     if (ref) {
       setReferralCode(ref);
       setAuthOpen(true);
-      setAuthMode('signup');
+      setAuthMode(WAITLIST_ENABLED ? 'waitlist' : 'signup');
     }
   }, []);
 
@@ -85,7 +89,7 @@ export function LandingPage() {
   const phoneRef = useRef<HTMLDivElement>(null);
   const onPhoneScroll = useCallback(() => { const el = phoneRef.current; if (!el) return; setPhoneSlide(Math.round(el.scrollLeft / el.offsetWidth)); }, []);
   useEffect(() => {
-    if (phoneSlide >= 4) { openAuth('signup'); setTimeout(() => { const el = phoneRef.current; if (el) el.scrollTo({ left: 0 }); setPhoneSlide(0); }, 300); }
+    if (phoneSlide >= 4) { openAuth(ctaMode); setTimeout(() => { const el = phoneRef.current; if (el) el.scrollTo({ left: 0 }); setPhoneSlide(0); }, 300); }
   }, [phoneSlide]);
 
   const [billing, setBilling] = useState<'yearly' | 'monthly'>('yearly');
@@ -97,12 +101,17 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
-  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } }, [authOpen, authMode]);
+  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } }, [authOpen, authMode]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setError(''); setIsLoading(true);
     try {
-      if (authMode === 'forgot-password') {
+      if (authMode === 'waitlist') {
+        if (!waitlistEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(waitlistEmail)) { setError('Please enter a valid email address'); return; }
+        await joinWaitlist(waitlistEmail);
+        setWaitlistSuccess(true);
+        return;
+      } else if (authMode === 'forgot-password') {
         if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) { setError('Please enter a valid email address'); return; }
         await forgotPassword(resetEmail);
         setAuthMode('reset-password'); setError('');
@@ -289,11 +298,11 @@ export function LandingPage() {
           </div>
           <div className="hidden sm:flex items-center gap-4">
             <button onClick={() => openAuth('login')} className="text-[13px] text-white/60 hover:text-white transition-colors">Log in</button>
-            <button onClick={() => openAuth('signup')} className="px-4 py-1.5 text-[13px] text-white/90 font-medium border border-white/[0.15] rounded-full hover:border-white/30 transition-all">Open Account</button>
+            <button onClick={() => openAuth(ctaMode)} className="px-4 py-1.5 text-[13px] text-white/90 font-medium border border-white/[0.15] rounded-full hover:border-white/30 transition-all">{WAITLIST_ENABLED ? 'Join Waitlist' : 'Open Account'}</button>
           </div>
           <div className="flex sm:hidden items-center gap-3">
             <button onClick={() => openAuth('login')} className="text-[13px] text-white/60">Log in</button>
-            <button onClick={() => openAuth('signup')} className="px-3 py-1.5 text-[13px] text-white/90 border border-white/[0.15] rounded-full">Sign Up</button>
+            <button onClick={() => openAuth(ctaMode)} className="px-3 py-1.5 text-[13px] text-white/90 border border-white/[0.15] rounded-full">{WAITLIST_ENABLED ? 'Join Waitlist' : 'Sign Up'}</button>
           </div>
         </div>
       </nav>
@@ -487,7 +496,7 @@ export function LandingPage() {
                 {plan.highlight && <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-rh-green/50 to-transparent" />}
                 <div className="mb-5"><div className="flex items-center gap-2 mb-3"><h3 className="text-sm font-semibold text-white/70">{plan.name}</h3>{plan.highlight && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rh-green/15 text-rh-green">Popular</span>}</div><div className="flex items-baseline gap-1"><span className="text-3xl font-bold text-white">${price}</span>{price > 0 && <span className="text-sm text-white/25">/{billing === 'yearly' ? 'yr' : 'mo'}</span>}</div><p className="text-xs text-white/25 mt-2">{plan.description}</p></div>
                 <ul className="flex-1 space-y-2.5 mb-6">{plan.features.map(f => <li key={f} className="flex items-start gap-2 text-[13px]"><CheckIcon className="mt-0.5" /><span className="text-white/50">{f}</span></li>)}</ul>
-                <button onClick={() => openAuth('signup')} className={`w-full py-2.5 rounded-full text-[13px] font-medium transition-all min-h-[44px] ${plan.highlight ? 'bg-white text-black hover:bg-white/90' : 'border border-white/[0.1] text-white/50 hover:border-white/20'}`}>Get Started</button>
+                <button onClick={() => openAuth(ctaMode)} className={`w-full py-2.5 rounded-full text-[13px] font-medium transition-all min-h-[44px] ${plan.highlight ? 'bg-white text-black hover:bg-white/90' : 'border border-white/[0.1] text-white/50 hover:border-white/20'}`}>Get Started</button>
               </div>
             ); })}
           </div>
@@ -500,7 +509,7 @@ export function LandingPage() {
                     <div className="flex items-baseline gap-1 mb-1"><span className="text-3xl font-bold text-white">${price}</span>{price > 0 && <span className="text-sm text-white/25">/{billing === 'yearly' ? 'yr' : 'mo'}</span>}</div>
                     <p className="text-xs text-white/25 mb-5">{plan.description}</p>
                     <ul className="flex-1 space-y-2 mb-5">{plan.features.map(f => <li key={f} className="flex items-start gap-2 text-[13px]"><CheckIcon className="mt-0.5" /><span className="text-white/50">{f}</span></li>)}</ul>
-                    <button onClick={() => openAuth('signup')} className={`w-full py-2.5 rounded-full text-[13px] font-medium min-h-[44px] ${plan.highlight ? 'bg-white text-black' : 'border border-white/[0.1] text-white/50'}`}>Get Started</button>
+                    <button onClick={() => openAuth(ctaMode)} className={`w-full py-2.5 rounded-full text-[13px] font-medium min-h-[44px] ${plan.highlight ? 'bg-white text-black' : 'border border-white/[0.1] text-white/50'}`}>Get Started</button>
                   </div>
                 </div>
               ); })}
@@ -515,17 +524,17 @@ export function LandingPage() {
 
       {/* ═══ CTA ═══ */}
       <section className="py-20 sm:py-28 px-5 sm:px-8 text-center">
-        <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-5 text-white/95" style={sf}>Start competing in less than<br /><span className="text-rh-green italic">10 minutes</span> today</h2>
-        <p className="text-sm text-white/25 mb-10 max-w-sm mx-auto">Create your free account, add your holdings, and join this month's competition.</p>
+        <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-5 text-white/95" style={sf}>{WAITLIST_ENABLED ? <>Get early access to<br /><span className="text-rh-green italic">Nala</span> today</> : <>Start competing in less than<br /><span className="text-rh-green italic">10 minutes</span> today</>}</h2>
+        <p className="text-sm text-white/25 mb-10 max-w-sm mx-auto">{WAITLIST_ENABLED ? 'Join the waitlist, get approved, and start tracking your portfolio.' : 'Create your free account, add your holdings, and join this month\'s competition.'}</p>
         <div className="flex items-center justify-center gap-3 mb-10">
-          {['Sign up','Add holdings','Start competing'].map((step,i)=>(
+          {(WAITLIST_ENABLED ? ['Join waitlist','Get approved','Start competing'] : ['Sign up','Add holdings','Start competing']).map((step,i)=>(
             <div key={step} className="flex items-center gap-3">
               <div className="flex items-center gap-2"><div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${i===2?'bg-rh-green/20 text-rh-green':'bg-white/[0.05] text-white/30'}`}>{i+1}</div><span className="text-[11px] text-white/25">{step}</span></div>
               {i<2&&<div className="w-8 h-px bg-white/10" />}
             </div>
           ))}
         </div>
-        <button onClick={() => openAuth('signup')} className="px-7 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">Open Account</button>
+        <button onClick={() => openAuth(ctaMode)} className="px-7 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{WAITLIST_ENABLED ? 'Join Waitlist' : 'Open Account'}</button>
       </section>
 
       {/* ═══ FAQ ═══ */}
@@ -547,7 +556,7 @@ export function LandingPage() {
           <div className="col-span-2 md:col-span-1"><div className="flex items-center gap-2 mb-3"><img src="/north-signal-logo.png" alt="" className="h-6 w-6" /><span className="text-sm font-bold text-white/70">Nala</span></div><p className="text-[11px] text-white/15 leading-relaxed">AI-powered social investing platform for the next generation.</p></div>
           <div><h4 className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">Product</h4><div className="space-y-2">{['Portfolio','Heatmap','AI Insights','Leaderboard','Dividends'].map(l=><button key={l} onClick={()=>scrollToRef(featuresRef)} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">{l}</button>)}</div></div>
           <div><h4 className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">Company</h4><div className="space-y-2"><button onClick={()=>scrollToRef(pricingRef)} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">Pricing</button><button onClick={()=>{setPrivacyTab('privacy');setShowPrivacyPolicy(true);}} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">Privacy Policy</button><button onClick={()=>{setPrivacyTab('terms');setShowPrivacyPolicy(true);}} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">Terms of Service</button></div></div>
-          <div><h4 className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">Resources</h4><div className="space-y-2"><button onClick={()=>scrollToRef(faqRef)} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">FAQ</button><button onClick={()=>openAuth('signup')} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">Get Started</button></div></div>
+          <div><h4 className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">Resources</h4><div className="space-y-2"><button onClick={()=>scrollToRef(faqRef)} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">FAQ</button><button onClick={()=>openAuth(ctaMode)} className="block text-[12px] text-white/20 hover:text-white/40 transition-colors">Get Started</button></div></div>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-white/[0.04] gap-3"><div className="text-[10px] text-white/10">&copy; 2026 Piques LLC. All rights reserved.</div><p className="text-[10px] text-white/10 text-center">Past performance does not guarantee future results. Not financial advice.</p></div>
       </div></footer>
@@ -563,10 +572,22 @@ export function LandingPage() {
             <div className="text-center mb-6"><div className="inline-flex items-center gap-2"><img src="/north-signal-logo.png" alt="" className="h-7 w-7" /><span className="text-lg font-bold text-white tracking-tight">Nala</span></div></div>
             {mfaChallenge ? <MfaVerifyStep challenge={mfaChallenge} /> : (
               <>
-                <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'signup' ? 'Create Account' : authMode === 'forgot-password' ? 'Reset Password' : authMode === 'reset-password' ? 'Enter Reset Code' : 'Welcome Back'}</h2>
+                <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'waitlist' ? 'Join the Waitlist' : authMode === 'signup' ? 'Create Account' : authMode === 'forgot-password' ? 'Reset Password' : authMode === 'reset-password' ? 'Enter Reset Code' : 'Welcome Back'}</h2>
                 {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-start gap-2" role="alert"><svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg><span>{error}</span></div>}
                 <form onSubmit={handleSubmit} noValidate><div className="space-y-4">
-                  {authMode === 'forgot-password' ? (<>
+                  {authMode === 'waitlist' ? (waitlistSuccess ? (
+                    <div className="text-center py-4">
+                      <div className="w-12 h-12 rounded-full bg-rh-green/15 flex items-center justify-center mx-auto mb-4"><svg className="w-6 h-6 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div>
+                      <p className="text-white/80 text-sm font-medium mb-2">You're on the list.</p>
+                      <p className="text-white/30 text-[12px] leading-relaxed">We'll email you when access opens.</p>
+                      <div className="mt-5"><button type="button" onClick={() => setAuthOpen(false)} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Close</button></div>
+                    </div>
+                  ) : (<>
+                    <p className="text-[12px] text-white/30 leading-relaxed">Enter your email to join the waitlist. We'll notify you when your spot opens.</p>
+                    <div><label htmlFor="auth-waitlist-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-waitlist-email" type="email" value={waitlistEmail} onChange={e=>setWaitlistEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
+                    <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Joining...</span>:'Join Waitlist'}</button>
+                    <div className="text-center"><button type="button" onClick={()=>setAuthMode('login')} className="text-[12px] text-white/25">Have an account? <span className="text-white/60 hover:text-white">Sign in</span></button></div>
+                  </>)) : authMode === 'forgot-password' ? (<>
                     <p className="text-[12px] text-white/30 leading-relaxed">Enter the email on your account and we'll send a reset code.</p>
                     <div><label htmlFor="auth-reset-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-reset-email" type="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
                     <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Send Reset Code'}</button>
@@ -618,7 +639,7 @@ export function LandingPage() {
                     </div>
                   </div>
                 )}
-                {(authMode==='login'||authMode==='signup')&&<div className={`${OAUTH_ENABLED ? 'mt-3' : 'mt-5'} pt-4 border-t border-white/[0.04] text-center text-[12px] text-white/25`}>{authMode==='login'?<>New to Nala? <button onClick={()=>setAuthMode('signup')} className="text-white/60 hover:text-white">Create an account</button></>:<>Have an account? <button onClick={()=>setAuthMode('login')} className="text-white/60 hover:text-white">Sign in</button></>}</div>}
+                {(authMode==='login'||authMode==='signup')&&<div className={`${OAUTH_ENABLED ? 'mt-3' : 'mt-5'} pt-4 border-t border-white/[0.04] text-center text-[12px] text-white/25`}>{authMode==='login'?<>New to Nala? <button onClick={()=>setAuthMode(WAITLIST_ENABLED ? 'waitlist' : 'signup')} className="text-white/60 hover:text-white">{WAITLIST_ENABLED ? 'Join the waitlist' : 'Create an account'}</button></>:<>Have an account? <button onClick={()=>setAuthMode('login')} className="text-white/60 hover:text-white">Sign in</button></>}</div>}
               </>
             )}
           </div>
