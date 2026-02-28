@@ -400,12 +400,6 @@ export function LandingPage() {
               <button onClick={() => openAuth(ctaMode)} className="px-6 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Open Account'}</button>
             </div>
           </div>
-
-          <div className="flex items-center justify-center gap-8 sm:gap-16 mt-14 sm:mt-28 pt-10 border-t border-white/[0.04]">
-            {[{ v: '10,000+', l: 'Investors' }, { v: '50+', l: 'Creators' }, { v: '5', l: 'AI Models' }].map(s => (
-              <div key={s.l} className="text-center"><div className="text-lg sm:text-xl font-bold text-white/80">{s.v}</div><div className="text-[10px] text-white/20 mt-0.5">{s.l}</div></div>
-            ))}
-          </div>
         </div>
       </section>
 
