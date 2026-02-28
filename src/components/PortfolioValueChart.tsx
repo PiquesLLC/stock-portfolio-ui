@@ -11,6 +11,8 @@ import {
   snapToNearest,
 } from '../utils/portfolio-chart';
 import { computeChartGroups } from '../utils/chart-groups';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export interface ChartMeasurement {
   startTime: number;
@@ -59,7 +61,13 @@ const HERO_VALUE_ANIMATIONS = [
   'hero-value-anim-glitch',
 ] as const;
 
+// Periods available on the free plan
+const FREE_PERIODS: Set<PortfolioChartPeriod> = new Set(['1D', '1W', 'YTD']);
+
 export function PortfolioValueChart({ currentValue, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session }: Props) {
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const userPlan = user?.plan || 'free';
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
@@ -1677,19 +1685,37 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       {/* Period selector — left-aligned, compact; -ml-3 offsets first button's px-3 so text aligns with $ heading */}
       <div className="flex items-center gap-1 mt-2 px-3 sm:px-6 -ml-3">
-        {PERIODS.map(period => (
-          <button
-            key={period}
-            onClick={() => handlePeriodChange(period)}
-            className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
-              selectedPeriod === period
-                ? `${isGain ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'}`
-                : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted hover:bg-gray-100/50 dark:hover:bg-white/[0.02]'
-            }`}
-          >
-            {period}
-          </button>
-        ))}
+        {PERIODS.map(period => {
+          const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
+          return (
+            <button
+              key={period}
+              onClick={() => {
+                if (isLocked) {
+                  showToast('Upgrade to Pro for all chart periods', 'info');
+                  window.location.hash = '#pricing';
+                  window.dispatchEvent(new HashChangeEvent('hashchange'));
+                  return;
+                }
+                handlePeriodChange(period);
+              }}
+              className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 flex items-center gap-1 ${
+                selectedPeriod === period
+                  ? `${isGain ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'}`
+                  : isLocked
+                    ? 'text-rh-light-muted/25 dark:text-rh-muted/25 cursor-default'
+                    : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted hover:bg-gray-100/50 dark:hover:bg-white/[0.02]'
+              }`}
+            >
+              {period}
+              {isLocked && (
+                <svg className="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              )}
+            </button>
+          );
+        })}
       </div>
       {/* Compare + hint — subtle secondary row; -ml-2.5 offsets button's px-2.5 */}
       <div className="flex items-center justify-between mt-1 px-3 sm:px-6 -ml-2.5">

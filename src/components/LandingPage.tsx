@@ -298,11 +298,11 @@ export function LandingPage() {
           </div>
           <div className="hidden sm:flex items-center gap-4">
             <button onClick={() => openAuth('login')} className="text-[13px] text-white/60 hover:text-white transition-colors">Log in</button>
-            <button onClick={() => openAuth(ctaMode)} className="px-4 py-1.5 text-[13px] text-white/90 font-medium border border-white/[0.15] rounded-full hover:border-white/30 transition-all">{WAITLIST_ENABLED ? 'Join Waitlist' : 'Open Account'}</button>
+            <button onClick={() => openAuth(ctaMode)} className="px-4 py-1.5 text-[13px] text-white/90 font-medium border border-white/[0.15] rounded-full hover:border-white/30 transition-all">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Open Account'}</button>
           </div>
           <div className="flex sm:hidden items-center gap-3">
             <button onClick={() => openAuth('login')} className="text-[13px] text-white/60">Log in</button>
-            <button onClick={() => openAuth(ctaMode)} className="px-3 py-1.5 text-[13px] text-white/90 border border-white/[0.15] rounded-full">{WAITLIST_ENABLED ? 'Join Waitlist' : 'Sign Up'}</button>
+            <button onClick={() => openAuth(ctaMode)} className="px-3 py-1.5 text-[13px] text-white/90 border border-white/[0.15] rounded-full">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Sign Up'}</button>
           </div>
         </div>
       </nav>
@@ -379,7 +379,7 @@ export function LandingPage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button onClick={() => scrollToRef(featuresRef)} className="px-6 py-2.5 text-[13px] text-white/60 font-medium border border-white/[0.12] rounded-full hover:border-white/25 hover:text-white transition-all">Learn More</button>
-              <button onClick={() => openAuth('signup')} className="px-6 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">Open Account</button>
+              <button onClick={() => openAuth(ctaMode)} className="px-6 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Open Account'}</button>
             </div>
           </div>
 
@@ -490,26 +490,27 @@ export function LandingPage() {
               <button onClick={() => setBilling('yearly')} className={`px-4 py-1.5 rounded-full text-[12px] font-medium transition-all ${billing === 'yearly' ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}>Yearly <span className="text-rh-green ml-1">-35%</span></button>
             </div>
           </div>
-          <div className="hidden sm:grid grid-cols-3 gap-5 mb-8">
-            {PLANS.map(plan => { const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice; return (
-              <div key={plan.id} className={`relative rounded-2xl p-6 flex flex-col border transition-all ${plan.highlight ? 'border-rh-green/20 bg-white/[0.03]' : 'border-white/[0.06] bg-white/[0.015]'}`}>
+          <div className="hidden sm:grid grid-cols-4 gap-4 mb-8">
+            {PLANS.map(plan => { const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice; const isElite = plan.id === 'elite'; return (
+              <div key={plan.id} className={`relative rounded-2xl p-6 flex flex-col border transition-all ${plan.highlight ? 'border-rh-green/20 bg-white/[0.03]' : isElite ? 'border-purple-500/20 bg-white/[0.03]' : 'border-white/[0.06] bg-white/[0.015]'}`}>
                 {plan.highlight && <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-rh-green/50 to-transparent" />}
-                <div className="mb-5"><div className="flex items-center gap-2 mb-3"><h3 className="text-sm font-semibold text-white/70">{plan.name}</h3>{plan.highlight && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rh-green/15 text-rh-green">Popular</span>}</div><div className="flex items-baseline gap-1"><span className="text-3xl font-bold text-white">${price}</span>{price > 0 && <span className="text-sm text-white/25">/{billing === 'yearly' ? 'yr' : 'mo'}</span>}</div><p className="text-xs text-white/25 mt-2">{plan.description}</p></div>
+                {isElite && <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />}
+                <div className="mb-5"><div className="flex items-center gap-2 mb-3"><h3 className={`text-sm font-semibold ${isElite ? 'text-purple-400/80' : 'text-white/70'}`}>{plan.name}</h3>{plan.highlight && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rh-green/15 text-rh-green">Popular</span>}{isElite && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-purple-500/15 text-purple-400">Research</span>}</div><div className="flex items-baseline gap-1"><span className="text-3xl font-bold text-white">${price}</span>{price > 0 && <span className="text-sm text-white/25">/{billing === 'yearly' ? 'yr' : 'mo'}</span>}</div><p className="text-xs text-white/25 mt-2">{plan.description}</p></div>
                 <ul className="flex-1 space-y-2.5 mb-6">{plan.features.map(f => <li key={f} className="flex items-start gap-2 text-[13px]"><CheckIcon className="mt-0.5" /><span className="text-white/50">{f}</span></li>)}</ul>
-                <button onClick={() => openAuth(ctaMode)} className={`w-full py-2.5 rounded-full text-[13px] font-medium transition-all min-h-[44px] ${plan.highlight ? 'bg-white text-black hover:bg-white/90' : 'border border-white/[0.1] text-white/50 hover:border-white/20'}`}>Get Started</button>
+                <button onClick={() => openAuth(ctaMode)} className={`w-full py-2.5 rounded-full text-[13px] font-medium transition-all min-h-[44px] ${plan.highlight ? 'bg-white text-black hover:bg-white/90' : isElite ? 'bg-gradient-to-r from-purple-500/80 to-purple-600/80 text-white hover:from-purple-500 hover:to-purple-600' : 'border border-white/[0.1] text-white/50 hover:border-white/20'}`}>Get Started</button>
               </div>
             ); })}
           </div>
           <div className="sm:hidden">
             <div ref={carouselRef} onScroll={handleCarouselScroll} className="flex overflow-x-auto snap-x snap-mandatory -mx-5 px-5 gap-3" style={noScroll}>
-              {PLANS.map((plan, idx) => { const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice; return (
+              {PLANS.map((plan, idx) => { const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice; const isElite = plan.id === 'elite'; return (
                 <div key={plan.id} className="snap-center shrink-0 w-[calc(100vw-56px)]">
-                  <div className={`rounded-2xl p-6 flex flex-col min-h-[380px] border transition-all duration-300 ${plan.highlight ? 'border-rh-green/20 bg-white/[0.03]' : 'border-white/[0.06] bg-white/[0.015]'} ${activeSlide === idx ? 'opacity-100' : 'opacity-50'}`}>
-                    <div className="flex items-center gap-2 mb-3"><h3 className="text-sm font-semibold text-white/70">{plan.name}</h3>{plan.highlight && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rh-green/15 text-rh-green">Popular</span>}</div>
+                  <div className={`rounded-2xl p-6 flex flex-col min-h-[380px] border transition-all duration-300 ${plan.highlight ? 'border-rh-green/20 bg-white/[0.03]' : isElite ? 'border-purple-500/20 bg-white/[0.03]' : 'border-white/[0.06] bg-white/[0.015]'} ${activeSlide === idx ? 'opacity-100' : 'opacity-50'}`}>
+                    <div className="flex items-center gap-2 mb-3"><h3 className={`text-sm font-semibold ${isElite ? 'text-purple-400/80' : 'text-white/70'}`}>{plan.name}</h3>{plan.highlight && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rh-green/15 text-rh-green">Popular</span>}{isElite && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-purple-500/15 text-purple-400">Research</span>}</div>
                     <div className="flex items-baseline gap-1 mb-1"><span className="text-3xl font-bold text-white">${price}</span>{price > 0 && <span className="text-sm text-white/25">/{billing === 'yearly' ? 'yr' : 'mo'}</span>}</div>
                     <p className="text-xs text-white/25 mb-5">{plan.description}</p>
                     <ul className="flex-1 space-y-2 mb-5">{plan.features.map(f => <li key={f} className="flex items-start gap-2 text-[13px]"><CheckIcon className="mt-0.5" /><span className="text-white/50">{f}</span></li>)}</ul>
-                    <button onClick={() => openAuth(ctaMode)} className={`w-full py-2.5 rounded-full text-[13px] font-medium min-h-[44px] ${plan.highlight ? 'bg-white text-black' : 'border border-white/[0.1] text-white/50'}`}>Get Started</button>
+                    <button onClick={() => openAuth(ctaMode)} className={`w-full py-2.5 rounded-full text-[13px] font-medium min-h-[44px] ${plan.highlight ? 'bg-white text-black' : isElite ? 'bg-gradient-to-r from-purple-500/80 to-purple-600/80 text-white' : 'border border-white/[0.1] text-white/50'}`}>Get Started</button>
                   </div>
                 </div>
               ); })}
@@ -534,7 +535,7 @@ export function LandingPage() {
             </div>
           ))}
         </div>
-        <button onClick={() => openAuth(ctaMode)} className="px-7 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{WAITLIST_ENABLED ? 'Join Waitlist' : 'Open Account'}</button>
+        <button onClick={() => openAuth(ctaMode)} className="px-7 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Open Account'}</button>
       </section>
 
       {/* ═══ FAQ ═══ */}

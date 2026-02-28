@@ -1,7 +1,7 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, ApiError } from '../api';
 
-export type PlanTier = 'free' | 'pro' | 'premium';
+export type PlanTier = 'free' | 'pro' | 'premium' | 'elite';
 
 interface User {
   id: string;

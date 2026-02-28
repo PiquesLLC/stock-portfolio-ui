@@ -81,10 +81,10 @@ export function PricingPage() {
     }
   };
 
-  const planRank: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2 };
+  const planRank: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2, elite: 3 };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
+    <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
       {/* Header */}
       <div className="text-center mb-8 sm:mb-12">
         <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-rh-light-text dark:text-white mb-3">
@@ -123,37 +123,48 @@ export function PricingPage() {
       </div>
 
       {/* ==================== DESKTOP CARDS ==================== */}
-      <div className="hidden sm:flex items-center justify-center gap-5 mb-10">
+      <div className="hidden sm:grid sm:grid-cols-4 gap-4 mb-10">
         {PLANS.map((plan) => {
           const isCurrent = currentPlan === plan.id;
           const isUpgrade = planRank[plan.id] > planRank[currentPlan];
           const isDowngrade = planRank[plan.id] < planRank[currentPlan];
           const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
           const isCenter = plan.highlight;
+          const isElite = plan.id === 'elite';
 
           return (
             <div
               key={plan.id}
               className={`relative flex flex-col rounded-3xl transition-all duration-500 ${
                 isCenter
-                  ? 'w-[280px] min-h-[480px] z-10 scale-105'
-                  : 'w-[260px] min-h-[440px]'
+                  ? 'min-h-[480px] z-10 scale-105'
+                  : 'min-h-[440px]'
               }`}
             >
               {/* Glow effect for center card */}
               {isCenter && (
                 <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-b from-rh-green/40 via-rh-green/10 to-transparent blur-sm" />
               )}
+              {/* Glow effect for elite card */}
+              {isElite && (
+                <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-b from-purple-500/30 via-purple-500/10 to-transparent blur-sm" />
+              )}
 
               <div className={`relative flex flex-col flex-1 rounded-3xl p-6 overflow-hidden ${
                 isCenter
                   ? 'bg-gradient-to-b from-[#1a2a1a] via-[#0d1a0d] to-[#0a0f0a] dark:from-[#1a2a1a] dark:via-[#0d1a0d] dark:to-[#0a0f0a] border border-rh-green/30 shadow-[0_0_60px_rgba(0,200,5,0.15)]'
-                  : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
+                  : isElite
+                    ? 'bg-gradient-to-b from-[#1a1a2e] via-[#0d0d1a] to-[#0a0a0f] dark:from-[#1a1a2e] dark:via-[#0d0d1a] dark:to-[#0a0a0f] border border-purple-500/30 shadow-[0_0_60px_rgba(139,92,246,0.12)]'
+                    : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
               }`}>
 
                 {/* Decorative orb for center card */}
                 {isCenter && (
                   <div className="absolute top-12 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full bg-rh-green/20 blur-3xl pointer-events-none" />
+                )}
+                {/* Decorative orb for elite card */}
+                {isElite && (
+                  <div className="absolute top-12 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
                 )}
 
                 {/* Most Popular badge */}
@@ -164,20 +175,30 @@ export function PricingPage() {
                     </span>
                   </div>
                 )}
+                {/* Elite badge */}
+                {isElite && (
+                  <div className="flex justify-center mb-4">
+                    <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                      Deep Research
+                    </span>
+                  </div>
+                )}
 
                 {/* Plan name */}
-                <div className={`${isCenter ? 'text-center' : ''} mb-4`}>
+                <div className={`${isCenter || isElite ? 'text-center' : ''} mb-4`}>
                   <h3 className={`text-base font-semibold mb-2 ${
                     isCenter
                       ? 'text-rh-green italic'
-                      : 'text-rh-light-text dark:text-white/80'
+                      : isElite
+                        ? 'text-purple-400 italic'
+                        : 'text-rh-light-text dark:text-white/80'
                   }`}>
                     {plan.name}
                   </h3>
 
                   {/* Price */}
-                  <div className={`flex items-baseline gap-1 ${isCenter ? 'justify-center' : ''}`}>
-                    <span className={`font-extrabold ${isCenter ? 'text-4xl text-white' : 'text-3xl text-rh-light-text dark:text-white'}`}>
+                  <div className={`flex items-baseline gap-1 ${isCenter || isElite ? 'justify-center' : ''}`}>
+                    <span className={`font-extrabold ${isCenter || isElite ? 'text-4xl text-white' : 'text-3xl text-rh-light-text dark:text-white'}`}>
                       ${price}
                     </span>
                     {price > 0 && (
@@ -191,8 +212,11 @@ export function PricingPage() {
                     <p className="text-[11px] text-white/40 mt-1">Recommended</p>
                   )}
 
-                  {!isCenter && (
+                  {!isCenter && !isElite && (
                     <p className="text-xs text-rh-light-muted dark:text-white/40 mt-2">{plan.description}</p>
+                  )}
+                  {isElite && (
+                    <p className="text-[11px] text-white/40 mt-1">{plan.description}</p>
                   )}
                 </div>
 
@@ -200,10 +224,10 @@ export function PricingPage() {
                 <ul className="flex-1 space-y-2.5 mb-6">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5 text-[13px]">
-                      <svg className="w-4 h-4 text-rh-green shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-4 h-4 shrink-0 mt-0.5 ${isElite ? 'text-purple-400' : 'text-rh-green'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className={isCenter ? 'text-white/80' : 'text-rh-light-text dark:text-white/70'}>
+                      <span className={isCenter || isElite ? 'text-white/80' : 'text-rh-light-text dark:text-white/70'}>
                         {feature}
                       </span>
                     </li>
@@ -233,7 +257,9 @@ export function PricingPage() {
                       className={`w-full py-3 px-4 rounded-2xl text-sm font-bold transition-all min-h-[48px] ${
                         isCenter
                           ? 'bg-rh-green text-white hover:bg-rh-green/90 shadow-lg shadow-rh-green/25'
-                          : 'bg-gradient-to-r from-rh-green/90 to-rh-green text-white hover:from-rh-green hover:to-rh-green/90 border border-rh-green/50'
+                          : isElite
+                            ? 'bg-gradient-to-r from-purple-500/90 to-purple-600 text-white hover:from-purple-500 hover:to-purple-500/90 border border-purple-500/50 shadow-lg shadow-purple-500/20'
+                            : 'bg-gradient-to-r from-rh-green/90 to-rh-green text-white hover:from-rh-green hover:to-rh-green/90 border border-rh-green/50'
                       }`}
                     >
                       {loadingPlan === plan.id ? (
@@ -284,6 +310,7 @@ export function PricingPage() {
             const isDowngrade = planRank[plan.id] < planRank[currentPlan];
             const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
             const isActive = activeSlide === idx;
+            const isElite = plan.id === 'elite';
 
             return (
               <div
@@ -293,12 +320,17 @@ export function PricingPage() {
                 <div className={`relative rounded-3xl p-6 flex flex-col min-h-[420px] transition-all duration-300 ${
                   plan.highlight
                     ? 'bg-gradient-to-b from-[#1a2a1a] via-[#0d1a0d] to-[#0a0f0a] border border-rh-green/30 shadow-[0_0_40px_rgba(0,200,5,0.12)]'
-                    : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
+                    : isElite
+                      ? 'bg-gradient-to-b from-[#1a1a2e] via-[#0d0d1a] to-[#0a0a0f] border border-purple-500/30 shadow-[0_0_40px_rgba(139,92,246,0.12)]'
+                      : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
                 } ${isActive ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-80'}`}>
 
                   {/* Decorative orb */}
                   {plan.highlight && (
                     <div className="absolute top-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-rh-green/20 blur-3xl pointer-events-none" />
+                  )}
+                  {isElite && (
+                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
                   )}
 
                   {/* Badges */}
@@ -316,11 +348,18 @@ export function PricingPage() {
                       </span>
                     </div>
                   )}
+                  {isElite && (
+                    <div className="flex justify-center mb-3">
+                      <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                        Deep Research
+                      </span>
+                    </div>
+                  )}
 
                   {/* Plan name + price */}
                   <div className="text-center mb-5">
                     <h3 className={`text-base font-semibold mb-2 ${
-                      plan.highlight ? 'text-rh-green italic' : 'text-white/80'
+                      plan.highlight ? 'text-rh-green italic' : isElite ? 'text-purple-400 italic' : 'text-white/80'
                     }`}>
                       {plan.name}
                     </h3>
@@ -342,7 +381,7 @@ export function PricingPage() {
                   <ul className="flex-1 space-y-2.5 mb-6">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2.5 text-[13px]">
-                        <svg className="w-4 h-4 text-rh-green shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 shrink-0 mt-0.5 ${isElite ? 'text-purple-400' : 'text-rh-green'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
                         <span className="text-white/75">{feature}</span>
@@ -373,7 +412,9 @@ export function PricingPage() {
                         className={`w-full py-3 px-4 rounded-2xl text-sm font-bold transition-all min-h-[48px] ${
                           plan.highlight
                             ? 'bg-rh-green text-white hover:bg-rh-green/90 shadow-lg shadow-rh-green/25'
-                            : 'bg-gradient-to-r from-rh-green/90 to-rh-green text-white border border-rh-green/50'
+                            : isElite
+                              ? 'bg-gradient-to-r from-purple-500/90 to-purple-600 text-white hover:from-purple-500 hover:to-purple-500/90 border border-purple-500/50 shadow-lg shadow-purple-500/20'
+                              : 'bg-gradient-to-r from-rh-green/90 to-rh-green text-white border border-rh-green/50'
                         }`}
                       >
                         {loadingPlan === plan.id ? (

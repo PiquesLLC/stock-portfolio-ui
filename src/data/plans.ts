@@ -1,5 +1,5 @@
 export interface PlanDefinition {
-  id: 'free' | 'pro' | 'premium';
+  id: 'free' | 'pro' | 'premium' | 'elite';
   name: string;
   monthlyPrice: number;
   yearlyPrice: number;
@@ -16,10 +16,10 @@ export const PLANS: PlanDefinition[] = [
     yearlyPrice: 0,
     description: 'Get started with the basics',
     features: [
-      'Up to 25 holdings',
+      'Up to 10 holdings',
       '1 watchlist',
-      '3 price alerts',
-      '1D / 1W / 1M charts',
+      '1 price alert',
+      '1D / 1W / YTD charts',
       'Heatmap',
       'Basic dividend tracking',
     ],
@@ -28,25 +28,25 @@ export const PLANS: PlanDefinition[] = [
     id: 'pro',
     name: 'Pro',
     monthlyPrice: 9.99,
-    yearlyPrice: 80,
-    description: 'For active investors who want more',
+    yearlyPrice: 79,
+    description: 'Connect brokerage, never enter a trade again',
     highlight: true,
     features: [
       'Unlimited holdings',
       'Unlimited watchlists',
       'Unlimited price alerts',
       'All chart periods',
-      'Full dividend tracking + DRIP',
-      'Nala Score',
       'Plaid brokerage linking',
+      'Nala Score',
+      'Full dividend tracking + DRIP',
     ],
   },
   {
     id: 'premium',
     name: 'Premium',
-    monthlyPrice: 17.99,
-    yearlyPrice: 160,
-    description: 'AI-powered investing edge',
+    monthlyPrice: 19.99,
+    yearlyPrice: 169,
+    description: 'AI intelligence layer for your portfolio',
     features: [
       'Everything in Pro',
       'AI Stock Q&A',
@@ -55,6 +55,19 @@ export const PLANS: PlanDefinition[] = [
       'AI Catalyst Detection',
       'Tax-loss harvesting',
       'Anomaly detection',
+    ],
+  },
+  {
+    id: 'elite',
+    name: 'Elite',
+    monthlyPrice: 49.99,
+    yearlyPrice: 399,
+    description: 'Deep Research + everything in Premium',
+    features: [
+      'Everything in Premium',
+      'Nala AI Deep Research (5/mo)',
+      'Priority support',
+      'Early access to new features',
     ],
   },
 ];

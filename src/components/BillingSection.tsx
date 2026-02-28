@@ -7,6 +7,7 @@ const PLAN_LABELS: Record<PlanTier, { name: string; color: string; bg: string }>
   free: { name: 'Free', color: 'text-rh-light-muted dark:text-rh-muted', bg: 'bg-gray-200/50 dark:bg-white/[0.06]' },
   pro: { name: 'Pro', color: 'text-rh-green', bg: 'bg-rh-green/10' },
   premium: { name: 'Premium', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+  elite: { name: 'Elite', color: 'text-purple-400', bg: 'bg-purple-500/10' },
 };
 
 export function BillingSection() {

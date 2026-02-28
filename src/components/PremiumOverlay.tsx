@@ -51,12 +51,12 @@ export function PremiumOverlay({ featureName, description, requiredPlan = 'premi
   const currentPlan = user?.plan || 'free';
 
   // Check if user has access
-  const planRank: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2 };
+  const planRank: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2, elite: 3 };
   if (planRank[currentPlan] >= planRank[requiredPlan]) {
     return <>{children}</>;
   }
 
-  const planLabel = requiredPlan === 'pro' ? 'Pro' : 'Premium';
+  const planLabel = requiredPlan === 'pro' ? 'Pro' : requiredPlan === 'elite' ? 'Elite' : 'Premium';
 
   return (
     <div className="relative">
