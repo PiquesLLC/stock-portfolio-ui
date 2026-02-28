@@ -43,7 +43,7 @@ const FEATURES = [
   { id: 1, src: '/screenshots/creator-dashboard.png', label: '02 — Monetize', title: 'Monetize your strategy', desc: 'Built for finfluencers. Track subscribers, revenue, and payouts — 80% goes to you.' },
   { id: 2, src: '/screenshots/creators-marketplace.png', label: '03 — Discover', title: 'Discover top creators', desc: 'Browse verified creators ranked by real performance. Free or paid — you choose who to follow.' },
   { id: 3, src: '/screenshots/activity.jpg', label: '04 — Activity', title: 'Real-time activity feed', desc: 'See what the community is buying, selling, and watching — in real time. Stay connected to the market pulse.' },
-  { id: 4, src: '/screenshots/deep-research.png', label: '05 — Research', title: 'Institutional-grade AI research', desc: 'Ask any investment question. NALA AI delivers comprehensive research reports — in minutes, not hours.' },
+  { id: 4, src: '/screenshots/deep-research.png', preview: '/screenshots/deep-research-preview.png', label: '05 — Research', title: 'Institutional-grade AI research', desc: 'Ask any investment question. NALA AI delivers comprehensive research reports — in minutes, not hours.' },
   { id: 5, src: '/screenshots/heatmap-new.png', label: '06 — Heatmap', title: 'See where the money moves', desc: 'Visual sector and market-cap breakdown. Spot rotations at a glance.' },
 ];
 const ALL_FEATURES = FEATURES;
@@ -430,7 +430,7 @@ export function LandingPage() {
                       </div>
                       {/* Screenshot */}
                       <div className={`relative overflow-hidden order-1 ${!flipped ? 'lg:order-2' : ''}`}>
-                        <img src={f.src} alt={f.title} className="w-full h-full max-h-[400px] object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
+                        <img src={'preview' in f && f.preview ? f.preview : f.src} alt={f.title} className="w-full h-full max-h-[400px] object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
                         <div className={`absolute inset-y-0 ${flipped ? 'right-0 w-16 bg-gradient-to-l' : 'left-0 w-16 bg-gradient-to-r'} from-[#0a0a0a] to-transparent hidden lg:block pointer-events-none`} />
                       </div>
                     </div>
