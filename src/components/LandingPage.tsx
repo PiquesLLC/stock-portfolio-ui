@@ -430,7 +430,7 @@ export function LandingPage() {
                       </div>
                       {/* Screenshot */}
                       <div className={`relative overflow-hidden order-1 ${!flipped ? 'lg:order-2' : ''}`}>
-                        <img src={f.src} alt={f.title} className="w-full h-full max-h-[400px] lg:max-h-none object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
+                        <img src={f.src} alt={f.title} className="w-full h-full max-h-[400px] object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
                         <div className={`absolute inset-y-0 ${flipped ? 'right-0 w-16 bg-gradient-to-l' : 'left-0 w-16 bg-gradient-to-r'} from-[#0a0a0a] to-transparent hidden lg:block pointer-events-none`} />
                       </div>
                     </div>
