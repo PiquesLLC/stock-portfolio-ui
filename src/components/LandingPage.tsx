@@ -48,6 +48,8 @@ export function LandingPage() {
   const faqRef = useRef<HTMLElement>(null);
   // scrollToRef is defined in the pull-to-refresh block below
 
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'waitlist' | 'forgot-password' | 'reset-password'>('signup');
   const openAuth = (mode: 'login' | 'signup' | 'waitlist') => { setAuthMode(mode); setAuthOpen(true); };
@@ -443,8 +445,8 @@ export function LandingPage() {
         </div>
         <div className="flex gap-4 xl:gap-3 overflow-x-auto snap-x snap-mandatory xl:snap-none pb-4 px-5 sm:px-8" style={noScroll}>
           {FEATURE_SLIDES.map((f, i) => (
-            <div key={i} className="snap-start shrink-0 w-[clamp(240px,65vw,300px)] xl:shrink xl:flex-1 xl:min-w-0 xl:w-auto">
-              <div className="rounded-[1.5rem] xl:rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden shadow-lg shadow-black/30 h-[clamp(420px,38vw,620px)] xl:h-auto xl:aspect-[9/16]">
+            <div key={i} className="snap-start shrink-0 w-[clamp(240px,65vw,300px)] xl:shrink xl:flex-1 xl:min-w-0 xl:w-auto cursor-pointer group" onClick={() => setLightbox(i)}>
+              <div className="rounded-[1.5rem] xl:rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden shadow-lg shadow-black/30 h-[clamp(420px,38vw,620px)] xl:h-auto xl:aspect-[9/16] transition-transform duration-200 group-hover:scale-[1.02] group-hover:border-white/[0.15]">
                 <img src={f.src} alt={f.title} className="w-full block" draggable={false} />
               </div>
               <div className="mt-3 text-center px-1">
@@ -456,6 +458,34 @@ export function LandingPage() {
           <div className="shrink-0 w-5 sm:w-8 xl:hidden" aria-hidden="true" />
         </div>
       </section>
+
+      {/* ═══ FEATURE LIGHTBOX ═══ */}
+      {lightbox !== null && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
+          <div className="relative max-w-lg w-[90vw] max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            {/* Close button */}
+            <button onClick={() => setLightbox(null)} className="absolute -top-10 right-0 text-white/50 hover:text-white transition-colors text-sm font-medium">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            {/* Nav arrows */}
+            <button onClick={() => setLightbox((lightbox - 1 + FEATURE_SLIDES.length) % FEATURE_SLIDES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button onClick={() => setLightbox((lightbox + 1) % FEATURE_SLIDES.length)} className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </button>
+            {/* Image */}
+            <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full">
+              <img src={FEATURE_SLIDES[lightbox].src} alt={FEATURE_SLIDES[lightbox].title} className="w-full block" draggable={false} />
+            </div>
+            {/* Title + desc */}
+            <div className="mt-4 text-center px-4">
+              <h3 className="text-lg font-semibold text-white/80" style={sf}>{FEATURE_SLIDES[lightbox].title}</h3>
+              <p className="text-sm text-white/30 mt-1">{FEATURE_SLIDES[lightbox].desc}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ SECURE BY DESIGN ═══ */}
       <section className="py-20 sm:py-28 px-5 sm:px-8">
