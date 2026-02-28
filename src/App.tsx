@@ -11,7 +11,7 @@ import { BenchmarkWidget } from './components/BenchmarkWidget';
 import { DividendsSection } from './components/DividendsSection';
 import { NotificationBell } from './components/NotificationBell';
 import { UserMenu } from './components/UserMenu';
-import { AccountSettingsModal } from './components/AccountSettingsModal';
+// AccountSettingsModal removed — replaced by full-page AccountSettingsPage
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
@@ -55,6 +55,7 @@ const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsP
 const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m => ({ default: m.OnboardingTour })));
 const AccountHistorySection = lazy(() => import('./components/AccountHistorySection'));
 const WaitlistAdminPage = lazy(() => import('./components/WaitlistAdminPage').then(m => ({ default: m.WaitlistAdminPage })));
+const AccountSettingsPageComp2 = lazy(() => import('./components/settings/AccountSettingsPage'));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -155,6 +156,13 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
 }
 
 const savedInitialNav = parseHash();
+// Check if initial hash was #tab=settings
+const _initialSettingsView = (() => {
+  const hash = window.location.hash.slice(1);
+  if (!hash) return false;
+  const params = new URLSearchParams(hash);
+  return params.get('tab') === 'settings';
+})();
 
 // Detect shareable profile URL: nalaai.com/<username>
 // Strict guard: single path segment, no file extension, valid username chars,
@@ -228,7 +236,7 @@ export default function App() {
   const [compareStocks, setCompareStocks] = useState<string[] | null>(initialNav.compareStocks ?? null);
   // Premium-gated: const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [settingsView, setSettingsView] = useState(_initialSettingsView);
   const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
   const [adminView, setAdminView] = useState<'waitlist' | null>(null);
   const [showDailyReport, setShowDailyReport] = useState(false);
@@ -581,6 +589,13 @@ export default function App() {
       const lbuser = params.get('lbuser') || null;
       const subtab = params.get('subtab') || null;
 
+      // Handle settings page (not a nav tab — full-page overlay)
+      if (rawTab === 'settings') {
+        setSettingsView(true);
+        return;
+      }
+      setSettingsView(false);
+
       // Handle compare page (not a nav tab — transient overlay like StockDetailView)
       if (rawTab === 'compare') {
         const stocksRaw = params.get('stocks')?.split(',').filter(Boolean) ?? [];
@@ -919,7 +934,7 @@ export default function App() {
           {/* Mobile: logo + controls inline */}
           <div
             className="h-[35px] w-[35px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); }}
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); setSettingsView(false); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -944,7 +959,7 @@ export default function App() {
                 userName={currentUserName}
                 userId={currentUserId}
                 onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
-                onSettingsClick={() => setSettingsModalOpen(true)}
+                onSettingsClick={() => { setSettingsView(true); window.location.hash = 'tab=settings'; }}
                 onLogoutClick={logout}
               />
             )}
@@ -1009,7 +1024,7 @@ export default function App() {
           {/* Logo */}
           <div
             className="h-[30px] w-[30px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); }}
+            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); setSettingsView(false); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -1031,6 +1046,7 @@ export default function App() {
                   setLeaderboardUserId(null);
                   setCompareStocks(null);
                   setCreatorView(null);
+                  setSettingsView(false);
                 }}
                 className={`relative px-3 py-2 text-[13px] rounded-md transition-all duration-150 whitespace-nowrap
                   ${collapseAtSmLg ? 'hidden lg:inline-flex' : ''}
@@ -1096,6 +1112,7 @@ export default function App() {
                         setLeaderboardUserId(null);
                         setCompareStocks(null);
                         setCreatorView(null);
+                        setSettingsView(false);
                         setMoreDropdownOpen(false);
                       }}
                       className={`lg:hidden w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
@@ -1118,6 +1135,7 @@ export default function App() {
                         setLeaderboardUserId(null);
                         setCompareStocks(null);
                         setCreatorView(null);
+                        setSettingsView(false);
                         setMoreDropdownOpen(false);
                       }}
                       className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
@@ -1200,7 +1218,7 @@ export default function App() {
               )}
               {currentUserId && currentUserId === import.meta.env.VITE_ADMIN_USER_ID && (
                 <button
-                  onClick={() => setAdminView('waitlist')}
+                  onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); }}
                   className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                   title="Admin — Waitlist"
                 >
@@ -1279,7 +1297,7 @@ export default function App() {
                   )}
                   {currentUserId && currentUserId === import.meta.env.VITE_ADMIN_USER_ID && (
                     <button
-                      onClick={() => { setAdminView('waitlist'); setUtilsMenuOpen(false); }}
+                      onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); }}
                       className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                     >
                       <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1324,7 +1342,7 @@ export default function App() {
                 userName={currentUserName}
                 userId={currentUserId}
                 onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
-                onSettingsClick={() => setSettingsModalOpen(true)}
+                onSettingsClick={() => { setSettingsView(true); window.location.hash = 'tab=settings'; }}
                 onLogoutClick={logout}
               />
             )}
@@ -1342,12 +1360,13 @@ export default function App() {
           setCompareStocks(null);
           setCreatorView(null);
           setAdminView(null);
+          setSettingsView(false);
         }} />
       </div>
       </div>
 
       {/* Market indices strip — portfolio, discover, insights only */}
-      {!viewingStock && !creatorView && !adminView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
+      {!viewingStock && !settingsView && !creatorView && !adminView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
         <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
       )}
 
@@ -1379,7 +1398,7 @@ export default function App() {
             </p>
           </div>
         )}
-        {!creatorView && !adminView && compareStocks && compareStocks.length >= 2 && (
+        {!settingsView && !creatorView && !adminView && compareStocks && compareStocks.length >= 2 && (
           <Suspense fallback={<PageFallback />}>
             <CompareStocksPage
               tickers={compareStocks}
@@ -1397,7 +1416,7 @@ export default function App() {
           </Suspense>
         )}
 
-        {!creatorView && !adminView && viewingStock && !compareStocks && (
+        {!settingsView && !creatorView && !adminView && viewingStock && !compareStocks && (
           <Suspense fallback={<PageFallback />}>
             <StockDetailView
               ticker={viewingStock.ticker}
@@ -1422,7 +1441,7 @@ export default function App() {
           </Suspense>
         )}
 
-        {!creatorView && !adminView && activeTab === 'portfolio' && !viewingStock && !compareStocks && (
+        {!settingsView && !creatorView && !adminView && activeTab === 'portfolio' && !viewingStock && !compareStocks && (
           <>
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
@@ -1616,7 +1635,7 @@ export default function App() {
         )}
 
         <Suspense fallback={<PageFallback />}>
-          {!creatorView && !adminView && activeTab === 'nala' && !viewingStock && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'nala' && !viewingStock && (
             <PremiumOverlay
               featureName="NALA AI Deep Research"
               description="Institutional-quality research reports powered by Google Deep Research. Get deep-dive stock analysis, portfolio risk assessments, and structured bull/bear/base scenarios."
@@ -1630,7 +1649,7 @@ export default function App() {
             </PremiumOverlay>
           )}
 
-          {!creatorView && !adminView && activeTab === 'insights' && !viewingStock && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'insights' && !viewingStock && (
             <ErrorBoundary>
               <InsightsPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
@@ -1646,7 +1665,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && !adminView && activeTab === 'watchlists' && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'watchlists' && (
             <div style={viewingStock ? { display: 'none' } : undefined}>
               <ErrorBoundary>
                 <WatchlistPage
@@ -1656,7 +1675,7 @@ export default function App() {
             </div>
           )}
 
-          {!creatorView && !adminView && activeTab === 'discover' && !viewingStock && !viewingProfileId && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'discover' && !viewingStock && !viewingProfileId && (
             <ErrorBoundary>
               <DiscoverPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
@@ -1667,13 +1686,13 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && !adminView && activeTab === 'macro' && !viewingStock && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'macro' && !viewingStock && (
             <ErrorBoundary>
               <EconomicIndicators />
             </ErrorBoundary>
           )}
 
-          {!creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
             <ErrorBoundary>
               <PortfolioCompare
                 theirUserId={comparingUser.userId}
@@ -1684,7 +1703,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
             <ErrorBoundary>
               <LeaderboardPage
                 session={portfolio?.session}
@@ -1697,7 +1716,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && !adminView && viewingProfileId && !viewingStock && (
+          {!settingsView && !creatorView && !adminView && viewingProfileId && !viewingStock && (
             <ErrorBoundary>
               <UserProfileView
                 userId={viewingProfileId}
@@ -1711,7 +1730,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && !adminView && activeTab === 'watch' && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'watch' && (
             <div className={viewingStock ? 'hidden' : undefined}>
               <ErrorBoundary>
                 <WatchPage
@@ -1730,7 +1749,7 @@ export default function App() {
             </div>
           )}
 
-          {!creatorView && !adminView && activeTab === 'feed' && !viewingProfileId && !viewingStock && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'feed' && !viewingProfileId && !viewingStock && (
             <ErrorBoundary>
               <FeedPage
                 currentUserId={currentUserId}
@@ -1740,7 +1759,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!creatorView && !adminView && activeTab === 'pricing' && (
+          {!settingsView && !creatorView && !adminView && activeTab === 'pricing' && (
             <ErrorBoundary>
               <PricingPage />
             </ErrorBoundary>
@@ -1766,9 +1785,21 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {adminView === 'waitlist' && (
+          {adminView === 'waitlist' && !settingsView && !creatorView && (
             <ErrorBoundary>
               <WaitlistAdminPage onBack={() => setAdminView(null)} />
+            </ErrorBoundary>
+          )}
+
+          {settingsView && !adminView && !creatorView && (
+            <ErrorBoundary>
+              <AccountSettingsPageComp2
+                userId={currentUserId}
+                onBack={() => { setSettingsView(false); window.location.hash = ''; }}
+                onSave={() => fetchData()}
+                healthStatus={healthStatus}
+                onCreatorNavigate={(view) => { setSettingsView(false); setCreatorView(view); }}
+              />
             </ErrorBoundary>
           )}
 
@@ -1818,14 +1849,7 @@ export default function App() {
         </MiniPlayer>
       )}
 
-      <AccountSettingsModal
-        userId={currentUserId}
-        isOpen={settingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
-        onSave={() => fetchData()}
-        healthStatus={healthStatus}
-        onCreatorNavigate={(view) => { setSettingsModalOpen(false); setCreatorView(view); }}
-      />
+      {/* AccountSettingsModal removed — replaced by full-page AccountSettingsPage rendered in <main> */}
       <PrivacyPolicyModal
         isOpen={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}

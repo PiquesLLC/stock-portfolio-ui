@@ -9,6 +9,26 @@ const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = !!import.meta.env.VITE_APPLE_CLIENT_ID;
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
+const SHOW_ROADMAP = false;
+
+const ROADMAP = [
+  {
+    quarter: 'Q1 2026', theme: 'Foundation', status: 'SHIPPED' as const,
+    items: ['Portfolio tracking & live charts', 'AI Intelligence & daily brief', 'Monthly competition with cash prizes', 'Market heatmap & stock screener'],
+  },
+  {
+    quarter: 'Q2 2026', theme: 'Social & Intelligence', status: 'IN PROGRESS' as const,
+    items: ['Creator marketplace & finfluencer subscriptions', 'NALA AI Deep Research', 'Automatic brokerage sync (Plaid)', 'Referral program with rewards'],
+  },
+  {
+    quarter: 'Q3 2026', theme: 'Scale & Polish', status: 'PLANNED' as const,
+    items: ['Mobile app (iOS & Android)', 'Options flow tracking', 'Advanced analytics (Sharpe, correlation, drawdown)', 'Dark pool & institutional flow data'],
+  },
+  {
+    quarter: 'Q4 2026', theme: 'Platform', status: 'PLANNED' as const,
+    items: ['Creator monetization payouts', 'Social portfolio sharing & embeds', 'Crypto portfolio tracking', 'API access for developers'],
+  },
+];
 
 const EyeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>);
 const EyeOffIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>);
@@ -18,17 +38,18 @@ const CheckIcon = ({ className = '' }: { className?: string }) => (<svg classNam
 const sf = { fontFamily: "'DM Serif Display', Georgia, serif" };
 const noScroll = { scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties;
 
-const FEATURE_SLIDES = [
-  { src: '/screenshots/daily-brief.jpg', title: 'Daily AI Brief', desc: 'AI-generated market summary every morning with portfolio analysis and key movers.' },
-  { src: '/screenshots/portfolio-main.jpg', title: 'Portfolio Dashboard', desc: 'Live charts, P/L tracking, margin, and performance metrics — everything in one view.' },
-  { src: '/screenshots/chart-spy.jpg', title: 'SPY Overlay', desc: 'Compare against SPY, QQQ, or DIA. Measure any range with tap-and-drag.' },
-  { src: '/screenshots/watchlist.jpg', title: 'Watchlists', desc: 'Unlimited watchlists with live charts, P/L tracking, and multi-period performance.' },
-  { src: '/screenshots/heatmap.jpg', title: 'Market Heatmap', desc: 'Visual market overview by sector and cap. See where the money is moving at a glance.' },
-  { src: '/screenshots/insights.jpg', title: 'AI Intelligence', desc: 'Momentum detection, contributor analysis, sector drivers, and portfolio pulse.' },
-  { src: '/screenshots/dividends.jpg', title: 'Dividends', desc: 'Income tracking, upcoming payments, DRIP automation, and dividend history.' },
-  { src: '/screenshots/leaderboard.jpg', title: 'Leaderboard', desc: 'Compete with thousands of investors for monthly cash prizes.' },
-  { src: '/screenshots/activity.jpg', title: 'Activity Feed', desc: 'See what other investors are buying and selling in real time.' },
-];
+const FEATURES = {
+  primary: [
+    { id: 0, src: '/screenshots/creator-profile.png', label: '01 — Follow', title: 'Follow the smartest investors', desc: 'See their holdings, track their performance, and subscribe to unlock their full strategy. Social investing, built for the next generation.' },
+    { id: 1, src: '/screenshots/deep-research.png', label: '02 — Research', title: 'Institutional-grade AI research', desc: 'Ask any investment question. NALA AI delivers comprehensive research reports — in minutes, not hours.' },
+  ],
+  secondary: [
+    { id: 2, src: '/screenshots/creators-marketplace.png', title: 'Discover top creators', desc: 'Browse verified creators ranked by real performance. Free or paid — you choose who to follow.' },
+    { id: 3, src: '/screenshots/heatmap-new.png', title: 'See where the money moves', desc: 'Visual sector and market-cap breakdown. Spot rotations at a glance.' },
+    { id: 4, src: '/screenshots/creator-dashboard.png', title: 'Monetize your strategy', desc: 'Built for finfluencers. Track subscribers, revenue, and payouts — 80% goes to you.' },
+  ],
+};
+const ALL_FEATURES = [...FEATURES.primary, ...FEATURES.secondary];
 
 const FAQ_ITEMS = [
   { q: 'What is Nala?', a: 'Nala is a social investing platform with AI-powered portfolio intelligence. Track your holdings, compete on the leaderboard, and win monthly cash prizes — all in one place.' },
@@ -148,11 +169,9 @@ export function LandingPage() {
   // ─── OAuth Handlers ─────────────────────────────────────
   const handleGoogleLogin = useCallback(async () => {
     if (!GOOGLE_ENABLED) return;
-    // Trigger Google OAuth popup via the Google Identity Services library
-    // The @react-oauth/google GoogleOAuthProvider handles the GSI script loading
     const { google } = window as any;
     if (!google?.accounts?.oauth2) {
-      setError('Google Sign-In not available');
+      setError('Google Sign-In is still loading — please try again in a moment');
       return;
     }
     const client = google.accounts.oauth2.initTokenClient({
@@ -181,6 +200,7 @@ export function LandingPage() {
   // Load Google Identity Services SDK dynamically
   useEffect(() => {
     if (!GOOGLE_ENABLED) return;
+    if ((window as any).google?.accounts?.oauth2) return;
     if (document.getElementById('google-gsi-sdk')) return;
     const script = document.createElement('script');
     script.id = 'google-gsi-sdk';
@@ -435,27 +455,90 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ FEATURES — SWIPEABLE CAROUSEL ═══ */}
+      {/* ═══ FEATURES — NARRATIVE PRODUCT SHOWCASE ═══ */}
       <section ref={featuresRef} className="py-20 sm:py-28 bg-[#080808]">
         <div className="max-w-6xl mx-auto px-5 sm:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-4 text-white/95" style={sf}>A <em className="italic text-rh-green">powerful</em> investing platform</h2>
-            <p className="text-sm sm:text-base text-white/30 max-w-lg mx-auto">Everything you need to track, analyze, and grow your investments.</p>
+          {/* Headline */}
+          <div className="text-center mb-16 sm:mb-20">
+            <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-4 text-white/95" style={sf}>Invest smarter. <em className="italic text-rh-green">Together.</em></h2>
+            <p className="text-sm sm:text-base text-white/30 max-w-xl mx-auto">Follow top-performing investors, run AI-powered research, and see what Wall Street won't show you.</p>
           </div>
-        </div>
-        <div className="flex gap-4 xl:gap-3 overflow-x-auto snap-x snap-mandatory xl:snap-none pb-4 px-5 sm:px-8" style={noScroll}>
-          {FEATURE_SLIDES.map((f, i) => (
-            <div key={i} className="snap-start shrink-0 w-[clamp(240px,65vw,300px)] xl:shrink xl:flex-1 xl:min-w-0 xl:w-auto cursor-pointer group" onClick={() => setLightbox(i)}>
-              <div className="rounded-[1.5rem] xl:rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden shadow-lg shadow-black/30 h-[clamp(420px,38vw,620px)] xl:h-auto xl:aspect-[9/16] transition-transform duration-200 group-hover:scale-[1.02] group-hover:border-white/[0.15]">
-                <img src={f.src} alt={f.title} className="w-full block" draggable={false} />
-              </div>
-              <div className="mt-3 text-center px-1">
-                <h3 className="text-[13px] xl:text-[11px] 2xl:text-[13px] font-semibold text-white/60 mb-0.5" style={sf}>{f.title}</h3>
-                <p className="text-[11px] xl:text-[10px] 2xl:text-[11px] text-white/20 leading-relaxed xl:line-clamp-2">{f.desc}</p>
+
+          {/* Primary Feature 1 — Social Trading */}
+          <div className="mb-16 sm:mb-20">
+            <div className="text-[11px] font-bold text-rh-green tracking-wider mb-4 text-center lg:text-left">{FEATURES.primary[0].label}</div>
+            <div className="relative group cursor-pointer" onClick={() => setLightbox(0)}>
+              <div className="absolute -inset-4 bg-rh-green/[0.02] rounded-3xl blur-[60px] pointer-events-none" />
+              <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden transition-colors duration-500 group-hover:border-white/[0.12]">
+                <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                <div className="grid lg:grid-cols-2">
+                  {/* Copy */}
+                  <div className="flex flex-col justify-center p-8 sm:p-10 lg:p-12 order-2 lg:order-1">
+                    <h3 className="text-xl sm:text-2xl font-semibold text-white/90 mb-3" style={sf}>{FEATURES.primary[0].title}</h3>
+                    <p className="text-sm sm:text-[15px] text-white/35 leading-relaxed">{FEATURES.primary[0].desc}</p>
+                  </div>
+                  {/* Screenshot */}
+                  <div className="relative overflow-hidden order-1 lg:order-2">
+                    <img src={FEATURES.primary[0].src} alt={FEATURES.primary[0].title} className="w-full h-full max-h-[400px] lg:max-h-none object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
+                    <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0a0a0a] to-transparent hidden lg:block pointer-events-none" />
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
-          <div className="shrink-0 w-5 sm:w-8 xl:hidden" aria-hidden="true" />
+          </div>
+
+          {/* Primary Feature 2 — AI Deep Research (flipped) */}
+          <div className="mb-16 sm:mb-20">
+            <div className="text-[11px] font-bold text-rh-green tracking-wider mb-4 text-center lg:text-left">{FEATURES.primary[1].label}</div>
+            <div className="relative group cursor-pointer" onClick={() => setLightbox(1)}>
+              <div className="absolute -inset-4 bg-rh-green/[0.02] rounded-3xl blur-[60px] pointer-events-none" />
+              <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden transition-colors duration-500 group-hover:border-white/[0.12]">
+                <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                <div className="grid lg:grid-cols-2">
+                  {/* Screenshot (left on desktop) */}
+                  <div className="relative overflow-hidden">
+                    <img src={FEATURES.primary[1].src} alt={FEATURES.primary[1].title} className="w-full h-full max-h-[400px] lg:max-h-none object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
+                    <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0a0a0a] to-transparent hidden lg:block pointer-events-none" />
+                  </div>
+                  {/* Copy (right on desktop) */}
+                  <div className="flex flex-col justify-center p-8 sm:p-10 lg:p-12">
+                    <h3 className="text-xl sm:text-2xl font-semibold text-white/90 mb-3" style={sf}>{FEATURES.primary[1].title}</h3>
+                    <p className="text-sm sm:text-[15px] text-white/35 leading-relaxed">{FEATURES.primary[1].desc}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary Features — 03 Act */}
+          <div>
+            <div className="text-[11px] font-bold text-rh-green tracking-wider mb-4 text-center lg:text-left">03 — Discover</div>
+            {/* Mobile: horizontal scroll, sm: 2-col, lg: 3-col */}
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory sm:snap-none sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-5 pb-2 sm:pb-0" style={noScroll}>
+              {FEATURES.secondary.map(f => (
+                <div key={f.id} className="snap-start shrink-0 w-[75vw] sm:w-auto cursor-pointer group" onClick={() => setLightbox(f.id)}>
+                  <div className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden transition-colors duration-300 group-hover:border-white/[0.12]">
+                    <div className="overflow-hidden">
+                      <img src={f.src} alt={f.title} className="w-full h-48 sm:h-52 object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]" draggable={false} />
+                    </div>
+                    <div className="p-5">
+                      <h3 className="text-[14px] font-semibold text-white/70 mb-1.5" style={sf}>{f.title}</h3>
+                      <p className="text-[12px] text-white/25 leading-relaxed">{f.desc}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="shrink-0 w-5 sm:hidden" aria-hidden="true" />
+            </div>
+          </div>
+
+          {/* Section CTA */}
+          <div className="mt-16 text-center">
+            <button onClick={() => openAuth(ctaMode)} className="px-7 py-2.5 text-[13px] font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all min-h-[44px]">
+              {WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Start Free'}
+            </button>
+            <p className="text-[11px] text-white/20 mt-3">Free forever. Upgrade anytime.</p>
+          </div>
         </div>
       </section>
 
@@ -468,20 +551,20 @@ export function LandingPage() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             {/* Nav arrows */}
-            <button onClick={() => setLightbox((lightbox - 1 + FEATURE_SLIDES.length) % FEATURE_SLIDES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
+            <button onClick={() => setLightbox((lightbox - 1 + ALL_FEATURES.length) % ALL_FEATURES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <button onClick={() => setLightbox((lightbox + 1) % FEATURE_SLIDES.length)} className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
+            <button onClick={() => setLightbox((lightbox + 1) % ALL_FEATURES.length)} className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>
             {/* Image */}
             <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full">
-              <img src={FEATURE_SLIDES[lightbox].src} alt={FEATURE_SLIDES[lightbox].title} className="w-full block" draggable={false} />
+              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block" draggable={false} />
             </div>
             {/* Title + desc */}
             <div className="mt-4 text-center px-4">
-              <h3 className="text-lg font-semibold text-white/80" style={sf}>{FEATURE_SLIDES[lightbox].title}</h3>
-              <p className="text-sm text-white/30 mt-1">{FEATURE_SLIDES[lightbox].desc}</p>
+              <h3 className="text-lg font-semibold text-white/80" style={sf}>{ALL_FEATURES[lightbox].title}</h3>
+              <p className="text-sm text-white/30 mt-1">{ALL_FEATURES[lightbox].desc}</p>
             </div>
           </div>
         </div>
@@ -549,6 +632,77 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ═══ ROADMAP ═══ */}
+      {SHOW_ROADMAP && (
+        <section className="py-20 sm:py-28 px-5 sm:px-8 bg-[#080808]">
+          <div className="max-w-6xl mx-auto">
+            <span className="text-rh-green text-[11px] font-semibold uppercase tracking-[0.2em] mb-4 block text-center">Roadmap</span>
+            <h2 className="text-center text-2xl sm:text-[2.8rem] leading-[1.1] mb-4 text-white/95" style={sf}>What's <em className="italic">next</em></h2>
+            <p className="text-center text-sm text-white/25 mb-14 max-w-lg mx-auto">Our roadmap for 2026 — building the platform investors deserve.</p>
+
+            {/* Desktop: 4-column grid */}
+            <div className="hidden lg:block">
+              <div className="grid grid-cols-4 gap-8 relative">
+                {/* Connecting line */}
+                <div className="absolute top-[22px] left-[12.5%] right-[12.5%] h-px bg-white/[0.08]" />
+                {ROADMAP.map((q) => (
+                  <div key={q.quarter} className="relative">
+                    {/* Green dot */}
+                    <div className="flex items-center justify-center mb-6">
+                      <div className={`w-3 h-3 rounded-full relative z-10 ${
+                        q.status === 'SHIPPED' ? 'bg-rh-green' :
+                        q.status === 'IN PROGRESS' ? 'bg-yellow-500' :
+                        'bg-white/20'
+                      }`} />
+                    </div>
+                    <p className="text-rh-green text-[11px] font-semibold uppercase tracking-[0.15em] mb-1.5">{q.quarter}</p>
+                    <h3 className="text-white/90 text-lg mb-2.5" style={sf}>{q.theme}</h3>
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mb-4 ${
+                      q.status === 'SHIPPED' ? 'bg-rh-green/15 text-rh-green' :
+                      q.status === 'IN PROGRESS' ? 'bg-yellow-500/15 text-yellow-500' :
+                      'border border-white/10 text-white/30'
+                    }`}>{q.status}</span>
+                    <ul className="space-y-2">
+                      {q.items.map(item => (
+                        <li key={item} className="text-[12px] text-white/25 leading-relaxed flex items-start gap-2">
+                          <span className="text-white/10 mt-1.5 block w-1 h-1 rounded-full bg-current flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile: Vertical cards */}
+            <div className="lg:hidden space-y-4">
+              {ROADMAP.map(q => (
+                <div key={q.quarter} className="border-l-2 border-rh-green/30 pl-5 py-4 rounded-r-xl bg-white/[0.015]">
+                  <div className="flex items-center gap-3 mb-2">
+                    <p className="text-rh-green text-[11px] font-semibold uppercase tracking-[0.15em]">{q.quarter}</p>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                      q.status === 'SHIPPED' ? 'bg-rh-green/15 text-rh-green' :
+                      q.status === 'IN PROGRESS' ? 'bg-yellow-500/15 text-yellow-500' :
+                      'border border-white/10 text-white/30'
+                    }`}>{q.status}</span>
+                  </div>
+                  <h3 className="text-white/90 text-base mb-3" style={sf}>{q.theme}</h3>
+                  <ul className="space-y-1.5">
+                    {q.items.map(item => (
+                      <li key={item} className="text-[12px] text-white/25 leading-relaxed flex items-start gap-2">
+                        <span className="text-white/10 mt-1.5 block w-1 h-1 rounded-full bg-current flex-shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ═══ LOGOS ═══ */}
       <section className="border-y border-white/[0.04] py-8"><div className="max-w-5xl mx-auto px-5 sm:px-8"><div className="flex items-center justify-center gap-10 sm:gap-16 opacity-25">{['Finnhub','Polygon','Alpha Vantage','Plaid','Stripe'].map(n=><span key={n} className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-white whitespace-nowrap">{n}</span>)}</div></div></section>
