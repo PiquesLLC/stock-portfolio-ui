@@ -712,7 +712,7 @@ export function LandingPage() {
         <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-5 text-white/95" style={sf}>{WAITLIST_ENABLED ? <>Get early access to<br /><span className="text-rh-green italic">Nala</span> today</> : <>Start competing in less than<br /><span className="text-rh-green italic">10 minutes</span> today</>}</h2>
         <p className="text-sm text-white/25 mb-10 max-w-sm mx-auto">{WAITLIST_ENABLED ? 'Join the waitlist, get approved, and start tracking your portfolio.' : 'Create your free account, add your holdings, and join this month\'s competition.'}</p>
         <div className="flex items-center justify-center gap-3 mb-10">
-          {(WAITLIST_ENABLED ? ['Join waitlist','Get approved','Start competing'] : ['Sign up','Add holdings','Start competing']).map((step,i)=>(
+          {(WAITLIST_ENABLED ? ['Join waitlist','Get approved','Start earning'] : ['Sign up','Add holdings','Start earning']).map((step,i)=>(
             <div key={step} className="flex items-center gap-3">
               <div className="flex items-center gap-2"><div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${i===2?'bg-rh-green/20 text-rh-green':'bg-white/[0.05] text-white/30'}`}>{i+1}</div><span className="text-[11px] text-white/25">{step}</span></div>
               {i<2&&<div className="w-8 h-px bg-white/10" />}
