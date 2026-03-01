@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 export type TabType = 'portfolio' | 'nala' | 'insights' | 'watchlists' | 'discover' | 'macro' | 'leaderboard' | 'feed' | 'watch' | 'pricing' | 'profile';
 
@@ -71,6 +71,41 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
   const isOverflowActive = visibleOverflow.some(t => t.id === activeTab);
   const activeOverflowLabel = visibleOverflow.find(t => t.id === activeTab)?.label;
 
+  // --- Drag-to-select tabs (mobile) ---
+  const [dragTab, setDragTab] = useState<TabType | null>(null);
+  const dragging = useRef(false);
+
+  const getTabFromPoint = useCallback((x: number, y: number): TabType | null => {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const btn = (el as Element).closest?.('[data-tab-id]');
+    return (btn?.getAttribute('data-tab-id') as TabType) || null;
+  }, []);
+
+  const onNavTouchStart = useCallback((e: React.TouchEvent) => {
+    const tab = getTabFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    if (tab) {
+      dragging.current = true;
+      setDragTab(tab);
+    }
+  }, [getTabFromPoint]);
+
+  const onNavTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging.current) return;
+    const tab = getTabFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    if (tab) setDragTab(tab);
+  }, [getTabFromPoint]);
+
+  const onNavTouchEnd = useCallback(() => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    if (dragTab) {
+      onTabChange(dragTab);
+      setMoreOpen(false);
+    }
+    setDragTab(null);
+  }, [dragTab, onTabChange]);
+
   return (
     <nav className="border-b border-rh-light-border/60 dark:border-rh-border/60 bg-rh-light-bg/95 dark:bg-black/80 backdrop-blur-md">
       <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-0 sm:px-4 relative">
@@ -101,26 +136,40 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
         </div>
 
         {/* Mobile: 4 primary tabs + "More" dropdown */}
-        <div className="flex sm:hidden items-center justify-around">
-          {PRIMARY_TABS.map((tab) => (
+        <div
+          className="flex sm:hidden items-center justify-around"
+          onTouchStart={onNavTouchStart}
+          onTouchMove={onNavTouchMove}
+          onTouchEnd={onNavTouchEnd}
+          data-no-tab-swipe
+        >
+          {PRIMARY_TABS.map((tab) => {
+            const isHovered = dragTab === tab.id && dragTab !== activeTab;
+            return (
             <button
               key={tab.id}
+              data-tab-id={tab.id}
               onClick={() => { onTabChange(tab.id); setMoreOpen(false); }}
               className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
                 ${activeTab === tab.id
                   ? 'text-rh-green'
-                  : 'text-rh-light-muted dark:text-rh-muted'
+                  : isHovered
+                    ? 'text-rh-green/70'
+                    : 'text-rh-light-muted dark:text-rh-muted'
                 }`}
             >
-              <span className={`transition-opacity duration-200 ${activeTab === tab.id ? 'opacity-100' : 'opacity-50'}`}>
+              <span className={`transition-opacity duration-200 ${activeTab === tab.id || isHovered ? 'opacity-100' : 'opacity-50'}`}>
                 {TAB_ICONS[tab.id]}
               </span>
               <span className="text-[10px]">{tab.label}</span>
               <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
-                activeTab === tab.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                activeTab === tab.id ? 'scale-x-100 opacity-100'
+                  : isHovered ? 'scale-x-75 opacity-60'
+                  : 'scale-x-0 opacity-0'
               }`} />
             </button>
-          ))}
+            );
+          })}
 
           {/* More button + dropdown */}
           <div ref={moreRef} className="relative">
