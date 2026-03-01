@@ -452,13 +452,13 @@ export function LandingPage() {
 
       {/* ═══ FEATURE LIGHTBOX ═══ */}
       {lightbox !== null && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
-          <div className="relative max-w-2xl w-[80vw] max-h-[75vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
-            {/* Close button */}
-            <button onClick={() => setLightbox(null)} className="absolute -top-10 right-0 text-white/50 hover:text-white transition-colors text-sm font-medium">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-8" onClick={() => setLightbox(null)}>
+          <div className="relative max-w-2xl w-full sm:w-[80vw] max-h-[85vh] sm:max-h-[75vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            {/* Close button — inside container on mobile, above on desktop */}
+            <button onClick={() => setLightbox(null)} className="absolute top-2 right-2 sm:-top-10 sm:right-0 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/60 sm:bg-transparent text-white/70 hover:text-white transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            {/* Nav arrows */}
+            {/* Nav arrows — desktop only */}
             <button onClick={() => setLightbox((lightbox - 1 + ALL_FEATURES.length) % ALL_FEATURES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </button>
@@ -466,13 +466,13 @@ export function LandingPage() {
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>
             {/* Image */}
-            <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full max-h-[60vh]">
-              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block max-h-[60vh] object-contain" draggable={false} />
+            <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full max-h-[65vh] sm:max-h-[60vh]">
+              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block max-h-[65vh] sm:max-h-[60vh] object-contain" draggable={false} />
             </div>
             {/* Title + desc */}
-            <div className="mt-4 text-center px-4">
-              <h3 className="text-lg font-semibold text-white/80" style={sf}>{ALL_FEATURES[lightbox].title}</h3>
-              <p className="text-sm text-white/30 mt-1">{ALL_FEATURES[lightbox].desc}</p>
+            <div className="mt-3 sm:mt-4 text-center px-4">
+              <h3 className="text-base sm:text-lg font-semibold text-white/80" style={sf}>{ALL_FEATURES[lightbox].title}</h3>
+              <p className="text-xs sm:text-sm text-white/30 mt-1">{ALL_FEATURES[lightbox].desc}</p>
             </div>
           </div>
         </div>
