@@ -238,9 +238,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     writeCachedUser(null);
     resetAuthState();
-    // Clean URL so user lands on landing page
-    if (window.location.hash) window.location.hash = '';
-    if (window.location.pathname !== '/') window.history.replaceState({}, '', '/');
+    // Clean URL + stale nav state so user lands on a fresh landing page
+    sessionStorage.removeItem('navState');
+    window.history.replaceState({}, '', '/');
     try {
       // Call logout endpoint to clear cookie server-side
       await apiLogout();
