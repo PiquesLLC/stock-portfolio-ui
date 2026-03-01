@@ -273,7 +273,7 @@ function LockedOverlay({ onClick }: { onClick?: () => void }) {
 
 interface UserProfileViewProps {
   userId: string;
-  currentUserId: string;
+  currentUserId?: string;
   session?: MarketSession;
   onBack: () => void;
   onStockClick?: (ticker: string) => void;
@@ -807,7 +807,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           )}
 
           {/* Action buttons - pushed to right */}
-          {!isOwner && (
+          {currentUserId && !isOwner && (
             <div className="ml-auto flex items-center gap-2">
               {profile.creator?.status === 'active' && entitlement?.level !== 'paid' && (
                 <CreatorSubscribeButton

@@ -56,6 +56,7 @@ const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m =
 const AccountHistorySection = lazy(() => import('./components/AccountHistorySection'));
 const WaitlistAdminPage = lazy(() => import('./components/WaitlistAdminPage').then(m => ({ default: m.WaitlistAdminPage })));
 const AccountSettingsPageComp2 = lazy(() => import('./components/settings/AccountSettingsPage'));
+const PublicProfilePage = lazy(() => import('./components/PublicProfilePage'));
 
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
@@ -765,6 +766,14 @@ export default function App() {
   const rawHash = window.location.hash.slice(1);
   if (rawHash === 'privacy' || rawHash === 'terms') {
     return <PrivacyPage initialTab={rawHash} />;
+  }
+
+  if (!isAuthenticated && _pendingUsername) {
+    return (
+      <Suspense fallback={<div className="h-screen h-dvh bg-[#050505] flex items-center justify-center"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
+        <PublicProfilePage username={_pendingUsername} />
+      </Suspense>
+    );
   }
 
   if (!isAuthenticated) {

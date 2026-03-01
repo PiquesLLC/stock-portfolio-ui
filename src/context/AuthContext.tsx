@@ -234,14 +234,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // Clear local state immediately so UI updates instantly
+    setUser(null);
+    writeCachedUser(null);
+    resetAuthState();
+    // Clean URL so user lands on landing page
+    if (window.location.hash) window.location.hash = '';
+    if (window.location.pathname !== '/') window.history.replaceState({}, '', '/');
     try {
       // Call logout endpoint to clear cookie server-side
       await apiLogout();
     } catch {
-      // Even if logout request fails, clear local state
+      // Even if logout request fails, local state is already cleared
     }
-    setUser(null);
-    writeCachedUser(null);
   }, []);
 
   const refreshUser = useCallback(async () => {
