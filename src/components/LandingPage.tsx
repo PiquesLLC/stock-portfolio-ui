@@ -453,7 +453,7 @@ export function LandingPage() {
       {/* ═══ FEATURE LIGHTBOX ═══ */}
       {lightbox !== null && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
-          <div className="relative max-w-3xl w-[90vw] max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+          <div className="relative max-w-2xl w-[80vw] max-h-[75vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
             {/* Close button */}
             <button onClick={() => setLightbox(null)} className="absolute -top-10 right-0 text-white/50 hover:text-white transition-colors text-sm font-medium">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -466,8 +466,8 @@ export function LandingPage() {
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>
             {/* Image */}
-            <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full">
-              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block" draggable={false} />
+            <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full max-h-[60vh]">
+              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block max-h-[60vh] object-cover object-top" draggable={false} />
             </div>
             {/* Title + desc */}
             <div className="mt-4 text-center px-4">
