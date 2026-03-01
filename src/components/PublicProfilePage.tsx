@@ -121,43 +121,18 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
           />
         </Suspense>
 
-        {/* ═══ CONVERSION PANEL ═══ */}
-        <div className="max-w-lg mx-auto px-4 pt-2 pb-8">
-          <div className="rounded-2xl border border-white/[0.1] bg-white/[0.03] backdrop-blur-sm px-6 py-7 text-center shadow-[0_0_40px_rgba(0,200,5,0.04)]">
+        {/* Bottom spacer so content doesn't hide behind floating button */}
+        <div className="h-20" />
+      </div>
 
-            {/* Value props */}
-            <div className="flex items-center justify-center gap-5 sm:gap-8 mb-5">
-              {[
-                { icon: '👥', label: 'Follow real investors' },
-                { icon: '📊', label: 'Track every position' },
-                { icon: '🧠', label: 'Get AI-powered insights' },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-2">
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-[13px] text-white/60 font-medium">{item.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="w-12 mx-auto border-t border-white/[0.08] mb-5" />
-
-            {/* CTA copy */}
-            <p className="text-[15px] text-white/65 mb-4 leading-relaxed max-w-sm mx-auto">
-              Join Nala to follow real investors, track your portfolio, and get AI-powered insights.
-            </p>
-
-            <button
-              onClick={() => setShowAuth(true)}
-              className="px-8 py-3 bg-rh-green text-black text-sm font-bold rounded-full hover:bg-rh-green/90 transition-all shadow-[0_0_24px_rgba(0,200,5,0.25)]"
-            >
-              {WAITLIST_ENABLED ? 'Join the Waitlist' : 'Sign Up — It\'s Free'}
-            </button>
-
-            <p className="text-[12px] text-white/40 mt-3.5">
-              Free to join. Upgrade anytime for full tracking and AI research.
-            </p>
-          </div>
-        </div>
+      {/* ═══ FLOATING WAITLIST BUTTON ═══ */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <button
+          onClick={() => setShowAuth(true)}
+          className="px-8 py-3 bg-rh-green text-black text-sm font-bold rounded-full hover:bg-rh-green/90 transition-all shadow-[0_0_24px_rgba(0,200,5,0.3),0_4px_12px_rgba(0,0,0,0.4)]"
+        >
+          {WAITLIST_ENABLED ? 'Join the Waitlist' : 'Sign Up — It\'s Free'}
+        </button>
       </div>
     </div>
   );
