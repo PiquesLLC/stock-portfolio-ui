@@ -12,6 +12,7 @@ interface User {
   plan?: PlanTier;
   planExpiresAt?: string | null;
   createdAt?: string;
+  isWaitlistAdmin?: boolean;
 }
 
 export interface MfaChallenge {

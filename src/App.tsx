@@ -157,12 +157,19 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
 }
 
 const savedInitialNav = parseHash();
-// Check if initial hash was #tab=settings
+// Check if initial hash was #tab=settings or #tab=admin-waitlist
 const _initialSettingsView = (() => {
   const hash = window.location.hash.slice(1);
   if (!hash) return false;
   const params = new URLSearchParams(hash);
   return params.get('tab') === 'settings';
+})();
+const _initialAdminView = (() => {
+  const hash = window.location.hash.slice(1);
+  if (!hash) return null;
+  const params = new URLSearchParams(hash);
+  if (params.get('tab') === 'admin-waitlist') return 'waitlist' as const;
+  return null;
 })();
 
 // Detect shareable profile URL: nalaai.com/<username>
@@ -239,7 +246,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsView, setSettingsView] = useState(_initialSettingsView);
   const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
-  const [adminView, setAdminView] = useState<'waitlist' | null>(null);
+  const [adminView, setAdminView] = useState<'waitlist' | null>(_initialAdminView);
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -1226,7 +1233,7 @@ export default function App() {
                   </svg>
                 </button>
               )}
-              {currentUserId && currentUserId === import.meta.env.VITE_ADMIN_USER_ID && (
+              {currentUserId && user?.isWaitlistAdmin && (
                 <button
                   onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); }}
                   className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
@@ -1305,7 +1312,7 @@ export default function App() {
                       Creator Dashboard
                     </button>
                   )}
-                  {currentUserId && currentUserId === import.meta.env.VITE_ADMIN_USER_ID && (
+                  {currentUserId && user?.isWaitlistAdmin && (
                     <button
                       onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); }}
                       className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
