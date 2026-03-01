@@ -471,13 +471,6 @@ export function LandingPage() {
             style={{ maxHeight: 'calc(100dvh - 2rem)' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Close button — top-right of card */}
-            <button
-              onClick={() => setLightbox(null)}
-              className="absolute -top-1 -right-1 sm:-top-10 sm:right-0 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-[#1a1a1a] sm:bg-transparent border border-white/20 sm:border-0 text-white/80 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
             {/* Nav arrows — desktop only */}
             <button onClick={() => setLightbox((lightbox - 1 + ALL_FEATURES.length) % ALL_FEATURES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -487,10 +480,17 @@ export function LandingPage() {
             </button>
             {/* Image — scrollable within card, capped to viewport */}
             <div
-              className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-y-auto overflow-x-hidden shadow-2xl shadow-black/60"
+              className="relative rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-y-auto overflow-x-hidden shadow-2xl shadow-black/60"
               style={{ overscrollBehavior: 'contain', maxHeight: 'calc(100dvh - 6rem)' }}
             >
-              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block" draggable={false} />
+              {/* X button — inside the image card, always visible */}
+              <button
+                onClick={() => setLightbox(null)}
+                className="sticky top-2 float-right mr-2 mt-2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-black/70 border border-white/20 text-white hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block -mt-11" draggable={false} />
             </div>
             {/* Title + desc */}
             <div className="mt-3 sm:mt-4 text-center px-4 shrink-0">
