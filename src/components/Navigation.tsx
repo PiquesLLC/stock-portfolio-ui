@@ -146,7 +146,7 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
         {/* Mobile: 4 primary tabs + "More" dropdown */}
         <div
           className="flex sm:hidden items-center justify-around"
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
           onTouchStart={onNavTouchStart}
           onTouchMove={onNavTouchMove}
           onTouchEnd={onNavTouchEnd}
