@@ -349,8 +349,7 @@ export default function App() {
   const swipeActive = useRef(false);
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
-  const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
-  const swipeAnimKey = useRef(0);
+  const mainRef = useRef<HTMLElement>(null);
 
   const onPullStart = useCallback((e: React.TouchEvent) => {
     if (refreshing) return;
@@ -436,8 +435,14 @@ export default function App() {
     const len = PRIMARY_TABS.length;
     const next = dx < 0 ? (idx + 1) % len : (idx - 1 + len) % len;
     const newTab = PRIMARY_TABS[next].id;
-    swipeAnimKey.current += 1;
-    setSwipeDir(dx < 0 ? 'left' : 'right');
+    const offset = dx < 0 ? 30 : -30;
+    mainRef.current?.animate(
+      [
+        { transform: `translateX(${offset}px)`, opacity: 0.6 },
+        { transform: 'translateX(0)', opacity: 1 },
+      ],
+      { duration: 180, easing: 'ease-out', fill: 'none' }
+    );
     setActiveTab(newTab);
     setViewingProfileId(null);
     setViewingStock(null);
@@ -1476,13 +1481,13 @@ export default function App() {
       </div>
 
       <main
-        key={swipeDir ? swipeAnimKey.current : undefined}
+        ref={mainRef}
         className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
           activeTab === 'discover' && !viewingStock
             ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
             : 'max-w-[clamp(1080px,64vw,1530px)] px-3 sm:px-6'
-        }${swipeDir === 'left' ? ' animate-slide-in-left' : swipeDir === 'right' ? ' animate-slide-in-from-left' : ''}`}
-        onAnimationEnd={() => setSwipeDir(null)}
+        }`}
+        style={{ willChange: 'transform' }}
       >
         {!isOnline && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
