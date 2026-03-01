@@ -471,12 +471,12 @@ export function LandingPage() {
             style={{ maxHeight: 'calc(100dvh - 5rem)' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Close button — top-right corner of card */}
+            {/* Close button — above card on right */}
             <button
               onClick={() => setLightbox(null)}
-              className="absolute top-2 right-2 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-black/80 border border-white/25 text-white transition-colors"
+              className="self-end mb-2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/15 border border-white/30 text-white shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             {/* Nav arrows — desktop only */}
             <button onClick={() => setLightbox((lightbox - 1 + ALL_FEATURES.length) % ALL_FEATURES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
