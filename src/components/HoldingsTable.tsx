@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Reorder } from 'framer-motion';
 import { Holding } from '../types';
 import { useToast } from '../context/ToastContext';
@@ -225,8 +226,8 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   const handleSaveCashMargin = async (e: React.FormEvent) => {
     e.preventDefault();
     setCashMarginError('');
-    const cash = parseFloat(cashValue);
-    const margin = parseFloat(marginValue);
+    const cash = cashValue.trim() === '' ? 0 : parseFloat(cashValue);
+    const margin = marginValue.trim() === '' ? 0 : parseFloat(marginValue);
     if (isNaN(cash) || cash < 0) { setCashMarginError('Cash balance must be non-negative'); return; }
     if (isNaN(margin) || margin < 0) { setCashMarginError('Margin debt must be non-negative'); return; }
     setCashMarginLoading(true);
@@ -1042,7 +1043,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       </div>
 
       {/* Add Stock Modal */}
-      {showAddModal && (
+      {showAddModal && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center px-4"
           role="dialog"
@@ -1081,11 +1082,12 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             </div>
             {renderModalContent(false)}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Holding Modal */}
-      {editingHolding && (
+      {editingHolding && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center px-4"
           role="dialog"
@@ -1124,11 +1126,12 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             </div>
             {renderModalContent(true)}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Cash & Margin Modal */}
-      {showCashMarginModal && (
+      {showCashMarginModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 modal-overlay bg-black/60 backdrop-blur-sm" onClick={() => setShowCashMarginModal(false)} aria-hidden="true" />
           <div
@@ -1194,7 +1197,8 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* Click-outside handler for dropdowns */}
       {(showDisplayMenu || showSortMenu) && (
