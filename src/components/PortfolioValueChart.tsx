@@ -184,10 +184,12 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     }
   }, [refreshTrigger, selectedPeriod, fetchChart]);
 
-  // Auto-refresh for 1D
+  // Auto-refresh for 1D (only during market hours to prevent chart jitter from after-hours quote fluctuations)
   useEffect(() => {
     if (selectedPeriod !== '1D') return;
-    const interval = setInterval(() => fetchChart('1D', true), 15000);
+    const interval = setInterval(() => {
+      if (getMarketStatus().isOpen) fetchChart('1D', true);
+    }, 15000);
     return () => clearInterval(interval);
   }, [selectedPeriod, fetchChart]);
 
