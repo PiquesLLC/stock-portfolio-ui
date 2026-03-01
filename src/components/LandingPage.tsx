@@ -67,6 +67,14 @@ export function LandingPage() {
 
   const [lightbox, setLightbox] = useState<number | null>(null);
 
+  // Lock body scroll when lightbox is open (prevents scroll bleed-through on mobile)
+  useEffect(() => {
+    if (lightbox !== null) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [lightbox]);
+
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'waitlist' | 'forgot-password' | 'reset-password'>('signup');
   const openAuth = (mode: 'login' | 'signup' | 'waitlist') => { setAuthMode(mode); setAuthOpen(true); };
@@ -452,29 +460,42 @@ export function LandingPage() {
 
       {/* ═══ FEATURE LIGHTBOX ═══ */}
       {lightbox !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm overflow-y-auto" onClick={() => setLightbox(null)}>
-          {/* Fixed close button — always visible on screen */}
-          <button onClick={() => setLightbox(null)} className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[10000] w-10 h-10 flex items-center justify-center rounded-full bg-black/70 text-white/80 hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-          <div className="min-h-full flex items-center justify-center p-4 sm:p-8">
-            <div className="relative max-w-2xl w-full sm:w-[80vw] flex flex-col items-center" onClick={e => e.stopPropagation()}>
-              {/* Nav arrows — desktop only */}
-              <button onClick={() => setLightbox((lightbox - 1 + ALL_FEATURES.length) % ALL_FEATURES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-              </button>
-              <button onClick={() => setLightbox((lightbox + 1) % ALL_FEATURES.length)} className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-              </button>
-              {/* Image */}
-              <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full">
-                <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block object-contain" draggable={false} />
-              </div>
-              {/* Title + desc */}
-              <div className="mt-3 sm:mt-4 text-center px-4">
-                <h3 className="text-base sm:text-lg font-semibold text-white/80" style={sf}>{ALL_FEATURES[lightbox].title}</h3>
-                <p className="text-xs sm:text-sm text-white/30 mt-1">{ALL_FEATURES[lightbox].desc}</p>
-              </div>
+        <div
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-8"
+          style={{ overscrollBehavior: 'contain', touchAction: 'none' }}
+          onClick={() => setLightbox(null)}
+        >
+          {/* Card container — constrained to viewport */}
+          <div
+            className="relative w-full max-w-2xl sm:w-[80vw] flex flex-col"
+            style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close button — top-right of card */}
+            <button
+              onClick={() => setLightbox(null)}
+              className="absolute -top-1 -right-1 sm:-top-10 sm:right-0 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-[#1a1a1a] sm:bg-transparent border border-white/20 sm:border-0 text-white/80 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            {/* Nav arrows — desktop only */}
+            <button onClick={() => setLightbox((lightbox - 1 + ALL_FEATURES.length) % ALL_FEATURES.length)} className="absolute left-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button onClick={() => setLightbox((lightbox + 1) % ALL_FEATURES.length)} className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </button>
+            {/* Image — scrollable within card, capped to viewport */}
+            <div
+              className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-y-auto overflow-x-hidden shadow-2xl shadow-black/60"
+              style={{ overscrollBehavior: 'contain', maxHeight: 'calc(100dvh - 6rem)' }}
+            >
+              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block" draggable={false} />
+            </div>
+            {/* Title + desc */}
+            <div className="mt-3 sm:mt-4 text-center px-4 shrink-0">
+              <h3 className="text-base sm:text-lg font-semibold text-white/80" style={sf}>{ALL_FEATURES[lightbox].title}</h3>
+              <p className="text-xs sm:text-sm text-white/30 mt-1">{ALL_FEATURES[lightbox].desc}</p>
             </div>
           </div>
         </div>
