@@ -100,6 +100,7 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
     const tab = getTabFromPoint(e.touches[0].clientX, e.touches[0].clientY);
     if (tab) {
       if (tab !== startTab.current) didDrag.current = true;
+      if (tab !== dragTab) navigator.vibrate?.(5);
       setDragTab(tab);
     }
   }, [getTabFromPoint]);
