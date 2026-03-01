@@ -413,18 +413,16 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
             </span>
             <div className="flex items-center gap-3">
               {/* Push notifications toggle */}
-              {pushSupported && (
-                <button
-                  onClick={togglePush}
-                  disabled={pushLoading}
-                  className={`p-1 rounded transition-colors ${pushEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-rh-muted/40'} ${pushLoading ? 'opacity-50' : ''}`}
-                  title={pushEnabled ? 'Push notifications on' : getPushPermission() === 'denied' ? 'Push blocked by browser — check site settings' : 'Enable push notifications'}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </button>
-              )}
+              <button
+                onClick={togglePush}
+                disabled={pushLoading}
+                className={`p-1 rounded transition-colors ${pushEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-rh-muted/40'} ${pushLoading ? 'opacity-50' : ''}`}
+                title={pushEnabled ? 'Push notifications on' : !pushSupported ? 'Push not available — try removing and re-adding app to home screen' : getPushPermission() === 'denied' ? 'Push blocked by browser — check site settings' : 'Enable push notifications'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </button>
               {/* Sound toggle */}
               <button
                 onClick={toggleSound}
