@@ -59,7 +59,7 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
     return <LandingPage />;
   }
 
-  const { userId } = state;
+  const { userId, displayName } = state;
 
   return (
     <div className="h-screen h-dvh bg-[#050505] text-white overflow-hidden flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
@@ -121,18 +121,26 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
           />
         </Suspense>
 
-        {/* Bottom spacer so content doesn't hide behind floating button */}
-        <div className="h-20" />
+        {/* Bottom spacer so content doesn't hide behind floating CTA */}
+        <div className="h-44" />
       </div>
 
-      {/* ═══ FLOATING WAITLIST BUTTON ═══ */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-        <button
-          onClick={() => setShowAuth(true)}
-          className="px-8 py-3 bg-rh-green text-black text-sm font-bold rounded-full hover:bg-rh-green/90 transition-all shadow-[0_0_24px_rgba(0,200,5,0.3),0_4px_12px_rgba(0,0,0,0.4)]"
-        >
-          {WAITLIST_ENABLED ? 'Join the Waitlist' : 'Sign Up — It\'s Free'}
-        </button>
+      {/* ═══ FLOATING CTA BAR ═══ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#050505] via-[#050505]/95 to-transparent pt-8 pb-6 px-4 pointer-events-none">
+        <div className="max-w-md mx-auto text-center pointer-events-auto">
+          <p className="text-sm text-white/50 mb-3">
+            Join Nala to follow <span className="text-white/80 font-medium">{displayName}</span> and thousands of investors sharing real performance.
+          </p>
+          <button
+            onClick={() => setShowAuth(true)}
+            className="px-8 py-3 bg-rh-green text-black text-sm font-bold rounded-full hover:bg-rh-green/90 transition-all shadow-[0_0_24px_rgba(0,200,5,0.3),0_4px_12px_rgba(0,0,0,0.4)]"
+          >
+            {WAITLIST_ENABLED ? 'Join the Waitlist' : 'Sign Up — It\'s Free'}
+          </button>
+          <p className="text-[11px] text-white/25 mt-2.5">
+            Free to join. Upgrade when you're ready for full tracking and AI research.
+          </p>
+        </div>
       </div>
     </div>
   );
