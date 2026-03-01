@@ -3,6 +3,7 @@ import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneE
 import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAnalystEventRead, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, getUnreadAnomalyCount, markAnomalyRead, markAllAnomaliesRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
+import { useToast } from '../context/ToastContext';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
@@ -83,6 +84,7 @@ interface Props {
 }
 
 export function NotificationBell({ userId, onTickerClick }: Props) {
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
@@ -134,15 +136,24 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       if (pushEnabled) {
         await unsubscribeFromPush();
         setPushEnabled(false);
+        showToast('Push notifications disabled', 'info');
       } else {
         const permission = getPushPermission();
+        if (permission === 'unsupported') {
+          showToast('Push not supported — install the app to your home screen first', 'error');
+          return;
+        }
         if (permission === 'denied') {
-          // User previously denied — can't re-prompt, just inform
-          console.log('[Push] Permission denied by browser — cannot enable');
+          showToast('Push blocked — enable notifications in your device settings', 'error');
           return;
         }
         const ok = await subscribeToPush();
         setPushEnabled(ok);
+        if (ok) {
+          showToast('Push notifications enabled! You\'ll get alerts even when the app is closed.', 'success');
+        } else {
+          showToast('Could not enable push — check browser console for details', 'error');
+        }
       }
     } finally {
       setPushLoading(false);

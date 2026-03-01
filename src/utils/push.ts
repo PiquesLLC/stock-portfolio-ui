@@ -55,12 +55,18 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * Returns true on success, false on failure/denial.
  */
 export async function subscribeToPush(): Promise<boolean> {
-  if (!isPushSupported()) return false;
+  if (!isPushSupported()) {
+    console.warn('[Push] Not supported in this browser');
+    return false;
+  }
 
   try {
     // Request notification permission
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return false;
+    if (permission !== 'granted') {
+      console.warn('[Push] Permission not granted:', permission);
+      return false;
+    }
 
     // Get VAPID key from server
     const vapidKey = await getVapidKey();
@@ -68,19 +74,24 @@ export async function subscribeToPush(): Promise<boolean> {
       console.error('[Push] Could not fetch VAPID key — push may be disabled on server');
       return false;
     }
+    console.log('[Push] Got VAPID key');
 
-    // Get the push-sw registration
-    const registration = await navigator.serviceWorker.getRegistration('/');
+    // Get the push-sw registration (register if needed)
+    let registration = await navigator.serviceWorker.getRegistration('/');
     if (!registration) {
-      console.error('[Push] No service worker registration found');
-      return false;
+      console.log('[Push] No SW registration found, registering push-sw.js...');
+      registration = await navigator.serviceWorker.register('/push-sw.js', { scope: '/' });
+      // Wait for the SW to activate
+      await navigator.serviceWorker.ready;
     }
+    console.log('[Push] SW registration ready');
 
     // Subscribe to push
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidKey),
     });
+    console.log('[Push] Got push subscription');
 
     // Send subscription to server
     const res = await fetch(`${API_BASE_URL}/push/subscribe`, {
@@ -89,6 +100,13 @@ export async function subscribeToPush(): Promise<boolean> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: subscription.toJSON() }),
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('[Push] Server rejected subscription:', res.status, text);
+    } else {
+      console.log('[Push] Subscription saved to server');
+    }
 
     return res.ok;
   } catch (err) {
