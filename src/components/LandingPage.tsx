@@ -465,9 +465,9 @@ export function LandingPage() {
             <button onClick={() => setLightbox((lightbox + 1) % ALL_FEATURES.length)} className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors hidden sm:block">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>
-            {/* Image — crop off nav header */}
+            {/* Image — shift past nav header */}
             <div className="rounded-2xl border border-white/[0.12] bg-[#0a0a0a] overflow-hidden shadow-2xl shadow-black/60 w-full max-h-[60vh]">
-              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block -mt-[60px]" draggable={false} />
+              <img src={ALL_FEATURES[lightbox].src} alt={ALL_FEATURES[lightbox].title} className="w-full block max-h-[60vh] object-cover" style={{ objectPosition: 'center 15%' }} draggable={false} />
             </div>
             {/* Title + desc */}
             <div className="mt-4 text-center px-4">
