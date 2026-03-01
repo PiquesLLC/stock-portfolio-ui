@@ -29,14 +29,14 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'portfolio', label: 'Portfolio' },
   { id: 'insights', label: 'Insights' },
   { id: 'discover', label: 'Discover' },
-  { id: 'watchlists', label: 'Watchlists' },
+  { id: 'leaderboard', label: 'Leaderboard' },
 ];
 
 const OVERFLOW_TABS: { id: TabType; label: string }[] = [
   { id: 'nala', label: 'Nala AI' },
+  { id: 'watchlists', label: 'Watchlists' },
   { id: 'macro', label: 'Macro' },
   { id: 'feed', label: 'Feed' },
-  { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'watch', label: 'Watch' },
   { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
@@ -142,7 +142,7 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
             </button>
 
             {moreOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] py-1 rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1b]">
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] py-1 rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1b]" data-no-tab-swipe>
                 {visibleOverflow.map((tab) => (
                   <button
                     key={tab.id}

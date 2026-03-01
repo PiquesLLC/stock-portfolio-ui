@@ -343,6 +343,15 @@ export default function App() {
   const pullActive = useRef(false);
   const fetchDataRef = useRef<() => void>(() => {});
 
+  // --- Swipe-to-cycle tabs (mobile) ---
+  const swipeTouchX = useRef(0);
+  const swipeTouchY = useRef(0);
+  const swipeActive = useRef(false);
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
+  const swipeAnimKey = useRef(0);
+
   const onPullStart = useCallback((e: React.TouchEvent) => {
     if (refreshing) return;
     if (window.scrollY <= 0) {
@@ -375,6 +384,69 @@ export default function App() {
       setPullY(0);
     }
   }, [pullY]);
+
+  const [isTouchDevice, setIsTouchDevice] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)');
+    const handler = (e: MediaQueryListEvent) => setIsTouchDevice(e.matches);
+    if (mq.addEventListener) {
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }
+    // Safari <14 fallback
+    mq.addListener(handler);
+    return () => mq.removeListener(handler);
+  }, []);
+
+  const onTouchStartCombined = useCallback((e: React.TouchEvent) => {
+    onPullStart(e);
+    if (!isTouchDevice || e.touches.length !== 1) return;
+    const startX = e.touches[0].clientX;
+    // Skip iOS edge-swipe zone (~20px from screen edges) to avoid conflicting with system back/forward
+    if (startX < 20 || startX > window.innerWidth - 20) return;
+    const raw = e.target as Node;
+    const el = raw.nodeType === Node.TEXT_NODE ? raw.parentElement : raw as Element;
+    if (el?.closest?.('input,textarea,button,a,[role="button"],[data-no-tab-swipe]')) return;
+    swipeTouchX.current = startX;
+    swipeTouchY.current = e.touches[0].clientY;
+    swipeActive.current = true;
+  }, [onPullStart, isTouchDevice]);
+
+  const onTouchMoveCombined = useCallback((e: React.TouchEvent) => {
+    onPullMove(e);
+    if (!swipeActive.current) return;
+    const dy = Math.abs(e.touches[0].clientY - swipeTouchY.current);
+    const dx = Math.abs(e.touches[0].clientX - swipeTouchX.current);
+    if (dy > dx) swipeActive.current = false;
+  }, [onPullMove]);
+
+  const onTouchEndCombined = useCallback((e: React.TouchEvent) => {
+    const pullFired = pullActive.current && pullY > 50;
+    onPullEnd();
+    if (!swipeActive.current) return;
+    swipeActive.current = false;
+    if (pullFired || viewingStock || settingsView || creatorView || adminView || compareStocks || refreshing || showOnboardingTour || showDailyReport || showPrivacyModal) return;
+    if (!e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - swipeTouchX.current;
+    if (Math.abs(dx) < 50) return;
+    const idx = PRIMARY_TABS.findIndex(t => t.id === activeTabRef.current);
+    if (idx === -1) return;
+    const len = PRIMARY_TABS.length;
+    const next = dx < 0 ? (idx + 1) % len : (idx - 1 + len) % len;
+    const newTab = PRIMARY_TABS[next].id;
+    swipeAnimKey.current += 1;
+    setSwipeDir(dx < 0 ? 'left' : 'right');
+    setActiveTab(newTab);
+    setViewingProfileId(null);
+    setViewingStock(null);
+    setLeaderboardUserId(null);
+    setCompareStocks(null);
+    setCreatorView(null);
+    setAdminView(null);
+    setSettingsView(false);
+  }, [onPullEnd, pullY, viewingStock, settingsView, creatorView, adminView, compareStocks, refreshing, showOnboardingTour, showDailyReport, showPrivacyModal]);
 
   // --- Stream / PiP state ---
   const [pipEnabled, setPipEnabled] = useState(() => {
@@ -924,7 +996,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }} onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd}>
+    <div className="min-h-screen min-h-dvh bg-rh-light-bg dark:bg-transparent text-rh-light-text dark:text-rh-text" style={{ paddingTop: 'env(safe-area-inset-top)' }} onTouchStart={onTouchStartCombined} onTouchMove={onTouchMoveCombined} onTouchEnd={onTouchEndCombined}>
       {/* Fixed shield covering the iOS status bar area so scrolling content is hidden behind it */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-rh-light-bg dark:bg-black" style={{ height: 'env(safe-area-inset-top)' }} />
       <Starfield />
@@ -1117,7 +1189,7 @@ export default function App() {
                 }`} />
               </button>
               {moreDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl py-1.5 min-w-[160px] z-50">
+                <div className="absolute top-full left-0 mt-1.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl py-1.5 min-w-[160px] z-50" data-no-tab-swipe>
                   {/* Overflow primary tabs — visible in More only at sm–lg */}
                   {collapsedPrimaryTabs.map(tab => (
                     <button
@@ -1403,11 +1475,15 @@ export default function App() {
         />
       </div>
 
-      <main className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
-        activeTab === 'discover' && !viewingStock
-          ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
-          : 'max-w-[clamp(1080px,64vw,1530px)] px-3 sm:px-6'
-      }`}>
+      <main
+        key={swipeDir ? swipeAnimKey.current : undefined}
+        className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
+          activeTab === 'discover' && !viewingStock
+            ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
+            : 'max-w-[clamp(1080px,64vw,1530px)] px-3 sm:px-6'
+        }${swipeDir === 'left' ? ' animate-slide-in-left' : swipeDir === 'right' ? ' animate-slide-in-from-left' : ''}`}
+        onAnimationEnd={() => setSwipeDir(null)}
+      >
         {!isOnline && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
             <p className="text-yellow-400 text-sm font-medium">

@@ -1188,6 +1188,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          data-no-tab-swipe
           style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
           <defs>

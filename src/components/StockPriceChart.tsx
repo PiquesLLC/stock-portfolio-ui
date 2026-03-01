@@ -1921,7 +1921,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         )}
       </div>
 
-      <div ref={chartContainerRef} className="relative w-full focus-visible:ring-1 focus-visible:ring-rh-green/30 rounded" tabIndex={0} style={{ aspectRatio: `${CHART_W}/${CHART_H}`, outline: 'none', touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} onClick={handleChartClick} onKeyDown={handleKeyDown}>
+      <div ref={chartContainerRef} className="relative w-full focus-visible:ring-1 focus-visible:ring-rh-green/30 rounded" tabIndex={0} data-no-tab-swipe style={{ aspectRatio: `${CHART_W}/${CHART_H}`, outline: 'none', touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} onClick={handleChartClick} onKeyDown={handleKeyDown}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CHART_W} ${CHART_H}`}
