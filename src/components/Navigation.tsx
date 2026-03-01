@@ -74,6 +74,8 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
   // --- Drag-to-select tabs (mobile) ---
   const [dragTab, setDragTab] = useState<TabType | null>(null);
   const dragging = useRef(false);
+  const didDrag = useRef(false);
+  const startTab = useRef<TabType | null>(null);
 
   const getTabFromPoint = useCallback((x: number, y: number): TabType | null => {
     const el = document.elementFromPoint(x, y);
@@ -86,14 +88,20 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
     const tab = getTabFromPoint(e.touches[0].clientX, e.touches[0].clientY);
     if (tab) {
       dragging.current = true;
+      didDrag.current = false;
+      startTab.current = tab;
       setDragTab(tab);
     }
   }, [getTabFromPoint]);
 
   const onNavTouchMove = useCallback((e: React.TouchEvent) => {
     if (!dragging.current) return;
+    e.preventDefault();
     const tab = getTabFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-    if (tab) setDragTab(tab);
+    if (tab) {
+      if (tab !== startTab.current) didDrag.current = true;
+      setDragTab(tab);
+    }
   }, [getTabFromPoint]);
 
   const onNavTouchEnd = useCallback(() => {
@@ -138,6 +146,7 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
         {/* Mobile: 4 primary tabs + "More" dropdown */}
         <div
           className="flex sm:hidden items-center justify-around"
+          style={{ touchAction: 'none' }}
           onTouchStart={onNavTouchStart}
           onTouchMove={onNavTouchMove}
           onTouchEnd={onNavTouchEnd}
@@ -149,7 +158,7 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
             <button
               key={tab.id}
               data-tab-id={tab.id}
-              onClick={() => { onTabChange(tab.id); setMoreOpen(false); }}
+              onClick={(e) => { if (didDrag.current) { e.preventDefault(); return; } onTabChange(tab.id); setMoreOpen(false); }}
               className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
                 ${activeTab === tab.id
                   ? 'text-rh-green'
