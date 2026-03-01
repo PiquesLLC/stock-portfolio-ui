@@ -154,28 +154,27 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
           data-no-tab-swipe
         >
           {PRIMARY_TABS.map((tab) => {
-            const isHovered = dragTab === tab.id && dragTab !== activeTab;
+            const isDragging = dragTab !== null;
+            const isUnderFinger = dragTab === tab.id;
+            const isActive = activeTab === tab.id;
+            const lit = isDragging ? isUnderFinger : isActive;
             return (
             <button
               key={tab.id}
               data-tab-id={tab.id}
               onClick={(e) => { if (didDrag.current) { e.preventDefault(); return; } onTabChange(tab.id); setMoreOpen(false); }}
               className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
-                ${activeTab === tab.id
+                ${lit
                   ? 'text-rh-green'
-                  : isHovered
-                    ? 'text-rh-green/70'
-                    : 'text-rh-light-muted dark:text-rh-muted'
+                  : 'text-rh-light-muted dark:text-rh-muted'
                 }`}
             >
-              <span className={`transition-opacity duration-200 ${activeTab === tab.id || isHovered ? 'opacity-100' : 'opacity-50'}`}>
+              <span className={`transition-opacity duration-200 ${lit ? 'opacity-100' : 'opacity-50'}`}>
                 {TAB_ICONS[tab.id]}
               </span>
               <span className="text-[10px]">{tab.label}</span>
               <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
-                activeTab === tab.id ? 'scale-x-100 opacity-100'
-                  : isHovered ? 'scale-x-75 opacity-60'
-                  : 'scale-x-0 opacity-0'
+                lit ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
               }`} />
             </button>
             );
