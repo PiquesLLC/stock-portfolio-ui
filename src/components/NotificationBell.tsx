@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent } from '../types';
 import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAnalystEventRead, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, getUnreadAnomalyCount, markAnomalyRead, markAllAnomaliesRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
+import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
@@ -94,9 +95,19 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     const saved = localStorage.getItem('notificationSoundEnabled');
     return saved !== 'false'; // Default to true
   });
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const pushSupported = isPushSupported();
   const prevUnreadRef = useRef(0);
   const ref = useRef<HTMLDivElement>(null);
   const baseTitleRef = useRef(document.title.replace(/^\(\d+\)\s*/, ''));
+
+  // Check push subscription status on mount
+  useEffect(() => {
+    if (pushSupported) {
+      isPushSubscribed().then(setPushEnabled);
+    }
+  }, [pushSupported]);
 
   const toggleNotifications = () => {
     const newValue = !notificationsEnabled;
@@ -114,6 +125,28 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     setSoundEnabled(newValue);
     localStorage.setItem('notificationSoundEnabled', String(newValue));
     if (newValue) playNotificationSound(); // Preview sound on enable
+  };
+
+  const togglePush = async () => {
+    if (pushLoading) return;
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+      } else {
+        const permission = getPushPermission();
+        if (permission === 'denied') {
+          // User previously denied — can't re-prompt, just inform
+          console.log('[Push] Permission denied by browser — cannot enable');
+          return;
+        }
+        const ok = await subscribeToPush();
+        setPushEnabled(ok);
+      }
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   const fetchCount = useCallback(async () => {
@@ -362,12 +395,26 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
             </div>
           </div>
 
-          {/* Notifications toggle + sound toggle */}
+          {/* Notifications toggle + sound toggle + push toggle */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-rh-light-border dark:border-rh-border bg-rh-light-bg/50 dark:bg-rh-dark/50">
             <span className="text-xs text-rh-light-muted dark:text-rh-muted">
               Notifications {notificationsEnabled ? 'on' : 'off'}
             </span>
             <div className="flex items-center gap-3">
+              {/* Push notifications toggle */}
+              {pushSupported && (
+                <button
+                  onClick={togglePush}
+                  disabled={pushLoading}
+                  className={`p-1 rounded transition-colors ${pushEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-rh-muted/40'} ${pushLoading ? 'opacity-50' : ''}`}
+                  title={pushEnabled ? 'Push notifications on' : getPushPermission() === 'denied' ? 'Push blocked by browser — check site settings' : 'Enable push notifications'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              )}
+              {/* Sound toggle */}
               <button
                 onClick={toggleSound}
                 className={`p-1 rounded transition-colors ${soundEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-rh-muted/40'}`}
@@ -384,6 +431,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
                   </svg>
                 )}
               </button>
+              {/* Master notification toggle */}
               <button
                 onClick={toggleNotifications}
                 className={`relative w-10 h-5 rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${

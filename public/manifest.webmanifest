@@ -1,4 +1,9 @@
 {
+  "name": "Nala",
+  "short_name": "Nala",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#00c805",
   "background_color": "#050505",
   "icons": [
     {
