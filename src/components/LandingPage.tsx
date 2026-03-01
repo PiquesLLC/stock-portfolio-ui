@@ -453,7 +453,7 @@ export function LandingPage() {
       {/* ═══ FEATURE LIGHTBOX ═══ */}
       {lightbox !== null && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
-          <div className="relative max-w-lg w-[90vw] max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+          <div className="relative max-w-3xl w-[90vw] max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
             {/* Close button */}
             <button onClick={() => setLightbox(null)} className="absolute -top-10 right-0 text-white/50 hover:text-white transition-colors text-sm font-medium">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
