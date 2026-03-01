@@ -561,8 +561,9 @@ export default function App() {
     }
   }, [activeTab, viewingProfileId, currentUserId]);
 
-  // Sync navigation state → URL hash
+  // Sync navigation state → URL hash (only when authenticated)
   useEffect(() => {
+    if (!isAuthenticated) return;
     // Compare page has its own hash format
     if (compareStocks && compareStocks.length >= 2) {
       const p = new URLSearchParams();
@@ -578,7 +579,7 @@ export default function App() {
     // Don't expose profile ID in URL for own profile tab — it's always the current user
     const hashProfile = activeTab === 'profile' ? null : viewingProfileId;
     setHash(hashTab, stockTicker, hashProfile, leaderboardUserId, subtab);
-  }, [activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab, compareStocks]);
+  }, [isAuthenticated, activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab, compareStocks]);
 
   // Handle browser back/forward — parse directly from hash, never sessionStorage
   useEffect(() => {
