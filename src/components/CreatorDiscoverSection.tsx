@@ -119,7 +119,7 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
     try {
       const { url } = await subscribeToCreator(creator.userId);
       window.location.href = url;
-    } catch (err) {
+    } catch (_err) {
       setSubscribingId(null);
     }
   };

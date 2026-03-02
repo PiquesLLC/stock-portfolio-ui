@@ -103,7 +103,7 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
       if (tab !== dragTab) navigator.vibrate?.(5);
       setDragTab(tab);
     }
-  }, [getTabFromPoint]);
+  }, [getTabFromPoint, dragTab]);
 
   const onNavTouchEnd = useCallback(() => {
     if (!dragging.current) return;

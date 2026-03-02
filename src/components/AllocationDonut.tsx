@@ -304,6 +304,8 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
     setHoveredIndex(null);
   }, []);
 
+  const isDark = useIsDark();
+
   if (sortedHoldings.length === 0) {
     return (
       <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm dark:bg-white/[0.04] dark:backdrop-blur-sm dark:border-white/[0.06] dark:shadow-none p-6 text-center">
@@ -311,8 +313,6 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
       </div>
     );
   }
-
-  const isDark = useIsDark();
   const lineColor = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)';
   const labelBoldColor = isDark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.82)';
   const pctColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)';

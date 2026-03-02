@@ -230,6 +230,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     // MAX = full view (null), others = zoom to that period's time range.
     // Set immediately (no animation) to prevent flash of wrong data.
     setZoomRange(getDefaultZoomForPeriod(selectedPeriod, points));
+    // getDefaultZoomForPeriod is a local function; points.length used intentionally (don't re-zoom on value changes)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod, points.length]);
 
   // Compute the default zoom range for the current period
@@ -261,6 +263,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+    // getDefaultZoomForPeriod is a local function (stable behavior); pointsRef is a ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod]);
 
 
@@ -312,6 +316,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setZoomRange(def);
       zoomHistoryRef.current = [];
     }
+    // getDefaultZoomForPeriod is a local function (stable behavior); pointsRef is a ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoomRange, selectedPeriod]);
 
   // ── Drag-to-pan when zoomed ──────────────────────────────────────────
@@ -780,7 +786,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       result.push({ period: ma, values });
     }
     return result;
-  }, [candles, intradayCandles, hourlyCandles, points, selectedPeriod]);
+  }, [candles, intradayCandles, points, selectedPeriod]);
 
   // Compute stable Y-axis range (includes enabled MA values + comparison overlays)
   const { paddedMin, paddedMax } = useMemo(() => {
@@ -830,7 +836,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
     const range = maxP - minP;
     return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
-  }, [points, referencePrice, selectedPeriod, visibleMaData, enabledMAs, zoomRange, visiblePoints, comparisons]);
+  }, [points, referencePrice, selectedPeriod, zoomRange, visiblePoints, comparisons]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
   const plotH = CHART_H - PAD_TOP - PAD_BOTTOM;
@@ -1101,7 +1107,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       if (d) result.push({ period: ma.period, d, lastPt });
     }
     return result;
-  }, [visibleMaData, interpolatedMaData, enabledMAs, points, selectedPeriod, useHourly, zoomRange, visStartIdx, visEndIdx]);
+  // toX/toY are inline functions — paddedMin/paddedMax added for toY; remaining toX deps are covered or constant
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleMaData, interpolatedMaData, enabledMAs, points, selectedPeriod, useHourly, zoomRange, visStartIdx, visEndIdx, paddedMin, paddedMax]);
 
   // ── Breach signal events ──────────────────────────────────────────
   const breachClusters = useMemo<BreachCluster[]>(() => {

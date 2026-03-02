@@ -230,6 +230,8 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     } else {
       handleWizardSubmit();
     }
+    // handleWizardSubmit is declared after this hook (TDZ); safe because it's only called on user action
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wizardStepIndex, mappings]);
 
   const handleWizardBack = useCallback(() => {

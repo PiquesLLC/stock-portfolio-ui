@@ -26,9 +26,10 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
 
   const w = 800;
   const h = 280;
-  const pad = { top: 32, right: 16, bottom: 40, left: 56 };
-  const chartW = w - pad.left - pad.right;
-  const chartH = h - pad.top - pad.bottom;
+  const padTop = 32, padRight = 16, padBottom = 40, padLeft = 56;
+  const pad = { top: padTop, right: padRight, bottom: padBottom, left: padLeft };
+  const chartW = w - padLeft - padRight;
+  const chartH = h - padTop - padBottom;
 
   const trendUp = values[values.length - 1] >= values[0];
   const lineColor = trendUp ? '#0A9E10' : '#B87872';
@@ -38,9 +39,9 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
 
   // Map data to pixel coordinates
   const points = useMemo(() => values.map((v, i) => ({
-    x: pad.left + (i / (values.length - 1)) * chartW,
-    y: pad.top + (1 - (v - min) / range) * chartH,
-  })), [values, min, range, chartW, chartH]);
+    x: padLeft + (i / (values.length - 1)) * chartW,
+    y: padTop + (1 - (v - min) / range) * chartH,
+  })), [values, min, range, chartW, chartH, padLeft, padTop]);
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const fillPath = linePath +
@@ -63,17 +64,17 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
     };
     for (let i = 0; i < history.length; i += step) {
       labels.push({
-        x: pad.left + (i / (history.length - 1)) * chartW,
+        x: padLeft + (i / (history.length - 1)) * chartW,
         label: fmt(history[i].date),
       });
     }
     const lastIdx = history.length - 1;
-    const lastX = pad.left + chartW;
+    const lastX = padLeft + chartW;
     if (!labels.length || Math.abs(labels[labels.length - 1].x - lastX) > chartW * 0.08) {
       labels.push({ x: lastX, label: fmt(history[lastIdx].date) });
     }
     return labels;
-  }, [history, chartW, isAnnual]);
+  }, [history, chartW, isAnnual, padLeft]);
 
   // Y-axis: 4 evenly spaced ticks
   const yTicks = useMemo(() => {
@@ -81,7 +82,7 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
     const ticks: { y: number; value: number; label: string }[] = [];
     for (let i = 0; i <= count; i++) {
       const value = min + (i / count) * range;
-      const y = pad.top + (1 - (value - min) / range) * chartH;
+      const y = padTop + (1 - (value - min) / range) * chartH;
       let label: string;
       if (indicator.unit === 'percent') label = `${value.toFixed(1)}%`;
       else if (indicator.unit === 'index') label = value.toFixed(0);
@@ -97,7 +98,7 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
       ticks.push({ y, value, label });
     }
     return ticks;
-  }, [min, range, chartH, indicator.unit]);
+  }, [min, range, chartH, indicator.unit, padTop]);
 
   const last = points[points.length - 1];
 

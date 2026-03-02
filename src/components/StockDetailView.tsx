@@ -64,6 +64,8 @@ function PositionCard({ label, value, valueColor, sub }: {
   );
 }
 
+const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, amber, pink, cyan
+
 export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded }: Props) {
   // Chart period — owned by component, shared between both hooks
   const [chartPeriod, setChartPeriod] = useLocalStorage<ChartPeriod>('stockChartPeriod', '1D', {
@@ -125,8 +127,6 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [compareInput, setCompareInput] = useState('');
   const [showCompareInput, setShowCompareInput] = useState(false);
   const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[]>([]);
-
-  const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, amber, pink, cyan
 
   // Fetch comparison data whenever compareTickers or chartPeriod changes
   useEffect(() => {

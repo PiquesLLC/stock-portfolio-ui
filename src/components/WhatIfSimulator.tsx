@@ -210,7 +210,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
     });
     // Collapse all sliders for a clean slate
     setExpandedTickers(new Set());
-  }, [holdings]);
+  }, []);
 
   const toggleSort = useCallback((key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');

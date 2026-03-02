@@ -389,7 +389,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     if (actionsRef) {
       actionsRef.current = { openAdd: handleOpenAdd, openCashMargin: handleOpenCashMargin };
     }
-  }, [handleOpenAdd, handleOpenCashMargin]);
+  }, [handleOpenAdd, handleOpenCashMargin, actionsRef]);
 
   // Close modals
   const handleCloseModal = useCallback(() => {

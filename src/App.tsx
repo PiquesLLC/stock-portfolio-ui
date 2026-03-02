@@ -362,7 +362,7 @@ export default function App() {
   };
   const handleCompare = useCallback((userId: string, displayName: string) => {
     setComparingUser({ userId, displayName });
-  }, []);
+  }, [setComparingUser]);
 
   // Check creator setup status (for header button + dashboard checklist)
   const [creatorSetupStatus, setCreatorSetupStatus] = useState<import('./api').CreatorSetupStatus | null>(null);
@@ -386,7 +386,7 @@ export default function App() {
       setShowDailyReport(true);
       localStorage.setItem('dailyReportLastShown', today);
     }
-  }, [currentUserId, portfolio]);
+  }, [currentUserId, portfolio, showOnboardingTour]);
 
   // Show onboarding tour for new users (account created within last 5 minutes)
   useEffect(() => {

@@ -226,6 +226,8 @@ export function useStockData(ticker: string, chartPeriod: string) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
+  // `data` used only as null-guard; `data?.quote.session` covers the reactive value — adding full `data` would restart poll on every quote tick
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.quote.session, pollQuote]);
 
   return {

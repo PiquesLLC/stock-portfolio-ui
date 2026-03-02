@@ -15,6 +15,15 @@ const RISK_BADGE: Record<string, string> = {
   aggressive: 'from-orange-400/20 to-red-400/20 text-orange-400 border-orange-400/20',
 };
 
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const FALLBACK_SUGGESTIONS: NalaSuggestion[] = [
+  { icon: '\u{1f4c8}', text: 'Best growth stocks to buy right now' },
+  { icon: '\u{1f4b0}', text: 'High dividend yield stocks for passive income' },
+  { icon: '\u{1f6e1}\ufe0f', text: 'Defensive stocks for a recession' },
+  { icon: '\u{1f916}', text: 'Top AI and tech stocks to watch' },
+];
+
 export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionConsumed }: NalaAIPageProps) {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,15 +34,6 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
   const abortRef = useRef<AbortController | null>(null);
   const cacheRef = useRef<Map<string, { data: NalaResearchResponse; ts: number }>>(new Map());
   const consumedQuestionRef = useRef<string | null>(null);
-
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-  const FALLBACK_SUGGESTIONS: NalaSuggestion[] = [
-    { icon: '📈', text: 'Best growth stocks to buy right now' },
-    { icon: '💰', text: 'High dividend yield stocks for passive income' },
-    { icon: '🛡️', text: 'Defensive stocks for a recession' },
-    { icon: '🤖', text: 'Top AI and tech stocks to watch' },
-  ];
 
   useEffect(() => {
     getNalaSuggestions()

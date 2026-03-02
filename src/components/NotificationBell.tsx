@@ -270,6 +270,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         }
       }
     }
+    // fetchEvents/handleMarkAllRead/unreadCount excluded: only `open` toggle should trigger; adding others causes unnecessary re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Update tab title with unread count

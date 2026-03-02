@@ -103,6 +103,8 @@ export function LandingPage() {
   const onPhoneScroll = useCallback(() => { const el = phoneRef.current; if (!el) return; setPhoneSlide(Math.round(el.scrollLeft / el.offsetWidth)); }, []);
   useEffect(() => {
     if (phoneSlide >= 4) { openAuth(ctaMode); setTimeout(() => { const el = phoneRef.current; if (el) el.scrollTo({ left: 0 }); setPhoneSlide(0); }, 300); }
+    // openAuth is a non-memoized handler — including it would re-run every render; ctaMode is a module-level constant
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phoneSlide]);
 
   const [billing, setBilling] = useState<'yearly' | 'monthly'>('yearly');
@@ -115,7 +117,8 @@ export function LandingPage() {
 
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
   useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
-  useEffect(() => { if (resetCooldown <= 0) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldown > 0]);
+  const resetCooldownActive = resetCooldown > 0;
+  useEffect(() => { if (!resetCooldownActive) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldownActive]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setError(''); setIsLoading(true);

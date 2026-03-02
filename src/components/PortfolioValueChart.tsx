@@ -281,7 +281,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       setMeasureA(null);
       setMeasureB(null);
     }
-  }, [chartData?.points?.length]);
+  }, [chartData?.points?.length, measureA]);
 
   // ── Chart data ─────────────────────────────────────────────────
 
@@ -553,6 +553,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     return benchmarkSmoothed
       .map((bp, j) => `${j === 0 ? 'M' : 'L'}${toX(bp.index).toFixed(1)},${toY(bp.value).toFixed(1)}`)
       .join(' ');
+  // toX/toY are inline functions — their underlying deps (points, paddedMin, paddedMax) are already listed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [benchmarkSmoothed, points, paddedMin, paddedMax]);
 
 
@@ -639,6 +641,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       return best;
     }
     return snapToNearest(svgX, points, toX);
+  // toX is an inline function — its underlying deps (points, plotW, is1D, dayStartMs, dayRangeMs) are already listed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points, plotW, is1D, dayStartMs, dayRangeMs]);
 
   // ── Hover handler ──────────────────────────────────────────────
@@ -835,6 +839,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     pts.push(`L${toX(hi).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`);
     pts.push(`L${toX(lo).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)} Z`);
     return pts.join(' ');
+    // toX/toY are inline functions — their real deps (points, paddedMin, paddedMax) are already covered
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measureA, measureB, points]);
 
   // Hover display

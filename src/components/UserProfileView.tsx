@@ -410,7 +410,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       b.unshift({ label: 'Creator', icon: '\u{2728}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
     }
     return b;
-  }, [profile?.performance, profile?.createdAt, profile?.plan, profile?.planStartedAt, profile?.creator?.status, userId]);
+  }, [profile, userId]);
 
   // Creator entitlement for current viewer
   const [entitlement, setEntitlement] = useState<CreatorEntitlement | null>(null);

@@ -230,7 +230,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         })
         .catch((e) => { console.error('Failed to fetch holdings:', e); showToast('Failed to load holdings', 'error'); });
     }
-  }, []);
+  }, [showToast]);
 
   // Check if we have any data to show
   const hasAnyData = healthScore || intelligence;

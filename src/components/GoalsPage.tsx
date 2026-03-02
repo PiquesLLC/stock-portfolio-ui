@@ -398,16 +398,18 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
     }
   }, [goals.length]);
 
-  // Initial fetch
+  // Initial fetch — fetchGoals depends on goals.length so adding it would re-trigger on every goal change
   useEffect(() => {
     fetchGoals(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-fetch when portfolio refreshes
+  // Re-fetch when portfolio refreshes — same reason: fetchGoals identity changes with goals.length
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
       fetchGoals();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]);
 
   // Poll: 30s during market, 120s otherwise

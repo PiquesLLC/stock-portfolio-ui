@@ -85,7 +85,7 @@ export function usePortfolioData({ currentUserId, authLoading }: UsePortfolioDat
     fetchData();
     const interval = setInterval(fetchData, REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [fetchData, currentUserId]);
+  }, [fetchData, currentUserId, authLoading]);
 
   // Fetch provider health status periodically
   useEffect(() => {

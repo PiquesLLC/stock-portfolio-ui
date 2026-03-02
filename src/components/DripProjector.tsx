@@ -82,7 +82,7 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
     const mx = ((e.clientX - rect.left) / rect.width) * W;
     const idx = Math.round(((mx - pad.l) / plotW) * (points.length - 1));
     setHoveredIdx(Math.max(0, Math.min(points.length - 1, idx)));
-  }, [points.length, setHoveredIdx]);
+  }, [points.length, setHoveredIdx, pad.l, plotW]);
 
   return (
     <svg
