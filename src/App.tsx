@@ -1111,6 +1111,7 @@ export default function App() {
                   onReturnChange={setChartReturnPct}
                   onMeasurementChange={setChartMeasurement}
                   session={portfolio.session}
+                  quotesStale={isStale || !!portfolio.quotesMeta?.anyRepricing || (portfolio.quotesUnavailableCount ?? 0) > 0}
                 />
               </div>
             )}

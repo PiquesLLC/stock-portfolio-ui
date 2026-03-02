@@ -50,6 +50,8 @@ interface Props {
   onReturnChange?: (returnPct: number | null) => void;
   onMeasurementChange?: (measurement: ChartMeasurement | null) => void;
   session?: MarketSessionProp;
+  /** When true, quote data is degraded (repricing/stale/unavailable) — suppress live point */
+  quotesStale?: boolean;
 }
 
 export function shouldShowEstimatedBadge(
@@ -74,7 +76,7 @@ const HERO_VALUE_ANIMATIONS = [
 // Periods available on the free plan
 const FREE_PERIODS: Set<PortfolioChartPeriod> = new Set(['1D', '1W', 'YTD']);
 
-export function PortfolioValueChart({ currentValue, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session }: Props) {
+export function PortfolioValueChart({ currentValue, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session, quotesStale }: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const userPlan = user?.plan || 'free';
@@ -82,6 +84,33 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+
+  // Guard 2: After-hours spike smoothing — require 2 consecutive polls confirming
+  // a large value jump before accepting it as the live point. Prevents single-tick
+  // quote glitches from spiking the chart.
+  const confirmedValueRef = useRef(currentValue);
+  const pendingValueRef = useRef<number | null>(null);
+  const liveValue = useMemo(() => {
+    const prev = confirmedValueRef.current;
+    const jumpPct = prev > 0 ? Math.abs(currentValue - prev) / prev : 0;
+    // During after-hours, require confirmation for jumps > 0.3% in a single poll
+    const isAfterHours = session === 'POST' || session === 'PRE';
+    if (isAfterHours && jumpPct > 0.003) {
+      if (pendingValueRef.current !== null && Math.abs(currentValue - pendingValueRef.current) / currentValue < 0.001) {
+        // Second consecutive poll confirms the move — accept it
+        confirmedValueRef.current = currentValue;
+        pendingValueRef.current = null;
+        return currentValue;
+      }
+      // First poll with big jump — hold the old value, mark as pending
+      pendingValueRef.current = currentValue;
+      return prev;
+    }
+    // Normal move or regular hours — accept immediately
+    confirmedValueRef.current = currentValue;
+    pendingValueRef.current = null;
+    return currentValue;
+  }, [currentValue, session]);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -314,8 +343,10 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       const now = Date.now();
       const last = pts[pts.length - 1];
-      if (pts.length > 0 && now - last.time > 10000 && now <= afterHoursCloseMs) {
-        return [...pts, { time: now, value: currentValue }];
+      // Guard 1: Don't append live point when quotes are degraded (repricing/stale/unavailable)
+      // Guard 2: Use smoothed liveValue (requires 2 consecutive polls to confirm after-hours jumps)
+      if (!quotesStale && pts.length > 0 && now - last.time > 10000 && now <= afterHoursCloseMs) {
+        return [...pts, { time: now, value: liveValue }];
       }
       return pts.length >= 2 ? pts : raw;
     }
@@ -404,7 +435,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       return filtered.length >= 2 ? filtered : raw;
     }
-  }, [chartData, selectedPeriod, currentValue]);
+  }, [chartData, selectedPeriod, liveValue, quotesStale]);
 
 
   // ── Chart groups for multi-period highlighting (1W=day, 1M=week, etc.) ──
