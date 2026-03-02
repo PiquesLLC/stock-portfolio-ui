@@ -4,18 +4,9 @@ import { StockDetailsResponse, AssetAbout, NalaScoreResponse, ChartPeriod, Symbo
 import { StockPriceChart } from './StockPriceChart';
 import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
+import { useIsDark } from '../hooks/useIsDark';
 
 const ACCENT_COLORS = ['#F59E0B', '#EC4899', '#06B6D4'];
-
-function useIsDark() {
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
-  useEffect(() => {
-    const obs = new MutationObserver(() => setIsDark(document.documentElement.classList.contains('dark')));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => obs.disconnect();
-  }, []);
-  return isDark;
-}
 
 function getStockColor(index: number, isDark: boolean) {
   return index === 0 ? (isDark ? '#FFFFFF' : '#000000') : ACCENT_COLORS[(index - 1) % ACCENT_COLORS.length];

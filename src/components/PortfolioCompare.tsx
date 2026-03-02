@@ -34,7 +34,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
     Promise.all([
       getPortfolio(),
       getUserPortfolio(theirUserId),
-      getUserProfile(theirUserId).catch(() => null),
+      getUserProfile(theirUserId).catch(e => { console.error('Compare profile fetch failed:', e); return null; }),
     ])
       .then(async ([mp, tp, profile]) => {
         if (cancelled) return;

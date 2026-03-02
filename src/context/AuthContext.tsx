@@ -1,5 +1,6 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, ApiError } from '../api';
+import { clearInsightsCache } from '../components/InsightsPage';
 
 export type PlanTier = 'free' | 'pro' | 'premium' | 'elite';
 
@@ -239,6 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     writeCachedUser(null);
     resetAuthState();
+    clearInsightsCache();
     // Clean URL + stale nav state so user lands on a fresh landing page
     sessionStorage.removeItem('navState');
     window.history.replaceState({}, '', '/');

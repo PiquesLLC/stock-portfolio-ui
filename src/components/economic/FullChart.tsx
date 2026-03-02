@@ -319,8 +319,8 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
               })()}
 
               {/* Vertical dashed lines at A and B */}
-              <line x1={measureA!.x} y1={pad.top} x2={measureA!.x} y2={pad.top + chartH} stroke="white" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
-              <line x1={measureB!.x} y1={pad.top} x2={measureB!.x} y2={pad.top + chartH} stroke="white" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
+              <line x1={measureA!.x} y1={pad.top} x2={measureA!.x} y2={pad.top + chartH} className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
+              <line x1={measureB!.x} y1={pad.top} x2={measureB!.x} y2={pad.top + chartH} className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
 
               {/* Connecting dashed line between dots */}
               <line
@@ -330,8 +330,8 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
               />
 
               {/* Marker dots */}
-              <circle cx={measureA!.x} cy={measureA!.y} r="4" fill={measureColor} stroke="white" strokeWidth="1.5" />
-              <circle cx={measureB!.x} cy={measureB!.y} r="4" fill={measureColor} stroke="white" strokeWidth="1.5" />
+              <circle cx={measureA!.x} cy={measureA!.y} r="4" fill={measureColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
+              <circle cx={measureB!.x} cy={measureB!.y} r="4" fill={measureColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
 
               {/* Measurement card */}
               {(() => {
@@ -365,8 +365,8 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
           {/* Pulsing marker when only point A is set */}
           {measureA && !measureB && (
             <>
-              <line x1={measureA.x} y1={pad.top} x2={measureA.x} y2={pad.top + chartH} stroke="white" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
-              <circle cx={measureA.x} cy={measureA.y} r="4" fill={lineColor} stroke="white" strokeWidth="1.5" />
+              <line x1={measureA.x} y1={pad.top} x2={measureA.x} y2={pad.top + chartH} className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
+              <circle cx={measureA.x} cy={measureA.y} r="4" fill={lineColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
               <circle cx={measureA.x} cy={measureA.y} r="8" fill={lineColor} opacity="0.2">
                 <animate attributeName="r" values="4;8;4" dur="1.5s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.3;0.05;0.3" dur="1.5s" repeatCount="indefinite" />
@@ -408,7 +408,7 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
                 stroke="#6B7280" strokeWidth="0.5" strokeDasharray="4 3" opacity="0.5"
               />
               <circle cx={hover.x} cy={hover.y} r="12" fill={`url(#${glowId})`} />
-              <circle cx={hover.x} cy={hover.y} r="3.5" fill={lineColor} stroke="white" strokeWidth="1.2" />
+              <circle cx={hover.x} cy={hover.y} r="3.5" fill={lineColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.2" />
             </>
           )}
         </svg>

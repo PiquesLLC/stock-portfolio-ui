@@ -228,7 +228,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
     try {
       const [dashboard, referrals] = await Promise.all([
         getCreatorDashboard(),
-        getReferralStats().catch(() => null),
+        getReferralStats().catch(e => { console.error('Referral stats fetch failed:', e); return null; }),
       ]);
       setData(dashboard);
       setReferralData(referrals);

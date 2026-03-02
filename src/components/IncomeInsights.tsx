@@ -590,7 +590,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
       setLoading(true);
       const [result, interest] = await Promise.all([
         getIncomeInsights('today'),
-        getCashInterestAccrual().catch(() => null),
+        getCashInterestAccrual().catch(e => { console.error('Cash interest fetch failed:', e); return null; }),
       ]);
       if (mountedRef.current) {
         setData(result);

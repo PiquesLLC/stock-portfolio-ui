@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, type ReactNode } from 'react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 type JargonMode = 'beginner' | 'advanced';
 
@@ -9,21 +10,15 @@ interface JargonContextValue {
 
 const JargonContext = createContext<JargonContextValue>({ mode: 'beginner', toggle: () => {} });
 
-const STORAGE_KEY = 'jargonMode';
-
 export function JargonProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<JargonMode>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'advanced' ? 'advanced' : 'beginner';
+  const [mode, setMode] = useLocalStorage<JargonMode>('jargonMode', 'beginner', {
+    serialize: v => v,
+    deserialize: v => (v === 'advanced' ? 'advanced' : 'beginner'),
   });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, mode);
-  }, [mode]);
 
   const toggle = useCallback(() => {
     setMode(prev => prev === 'beginner' ? 'advanced' : 'beginner');
-  }, []);
+  }, [setMode]);
 
   return (
     <JargonContext.Provider value={{ mode, toggle }}>

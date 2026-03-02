@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getBehaviorInsights, BehaviorInsightsResponse, BehaviorInsight } from '../api';
+import { timeAgo } from '../utils/format';
 
 // ── Severity styles ──────────────────────────────────────────────
 const SEVERITY_STYLES: Record<BehaviorInsight['severity'], { border: string; badge: string; badgeText: string; priorityBorder: string }> = {
@@ -228,7 +229,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [] 
     );
   }
 
-  const timeAgo = data.generatedAt ? getTimeAgo(new Date(data.generatedAt)) : '';
+  const generatedAgo = data.generatedAt ? timeAgo(new Date(data.generatedAt)) : '';
   const score = computeBehaviorScore(sortedInsights);
   const circumference = 2 * Math.PI * 26; // r=26, matching HealthScore
 
@@ -409,9 +410,9 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [] 
         <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
           Powered by AI {data.cached ? '(cached)' : ''} &middot; {data.holdingCount} holdings, {data.activityCount} activities analyzed &middot; Not financial advice
         </span>
-        {timeAgo && (
+        {generatedAgo && (
           <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
-            Generated {timeAgo}
+            Generated {generatedAgo}
           </span>
         )}
       </div>
@@ -419,12 +420,3 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [] 
   );
 }
 
-function getTimeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}

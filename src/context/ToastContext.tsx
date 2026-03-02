@@ -26,13 +26,22 @@ const TOAST_DURATION = 4000;
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   const showToast = useCallback((message: string, type: ToastType = 'error') => {
     const id = nextId.current++;
     setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      timersRef.current.delete(timer);
       setToasts(prev => prev.filter(t => t.id !== id));
     }, TOAST_DURATION);
+    timersRef.current.add(timer);
+  }, []);
+
+  // Clear any pending toast timers on unmount
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => { timers.forEach(t => clearTimeout(t)); };
   }, []);
 
   // Register global API error handler

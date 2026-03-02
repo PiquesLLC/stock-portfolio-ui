@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { NalaScoreResponse, NalaDimension, NalaSubMetric } from '../types';
 import { getNalaScore } from '../api';
+import { timeAgo } from '../utils/format';
 
 interface NalaScoreProps {
   ticker: string;
@@ -30,17 +31,6 @@ function getBarColorHex(score: number): string {
   return '#f87171';
 }
 
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime();
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 const DIM_ICONS: Record<string, string> = {
   Value: 'V', Quality: 'Q', Growth: 'G', Dividends: 'D', Momentum: 'M',
@@ -289,7 +279,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
     setData(null);
     getNalaScore(ticker)
       .then(setData)
-      .catch(() => {})
+      .catch(e => console.error('Nala score fetch failed:', e))
       .finally(() => setLoading(false));
   }, [ticker]);
 
@@ -402,7 +392,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
                   ? 'text-amber-500/80 dark:text-amber-400/70'
                   : 'text-rh-light-muted/50 dark:text-rh-muted/40'
               }`}>
-                {dataAge === 'stale' ? 'Data may be stale' : `Updated ${formatRelativeTime(lastUpdated)}`}
+                {dataAge === 'stale' ? 'Data may be stale' : `Updated ${timeAgo(lastUpdated)}`}
               </span>
             </div>
           )}

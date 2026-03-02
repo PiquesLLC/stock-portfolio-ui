@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { changePassword } from '../../../api';
 import { useToast } from '../../../context/ToastContext';
+import { validatePassword } from '../../../utils/validation';
 
 interface SecuritySectionProps {
   onOpenMfa: () => void;
@@ -28,15 +29,8 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
-      return;
-    }
-
-    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      setPasswordError('Password must include uppercase, lowercase, and a number');
-      return;
-    }
+    const pwErr = validatePassword(newPassword);
+    if (pwErr) { setPasswordError(pwErr); return; }
 
     if (newPassword !== confirmNewPassword) {
       setPasswordError('Passwords do not match');

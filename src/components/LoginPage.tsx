@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { setPassword as apiSetPassword, checkHasPassword, forgotPassword, resetPassword } from '../api';
+import { isValidEmail, validatePassword } from '../utils/validation';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 
@@ -192,16 +193,8 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        if (newPassword.length < 8) {
-          setError('Password must be at least 8 characters');
-          setIsLoading(false);
-          return;
-        }
-        if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-          setError('Password must include uppercase, lowercase, and a number');
-          setIsLoading(false);
-          return;
-        }
+        const pwErr = validatePassword(newPassword);
+        if (pwErr) { setError(pwErr); setIsLoading(false); return; }
         if (newPassword !== newPasswordConfirm) {
           setError('Passwords do not match');
           setIsLoading(false);
@@ -230,7 +223,7 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!email.trim() || !isValidEmail(email)) {
           setError('Please enter a valid email address');
           setIsLoading(false);
           return;
@@ -240,16 +233,8 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        if (password.length < 8) {
-          setError('Password must be at least 8 characters');
-          setIsLoading(false);
-          return;
-        }
-        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-          setError('Password must include uppercase, lowercase, and a number');
-          setIsLoading(false);
-          return;
-        }
+        const pwErr2 = validatePassword(password);
+        if (pwErr2) { setError(pwErr2); setIsLoading(false); return; }
         if (!acceptedTerms) {
           setError('You must accept the Privacy Policy and Terms of Service');
           setIsLoading(false);
@@ -270,16 +255,8 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        if (password.length < 8) {
-          setError('Password must be at least 8 characters');
-          setIsLoading(false);
-          return;
-        }
-        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-          setError('Password must include uppercase, lowercase, and a number');
-          setIsLoading(false);
-          return;
-        }
+        const pwErr3 = validatePassword(password);
+        if (pwErr3) { setError(pwErr3); setIsLoading(false); return; }
         await apiSetPassword(username, password);
         setSuccessMessage('Password set successfully! You can now sign in.');
         setMode('login');

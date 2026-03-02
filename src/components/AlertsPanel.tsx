@@ -48,7 +48,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
   useEffect(() => {
     getAlerts(userId)
       .then(setAlerts)
-      .catch(() => {})
+      .catch(e => console.error('Alerts fetch failed:', e))
       .finally(() => setLoading(false));
   }, [userId]);
 

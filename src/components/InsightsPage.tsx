@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { HealthScore as HealthScoreType, PortfolioIntelligenceResponse, Holding } from '../types';
 import { getHealthScore, getPortfolioIntelligence, getPortfolio } from '../api';
 import { HealthScore } from './HealthScore';
@@ -15,6 +15,7 @@ import { PremiumOverlay } from './PremiumOverlay';
 import { ETFOverlap } from './ETFOverlap';
 import { TaxHarvest } from './TaxHarvest';
 import { MarketSession } from '../types';
+import { useToast } from '../context/ToastContext';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap' | 'tax-harvest';
 
@@ -42,12 +43,12 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
     return () => document.removeEventListener('mousedown', handler);
   }, [moreOpen]);
 
-  const btnClass = (active: boolean) =>
+  const btnClass = useCallback((active: boolean) =>
     `px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
       active
         ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
         : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-    }`;
+    }`, []);
 
   return (
     <>
@@ -116,6 +117,13 @@ const insightsCache: {
 // Cache TTL: 5 minutes before considering stale
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Clear module-level cache (call on logout to prevent data leaks). */
+export function clearInsightsCache() {
+  insightsCache.healthScore = null;
+  insightsCache.intelligence = null;
+  insightsCache.lastFetchTime = null;
+}
+
 const VALID_SUBTABS = new Set<InsightsSubTab>(['intelligence', 'income', 'projections-goals', 'ai-briefing', 'ai-behavior', 'allocation', 'what-if', 'earnings', 'etf-overlap', 'tax-harvest']);
 
 interface InsightsPageProps {
@@ -131,6 +139,7 @@ interface InsightsPageProps {
 }
 
 export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, marginDebt = 0, initialSubTab, onSubTabChange }: InsightsPageProps) {
+  const { showToast } = useToast();
   const [subTab, setSubTabLocal] = useState<InsightsSubTab>(
     () => (initialSubTab && VALID_SUBTABS.has(initialSubTab as InsightsSubTab)) ? initialSubTab as InsightsSubTab : 'intelligence'
   );
@@ -167,10 +176,10 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       const fetchPromises = [
         getHealthScore()
           .then(data => { if (mountedRef.current) setHealthScore(data); })
-          .catch(e => console.error('Health score error:', e)),
+          .catch(e => { console.error('Health score error:', e); showToast('Failed to load health score', 'error'); }),
         getPortfolioIntelligence('1d')
           .then(data => { if (mountedRef.current) setIntelligence(data); })
-          .catch(e => console.error('Intelligence error:', e)),
+          .catch(e => { console.error('Intelligence error:', e); showToast('Failed to load intelligence', 'error'); }),
       ];
 
       await Promise.allSettled(fetchPromises);
@@ -186,7 +195,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     } finally {
       fetchingRef.current = false;
     }
-  }, []);
+  }, [showToast]);
 
   // Fetch on mount only if cache is stale or empty
   useEffect(() => {
@@ -209,7 +218,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     return () => {
       mountedRef.current = false;
     };
-  }, [fetchInsights]);
+  }, [fetchInsights, refreshTrigger]);
 
   // Fetch holdings on mount (needed for Allocation + What-If tabs)
   useEffect(() => {
@@ -219,14 +228,14 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         .then((p) => {
           if (mountedRef.current) setHoldings(p.holdings);
         })
-        .catch((e) => console.error('Failed to fetch holdings:', e));
+        .catch((e) => { console.error('Failed to fetch holdings:', e); showToast('Failed to load holdings', 'error'); });
     }
   }, []);
 
   // Check if we have any data to show
   const hasAnyData = healthScore || intelligence;
 
-  const subTabs: { id: InsightsSubTab; label: string }[] = [
+  const subTabs = useMemo<{ id: InsightsSubTab; label: string }[]>(() => [
     // Primary
     { id: 'intelligence', label: 'Intelligence' },
     { id: 'ai-briefing', label: 'AI Briefing' },
@@ -239,7 +248,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'projections-goals', label: 'Goals' },
     { id: 'etf-overlap', label: 'ETF Overlap' },
     { id: 'tax-harvest', label: 'Tax Harvest' },
-  ];
+  ], []);
 
   // AI Briefing subtab (Premium)
   if (subTab === 'ai-briefing') {

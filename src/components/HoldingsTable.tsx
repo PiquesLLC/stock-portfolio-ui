@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Reorder } from 'framer-motion';
 import { Holding } from '../types';
 import { useToast } from '../context/ToastContext';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { deleteHolding, addHolding, updateSettings, getPortfolio, getEarningsSummary } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { MiniSparkline } from './MiniSparkline';
@@ -130,13 +131,14 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   const [cashMarginError, setCashMarginError] = useState('');
   const [confirmDeleteTicker, setConfirmDeleteTicker] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
-  const [viewMode, setViewMode] = useState<'compact' | 'detailed'>(() => {
-    const stored = localStorage.getItem('holdingsView');
-    return stored === 'detailed' ? 'detailed' : 'compact';
+  const [viewMode, setViewMode] = useLocalStorage<'compact' | 'detailed'>('holdingsView', 'compact', {
+    serialize: v => v,
+    deserialize: v => (v === 'detailed' ? 'detailed' : 'compact'),
   });
-  const [displayMetric, setDisplayMetric] = useState<DisplayMetric>(
-    () => (localStorage.getItem('holdingsDisplayMetric') as DisplayMetric) || 'dayChangePct'
-  );
+  const [displayMetric, setDisplayMetric] = useLocalStorage<DisplayMetric>('holdingsDisplayMetric', 'dayChangePct', {
+    serialize: v => v,
+    deserialize: v => v as DisplayMetric,
+  });
   const [showDisplayMenu, setShowDisplayMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [modalError, setModalError] = useState('');
@@ -153,10 +155,8 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       return stored ? JSON.parse(stored) : [];
     } catch { return []; }
   });
-  const [showReorderHint, setShowReorderHint] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !localStorage.getItem('holdingsReorderHintShown');
-  });
+  const [reorderHintShown, setReorderHintShown] = useLocalStorage('holdingsReorderHintShown', false);
+  const showReorderHint = !reorderHintShown;
 
   // Extract held tickers for autocomplete boost
   const heldTickers = useMemo(() => holdings.map(h => h.ticker), [holdings]);
@@ -204,8 +204,8 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
         earningsBadgeCache = { data: badges, timestamp: Date.now() };
         setEarningsBadges(badges);
-      } catch {
-        // silently fail — badges are non-critical
+      } catch (e) {
+        console.error('Earnings badge fetch failed:', e);
       }
     }
 
@@ -216,12 +216,12 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   // Check if any modal is open
   const isModalOpen = showAddModal || editingHolding !== null || showCashMarginModal;
 
-  const handleOpenCashMargin = () => {
+  const handleOpenCashMargin = useCallback(() => {
     setCashValue(parseFloat(cashBalance.toFixed(2)).toString());
     setMarginValue(parseFloat(marginDebt.toFixed(2)).toString());
     setCashMarginError('');
     setShowCashMarginModal(true);
-  };
+  }, [cashBalance, marginDebt]);
 
   const handleSaveCashMargin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,10 +332,9 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     }
     // Dismiss the reorder hint
     if (showReorderHint) {
-      setShowReorderHint(false);
-      localStorage.setItem('holdingsReorderHintShown', '1');
+      setReorderHintShown(true);
     }
-  }, [customOrderKey, showReorderHint]);
+  }, [customOrderKey, showReorderHint, setReorderHintShown]);
 
   // Reconcile custom order when holdings change (add/remove)
   useEffect(() => {
@@ -379,16 +378,18 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   };
 
   // Open add modal
-  const handleOpenAdd = () => {
+  const handleOpenAdd = useCallback(() => {
     setShowAddModal(true);
     setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' });
     setModalError('');
-  };
+  }, []);
 
   // Expose actions to parent via ref
-  if (actionsRef) {
-    actionsRef.current = { openAdd: handleOpenAdd, openCashMargin: handleOpenCashMargin };
-  }
+  useEffect(() => {
+    if (actionsRef) {
+      actionsRef.current = { openAdd: handleOpenAdd, openCashMargin: handleOpenCashMargin };
+    }
+  }, [handleOpenAdd, handleOpenCashMargin]);
 
   // Close modals
   const handleCloseModal = useCallback(() => {
@@ -697,12 +698,12 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           <div className="hidden md:flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
             <button
               type="button"
-              onClick={() => { setViewMode('compact'); localStorage.setItem('holdingsView', 'compact'); }}
+              onClick={() => setViewMode('compact')}
               className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
             >Simple</button>
             <button
               type="button"
-              onClick={() => { setViewMode('detailed'); localStorage.setItem('holdingsView', 'detailed'); }}
+              onClick={() => setViewMode('detailed')}
               className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
             >Detailed</button>
           </div>
@@ -795,7 +796,6 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                       className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
                       onClick={() => {
                         setDisplayMetric(m.key);
-                        localStorage.setItem('holdingsDisplayMetric', m.key);
                         setShowDisplayMenu(false);
                       }}
                     >

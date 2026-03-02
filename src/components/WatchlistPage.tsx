@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { WatchlistSummary, WatchlistDetail, WatchlistHolding, PortfolioChartPeriod } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
   getWatchlists,
   getWatchlistDetail,
@@ -97,9 +98,10 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   // Mobile display metric
-  const [displayMetric, setDisplayMetric] = useState<DisplayMetric>(
-    () => (localStorage.getItem('watchlistDisplayMetric') as DisplayMetric) || 'dayChangePct'
-  );
+  const [displayMetric, setDisplayMetric] = useLocalStorage<DisplayMetric>('watchlistDisplayMetric', 'dayChangePct', {
+    serialize: v => v,
+    deserialize: v => v as DisplayMetric,
+  });
   const [showDisplayMenu, setShowDisplayMenu] = useState(false);
 
   const loadWatchlists = useCallback(async () => {
@@ -489,7 +491,6 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
                       onClick={() => {
                         setDisplayMetric(m.key);
-                        localStorage.setItem('watchlistDisplayMetric', m.key);
                         setShowDisplayMenu(false);
                       }}
                     >

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
-import { Portfolio, Settings, PortfolioChartPeriod } from './types';
-import { getPortfolio, getSettings, getPortfolioChart, getHealthStatus, HealthStatus, getUserByUsername } from './api';
-import { REFRESH_INTERVAL } from './config';
+import { PortfolioChartPeriod } from './types';
+import { getPortfolio, getPortfolioChart, getUserByUsername } from './api';
 import { HoldingsTable } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
@@ -23,8 +22,8 @@ import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
-import { Holding } from './types';
-import type Hls from 'hls.js';
+
+
 import Starfield from './components/Starfield';
 import { MarketStrip } from './components/MarketStrip';
 import { MiniPlayer } from './components/MiniPlayer';
@@ -33,8 +32,13 @@ import { Term } from './components/Term';
 import { formatCurrency, formatPercent } from './utils/format';
 import { getInitialTheme, applyTheme } from './utils/theme';
 import { getLocalTzAbbr } from './utils/market';
-import { Channel, CHANNELS } from './utils/channels';
+import { CHANNELS } from './utils/channels';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+
+import { useStreamManager } from './hooks/useStreamManager';
+import { usePullToRefresh } from './hooks/usePullToRefresh';
+import { usePortfolioData } from './hooks/usePortfolioData';
+import { useNavigationState } from './hooks/useNavigationState';
 
 // Lazy-loaded page components
 const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
@@ -66,7 +70,7 @@ setTimeout(() => {
   import('./api').then(({ getMarketHeatmap }) => {
     getMarketHeatmap('1D', 'SP500').then(resp => {
       window.__heatmapPreload = { data: resp, ts: Date.now() };
-    }).catch(() => {});
+    }).catch(e => console.error('Heatmap preload failed:', e));
   });
 }, 3000);
 
@@ -144,18 +148,6 @@ function parseHash(): NavState & { compareStocks?: string[] } {
   return { tab: 'portfolio', stock: null, profile: null, lbuser: null, subtab: null };
 }
 
-function setHash(tab: TabType, stock?: string | null, profile?: string | null, lbuser?: string | null, subtab?: string | null) {
-  const params = new URLSearchParams();
-  if (tab !== 'portfolio') params.set('tab', tab);
-  if (stock) params.set('stock', stock);
-  if (profile) params.set('profile', profile);
-  if (lbuser) params.set('lbuser', lbuser);
-  if (subtab) params.set('subtab', subtab);
-  const str = params.toString();
-  window.location.hash = str ? str : '';
-  sessionStorage.setItem('navState', JSON.stringify({ tab, stock, profile, lbuser, subtab }));
-}
-
 const savedInitialNav = parseHash();
 // Check if initial hash was #tab=settings or #tab=admin-waitlist
 const _initialSettingsView = (() => {
@@ -207,21 +199,39 @@ export default function App() {
   const { showToast } = useToast();
   const isOnline = useOnlineStatus();
   const initialNav = savedInitialNav;
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const currentUserId = user?.id || '';
+  const {
+    portfolio, loading, error, lastUpdate, isStale,
+    healthStatus, summaryRefreshTrigger, portfolioRefreshCount,
+    fetchData, handleUpdate,
+  } = usePortfolioData({ currentUserId, authLoading });
+
   const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
   const [chartMeasurement, setChartMeasurement] = useState<ChartMeasurement | null>(null);
-  const [, setSettings] = useState<Settings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [isStale, setIsStale] = useState(false);
-  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
-  const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
-  const [portfolioRefreshCount, setPortfolioRefreshCount] = useState(0);
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
-  const [activeTab, setActiveTab] = useState<TabType>(initialNav.tab);
-  const currentUserId = user?.id || '';
+  const {
+    activeTab, setActiveTab,
+    viewingStock, setViewingStock,
+    viewingProfileId, setViewingProfileId,
+    leaderboardUserId, setLeaderboardUserId,
+    insightsSubTab, setInsightsSubTab,
+    discoverSubTab, setDiscoverSubTab,
+    comparingUser, setComparingUser,
+    compareStocks, setCompareStocks,
+    settingsView, setSettingsView,
+    creatorView, setCreatorView,
+    adminView, setAdminView,
+    resetNavigation,
+    clearNavigationState,
+  } = useNavigationState({
+    initialNav,
+    currentUserId,
+    isAuthenticated,
+    initialSettingsView: _initialSettingsView,
+    initialAdminView: _initialAdminView,
+  });
+
   const currentUserName = user?.displayName || user?.username || '';
   const isPaidUser = user?.plan === 'pro' || user?.plan === 'premium';
   const visibleMoreTabs = useMemo(() =>
@@ -233,20 +243,7 @@ export default function App() {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [utilsMenuOpen, setUtilsMenuOpen] = useState(false);
   const utilsMenuRef = useRef<HTMLDivElement>(null);
-  const [viewingProfileId, setViewingProfileId] = useState<string | null>(initialNav.profile);
-  const [leaderboardUserId, setLeaderboardUserId] = useState<string | null>(initialNav.lbuser);
-  const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.tab === 'insights' ? initialNav.subtab : null);
-  const [discoverSubTab, setDiscoverSubTab] = useState<string | null>(initialNav.tab === 'discover' ? initialNav.subtab : null);
-  const [comparingUser, setComparingUser] = useState<{ userId: string; displayName: string } | null>(null);
-  const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
-    initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
-  );
-  const [compareStocks, setCompareStocks] = useState<string[] | null>(initialNav.compareStocks ?? null);
-  // Premium-gated: const [nalaQuestion, setNalaQuestion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [settingsView, setSettingsView] = useState(_initialSettingsView);
-  const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
-  const [adminView, setAdminView] = useState<'waitlist' | null>(_initialAdminView);
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -323,12 +320,6 @@ export default function App() {
   // --- Keyboard shortcuts ---
   const searchRef = useRef<{ focus: () => void } | null>(null);
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
-  const clearNavigationState = useCallback(() => {
-    setViewingProfileId(null);
-    setViewingStock(null);
-    setLeaderboardUserId(null);
-    setComparingUser(null);
-  }, []);
   const { toastMessage, isCheatSheetOpen, closeCheatSheet } = useKeyboardShortcuts({
     activeTab,
     setActiveTab,
@@ -336,299 +327,34 @@ export default function App() {
     clearNavigationState,
   });
 
-  // --- Pull-to-refresh ---
-  const [pullY, setPullY] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  const pullTouchY = useRef(0);
-  const pullActive = useRef(false);
-  const fetchDataRef = useRef<() => void>(() => {});
-
-  // --- Swipe-to-cycle tabs (mobile) ---
-  const swipeTouchX = useRef(0);
-  const swipeTouchY = useRef(0);
-  const swipeActive = useRef(false);
-  const activeTabRef = useRef(activeTab);
-  activeTabRef.current = activeTab;
-  const mainRef = useRef<HTMLElement>(null);
-
-  const onPullStart = useCallback((e: React.TouchEvent) => {
-    if (refreshing) return;
-    if (window.scrollY <= 0) {
-      pullTouchY.current = e.touches[0].clientY;
-      pullActive.current = true;
-    }
-  }, [refreshing]);
-
-  const onPullMove = useCallback((e: React.TouchEvent) => {
-    if (!pullActive.current || refreshing) return;
-    const dy = e.touches[0].clientY - pullTouchY.current;
-    if (dy > 0) {
-      setPullY(Math.min(dy * 0.4, 80));
-    } else {
-      pullActive.current = false;
-      setPullY(0);
-    }
-  }, [refreshing]);
-
-  const onPullEnd = useCallback(() => {
-    if (!pullActive.current) return;
-    pullActive.current = false;
-    if (pullY > 50) {
-      setRefreshing(true);
-      setPullY(50);
-      fetchDataRef.current();
-      setSummaryRefreshTrigger(t => t + 1);
-      setTimeout(() => { setRefreshing(false); setPullY(0); }, 1200);
-    } else {
-      setPullY(0);
-    }
-  }, [pullY]);
-
-  const [isTouchDevice, setIsTouchDevice] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(pointer: coarse)');
-    const handler = (e: MediaQueryListEvent) => setIsTouchDevice(e.matches);
-    if (mq.addEventListener) {
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
-    }
-    // Safari <14 fallback
-    mq.addListener(handler);
-    return () => mq.removeListener(handler);
-  }, []);
-
-  const onTouchStartCombined = useCallback((e: React.TouchEvent) => {
-    onPullStart(e);
-    if (!isTouchDevice || e.touches.length !== 1) return;
-    const startX = e.touches[0].clientX;
-    // Skip iOS edge-swipe zone (~20px from screen edges) to avoid conflicting with system back/forward
-    if (startX < 20 || startX > window.innerWidth - 20) return;
-    const raw = e.target as Node;
-    const el = raw.nodeType === Node.TEXT_NODE ? raw.parentElement : raw as Element;
-    if (el?.closest?.('input,textarea,button,a,[role="button"],[data-no-tab-swipe]')) return;
-    swipeTouchX.current = startX;
-    swipeTouchY.current = e.touches[0].clientY;
-    swipeActive.current = true;
-  }, [onPullStart, isTouchDevice]);
-
-  const onTouchMoveCombined = useCallback((e: React.TouchEvent) => {
-    onPullMove(e);
-    if (!swipeActive.current) return;
-    const dy = Math.abs(e.touches[0].clientY - swipeTouchY.current);
-    const dx = Math.abs(e.touches[0].clientX - swipeTouchX.current);
-    if (dy > dx) swipeActive.current = false;
-  }, [onPullMove]);
-
-  const onTouchEndCombined = useCallback((e: React.TouchEvent) => {
-    const pullFired = pullActive.current && pullY > 50;
-    onPullEnd();
-    if (!swipeActive.current) return;
-    swipeActive.current = false;
-    if (pullFired || viewingStock || settingsView || creatorView || adminView || compareStocks || refreshing || showOnboardingTour || showDailyReport || showPrivacyModal) return;
-    if (!e.changedTouches.length) return;
-    const dx = e.changedTouches[0].clientX - swipeTouchX.current;
-    if (Math.abs(dx) < 50) return;
-    const idx = PRIMARY_TABS.findIndex(t => t.id === activeTabRef.current);
-    if (idx === -1) return;
-    const len = PRIMARY_TABS.length;
-    const next = dx < 0 ? (idx + 1) % len : (idx - 1 + len) % len;
-    const newTab = PRIMARY_TABS[next].id;
-    const offset = dx < 0 ? 30 : -30;
-    mainRef.current?.animate(
-      [
-        { transform: `translateX(${offset}px)`, opacity: 0.6 },
-        { transform: 'translateX(0)', opacity: 1 },
-      ],
-      { duration: 180, easing: 'ease-out', fill: 'none' }
-    );
-    setActiveTab(newTab);
-    setViewingProfileId(null);
-    setViewingStock(null);
-    setLeaderboardUserId(null);
-    setCompareStocks(null);
-    setCreatorView(null);
-    setAdminView(null);
-    setSettingsView(false);
-  }, [onPullEnd, pullY, viewingStock, settingsView, creatorView, adminView, compareStocks, refreshing, showOnboardingTour, showDailyReport, showPrivacyModal]);
+  // --- Pull-to-refresh + swipe-to-cycle tabs ---
+  const {
+    pullY, refreshing, isPulling, mainRef,
+    onTouchStart: onTouchStartCombined,
+    onTouchMove: onTouchMoveCombined,
+    onTouchEnd: onTouchEndCombined,
+  } = usePullToRefresh({
+    activeTab,
+    setActiveTab,
+    resetNavigation,
+    fetchData: handleUpdate,
+    onRefreshTriggered: () => {},
+    guards: { viewingStock, settingsView, creatorView, adminView, compareStocks, showOnboardingTour, showDailyReport, showPrivacyModal },
+  });
 
   // --- Stream / PiP state ---
-  const [pipEnabled, setPipEnabled] = useState(() => {
-    const stored = localStorage.getItem('pipEnabled');
-    return stored !== null ? stored === 'true' : true;
-  });
-  const [streamActive, setStreamActive] = useState(false);
-  const [activeChannel, setActiveChannel] = useState<Channel>(CHANNELS[0]);
-  const [streamStatus, setStreamStatus] = useState('Loading stream...');
-  const [streamHasError, setStreamHasError] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const watchVideoContainerRef = useRef<HTMLDivElement | null>(null);
-  const miniVideoContainerRef = useRef<HTMLDivElement>(null);
-  const loadedChannelRef = useRef<string | null>(null);
-  const [containerReady, setContainerReady] = useState(0);
+  const {
+    activeChannel, setActiveChannel,
+    streamStatus, streamHasError,
+    pipEnabled, handlePipToggle, handleManualPlay,
+    showMiniPlayer, handleMiniPlayerClose,
+    videoRef, watchContainerCallback, miniVideoContainerRef,
+  } = useStreamManager({ activeTab, viewingStock });
 
-  const watchContainerCallback = useCallback((node: HTMLDivElement | null) => {
-    watchVideoContainerRef.current = node;
-    if (node) setContainerReady(c => c + 1);
-  }, []);
-
-  const handlePipToggle = (enabled: boolean) => {
-    setPipEnabled(enabled);
-    localStorage.setItem('pipEnabled', String(enabled));
-  };
-
-  useEffect(() => {
-    if (activeTab === 'watch') {
-      setStreamActive(true);
-    } else if (!pipEnabled) {
-      setStreamActive(false);
-    }
-  }, [activeTab, pipEnabled]);
-
-  const handleManualPlay = useCallback(() => {
-    const video = videoRef.current;
-    if (video) {
-      video.play().then(() => setStreamStatus('')).catch(() => {});
-    }
-  }, []);
-
-  const handleMiniPlayerClose = () => setStreamActive(false);
   const handleMiniPlayerExpand = () => {
+    resetNavigation();
     setActiveTab('watch');
-    setViewingProfileId(null);
-    setViewingStock(null);
-    setLeaderboardUserId(null);
   };
-
-  const watchFullyVisible = activeTab === 'watch' && !viewingStock;
-  const showMiniPlayer = streamActive && pipEnabled && !watchFullyVisible;
-
-  // Helper: fully reset video element so a fresh HLS can attach cleanly
-  const resetVideoElement = useCallback((video: HTMLVideoElement) => {
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-  }, []);
-
-  // Helper: tear down HLS instance and reset refs
-  const destroyHls = useCallback(() => {
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-      loadedChannelRef.current = null;
-    }
-  }, []);
-
-  // Unified HLS effect
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    let cancelled = false;
-
-    const shouldBeActive = watchFullyVisible || (streamActive && pipEnabled);
-
-    // Move video element to the correct container
-    if (watchFullyVisible && watchVideoContainerRef.current) {
-      watchVideoContainerRef.current.appendChild(video);
-      video.style.display = '';
-    } else if (shouldBeActive && !watchFullyVisible && miniVideoContainerRef.current) {
-      miniVideoContainerRef.current.appendChild(video);
-      video.style.display = '';
-    } else {
-      video.style.display = 'none';
-    }
-
-    // Tear down when stream should not be active
-    if (!shouldBeActive) {
-      destroyHls();
-      resetVideoElement(video);
-      setStreamStatus('Loading stream...');
-      setStreamHasError(false);
-      return;
-    }
-
-    // Channel changed — destroy old instance so we recreate below
-    if (hlsRef.current && loadedChannelRef.current !== activeChannel.id) {
-      destroyHls();
-      resetVideoElement(video);
-      setStreamStatus('Loading stream...');
-      setStreamHasError(false);
-    }
-
-    // Already loaded for the current channel — nothing to do
-    if (hlsRef.current) return;
-
-    setStreamStatus('Loading stream...');
-    setStreamHasError(false);
-
-    // Dynamic import hls.js only when needed (saves ~250KB from initial bundle)
-    import('hls.js').then(({ default: HlsLib }) => {
-      // Guard: effect was cleaned up or another instance was created while awaiting import
-      if (cancelled || hlsRef.current) return;
-
-      if (HlsLib.isSupported()) {
-        const hls = new HlsLib({
-          enableWorker: false,
-          debug: false,
-          lowLatencyMode: true,
-          xhrSetup: (xhr: XMLHttpRequest) => { xhr.withCredentials = false; },
-        });
-        hlsRef.current = hls;
-        loadedChannelRef.current = activeChannel.id;
-
-        hls.on(HlsLib.Events.MANIFEST_PARSED, () => {
-          setStreamStatus('');
-          setStreamHasError(false);
-          video.play().catch(() => setStreamStatus('Click to play'));
-        });
-
-        hls.on(HlsLib.Events.ERROR, (_event: string, data: { type: string; details: string; fatal: boolean }) => {
-          console.error('HLS error:', data.type, data.details);
-          if (data.fatal) {
-            setStreamHasError(true);
-            switch (data.type) {
-              case HlsLib.ErrorTypes.NETWORK_ERROR:
-                setStreamStatus('Network error — retrying...');
-                hls.startLoad();
-                break;
-              case HlsLib.ErrorTypes.MEDIA_ERROR:
-                setStreamStatus('Media error — recovering...');
-                hls.recoverMediaError();
-                break;
-              default:
-                setStreamStatus('Stream unavailable');
-                hls.destroy();
-                hlsRef.current = null;
-                loadedChannelRef.current = null;
-                break;
-            }
-          }
-        });
-
-        hls.loadSource(activeChannel.url);
-        hls.attachMedia(video);
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Safari native HLS
-        video.src = activeChannel.url;
-        loadedChannelRef.current = activeChannel.id;
-        const onMeta = () => {
-          if (cancelled) return;
-          setStreamStatus('');
-          video.play().catch(() => {
-            if (!cancelled) setStreamStatus('Click to play');
-          });
-        };
-        video.addEventListener('loadedmetadata', onMeta, { once: true });
-      } else {
-        setStreamStatus('HLS not supported in this browser');
-        setStreamHasError(true);
-      }
-    });
-
-    return () => { cancelled = true; };
-  }, [streamActive, activeTab, pipEnabled, activeChannel, containerReady, watchFullyVisible, destroyHls, resetVideoElement]);
 
   const handleViewProfile = (userId: string) => {
     setViewingProfileId(userId);
@@ -637,145 +363,6 @@ export default function App() {
   const handleCompare = useCallback((userId: string, displayName: string) => {
     setComparingUser({ userId, displayName });
   }, []);
-
-  // Auto-set viewingProfileId when navigating to profile tab
-  useEffect(() => {
-    if (activeTab === 'profile' && !viewingProfileId && currentUserId) {
-      setViewingProfileId(currentUserId);
-    }
-  }, [activeTab, viewingProfileId, currentUserId]);
-
-  // Sync navigation state → URL hash (only when authenticated)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    // Compare page has its own hash format
-    if (compareStocks && compareStocks.length >= 2) {
-      const p = new URLSearchParams();
-      p.set('tab', 'compare');
-      p.set('stocks', compareStocks.join(','));
-      window.location.hash = p.toString();
-      sessionStorage.setItem('navState', JSON.stringify({ tab: 'compare', stock: null, profile: null, lbuser: null, subtab: null }));
-      return;
-    }
-    const stockTicker = viewingStock?.ticker || null;
-    const subtab = activeTab === 'insights' ? insightsSubTab : activeTab === 'discover' ? discoverSubTab : null;
-    const hashTab = activeTab;
-    // Don't expose profile ID in URL for own profile tab — it's always the current user
-    const hashProfile = activeTab === 'profile' ? null : viewingProfileId;
-    setHash(hashTab, stockTicker, hashProfile, leaderboardUserId, subtab);
-  }, [isAuthenticated, activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab, compareStocks]);
-
-  // Handle browser back/forward — parse directly from hash, never sessionStorage
-  useEffect(() => {
-    const onHashChange = () => {
-      const params = new URLSearchParams(window.location.hash.slice(1));
-      const rawTab = params.get('tab') || 'portfolio';
-      const stock = params.get('stock') || null;
-      const profile = params.get('profile') || null;
-      const lbuser = params.get('lbuser') || null;
-      const subtab = params.get('subtab') || null;
-
-      // Handle settings page (not a nav tab — full-page overlay)
-      if (rawTab === 'settings') {
-        setSettingsView(true);
-        return;
-      }
-      setSettingsView(false);
-
-      // Handle compare page (not a nav tab — transient overlay like StockDetailView)
-      if (rawTab === 'compare') {
-        const stocksRaw = params.get('stocks')?.split(',').filter(Boolean) ?? [];
-        const normalized = [...new Set(stocksRaw.map(s => s.trim().toUpperCase()).filter(Boolean))].slice(0, 4);
-        if (normalized.length >= 2) {
-          setCompareStocks(normalized);
-          setViewingStock(null);
-          return;
-        }
-      }
-      setCompareStocks(null);
-
-      const tab = VALID_TABS.has(rawTab as TabType) ? (rawTab as TabType) : 'portfolio';
-      setActiveTab(tab);
-      setViewingProfileId(profile);
-      setLeaderboardUserId(lbuser);
-      if (tab === 'insights') setInsightsSubTab(subtab);
-      if (tab === 'discover') setDiscoverSubTab(subtab);
-      if (stock) {
-        setViewingStock(prev => prev?.ticker === stock ? prev : { ticker: stock, holding: null });
-      } else {
-        setViewingStock(null);
-      }
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
-
-  const lastValidPortfolio = useRef<Portfolio | null>(null);
-  const lastTotalAssets = useRef<number | null>(null);
-
-  const fetchData = useCallback(async () => {
-    if (!currentUserId || authLoading) return;
-    try {
-      const portfolioData = await getPortfolio();  // Always use system/default portfolio
-      const settingsData = await getSettings();
-
-      const hasValidData = portfolioData.holdings.length === 0 ||
-        portfolioData.holdings.some(h => !h.priceUnavailable && h.currentPrice > 0);
-
-      const holdingsChanged = !lastValidPortfolio.current ||
-        portfolioData.holdings.length !== lastValidPortfolio.current.holdings.length ||
-        portfolioData.holdings.some(h => !lastValidPortfolio.current!.holdings.find(old => old.ticker === h.ticker));
-
-      if (!hasValidData && lastValidPortfolio.current && !holdingsChanged) {
-        setPortfolio({
-          ...lastValidPortfolio.current,
-          cashBalance: portfolioData.cashBalance,
-          marginDebt: portfolioData.marginDebt,
-          netEquity: lastValidPortfolio.current.totalAssets - portfolioData.marginDebt,
-        });
-        setSettings(settingsData);
-        setIsStale(true);
-        return;
-      }
-
-      setPortfolio(portfolioData);
-      setSettings(settingsData);
-      setError('');
-      setLastUpdate(new Date());
-
-      const newTotalAssets = Math.round(portfolioData.totalAssets * 100) / 100;
-      if (lastTotalAssets.current === null || newTotalAssets !== lastTotalAssets.current) {
-        lastTotalAssets.current = newTotalAssets;
-        setPortfolioRefreshCount((c) => c + 1);
-      }
-
-      const dataIsRepricing = portfolioData.quotesMeta?.anyRepricing ||
-        portfolioData.quotesStale ||
-        (portfolioData.quotesUnavailableCount && portfolioData.quotesUnavailableCount > 0);
-      setIsStale(!!dataIsRepricing);
-
-      if (hasValidData) {
-        lastValidPortfolio.current = portfolioData;
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch data';
-      if (portfolio) {
-        setIsStale(true);
-      } else {
-        setError(message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [portfolio, currentUserId, authLoading]);
-  fetchDataRef.current = fetchData;
-
-  useEffect(() => {
-    if (!currentUserId || authLoading) return;
-    fetchData();
-    const interval = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
-  }, [fetchData, currentUserId]);
 
   // Check creator setup status (for header button + dashboard checklist)
   const [creatorSetupStatus, setCreatorSetupStatus] = useState<import('./api').CreatorSetupStatus | null>(null);
@@ -815,19 +402,6 @@ export default function App() {
       localStorage.setItem('nala_tour_completed', '1');
     }
   }, [currentUserId, portfolio, loading, user?.createdAt]);
-
-  // Fetch provider health status periodically
-  useEffect(() => {
-    const fetchHealth = () => getHealthStatus().then(setHealthStatus).catch(() => {});
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 60_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleUpdate = () => {
-    fetchData();
-    setSummaryRefreshTrigger((t) => t + 1);
-  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -1028,7 +602,7 @@ export default function App() {
           {/* Mobile: logo + controls inline */}
           <div
             className="h-[35px] w-[35px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); setSettingsView(false); }}
+            onClick={() => { resetNavigation(); setActiveTab('portfolio'); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -1118,7 +692,7 @@ export default function App() {
           {/* Logo */}
           <div
             className="h-[30px] w-[30px] cursor-pointer flex-shrink-0"
-            onClick={() => { setActiveTab('portfolio'); setViewingStock(null); setCompareStocks(null); setCreatorView(null); setSettingsView(false); }}
+            onClick={() => { resetNavigation(); setActiveTab('portfolio'); }}
           >
             <img src="/north-signal-logo.png" alt="Nala" className="h-full w-full hidden dark:block" />
             <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-full w-full dark:hidden" />
@@ -1133,15 +707,7 @@ export default function App() {
               return (
               <button
                 key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setViewingProfileId(null);
-                  setViewingStock(null);
-                  setLeaderboardUserId(null);
-                  setCompareStocks(null);
-                  setCreatorView(null);
-                  setSettingsView(false);
-                }}
+                onClick={() => { resetNavigation(); setActiveTab(tab.id); }}
                 className={`relative px-3 py-2 text-[13px] rounded-md transition-all duration-150 whitespace-nowrap
                   ${collapseAtSmLg ? 'hidden lg:inline-flex' : ''}
                   ${activeTab === tab.id
@@ -1199,16 +765,7 @@ export default function App() {
                   {collapsedPrimaryTabs.map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        setViewingProfileId(null);
-                        setViewingStock(null);
-                        setLeaderboardUserId(null);
-                        setCompareStocks(null);
-                        setCreatorView(null);
-                        setSettingsView(false);
-                        setMoreDropdownOpen(false);
-                      }}
+                      onClick={() => { resetNavigation(); setActiveTab(tab.id); setMoreDropdownOpen(false); }}
                       className={`lg:hidden w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
                         ${activeTab === tab.id
                           ? 'text-rh-green font-semibold bg-rh-green/[0.06]'
@@ -1222,16 +779,7 @@ export default function App() {
                   {visibleMoreTabs.map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        setViewingProfileId(null);
-                        setViewingStock(null);
-                        setLeaderboardUserId(null);
-                        setCompareStocks(null);
-                        setCreatorView(null);
-                        setSettingsView(false);
-                        setMoreDropdownOpen(false);
-                      }}
+                      onClick={() => { resetNavigation(); setActiveTab(tab.id); setMoreDropdownOpen(false); }}
                       className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
                         ${activeTab === tab.id
                           ? 'text-rh-green font-semibold bg-rh-green/[0.06]'
@@ -1447,14 +995,8 @@ export default function App() {
       {/* Mobile-only navigation */}
       <div className="sm:hidden">
         <Navigation activeTab={activeTab} userPlan={user?.plan} onTabChange={(tab) => {
+          resetNavigation();
           setActiveTab(tab);
-          setViewingProfileId(null);
-          setViewingStock(null);
-          setLeaderboardUserId(null);
-          setCompareStocks(null);
-          setCreatorView(null);
-          setAdminView(null);
-          setSettingsView(false);
         }} />
       </div>
       </div>
@@ -1469,7 +1011,7 @@ export default function App() {
         className="flex items-center justify-center overflow-hidden bg-rh-light-bg dark:bg-black"
         style={{
           height: pullY > 0 ? `${pullY}px` : '0px',
-          transition: pullActive.current ? 'none' : 'height 0.3s ease',
+          transition: isPulling.current ? 'none' : 'height 0.3s ease',
         }}
       >
         <img
@@ -1526,14 +1068,11 @@ export default function App() {
                 }
                 setViewingStock(null);
               }}
-              onHoldingAdded={() => {
-                fetchData();
-                setTimeout(async () => {
-                  const p = await getPortfolio();
-                  const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
-                  setViewingStock(prev => prev ? { ...prev, holding: held } : null);
-                  setPortfolio(p);
-                }, 500);
+              onHoldingAdded={async () => {
+                const p = await getPortfolio();
+                handleUpdate();
+                const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
+                setViewingStock(prev => prev ? { ...prev, holding: held } : null);
               }}
             />
           </Suspense>

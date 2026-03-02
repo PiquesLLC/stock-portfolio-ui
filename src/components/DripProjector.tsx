@@ -133,7 +133,7 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
       {hoveredIdx !== null && (
         <>
           <line x1={x(hoveredIdx)} y1={pad.t} x2={x(hoveredIdx)} y2={pad.t + plotH} stroke="#00c805" strokeWidth="1" strokeDasharray="3,3" opacity="0.5" />
-          <circle cx={x(hoveredIdx)} cy={y(points[hoveredIdx].annualIncome)} r="4" fill="#00c805" stroke="white" strokeWidth="1.5" />
+          <circle cx={x(hoveredIdx)} cy={y(points[hoveredIdx].annualIncome)} r="4" fill="#00c805" className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
         </>
       )}
     </svg>

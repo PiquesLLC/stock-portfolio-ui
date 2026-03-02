@@ -20,11 +20,11 @@ export function FollowButton({ targetUserId, currentUserId, initialFollowing, on
     setLoading(true);
     try {
       if (following) {
-        await unfollowUser(targetUserId, currentUserId);
+        await unfollowUser(targetUserId);
         setFollowing(false);
         onToggle?.(false);
       } else {
-        await followUser(targetUserId, currentUserId);
+        await followUser(targetUserId);
         setFollowing(true);
         onToggle?.(true);
       }

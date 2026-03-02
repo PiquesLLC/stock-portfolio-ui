@@ -115,7 +115,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
         setCreatorProfile(p.creator ?? null);
         setPerformance(p.performance ?? null);
       })
-      .catch(() => {});
+      .catch(e => console.error('User profile fetch failed:', e));
   }, [userId, currentUserId]);
 
   // Creator entitlement
@@ -144,7 +144,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
   useEffect(() => {
     getUserIntelligence(userId, '1d')
       .then(setIntelligence)
-      .catch(() => {});
+      .catch(e => console.error('User intelligence fetch failed:', e));
   }, [userId]);
 
   const fetchData = useCallback(async () => {

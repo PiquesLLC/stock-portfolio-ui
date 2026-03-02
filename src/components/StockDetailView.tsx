@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Holding, ChartPeriod, StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout, PriceAlert, EarningsResponse, ActivityEvent, AnalystEvent } from '../types';
+import { useState, useEffect } from 'react';
+import { Holding, ChartPeriod } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useStockData } from '../hooks/useStockData';
+import { useStockChart } from '../hooks/useStockChart';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getStockQuote, getFastQuote, getIntradayCandles, getHourlyCandles, IntradayCandle, getDividendEvents, getDividendCredits, getETFHoldings, getAssetAbout, getPriceAlerts, getEarnings, getTickerActivity, getTickerNews, getAnalystEvents, getAIEvents, AIEventsResponse, MarketNewsItem, followStock, unfollowStock, getStockFollowStatus } from '../api';
-import { DividendEvent, DividendCredit } from '../types';
+import { getStockDetails, getIntradayCandles, getHourlyCandles, followStock, unfollowStock } from '../api';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
 import { ETFDetailsPanel } from './ETFDetailsPanel';
@@ -21,6 +23,12 @@ import { Term } from './Term';
 import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { NalaScore } from './NalaScore';
+
+/** Format a dollar delta without the $ sign, preserving +/- */
+function formatDelta(value: number): string {
+  const sign = value >= 0 ? '+' : '';
+  return sign + formatCurrency(value).replace('$', '');
+}
 
 interface Props {
   ticker: string;
@@ -57,95 +65,60 @@ function PositionCard({ label, value, valueColor, sub }: {
 }
 
 export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded }: Props) {
-  const [data, setData] = useState<StockDetailsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [quickLoaded, setQuickLoaded] = useState(false); // Price loaded, details pending
-  const [candlesLoaded, setCandlesLoaded] = useState(false); // Phase 2 candles loaded
-  const [error, setError] = useState<string | null>(null);
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(() => {
-    const saved = localStorage.getItem('stockChartPeriod');
-    return (saved as ChartPeriod) || '1D';
+  // Chart period — owned by component, shared between both hooks
+  const [chartPeriod, setChartPeriod] = useLocalStorage<ChartPeriod>('stockChartPeriod', '1D', {
+    serialize: v => v,
+    deserialize: v => v as ChartPeriod,
   });
-  const handlePeriodChange = useCallback((period: ChartPeriod) => {
-    setChartPeriod(period);
-    localStorage.setItem('stockChartPeriod', period);
-    // Synchronously set hourly candles to avoid a blank-frame flash
-    // when auto-zoom-switch changes to 1W/1M before the useEffect runs
-    if (period === '1W' || period === '1M') {
-      setHourlyCandles(hourlyCache.current[period] || []);
-    } else {
-      setHourlyCandles([]);
-    }
-  }, []);
 
-  // Intraday candles for 1D chart (from Yahoo Finance via API)
-  const [intradayCandles, setIntradayCandles] = useState<IntradayCandle[]>([]);
+  // --- Data fetching hook ---
+  const {
+    data,
+    loading,
+    quickLoaded,
+    candlesLoaded,
+    error,
+    tickerDividends,
+    tickerCredits,
+    etfHoldings,
+    about,
+    earnings,
+    tradeEvents,
+    analystEvents,
+    aiEvents,
+    aiEventsLoaded,
+    priceAlerts,
+    isFollowingStock,
+    setIsFollowingStock,
+    fetchPriceAlerts,
+    intradayCandles,
+    livePrices,
+    hourlyCandles,
+    setHourlyCandles,
+    hourlyCache,
+  } = useStockData(ticker, chartPeriod);
 
-  // Zoom data resolution state
-  const [zoomData, setZoomData] = useState<{ time: number; label: string; price: number; volume?: number }[]>([]);
-
-  const handleResolutionRequest = useCallback((level: 'daily' | 'hourly' | 'intraday', rangeStart: number, rangeEnd: number) => {
-    if (level === 'daily') { setZoomData([]); return; }
-    if (level === 'hourly') {
-      const all = [...(hourlyCache.current['1W'] || []), ...(hourlyCache.current['1M'] || [])];
-      const seen = new Set<number>();
-      const filtered = all.filter(c => {
-        const t = new Date(c.time).getTime();
-        if (seen.has(t) || t < rangeStart || t > rangeEnd) return false;
-        seen.add(t); return true;
-      }).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-      if (filtered.length > 0) {
-        setZoomData(filtered.map(c => {
-          const d = new Date(c.time);
-          return { time: d.getTime(), label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), price: c.close, volume: c.volume };
-        }));
-      }
-      return;
-    }
-    if (level === 'intraday' && intradayCandles.length > 0) {
-      const filtered = intradayCandles.filter(c => {
-        const t = new Date(c.time).getTime();
-        return t >= rangeStart && t <= rangeEnd;
-      });
-      if (filtered.length > 0) {
-        setZoomData(filtered.map(c => {
-          const d = new Date(c.time);
-          return { time: d.getTime(), label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), price: c.close, volume: c.volume };
-        }));
-      }
-    }
-  }, [intradayCandles]);
-  // Hourly candles for 1W/1M (finer-grained than daily)
-  const [hourlyCandles, setHourlyCandles] = useState<IntradayCandle[]>([]);
-  // Legacy live prices kept as fallback
-  const [livePrices, setLivePrices] = useState<{ time: string; price: number }[]>([]);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Dividend data for this ticker
-  const [tickerDividends, setTickerDividends] = useState<DividendEvent[]>([]);
-  const [tickerCredits, setTickerCredits] = useState<DividendCredit[]>([]);
-
-  // ETF holdings data
-  const [etfHoldings, setEtfHoldings] = useState<ETFHoldingsData | null>(null);
-
-  // About data (description, category, etc.)
-  const [about, setAbout] = useState<AssetAbout | null>(null);
-
-  // Earnings data for chart events
-  const [earnings, setEarnings] = useState<EarningsResponse | null>(null);
-
-  // Trade events for chart events
-  const [tradeEvents, setTradeEvents] = useState<ActivityEvent[]>([]);
-
-  // News and analyst events for chart events
-  const [, setNewsEvents] = useState<MarketNewsItem[]>([]);
-  const [analystEvents, setAnalystEvents] = useState<AnalystEvent[]>([]);
-
-  // AI-powered events from Perplexity
-  const [aiEvents, setAiEvents] = useState<AIEventsResponse | null>(null);
-  const [aiEventsLoaded, setAiEventsLoaded] = useState(false);
-
-
+  // --- Chart state hook ---
+  const {
+    handlePeriodChange,
+    zoomData,
+    hoverPrice,
+    hoverLabel,
+    hoverRefPrice,
+    handleHoverPrice,
+    handleResolutionRequest,
+    periodChange,
+    goldenCrossInfo,
+  } = useStockChart({
+    ticker,
+    data,
+    chartPeriod,
+    setChartPeriod,
+    intradayCandles,
+    hourlyCandles,
+    setHourlyCandles,
+    hourlyCache,
+  });
 
   // Comparison overlay
   const [compareTickers, setCompareTickers] = useState<string[]>([]);
@@ -158,6 +131,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // Fetch comparison data whenever compareTickers or chartPeriod changes
   useEffect(() => {
     if (compareTickers.length === 0) { setCompareData([]); return; }
+    let stale = false;
 
     const fetchComps = async () => {
       // Determine main ticker's reference price for normalization
@@ -249,10 +223,11 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           }
         } catch { /* skip failed tickers */ }
       }
-      setCompareData(results);
+      if (!stale) setCompareData(results);
     };
 
     fetchComps();
+    return () => { stale = true; };
   }, [compareTickers, chartPeriod, data?.candles, data?.quote?.currentPrice, intradayCandles, hourlyCandles]);
 
   const addCompareTicker = (t: string) => {
@@ -267,18 +242,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     setCompareTickers(prev => prev.filter(ct => ct !== t));
   };
 
-  // Stock follow
-  const [isFollowingStock, setIsFollowingStock] = useState(false);
-
-  // Price alerts
-  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
+  // Modal states
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const [showCreateWatchlist, setShowCreateWatchlist] = useState(false);
-  const [showIntelFeed, setShowIntelFeed] = useState<boolean>(() => {
-    try { const v = localStorage.getItem('stockIntelFeed'); return v !== null ? JSON.parse(v) : true; } catch { return true; }
-  });
+  const [showIntelFeed, setShowIntelFeed] = useLocalStorage('stockIntelFeed', true);
   const [intelCollapsed, setIntelCollapsed] = useState(false);
   const toggleIntelFeed = () => {
     if (showIntelFeed) {
@@ -288,164 +257,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       // If disabled, enable it and uncollapse
       setShowIntelFeed(true);
       setIntelCollapsed(false);
-      localStorage.setItem('stockIntelFeed', 'true');
     }
   };
-
-  const fetchPriceAlerts = useCallback(() => {
-    getPriceAlerts(ticker).then(setPriceAlerts).catch(() => setPriceAlerts([]));
-  }, [ticker]);
-
-  useEffect(() => {
-    getDividendEvents(ticker).then(setTickerDividends).catch(() => {});
-    getDividendCredits(ticker).then(setTickerCredits).catch(() => {});
-    // Fetch earnings for chart events
-    getEarnings(ticker).then(setEarnings).catch(() => setEarnings(null));
-    // Fetch trade events for chart events
-    getTickerActivity(ticker).then(setTradeEvents).catch(() => setTradeEvents([]));
-    // Fetch news and analyst events for chart events
-    getTickerNews(ticker).then(setNewsEvents).catch(() => setNewsEvents([]));
-    getAnalystEvents(50, ticker).then(setAnalystEvents).catch(() => setAnalystEvents([]));
-    // Fetch ETF holdings
-    getETFHoldings(ticker)
-      .then(data => setEtfHoldings(data))
-      .catch(() => setEtfHoldings(null));
-    // Fetch about data
-    getAssetAbout(ticker)
-      .then(data => setAbout(data))
-      .catch(() => setAbout(null));
-    // Fetch price alerts
-    fetchPriceAlerts();
-    // Fetch stock follow status
-    getStockFollowStatus(ticker)
-      .then(({ following }) => setIsFollowingStock(following))
-      .catch(() => setIsFollowingStock(false));
-  }, [ticker, fetchPriceAlerts]);
-
-  // Fetch AI-powered events (Perplexity) — period-aware
-  useEffect(() => {
-    const periodDays: Record<string, number> = {
-      '1D': 0, '1W': 14, '1M': 45, '3M': 100, 'YTD': 365, '1Y': 730, 'MAX': 7300,
-    };
-    const days = periodDays[chartPeriod] || 90;
-    if (days === 0) { setAiEvents(null); setAiEventsLoaded(true); return; } // skip 1D
-    setAiEventsLoaded(false);
-    getAIEvents(ticker, days).then(r => { setAiEvents(r); setAiEventsLoaded(true); }).catch(() => { setAiEvents(null); setAiEventsLoaded(true); });
-  }, [ticker, chartPeriod]);
-
-  // Cache for prefetched hourly data
-  const hourlyCache = useRef<Record<string, IntradayCandle[]>>({});
-
-  // Initial fetch — progressive loading: quote + chart first (fast), then full details
-  const fetchInitial = useCallback(async () => {
-    setCandlesLoaded(false);
-    try {
-      // PHASE 1: Quick load - quote + chart candles via Yahoo Finance (all fast, no queue)
-      const [quoteResult, intraday, hourly1W, hourly1M] = await Promise.all([
-        getFastQuote(ticker).catch(() => null),
-        getIntradayCandles(ticker).catch(() => []),
-        getHourlyCandles(ticker, '1W').catch(() => []),
-        getHourlyCandles(ticker, '1M').catch(() => []),
-      ]);
-
-      // If fast quote succeeded, show it immediately
-      if (quoteResult) {
-        setData({
-          ticker,
-          quote: quoteResult,
-          profile: null,
-          metrics: null,
-          candles: null,
-        });
-        setIntradayCandles(intraday);
-        hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
-        if (chartPeriod === '1W') setHourlyCandles(hourly1W);
-        else if (chartPeriod === '1M') setHourlyCandles(hourly1M);
-        setQuickLoaded(true);
-
-        // Seed live prices with current price
-        const now = new Date().toISOString();
-        setLivePrices([{ time: now, price: quoteResult.currentPrice }]);
-      }
-
-      // PHASE 2: Full load - profile, metrics, historical candles (slower - Finnhub queue)
-      const result = await getStockDetails(ticker);
-
-      setData(result);
-      setIntradayCandles(intraday.length > 0 ? intraday : intradayCandles);
-      setQuickLoaded(true);
-      setCandlesLoaded(true);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load stock details');
-    } finally {
-      setLoading(false);
-    }
-  }, [ticker]);
-
-  // Poll — refresh quote + intraday candles
-  const pollQuote = useCallback(async () => {
-    if (document.hidden) return;
-    try {
-      const [quote, intraday] = await Promise.all([
-        getStockQuote(ticker),
-        getIntradayCandles(ticker).catch(() => null),
-      ]);
-      setData(prev => {
-        if (!prev) return prev;
-        // Preserve the best high/low/open across poll updates (Yahoo initial + Finnhub polls)
-        const high = Math.max(quote.high || 0, prev.quote.high || 0) || quote.high;
-        const low = (quote.low > 0 && prev.quote.low > 0) ? Math.min(quote.low, prev.quote.low) : (quote.low || prev.quote.low);
-        const open = quote.open > 0 ? quote.open : prev.quote.open;
-        return { ...prev, quote: { ...quote, high, low, open } };
-      });
-      if (intraday && intraday.length > 0) {
-        setIntradayCandles(intraday);
-      }
-      // Append to live prices as fallback (use extended price if available)
-      const now = new Date().toISOString();
-      const livePrice = quote.extendedPrice ?? quote.currentPrice;
-      setLivePrices(prev => {
-        const next = [...prev, { time: now, price: livePrice }];
-        return next.length > 500 ? next.slice(-500) : next;
-      });
-    } catch {
-      // Silently fail on poll — keep existing data
-    }
-  }, [ticker]);
-
-  useEffect(() => {
-    setLoading(true);
-    setQuickLoaded(false);
-    setData(null);
-    setLivePrices([]);
-    setIntradayCandles([]);
-    fetchInitial();
-  }, [fetchInitial]);
-
-  // Set hourly candles from prefetched cache — instant switch
-  useEffect(() => {
-    if (chartPeriod === '1W' || chartPeriod === '1M') {
-      setHourlyCandles(hourlyCache.current[chartPeriod] || []);
-    } else {
-      setHourlyCandles([]);
-    }
-  }, [chartPeriod]);
-
-  // Polling interval — 12s during market, 60s when closed
-  useEffect(() => {
-    if (!data) return;
-    if (intervalRef.current) clearInterval(intervalRef.current);
-
-    const session = data.quote.session as MarketSession | undefined;
-    const isActive = session === 'REG' || session === 'PRE' || session === 'POST';
-    const pollMs = isActive ? 10000 : 30000;
-
-    intervalRef.current = setInterval(pollQuote, pollMs);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [data?.quote.session, pollQuote]);
 
   // ESC key handler
   useEffect(() => {
@@ -455,109 +268,6 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onBack]);
-
-  // Hover state for chart crosshair (must be before ALL conditional returns — Rules of Hooks)
-  const [hoverPrice, setHoverPrice] = useState<number | null>(null);
-  const [hoverLabel, setHoverLabel] = useState<string | null>(null);
-  const [hoverRefPrice, setHoverRefPrice] = useState<number | null>(null);
-  const handleHoverPrice = useCallback((price: number | null, label: string | null, refPrice?: number) => {
-    setHoverPrice(price);
-    setHoverLabel(label);
-    setHoverRefPrice(refPrice ?? null);
-  }, []);
-
-  // Compute period-specific change (must be before ALL conditional returns — Rules of Hooks)
-  const periodChange = useMemo(() => {
-    if (!data) return { change: 0, changePct: 0, label: 'Today' };
-    const quote = data.quote;
-    if (chartPeriod === '1D') {
-      return { change: quote.change, changePct: quote.changePercent, label: 'Today' };
-    }
-    const candles = data.candles;
-    if (!candles || candles.closes.length === 0) {
-      return { change: quote.change, changePct: quote.changePercent, label: 'Today' };
-    }
-    const now = new Date();
-    let cutoff: Date;
-    switch (chartPeriod) {
-      case '1W': cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7); break;
-      case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
-      case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
-      case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
-      case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
-      case 'MAX': cutoff = new Date(1970, 0, 1); break;
-      default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
-    }
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    let startPrice = candles.closes[0];
-    for (let i = 0; i < candles.dates.length; i++) {
-      if (candles.dates[i] >= cutoffStr) {
-        startPrice = candles.closes[i];
-        break;
-      }
-    }
-    // Use the most recent price (extended/after-hours if available) for period change
-    const latestPrice = quote.extendedPrice ?? quote.currentPrice;
-    const change = latestPrice - startPrice;
-    const changePct = startPrice !== 0 ? (change / startPrice) * 100 : 0;
-    const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', 'YTD': 'Year to Date', '1Y': 'Past Year', 'MAX': 'All Time' };
-    return { change, changePct, label: labels[chartPeriod] || chartPeriod };
-  }, [chartPeriod, data]);
-
-  // Golden Cross detection: only show badge if a cross EVENT occurs within the visible timeframe
-  const goldenCrossInfo = useMemo<{ active: false } | { active: true; date: string; dateFormatted: string; ma100: number; ma200: number }>(() => {
-    const candles = data?.candles;
-    if (!candles || candles.closes.length < 200) return { active: false };
-    const closes = candles.closes;
-    const dates = candles.dates;
-    const n = closes.length;
-
-    const now = new Date();
-    let cutoff: Date;
-    switch (chartPeriod) {
-      case '1D': case '1W': return { active: false };
-      case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
-      case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
-      case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
-      case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
-      case 'MAX': cutoff = new Date(1970, 0, 1); break;
-      default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
-    }
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-
-    let windowStart = 0;
-    for (let i = 0; i < n; i++) {
-      if (dates[i] >= cutoffStr) { windowStart = i; break; }
-    }
-    const scanStart = Math.max(windowStart, 200);
-
-    let lastCrossDate: string | null = null;
-    let lastMa100 = 0, lastMa200 = 0;
-    for (let i = scanStart; i < n; i++) {
-      let s100 = 0, s100prev = 0, s200 = 0, s200prev = 0;
-      for (let j = i - 100; j < i; j++) s100 += closes[j];
-      for (let j = i - 101; j < i - 1; j++) s100prev += closes[j];
-      for (let j = i - 200; j < i; j++) s200 += closes[j];
-      for (let j = i - 201; j < i - 1; j++) s200prev += closes[j];
-      const ma100 = s100 / 100;
-      const ma100prev = s100prev / 100;
-      const ma200 = s200 / 200;
-      const ma200prev = s200prev / 200;
-
-      if ((ma100prev - ma200prev) <= 0 && (ma100 - ma200) > 0 && dates[i] >= cutoffStr) {
-        lastCrossDate = dates[i];
-        lastMa100 = ma100;
-        lastMa200 = ma200;
-      }
-    }
-
-    if (lastCrossDate) {
-      const d = new Date(lastCrossDate + 'T00:00:00');
-      const dateFormatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return { active: true, date: lastCrossDate, dateFormatted, ma100: lastMa100, ma200: lastMa200 };
-    }
-    return { active: false };
-  }, [data?.candles, chartPeriod]);
 
   // Full skeleton only when we don't even have the quick quote yet
   if (!quickLoaded) {
@@ -700,7 +410,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {/* Intelligence feed toggle — desktop only */}
             <button
               onClick={toggleIntelFeed}
-              onDoubleClick={() => { setShowIntelFeed(false); localStorage.setItem('stockIntelFeed', 'false'); }}
+              onDoubleClick={() => setShowIntelFeed(false)}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
                 showIntelFeed && !intelCollapsed
                   ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
@@ -739,7 +449,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>
         <div className={`flex items-center gap-2 mt-1 ${changeColor}`}>
           <span className="text-lg font-semibold tabular-nums">
-            {activeChange >= 0 ? '+' : ''}{formatCurrency(activeChange).replace('$', '').replace('-$', '-$')}
+            {formatDelta(activeChange)}
           </span>
           <span className="text-sm tabular-nums">
             ({formatPercent(activeChangePct)})
@@ -753,7 +463,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             isHovering ? 'opacity-0' : (quote.extendedChange! >= 0 ? 'text-rh-green' : 'text-rh-red')
           }`}>
             <span className="text-xs font-medium tabular-nums">
-              {quote.extendedChange! >= 0 ? '+' : ''}{formatCurrency(quote.extendedChange!).replace('$', '').replace('-$', '-$')}
+              {formatDelta(quote.extendedChange!)}
             </span>
             <span className="text-xs tabular-nums">
               ({formatPercent(quote.extendedChangePercent!)})
@@ -995,19 +705,24 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.ipoDate}</div>
               </div>
             )}
-            {profile?.weburl && (
-              <div className="col-span-2 md:col-span-1">
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Website</div>
-                <a
-                  href={profile.weburl.startsWith('http') ? profile.weburl : `https://${profile.weburl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-rh-green hover:underline font-medium truncate block"
-                >
-                  {profile.weburl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                </a>
-              </div>
-            )}
+            {profile?.weburl && (() => {
+              const raw = profile.weburl;
+              const href = raw.startsWith('http') ? raw : `https://${raw}`;
+              try { const u = new URL(href); if (u.protocol !== 'https:' && u.protocol !== 'http:') return null; } catch { return null; }
+              return (
+                <div className="col-span-2 md:col-span-1">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Website</div>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rh-green hover:underline font-medium truncate block"
+                  >
+                    {raw.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                  </a>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

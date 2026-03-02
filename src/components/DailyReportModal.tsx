@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { getDailyReport, regenerateDailyReport, getFastQuote } from '../api';
 import { DailyReportResponse } from '../types';
+import { timeAgo } from '../utils/format';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface DailyReportModalProps {
   onClose: () => void;
@@ -41,15 +43,6 @@ const TICKER_BLACKLIST = new Set([
   'SK', 'AI', 'EV', 'IV', 'PE', 'PB', 'PS',
 ]);
 
-function getTimeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -123,9 +116,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [data, setData] = useState<DailyReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [dontShowAgain, setDontShowAgain] = useState(
-    () => localStorage.getItem('dailyReportDisabled') === 'true'
-  );
+  const [dontShowAgain, setDontShowAgain] = useLocalStorage('dailyReportDisabled', false);
   const [liveQuotes, setLiveQuotes] = useState<LiveQuotes>({});
   const [regenerating, setRegenerating] = useState(false);
   const quotesFetchedRef = useRef(false);
@@ -191,7 +182,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
           .then(q => {
             setLiveQuotes(prev => ({ ...prev, [ticker]: { changePercent: q.changePercent } }));
           })
-          .catch(() => {});
+          .catch(e => console.error('Fast quote fetch failed:', e));
       });
     };
 
@@ -234,10 +225,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               <input
                 type="checkbox"
                 checked={dontShowAgain}
-                onChange={(e) => {
-                  setDontShowAgain(e.target.checked);
-                  localStorage.setItem('dailyReportDisabled', e.target.checked ? 'true' : 'false');
-                }}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
                 className="w-3 h-3 accent-rh-green"
               />
               <span className="text-[11px] text-white/30">Don't show on startup</span>
@@ -406,7 +394,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                   Continue to Portfolio
                 </button>
                 <p className="text-[11px] text-white/20 mt-3">
-                  Generated {getTimeAgo(new Date(data.generatedAt))}
+                  Generated {timeAgo(new Date(data.generatedAt))}
                 </p>
               </div>
             </>

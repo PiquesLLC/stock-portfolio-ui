@@ -98,6 +98,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
   };
 
   const handleViewReport = useCallback(async (jobId: string) => {
+    setReportData(null);
     setSelectedJobId(jobId);
     setLoadingReport(true);
     try {
@@ -177,7 +178,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
       {/* ── New Research Form ── */}
       <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/[0.06]">
         {/* Research type pills */}
-        <div className="flex gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {RESEARCH_TYPES.map(rt => (
             <button
               key={rt.id}
@@ -232,7 +233,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
             maxLength={2000}
           />
           <div className="flex justify-end mt-1">
-            <span className={`text-[10px] ${prompt.length > 1800 ? 'text-amber-400' : 'text-rh-light-muted dark:text-white/30'}`}>
+            <span className={`text-[10px] ${prompt.length > 1800 ? 'text-amber-600 dark:text-amber-400' : 'text-rh-light-muted dark:text-white/30'}`}>
               {prompt.length}/2000
             </span>
           </div>
@@ -260,7 +261,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
 
       {/* ── Error State ── */}
       {error && (
-        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-xs text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
@@ -412,7 +413,7 @@ function JobCard({
           )}
           {isFailed && (
             <span className="flex h-5 w-5 items-center justify-center">
-              <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </span>
@@ -481,7 +482,7 @@ function JobCard({
           {isActive && (
             <button
               onClick={onCancel}
-              className="px-2.5 py-1 rounded-md text-[11px] font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+              className="px-2.5 py-1 rounded-md text-[11px] font-medium text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-colors"
             >
               Cancel
             </button>
@@ -497,7 +498,7 @@ function JobCard({
           {isFailed && (
             <button
               onClick={onRetry}
-              className="px-2.5 py-1 rounded-md text-[11px] font-medium text-amber-400 hover:bg-amber-500/10 transition-colors"
+              className="px-2.5 py-1 rounded-md text-[11px] font-medium text-amber-500 dark:text-amber-400 hover:bg-amber-500/10 transition-colors"
             >
               Retry
             </button>

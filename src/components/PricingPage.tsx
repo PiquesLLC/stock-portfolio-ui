@@ -20,7 +20,7 @@ export function PricingPage() {
     fetch(`${API_BASE_URL}/billing/prices`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setPriceIds(data); })
-      .catch(() => {});
+      .catch(e => console.error('Billing prices fetch failed:', e));
   }, []);
 
   // Track scroll position to update dot indicators

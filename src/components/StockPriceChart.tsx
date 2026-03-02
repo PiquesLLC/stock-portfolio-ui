@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback, useRef, useEffect, useLayoutEffect } fr
 import { ChartPeriod, StockCandles, ParsedQuarterlyEarning, DividendEvent, DividendCredit, ActivityEvent, AnalystEvent } from '../types';
 import { AIEvent } from '../api';
 import { IntradayCandle } from '../api';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
   snapToCleanBoundary,
   buildPoints,
@@ -73,48 +74,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     } catch { /* ignore */ }
     return new Set();
   });
-  const [signalsEnabled, setSignalsEnabled] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('stockChartSignals');
-      if (saved !== null) return JSON.parse(saved);
-    } catch { /* ignore */ }
-    return true;
-  });
-  const toggleSignals = useCallback(() => {
-    setSignalsEnabled(prev => {
-      const next = !prev;
-      localStorage.setItem('stockChartSignals', JSON.stringify(next));
-      return next;
-    });
-  }, []);
-  const [eventsEnabled, setEventsEnabled] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('stockChartEvents');
-      if (saved !== null) return JSON.parse(saved);
-    } catch { /* ignore */ }
-    return true;
-  });
-  const toggleEvents = useCallback(() => {
-    setEventsEnabled(prev => {
-      const next = !prev;
-      localStorage.setItem('stockChartEvents', JSON.stringify(next));
-      return next;
-    });
-  }, []);
-  const [volumeEnabled, setVolumeEnabled] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('stockChartVolume');
-      if (saved !== null) return JSON.parse(saved);
-    } catch { /* ignore */ }
-    return false;
-  });
-  const toggleVolume = useCallback(() => {
-    setVolumeEnabled(prev => {
-      const next = !prev;
-      localStorage.setItem('stockChartVolume', JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const [signalsEnabled, setSignalsEnabled] = useLocalStorage('stockChartSignals', true);
+  const toggleSignals = useCallback(() => setSignalsEnabled(prev => !prev), [setSignalsEnabled]);
+  const [eventsEnabled, setEventsEnabled] = useLocalStorage('stockChartEvents', true);
+  const toggleEvents = useCallback(() => setEventsEnabled(prev => !prev), [setEventsEnabled]);
+  const [volumeEnabled, setVolumeEnabled] = useLocalStorage('stockChartVolume', false);
+  const toggleVolume = useCallback(() => setVolumeEnabled(prev => !prev), [setVolumeEnabled]);
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
@@ -2512,7 +2477,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {/* Vertical dashed line A */}
           {mAx !== null && (
             <line x1={mAx} y1={PAD_TOP} x2={mAx} y2={CHART_H - PAD_BOTTOM}
-              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
+              className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
           )}
@@ -2520,7 +2485,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {/* Vertical dashed line B */}
           {mBx !== null && (
             <line x1={mBx} y1={PAD_TOP} x2={mBx} y2={CHART_H - PAD_BOTTOM}
-              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
+              className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
           )}
@@ -2533,7 +2498,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   <animate attributeName="r" values="4;7;4" dur="1.5s" repeatCount="indefinite" />
                 )}
               </circle>
-              <circle cx={mAx} cy={mAy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+              <circle cx={mAx} cy={mAy} r="3.5" fill={measureColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
             </>
           )}
 
@@ -2541,14 +2506,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {mBx !== null && mBy !== null && (
             <>
               <circle cx={mBx} cy={mBy} r="5" fill={measureColor} opacity="0.25" />
-              <circle cx={mBx} cy={mBy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+              <circle cx={mBx} cy={mBy} r="3.5" fill={measureColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
             </>
           )}
 
           {/* Vertical dashed line C */}
           {mCx !== null && (
             <line x1={mCx} y1={PAD_TOP} x2={mCx} y2={CHART_H - PAD_BOTTOM}
-              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
+              className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
           )}
@@ -2557,7 +2522,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {mCx !== null && mCy !== null && (
             <>
               <circle cx={mCx} cy={mCy} r="5" fill={measureColor} opacity="0.25" />
-              <circle cx={mCx} cy={mCy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+              <circle cx={mCx} cy={mCy} r="3.5" fill={measureColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
             </>
           )}
 

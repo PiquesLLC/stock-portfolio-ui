@@ -22,12 +22,12 @@ type SortKey = 'rank' | 'user' | 'twrPct' | 'returnDollar' | 'assets';
 type SortDir = 'asc' | 'desc';
 
 function formatCurrency(value: number | null): string {
-  if (value === null) return '--';
+  if (value == null) return '--';
   return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function formatPercent(value: number | null): string {
-  if (value === null) return '--';
+  if (value == null) return '--';
   const sign = value >= 0 ? '+' : '';
   return `${sign}${value.toFixed(2)}%`;
 }
@@ -97,7 +97,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
     fetchData();
   }, [fetchData]);
 
-  // Polling with session-aware interval
+  // Polling with session-aware interval + refetch on tab refocus
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
@@ -105,8 +105,12 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
     const pollMs = isMarketActive ? 12000 : 60000;
 
     intervalRef.current = setInterval(fetchData, pollMs);
+
+    const onVisible = () => { if (!document.hidden) fetchData(); };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchData, session]);
 
@@ -132,8 +136,8 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
       } else {
         const aVal = getNumericValue(a, sortKey);
         const bVal = getNumericValue(b, sortKey);
-        const aNull = aVal === null || isNaN(aVal);
-        const bNull = bVal === null || isNaN(bVal);
+        const aNull = aVal == null || isNaN(aVal);
+        const bNull = bVal == null || isNaN(bVal);
 
         if (aNull && bNull) comparison = 0;
         else if (aNull) return 1;
@@ -276,7 +280,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
             </thead>
             <tbody>
               {sortedEntries.map((entry, index) => {
-                const twrColor = entry.twrPct === null
+                const twrColor = entry.twrPct == null
                   ? 'text-rh-light-muted dark:text-rh-muted'
                   : entry.twrPct >= 0 ? 'text-rh-green' : 'text-rh-red';
                 return (
@@ -310,7 +314,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                       {formatPercent(entry.twrPct)}
                     </td>
                     <td className={`px-2 sm:px-4 py-3 text-sm text-right hidden sm:table-cell ${twrColor}`}>
-                      {entry.returnDollar !== null ? (
+                      {entry.returnDollar != null ? (
                         <>
                           {entry.returnDollar >= 0 ? '+' : ''}
                           {formatCurrency(entry.returnDollar)}

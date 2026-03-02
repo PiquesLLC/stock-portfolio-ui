@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPortfolioBriefing, explainBriefingSection, PortfolioBriefingResponse, BriefingExplainResponse } from '../api';
+import { timeAgo } from '../utils/format';
 
 function getSentimentEmoji(_verdict?: string, sections?: PortfolioBriefingResponse['sections']): string {
   if (!sections || sections.length === 0) return '📊';
@@ -146,7 +147,7 @@ export default function PortfolioBriefing() {
     );
   }
 
-  const timeAgo = briefing.generatedAt ? getTimeAgo(new Date(briefing.generatedAt)) : '';
+  const generatedAgo = briefing.generatedAt ? timeAgo(new Date(briefing.generatedAt)) : '';
 
   return (
     <div className="space-y-4">
@@ -285,9 +286,9 @@ export default function PortfolioBriefing() {
         <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
           Context, not advice.
         </span>
-        {timeAgo && (
+        {generatedAgo && (
           <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
-            {timeAgo}
+            {generatedAgo}
           </span>
         )}
       </div>
@@ -295,12 +296,3 @@ export default function PortfolioBriefing() {
   );
 }
 
-function getTimeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}

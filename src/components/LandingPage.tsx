@@ -5,30 +5,11 @@ import { checkHasPassword, forgotPassword, resetPassword, joinWaitlist } from '.
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { PLANS } from '../data/plans';
+import { isValidEmail, validatePassword } from '../utils/validation';
 const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = !!import.meta.env.VITE_APPLE_CLIENT_ID;
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
-const SHOW_ROADMAP = false;
-
-const ROADMAP = [
-  {
-    quarter: 'Q1 2026', theme: 'Foundation', status: 'SHIPPED' as const,
-    items: ['Portfolio tracking & live charts', 'AI Intelligence & daily brief', 'Social activity feed & leaderboard', 'Market heatmap & stock screener'],
-  },
-  {
-    quarter: 'Q2 2026', theme: 'Social & Intelligence', status: 'IN PROGRESS' as const,
-    items: ['Creator marketplace & finfluencer subscriptions', 'NALA AI Deep Research', 'Automatic brokerage sync (Plaid)', 'Referral program with rewards'],
-  },
-  {
-    quarter: 'Q3 2026', theme: 'Scale & Polish', status: 'PLANNED' as const,
-    items: ['Mobile app (iOS & Android)', 'Options flow tracking', 'Advanced analytics (Sharpe, correlation, drawdown)', 'Dark pool & institutional flow data'],
-  },
-  {
-    quarter: 'Q4 2026', theme: 'Platform', status: 'PLANNED' as const,
-    items: ['Creator monetization payouts', 'Social portfolio sharing & embeds', 'Crypto portfolio tracking', 'API access for developers'],
-  },
-];
 
 const EyeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>);
 const EyeOffIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>);
@@ -133,25 +114,26 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
-  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } }, [authOpen, authMode]);
+  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
+  useEffect(() => { if (resetCooldown <= 0) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldown > 0]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setError(''); setIsLoading(true);
     try {
       if (authMode === 'waitlist') {
-        if (!waitlistEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(waitlistEmail)) { setError('Please enter a valid email address'); return; }
+        if (!waitlistEmail.trim() || !isValidEmail(waitlistEmail)) { setError('Please enter a valid email address'); return; }
         await joinWaitlist(waitlistEmail);
         setWaitlistSuccess(true);
         return;
       } else if (authMode === 'forgot-password') {
-        if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) { setError('Please enter a valid email address'); return; }
+        if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
         await forgotPassword(resetEmail);
         setAuthMode('reset-password'); setError('');
         return;
       } else if (authMode === 'reset-password') {
         if (resetCode.length !== 6) { setError('Please enter the 6-digit reset code'); return; }
-        if (newPassword.length < 8) { setError('Password must be at least 8 characters'); return; }
-        if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) { setError('Password must include uppercase, lowercase, and a number'); return; }
+        const pwErr = validatePassword(newPassword);
+        if (pwErr) { setError(pwErr); return; }
         if (newPassword !== newPasswordConfirm) { setError('Passwords do not match'); return; }
         await resetPassword(resetEmail, resetCode, newPassword);
         showToast('Password reset! You can now sign in.', 'success');
@@ -159,10 +141,10 @@ export function LandingPage() {
         return;
       } else if (authMode === 'signup') {
         if (!username.trim() || !displayName.trim()) { setError('Username and display name are required'); return; }
-        if (!landingEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(landingEmail)) { setError('Please enter a valid email address'); return; }
+        if (!landingEmail.trim() || !isValidEmail(landingEmail)) { setError('Please enter a valid email address'); return; }
         if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-        if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
-        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) { setError('Password must include uppercase, lowercase, and a number'); return; }
+        const pwErr2 = validatePassword(password);
+        if (pwErr2) { setError(pwErr2); return; }
         if (!acceptedTerms) { setError('You must accept the Privacy Policy and Terms of Service'); return; }
         const result = await signup(username, displayName, password, landingEmail, { acceptedPrivacyPolicy: true, acceptedTerms: true }, referralCode || undefined);
         if (result.emailVerificationRequired) {
@@ -569,76 +551,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ ROADMAP ═══ */}
-      {SHOW_ROADMAP && (
-        <section className="py-20 sm:py-28 px-5 sm:px-8 bg-[#080808]">
-          <div className="max-w-6xl mx-auto">
-            <span className="text-rh-green text-[11px] font-semibold uppercase tracking-[0.2em] mb-4 block text-center">Roadmap</span>
-            <h2 className="text-center text-2xl sm:text-[2.8rem] leading-[1.1] mb-4 text-white/95" style={sf}>What's <em className="italic">next</em></h2>
-            <p className="text-center text-sm text-white/25 mb-14 max-w-lg mx-auto">Our roadmap for 2026 — building the platform investors deserve.</p>
-
-            {/* Desktop: 4-column grid */}
-            <div className="hidden lg:block">
-              <div className="grid grid-cols-4 gap-8 relative">
-                {/* Connecting line */}
-                <div className="absolute top-[22px] left-[12.5%] right-[12.5%] h-px bg-white/[0.08]" />
-                {ROADMAP.map((q) => (
-                  <div key={q.quarter} className="relative">
-                    {/* Green dot */}
-                    <div className="flex items-center justify-center mb-6">
-                      <div className={`w-3 h-3 rounded-full relative z-10 ${
-                        q.status === 'SHIPPED' ? 'bg-rh-green' :
-                        q.status === 'IN PROGRESS' ? 'bg-yellow-500' :
-                        'bg-white/20'
-                      }`} />
-                    </div>
-                    <p className="text-rh-green text-[11px] font-semibold uppercase tracking-[0.15em] mb-1.5">{q.quarter}</p>
-                    <h3 className="text-white/90 text-lg mb-2.5" style={sf}>{q.theme}</h3>
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mb-4 ${
-                      q.status === 'SHIPPED' ? 'bg-rh-green/15 text-rh-green' :
-                      q.status === 'IN PROGRESS' ? 'bg-yellow-500/15 text-yellow-500' :
-                      'border border-white/10 text-white/30'
-                    }`}>{q.status}</span>
-                    <ul className="space-y-2">
-                      {q.items.map(item => (
-                        <li key={item} className="text-[12px] text-white/25 leading-relaxed flex items-start gap-2">
-                          <span className="text-white/10 mt-1.5 block w-1 h-1 rounded-full bg-current flex-shrink-0" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile: Vertical cards */}
-            <div className="lg:hidden space-y-4">
-              {ROADMAP.map(q => (
-                <div key={q.quarter} className="border-l-2 border-rh-green/30 pl-5 py-4 rounded-r-xl bg-white/[0.015]">
-                  <div className="flex items-center gap-3 mb-2">
-                    <p className="text-rh-green text-[11px] font-semibold uppercase tracking-[0.15em]">{q.quarter}</p>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                      q.status === 'SHIPPED' ? 'bg-rh-green/15 text-rh-green' :
-                      q.status === 'IN PROGRESS' ? 'bg-yellow-500/15 text-yellow-500' :
-                      'border border-white/10 text-white/30'
-                    }`}>{q.status}</span>
-                  </div>
-                  <h3 className="text-white/90 text-base mb-3" style={sf}>{q.theme}</h3>
-                  <ul className="space-y-1.5">
-                    {q.items.map(item => (
-                      <li key={item} className="text-[12px] text-white/25 leading-relaxed flex items-start gap-2">
-                        <span className="text-white/10 mt-1.5 block w-1 h-1 rounded-full bg-current flex-shrink-0" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ═══ LOGOS ═══ */}
       <section className="border-y border-white/[0.04] py-8"><div className="max-w-5xl mx-auto px-5 sm:px-8"><div className="flex items-center justify-center gap-10 sm:gap-16 opacity-25">{['Finnhub','Polygon','Alpha Vantage','Plaid','Stripe'].map(n=><span key={n} className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-white whitespace-nowrap">{n}</span>)}</div></div></section>
@@ -719,7 +631,7 @@ export function LandingPage() {
                     <div><label htmlFor="auth-new-pw" className="block text-[12px] font-medium text-white/30 mb-1.5">New Password</label><input id="auth-new-pw" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className={ic} placeholder="Min. 8 chars, upper/lower/number" autoComplete="new-password" required /></div>
                     <div><label htmlFor="auth-new-pw-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><input id="auth-new-pw-confirm" type="password" value={newPasswordConfirm} onChange={e=>setNewPasswordConfirm(e.target.value)} className={ic} placeholder="Re-enter new password" autoComplete="new-password" required /></div>
                     <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Resetting...</span>:'Reset Password'}</button>
-                    <div className="flex items-center justify-between"><button type="button" onClick={async()=>{if(resetCooldown>0)return;try{await forgotPassword(resetEmail);showToast('Code resent','success');setResetCooldown(60);const i=setInterval(()=>setResetCooldown(p=>{if(p<=1){clearInterval(i);return 0;}return p-1;}),1000);}catch(err){setError(err instanceof Error?err.message:'Failed');}}} disabled={resetCooldown>0} className="text-[12px] text-rh-green hover:text-rh-green/80 disabled:text-white/15 transition-colors">{resetCooldown>0?`Resend in ${resetCooldown}s`:'Resend code'}</button><button type="button" onClick={()=>{setAuthMode('login');setError('');setResetEmail('');setResetCode('');setNewPassword('');setNewPasswordConfirm('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
+                    <div className="flex items-center justify-between"><button type="button" onClick={async()=>{if(resetCooldown>0)return;try{await forgotPassword(resetEmail);showToast('Code resent','success');setResetCooldown(60);}catch(err){setError(err instanceof Error?err.message:'Failed');}}} disabled={resetCooldown>0} className="text-[12px] text-rh-green hover:text-rh-green/80 disabled:text-white/15 transition-colors">{resetCooldown>0?`Resend in ${resetCooldown}s`:'Resend code'}</button><button type="button" onClick={()=>{setAuthMode('login');setError('');setResetEmail('');setResetCode('');setNewPassword('');setNewPasswordConfirm('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
                   </>) : (<>
                   <div><label htmlFor="auth-username" className="block text-[12px] font-medium text-white/30 mb-1.5">Username</label><input id="auth-username" type="text" value={username} onChange={e=>setUsername(e.target.value)} onBlur={checkAndSwitchMode} className={ic} placeholder="e.g. nala_investor" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck="false" required /></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-displayName" className="block text-[12px] font-medium text-white/30 mb-1.5">Display Name</label><input id="auth-displayName" type="text" value={displayName} onChange={e=>setDisplayName(e.target.value)} className={ic} placeholder="How others will see you" autoComplete="name" required /></div>}

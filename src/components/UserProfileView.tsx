@@ -305,42 +305,30 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
+    let stale = false;
     setLoading(true);
     setSocialTab(null);
+    setRankPercentile(null);
+    setRankPosition(null);
+    setIntelligence(null);
     getUserProfile(userId, currentUserId)
-      .then(setProfile)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [userId, currentUserId]);
-
-  const handleSocialTab = async (tab: 'followers' | 'following') => {
-    if (socialTab === tab) { setSocialTab(null); return; }
-    setSocialTab(tab);
-    setSocialLoading(true);
-    try {
-      const data = tab === 'followers' ? await getFollowers(userId) : await getFollowingList(userId);
-      setSocialList(data);
-    } catch { setSocialList([]); }
-    finally { setSocialLoading(false); }
-  };
-
-  useEffect(() => {
+      .then(p => { if (!stale) setProfile(p); })
+      .catch(e => console.error('Profile fetch failed:', e))
+      .finally(() => { if (!stale) setLoading(false); });
     getLeaderboard('1M', 'world')
       .then((data) => {
+        if (stale) return;
         const entries = data.entries;
         const idx = entries.findIndex((e: LeaderboardEntry) => e.userId === userId);
         if (idx >= 0 && entries.length > 0) {
-          const percentile = Math.round(((entries.length - idx) / entries.length) * 100);
-          setRankPercentile(percentile);
+          setRankPercentile(Math.round(((entries.length - idx) / entries.length) * 100));
           setRankPosition(idx + 1);
         }
       })
-      .catch(() => {});
-  }, [userId]);
-
-  useEffect(() => {
+      .catch(e => console.error('Leaderboard fetch failed:', e));
     getUserIntelligence(userId, '1m')
       .then((data) => {
+        if (stale) return;
         const topContributor = data.contributors?.[0]
           ? { ticker: data.contributors[0].ticker, pct: data.contributors[0].percentReturn ?? 0, contributionDollar: data.contributors[0].contributionDollar ?? 0 }
           : null;
@@ -351,8 +339,20 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         const topTicker = data.contributors?.[0]?.ticker ?? null;
         setIntelligence({ topContributor, largestDrag, topHoldingWeight: topWeight, topHoldingTicker: topTicker });
       })
-      .catch(() => {});
-  }, [userId]);
+      .catch(e => console.error('Intelligence fetch failed:', e));
+    return () => { stale = true; };
+  }, [userId, currentUserId]);
+
+  const handleSocialTab = async (tab: 'followers' | 'following') => {
+    if (socialTab === tab) { setSocialTab(null); return; }
+    setSocialTab(tab);
+    setSocialLoading(true);
+    try {
+      const data = tab === 'followers' ? await getFollowers(userId) : await getFollowingList(userId);
+      setSocialList(data);
+    } catch (e) { console.error('Social list fetch failed:', e); setSocialList([]); }
+    finally { setSocialLoading(false); }
+  };
 
   // Top holdings preview
   const [topHoldings, setTopHoldings] = useState<{ ticker: string; weight: number; returnPct: number }[]>([]);
@@ -361,8 +361,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
   useEffect(() => {
     if (!profile?.profilePublic) return;
+    let stale = false;
     getUserPortfolio(userId)
       .then((p) => {
+        if (stale) return;
         const sorted = [...p.holdings].sort((a, b) => b.profitLossPercent - a.profitLossPercent).slice(0, 5);
         const total = p.holdingsValue || sorted.reduce((s, h) => s + h.currentValue, 0);
         setTopHoldings(sorted.map(h => ({
@@ -371,22 +373,25 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           returnPct: h.profitLossPercent,
         })));
       })
-      .catch(() => setTopHoldings([]));
+      .catch(e => { console.error('Top holdings fetch failed:', e); if (!stale) setTopHoldings([]); });
+    return () => { stale = true; };
   }, [userId, profile?.profilePublic]);
 
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
 
   useEffect(() => {
     if (!profile?.profilePublic) return;
+    let stale = false;
     getUserChart(userId, '1M')
       .then((data) => {
-        // Compute return from chart data (matches what user sees on portfolio chart)
+        if (stale) return;
         if (data.points.length >= 2 && data.periodStartValue > 0) {
           const lastVal = data.points[data.points.length - 1].value;
           setChartReturnPct(Math.round(((lastVal - data.periodStartValue) / data.periodStartValue) * 10000) / 100);
         }
       })
-      .catch(() => {});
+      .catch(e => console.error('User chart fetch failed:', e));
+    return () => { stale = true; };
   }, [userId, profile?.profilePublic]);
 
   // Sync bio text when profile loads
@@ -413,7 +418,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
   useEffect(() => {
     if (profile?.creator?.status === 'active' && !isOwner) {
-      getCreatorEntitlement(userId).then(setEntitlement).catch(() => setEntitlement(null));
+      let stale = false;
+      getCreatorEntitlement(userId).then(e => { if (!stale) setEntitlement(e); }).catch(err => { console.error('Entitlement fetch failed:', err); if (!stale) setEntitlement(null); });
+      return () => { stale = true; };
     }
   }, [profile?.creator?.status, userId, isOwner]);
 
@@ -663,14 +670,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   onChange={(e) => setBioText(e.target.value.slice(0, 80))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      setEditingBio(false);
-                      updateUserSettings(userId, { bio: bioText }).catch(() => {});
+                      (e.target as HTMLInputElement).blur();
                     }
-                    if (e.key === 'Escape') setEditingBio(false);
+                    if (e.key === 'Escape') { setBioText(profile?.bio ?? ''); setEditingBio(false); }
                   }}
                   onBlur={() => {
                     setEditingBio(false);
-                    updateUserSettings(userId, { bio: bioText }).catch(() => {});
+                    updateUserSettings(userId, { bio: bioText }).catch(e => console.error('Bio save failed:', e));
                   }}
                   placeholder={tagline}
                   className="flex-1 text-xs bg-transparent border-b border-rh-green/30 text-rh-light-text dark:text-rh-text focus:outline-none focus:border-rh-green py-0.5 italic"
@@ -1207,8 +1213,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             <HoldingsVisibilityToggle
               value={profile.holdingsVisibility ?? 'all'}
               onChange={async (val) => {
+                const prev = profile.holdingsVisibility ?? 'all';
                 setProfile((p) => p ? { ...p, holdingsVisibility: val } : p);
-                await updateHoldingsVisibility(userId, val);
+                try { await updateHoldingsVisibility(userId, val); }
+                catch { setProfile((p) => p ? { ...p, holdingsVisibility: prev } : p); }
               }}
             />
           </div>
@@ -1224,8 +1232,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 const [region, show] = e.target.value.split('|');
                 const newRegion = region || null;
                 const newShow = show === '1';
+                const prevRegion = profile.region;
+                const prevShow = profile.showRegion;
                 setProfile((p) => p ? { ...p, region: newRegion, showRegion: newShow } : p);
-                await updateUserRegion(userId, newRegion, newShow);
+                try { await updateUserRegion(userId, newRegion, newShow); }
+                catch { setProfile((p) => p ? { ...p, region: prevRegion, showRegion: prevShow } : p); }
               }}
               className="text-xs text-rh-light-text dark:text-rh-text bg-white dark:bg-rh-dark border border-gray-200/60 dark:border-rh-border rounded-lg px-3 py-1.5 focus:outline-none focus:border-rh-green/50 cursor-pointer hover:border-rh-light-muted dark:hover:border-rh-muted transition-colors"
             >

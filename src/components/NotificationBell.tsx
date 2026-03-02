@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent } from '../types';
-import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAnalystEventRead, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, getUnreadAnomalyCount, markAnomalyRead, markAllAnomaliesRead } from '../api';
+import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, getUnreadAnomalyCount, markAnomalyRead, markAllAnomaliesRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
+import { timeAgo } from '../utils/format';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
@@ -29,16 +30,6 @@ interface UnifiedNotification {
   ticker?: string;
 }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 function groupByDay(notifications: UnifiedNotification[]): { label: string; items: UnifiedNotification[] }[] {
   const now = new Date();
@@ -171,7 +162,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         getUnreadAnomalyCount(),
       ]);
       setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
-    } catch {}
+    } catch (e) { console.error('Unread count fetch failed:', e); }
   }, [userId, notificationsEnabled]);
 
   const fetchEvents = useCallback(async () => {
@@ -248,7 +239,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
       // Compute unread from filtered merged list (avoids counting excluded types like concentration)
       setUnreadCount(merged.filter(n => !n.read).length);
-    } catch {}
+    } catch (e) { console.error('Notifications fetch failed:', e); }
   }, [userId]);
 
   // Poll unread count every 30s (but not while dropdown is open)
@@ -318,7 +309,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       } else if (notification.type === 'price_alert') {
         await markPriceAlertEventRead(notification.id);
       } else if (notification.type === 'analyst') {
-        await markAnalystEventRead(notification.id);
+        await markAllAnalystEventsRead();
       } else if (notification.type === 'milestone') {
         await markMilestoneEventRead(notification.id);
       } else if (notification.type === 'anomaly') {

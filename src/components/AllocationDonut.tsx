@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Holding } from '../types';
+import { useIsDark } from '../hooks/useIsDark';
 
 interface AllocationDonutProps {
   holdings: Holding[];
@@ -311,7 +312,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
     );
   }
 
-  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const isDark = useIsDark();
   const lineColor = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)';
   const labelBoldColor = isDark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.82)';
   const pctColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)';

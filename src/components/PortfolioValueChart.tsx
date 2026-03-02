@@ -14,6 +14,16 @@ import { computeChartGroups } from '../utils/chart-groups';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
+/** Compute the ET date string and UTC→ET offset for a given date using the "noon trick". */
+function getEtOffset(refDate: Date): { etDateStr: string; etOffsetMs: number } {
+  const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
+  const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
+  const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+  }).format(noonUtc).split(':')[0]);
+  return { etDateStr, etOffsetMs: (noonEtH - 12) * 3600000 };
+}
+
 export interface ChartMeasurement {
   startTime: number;
   endTime: number;
@@ -71,6 +81,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const [chartData, setChartData] = useState<PortfolioChartData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PortfolioChartPeriod>('1D');
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -80,13 +91,15 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const IDLE_TIMEOUT = 600000; // 10 minutes
   const [rippleKey, setRippleKey] = useState(0);
   const [showRipple, setShowRipple] = useState(false);
-  const [idleDotPos, setIdleDotPos] = useState<{ x: number; y: number } | null>(null);
+  const idleDotGlowRef = useRef<SVGCircleElement | null>(null);
+  const idleDotRef = useRef<SVGCircleElement | null>(null);
+  const idleDotGroupRef = useRef<SVGGElement | null>(null);
   const idlePathRef = useRef<SVGPathElement | null>(null);
   const rippleCooldownRef = useRef(false);
 
   const resetIdleTimer = useCallback(() => {
     setIsIdle(false);
-    setIdleDotPos(null);
+    if (idleDotGroupRef.current) idleDotGroupRef.current.style.display = 'none';
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => setIsIdle(true), IDLE_TIMEOUT);
   }, []);
@@ -130,6 +143,9 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const selectedPeriodRef = useRef(selectedPeriod);
   useEffect(() => { selectedPeriodRef.current = selectedPeriod; }, [selectedPeriod]);
 
+  const fetchFnRef = useRef(fetchFn);
+  useEffect(() => { fetchFnRef.current = fetchFn; }, [fetchFn]);
+
   const fetchChart = useCallback(async (period: PortfolioChartPeriod, silent = false) => {
     // If already fetching, queue this request for after completion
     if (isFetchingRef.current) {
@@ -139,17 +155,19 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     isFetchingRef.current = true;
     if (!silent) setLoading(true);
     try {
-      const fetcher = fetchFn || getPortfolioChart;
+      const fetcher = fetchFnRef.current || getPortfolioChart;
       const data = await fetcher(period);
       // Only update displayed data if this period is still selected.
       // Prevents stale 1D auto-refresh from overwriting 1W/1M data
       // when the user switches periods mid-fetch.
       if (period === selectedPeriodRef.current) {
         setChartData(data);
+        setFetchError(false);
       }
       chartCacheRef.current.set(period, data);
     } catch (e) {
       console.error('Chart fetch error:', e);
+      if (!silent) setFetchError(true);
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
@@ -195,7 +213,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
   // Fetch daily benchmark candles once (for longer periods)
   useEffect(() => {
-    getBenchmarkCloses('SPY').then(setBenchmarkCandles).catch(() => {});
+    getBenchmarkCloses('SPY').then(setBenchmarkCandles).catch(e => console.error('Benchmark candles fetch failed:', e));
   }, []);
 
   // Fetch intraday benchmark candles matching the chart period
@@ -289,12 +307,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
         const h = parseInt(etHourFmt.format(d).split(':')[0]);
         if (h >= 4 && h < 20) { refDate = d; break; }
       }
-      const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
-      const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
-      const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
-      }).format(noonUtc).split(':')[0]);
-      const etOffsetMs = (noonEtH - 12) * 3600000;
+      const { etDateStr, etOffsetMs } = getEtOffset(refDate);
       const preMarketOpenMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs;
       const afterHoursCloseMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;
       const pts = raw.filter(p => p.time >= preMarketOpenMs && p.time <= afterHoursCloseMs);
@@ -504,15 +517,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   if (is1D) {
     // Use the last data point's date to determine which trading day this is
     // (1D data spans ~24h, so the first point may be from the previous ET day)
-    const refDate = new Date(points[points.length - 1].time);
-    const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
-      .format(refDate);
-    const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
-    const noonEtStr = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
-    }).format(noonUtc);
-    const noonEtH = parseInt(noonEtStr.split(':')[0]);
-    const etOffsetMs = (noonEtH - 12) * 3600000;
+    const { etDateStr, etOffsetMs } = getEtOffset(new Date(points[points.length - 1].time));
     dayStartMs = new Date(`${etDateStr}T04:00:00Z`).getTime() - etOffsetMs;
     dayEndMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;
   }
@@ -563,13 +568,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
     if (!hasData || !is1D) return { sessionSplitIdx: null, sessionCloseIdx: null };
 
     // Derive trading day from last data point (works after hours / weekends)
-    const refDate = new Date(points[points.length - 1].time);
-    const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
-    const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
-    const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
-    }).format(noonUtc).split(':')[0]);
-    const etOffsetMs = (noonEtH - 12) * 3600000;
+    const { etDateStr, etOffsetMs } = getEtOffset(new Date(points[points.length - 1].time));
     const openMs = new Date(`${etDateStr}T09:30:00Z`).getTime() - etOffsetMs;
     const closeMs = new Date(`${etDateStr}T16:00:00Z`).getTime() - etOffsetMs;
 
@@ -897,7 +896,16 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       const len = progress * currentLen;
       const pt = currentPath.getPointAtLength(len);
 
-      setIdleDotPos({ x: pt.x, y: pt.y });
+      // Direct DOM mutation — avoids 60 setState calls per second
+      if (idleDotGlowRef.current) {
+        idleDotGlowRef.current.setAttribute('cx', String(pt.x));
+        idleDotGlowRef.current.setAttribute('cy', String(pt.y));
+      }
+      if (idleDotRef.current) {
+        idleDotRef.current.setAttribute('cx', String(pt.x));
+        idleDotRef.current.setAttribute('cy', String(pt.y));
+      }
+      if (idleDotGroupRef.current) idleDotGroupRef.current.style.display = '';
 
       // Collision check against end-of-day dot
       const dx = pt.x - lastXRef.current;
@@ -926,7 +934,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
     }`}>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
-      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ height: '150px' }}>
+      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ minHeight: '150px' }}>
         {/* Hero value display — FOREGROUND: highest visual weight */}
         {!hasMeasurement && (
           <div>
@@ -1139,6 +1147,21 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
       {/* Chart — MIDGROUND: recessed, context only */}
       <div className="relative w-full chart-layer chart-fade-in" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
+        {/* Fetch error state — shown when chart fails to load */}
+        {!loading && fetchError && !hasData && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-gray-300 dark:text-white/20 mb-2">
+              <path d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <p className="text-sm text-gray-400 dark:text-white/30 mb-2">Chart unavailable</p>
+            <button
+              onClick={() => { setFetchError(false); fetchChart(selectedPeriod); }}
+              className="text-xs text-rh-green hover:underline"
+            >
+              Tap to retry
+            </button>
+          </div>
+        )}
         {/* Insufficient data state — shown when API returns insufficientData for non-1D periods */}
         {!loading && chartData?.insufficientData && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
@@ -1508,7 +1531,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           {mAx !== null && (
             <line
               x1={mAx} y1={PAD_TOP} x2={mAx} y2={CHART_H - PAD_BOTTOM}
-              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5"
+              className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5"
             >
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
@@ -1518,7 +1541,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           {mBx !== null && (
             <line
               x1={mBx} y1={PAD_TOP} x2={mBx} y2={CHART_H - PAD_BOTTOM}
-              stroke="white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5"
+              className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5"
             >
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
@@ -1532,7 +1555,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
                   <animate attributeName="r" values="4;7;4" dur="1.5s" repeatCount="indefinite" />
                 )}
               </circle>
-              <circle cx={mAx} cy={mAy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+              <circle cx={mAx} cy={mAy} r="3.5" fill={measureColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
             </>
           )}
 
@@ -1540,7 +1563,7 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
           {mBx !== null && mBy !== null && (
             <>
               <circle cx={mBx} cy={mBy} r="5" fill={measureColor} opacity="0.25" />
-              <circle cx={mBx} cy={mBy} r="3.5" fill={measureColor} stroke="white" strokeWidth="1.5" />
+              <circle cx={mBx} cy={mBy} r="3.5" fill={measureColor} className="stroke-gray-400 dark:stroke-white" strokeWidth="1.5" />
             </>
           )}
 
@@ -1590,12 +1613,12 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
             <path ref={idlePathRef} d={pathD} fill="none" stroke="none" />
           )}
 
-          {/* Idle animation — dot manually positioned along the path */}
-          {isIdle && idleDotPos && (
-            <>
-              <circle cx={idleDotPos.x} cy={idleDotPos.y} r="12" fill="url(#dot-glow)" />
-              <circle cx={idleDotPos.x} cy={idleDotPos.y} r="3.5" fill={lineColor} stroke="#fff" strokeWidth="1.2" />
-            </>
+          {/* Idle animation — dot positioned via direct DOM mutation (avoids 60 re-renders/sec) */}
+          {isIdle && (
+            <g ref={idleDotGroupRef} style={{ display: 'none' }}>
+              <circle ref={idleDotGlowRef} r="12" fill="url(#dot-glow)" />
+              <circle ref={idleDotRef} r="3.5" fill={lineColor} stroke="#fff" strokeWidth="1.2" />
+            </g>
           )}
 
           {/* Water ripple effect when idle dot hits end-of-day dot */}

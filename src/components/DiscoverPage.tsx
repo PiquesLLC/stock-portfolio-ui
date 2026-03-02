@@ -4,6 +4,14 @@ import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '
 import { formatCurrency } from '../utils/format';
 import { getMarketStatus } from '../utils/portfolio-chart';
 import { StockLogo } from './StockLogo';
+import { useIsDark } from '../hooks/useIsDark';
+import { useTreemapLayout } from '../hooks/useTreemapLayout';
+import {
+  useScreenerFilters,
+  CAP_RANGES, PE_RANGES, DIV_RANGES, WEEK_RANGES,
+  getWeek52Pos,
+  type ScreenerSortKey,
+} from '../hooks/useScreenerFilters';
 
 const CreatorDiscoverSection = lazy(() => import('./CreatorDiscoverSection').then(m => ({ default: m.CreatorDiscoverSection })));
 
@@ -195,36 +203,7 @@ function dampenCapWithFloor(
   return dampened.map(d => Math.max(d, floor));
 }
 
-// --- Layout result types ---
-
-interface StockTile {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  stock: HeatmapStock;
-  sectorName: string;
-  subSectorName: string;
-}
-
-interface SubSectorRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  subSector: HeatmapSubSector;
-  sectorName: string;
-  children: StockTile[];
-}
-
-interface SectorRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  sector: HeatmapSector;
-  subSectors: SubSectorRect[];
-}
+// Layout result types are now in useTreemapLayout hook
 
 // --- Treemap component ---
 
@@ -276,7 +255,7 @@ function Treemap({
   const [hoveredSectorLabel, setHoveredSectorLabel] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [tappedStock, setTappedStock] = useState<{ stock: HeatmapStock; sectorName: string } | null>(null);
-  const isDark = document.documentElement.classList.contains('dark');
+  const isDark = useIsDark();
 
   // Themes drilldown: click subtheme → show individual tickers
   const [drilldownTheme, setDrilldownTheme] = useState<{ theme: string; subtheme: string } | null>(null);
@@ -326,153 +305,19 @@ function Treemap({
 
   const SECTOR_GAP = isMobile ? SECTOR_GAP_MOBILE : SECTOR_GAP_DESKTOP;
 
-  // 3-level layout: Sector → Sub-sector → Stocks
-  const sectorRects = useMemo((): SectorRect[] => {
-    if (dims.width === 0) return [];
-
-    // Layout sectors with floor-clamped dampening
-    const filteredSectors = sectors.filter(s => s.totalMarketCapB > 0);
-    const sectorCaps = filteredSectors.map(s => s.totalMarketCapB);
-    const dampenedSectorCaps = dampenCapWithFloor(sectorCaps, dampenExponent, minFloorRatio);
-    const sectorItems: LayoutItem<HeatmapSector>[] = filteredSectors
-      .map((s, i) => ({ value: dampenedSectorCaps[i], data: s }));
-
-    if (sectorItems.length === 0) return [];
-    const sectorLayout = squarifyLayout(sectorItems, 0, 0, dims.width, dims.height);
-
-    return sectorLayout.map((sl) => {
-      const sector = sl.data;
-      const pad = SECTOR_GAP;
-      const innerX = sl.x + pad;
-      const innerY = sl.y + SECTOR_LABEL_H + pad;
-      const innerW = sl.w - pad * 2;
-      const innerH = sl.h - SECTOR_LABEL_H - pad * 2;
-
-      if (innerW < 4 || innerH < 4) {
-        return { x: sl.x, y: sl.y, w: sl.w, h: sl.h, sector, subSectors: [] };
-      }
-
-      // Only show sub-sector nesting if sector is big enough and has >1 sub-sector
-      const hasMultipleSubs = sector.subSectors.length > 1;
-      const sectorAreaPx = innerW * innerH;
-      const showSubLabels = hasMultipleSubs && sectorAreaPx > 2000;
-
-      if (!showSubLabels || isThemesDefault) {
-        // Flat layout — all stocks directly (for themes: subtheme tiles, no individual stocks)
-        const filteredStocks = sector.stocks.filter(s => s.marketCapB > 0);
-        const stockCaps = filteredStocks.map(s => s.marketCapB);
-        const dampenedStockCaps = dampenCapWithFloor(stockCaps, dampenExponent, minFloorRatio);
-        const stockItems: LayoutItem<HeatmapStock>[] = filteredStocks
-          .map((s, i) => ({ value: dampenedStockCaps[i], data: s }));
-
-        const stockLayout = squarifyLayout(stockItems, innerX, innerY, innerW, innerH);
-        const singleSub: SubSectorRect = {
-          x: innerX, y: innerY, w: innerW, h: innerH,
-          subSector: sector.subSectors[0] || { name: sector.name, stocks: sector.stocks, totalMarketCapB: sector.totalMarketCapB, avgChangePercent: sector.avgChangePercent },
-          sectorName: sector.name,
-          children: stockLayout.map(r => ({
-            x: r.x, y: r.y, w: r.w, h: r.h,
-            stock: r.data,
-            sectorName: sector.name,
-            subSectorName: r.data.subSector,
-          })),
-        };
-        return { x: sl.x, y: sl.y, w: sl.w, h: sl.h, sector, subSectors: [singleSub] };
-      }
-
-      // Layout sub-sectors within sector
-      const filteredSubs = sector.subSectors.filter(s => s.totalMarketCapB > 0);
-      const subCaps = filteredSubs.map(s => s.totalMarketCapB);
-      const dampenedSubCaps = dampenCapWithFloor(subCaps, dampenExponent, minFloorRatio);
-      const subItems: LayoutItem<HeatmapSubSector>[] = filteredSubs
-        .map((s, i) => ({ value: dampenedSubCaps[i], data: s }));
-
-      const subLayout = squarifyLayout(subItems, innerX, innerY, innerW, innerH);
-
-      const subRects: SubSectorRect[] = subLayout.map((subL) => {
-        const sub = subL.data;
-        const subLabelH = subL.h > 16 && subL.w > 20 ? SUB_SECTOR_LABEL_H : 0;
-        const stockX = subL.x + 1;
-        const stockY = subL.y + subLabelH + 1;
-        const stockW = subL.w - 2;
-        const stockH = subL.h - subLabelH - 2;
-
-        if (stockW < 2 || stockH < 2) {
-          return { x: subL.x, y: subL.y, w: subL.w, h: subL.h, subSector: sub, sectorName: sector.name, children: [] };
-        }
-
-        const filteredSubStocks = sub.stocks.filter(s => s.marketCapB > 0);
-        const subStockCaps = filteredSubStocks.map(s => s.marketCapB);
-        const dampenedSubStockCaps = dampenCapWithFloor(subStockCaps, dampenExponent, minFloorRatio);
-        const stockItems: LayoutItem<HeatmapStock>[] = filteredSubStocks
-          .map((s, i) => ({ value: dampenedSubStockCaps[i], data: s }));
-
-        const stockLayout = squarifyLayout(stockItems, stockX, stockY, stockW, stockH);
-
-        return {
-          x: subL.x, y: subL.y, w: subL.w, h: subL.h,
-          subSector: sub,
-          sectorName: sector.name,
-          children: stockLayout.map(r => ({
-            x: r.x, y: r.y, w: r.w, h: r.h,
-            stock: r.data,
-            sectorName: sector.name,
-            subSectorName: sub.name,
-          })),
-        };
-      });
-
-      return { x: sl.x, y: sl.y, w: sl.w, h: sl.h, sector, subSectors: subRects };
-    });
-  }, [sectors, dims, dampenExponent, minFloorRatio, SECTOR_GAP, isThemesDefault]);
-
-  // Drilldown layout: when user clicks a subtheme, show its individual tickers
-  const drilldownRects = useMemo((): SectorRect[] | null => {
-    if (!isThemesDrilldown || dims.width === 0 || !drilldownTheme) return null;
-    const theme = sectors.find(s => s.name === drilldownTheme.theme);
-    const sub = theme?.subSectors.find(s => s.name === drilldownTheme.subtheme);
-    if (!theme || !sub) return null;
-
-    const pad = SECTOR_GAP;
-    const innerX = pad;
-    const innerY = SECTOR_LABEL_H + pad;
-    const innerW = dims.width - pad * 2;
-    const innerH = dims.height - SECTOR_LABEL_H - pad * 2;
-
-    const filteredStocks = sub.stocks.filter(s => s.marketCapB > 0);
-    const stockCaps = filteredStocks.map(s => s.marketCapB);
-    const dampenedCaps = dampenCapWithFloor(stockCaps, dampenExponent, minFloorRatio);
-    const items: LayoutItem<HeatmapStock>[] = filteredStocks
-      .map((s, i) => ({ value: dampenedCaps[i], data: s }));
-
-    const layout = squarifyLayout(items, innerX, innerY, innerW, innerH);
-
-    const singleSub: SubSectorRect = {
-      x: innerX, y: innerY, w: innerW, h: innerH,
-      subSector: sub,
-      sectorName: drilldownTheme.theme,
-      children: layout.map(r => ({
-        x: r.x, y: r.y, w: r.w, h: r.h,
-        stock: r.data,
-        sectorName: drilldownTheme.theme,
-        subSectorName: drilldownTheme.subtheme,
-      })),
-    };
-
-    return [{
-      x: 0, y: 0, w: dims.width, h: dims.height,
-      sector: {
-        name: drilldownTheme.theme,
-        stocks: sub.stocks,
-        subSectors: [sub],
-        totalMarketCapB: sub.totalMarketCapB,
-        avgChangePercent: sub.avgChangePercent,
-        gainers: sub.stocks.filter(s => s.changePercent > 0).length,
-        losers: sub.stocks.filter(s => s.changePercent < 0).length,
-      },
-      subSectors: [singleSub],
-    }];
-  }, [sectors, dims, dampenExponent, minFloorRatio, SECTOR_GAP, isThemesDrilldown, drilldownTheme]);
+  // Treemap layout computation (extracted to hook)
+  const { sectorRects, drilldownRects } = useTreemapLayout({
+    sectors,
+    dims,
+    dampenExponent,
+    minFloorRatio,
+    sectorGap: SECTOR_GAP,
+    isThemesDefault,
+    isThemesDrilldown,
+    drilldownTheme,
+    squarifyLayout,
+    dampenCapWithFloor,
+  });
 
   // Use drilldown rects when drilling into a subtheme, otherwise normal layout
   const displayRects = drilldownRects || sectorRects;
@@ -869,7 +714,7 @@ function Treemap({
           }}
         >
           {/* Header: SECTOR - SUBSECTOR */}
-          <div className="px-3 py-2 border-b border-white/10 dark:border-white/5">
+          <div className="px-3 py-2 border-b border-gray-200/60 dark:border-white/5">
             <div className="font-bold text-[10px] tracking-wide uppercase text-rh-light-muted dark:text-rh-muted">
               {popupSubSector.sector.name === popupSubSector.subSector.name
                 ? popupSubSector.sector.name
@@ -910,7 +755,7 @@ function Treemap({
 
           {/* Top stocks in this sub-sector (no scroll) */}
           <div>
-            {popupSubSector.subSector.stocks
+            {[...popupSubSector.subSector.stocks]
               .sort((a, b) => b.marketCapB - a.marketCapB)
               .slice(0, 6)
               .map((s) => {
@@ -961,7 +806,7 @@ function Treemap({
 
 function ColorLegend() {
   const steps = [-3, -2, -1, 0, 1, 2, 3];
-  const isDark = document.documentElement.classList.contains('dark');
+  const isDark = useIsDark();
   return (
     <div className="flex items-center justify-end gap-px mt-2">
       {steps.map((pct) => (
@@ -1084,7 +929,7 @@ function SectorBars({ sectors, highlightedSector, onSectorClick, isThemes }: { s
           return (
             <div
               key={s.name}
-              className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${highlightedSector === s.name ? 'bg-white/10' : 'hover:bg-white/5'}`}
+              className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${highlightedSector === s.name ? 'bg-gray-100 dark:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-white/5'}`}
               onClick={() => onSectorClick?.(s.name)}
             >
               <span className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium transition-colors ${highlightedSector === s.name ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>{s.name}</span>
@@ -1193,7 +1038,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
   const [heroSparkline, setHeroSparkline] = useState<string>('');
   const [heroLoading, setHeroLoading] = useState(false);
   const sparklineCacheRef = useRef<Map<string, string>>(new Map());
-  const isDark = document.documentElement.classList.contains('dark');
+  const isDark = useIsDark();
 
   // Most Followed data
   const [mostFollowedMap, setMostFollowedMap] = useState<Map<string, number>>(new Map());
@@ -1210,7 +1055,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         setMostFollowedMap(map);
         mostFollowedFetched.current = true;
       })
-      .catch(() => {})
+      .catch(e => console.error('Most followed fetch failed:', e))
       .finally(() => setMostFollowedLoading(false));
   }, [filter]);
 
@@ -1235,7 +1080,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
       }).join(' ');
       sparklineCacheRef.current.set(heroTicker, path);
       if (!cancelled) setHeroSparkline(path);
-    }).catch(() => {}).finally(() => { if (!cancelled) setHeroLoading(false); });
+    }).catch(e => console.error('Sparkline fetch failed:', e)).finally(() => { if (!cancelled) setHeroLoading(false); });
     return () => { cancelled = true; };
   }, [heroTicker]);
 
@@ -1619,149 +1464,18 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
 }
 
 /* ─── Stock Screener ─── */
-
-type ScreenerSortKey = 'ticker' | 'name' | 'price' | 'changePercent' | 'marketCapB' | 'pe' | 'dividendYield' | 'beta' | 'week52Pos' | 'sector';
-type CapRange = 'all' | 'small' | 'mid' | 'large' | 'mega';
-type PeRange = 'all' | 'low' | 'mid' | 'high' | 'very_high';
-type DivRange = 'all' | 'gt1' | 'gt2' | 'gt4';
-type WeekRange = 'all' | 'near_low' | 'mid' | 'near_high';
-
-const CAP_RANGES: { id: CapRange; label: string }[] = [
-  { id: 'all', label: 'All Caps' },
-  { id: 'small', label: '< $2B' },
-  { id: 'mid', label: '$2-10B' },
-  { id: 'large', label: '$10-200B' },
-  { id: 'mega', label: '> $200B' },
-];
-const PE_RANGES: { id: PeRange; label: string }[] = [
-  { id: 'all', label: 'Any P/E' },
-  { id: 'low', label: '< 15' },
-  { id: 'mid', label: '15-25' },
-  { id: 'high', label: '25-50' },
-  { id: 'very_high', label: '50+' },
-];
-const DIV_RANGES: { id: DivRange; label: string }[] = [
-  { id: 'all', label: 'Any Div' },
-  { id: 'gt1', label: '> 1%' },
-  { id: 'gt2', label: '> 2%' },
-  { id: 'gt4', label: '> 4%' },
-];
-const WEEK_RANGES: { id: WeekRange; label: string }[] = [
-  { id: 'all', label: 'Any 52W' },
-  { id: 'near_low', label: 'Near Low' },
-  { id: 'mid', label: 'Mid Range' },
-  { id: 'near_high', label: 'Near High' },
-];
-
-function getWeek52Pos(stock: HeatmapStock): number | null {
-  if (stock.week52High == null || stock.week52Low == null || stock.week52High <= stock.week52Low) return null;
-  return (stock.price - stock.week52Low) / (stock.week52High - stock.week52Low);
-}
+// Types, constants, and filter logic are now in useScreenerFilters hook
 
 function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
-  const [sectorFilter, setSectorFilter] = useState<string>('all');
-  const [capFilter, setCapFilter] = useState<CapRange>('all');
-  const [peFilter, setPeFilter] = useState<PeRange>('all');
-  const [divFilter, setDivFilter] = useState<DivRange>('all');
-  const [weekFilter, setWeekFilter] = useState<WeekRange>('all');
-  const [sortKey, setSortKey] = useState<ScreenerSortKey>('marketCapB');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-
-  const sectors = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of stocks) if (s.sector) set.add(s.sector);
-    return Array.from(set).sort();
-  }, [stocks]);
-
-  const filtered = useMemo(() => {
-    let result = stocks.filter(s => s.price > 0);
-
-    if (sectorFilter !== 'all') result = result.filter(s => s.sector === sectorFilter);
-
-    if (capFilter !== 'all') {
-      result = result.filter(s => {
-        const cap = s.marketCapB;
-        switch (capFilter) {
-          case 'small': return cap < 2;
-          case 'mid': return cap >= 2 && cap < 10;
-          case 'large': return cap >= 10 && cap < 200;
-          case 'mega': return cap >= 200;
-          default: return true;
-        }
-      });
-    }
-
-    if (peFilter !== 'all') {
-      result = result.filter(s => {
-        const pe = s.pe;
-        if (pe == null || pe <= 0) return false;
-        switch (peFilter) {
-          case 'low': return pe < 15;
-          case 'mid': return pe >= 15 && pe < 25;
-          case 'high': return pe >= 25 && pe < 50;
-          case 'very_high': return pe >= 50;
-          default: return true;
-        }
-      });
-    }
-
-    if (divFilter !== 'all') {
-      result = result.filter(s => {
-        const dy = s.dividendYield;
-        if (dy == null) return false;
-        const pct = dy * 100;
-        switch (divFilter) {
-          case 'gt1': return pct > 1;
-          case 'gt2': return pct > 2;
-          case 'gt4': return pct > 4;
-          default: return true;
-        }
-      });
-    }
-
-    if (weekFilter !== 'all') {
-      result = result.filter(s => {
-        const pos = getWeek52Pos(s);
-        if (pos == null) return false;
-        switch (weekFilter) {
-          case 'near_low': return pos < 0.2;
-          case 'mid': return pos >= 0.2 && pos <= 0.8;
-          case 'near_high': return pos > 0.8;
-          default: return true;
-        }
-      });
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      let aVal: number, bVal: number;
-      switch (sortKey) {
-        case 'ticker': return sortDir === 'asc' ? a.ticker.localeCompare(b.ticker) : b.ticker.localeCompare(a.ticker);
-        case 'name': return sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
-        case 'price': aVal = a.price; bVal = b.price; break;
-        case 'changePercent': aVal = a.changePercent; bVal = b.changePercent; break;
-        case 'marketCapB': aVal = a.marketCapB; bVal = b.marketCapB; break;
-        case 'pe': aVal = a.pe ?? -1; bVal = b.pe ?? -1; break;
-        case 'dividendYield': aVal = a.dividendYield ?? -1; bVal = b.dividendYield ?? -1; break;
-        case 'beta': aVal = a.beta ?? -1; bVal = b.beta ?? -1; break;
-        case 'week52Pos': aVal = getWeek52Pos(a) ?? -1; bVal = getWeek52Pos(b) ?? -1; break;
-        case 'sector': return sortDir === 'asc' ? (a.sector ?? '').localeCompare(b.sector ?? '') : (b.sector ?? '').localeCompare(a.sector ?? '');
-        default: aVal = 0; bVal = 0;
-      }
-      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-    });
-
-    return result;
-  }, [stocks, sectorFilter, capFilter, peFilter, divFilter, weekFilter, sortKey, sortDir]);
-
-  const handleSort = (key: ScreenerSortKey) => {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortKey(key);
-      setSortDir(key === 'ticker' || key === 'name' || key === 'sector' ? 'asc' : 'desc');
-    }
-  };
+  const {
+    sectorFilter, setSectorFilter,
+    capFilter, setCapFilter,
+    peFilter, setPeFilter,
+    divFilter, setDivFilter,
+    weekFilter, setWeekFilter,
+    sortKey, sortDir, handleSort,
+    sectors, filtered,
+  } = useScreenerFilters(stocks);
 
   const sortIcon = (key: ScreenerSortKey) => {
     if (sortKey !== key) return null;
@@ -2130,14 +1844,14 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
     getMarketHeatmap('1D', 'SP500').then(resp => {
       setAllStocks(resp.sectors.flatMap(s => s.stocks));
       heatmapCache.set(cacheKey('1D', 'SP500'), { data: resp, ts: Date.now() });
-    }).catch(() => {});
+    }).catch(e => console.error('Top 100 heatmap fetch failed:', e));
 
     // Refresh every hour for Top 100
     const interval = setInterval(() => {
       getMarketHeatmap('1D', 'SP500').then(resp => {
         setAllStocks(resp.sectors.flatMap(s => s.stocks));
         heatmapCache.set(cacheKey('1D', 'SP500'), { data: resp, ts: Date.now() });
-      }).catch(() => {});
+      }).catch(e => console.error('Top 100 heatmap refresh failed:', e));
     }, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);

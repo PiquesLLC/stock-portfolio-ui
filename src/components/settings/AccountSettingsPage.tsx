@@ -147,7 +147,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       })
       .finally(() => setLoading(false));
 
-    getNotificationStatus().then(setNotifStatus).catch(() => {});
+    getNotificationStatus().then(setNotifStatus).catch(e => console.error('Notification status fetch failed:', e));
   }, [userId]);
 
   // Save handler

@@ -28,7 +28,7 @@ export function useDeepResearchPoller() {
       const active = resp.jobs.filter(j => ACTIVE_STATUSES.has(j.status));
       if (active.length > 0) {
         const statuses = await Promise.all(
-          active.map(j => getDeepResearchStatus(j.id).catch(() => null))
+          active.map(j => getDeepResearchStatus(j.id).catch(e => { console.error('Deep research status poll failed:', e); return null; }))
         );
         if (!mountedRef.current) return;
         const map = new Map<string, DeepResearchJobStatus>();

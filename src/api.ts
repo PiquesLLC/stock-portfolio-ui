@@ -202,11 +202,43 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+/** Like fetchJson but for FormData uploads — handles 401 refresh + retry */
+async function fetchFormData<T>(url: string, formData: FormData, errorLabel = 'Upload failed'): Promise<T> {
+  const doFetch = () => fetch(url, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: {
+      'Bypass-Tunnel-Reminder': 'true',
+      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+    },
+  });
+
+  let response = await doFetch();
+  if (response.status === 401) {
+    if (authDead) throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
+    const refreshed = await refreshOnce();
+    if (refreshed) {
+      response = await doFetch();
+    } else if (authDead) {
+      if (onAuthExpired && isSameOriginApi()) onAuthExpired();
+      throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
+    } else {
+      throw new ApiError('Server unavailable', 'SERVER_UNAVAILABLE');
+    }
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `${errorLabel} (${response.status})`);
+  }
+  return response.json();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Waitlist API
 // ═══════════════════════════════════════════════════════════════════════════
 
-export async function joinWaitlist(email: string): Promise<{ success: boolean; status: string }> {
+export async function joinWaitlist(email: string): Promise<{ success: boolean }> {
   return fetchJson(`${API_BASE_URL}/waitlist/join`, {
     method: 'POST',
     body: JSON.stringify({ email }),
@@ -695,56 +727,13 @@ export interface CsvParseResult {
 export async function uploadPortfolioCsv(file: File): Promise<CsvParseResult> {
   const formData = new FormData();
   formData.append('file', file);
-
-  const doFetch = () => fetch(`${API_BASE_URL}/portfolio/import/csv`, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: {
-      'Bypass-Tunnel-Reminder': 'true',
-      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
-    },
-  });
-
-  let response = await doFetch();
-  if (response.status === 401) {
-    const refreshed = await refreshOnce();
-    if (refreshed) response = await doFetch();
-  }
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || `Upload failed (${response.status})`);
-  }
-  return response.json();
+  return fetchFormData<CsvParseResult>(`${API_BASE_URL}/portfolio/import/csv`, formData, 'Upload failed');
 }
 
 export async function uploadPortfolioScreenshot(file: File): Promise<CsvParseResult> {
   const formData = new FormData();
   formData.append('file', file);
-
-  const url = `${API_BASE_URL}/portfolio/import/screenshot`;
-
-  const doFetch = () => fetch(url, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: {
-      'Bypass-Tunnel-Reminder': 'true',
-      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
-    },
-  });
-
-  let response = await doFetch();
-  if (response.status === 401) {
-    const refreshed = await refreshOnce();
-    if (refreshed) response = await doFetch();
-  }
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || `Screenshot upload failed (${response.status})`);
-  }
-  const data = await response.json();
-  return data;
+  return fetchFormData<CsvParseResult>(`${API_BASE_URL}/portfolio/import/screenshot`, formData, 'Screenshot upload failed');
 }
 
 // Mapped CSV import (column-mapping wizard)
@@ -795,27 +784,7 @@ export async function submitMappedCsv(
     formData.append('excludedRows', JSON.stringify(excludedRows));
   }
   formData.append('sourceBroker', 'mapped');
-
-  const doFetch = () => fetch(`${API_BASE_URL}/portfolio/import/csv/mapped`, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: {
-      'Bypass-Tunnel-Reminder': 'true',
-      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
-    },
-  });
-
-  let response = await doFetch();
-  if (response.status === 401) {
-    const refreshed = await refreshOnce();
-    if (refreshed) response = await doFetch();
-  }
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || `Mapped CSV upload failed (${response.status})`);
-  }
-  return response.json();
+  return fetchFormData<MappedCsvResult>(`${API_BASE_URL}/portfolio/import/csv/mapped`, formData, 'Mapped CSV upload failed');
 }
 
 export async function confirmPortfolioImport(
@@ -1007,17 +976,15 @@ export async function updateUserSettings(userId: string, settings: UserSettingsU
   });
 }
 
-export async function followUser(targetUserId: string, followerId: string): Promise<void> {
+export async function followUser(targetUserId: string): Promise<void> {
   await fetchJson(`${API_BASE_URL}/users/${targetUserId}/follow`, {
     method: 'POST',
-    body: JSON.stringify({ followerId }),
   });
 }
 
-export async function unfollowUser(targetUserId: string, followerId: string): Promise<void> {
+export async function unfollowUser(targetUserId: string): Promise<void> {
   await fetchJson(`${API_BASE_URL}/users/${targetUserId}/follow`, {
     method: 'DELETE',
-    body: JSON.stringify({ followerId }),
   });
 }
 
@@ -1284,13 +1251,10 @@ export interface BriefingExplainResponse {
 }
 
 export async function explainBriefingSection(title: string, body: string): Promise<BriefingExplainResponse> {
-  const resp = await fetch(`${API_BASE_URL}/insights/briefing/explain`, {
+  return fetchJson<BriefingExplainResponse>(`${API_BASE_URL}/insights/briefing/explain`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, body }),
   });
-  if (!resp.ok) throw new Error(`Failed to explain briefing section`);
-  return resp.json();
 }
 
 // Behavior Insights (Perplexity AI)
@@ -1386,10 +1350,6 @@ export async function getAnalystEvents(limit?: number, ticker?: string): Promise
   if (ticker) qs.set('ticker', ticker);
   const params = qs.toString();
   return fetchJson<AnalystEvent[]>(`${API_BASE_URL}/analyst/events${params ? `?${params}` : ''}`);
-}
-
-export async function markAnalystEventRead(eventId: string): Promise<void> {
-  await fetchJson(`${API_BASE_URL}/analyst/events/${eventId}/read`, { method: 'POST' });
 }
 
 export async function markAllAnalystEventsRead(): Promise<void> {
@@ -1593,13 +1553,18 @@ export async function removeWatchlistHolding(watchlistId: string, ticker: string
 // Performance Report
 export async function getPerformanceReport(period: PerformanceWindow, benchmark: string = 'SPY', theme: 'light' | 'dark' = 'light'): Promise<string> {
   const url = `${API_BASE_URL}/portfolio/report?period=${period}&benchmark=${benchmark}&theme=${theme}`;
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: {
-      'Bypass-Tunnel-Reminder': 'true',
-      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
-    },
-  });
+  const headers: Record<string, string> = {
+    'Bypass-Tunnel-Reminder': 'true',
+    ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+  };
+  const doFetch = () => fetch(url, { credentials: 'include', headers });
+
+  let response = await doFetch();
+  if (response.status === 401 && !authDead) {
+    const refreshed = await refreshOnce();
+    if (refreshed) response = await doFetch();
+    else throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({ error: 'Failed to generate report' }));
     throw new Error(body.error || `HTTP ${response.status}`);
