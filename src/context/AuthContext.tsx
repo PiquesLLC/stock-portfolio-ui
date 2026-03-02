@@ -45,8 +45,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Dev mode: set VITE_DEV_USER_ID in .env.local to skip login
-const DEV_USER = import.meta.env.VITE_DEV_USER_ID ? {
+// Dev mode: set VITE_DEV_USER_ID in .env.local to skip login (dev builds only)
+const DEV_USER = import.meta.env.DEV && import.meta.env.VITE_DEV_USER_ID ? {
   id: import.meta.env.VITE_DEV_USER_ID as string,
   username: (import.meta.env.VITE_DEV_USERNAME as string) || 'DevUser',
   displayName: (import.meta.env.VITE_DEV_DISPLAY_NAME as string) || 'Dev User',
