@@ -80,11 +80,23 @@ export function usePortfolioData({ currentUserId, authLoading }: UsePortfolioDat
     }
   }, [currentUserId, authLoading]);
 
+  // Adaptive polling: 5s during regular hours, 15s during extended/closed
+  // Prevents after-hours oscillation from cache TTL mismatches across providers
+  const sessionRef = useRef(portfolio?.session);
+  sessionRef.current = portfolio?.session;
+
   useEffect(() => {
     if (!currentUserId || authLoading) return;
     fetchData();
-    const interval = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
+    const getInterval = () => {
+      const s = sessionRef.current;
+      return (s === 'PRE' || s === 'POST' || s === 'CLOSED') ? 15_000 : REFRESH_INTERVAL;
+    };
+    // Use dynamic interval via chained setTimeout instead of fixed setInterval
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => { fetchData(); timer = setTimeout(tick, getInterval()); };
+    timer = setTimeout(tick, getInterval());
+    return () => clearTimeout(timer);
   }, [fetchData, currentUserId, authLoading]);
 
   // Fetch provider health status periodically
