@@ -20,7 +20,6 @@ const NAV_MAP: Record<string, { tab: TabType; label: string }> = {
   m: { tab: 'macro', label: 'Macro' },
   l: { tab: 'leaderboard', label: 'Leaderboard' },
   f: { tab: 'feed', label: 'Feed' },
-  w: { tab: 'watch', label: 'Watch' },
 };
 
 const MACRO_REGIONS = [

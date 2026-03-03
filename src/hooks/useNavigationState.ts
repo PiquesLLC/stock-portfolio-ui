@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { TabType } from '../components/Navigation';
 import { Holding } from '../types';
 
-const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch', 'pricing', 'profile']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'pricing', 'profile']);
 
 function setHash(tab: TabType, stock?: string | null, profile?: string | null, lbuser?: string | null, subtab?: string | null) {
   const params = new URLSearchParams();

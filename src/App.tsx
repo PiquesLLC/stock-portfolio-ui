@@ -26,16 +26,12 @@ import { useToast } from './context/ToastContext';
 
 import Starfield from './components/Starfield';
 import { MarketStrip } from './components/MarketStrip';
-import { MiniPlayer } from './components/MiniPlayer';
 import { Term } from './components/Term';
 
 import { formatCurrency, formatPercent } from './utils/format';
 import { getInitialTheme, applyTheme } from './utils/theme';
 import { getLocalTzAbbr } from './utils/market';
-import { CHANNELS } from './utils/channels';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-
-import { useStreamManager } from './hooks/useStreamManager';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { usePortfolioData } from './hooks/usePortfolioData';
 import { useNavigationState } from './hooks/useNavigationState';
@@ -46,7 +42,6 @@ const DeepResearchPage = lazy(() => import('./components/DeepResearchPage'));
 const EconomicIndicators = lazy(() => import('./components/EconomicIndicators').then(m => ({ default: m.EconomicIndicators })));
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const FeedPage = lazy(() => import('./components/FeedPage').then(m => ({ default: m.FeedPage })));
-const WatchPage = lazy(() => import('./components/WatchPage').then(m => ({ default: m.WatchPage })));
 const WatchlistPage = lazy(() => import('./components/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
 const DiscoverPage = lazy(() => import('./components/DiscoverPage').then(m => ({ default: m.DiscoverPage })));
 const UserProfileView = lazy(() => import('./components/UserProfileView').then(m => ({ default: m.UserProfileView })));
@@ -91,7 +86,7 @@ interface NavState {
   subtab: string | null;
 }
 
-const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'watch', 'pricing', 'profile']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'pricing', 'profile']);
 
 // Desktop-only tab list for the consolidated header bar
 const PRIMARY_TABS: { id: TabType; label: string }[] = [
@@ -106,7 +101,6 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
 const MORE_TABS: { id: TabType; label: string }[] = [
   { id: 'macro', label: 'Macro' },
   { id: 'feed', label: 'Feed' },
-  { id: 'watch', label: 'Watch' },
   { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];
@@ -175,7 +169,7 @@ const _RESERVED_PATHS = new Set([
   'alerts', 'analyst', 'milestones', 'fundamentals', 'watchlists', 'creator',
   'referral', 'notifications', 'plaid', 'billing',
   // UI tab names / routes
-  'profile', 'discover', 'feed', 'watch', 'pricing', 'macro', 'nala',
+  'profile', 'discover', 'feed', 'pricing', 'macro', 'nala',
   // Common reserved words
   'api', 'www', 'app', 'help', 'support', 'about', 'login', 'signup', 'register',
   'account', 'dashboard', 'home', 'index', 'privacy', 'terms', 'tos',
@@ -337,20 +331,6 @@ export default function App() {
     onRefreshTriggered: () => {},
     guards: { viewingStock, settingsView, creatorView, adminView, compareStocks, showOnboardingTour, showDailyReport, showPrivacyModal },
   });
-
-  // --- Stream / PiP state ---
-  const {
-    activeChannel, setActiveChannel,
-    streamStatus, streamHasError,
-    pipEnabled, handlePipToggle, handleManualPlay,
-    showMiniPlayer, handleMiniPlayerClose,
-    videoRef, watchContainerCallback, miniVideoContainerRef,
-  } = useStreamManager({ activeTab, viewingStock });
-
-  const handleMiniPlayerExpand = () => {
-    resetNavigation();
-    setActiveTab('watch');
-  };
 
   const handleViewProfile = (userId: string) => {
     setViewingProfileId(userId);
@@ -1364,25 +1344,6 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!settingsView && !creatorView && !adminView && activeTab === 'watch' && (
-            <div className={viewingStock ? 'hidden' : undefined}>
-              <ErrorBoundary>
-                <WatchPage
-                  pipEnabled={pipEnabled}
-                  onPipToggle={handlePipToggle}
-                  status={streamStatus}
-                  hasError={streamHasError}
-                  videoContainerRef={watchContainerCallback}
-                  channels={CHANNELS}
-                  activeChannel={activeChannel}
-                  onChannelChange={setActiveChannel}
-                  onPlay={handleManualPlay}
-                  onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
-                />
-              </ErrorBoundary>
-            </div>
-          )}
-
           {!settingsView && !creatorView && !adminView && activeTab === 'feed' && !viewingProfileId && !viewingStock && (
             <ErrorBoundary>
               <FeedPage
@@ -1440,16 +1401,6 @@ export default function App() {
         </Suspense>
       </main>
 
-      <video
-        ref={videoRef}
-        controls
-        playsInline
-        autoPlay
-        muted
-        className="w-full aspect-video"
-        style={{ background: '#000', display: 'none' }}
-      />
-
       <footer className="relative z-[3] border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
         <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
@@ -1472,16 +1423,6 @@ export default function App() {
           <span>Piques LLC</span>
         </div>
       </footer>
-
-      {showMiniPlayer && (
-        <MiniPlayer
-          channelName={activeChannel.name}
-          onClose={handleMiniPlayerClose}
-          onExpand={handleMiniPlayerExpand}
-        >
-          <div ref={miniVideoContainerRef} className="aspect-video bg-black" />
-        </MiniPlayer>
-      )}
 
       {/* AccountSettingsModal removed — replaced by full-page AccountSettingsPage rendered in <main> */}
       <PrivacyPolicyModal
