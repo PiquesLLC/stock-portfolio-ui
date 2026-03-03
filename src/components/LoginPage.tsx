@@ -10,6 +10,12 @@ const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = !!import.meta.env.VITE_APPLE_CLIENT_ID;
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 
+/** Map raw API error codes to user-friendly messages */
+function friendlyError(msg: string): string {
+  if (msg === 'WAITLIST_NOT_APPROVED') return 'Login failed — your waitlist application has not been approved yet. For support, email support@nalaai.com';
+  return msg;
+}
+
 // Eye icons for password visibility toggle
 const EyeIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -135,7 +141,7 @@ export function LoginPage() {
           const result = await loginWithGoogle(tokenResponse.access_token);
           if (result.isNewUser) showToast('Welcome to Nala!', 'success');
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Google sign-in failed');
+          setError(friendlyError(err instanceof Error ? err.message : 'Google sign-in failed'));
         } finally {
           setOauthLoading(false);
         }
@@ -161,7 +167,7 @@ export function LoginPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Apple sign-in failed';
       if (!msg.includes('popup_closed') && !msg.includes('cancelled')) {
-        setError(msg);
+        setError(friendlyError(msg));
       }
     } finally {
       setOauthLoading(false);
@@ -266,7 +272,7 @@ export function LoginPage() {
         await login(username, password);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(friendlyError(err instanceof Error ? err.message : 'An error occurred'));
     } finally {
       setIsLoading(false);
     }
