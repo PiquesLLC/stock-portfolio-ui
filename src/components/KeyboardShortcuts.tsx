@@ -29,7 +29,6 @@ const SHORTCUTS = [
   { keys: ['G', 'M'], description: 'Go to Macro' },
   { keys: ['G', 'L'], description: 'Go to Leaderboard' },
   { keys: ['G', 'F'], description: 'Go to Feed' },
-  { keys: ['G', 'W'], description: 'Go to Watch' },
   { keys: ['/'], description: 'Focus search' },
   { keys: ['Esc'], description: 'Close overlay' },
   { keys: ['1'], description: 'Scroll to US (Macro)', context: 'Macro' },
