@@ -138,16 +138,9 @@ function parseHash(): NavState & { compareStocks?: string[] } {
     sessionStorage.setItem('navState', JSON.stringify(state));
     return state;
   }
-  try {
-    const saved = sessionStorage.getItem('navState');
-    if (saved) {
-      const s = JSON.parse(saved);
-      // Only restore the tab from sessionStorage, not sub-view state (stock, profile, lbuser).
-      // Sub-views should only be restored from the URL hash — navigating to the bare URL
-      // (no hash) should always land on the tab's default view, not a previous sub-view.
-      return { tab: s.tab || 'portfolio', stock: null, profile: null, lbuser: null, subtab: s.subtab || null };
-    }
-  } catch {}
+  // No hash fragment — always default to portfolio.
+  // sessionStorage is only for preserving state during hash-based navigation,
+  // not for overriding a bare URL like nalaai.com.
   return { tab: 'portfolio', stock: null, profile: null, lbuser: null, subtab: null };
 }
 
