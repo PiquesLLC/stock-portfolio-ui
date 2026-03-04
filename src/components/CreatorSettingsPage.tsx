@@ -6,6 +6,7 @@ import {
   createCreatorConnectOnboarding,
 } from '../api';
 import { CreatorProfile, CreatorSettingsUpdate } from '../types';
+import { isNative } from '../utils/platform';
 
 interface CreatorSettingsPageProps {
   userId: string;
@@ -124,7 +125,11 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
     setConnectLoading(true);
     try {
       const { url } = await createCreatorConnectOnboarding();
-      window.open(url, '_blank');
+      if (isNative) {
+        window.location.href = url;
+      } else {
+        window.open(url, '_blank');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start Stripe onboarding');
     } finally {
