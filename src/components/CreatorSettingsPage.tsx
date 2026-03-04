@@ -204,6 +204,11 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
             {connectLoading ? '...' : creator.stripeConnectOnboarded ? 'Manage' : 'Connect'}
           </button>
         </div>
+        {!creator.stripeConnectOnboarded && (
+          <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/50 mt-2">
+            No Stripe account? No problem — just enter your email and Stripe will walk you through creating one. Takes about 2 minutes.
+          </p>
+        )}
       </section>
 
       {/* Pricing */}
