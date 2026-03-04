@@ -208,6 +208,9 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
     setDeleting(true);
     setDeleteError('');
     try {
+      // Clear biometric Keychain before account deletion (native only)
+      const { clearBiometricToken } = await import('../../utils/biometric');
+      await clearBiometricToken();
       await deleteAccount(deletePassword);
       window.location.href = '/';
     } catch (err) {

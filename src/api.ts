@@ -104,7 +104,10 @@ async function tryRefreshToken(): Promise<boolean> {
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+      },
     });
     if (res.ok) {
       authDead = false;
@@ -142,7 +145,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     headers: {
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
-      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+      ...(isNative ? { 'X-Nala-Native': '1' } : {}),
       ...options?.headers,
     },
   });
@@ -210,7 +213,7 @@ async function fetchFormData<T>(url: string, formData: FormData, errorLabel = 'U
     credentials: 'include',
     headers: {
       'Bypass-Tunnel-Reminder': 'true',
-      ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+      ...(isNative ? { 'X-Nala-Native': '1' } : {}),
     },
   });
 
@@ -1555,7 +1558,7 @@ export async function getPerformanceReport(period: PerformanceWindow, benchmark:
   const url = `${API_BASE_URL}/portfolio/report?period=${period}&benchmark=${benchmark}&theme=${theme}`;
   const headers: Record<string, string> = {
     'Bypass-Tunnel-Reminder': 'true',
-    ...(isNative ? { 'X-Capacitor': 'true' } : {}),
+    ...(isNative ? { 'X-Nala-Native': '1' } : {}),
   };
   const doFetch = () => fetch(url, { credentials: 'include', headers });
 

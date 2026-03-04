@@ -1,6 +1,8 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, ApiError } from '../api';
 import { clearInsightsCache } from '../components/InsightsPage';
+import { isNative } from '../utils/platform';
+import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
 
 export type PlanTier = 'free' | 'pro' | 'premium' | 'elite';
 
@@ -54,6 +56,27 @@ const DEV_USER = import.meta.env.DEV && import.meta.env.VITE_DEV_USER_ID ? {
 } : null;
 
 const STORAGE_KEY = 'nala_auth_user';
+const BIOMETRIC_PROMPTED_KEY = 'nala_biometric_prompted';
+
+/**
+ * After a successful login on native, prompt to enable biometric unlock.
+ * Only prompts once per device (tracked in localStorage).
+ */
+async function promptBiometricEnrollment(refreshToken?: string): Promise<void> {
+  if (!isNative || !refreshToken) return;
+  if (localStorage.getItem(BIOMETRIC_PROMPTED_KEY)) return;
+
+  const bioType = await isBiometricAvailable();
+  if (bioType === 'none') return;
+
+  localStorage.setItem(BIOMETRIC_PROMPTED_KEY, 'true');
+
+  const label = bioType === 'face' ? 'Face ID' : 'Touch ID';
+  const accepted = window.confirm(`Enable ${label} for quick unlock?`);
+  if (accepted) {
+    await saveBiometricToken(refreshToken);
+  }
+}
 
 function readCachedUser(): User | null {
   if (typeof window === 'undefined') return null;
@@ -158,6 +181,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
+
+    // On native, prompt biometric enrollment
+    promptBiometricEnrollment((response as any).refreshToken);
   }, []);
 
   const verifyMfa = useCallback(async (code: string, method: 'totp' | 'email' | 'backup') => {
@@ -180,6 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
+
+    // On native, prompt biometric enrollment
+    promptBiometricEnrollment((response as any).refreshToken);
+
     if (response.emailVerificationRequired) {
       return { emailVerificationRequired: true, email };
     }
@@ -212,6 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
+    promptBiometricEnrollment((response as any).refreshToken);
     return { isNewUser: response.isNewUser };
   }, []);
 
@@ -232,6 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetAuthState();
     setUser(response.user);
     writeCachedUser(response.user);
+    promptBiometricEnrollment((response as any).refreshToken);
     return { isNewUser: response.isNewUser };
   }, []);
 
@@ -241,6 +273,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeCachedUser(null);
     resetAuthState();
     clearInsightsCache();
+    // Clear biometric token on logout
+    clearBiometricToken();
     // Clean URL + stale nav state so user lands on a fresh landing page
     sessionStorage.removeItem('navState');
     window.history.replaceState({}, '', '/');

@@ -1,9 +1,12 @@
 import { API_BASE_URL } from '../config';
+import { isNative } from './platform';
+import { registerNativePush, unregisterNativePush } from './push-native';
 
 /**
  * Check if Web Push is supported in this browser.
  */
 export function isPushSupported(): boolean {
+  if (isNative) return true; // Native always supports push
   return 'serviceWorker' in navigator && 'PushManager' in window;
 }
 
@@ -55,6 +58,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * Returns true on success, false on failure/denial.
  */
 export async function subscribeToPush(): Promise<boolean> {
+  // On native, delegate to native push registration (APNs/FCM)
+  if (isNative) return registerNativePush();
+
   if (!isPushSupported()) {
     console.warn('[Push] Not supported in this browser');
     return false;
@@ -120,6 +126,9 @@ export async function subscribeToPush(): Promise<boolean> {
  * Removes server-side subscription and unsubscribes locally.
  */
 export async function unsubscribeFromPush(): Promise<boolean> {
+  // On native, delegate to native push unregistration
+  if (isNative) return unregisterNativePush();
+
   if (!isPushSupported()) return false;
 
   try {

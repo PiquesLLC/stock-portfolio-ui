@@ -4,8 +4,15 @@ import { createCheckoutSession, createPortalSession } from '../api';
 import { useToast } from '../context/ToastContext';
 import { PLANS } from '../data/plans';
 import { API_BASE_URL } from '../config';
+import { isIAPAvailable } from '../utils/iap';
+import { NativePaywall } from './NativePaywall';
 
 export function PricingPage() {
+  // On iOS native, show Apple IAP paywall instead of Stripe checkout
+  if (isIAPAvailable()) {
+    return <NativePaywall />;
+  }
+
   const { user } = useAuth();
   const { showToast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);

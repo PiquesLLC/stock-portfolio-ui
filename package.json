@@ -18,8 +18,13 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.0.2",
+    "@capacitor/app": "^8.0.1",
     "@capacitor/core": "^8.0.2",
+    "@capacitor/haptics": "^8.0.1",
     "@capacitor/ios": "^8.0.2",
+    "@capacitor/push-notifications": "^8.0.1",
+    "@capgo/capacitor-native-biometric": "^8.4.2",
+    "@capgo/native-purchases": "^8.1.2",
     "framer-motion": "^12.33.0",
     "hls.js": "^1.6.15",
     "http-proxy-middleware": "^3.0.5",

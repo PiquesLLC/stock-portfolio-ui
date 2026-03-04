@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { PortfolioChartPeriod } from './types';
 import { getPortfolio, getPortfolioChart, getUserByUsername } from './api';
+import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
@@ -188,6 +189,8 @@ export default function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout, verifyEmail, resendVerification, refreshUser } = useAuth();
   const { showToast } = useToast();
   const isOnline = useOnlineStatus();
+  // Auto-unlock with biometric auth when resuming from background (native only)
+  useBiometricUnlock();
   const initialNav = savedInitialNav;
   const currentUserId = user?.id || '';
   const {
