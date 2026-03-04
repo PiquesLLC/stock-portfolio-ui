@@ -282,8 +282,13 @@ export default function App() {
 
     if (checkoutStatus === 'success') {
       showToast('Upgrade successful! Your plan is now active.', 'success');
-      // Refresh user data to pick up the updated plan from the webhook
-      refreshUser();
+      // Poll for plan update — webhook may not have landed yet
+      (async () => {
+        for (let i = 0; i < 6; i++) {
+          await refreshUser();
+          await new Promise(r => setTimeout(r, i === 0 ? 1000 : 2000));
+        }
+      })();
     } else if (checkoutStatus === 'cancel') {
       showToast('Checkout cancelled. You can upgrade anytime.', 'info');
     }
