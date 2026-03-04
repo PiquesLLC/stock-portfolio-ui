@@ -18,8 +18,7 @@ const PRICING_TEMPLATES = [
   { cents: 1499, label: '$14.99/mo' },
 ];
 
-const DELAY_OPTIONS: { hours: 0 | 24 | 48 | 72; label: string }[] = [
-  { hours: 0, label: 'None' },
+const DELAY_OPTIONS: { hours: 24 | 48 | 72; label: string }[] = [
   { hours: 24, label: '24 hours' },
   { hours: 48, label: '48 hours' },
   { hours: 72, label: '72 hours' },
@@ -63,7 +62,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
   const [showSectors, setShowSectors] = useState(true);
   const [showRiskMetrics, setShowRiskMetrics] = useState(false);
   const [showWatchlists, setShowWatchlists] = useState(false);
-  const [tradeDelayHours, setTradeDelayHours] = useState<0 | 24 | 48 | 72>(0);
+  const [tradeDelayHours, setTradeDelayHours] = useState<24 | 48 | 72>(24);
   const [hideShareCount, setHideShareCount] = useState(false);
   const [discoverable, setDiscoverable] = useState(true);
 
@@ -80,7 +79,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       setShowSectors(profile.visibility.showSectors);
       setShowRiskMetrics(profile.visibility.showRiskMetrics);
       setShowWatchlists(profile.visibility.showWatchlists);
-      setTradeDelayHours(profile.visibility.tradeDelayHours as 0 | 24 | 48 | 72);
+      setTradeDelayHours((profile.visibility.tradeDelayHours || 24) as 24 | 48 | 72);
       setHideShareCount(profile.visibility.hideShareCount);
       setDiscoverable(profile.visibility.discoverable ?? true);
     } catch (err) {

@@ -37,6 +37,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
   const [dripEnabled, setDripEnabled] = useState(false);
   const [dripLoading, setDripLoading] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState<DividendCredit | null>(null);
+  const [showUpcoming, setShowUpcoming] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -182,8 +183,16 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
           {/* Upcoming dividends */}
           {upcoming.length > 0 && (() => {
             const now = new Date();
-            // Sort by pay date ascending
-            const sorted = [...upcoming].sort((a, b) => new Date(a.payDate).getTime() - new Date(b.payDate).getTime());
+            // 30-day future window
+            const cutoff = new Date(now);
+            cutoff.setDate(cutoff.getDate() + 30);
+            // Sort by pay date ascending and filter to 30-day window
+            const sorted = [...upcoming]
+              .filter(ev => new Date(ev.payDate) <= cutoff)
+              .sort((a, b) => new Date(a.payDate).getTime() - new Date(b.payDate).getTime());
+
+            if (sorted.length === 0) return null;
+
             // Compute total estimated payout
             const totalEst = sorted.reduce((sum, ev) => {
               const h = holdingsByTicker.get(ev.ticker);
@@ -192,43 +201,55 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
 
             return (
               <div className="mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">Upcoming</p>
+                <button
+                  onClick={() => setShowUpcoming(!showUpcoming)}
+                  className="w-full flex items-center justify-between mb-2 group cursor-pointer"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <svg className={`w-3 h-3 text-rh-light-muted/40 dark:text-rh-muted/40 transition-transform ${showUpcoming ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">
+                      Upcoming ({sorted.length})
+                    </p>
+                  </div>
                   {totalEst > 0 && (
                     <div className="text-right">
                       <p className="text-base font-semibold text-rh-green">{formatCurrency(totalEst)}</p>
                       <p className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 -mt-0.5">estimated</p>
                     </div>
                   )}
-                </div>
-                <div className="space-y-1.5">
-                  {sorted.slice(0, 8).map(ev => {
-                    const holding = holdingsByTicker.get(ev.ticker);
-                    const estPayout = holding ? holding.shares * ev.amountPerShare : null;
-                    const exPassed = new Date(ev.exDate) <= now;
-                    return (
-                      <div key={ev.id} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onTickerClick?.(ev.ticker); }}
-                            className="font-medium text-rh-green hover:underline"
-                          >{ev.ticker}</button>
-                          {exPassed ? (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium">confirmed</span>
-                          ) : (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium">expected</span>
-                          )}
+                </button>
+                {showUpcoming && (
+                  <div className="space-y-1.5">
+                    {sorted.slice(0, 8).map(ev => {
+                      const holding = holdingsByTicker.get(ev.ticker);
+                      const estPayout = holding ? holding.shares * ev.amountPerShare : null;
+                      const exPassed = new Date(ev.exDate) <= now;
+                      return (
+                        <div key={ev.id} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onTickerClick?.(ev.ticker); }}
+                              className="font-medium text-rh-green hover:underline"
+                            >{ev.ticker}</button>
+                            {exPassed ? (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium">confirmed</span>
+                            ) : (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium">expected</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-rh-light-muted/50 dark:text-rh-muted/50">{shortDate(ev.payDate)}</span>
+                            {estPayout !== null && (
+                              <span className="text-rh-green font-medium">{formatCurrency(estPayout)}</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-rh-light-muted/50 dark:text-rh-muted/50">{shortDate(ev.payDate)}</span>
-                          {estPayout !== null && (
-                            <span className="text-rh-green font-medium">{formatCurrency(estPayout)}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })()}

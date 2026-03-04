@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { getPortfolio } from '../../../api';
 import { ToggleSwitch } from '../ToggleSwitch';
 import { LinkedAccountsSection } from '../../LinkedAccountsSection';
+import AccountHistorySection from '../../AccountHistorySection';
 
 interface PortfolioDataSectionProps {
   isAdmin: boolean;
@@ -185,6 +186,9 @@ export function PortfolioDataSection({
 
       {/* Linked Accounts */}
       <LinkedAccountsSection />
+
+      {/* Account History */}
+      <AccountHistorySection />
 
       {/* Delete Account */}
       <div className="rounded-xl border border-red-500/15 dark:border-red-500/10 bg-red-500/[0.02] dark:bg-red-500/[0.02] p-6">

@@ -53,7 +53,6 @@ const CompareStocksPage = lazy(() => import('./components/CompareStocksPage').th
 const CreatorDashboardPage = lazy(() => import('./components/CreatorDashboard').then(m => ({ default: m.CreatorDashboard })));
 const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsPage').then(m => ({ default: m.CreatorSettingsPage })));
 const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m => ({ default: m.OnboardingTour })));
-const AccountHistorySection = lazy(() => import('./components/AccountHistorySection'));
 const WaitlistAdminPage = lazy(() => import('./components/WaitlistAdminPage').then(m => ({ default: m.WaitlistAdminPage })));
 const AccountSettingsPageComp2 = lazy(() => import('./components/settings/AccountSettingsPage'));
 const PublicProfilePage = lazy(() => import('./components/PublicProfilePage'));
@@ -1248,11 +1247,6 @@ export default function App() {
               )}
             </div>
 
-            {portfolio && portfolio.holdings.length > 0 && (
-              <Suspense fallback={<PageFallback />}>
-                <AccountHistorySection />
-              </Suspense>
-            )}
           </>
         )}
 

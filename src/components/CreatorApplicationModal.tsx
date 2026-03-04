@@ -39,15 +39,15 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md mx-4
-        bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl
-        border border-gray-200/60 dark:border-white/[0.1]
-        rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="relative w-full max-w-md
+        bg-white dark:bg-white/[0.06] backdrop-blur-2xl
+        border border-gray-200/50 dark:border-white/[0.1]
+        rounded-2xl shadow-xl dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/40 dark:border-white/[0.08]">
