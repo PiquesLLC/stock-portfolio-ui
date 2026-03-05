@@ -1060,6 +1060,25 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
                 );
               }
 
+              // Hovering on pre-market/after-hours (no afterHoursChange split):
+              // Show "Today" live change + cursor change with time
+              if ((hoverSession === 'pre' || hoverSession === 'after') && hoverIndex !== null) {
+                const todayChange = currentValue - periodStartValue;
+                const todayChangePct = periodStartValue > 0 ? (todayChange / periodStartValue) * 100 : 0;
+                return (
+                  <>
+                    <p className={`text-base mt-2 font-semibold ${todayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatChange(todayChange)} ({formatPct(todayChangePct)})
+                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                    </p>
+                    <p className={`text-sm mt-0.5 font-medium ${displayChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                      {formatChange(displayChange)} ({formatPct(displayChangePct)})
+                      {hoverLabel && <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                    </p>
+                  </>
+                );
+              }
+
               // Default: single line (regular hours hover, non-1D, etc.)
               return (
                 <>
