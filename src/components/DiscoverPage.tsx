@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
-import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap } from '../api';
+import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 import { getMarketStatus } from '../utils/portfolio-chart';
@@ -352,7 +352,7 @@ function Treemap({
     : null;
 
   return (
-    <div ref={containerRef} className="w-full relative" onMouseMove={handleMouseMove}
+    <div ref={containerRef} className="w-full relative isolate" onMouseMove={handleMouseMove}
       onClick={() => { if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); } }}
     >
       {/* Back button for themes drilldown */}
@@ -368,7 +368,7 @@ function Treemap({
           {drilldownTheme.theme}
         </button>
       )}
-      <div className="rounded-2xl overflow-hidden border border-gray-200/60 dark:border-white/[0.08] shadow-2xl shadow-black/40"
+      <div className="rounded-2xl overflow-hidden border border-gray-200/60 dark:border-white/[0.08] shadow-2xl shadow-black/40 relative z-0"
         style={{ background: isDark ? '#0f0f12' : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.95)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
       >
       <svg
@@ -701,8 +701,8 @@ function Treemap({
       {hoveredStock && popupSubSector && (
         <div
           className={`absolute z-50 rounded-xl shadow-lg shadow-black/25 dark:shadow-2xl dark:shadow-black/60 border text-xs
-            bg-white/95 dark:bg-[#1a1a1e]/90 border-gray-200/60 dark:border-white/10
-            backdrop-blur-xl ${tappedStock ? 'pointer-events-auto' : 'pointer-events-none'}`}
+            bg-white dark:bg-[#1a1a1e] border-gray-200/60 dark:border-white/10
+            ${tappedStock ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
             left: Math.min(
               tooltipPos.x + 16,
@@ -983,6 +983,7 @@ const INDEXES: { id: MarketIndex; label: string; fullName: string }[] = [
   { id: 'DOW30', label: 'DOW', fullName: 'Dow Jones Industrial Average' },
   { id: 'NASDAQ100', label: 'NASDAQ', fullName: 'NASDAQ-100' },
   { id: 'THEMES', label: 'Themes', fullName: 'Market Themes' },
+  { id: 'ETF', label: 'ETFs', fullName: 'Exchange-Traded Funds' },
 ];
 
 // In-memory cache keyed by "period-index" so switching is instant
@@ -1685,6 +1686,8 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
         if (!cached) setLoading(true);
         const resp = index === 'THEMES'
           ? await getThemesHeatmap(period)
+          : index === 'ETF'
+          ? await getEtfHeatmap(period)
           : await getMarketHeatmap(period, index);
         if (!cancelled) {
           setData(resp);
@@ -1755,8 +1758,8 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
       </div>
 
       {/* Index + Period selectors */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-        {/* Index selector */}
+      <div className="flex items-center justify-between gap-2">
+        {/* Index selector — left */}
         <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
           {INDEXES.map((idx) => (
             <button
@@ -1773,9 +1776,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
           ))}
         </div>
 
-        <div className="hidden sm:block w-px h-5 bg-rh-light-border/30 dark:bg-rh-border/30" />
-
-        {/* Period selector */}
+        {/* Period selector — right */}
         <div className="flex items-center gap-1">
           {PERIODS.map((p) => (
             <button
