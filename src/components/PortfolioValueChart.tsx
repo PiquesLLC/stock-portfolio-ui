@@ -1003,7 +1003,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
               }
 
               // Hovering on pre-market: "Today" line + "Pre-market" change at hovered point
-              if (hoverSession === 'pre') {
+              // Only show breakdown when afterHoursChange is meaningful (regularClose split exists)
+              if (hoverSession === 'pre' && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005) {
                 const regularCloseVal = periodStartValue + (regularDayChange ?? 0);
                 const pmChange = displayValue - regularCloseVal;
                 const pmChangePct = regularCloseVal > 0 ? (pmChange / regularCloseVal) * 100 : 0;
@@ -1023,7 +1024,8 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
               }
 
               // Hovering on after-hours: two lines — "Today" + "After hours" with time
-              if (hoverSession === 'after') {
+              // Only show breakdown when afterHoursChange is meaningful (regularClose split exists)
+              if (hoverSession === 'after' && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005) {
                 const regularCloseVal = periodStartValue + (regularDayChange ?? 0);
                 const ahChange = displayValue - regularCloseVal;
                 const ahChangePct = regularCloseVal > 0 ? (ahChange / regularCloseVal) * 100 : 0;
