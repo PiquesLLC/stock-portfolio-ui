@@ -5,8 +5,8 @@ import { HealthScore } from './HealthScore';
 import { PortfolioIntelligence } from './PortfolioIntelligence';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
-// Premium-gated: import PortfolioBriefing from './PortfolioBriefing';
-// Premium-gated: import BehaviorInsights from './BehaviorInsights';
+import PortfolioBriefing from './PortfolioBriefing';
+import BehaviorInsights from './BehaviorInsights';
 import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
 import { EarningsTab } from './EarningsTab';
@@ -364,7 +364,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         <PremiumOverlay
           featureName="AI Portfolio Briefing"
           description="Weekly AI-generated briefing analyzing your portfolio's performance, market conditions, and actionable insights tailored to your holdings."
-        />
+        >
+          <PortfolioBriefing />
+        </PremiumOverlay>
       </div>
     );
   }
@@ -388,7 +390,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         <PremiumOverlay
           featureName="AI Behavior Coach"
           description="Personalized behavioral analysis of your trading patterns. Get scored on discipline, diversification, and risk management with actionable coaching tips."
-        />
+        >
+          <BehaviorInsights onTickerClick={onTickerClick} portfolioTickers={holdings.map(h => h.ticker)} />
+        </PremiumOverlay>
       </div>
     );
   }

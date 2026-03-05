@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { IncomeInsightsResponse, IncomeCategoryDetail, IncomeHealthDetails } from '../types';
-import { getIncomeInsights, getCashInterestAccrual, CashInterestAccrual, downloadDividendCalendar } from '../api';
+import { getIncomeInsights, getCashInterestAccrual, CashInterestAccrual, downloadDividendCalendar, getUserSettings } from '../api';
 import { DripProjector } from './DripProjector';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
   refreshTrigger?: number;
@@ -312,7 +313,7 @@ function IncomeKeyDrivers({ drivers }: { drivers: string[] }) {
 // SIGNAL CARDS
 // ============================================================================
 
-function IncomeSignalCards({ signals, cashInterest }: { signals: IncomeInsightsResponse['signals']; cashInterest?: CashInterestAccrual | null }) {
+function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: IncomeInsightsResponse['signals']; cashInterest?: CashInterestAccrual | null; annualSalary?: number | null }) {
   const { cashFlow, momentum, reliability } = signals;
 
   const trendColor = momentum.trend === 'growing' ? 'text-rh-green' :
@@ -321,8 +322,19 @@ function IncomeSignalCards({ signals, cashInterest }: { signals: IncomeInsightsR
   const reliabilityColor = reliability.classification === 'stable' ? 'text-rh-green' :
     reliability.classification === 'moderate' ? 'text-yellow-400' : 'text-rh-red';
 
+  const salaryReplacementPct = annualSalary && annualSalary > 0
+    ? (cashFlow.annualIncome / annualSalary) * 100
+    : null;
+
+  const salaryColor = salaryReplacementPct != null
+    ? salaryReplacementPct >= 100 ? 'text-rh-green'
+      : salaryReplacementPct >= 50 ? 'text-yellow-400'
+      : salaryReplacementPct >= 25 ? 'text-orange-400'
+      : 'text-rh-light-muted dark:text-rh-muted'
+    : 'text-rh-light-muted dark:text-rh-muted';
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className={`grid grid-cols-1 gap-4 ${annualSalary && annualSalary > 0 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
       {/* Cash Flow */}
       <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2">
@@ -347,6 +359,24 @@ function IncomeSignalCards({ signals, cashInterest }: { signals: IncomeInsightsR
           </div>
         )}
       </div>
+
+      {/* Salary Replacement — only shown when salary is set */}
+      {annualSalary != null && annualSalary > 0 && (
+        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className={`w-4 h-4 ${salaryColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">Salary Replacement</span>
+          </div>
+          <div className={`text-xl font-bold ${salaryColor}`}>
+            {salaryReplacementPct!.toFixed(1)}%
+          </div>
+          <div className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+            {formatCurrency(cashFlow.annualIncome)} of {formatCurrency(annualSalary)}
+          </div>
+        </div>
+      )}
 
       {/* Momentum */}
       <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
@@ -583,18 +613,23 @@ export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
   const [data, setData] = useState<IncomeInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [cashInterest, setCashInterest] = useState<CashInterestAccrual | null>(null);
+  const [annualSalary, setAnnualSalary] = useState<number | null>(null);
   const mountedRef = useRef(true);
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [result, interest] = await Promise.all([
+      const [result, interest, settings] = await Promise.all([
         getIncomeInsights('today'),
         getCashInterestAccrual().catch(e => { console.error('Cash interest fetch failed:', e); return null; }),
+        userId ? getUserSettings(userId).catch(e => { console.error('Settings fetch failed:', e); return null; }) : Promise.resolve(null),
       ]);
       if (mountedRef.current) {
         setData(result);
         setCashInterest(interest);
+        setAnnualSalary(settings?.annualSalary ?? null);
       }
     } catch (err) {
       console.error('Failed to fetch income insights:', err);
@@ -603,7 +638,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -650,7 +685,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
       </div>
 
       {/* Signal Cards */}
-      <IncomeSignalCards signals={data.signals} cashInterest={cashInterest} />
+      <IncomeSignalCards signals={data.signals} cashInterest={cashInterest} annualSalary={annualSalary} />
 
       {/* DRIP Income Projector */}
       <DripProjector refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} />

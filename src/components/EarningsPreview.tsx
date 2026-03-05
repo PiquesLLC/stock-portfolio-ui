@@ -42,7 +42,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
       {/* Header */}
       <div className="p-4 flex items-start gap-4">
         {/* Countdown badge */}
-        <div className="shrink-0 w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-400/20 flex flex-col items-center justify-center">
+        <div className="shrink-0 w-14 h-14 rounded-xl bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-400/20 flex flex-col items-center justify-center">
           <span className="text-lg font-bold text-amber-500 dark:text-amber-400 leading-none tabular-nums">
             {item.daysUntil}
           </span>
@@ -61,7 +61,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
               {item.ticker}
             </button>
             {item.daysUntil === 0 && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-500">Live</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400">Live</span>
             )}
           </div>
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
@@ -148,11 +148,16 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
               {item.citations.length > 0 && (
                 <div className="pt-1">
                   <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
-                    Sources: {item.citations.map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="hover:text-rh-green transition-colors">
-                        [{i + 1}]
-                      </a>
-                    )).reduce((a: React.ReactNode[], b, i) => i === 0 ? [b] : [...a, ' ', b], [])}
+                    Sources: {item.citations.map((url, i) => {
+                      const isSafeUrl = /^https?:\/\//i.test(url);
+                      return isSafeUrl ? (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="hover:text-rh-green transition-colors">
+                          [{i + 1}]
+                        </a>
+                      ) : (
+                        <span key={i}>[{i + 1}]</span>
+                      );
+                    }).reduce((a: React.ReactNode[], b, i) => i === 0 ? [b] : [...a, ' ', b], [])}
                   </p>
                 </div>
               )}
@@ -250,7 +255,7 @@ function EarningsPreviewContent({ onTickerClick }: EarningsPreviewProps) {
         <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">
           AI Earnings Previews
         </h3>
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/15">
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/15">
           Elite
         </span>
       </div>

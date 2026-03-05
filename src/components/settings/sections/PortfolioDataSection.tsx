@@ -5,7 +5,6 @@ import { LinkedAccountsSection } from '../../LinkedAccountsSection';
 import AccountHistorySection from '../../AccountHistorySection';
 
 interface PortfolioDataSectionProps {
-  isAdmin: boolean;
   userId: string;
   onOpenImport: () => void;
   onDeleteAccount: () => void;
@@ -15,10 +14,13 @@ interface PortfolioDataSectionProps {
   setCashInterestRate: (v: string) => void;
   ytdBaseline: string;
   setYtdBaseline: (v: string) => void;
+  marginDebt: string;
+  setMarginDebt: (v: string) => void;
+  annualSalary: string;
+  setAnnualSalary: (v: string) => void;
 }
 
 export function PortfolioDataSection({
-  isAdmin,
   userId,
   onOpenImport,
   onDeleteAccount,
@@ -28,6 +30,10 @@ export function PortfolioDataSection({
   setCashInterestRate,
   ytdBaseline,
   setYtdBaseline,
+  marginDebt,
+  setMarginDebt,
+  annualSalary,
+  setAnnualSalary,
 }: PortfolioDataSectionProps) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,29 +78,25 @@ export function PortfolioDataSection({
       <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-4">
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Import & Export</h3>
 
-        {/* Import — admin only */}
-        {isAdmin && (
-          <>
-            <button
-              type="button"
-              onClick={onOpenImport}
-              className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
-                bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-rh-text
-                hover:bg-gray-200 dark:hover:bg-rh-border/80 transition-colors
-                flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                <span>Import Portfolio (CSV)</span>
-              </div>
-            </button>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted px-1">
-              Upload a CSV to replace or merge with your current holdings
-            </p>
-          </>
-        )}
+        {/* Import */}
+        <button
+          type="button"
+          onClick={onOpenImport}
+          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
+            bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-rh-text
+            hover:bg-gray-200 dark:hover:bg-rh-border/80 transition-colors
+            flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <span>Import Portfolio (CSV)</span>
+          </div>
+        </button>
+        <p className="text-xs text-rh-light-muted dark:text-rh-muted px-1">
+          Upload a CSV to replace or merge with your current holdings
+        </p>
 
         {/* Export */}
         <button
@@ -178,6 +180,50 @@ export function PortfolioDataSection({
               value={ytdBaseline}
               onChange={e => setYtdBaseline(e.target.value)}
               placeholder="e.g. 125000"
+              className="w-full px-3 py-1.5 pl-7 text-sm bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-lg text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20"
+            />
+          </div>
+        </div>
+
+        {/* Margin Balance */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Margin Balance</span>
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Outstanding margin debt on your account</p>
+            </div>
+          </div>
+          <div className="relative w-40">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={marginDebt}
+              onChange={e => setMarginDebt(e.target.value)}
+              placeholder="e.g. 5000"
+              className="w-full px-3 py-1.5 pl-7 text-sm bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-lg text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20"
+            />
+          </div>
+        </div>
+
+        {/* Annual Salary */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Annual Salary</span>
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Your annual income — used to calculate dividend salary replacement %</p>
+            </div>
+          </div>
+          <div className="relative w-40">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
+            <input
+              type="number"
+              step="1000"
+              min="0"
+              value={annualSalary}
+              onChange={e => setAnnualSalary(e.target.value)}
+              placeholder="e.g. 85000"
               className="w-full px-3 py-1.5 pl-7 text-sm bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-lg text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20"
             />
           </div>

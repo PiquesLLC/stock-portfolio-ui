@@ -305,6 +305,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isSameOriginApi()) {
         setUser(null);
         writeCachedUser(null);
+        clearInsightsCache();
+        clearEarningsPreviewCache();
       } else {
         console.warn('[Auth] Skipping auto-logout due to cross-origin API base.');
       }

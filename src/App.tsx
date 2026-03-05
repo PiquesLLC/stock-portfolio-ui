@@ -23,6 +23,7 @@ import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
+import PortfolioPicker from './components/PortfolioPicker';
 
 
 import Starfield from './components/Starfield';
@@ -192,11 +193,12 @@ export default function App() {
   useBiometricUnlock();
   const initialNav = savedInitialNav;
   const currentUserId = user?.id || '';
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(undefined);
   const {
     portfolio, loading, error, lastUpdate, isStale,
     healthStatus, summaryRefreshTrigger, portfolioRefreshCount,
     fetchData, handleUpdate,
-  } = usePortfolioData({ currentUserId, authLoading });
+  } = usePortfolioData({ currentUserId, authLoading, portfolioId: selectedPortfolioId });
 
   const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
@@ -1079,7 +1081,16 @@ export default function App() {
             )}
 
             {portfolio && portfolio.holdings.length > 0 && (
-              <div className="-mx-3 sm:-mx-6">
+              <div className="-mx-3 sm:-mx-6 relative">
+                {user && (
+                  <div className="absolute top-2 right-3 sm:right-6 z-10">
+                    <PortfolioPicker
+                      selectedPortfolioId={selectedPortfolioId}
+                      onSelect={setSelectedPortfolioId}
+                      userPlan={user.plan || 'free'}
+                    />
+                  </div>
+                )}
                 <PortfolioValueChart
                   currentValue={portfolio.netEquity}
                   dayChange={portfolio.dayChange}
@@ -1089,7 +1100,7 @@ export default function App() {
                   afterHoursChange={portfolio.afterHoursChange}
                   afterHoursChangePercent={portfolio.afterHoursChangePercent}
                   refreshTrigger={portfolioRefreshCount}
-                  fetchFn={(period) => getPortfolioChart(period)}
+                  fetchFn={(period) => getPortfolioChart(period, undefined, selectedPortfolioId)}
                   onPeriodChange={setChartPeriod}
                   onReturnChange={setChartReturnPct}
                   onMeasurementChange={setChartMeasurement}

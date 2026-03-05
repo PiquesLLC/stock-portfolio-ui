@@ -907,7 +907,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} ${getHeaderClass('profitLossPercent', 'right')}`} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
                 {getSortIndicator('profitLossPercent')}Total %
               </th>
-              <th className={`${viewMode === 'compact' ? 'hidden' : 'w-0'} px-4 py-3 font-medium`}></th>
+              <th className="w-0 px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -990,17 +990,19 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                   }`}>
                     {hasValidPrice ? formatPercent(holding.profitLossPercent) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : ''} px-4 py-3 text-right`}>
+                  <td className="px-2 sm:px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleEdit(holding); }}
-                        className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white text-sm transition-colors"
-                        title="Edit holding"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
+                      {viewMode !== 'compact' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEdit(holding); }}
+                          className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white text-sm transition-colors"
+                          title="Edit holding"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(holding.ticker); }}
                         disabled={deleting === holding.ticker}

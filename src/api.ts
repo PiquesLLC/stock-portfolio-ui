@@ -187,7 +187,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     }
 
     // 403 email verification required — hard-gated at App.tsx level now
-    if (response.status === 403 && typeof error.error === 'string' && error.error.toLowerCase().includes('email verification required')) {
+    if (response.status === 403 && typeof error.error === 'string' && (error.error.toLowerCase().includes('email verification required') || error.error === 'email_verification_required')) {
       throw new Error(msg);
     }
 
@@ -509,10 +509,12 @@ export async function deleteAccount(password: string): Promise<{ message: string
   });
 }
 
-export async function getPortfolio(userId?: string): Promise<Portfolio> {
-  const url = userId
-    ? `${API_BASE_URL}/portfolio?userId=${encodeURIComponent(userId)}`
-    : `${API_BASE_URL}/portfolio`;
+export async function getPortfolio(userId?: string, portfolioId?: string): Promise<Portfolio> {
+  const params = new URLSearchParams();
+  if (userId) params.set('userId', userId);
+  if (portfolioId) params.set('portfolioId', portfolioId);
+  const qs = params.toString();
+  const url = qs ? `${API_BASE_URL}/portfolio?${qs}` : `${API_BASE_URL}/portfolio`;
   return fetchJson<Portfolio>(url);
 }
 
@@ -725,6 +727,7 @@ export interface CsvParseResult {
   validRows: number;
   skippedRows: number;
   warning?: string;
+  partialHistory?: boolean;
 }
 
 export async function uploadPortfolioCsv(file: File): Promise<CsvParseResult> {
@@ -792,12 +795,12 @@ export async function submitMappedCsv(
 
 export async function confirmPortfolioImport(
   holdings: { ticker: string; shares: number; averageCost: number }[],
-  mode: 'replace' | 'merge' | 'incremental',
+  mode: 'replace' | 'merge' | 'incremental' | 'history',
   trades?: { date: string; ticker: string; type: string; shares: number; price: number; sourceBroker?: string; rawAction?: string }[],
   marginDebt?: number,
   ledgerEvents?: CsvParseResult['ledgerEvents'],
-): Promise<{ added: number; updated: number; removed: number; skippedDuplicates?: number }> {
-  return fetchJson<{ added: number; updated: number; removed: number; skippedDuplicates?: number }>(
+): Promise<{ added: number; updated: number; removed: number; skippedDuplicates?: number; tradesRecorded?: number; ledgerEventsRecorded?: number }> {
+  return fetchJson<{ added: number; updated: number; removed: number; skippedDuplicates?: number; tradesRecorded?: number; ledgerEventsRecorded?: number }>(
     `${API_BASE_URL}/portfolio/import/confirm`,
     { method: 'POST', body: JSON.stringify({ holdings, mode, trades, marginDebt, ledgerEvents }) }
   );
@@ -953,6 +956,8 @@ export interface UserSettings {
   dripEnabled: boolean;
   cashInterestRate?: number | null;
   ytdBaselineValue?: number | null;
+  marginDebt?: number | null;
+  annualSalary?: number | null;
   createdAt: string;
 }
 
@@ -966,6 +971,8 @@ export interface UserSettingsUpdate {
   dripEnabled?: boolean;
   cashInterestRate?: number | null;
   ytdBaselineValue?: number | null;
+  marginDebt?: number | null;
+  annualSalary?: number | null;
 }
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {
@@ -1093,9 +1100,10 @@ export async function getBenchmarkCloses(ticker: string = 'SPY'): Promise<Benchm
   return resp.candles;
 }
 
-export async function getPortfolioChart(period: PortfolioChartPeriod = '1D', userId?: string): Promise<PortfolioChartData> {
+export async function getPortfolioChart(period: PortfolioChartPeriod = '1D', userId?: string, portfolioId?: string): Promise<PortfolioChartData> {
   const params = new URLSearchParams({ period });
   if (userId) params.append('userId', userId);
+  if (portfolioId) params.append('portfolioId', portfolioId);
   return fetchJson<PortfolioChartData>(`${API_BASE_URL}/portfolio/history/chart?${params}`);
 }
 
@@ -2267,5 +2275,53 @@ export async function submitDeepResearchFollowUp(
 export async function cancelDeepResearch(jobId: string): Promise<{ id: string; status: string }> {
   return fetchJson(`${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/cancel`, {
     method: 'POST',
+  });
+}
+
+// ─── Multi-Portfolio Management ─────────────────────────────────────
+
+export interface PortfolioRecord {
+  id: string;
+  name: string;
+  type: string;
+  isDefault: boolean;
+  cashBalance: number;
+  marginDebt: number;
+  dripEnabled: boolean;
+  holdingsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePortfolioInput {
+  name: string;
+  type?: string;
+}
+
+export async function listPortfolios(): Promise<PortfolioRecord[]> {
+  return fetchJson<PortfolioRecord[]>(`${API_BASE_URL}/portfolios`);
+}
+
+export async function createPortfolio(input: CreatePortfolioInput): Promise<PortfolioRecord> {
+  return fetchJson<PortfolioRecord>(`${API_BASE_URL}/portfolios`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePortfolio(id: string, input: Partial<CreatePortfolioInput>): Promise<PortfolioRecord> {
+  return fetchJson<PortfolioRecord>(`${API_BASE_URL}/portfolios/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deletePortfolio(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/portfolios/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export async function setDefaultPortfolio(id: string): Promise<{ id: string; name: string; isDefault: boolean }> {
+  return fetchJson(`${API_BASE_URL}/portfolios/${encodeURIComponent(id)}/default`, {
+    method: 'PATCH',
   });
 }

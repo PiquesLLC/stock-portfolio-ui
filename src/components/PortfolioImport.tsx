@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import Papa from 'papaparse';
 import { uploadPortfolioCsv, uploadPortfolioScreenshot, confirmPortfolioImport, clearPortfolio, searchSymbols, submitMappedCsv, CsvParsedRow, CsvParseResult, ColumnMappings, MappedTrade, ImportTelemetry } from '../api';
 import { SymbolSearchResult } from '../types';
@@ -48,7 +49,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [rows, setRows] = useState<CsvParsedRow[]>([]);
   const [warnings, setWarnings] = useState<{ rowNumber: number; message: string; line?: string }[]>([]);
   const [stats, setStats] = useState({ totalRows: 0, validRows: 0, skippedRows: 0 });
-  const [importMode, setImportMode] = useState<'replace' | 'merge' | 'incremental'>('replace');
+  const [importMode, setImportMode] = useState<'replace' | 'merge' | 'incremental' | 'history'>('replace');
   const [trades, setTrades] = useState<MappedTrade[]>([]);
   const [ledgerEvents, setLedgerEvents] = useState<CsvParseResult['ledgerEvents']>([]);
   const [telemetry, setTelemetry] = useState<ImportTelemetry | null>(null);
@@ -57,7 +58,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [hideSmallPositions, setHideSmallPositions] = useState(false);
   const [marginDebt, setMarginDebt] = useState<string>('');
   const [globalWarning, setGlobalWarning] = useState('');
-  const [result, setResult] = useState<{ added: number; updated: number; removed: number; skippedDuplicates?: number } | null>(null);
+  const [result, setResult] = useState<{ added: number; updated: number; removed: number; skippedDuplicates?: number; tradesRecorded?: number; ledgerEventsRecorded?: number } | null>(null);
   const [uploadSource, setUploadSource] = useState<'csv' | 'screenshot'>('csv');
 
   // Clear confirm
@@ -153,6 +154,10 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       setTrades((data.trades || []) as MappedTrade[]);
       setLedgerEvents(data.ledgerEvents || []);
       setStats({ totalRows: data.totalRows, validRows: data.validRows, skippedRows: data.skippedRows });
+      // Default to incremental (Update) mode for transaction histories — applies trades as deltas
+      if ((data.trades?.length ?? 0) > 0) {
+        setImportMode('incremental');
+      }
       setStep('review');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -415,8 +420,8 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     }));
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:pl-48" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/80" onClick={step !== 'uploading' && step !== 'confirming' && step !== 'processing' ? onClose : undefined} />
       <div className={`relative bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.1] rounded-2xl w-full max-h-[85vh] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col transition-all duration-300 ${
         isWideStep ? 'max-w-4xl' : 'max-w-lg'
@@ -855,6 +860,18 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               <div className="flex items-center gap-2">
                 <span className="text-xs text-rh-light-muted dark:text-rh-muted">Import mode:</span>
                 <div className="flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
+                  {trades.length > 0 && (
+                    <button
+                      onClick={() => setImportMode('history')}
+                      className={`px-3 py-1 text-xs font-medium transition-colors ${
+                        importMode === 'history'
+                          ? 'bg-rh-green/10 text-rh-green'
+                          : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                      }`}
+                    >
+                      Save History
+                    </button>
+                  )}
                   <button
                     onClick={() => setImportMode('replace')}
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
@@ -888,12 +905,28 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 </div>
               </div>
               <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/40">
-                {importMode === 'replace'
+                {importMode === 'history'
+                  ? 'Records your trade history for chart reconstruction. Your current holdings will not be changed.'
+                  : importMode === 'replace'
                   ? 'Removes all existing holdings and replaces with these.'
                   : importMode === 'incremental'
                   ? 'Applies trades to your existing holdings. Buys add shares, sells reduce them.'
                   : 'Updates existing tickers and adds new ones. Keeps unmentioned holdings.'}
               </p>
+
+              {/* Warn when using Replace All with a transaction history */}
+              {importMode === 'replace' && trades.length > 0 && (
+                <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <svg className="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-[11px] text-red-400 leading-relaxed">
+                    <strong>Warning:</strong> This is a transaction history, not a holdings snapshot. "Replace All" will delete your entire portfolio and
+                    set it to only the net positions from these trades. If this CSV doesn't contain your full trade history, your portfolio will be wrong.
+                    Use <button onClick={() => setImportMode('incremental')} className="underline font-medium">Update</button> instead to apply these trades to your existing holdings.
+                  </p>
+                </div>
+              )}
 
               {/* Margin balance */}
               <div className="flex items-center gap-2">
@@ -983,13 +1016,20 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 </svg>
               </div>
               <div>
-                <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Portfolio Updated</p>
-                <div className="flex justify-center gap-6 mt-3 text-sm">
+                <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
+                  {importMode === 'history' ? 'Trade History Saved' : 'Portfolio Updated'}
+                </p>
+                <div className="flex flex-wrap justify-center gap-4 mt-3 text-sm">
+                  {(result.tradesRecorded ?? 0) > 0 && <span className="text-rh-green">{result.tradesRecorded} trades recorded</span>}
+                  {(result.ledgerEventsRecorded ?? 0) > 0 && <span className="text-rh-green">{result.ledgerEventsRecorded} events recorded</span>}
                   {result.added > 0 && <span className="text-rh-green">{result.added} added</span>}
                   {result.updated > 0 && <span className="text-amber-400">{result.updated} updated</span>}
                   {result.removed > 0 && <span className="text-rh-light-muted dark:text-rh-muted">{result.removed} removed</span>}
                   {(result.skippedDuplicates ?? 0) > 0 && <span className="text-rh-light-muted/50 dark:text-rh-muted/50">{result.skippedDuplicates} duplicates skipped</span>}
                 </div>
+                {importMode === 'history' && (
+                  <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/40 mt-2">Your holdings were not changed.</p>
+                )}
               </div>
               <button
                 onClick={() => { onImportComplete(); onClose(); }}
@@ -1036,6 +1076,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -6,9 +6,10 @@ import { REFRESH_INTERVAL } from '../config';
 interface UsePortfolioDataParams {
   currentUserId: string;
   authLoading: boolean;
+  portfolioId?: string;
 }
 
-export function usePortfolioData({ currentUserId, authLoading }: UsePortfolioDataParams) {
+export function usePortfolioData({ currentUserId, authLoading, portfolioId }: UsePortfolioDataParams) {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export function usePortfolioData({ currentUserId, authLoading }: UsePortfolioDat
   const fetchData = useCallback(async () => {
     if (!currentUserId || authLoading) return;
     try {
-      const portfolioData = await getPortfolio();
+      const portfolioData = await getPortfolio(undefined, portfolioId);
       const settingsData = await getSettings();
 
       const hasValidData = portfolioData.holdings.length === 0 ||
@@ -78,7 +79,7 @@ export function usePortfolioData({ currentUserId, authLoading }: UsePortfolioDat
     } finally {
       setLoading(false);
     }
-  }, [currentUserId, authLoading]);
+  }, [currentUserId, authLoading, portfolioId]);
 
   // Adaptive polling: 5s during regular hours, 15s during extended/closed
   // Prevents after-hours oscillation from cache TTL mismatches across providers

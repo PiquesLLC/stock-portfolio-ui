@@ -15,6 +15,11 @@ import {
 
 const CreatorDiscoverSection = lazy(() => import('./CreatorDiscoverSection').then(m => ({ default: m.CreatorDiscoverSection })));
 
+/** Returns true when a percent change is effectively zero (rounds to +0.00% or -0.00%) */
+function isEffectivelyZero(pct: number): boolean {
+  return Math.abs(pct) < 0.005;
+}
+
 interface DiscoverPageProps {
   onTickerClick: (ticker: string) => void;
   onUserClick?: (userId: string) => void;
@@ -551,11 +556,11 @@ function Treemap({
                     // --- Themes mode: area-based left-aligned text for long subtheme names ---
                     if (isThemesDefault) {
                       const area = tileW * tileH;
-                      const showLabel = area >= 900;
-                      const showPct = area >= 2400;
-                      const fontSize = area >= 4200 ? 11 : area >= 1800 ? 10 : 9;
-                      const pctFontSize = Math.max(fontSize - 1, 7);
-                      const pad = area >= 4200 ? 6 : area >= 1800 ? 4 : 3;
+                      const showLabel = isMobile ? (area >= 300 && tileW > 12 && tileH > 10) : area >= 900;
+                      const showPct = isMobile ? area >= 1200 : area >= 2400;
+                      const fontSize = area >= 4200 ? 11 : area >= 1800 ? 10 : isMobile && area < 900 ? 7 : 9;
+                      const pctFontSize = Math.max(fontSize - 1, 6);
+                      const pad = area >= 4200 ? 6 : area >= 1800 ? 4 : isMobile && area < 900 ? 2 : 3;
                       const charW = fontSize * 0.58;
                       const maxChars = Math.max(1, Math.floor((tileW - pad * 2) / charW));
                       const fullLabel = r.stock.ticker;
@@ -727,7 +732,7 @@ function Treemap({
             <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{hoveredStock.ticker}</span>
-                <span className={`text-sm font-bold ${hoveredStock.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                <span className={`text-sm font-bold ${hoveredStock.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero(hoveredStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {hoveredStock.noTradeData ? '--' : `${hoveredStock.changePercent >= 0 ? '+' : ''}${hoveredStock.changePercent.toFixed(2)}%`}
                 </span>
               </div>
@@ -743,7 +748,7 @@ function Treemap({
             <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-rh-light-muted dark:text-rh-muted">Avg change</span>
-                <span className={`text-sm font-bold ${hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                <span className={`text-sm font-bold ${isEffectivelyZero(hoveredStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {hoveredStock.changePercent >= 0 ? '+' : ''}{hoveredStock.changePercent.toFixed(2)}%
                 </span>
               </div>
@@ -775,7 +780,7 @@ function Treemap({
                         {formatCurrency(s.price)}
                       </span>
                     </div>
-                    <span className={`text-[11px] font-semibold shrink-0 ${s.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : s.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    <span className={`text-[11px] font-semibold shrink-0 ${s.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero(s.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : s.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {s.noTradeData ? '--' : `${s.changePercent >= 0 ? '+' : ''}${s.changePercent.toFixed(2)}%`}
                     </span>
                   </div>
@@ -926,6 +931,7 @@ function SectorBars({ sectors, highlightedSector, onSectorClick, isThemes }: { s
           const pct = s.avgChangePercent;
           const barWidth = (Math.abs(pct) / maxAbs) * 50;
           const isPositive = pct >= 0;
+          const isZero = isEffectivelyZero(pct);
           return (
             <div
               key={s.name}
@@ -941,13 +947,13 @@ function SectorBars({ sectors, highlightedSector, onSectorClick, isThemes }: { s
                     style={{
                       left: isPositive ? '50%' : `${50 - barWidth}%`,
                       width: `${barWidth}%`,
-                      background: isPositive ? '#00C805' : '#E8544E',
+                      background: isZero ? '#888' : isPositive ? '#00C805' : '#E8544E',
                       opacity: 0.8,
                     }}
                   />
                 </div>
               </div>
-              <span className={`text-xs font-semibold min-w-[50px] text-right ${isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+              <span className={`text-xs font-semibold min-w-[50px] text-right ${isZero ? 'text-rh-light-muted dark:text-rh-muted' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
                 {isPositive ? '+' : ''}{pct.toFixed(2)}%
               </span>
             </div>
@@ -1204,12 +1210,12 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                     </span>
                   )}
                   <span className="text-[11px] font-bold text-gray-900 dark:text-[#f5f7fa]">{heroStock.ticker}</span>
-                  <span className={`text-[11px] font-bold tabular-nums ${heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  <span className={`text-[11px] font-bold tabular-nums ${isEffectivelyZero(heroStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
                   </span>
                 </div>
                 <svg className="opacity-70 w-[100px] h-[28px] sm:w-[140px] sm:h-[32px]" viewBox="0 0 140 32" preserveAspectRatio="none">
-                  <path d={heroSparkline} fill="none" stroke={heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={heroSparkline} fill="none" stroke={isEffectivelyZero(heroStock.changePercent) ? '#888' : heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </>
             ) : heroLoading ? (
@@ -1225,7 +1231,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
       <div className="pt-1.5">
       {/* Segmented control */}
       <div
-        className="flex items-center w-full flex-nowrap"
+        className="flex items-center w-full overflow-x-auto no-scrollbar"
         style={{
           height: 32,
           padding: 4,
@@ -1249,9 +1255,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
               key={f.id}
               data-active={isActive || undefined}
               onClick={() => setFilter(f.id)}
-              className="flex items-center justify-center whitespace-nowrap"
+              className="flex items-center justify-center whitespace-nowrap flex-shrink-0"
               style={{
-                flex: 1,
+                flex: '1 0 auto',
                 gap: 6,
                 padding: '0 12px',
                 height: 24,
@@ -1339,6 +1345,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
             : null;
           const isHighVol = volRatio != null && volRatio >= 1.5;
           const isUp = stock.changePercent >= 0;
+          const isZeroChange = isEffectivelyZero(stock.changePercent);
 
           return (
             <div
@@ -1362,7 +1369,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 <div
                   className="absolute left-0 top-[6px] bottom-[6px] w-[3px] rounded-full transition-opacity duration-200"
                   style={{
-                    background: isUp ? '#00c805' : '#ea3943',
+                    background: isZeroChange ? '#888' : isUp ? '#00c805' : '#ea3943',
                     opacity: isDark ? 0.35 : 0.5,
                   }}
                 />
@@ -1417,7 +1424,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 {/* Change pill */}
                 <div className="shrink-0 w-[68px] flex justify-end">
                   <div className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
-                    isUp
+                    isZeroChange
+                      ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted'
+                      : isUp
                       ? 'bg-rh-green/10 dark:bg-rh-green/[0.08] text-rh-green'
                       : 'bg-rh-red/10 dark:bg-rh-red/[0.08] text-rh-red'
                   }`}>
@@ -1586,7 +1595,7 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
                     <span className="text-xs font-semibold text-gray-700 dark:text-white/80 tabular-nums">${stock.price.toFixed(2)}</span>
                   </td>
                   <td className="px-2 py-2 text-right">
-                    <span className={`text-xs font-bold tabular-nums ${stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    <span className={`text-xs font-bold tabular-nums ${isEffectivelyZero(stock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
                     </span>
                   </td>
@@ -1758,14 +1767,14 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
       </div>
 
       {/* Index + Period selectors */}
-      <div className="flex items-center justify-between gap-2">
-        {/* Index selector — left */}
-        <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        {/* Index selector */}
+        <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5 overflow-x-auto no-scrollbar">
           {INDEXES.map((idx) => (
             <button
               key={idx.id}
               onClick={() => { setIndex(idx.id); setHighlightedSector(null); }}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-shrink-0
                 ${index === idx.id
                   ? 'bg-white dark:bg-white/[0.12] text-rh-light-text dark:text-rh-text shadow-sm'
                   : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -1776,7 +1785,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
           ))}
         </div>
 
-        {/* Period selector — right */}
+        {/* Period selector — below on mobile, right on desktop */}
         <div className="flex items-center gap-1">
           {PERIODS.map((p) => (
             <button

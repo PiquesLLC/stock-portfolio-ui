@@ -71,6 +71,8 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
   const [dripEnabled, setDripEnabled] = useState(false);
   const [cashInterestRate, setCashInterestRate] = useState('');
   const [ytdBaseline, setYtdBaseline] = useState('');
+  const [marginDebt, setMarginDebt] = useState('');
+  const [annualSalary, setAnnualSalary] = useState('');
 
   // Notification state
   const [notifyPriceAlerts, setNotifyPriceAlerts] = useState(() => {
@@ -114,6 +116,8 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       dripEnabled !== settings.dripEnabled ||
       (cashInterestRate ? parseFloat(cashInterestRate) : null) !== (settings.cashInterestRate ?? null) ||
       (() => { const p = parseFloat(ytdBaseline); return (ytdBaseline && Number.isFinite(p) ? p : null) !== (settings.ytdBaselineValue ?? null); })() ||
+      (() => { const m = parseFloat(marginDebt); return (marginDebt && Number.isFinite(m) ? m : null) !== (settings.marginDebt ?? null); })() ||
+      (() => { const s = parseFloat(annualSalary); return (annualSalary && Number.isFinite(s) ? s : null) !== (settings.annualSalary ?? null); })() ||
       theme !== localTheme ||
       extendedHours !== localEH ||
       starfieldEnabled !== localSF ||
@@ -122,7 +126,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       notifyEarnings !== localEA
     );
   }, [settings, displayName, profilePublic, region, showRegion, holdingsVisibility, dripEnabled,
-      cashInterestRate, ytdBaseline, theme, extendedHours, starfieldEnabled,
+      cashInterestRate, ytdBaseline, marginDebt, annualSalary, theme, extendedHours, starfieldEnabled,
       notifyPriceAlerts, notifyFollowedActivity, notifyEarnings]);
 
   // Load settings
@@ -141,6 +145,8 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
         setDripEnabled(data.dripEnabled);
         setCashInterestRate(data.cashInterestRate != null ? String(data.cashInterestRate) : '');
         setYtdBaseline(data.ytdBaselineValue != null ? String(data.ytdBaselineValue) : '');
+        setMarginDebt(data.marginDebt != null ? String(data.marginDebt) : '');
+        setAnnualSalary(data.annualSalary != null ? String(data.annualSalary) : '');
       })
       .catch((err) => {
         setError(err.message || 'Failed to load settings');
@@ -170,6 +176,12 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       const parsedBaseline = parseFloat(ytdBaseline);
       const baselineVal = ytdBaseline && Number.isFinite(parsedBaseline) ? parsedBaseline : null;
       if (baselineVal !== (settings.ytdBaselineValue ?? null)) updates.ytdBaselineValue = baselineVal;
+      const parsedMarginDebt = parseFloat(marginDebt);
+      const marginDebtVal = marginDebt && Number.isFinite(parsedMarginDebt) ? parsedMarginDebt : null;
+      if (marginDebtVal !== (settings.marginDebt ?? null)) updates.marginDebt = marginDebtVal;
+      const parsedSalary = parseFloat(annualSalary);
+      const salaryVal = annualSalary && Number.isFinite(parsedSalary) ? parsedSalary : null;
+      if (salaryVal !== (settings.annualSalary ?? null)) updates.annualSalary = salaryVal;
 
       localStorage.setItem('theme', theme);
       if (theme === 'dark') {
@@ -197,7 +209,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       setSaving(false);
     }
   }, [settings, displayName, profilePublic, region, showRegion, holdingsVisibility, dripEnabled,
-      cashInterestRate, ytdBaseline, theme, extendedHours, starfieldEnabled,
+      cashInterestRate, ytdBaseline, marginDebt, annualSalary, theme, extendedHours, starfieldEnabled,
       notifyPriceAlerts, notifyFollowedActivity, notifyEarnings, userId, onSave, showToast]);
 
   const handleDeleteAccount = async () => {
@@ -222,6 +234,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
 
   const handleSelectSection = (section: SettingsSection) => {
     setActiveSection(section);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleMobileBack = () => {
@@ -292,7 +305,6 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       case 'data':
         return (
           <PortfolioDataSection
-            isAdmin={isAdmin}
             userId={userId}
             onOpenImport={() => setShowImport(true)}
             onDeleteAccount={() => setShowDeleteConfirm(true)}
@@ -302,6 +314,10 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
             setCashInterestRate={setCashInterestRate}
             ytdBaseline={ytdBaseline}
             setYtdBaseline={setYtdBaseline}
+            marginDebt={marginDebt}
+            setMarginDebt={setMarginDebt}
+            annualSalary={annualSalary}
+            setAnnualSalary={setAnnualSalary}
           />
         );
       case 'creator':
@@ -353,7 +369,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
 
   // Sticky save bar — shown when there are unsaved changes
   const stickyBar = isDirty && (
-    <div className="sticky bottom-4 mt-8 z-10">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(90vw,36rem)]">
       <div className="flex items-center justify-between px-5 py-3 rounded-xl
         bg-white/95 dark:bg-[#1a1a1e]/95 backdrop-blur-xl
         border border-gray-200/50 dark:border-white/[0.08]
@@ -429,9 +445,9 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
           )}
         </>
       ) : (
-        <div className="flex gap-10 items-start">
+        <div className="flex items-start">
           {/* Left column: Settings header + sidebar nav */}
-          <div className="w-48 flex-shrink-0">
+          <div className="w-48 flex-shrink-0 mr-10">
             <div className="flex items-center gap-2 mb-5">
               <button
                 onClick={onBack}
@@ -452,7 +468,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
           </div>
 
           {/* Right column: section header + content */}
-          <div className="flex-1 min-w-0 max-w-3xl">
+          <div className="flex-1 min-w-0 max-w-2xl mx-auto">
             {activeSection && (
               <div className="flex items-start justify-between mb-4">
                 <div>
