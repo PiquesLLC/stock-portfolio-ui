@@ -17,6 +17,7 @@ export const PLANS: PlanDefinition[] = [
     description: 'Get started with the basics',
     features: [
       'Up to 10 holdings',
+      '1 portfolio',
       '1 watchlist',
       '1 price alert',
       '1D / 1W / YTD charts',
@@ -33,6 +34,7 @@ export const PLANS: PlanDefinition[] = [
     highlight: true,
     features: [
       'Unlimited holdings',
+      '2 portfolios',
       'Unlimited watchlists',
       'Unlimited price alerts',
       'All chart periods',
@@ -49,6 +51,7 @@ export const PLANS: PlanDefinition[] = [
     description: 'AI intelligence layer for your portfolio',
     features: [
       'Everything in Pro',
+      '3 portfolios',
       'AI Stock Q&A',
       'AI Portfolio Briefing',
       'AI Behavior Coach',
@@ -62,12 +65,15 @@ export const PLANS: PlanDefinition[] = [
     name: 'Elite',
     monthlyPrice: 49.99,
     yearlyPrice: 399,
-    description: 'Deep Research + everything in Premium',
+    description: 'The complete investor toolkit',
     features: [
       'Everything in Premium',
-      'Nala AI Deep Research (5/mo)',
+      'Unlimited portfolios',
+      'Nala AI Deep Research (10/mo)',
+      'AI Earnings Previews',
+      'PDF Performance Reports',
+      'Portfolio stress testing',
       'Priority support',
-      'Early access to new features',
     ],
   },
 ];
