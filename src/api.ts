@@ -1752,6 +1752,38 @@ export async function markAllAnomaliesRead(): Promise<void> {
   await fetchJson(`${API_BASE_URL}/insights/anomalies/mark-all-read`, { method: 'POST' });
 }
 
+// Earnings Preview (Elite)
+export interface EarningsPreviewAi {
+  whatToWatch: string;
+  analystSentiment: string;
+  catalysts: string[];
+  riskFactors: string[];
+}
+
+export interface EarningsPreviewItem {
+  ticker: string;
+  reportDate: string;
+  daysUntil: number;
+  estimatedEPS: number | null;
+  beatRate: number;
+  avgSurprisePct: number;
+  currentStreak: { type: 'beat' | 'miss' | 'meet' | 'none'; count: number };
+  consistencyScore: number;
+  recentQuarters: { fiscalDateEnding: string; reportedDate: string; reportedEPS: number | null; estimatedEPS: number | null; surprisePct: number | null; beat: boolean | null }[];
+  preview: EarningsPreviewAi | null;
+  citations: string[];
+  generatedAt: string;
+}
+
+export interface EarningsPreviewResponse {
+  results: EarningsPreviewItem[];
+  partial: boolean;
+}
+
+export async function getEarningsPreviews(): Promise<EarningsPreviewResponse> {
+  return fetchJson<EarningsPreviewResponse>(`${API_BASE_URL}/insights/earnings-preview`);
+}
+
 // ── Account History ──────────────────────────────────────────────
 
 export interface AccountHistoryEntry {
