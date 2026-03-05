@@ -1769,7 +1769,7 @@ export interface EarningsPreviewItem {
   avgSurprisePct: number;
   currentStreak: { type: 'beat' | 'miss' | 'meet' | 'none'; count: number };
   consistencyScore: number;
-  recentQuarters: { fiscalDateEnding: string; reportedDate: string; reportedEPS: number | null; estimatedEPS: number | null; surprisePct: number | null; beat: boolean | null }[];
+  recentQuarters: { fiscalDate: string; reportedDate: string; reportedEPS: number | null; estimatedEPS: number | null; surprise: number | null; surprisePct: number | null; beat: boolean | null }[];
   preview: EarningsPreviewAi | null;
   citations: string[];
   generatedAt: string;

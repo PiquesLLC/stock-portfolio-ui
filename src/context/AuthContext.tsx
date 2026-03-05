@@ -1,6 +1,7 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, ApiError } from '../api';
 import { clearInsightsCache } from '../components/InsightsPage';
+import { clearEarningsPreviewCache } from '../components/EarningsPreview';
 import { isNative } from '../utils/platform';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
 
@@ -273,6 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeCachedUser(null);
     resetAuthState();
     clearInsightsCache();
+    clearEarningsPreviewCache();
     // Clear biometric token on logout
     clearBiometricToken();
     // Clean URL + stale nav state so user lands on a fresh landing page

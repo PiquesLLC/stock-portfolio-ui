@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getEarningsPreviews, EarningsPreviewItem } from '../api';
 import { SkeletonCard } from './SkeletonCard';
 import { PremiumOverlay } from './PremiumOverlay';
+import { useAuth, PlanTier } from '../context/AuthContext';
 
 interface EarningsPreviewProps {
   onTickerClick?: (ticker: string) => void;
@@ -9,6 +10,11 @@ interface EarningsPreviewProps {
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let previewCache: { data: EarningsPreviewItem[]; partial: boolean; timestamp: number } | null = null;
+
+/** Clear module-level cache (call on logout to prevent data leaks). */
+export function clearEarningsPreviewCache() {
+  previewCache = null;
+}
 
 function StreakDots({ type, count }: { type: string; count: number }) {
   const color = type === 'beat' ? 'bg-rh-green' : type === 'miss' ? 'bg-red-400' : 'bg-gray-400 dark:bg-gray-600';
@@ -255,14 +261,19 @@ function EarningsPreviewContent({ onTickerClick }: EarningsPreviewProps) {
   );
 }
 
+const PLAN_RANK: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2, elite: 3 };
+
 export function EarningsPreview({ onTickerClick }: EarningsPreviewProps) {
+  const { user } = useAuth();
+  const hasAccess = PLAN_RANK[user?.plan || 'free'] >= PLAN_RANK['elite'];
+
   return (
     <PremiumOverlay
       featureName="AI Earnings Previews"
       description="Get AI-powered previews for upcoming earnings with analyst sentiment, catalysts, and risk factors for your holdings."
       requiredPlan="elite"
     >
-      <EarningsPreviewContent onTickerClick={onTickerClick} />
+      {hasAccess ? <EarningsPreviewContent onTickerClick={onTickerClick} /> : undefined}
     </PremiumOverlay>
   );
 }
