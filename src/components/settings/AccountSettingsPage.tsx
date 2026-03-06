@@ -97,6 +97,13 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  useEffect(() => {
+    if (!showDeleteConfirm) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError(''); } };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [showDeleteConfirm]);
+
   // Dirty tracking
   const isDirty = useMemo(() => {
     if (!settings) return false;

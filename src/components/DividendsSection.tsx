@@ -367,6 +367,12 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticker || !amountPerShare || !exDate || !payDate) {

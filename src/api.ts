@@ -958,6 +958,7 @@ export interface UserSettings {
   ytdBaselineValue?: number | null;
   marginDebt?: number | null;
   annualSalary?: number | null;
+  priceSpikePct?: number;
   createdAt: string;
 }
 
@@ -973,6 +974,7 @@ export interface UserSettingsUpdate {
   ytdBaselineValue?: number | null;
   marginDebt?: number | null;
   annualSalary?: number | null;
+  priceSpikePct?: number;
 }
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {

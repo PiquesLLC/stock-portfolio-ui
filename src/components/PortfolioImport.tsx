@@ -26,6 +26,12 @@ function detectBroker(headers: string[]): string | null {
 }
 
 export function PortfolioImport({ onClose, onImportComplete, onboarding, onManualEntry }: PortfolioImportProps) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
   // Core state
   const [step, setStep] = useState<Step>('choose');
   const [error, setError] = useState('');

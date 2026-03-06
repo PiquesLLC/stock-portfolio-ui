@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CreatorProfile, PerformanceData } from '../types';
 
@@ -79,6 +79,12 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
   const returnPct = performance?.twrPct ?? null;
   const subCount = creator.subscriberCount ?? 0;
   const price = formatPrice(creator.pricingCents);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>

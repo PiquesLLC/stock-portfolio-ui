@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { reportUser } from '../api';
 
@@ -53,6 +53,13 @@ export function ReportModal({ isOpen, onClose, targetUserId, targetUsername, con
     setSuccess(false);
     onClose();
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

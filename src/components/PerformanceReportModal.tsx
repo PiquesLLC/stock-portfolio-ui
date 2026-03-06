@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getPerformanceReport, emailPerformanceReport } from '../api';
 import { PerformanceWindow } from '../types';
 
@@ -22,6 +22,12 @@ interface Props {
 }
 
 export function PerformanceReportModal({ onClose }: Props) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
   const [period, setPeriod] = useState<PerformanceWindow>('1M');
   const [benchmark, setBenchmark] = useState('SPY');
   const [loading, setLoading] = useState(false);
