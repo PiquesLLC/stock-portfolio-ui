@@ -57,6 +57,7 @@ export function computeChartGroups(
         break;
       }
       case '3M':
+      case '6M':
       case 'YTD': {
         // Group by month
         const dateStr = etDateFmt.format(d);

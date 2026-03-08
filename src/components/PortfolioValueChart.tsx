@@ -65,7 +65,7 @@ export function shouldShowEstimatedBadge(
   return points.some(p => p.estimated === true || (typeof p.confidence === 'number' && p.confidence < confidenceThreshold));
 }
 
-const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
+const PERIODS: PortfolioChartPeriod[] = ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', 'ALL'];
 const HERO_VALUE_ANIMATIONS = [
   'hero-value-anim-pop',
   'hero-value-anim-swing',

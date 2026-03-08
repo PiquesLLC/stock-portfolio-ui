@@ -129,6 +129,7 @@ const REPORT_PERIODS: { value: PerformanceWindow; label: string }[] = [
   { value: '1W', label: '1W' },
   { value: '1M', label: '1M' },
   { value: '3M', label: '3M' },
+  { value: '6M', label: '6M' },
   { value: 'YTD', label: 'YTD' },
   { value: '1Y', label: '1Y' },
   { value: 'ALL', label: 'All' },

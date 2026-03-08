@@ -83,6 +83,7 @@ export interface HoldingInput {
   ticker: string;
   shares: number;
   averageCost: number;
+  skipActivity?: boolean;
 }
 
 // Dividend types
@@ -678,7 +679,7 @@ export interface UserProfile {
 }
 
 // Portfolio Chart types
-export type PortfolioChartPeriod = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'ALL';
+export type PortfolioChartPeriod = '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
 
 export interface PortfolioChartPoint {
   time: number; // ms timestamp
@@ -703,7 +704,7 @@ export interface PortfolioChartData {
 }
 
 // Benchmark Performance types
-export type PerformanceWindow = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'ALL';
+export type PerformanceWindow = '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
 
 export interface PerformanceData {
   window: PerformanceWindow;
@@ -1281,6 +1282,7 @@ export interface HeatmapStock {
   price: number;
   changePercent: number;
   dayChange: number;
+  weekChangePercent?: number;
   marketCapB: number;
   subSector: string;
   volume?: number;
