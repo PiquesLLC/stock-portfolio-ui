@@ -929,6 +929,10 @@ export async function getUserProfile(userId: string, viewerId?: string): Promise
   return fetchJson<UserProfile>(`${API_BASE_URL}/users/${userId}/profile${params}`);
 }
 
+export async function deleteActivityEvent(eventId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/social/activity/${eventId}`, { method: 'DELETE' });
+}
+
 export async function updateUserRegion(userId: string, region: string | null, showRegion: boolean): Promise<void> {
   await fetchJson(`${API_BASE_URL}/users/${userId}/region`, {
     method: 'PUT',

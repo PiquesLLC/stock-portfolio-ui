@@ -56,6 +56,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   const [warnings, setWarnings] = useState<{ rowNumber: number; message: string; line?: string }[]>([]);
   const [stats, setStats] = useState({ totalRows: 0, validRows: 0, skippedRows: 0 });
   const [importMode, setImportMode] = useState<'replace' | 'merge' | 'incremental' | 'history'>('replace');
+  const [partialHistory, setPartialHistory] = useState(false);
   const [trades, setTrades] = useState<MappedTrade[]>([]);
   const [ledgerEvents, setLedgerEvents] = useState<CsvParseResult['ledgerEvents']>([]);
   const [telemetry, setTelemetry] = useState<ImportTelemetry | null>(null);
@@ -160,9 +161,11 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       setTrades((data.trades || []) as MappedTrade[]);
       setLedgerEvents(data.ledgerEvents || []);
       setStats({ totalRows: data.totalRows, validRows: data.validRows, skippedRows: data.skippedRows });
-      // Default to incremental (Update) mode for transaction histories — applies trades as deltas
+      setPartialHistory(!!data.partialHistory);
+      // Partial history (sells without prior buys) → incremental to apply deltas to existing portfolio.
+      // Full history → replace, because applying ALL trades as deltas would double shares.
       if ((data.trades?.length ?? 0) > 0) {
-        setImportMode('incremental');
+        setImportMode(data.partialHistory ? 'incremental' : 'replace');
       }
       setStep('review');
     } catch (err) {
@@ -395,7 +398,14 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       setResult(res);
       setStep('done');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      const msg = err instanceof Error ? err.message : 'Import failed';
+      // API returns structured error codes — show a friendlier message and suggest alternative mode
+      if (msg.includes('INCREMENTAL_OVERLAP')) {
+        setError('These trades overlap with previously imported data. Use "Replace All" to re-import your full history, or export only newer trades.');
+        setImportMode('replace');
+      } else {
+        setError(msg);
+      }
       setStep('review');
     }
   };
@@ -920,16 +930,30 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   : 'Updates existing tickers and adds new ones. Keeps unmentioned holdings.'}
               </p>
 
-              {/* Warn when using Replace All with a transaction history */}
-              {importMode === 'replace' && trades.length > 0 && (
+              {/* Warn when using Replace All with a partial transaction history */}
+              {importMode === 'replace' && trades.length > 0 && partialHistory && (
                 <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
                   <svg className="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <p className="text-[11px] text-red-400 leading-relaxed">
-                    <strong>Warning:</strong> This is a transaction history, not a holdings snapshot. "Replace All" will delete your entire portfolio and
-                    set it to only the net positions from these trades. If this CSV doesn't contain your full trade history, your portfolio will be wrong.
+                    <strong>Warning:</strong> This appears to be a partial transaction history (sells found without prior buys). "Replace All" will delete your entire portfolio and
+                    set it to only the net positions from these trades, which may be incomplete.
                     Use <button onClick={() => setImportMode('incremental')} className="underline font-medium">Update</button> instead to apply these trades to your existing holdings.
+                  </p>
+                </div>
+              )}
+
+              {/* Warn when using Update with a full transaction history — would double shares */}
+              {importMode === 'incremental' && trades.length > 0 && !partialHistory && (
+                <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <svg className="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-[11px] text-red-400 leading-relaxed">
+                    <strong>Warning:</strong> This looks like a full transaction history. "Update" mode applies all trades as additions to your existing portfolio,
+                    which will likely <strong>double your share counts</strong>.
+                    Use <button onClick={() => setImportMode('replace')} className="underline font-medium">Replace All</button> instead.
                   </p>
                 </div>
               )}
@@ -980,6 +1004,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     setExcludedPositionRows(new Set());
                     setHideSmallPositions(false);
                     setMarginDebt('');
+                    setPartialHistory(false);
                     setCsvFile(null);
                     setCsvHeaders([]);
                     setCsvRows([]);

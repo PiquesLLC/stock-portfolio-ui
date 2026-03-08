@@ -23,6 +23,7 @@ import { Term } from './Term';
 import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { NalaScore } from './NalaScore';
+import { ShareButton } from './ShareButton';
 
 /** Format a dollar delta without the $ sign, preserving +/- */
 function formatDelta(value: number): string {
@@ -407,6 +408,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
               )}
             </button>
+            <ShareButton type="stock" ticker={ticker} size="md" showLabel />
             {/* Intelligence feed toggle — desktop only */}
             <button
               onClick={toggleIntelFeed}

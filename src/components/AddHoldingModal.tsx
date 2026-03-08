@@ -17,6 +17,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
   const [avgCost, setAvgCost] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [logAsTrade, setLogAsTrade] = useState(!holding);
   const { showToast } = useToast();
   const trapRef = useFocusTrap(true);
 
@@ -36,7 +37,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
     setSubmitting(true);
     setFormError(null);
     try {
-      await addHolding({ ticker: ticker.toUpperCase(), shares: s, averageCost: c });
+      await addHolding({ ticker: ticker.toUpperCase(), shares: s, averageCost: c, ...(!logAsTrade ? { skipActivity: true } : {}) });
       showToast(`${ticker.toUpperCase()} added to portfolio`, 'success');
       onAdded?.();
       onClose();
@@ -96,6 +97,20 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
               className="w-full px-3 py-2 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/60 dark:bg-white/[0.04] text-rh-light-text dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/30 focus:border-rh-green/40 transition-all"
             />
           </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={logAsTrade}
+              onChange={(e) => setLogAsTrade(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-gray-300 dark:border-white/20 text-rh-green focus:ring-rh-green/30 bg-transparent"
+            />
+            <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+              Log as trade
+            </span>
+            <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
+              {logAsTrade ? 'Shows in Latest Moves' : 'Data correction only'}
+            </span>
+          </label>
           <button
             type="submit"
             disabled={submitting}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, CreatorEntitlement } from '../types';
-import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings, getCreatorEntitlement, subscribeToCreator } from '../api';
+import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings, getCreatorEntitlement, subscribeToCreator, deleteActivityEvent } from '../api';
 import { CreatorSubscribeButton, CreatorSubscribeModal } from './CreatorPaywallCard';
 import { createPortal } from 'react-dom';
 import { FollowButton } from './FollowButton';
@@ -9,7 +9,7 @@ import { UserPortfolioView } from './UserPortfolioView';
 import { PortfolioImport } from './PortfolioImport';
 import { useMutedUsers } from '../hooks/useMutedUsers';
 import { ReportModal } from './ReportModal';
-import { API_BASE_URL } from '../config';
+import { ShareButton } from './ShareButton';
 
 const REGION_OPTIONS = [
   { value: 'NA', label: 'North America', short: 'NA' },
@@ -66,6 +66,14 @@ const itemVariants = {
   },
 };
 
+// ── Effective return helper ────────────────────────────────────────────
+// Prefer simpleReturnPct over twrPct — TWR can be misleading when selling
+// holdings creates auto-withdrawal transactions that inflate the return.
+function effectiveReturn(perf: PerformanceData | null): number | null {
+  if (!perf) return null;
+  return perf.simpleReturnPct ?? perf.twrPct ?? null;
+}
+
 // ── Signal Rating Computation ─────────────────────────────────────────
 function computeSignalRating(perf: PerformanceData | null): {
   grade: string;
@@ -77,12 +85,13 @@ function computeSignalRating(perf: PerformanceData | null): {
   let score = 50;
   const reasons: string[] = [];
 
-  if (perf.twrPct !== null) {
-    if (perf.twrPct >= 10) { score += 30; reasons.push('Strong returns'); }
-    else if (perf.twrPct >= 5) { score += 20; reasons.push('Above-average returns'); }
-    else if (perf.twrPct >= 2) { score += 12; }
-    else if (perf.twrPct >= 0) { score += 5; }
-    else if (perf.twrPct >= -5) { score -= 5; }
+  const ret = effectiveReturn(perf);
+  if (ret !== null) {
+    if (ret >= 10) { score += 30; reasons.push('Strong returns'); }
+    else if (ret >= 5) { score += 20; reasons.push('Above-average returns'); }
+    else if (ret >= 2) { score += 12; }
+    else if (ret >= 0) { score += 5; }
+    else if (ret >= -5) { score -= 5; }
     else { score -= 15; reasons.push('Negative returns'); }
   }
 
@@ -105,7 +114,7 @@ function computeSignalRating(perf: PerformanceData | null): {
     else if (perf.maxDrawdownPct < 5) { score += 5; reasons.push('Drawdown control'); }
   }
 
-  if (perf.beta !== null && perf.beta < 0.8 && (perf.twrPct ?? 0) > 0) {
+  if (perf.beta !== null && perf.beta < 0.8 && (effectiveReturn(perf) ?? 0) > 0) {
     reasons.push('Low beta');
   }
 
@@ -139,7 +148,7 @@ function generateTagline(perf: PerformanceData | null): string {
   if (perf.alphaPct !== null) {
     if (perf.alphaPct > 5) phrases.push('consistent alpha');
     else if (perf.alphaPct > 2) phrases.push('steady outperformance');
-    else if (perf.alphaPct > 0 && (perf.twrPct ?? 0) > 0) phrases.push('benchmark-beating');
+    else if (perf.alphaPct > 0 && (effectiveReturn(perf) ?? 0) > 0) phrases.push('benchmark-beating');
   }
 
   if (perf.maxDrawdownPct !== null && perf.maxDrawdownPct < 5) {
@@ -152,13 +161,13 @@ function generateTagline(perf: PerformanceData | null): string {
     phrases.push('uncorrelated');
   }
 
-  if (perf.volatilityPct !== null && perf.volatilityPct > 30 && (perf.twrPct ?? 0) > 5) {
+  if (perf.volatilityPct !== null && perf.volatilityPct > 30 && (effectiveReturn(perf) ?? 0) > 5) {
     phrases.push('high conviction');
   }
 
   if (phrases.length === 0) {
-    if ((perf.twrPct ?? 0) > 0) return 'Positive momentum';
-    if ((perf.twrPct ?? 0) < -5) return 'Rebuilding';
+    if ((effectiveReturn(perf) ?? 0) > 0) return 'Positive momentum';
+    if ((effectiveReturn(perf) ?? 0) < -5) return 'Rebuilding';
     return 'Active portfolio';
   }
 
@@ -222,9 +231,9 @@ function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: s
 
   if ((perf.volatilityPct ?? 100) < 12) badges.push({ label: 'Steady Hand', icon: '\u{1F9CA}', color: 'text-blue-400 border-blue-400/20 bg-blue-400/[0.06]' });
 
-  if ((perf.maxDrawdownPct ?? 0) > 15 && (perf.twrPct ?? 0) > 0) badges.push({ label: 'Diamond Hands', icon: '\u{1F48E}', color: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/[0.06]' });
+  if ((perf.maxDrawdownPct ?? 0) > 15 && (effectiveReturn(perf) ?? 0) > 0) badges.push({ label: 'Diamond Hands', icon: '\u{1F48E}', color: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/[0.06]' });
 
-  if ((perf.beta ?? 1) < 0.7 && (perf.twrPct ?? 0) > 0) badges.push({ label: 'Uncorrelated', icon: '\u{1F30A}', color: 'text-purple-400 border-purple-400/20 bg-purple-400/[0.06]' });
+  if ((perf.beta ?? 1) < 0.7 && (effectiveReturn(perf) ?? 0) > 0) badges.push({ label: 'Uncorrelated', icon: '\u{1F30A}', color: 'text-purple-400 border-purple-400/20 bg-purple-400/[0.06]' });
 
   const joinDate = new Date(createdAt);
   if (joinDate < new Date('2026-03-01')) badges.push({ label: 'Early Adopter', icon: '\u{1F680}', color: 'text-amber-400 border-amber-400/20 bg-amber-400/[0.06]' });
@@ -452,7 +461,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       <UserPortfolioView
         userId={userId}
         displayName={profile.displayName}
-        returnPct={profile.performance?.twrPct ?? null}
+        returnPct={profile.performance?.simpleReturnPct ?? profile.performance?.twrPct ?? null}
         window="1M"
         session={session}
         currentUserId={currentUserId}
@@ -508,7 +517,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const perf = profile.performance;
   const hasPerformance = perf && perf.snapshotCount >= 2;
   const isNewAccount = profile.followerCount === 0 && profile.followingCount === 0;
-  const isPositive = (chartReturnPct ?? perf?.twrPct ?? 0) >= 0;
+  const isPositive = (chartReturnPct ?? perf?.simpleReturnPct ?? perf?.twrPct ?? 0) >= 0;
 
   return (
     <motion.div
@@ -613,46 +622,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   {regionShort(profile.region)}
                 </span>
               )}
-              {/* Share button */}
-              <button
-                onClick={async () => {
-                  const toast = document.getElementById('share-toast');
-                  const showToast = (msg: string) => {
-                    if (toast) { toast.textContent = msg; setTimeout(() => { toast.textContent = ''; }, 2000); }
-                  };
-                  try {
-                    const res = await fetch(`${API_BASE_URL}/social/${userId}/share-card`);
-                    if (!res.ok) throw new Error('fetch failed');
-                    const blob = await res.blob();
-                    const file = new File([blob], `nala-${profile?.username ?? 'profile'}.png`, { type: 'image/png' });
-                    const profileUrl = `${window.location.origin}/${profile?.username ?? userId}`;
-                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
-                      await navigator.share({ files: [file], title: `${profile?.displayName ?? 'Portfolio'} on Nala`, url: profileUrl });
-                    } else {
-                      // Desktop: download image + copy link
-                      const a = document.createElement('a');
-                      a.href = URL.createObjectURL(blob);
-                      a.download = file.name;
-                      a.click();
-                      URL.revokeObjectURL(a.href);
-                      await navigator.clipboard.writeText(profileUrl);
-                      showToast('Saved + Copied!');
-                    }
-                  } catch {
-                    // Final fallback: just copy URL
-                    navigator.clipboard.writeText(`${window.location.origin}/${profile?.username ?? userId}`);
-                    showToast('Link copied!');
-                  }
-                }}
-                className="shrink-0 ml-auto p-1.5 rounded-lg text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green hover:bg-rh-green/[0.06] transition-all"
-                title="Share profile"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </button>
-              <span id="share-toast" className="absolute -top-1 right-0 text-[9px] text-rh-green font-medium" />
+              <ShareButton
+                type="profile"
+                userId={userId}
+                username={profile?.username}
+                displayName={profile?.displayName}
+                className="shrink-0 ml-auto"
+              />
             </div>
             <p className="text-sm text-rh-light-muted dark:text-rh-muted">
               @{profile.username}
@@ -723,7 +699,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             </div>
           <div className="flex items-center gap-0">
             <PerformanceStat
-              value={chartReturnPct ?? perf?.twrPct ?? null}
+              value={chartReturnPct ?? perf?.simpleReturnPct ?? perf?.twrPct ?? null}
               label="Return (1mo)"
               isPercent
               primary
@@ -1083,8 +1059,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 <span className="text-rh-light-text dark:text-rh-text font-medium">{perf!.correlation!.toFixed(2)}</span>
               </div>
             )}
-            {intelligence?.topContributor && perf?.twrPct && Math.abs(perf.twrPct) > 0 && (() => {
-              const ratio = Math.abs(intelligence.topContributor!.pct / perf!.twrPct!);
+            {intelligence?.topContributor && effectiveReturn(perf) && Math.abs(effectiveReturn(perf)!) > 0 && (() => {
+              const ratio = Math.abs(intelligence.topContributor!.pct / effectiveReturn(perf)!);
               const level = ratio > 0.6 ? 'High' : ratio > 0.3 ? 'Medium' : 'Low';
               const color = level === 'High' ? 'text-amber-400' : level === 'Medium' ? 'text-yellow-400' : 'text-rh-green';
               return (
@@ -1155,7 +1131,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.25, delay: 0.35 + i * 0.06 }}
-                          className="relative"
+                          className="relative group"
                         >
                           <div className={`absolute -left-[22px] top-1 w-3 h-3 rounded-full border-2 ${
                             isSell ? 'bg-rh-red/40 border-rh-red/60' : 'bg-rh-green/40 border-rh-green/60'
@@ -1177,6 +1153,26 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                                 <span className="text-xs text-rh-light-text/70 dark:text-rh-text/70 tabular-nums font-medium">
                                   {formatValue(notionalValue)}
                                 </span>
+                              )}
+                              {isOwner && (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      await deleteActivityEvent(event.id);
+                                      setProfile(prev => prev ? {
+                                        ...prev,
+                                        recentActivity: prev.recentActivity.filter(a => a.id !== event.id),
+                                      } : prev);
+                                    } catch { /* ignore */ }
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 hover:!opacity-100 text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-red transition-all p-0.5"
+                                  title="Remove from activity"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                  </svg>
+                                </button>
                               )}
                             </div>
                           </div>

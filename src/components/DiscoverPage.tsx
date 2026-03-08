@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } fro
 import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
-import { getMarketStatus } from '../utils/portfolio-chart';
 import { StockLogo } from './StockLogo';
 import { useIsDark } from '../hooks/useIsDark';
 import { useTreemapLayout } from '../hooks/useTreemapLayout';
@@ -25,6 +24,7 @@ interface DiscoverPageProps {
   onUserClick?: (userId: string) => void;
   subTab?: string | null;
   onSubTabChange?: (subtab: string) => void;
+  portfolioTickers?: Set<string>;
 }
 
 /** Parse subtab string like "heatmap:THEMES" into { subTab, heatmapIndex } */
@@ -1024,10 +1024,10 @@ function formatMktCap(b: number): string {
   return `$${(b * 1000).toFixed(0)}M`;
 }
 
-const RANK_MEDALS: Record<number, { emoji: string; glow: string; bg: string; ring: string }> = {
-  1: { emoji: '🥇', glow: 'shadow-[0_0_16px_rgba(59,130,246,0.18)]', bg: 'bg-gradient-to-r from-blue-200/30 via-sky-100/15 dark:from-blue-500/[0.10] dark:via-sky-400/[0.03] to-transparent', ring: 'ring-1 ring-blue-300/35 dark:ring-blue-400/20' },
-  2: { emoji: '🥈', glow: 'shadow-[0_0_12px_rgba(99,102,241,0.14)]', bg: 'bg-gradient-to-r from-indigo-200/25 via-indigo-100/12 dark:from-indigo-400/[0.07] dark:via-indigo-300/[0.02] to-transparent', ring: 'ring-1 ring-indigo-300/30 dark:ring-indigo-400/15' },
-  3: { emoji: '🥉', glow: 'shadow-[0_0_10px_rgba(100,116,139,0.12)]', bg: 'bg-gradient-to-r from-slate-300/20 via-blue-100/10 dark:from-slate-400/[0.06] dark:via-blue-300/[0.02] to-transparent', ring: 'ring-1 ring-slate-300/25 dark:ring-slate-400/12' },
+const RANK_COLORS: Record<number, string> = {
+  1: '#FFF176',
+  2: '#F5F5F5',
+  3: '#FFB74D',
 };
 
 type VolumeFilter = 'top100' | 'gainers' | 'losers' | 'unusual' | 'mostFollowed';
@@ -1039,8 +1039,9 @@ const VOLUME_FILTERS: { id: VolumeFilter; label: string; dot?: string }[] = [
   { id: 'mostFollowed', label: 'Most Followed', dot: '#a855f7' },
 ];
 
-function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
+function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void; portfolioTickers?: Set<string> }) {
   const [filter, setFilter] = useState<VolumeFilter>('top100');
+  const [visibleCount, setVisibleCount] = useState(10);
   const [heroTicker, setHeroTicker] = useState<string | null>(null);
   const [heroSparkline, setHeroSparkline] = useState<string>('');
   const [heroLoading, setHeroLoading] = useState(false);
@@ -1149,81 +1150,50 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
 
   return (
     <div className="space-y-3">
-      {/* Hero header card + segmented control as one visual module — sticky below nav */}
+      {/* Header + segmented control — sticky below nav */}
       <div className="space-y-0 sticky top-[90px] sm:top-[52px] z-20 pb-3 bg-rh-light-bg dark:bg-[#050505]">
-      {/* Hero header card */}
-      <div
-        className="relative overflow-hidden rounded-2xl bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.10] shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-rh-green/[0.04] via-transparent to-transparent" />
-        <div className="relative px-5 py-3 flex items-center justify-between gap-4">
-          {/* Left: title + stats */}
-          <div className="flex-1 min-w-0">
-            <div>
-              <h2 className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-[#f5f7fa]">
-                Top 100 <span className={filter === 'losers' ? 'text-rh-red' : filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-green'} style={{ fontSize: '0.85em', fontWeight: 700 }}>
-                  {filter === 'mostFollowed' ? 'by Following' : filter === 'gainers' || filter === 'losers' ? 'by Percentage' : 'by Volume'}
-                </span>
-              </h2>
-              <p className="text-[11px] mt-0.5 text-gray-500 dark:text-white/[0.78]">
-                {filter === 'mostFollowed' ? 'Stocks with the most followers on Nala' : filter === 'gainers' ? 'Biggest percentage gainers today' : filter === 'losers' ? 'Biggest percentage losers today' : filter === 'unusual' ? 'Stocks with unusually high volume' : 'Most actively traded stocks'}
-              </p>
-            </div>
-
-            {/* Mini stats row */}
-            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08]">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/[0.55]">Total Vol</span>
-                <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-[#f5f7fa]">{formatVolume(totalVol)}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08]">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/[0.55]">Avg Move</span>
-                <span className={`text-xs font-bold tabular-nums ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
-                </span>
-              </div>
-              {highVolCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 dark:bg-green-500/[0.06] border border-green-200/60 dark:border-green-500/[0.15]">
-                  <span className="text-[10px]">🔥</span>
-                  <span className="text-xs font-bold text-rh-green">{highVolCount} unusual</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right: per-stock sparkline */}
-          <div className="flex flex-col items-end gap-1 shrink-0 mr-1 sm:mr-3 self-end">
-            {heroStock && heroSparkline ? (
-              <>
-                <div className="flex items-center gap-2">
-                  {getMarketStatus().isOpen ? (
-                    <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/40">
-                      <span className="relative flex h-[6px] w-[6px]">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-60" />
-                        <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-rh-green" />
-                      </span>
-                      live
-                    </span>
-                  ) : (
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-white/40">
-                      closed
-                    </span>
-                  )}
-                  <span className="text-[11px] font-bold text-gray-900 dark:text-[#f5f7fa]">{heroStock.ticker}</span>
-                  <span className={`text-[11px] font-bold tabular-nums ${isEffectivelyZero(heroStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                    {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
-                  </span>
-                </div>
-                <svg className="opacity-70 w-[100px] h-[28px] sm:w-[140px] sm:h-[32px]" viewBox="0 0 140 32" preserveAspectRatio="none">
-                  <path d={heroSparkline} fill="none" stroke={isEffectivelyZero(heroStock.changePercent) ? '#888' : heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </>
-            ) : heroLoading ? (
-              <div className="w-[100px] h-[28px] sm:w-[140px] sm:h-[32px] rounded-lg animate-pulse bg-gray-200/60 dark:bg-white/[0.04]" />
-            ) : (
-              <span className="text-[11px] text-gray-500 dark:text-white/30">Click a stock to preview</span>
+      {/* Header row */}
+      <div className="px-1 py-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
+            Top 100 <span className={`text-sm font-medium ${filter === 'losers' ? 'text-rh-red' : filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+              {filter === 'mostFollowed' ? 'by Following' : filter === 'gainers' || filter === 'losers' ? 'by Percentage' : 'by Volume'}
+            </span>
+          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-rh-light-muted dark:text-rh-muted">
+              Vol <span className="text-rh-light-text dark:text-rh-text font-bold">{formatVolume(totalVol)}</span>
+            </span>
+            <span className={`text-[10px] uppercase tracking-wider font-semibold ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+              Avg {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
+            </span>
+            {highVolCount > 0 && (
+              <span className="text-[10px] font-bold text-rh-green">
+                🔥 {highVolCount} unusual
+              </span>
             )}
           </div>
+        </div>
+
+        {/* Right: per-stock sparkline */}
+        <div className="flex items-center gap-2 shrink-0">
+          {heroStock && heroSparkline ? (
+            <>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-rh-light-text dark:text-rh-text">{heroStock.ticker}</span>
+                <span className={`text-[11px] font-bold tabular-nums ${isEffectivelyZero(heroStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
+                </span>
+              </div>
+              <svg className="opacity-70 w-[80px] h-[24px]" viewBox="0 0 140 32" preserveAspectRatio="none">
+                <path d={heroSparkline} fill="none" stroke={isEffectivelyZero(heroStock.changePercent) ? '#888' : heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </>
+          ) : heroLoading ? (
+            <div className="w-[80px] h-[24px] rounded animate-pulse bg-gray-200/60 dark:bg-white/[0.04]" />
+          ) : (
+            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Click a stock to preview</span>
+          )}
         </div>
       </div>
 
@@ -1254,7 +1224,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
             <button
               key={f.id}
               data-active={isActive || undefined}
-              onClick={() => setFilter(f.id)}
+              onClick={() => { setFilter(f.id); setVisibleCount(10); }}
               className="flex items-center justify-center whitespace-nowrap flex-shrink-0"
               style={{
                 flex: '1 0 auto',
@@ -1312,13 +1282,13 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
 
       {/* Column header */}
       <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06] bg-rh-light-bg dark:bg-[#050505]">
-        <div className="w-8 shrink-0" />
-        {/* Logo placeholder */}
+        <div className="w-7 shrink-0" />
         <div className="w-8 shrink-0" />
         <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Symbol</div>
         <div className="text-right shrink-0 w-[72px] text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Price</div>
-        <div className="text-right shrink-0 w-[68px] text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Chg%</div>
-        <div className="text-right shrink-0 w-[88px] hidden sm:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>{filter === 'mostFollowed' ? 'Followers' : 'Volume'}</div>
+        <div className="text-center shrink-0 w-[68px] text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Day</div>
+        <div className="text-center shrink-0 w-[68px] hidden sm:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>7D</div>
+        <div className="text-right shrink-0 w-[88px] hidden md:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>{filter === 'mostFollowed' ? 'Followers' : 'Volume'}</div>
         <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Mkt Cap</div>
       </div>
       </div>
@@ -1336,9 +1306,9 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
         </div>
       )}
       <div className="space-y-0.5">
-        {filtered.map((stock, i) => {
+        {filtered.slice(0, visibleCount).map((stock, i) => {
           const rank = i + 1;
-          const medal = RANK_MEDALS[rank];
+          const rankColor = RANK_COLORS[rank];
           const volPct = ((stock.volume ?? 0) / maxVol) * 100;
           const volRatio = (stock.avgVolume ?? 0) > 0
             ? ((stock.volume ?? 0) / (stock.avgVolume ?? 1))
@@ -1354,26 +1324,20 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 if (heroTicker === stock.ticker) { onTickerClick(stock.ticker); }
                 else { setHeroTicker(stock.ticker); }
               }}
-              className={`relative group rounded-xl px-3 py-[7px] cursor-pointer transition-all duration-200
+              className="relative group rounded-xl px-3 py-[7px] cursor-pointer transition-all duration-200
                 hover:scale-[1.005] active:scale-[0.998]
-                border
-                ${medal
-                  ? `${medal.bg} ${medal.glow} ${medal.ring}`
-                  : 'border-transparent hover:border-gray-200/50 dark:hover:border-white/[0.06] hover:bg-gray-50/80 dark:hover:bg-white/[0.025]'
-                }
+                border border-transparent hover:border-gray-200/50 dark:hover:border-white/[0.06] hover:bg-gray-50/80 dark:hover:bg-white/[0.025]
                 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20
-              `}
+              "
             >
-              {/* Left accent strip — only on non-medal rows */}
-              {!medal && (
-                <div
-                  className="absolute left-0 top-[6px] bottom-[6px] w-[3px] rounded-full transition-opacity duration-200"
-                  style={{
-                    background: isZeroChange ? '#888' : isUp ? '#00c805' : '#ea3943',
-                    opacity: isDark ? 0.35 : 0.5,
-                  }}
-                />
-              )}
+              {/* Left accent strip */}
+              <div
+                className="absolute left-0 top-[6px] bottom-[6px] w-[3px] rounded-full transition-opacity duration-200"
+                style={{
+                  background: rankColor ?? (isZeroChange ? '#888' : isUp ? '#00c805' : '#ea3943'),
+                  opacity: rankColor ? (isDark ? 0.85 : 0.9) : (isDark ? 0.35 : 0.5),
+                }}
+              />
               {/* Volume heat bar (background) — neutral tint, chips carry sentiment */}
               <div
                 className="absolute inset-y-0 left-0 rounded-xl transition-all duration-500 group-hover:opacity-100"
@@ -1388,12 +1352,12 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
               {/* Content */}
               <div className="relative flex items-center gap-3">
                 {/* Rank */}
-                <div className="w-8 text-center shrink-0">
-                  {medal ? (
-                    <span className="text-xl leading-none drop-shadow-sm">{medal.emoji}</span>
+                <div className="w-7 text-center shrink-0">
+                  {rankColor ? (
+                    <span className="text-sm font-extrabold tabular-nums" style={{ color: rankColor }}>{rank}</span>
                   ) : rank <= 10 ? (
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-white/10 dark:to-white/5 flex items-center justify-center mx-auto">
-                      <span className="text-[11px] font-extrabold tabular-nums text-rh-light-text dark:text-rh-text">{rank}</span>
+                    <div className="w-5 h-5 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center mx-auto">
+                      <span className="text-[10px] font-bold tabular-nums text-rh-light-text dark:text-rh-text">{rank}</span>
                     </div>
                   ) : (
                     <span className="text-xs font-bold tabular-nums text-gray-500 dark:text-rh-muted/60">{rank}</span>
@@ -1404,9 +1368,15 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 <StockLogo ticker={stock.ticker} size="md" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-extrabold text-rh-light-text dark:text-rh-text tracking-tight">{stock.ticker}</span>
+                    <span className="text-sm font-bold tracking-tight" style={rankColor ? { color: rankColor } : undefined}>
+                      {!rankColor && <span className="text-rh-light-text dark:text-rh-text">{stock.ticker}</span>}
+                      {rankColor && stock.ticker}
+                    </span>
+                    {portfolioTickers?.has(stock.ticker) && (
+                      <span className="text-rh-green text-xs leading-none">✓</span>
+                    )}
                     {isHighVol && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-rh-green/15 to-emerald-500/10 dark:from-rh-green/10 dark:to-emerald-500/5 text-rh-green border border-rh-green/20">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rh-green/10 dark:bg-rh-green/[0.06] text-rh-green">
                         🔥 {volRatio!.toFixed(1)}x
                       </span>
                     )}
@@ -1422,7 +1392,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                 </div>
 
                 {/* Change pill */}
-                <div className="shrink-0 w-[68px] flex justify-end">
+                <div className="shrink-0 w-[68px] flex justify-center">
                   <div className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
                     isZeroChange
                       ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted'
@@ -1434,8 +1404,28 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                   </div>
                 </div>
 
+                {/* 7D Change */}
+                <div className="shrink-0 w-[68px] hidden sm:flex justify-center">
+                  {(() => {
+                    const wk = stock.weekChangePercent ?? 0;
+                    const wkZero = isEffectivelyZero(wk);
+                    const wkUp = wk >= 0;
+                    return (
+                      <div className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
+                        wkZero
+                          ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted'
+                          : wkUp
+                          ? 'bg-rh-green/10 dark:bg-rh-green/[0.08] text-rh-green'
+                          : 'bg-rh-red/10 dark:bg-rh-red/[0.08] text-rh-red'
+                      }`}>
+                        {wkUp ? '+' : ''}{wk.toFixed(2)}%
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 {/* Volume / Followers cell */}
-                <div className="shrink-0 w-[88px] hidden sm:flex flex-col items-end gap-0.5">
+                <div className="shrink-0 w-[88px] hidden md:flex flex-col items-end gap-0.5">
                   {filter === 'mostFollowed' ? (
                     <>
                       <div className="text-sm font-bold text-purple-500 dark:text-purple-400 tabular-nums">
@@ -1450,7 +1440,7 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
                       </div>
                       <div className="w-full h-1 rounded-full bg-gray-200/80 dark:bg-white/[0.06] overflow-hidden">
                         <div
-                          className="h-full rounded-full transition-all duration-700 bg-gray-400/50 dark:bg-white/20 group-hover:bg-gray-500/60 dark:group-hover:bg-white/30"
+                          className="h-full rounded-full transition-all duration-700 bg-rh-green/40 group-hover:bg-rh-green/60"
                           style={{ width: `${volPct}%` }}
                         />
                       </div>
@@ -1469,6 +1459,14 @@ function Top100View({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTicke
           );
         })}
       </div>
+      {visibleCount < filtered.length && (
+        <button
+          onClick={() => setVisibleCount(prev => Math.min(prev + 10, filtered.length))}
+          className="w-full py-2 mt-1 text-sm font-semibold text-rh-green hover:text-rh-green/80 transition-colors"
+        >
+          More
+        </button>
+      )}
     </div>
   );
 }
@@ -1826,7 +1824,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
 
 /* ─── Discover Page (wrapper with sub-tabs) ─── */
 
-export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTab, onSubTabChange }: DiscoverPageProps) {
+export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTab, onSubTabChange, portfolioTickers }: DiscoverPageProps) {
   const parsed = useMemo(() => parseSubTab(externalSubTab), [externalSubTab]);
   const [subTab, setSubTabInternal] = useState<DiscoverSubTab>(parsed.subTab);
   const [heatmapIndex, setHeatmapIndex] = useState<MarketIndex>(parsed.heatmapIndex ?? 'SP500');
@@ -1894,7 +1892,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       {subTab === 'heatmap' ? (
         <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
       ) : subTab === 'top100' ? (
-        <Top100View stocks={allStocks} onTickerClick={onTickerClick} />
+        <Top100View stocks={allStocks} onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'screener' ? (
         <ScreenerView stocks={allStocks} onTickerClick={onTickerClick} />
       ) : (

@@ -76,7 +76,7 @@ const HERO_VALUE_ANIMATIONS = [
 // Periods available on the free plan
 const FREE_PERIODS: Set<PortfolioChartPeriod> = new Set(['1D', '1W', 'YTD']);
 
-export function PortfolioValueChart({ currentValue, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session, quotesStale }: Props) {
+export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session, quotesStale }: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const userPlan = user?.plan || 'free';
@@ -489,10 +489,12 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
   const hoverValue = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex].value : null;
   const displayValue = hoverValue ?? currentValue;
 
-  // Single formula for all periods — no switching between API values and calculated values.
-  // This guarantees hovering at the latest point shows the exact same numbers as the header.
-  const displayChange = displayValue - periodStartValue;
-  const displayChangePct = periodStartValue > 0 ? (displayChange / periodStartValue) * 100 : 0;
+  // For 1D non-hover: use API dayChange props directly — these are purely price-based
+  // and immune to margin debt timing mismatches (portfolio refreshes before chart data).
+  // For hover or non-1D: compute from chart data as before.
+  const is1DLive = selectedPeriod === '1D' && hoverIndex === null;
+  const displayChange = is1DLive ? dayChange : displayValue - periodStartValue;
+  const displayChangePct = is1DLive ? dayChangePercent : (periodStartValue > 0 ? (displayChange / periodStartValue) * 100 : 0);
   const confidenceThreshold = chartData?.confidenceThreshold ?? 80;
   const hasEstimatedData = shouldShowEstimatedBadge(
     selectedPeriod,
@@ -503,10 +505,13 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
 
   // Emit period return to parent (for benchmark widget consistency)
   // When data is insufficient, emit null so benchmark widget shows dashes
+  // For 1D: use API dayChangePercent (immune to margin timing)
   const periodReturnPct = chartData?.insufficientData ? null : (
-    periodStartValue > 0
-      ? ((currentValue - periodStartValue) / periodStartValue) * 100
-      : null
+    selectedPeriod === '1D'
+      ? dayChangePercent
+      : (periodStartValue > 0
+        ? ((currentValue - periodStartValue) / periodStartValue) * 100
+        : null)
   );
   useEffect(() => {
     onReturnChange?.(periodReturnPct != null ? Math.round(periodReturnPct * 100) / 100 : null);
@@ -1002,37 +1007,29 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
                 else hoverSession = 'after';
               }
 
-              // Hovering on pre-market: "Today" line + "Pre-market" change at hovered point
-              // Only show breakdown when afterHoursChange is meaningful (regularClose split exists)
-              if (hoverSession === 'pre' && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005) {
-                const regularCloseVal = periodStartValue + (regularDayChange ?? 0);
-                const pmChange = displayValue - regularCloseVal;
-                const pmChangePct = regularCloseVal > 0 ? (pmChange / regularCloseVal) * 100 : 0;
+              // Pre-market hover: single line showing pre-market change from previous close.
+              // No "Today" line — the regular session hasn't happened yet.
+              if (hoverSession === 'pre' && hoverIndex !== null) {
                 return (
-                  <>
-                    <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
-                    </p>
-                    <p className={`text-sm mt-0.5 font-medium ${pmChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
-                      {formatChange(pmChange)} ({formatPct(pmChangePct)})
-                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">Pre-market</span>
-                      {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
-                    </p>
-                  </>
+                  <p className={`text-base mt-2 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {formatChange(displayChange)} ({formatPct(displayChangePct)})
+                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Pre-market</span>
+                    {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                  </p>
                 );
               }
 
-              // Hovering on after-hours: two lines — "Today" + "After hours" with time
-              // Only show breakdown when afterHoursChange is meaningful (regularClose split exists)
-              if (hoverSession === 'after' && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005) {
-                const regularCloseVal = periodStartValue + (regularDayChange ?? 0);
+              // After-hours hover: "Today" (regular session) + "After hours" (separate movement)
+              if (hoverSession === 'after' && hoverIndex !== null) {
+                const regChange = regularDayChange ?? dayChange;
+                const regChangePct = regularDayChangePercent ?? dayChangePercent;
+                const regularCloseVal = periodStartValue + (regularDayChange ?? dayChange);
                 const ahChange = displayValue - regularCloseVal;
                 const ahChangePct = regularCloseVal > 0 ? (ahChange / regularCloseVal) * 100 : 0;
                 return (
                   <>
-                    <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
+                    <p className={`text-base mt-2 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {formatChange(regChange)} ({formatPct(regChangePct)})
                       <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
                     </p>
                     <p className={`text-sm mt-0.5 font-medium ${ahChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
@@ -1055,25 +1052,6 @@ export function PortfolioValueChart({ currentValue, regularDayChange, regularDay
                     <p className={`text-sm mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                       {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
                       <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">{session === 'PRE' ? 'Pre-market' : 'After hours'}</span>
-                    </p>
-                  </>
-                );
-              }
-
-              // Hovering on pre-market/after-hours (no afterHoursChange split):
-              // Show "Today" live change + cursor change with time
-              if ((hoverSession === 'pre' || hoverSession === 'after') && hoverIndex !== null) {
-                const todayChange = currentValue - periodStartValue;
-                const todayChangePct = periodStartValue > 0 ? (todayChange / periodStartValue) * 100 : 0;
-                return (
-                  <>
-                    <p className={`text-base mt-2 font-semibold ${todayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {formatChange(todayChange)} ({formatPct(todayChangePct)})
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
-                    </p>
-                    <p className={`text-sm mt-0.5 font-medium ${displayChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
-                      {formatChange(displayChange)} ({formatPct(displayChangePct)})
-                      {hoverLabel && <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">{hoverLabel}</span>}
                     </p>
                   </>
                 );

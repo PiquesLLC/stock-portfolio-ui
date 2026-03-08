@@ -143,7 +143,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
-  const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin' });
+  const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin', logAsTrade: true });
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
   // Custom order for drag-to-reorder (scoped by userId)
@@ -373,6 +373,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       shares: String(holding.shares),
       averageCost: String(holding.averageCost),
       fundingSource: 'cash', // Not used for edits, but needed for type
+      logAsTrade: false, // Edits are data corrections by default
     });
     setModalError('');
   };
@@ -380,7 +381,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   // Open add modal
   const handleOpenAdd = useCallback(() => {
     setShowAddModal(true);
-    setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' });
+    setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash', logAsTrade: true });
     setModalError('');
   }, []);
 
@@ -396,7 +397,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     setEditingHolding(null);
     setShowAddModal(false);
     setModalError('');
-    setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' });
+    setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash', logAsTrade: true });
     // Return focus to the Add Stock button for accessibility
     setTimeout(() => {
       addStockButtonRef.current?.focus();
@@ -447,7 +448,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       const oldHoldingsValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
       const oldNetEquity = oldHoldingsValue + cashBalance - marginDebt;
 
-      await addHolding({ ticker, shares, averageCost });
+      await addHolding({ ticker, shares, averageCost, ...(!formData.logAsTrade ? { skipActivity: true } : {}) });
 
       // If buying on margin, adjust margin debt to keep net equity unchanged.
       // We fetch the fresh portfolio to get the actual new totalAssets at MARKET prices,
@@ -557,6 +558,20 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           )}
         </div>
       )}
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={formData.logAsTrade}
+          onChange={(e) => setFormData({ ...formData, logAsTrade: e.target.checked })}
+          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-rh-green focus:ring-rh-green/30 bg-transparent"
+        />
+        <span className="text-sm text-rh-light-muted dark:text-rh-muted">
+          Log as trade
+        </span>
+        <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
+          {formData.logAsTrade ? 'Shows in Latest Moves' : 'Data correction only'}
+        </span>
+      </label>
       {modalError && (
         <p className="text-rh-red text-sm">{modalError}</p>
       )}

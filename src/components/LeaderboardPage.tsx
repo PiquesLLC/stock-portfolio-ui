@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession } from '../types';
 import { getLeaderboard } from '../api';
 import { UserProfileView } from './UserProfileView';
+import { ShareButton } from './ShareButton';
 
 const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
   { id: '1D', label: '1D' },
@@ -189,7 +190,10 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   return (
     <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-4 pt-2 pb-6">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
+          {currentUserId && <ShareButton type="profile" userId={currentUserId} />}
+        </div>
         <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
           {WINDOWS.map((w) => (
             <button

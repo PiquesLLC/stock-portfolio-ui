@@ -13,6 +13,7 @@ import { NotificationBell } from './components/NotificationBell';
 import { UserMenu } from './components/UserMenu';
 // AccountSettingsModal removed — replaced by full-page AccountSettingsPage
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
+import { ShareButton } from './components/ShareButton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { PremiumOverlay } from './components/PremiumOverlay';
@@ -395,6 +396,11 @@ export default function App() {
   };
 
   const findHolding = (ticker: string) => portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null;
+
+  const portfolioTickers = useMemo(() => {
+    if (!portfolio?.holdings) return new Set<string>();
+    return new Set(portfolio.holdings.map(h => h.ticker.toUpperCase()));
+  }, [portfolio?.holdings]);
 
   if (authLoading) {
     return (
@@ -1083,7 +1089,8 @@ export default function App() {
             {portfolio && portfolio.holdings.length > 0 && (
               <div className="-mx-3 sm:-mx-6 relative">
                 {user && (
-                  <div className="absolute top-2 right-3 sm:right-6 z-10">
+                  <div className="absolute top-2 right-3 sm:right-6 z-10 flex items-center gap-2">
+                    <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
                     <PortfolioPicker
                       selectedPortfolioId={selectedPortfolioId}
                       onSelect={setSelectedPortfolioId}
@@ -1309,6 +1316,7 @@ export default function App() {
                 onUserClick={handleViewProfile}
                 subTab={discoverSubTab}
                 onSubTabChange={setDiscoverSubTab}
+                portfolioTickers={portfolioTickers}
               />
             </ErrorBoundary>
           )}
