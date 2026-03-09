@@ -30,7 +30,7 @@ interface DiscoverPageProps {
 
 /** Parse subtab string like "heatmap:THEMES" into { subTab, heatmapIndex } */
 function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; heatmapIndex?: MarketIndex } {
-  if (!raw) return { subTab: 'sectors' };
+  if (!raw) return { subTab: 'heatmap' };
   if (raw === 'sectors') return { subTab: 'sectors' };
   if (raw === 'top100') return { subTab: 'top100' };
   if (raw === 'screener') return { subTab: 'screener' };
@@ -1877,11 +1877,11 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
     <div className="space-y-3">
       {/* Sub-tab bar */}
       <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
-        <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
-          Sectors
-        </button>
         <button onClick={() => setSubTab('heatmap')} className={tabClass(subTab === 'heatmap')}>
           Heatmap
+        </button>
+        <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
+          Sectors
         </button>
         <button onClick={() => setSubTab('top100')} className={tabClass(subTab === 'top100')}>
           Top 100
