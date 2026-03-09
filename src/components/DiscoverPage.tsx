@@ -1688,11 +1688,14 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
     if (cached) {
       setData(cached.data);
       setLoading(false);
+    } else {
+      // Clear old data immediately so we don't flash the previous index's heatmap
+      setData(null);
+      setLoading(true);
     }
 
     const load = async () => {
       try {
-        if (!cached) setLoading(true);
         const resp = index === 'THEMES'
           ? await getThemesHeatmap(period)
           : index === 'ETF'

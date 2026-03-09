@@ -66,16 +66,15 @@ function lineShade(pct: number, rank: number, total: number): string {
 
 const GAP_THRESHOLD_MIN = 90; // Break path if gap > 90 minutes (handles hourly candles)
 
-function buildTimePath(sparkline: number[], timestamps: string[], yMin: number, yRange: number): string {
-  if (sparkline.length === 0 || timestamps.length === 0) return '';
+function buildTimePathFromMinutes(sparkline: number[], minutes: number[], yMin: number, yRange: number): string {
+  if (sparkline.length === 0 || minutes.length === 0) return '';
   const parts: string[] = [];
   let prevMin = -Infinity;
   let needsMove = true;
   for (let i = 0; i < sparkline.length; i++) {
-    const min = toMinutesET(timestamps[i]);
+    const min = minutes[i];
     const xFrac = (min - DAY_START_MIN) / DAY_RANGE_MIN;
     if (xFrac < 0 || xFrac > 1) continue;
-    // Break path at large time gaps (e.g. pre-market → regular hours)
     if (min - prevMin > GAP_THRESHOLD_MIN) needsMove = true;
     const x = PAD.left + xFrac * PLOT_W;
     const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
@@ -109,14 +108,12 @@ interface HoverInfo {
   y: number;
 }
 
-function getHoverIndex1D(timestamps: string[], svgX: number): number {
-  // Map svgX back to minutes, find closest timestamp
+function getHoverIndex1D(minutes: number[], svgX: number): number {
   const targetMin = DAY_START_MIN + ((svgX - PAD.left) / PLOT_W) * DAY_RANGE_MIN;
   let best = 0;
   let bestDist = Infinity;
-  for (let i = 0; i < timestamps.length; i++) {
-    const min = toMinutesET(timestamps[i]);
-    const dist = Math.abs(min - targetMin);
+  for (let i = 0; i < minutes.length; i++) {
+    const dist = Math.abs(minutes[i] - targetMin);
     if (dist < bestDist) { bestDist = dist; best = i; }
   }
   return best;
@@ -187,6 +184,16 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return items.sort((a, b) => b.changePercent - a.changePercent);
   }, [data]);
 
+  // Pre-compute ET minutes for 1D (avoids expensive toLocaleString on hover AND render)
+  const minutesMap = useMemo(() => {
+    if (period !== '1D') return null;
+    const map = new Map<string, number[]>();
+    for (const item of allItems) {
+      map.set(item.ticker, item.timestamps.map(toMinutesET));
+    }
+    return map;
+  }, [allItems, period]);
+
   // Y-axis range
   const { yMin, yRange } = useMemo((): { yMin: number; yRange: number } => {
     if (allItems.length === 0) return { yMin: -3, yRange: 6 };
@@ -208,6 +215,20 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     }
     return labels;
   }, [yMin, yRange]);
+
+  // Pre-compute SVG paths (only depend on data, not hover state)
+  const pathMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of allItems) {
+      if (period === '1D' && minutesMap) {
+        const mins = minutesMap.get(item.ticker) || [];
+        map.set(item.ticker, buildTimePathFromMinutes(item.sparkline, mins, yMin, yRange));
+      } else {
+        map.set(item.ticker, buildIndexPath(item.sparkline, yMin, yRange));
+      }
+    }
+    return map;
+  }, [allItems, period, yMin, yRange, minutesMap]);
 
   // Hover handler — sticky sector lock with up/down cycling:
   // Left/right scrubs time on the locked sector.
@@ -236,8 +257,8 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       let timeStr = '';
       for (const item of allItems) {
         if (item.sparkline.length === 0) continue;
-        const idx = period === '1D'
-          ? getHoverIndex1D(item.timestamps, svgX)
+        const idx = period === '1D' && minutesMap
+          ? getHoverIndex1D(minutesMap.get(item.ticker) || [], svgX)
           : getHoverIndexByPosition(item.sparkline.length, svgX);
         const val = item.sparkline[idx];
         const ts = item.timestamps[idx];
@@ -302,7 +323,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         }
       }
     },
-    [allItems, period, yMin, yRange],
+    [allItems, period, yMin, yRange, minutesMap],
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -322,23 +343,15 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
   if (!data || allItems.length === 0) return null;
 
-  const pathFor = (sparkline: number[], timestamps: string[]) =>
-    period === '1D'
-      ? buildTimePath(sparkline, timestamps, yMin, yRange)
-      : buildIndexPath(sparkline, yMin, yRange);
-
   const zeroY = PAD.top + PLOT_H - ((0 - yMin) / (yRange || 1)) * PLOT_H;
 
   const timeLabels1D = [
     { min: 4 * 60, label: '4 AM' },
-    { min: 6 * 60, label: '6 AM' },
-    { min: 8 * 60, label: '8 AM' },
+    { min: 7 * 60, label: '7 AM' },
     { min: 9 * 60 + 30, label: '9:30' },
-    { min: 11 * 60, label: '11 AM' },
-    { min: 13 * 60, label: '1 PM' },
-    { min: 15 * 60, label: '3 PM' },
-    { min: 16 * 60, label: '4 PM' },
-    { min: 18 * 60, label: '6 PM' },
+    { min: 12 * 60, label: '12 PM' },
+    { min: 14 * 60 + 30, label: '2:30' },
+    { min: 17 * 60, label: '5 PM' },
     { min: 20 * 60, label: '8 PM' },
   ];
 
@@ -431,7 +444,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               return (
                 <path
                   key={item.ticker}
-                  d={pathFor(item.sparkline, item.timestamps)}
+                  d={pathMap.get(item.ticker) || ''}
                   fill="none"
                   stroke={isHovered ? lineColor(item.changePercent) : color}
                   strokeWidth={isHovered ? 2.5 : 1.3}
@@ -466,13 +479,14 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
             {/* Time labels */}
             {period === '1D' ? (
-              timeLabels1D.map(({ min, label }) => {
+              timeLabels1D.map(({ min, label }, i) => {
                 const x = PAD.left + ((min - DAY_START_MIN) / DAY_RANGE_MIN) * PLOT_W;
+                const anchor = i === 0 ? 'start' : i === timeLabels1D.length - 1 ? 'end' : 'middle';
                 return (
                   <text
                     key={label}
                     x={x} y={CHART_H - 5}
-                    textAnchor="middle"
+                    textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
                     fontSize="7"
                     fontFamily="system-ui"
@@ -488,16 +502,17 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               if (longestTs.length === 0) return null;
               const count = longestTs.length;
               const indices = [0, Math.floor(count / 4), Math.floor(count / 2), Math.floor(count * 3 / 4), count - 1];
-              return indices.map(idx => {
+              return indices.map((idx, i) => {
                 const xFrac = count > 1 ? idx / (count - 1) : 0.5;
                 const x = PAD.left + xFrac * PLOT_W;
                 const d = new Date(longestTs[idx]);
                 const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const anchor = i === 0 ? 'start' : i === indices.length - 1 ? 'end' : 'middle';
                 return (
                   <text
                     key={idx}
                     x={x} y={CHART_H - 5}
-                    textAnchor="middle"
+                    textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
                     fontSize="7"
                     fontFamily="system-ui"
@@ -532,42 +547,37 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
           )}
         </div>
 
-        {/* Glassmorphed Leaderboard */}
-        <div className="w-[190px] shrink-0 flex flex-col m-2 rounded-xl overflow-hidden backdrop-blur-xl border border-white/[0.08] shadow-lg"
-          style={{ background: 'linear-gradient(135deg, rgba(30,30,35,0.85), rgba(20,20,25,0.95))' }}
-        >
-          {allItems.map((item, i) => {
+        {/* Leaderboard */}
+        <div className="w-[180px] shrink-0 flex flex-col my-2 mr-1 overflow-hidden">
+          {allItems.map((item) => {
             const isHovered = hoveredTicker === item.ticker;
             const pct = item.changePercent;
             const color = lineColor(pct);
-            // Vivid row backgrounds
-            const rowBg = isHovered
-              ? 'rgba(255,255,255,0.1)'
-              : pct >= 1.0 ? 'rgba(0,200,5,0.3)'
-              : pct >= 0.3 ? 'rgba(0,200,5,0.18)'
-              : pct > 0.02 ? 'rgba(0,200,5,0.08)'
-              : pct > -0.02 ? 'transparent'
-              : pct > -0.3 ? 'rgba(255,59,48,0.08)'
-              : pct > -1.0 ? 'rgba(255,59,48,0.18)'
-              : 'rgba(255,59,48,0.3)';
+            const maxAbsPct = Math.max(...allItems.map(it => Math.abs(it.changePercent)), 0.01);
+            const barWidth = (Math.abs(pct) / maxAbsPct) * 100;
             return (
               <button
                 key={item.ticker}
-                className={`w-full flex items-center justify-between px-3.5 flex-1 min-h-0 transition-all duration-150 cursor-pointer ${
-                  i < allItems.length - 1 ? 'border-b border-white/[0.05]' : ''
-                } hover:bg-white/[0.08]`}
-                style={{ background: rowBg }}
+                className={`w-full flex items-center gap-1.5 px-2 flex-1 min-h-0 transition-all duration-150 cursor-pointer rounded-md ${
+                  isHovered ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'
+                }`}
                 onMouseEnter={() => setHoveredTicker(item.ticker)}
                 onMouseLeave={() => setHoveredTicker(null)}
                 onClick={() => onTickerClick?.(item.ticker)}
               >
-                <span className={`text-[12px] font-bold tracking-tight transition-colors ${
-                  isHovered ? 'text-white' : 'text-white/70'
+                <span className={`text-[11px] font-semibold w-9 shrink-0 transition-colors ${
+                  isHovered ? 'text-white' : 'text-white/50'
                 }`}>
                   {item.ticker}
                 </span>
+                <div className="flex-1 h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${barWidth}%`, backgroundColor: color, opacity: isHovered ? 1 : 0.5 }}
+                  />
+                </div>
                 <span
-                  className="text-[12px] font-bold tabular-nums"
+                  className="text-[11px] font-semibold tabular-nums w-[52px] text-right shrink-0"
                   style={{ color }}
                 >
                   {pct > 0 ? '+' : ''}{pct.toFixed(2)}%
