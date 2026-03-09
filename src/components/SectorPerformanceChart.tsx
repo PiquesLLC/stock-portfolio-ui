@@ -11,7 +11,6 @@ const PLOT_H = CHART_H - PAD.top - PAD.bottom;
 
 type Period = '1D' | '1W' | '1M';
 
-// 1D window: 4 AM – 8 PM ET (16 hours) in minutes from midnight ET
 const DAY_START_MIN = 4 * 60;
 const DAY_END_MIN = 20 * 60;
 const DAY_RANGE_MIN = DAY_END_MIN - DAY_START_MIN;
@@ -25,42 +24,70 @@ function toMinutesET(iso: string): number {
   return et.getHours() * 60 + et.getMinutes();
 }
 
+function formatTimestampET(iso: string, showDate: boolean): string {
+  const d = new Date(iso);
+  if (showDate) {
+    return d.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    });
+  }
+  return d.toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric', minute: '2-digit',
+  });
+}
+
 /* ─── Color helpers ──────────────────────────────────────────────────────── */
 
-// Bloomberg-style: gold/yellow for top performers, greens for mid-positive,
-// reds for negative, dark/black for worst
-function getLineColor(rank: number, total: number, changePercent: number): string {
-  // Split into positive/neutral/negative groups based on actual change
-  if (changePercent > 0.1) {
-    // Positive: gold → green spectrum
-    if (rank === 0) return '#e8b230';
-    if (rank === 1) return '#c9a028';
-    return rank <= 3 ? '#22c55e' : '#15803d';
-  }
-  if (changePercent < -0.1) {
-    // Negative: red → dark spectrum
-    const negRank = rank - total; // distance from bottom
-    if (negRank >= -1) return '#1c1917'; // worst = black
-    if (negRank >= -2) return '#292524';
-    if (negRank >= -3) return '#7f1d1d';
-    return rank >= total - 5 ? '#991b1b' : '#dc2626';
-  }
-  // Near zero
-  return 'rgba(120,120,120,0.5)';
+const GREEN = '#00c805';
+const RED = '#ff3b30';
+
+function lineColor(pct: number): string {
+  return pct >= 0 ? GREEN : RED;
 }
 
-function getLeaderboardBg(changePercent: number): string {
-  if (changePercent >= 1.5) return 'rgba(0,180,5,0.35)';
-  if (changePercent >= 0.5) return 'rgba(0,180,5,0.22)';
-  if (changePercent > 0.05) return 'rgba(0,180,5,0.12)';
-  if (changePercent > -0.05) return 'rgba(100,100,100,0.08)';
-  if (changePercent > -0.5) return 'rgba(220,38,38,0.12)';
-  if (changePercent > -1.5) return 'rgba(220,38,38,0.22)';
-  return 'rgba(220,38,38,0.35)';
+function lineShade(pct: number, rank: number, total: number): string {
+  // Brighter for extreme performers, slightly muted for middle
+  if (pct >= 0) {
+    const t = total > 1 ? rank / (total - 1) : 0;
+    // rank 0 = best positive → brightest green, higher rank → dimmer
+    const alpha = 1 - t * 0.4;
+    return `rgba(0,200,5,${alpha.toFixed(2)})`;
+  }
+  // Negative: rank closer to total-1 = worst → brightest red
+  const t = total > 1 ? (total - 1 - rank) / (total - 1) : 0;
+  const alpha = 1 - t * 0.4;
+  return `rgba(255,59,48,${alpha.toFixed(2)})`;
 }
 
-function changeColor(pct: number): string {
-  return pct > 0.01 ? '#00c805' : pct < -0.01 ? '#ff3b30' : '#999';
+function leaderboardBg(pct: number): string {
+  if (pct >= 1.5) return 'rgba(0,200,5,0.25)';
+  if (pct >= 0.5) return 'rgba(0,200,5,0.15)';
+  if (pct > 0.02) return 'rgba(0,200,5,0.07)';
+  if (pct > -0.02) return 'rgba(120,120,120,0.05)';
+  if (pct > -0.5) return 'rgba(255,59,48,0.07)';
+  if (pct > -1.5) return 'rgba(255,59,48,0.15)';
+  return 'rgba(255,59,48,0.25)';
+}
+
+/* ─── Outlier filtering ──────────────────────────────────────────────────── */
+
+/** Clamp sudden jumps in sparkline data (e.g. bad candle from API) */
+function cleanSparkline(sparkline: number[]): number[] {
+  if (sparkline.length < 3) return sparkline;
+  const diffs = [];
+  for (let i = 1; i < sparkline.length; i++) diffs.push(Math.abs(sparkline[i] - sparkline[i - 1]));
+  const mean = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+  const std = Math.sqrt(diffs.reduce((a, b) => a + (b - mean) ** 2, 0) / diffs.length);
+  const threshold = mean + Math.max(std * 4, 0.5);
+
+  const result = [sparkline[0]];
+  for (let i = 1; i < sparkline.length; i++) {
+    const jump = Math.abs(sparkline[i] - result[i - 1]);
+    result.push(jump > threshold ? result[i - 1] : sparkline[i]);
+  }
+  return result;
 }
 
 /* ─── SVG path builders ──────────────────────────────────────────────────── */
@@ -79,7 +106,6 @@ function buildTimePath(sparkline: number[], timestamps: string[], yMin: number, 
   return parts.join('');
 }
 
-/** Non-1D: index-based x-axis — evenly spaced points, no gaps for weekends */
 function buildIndexPath(sparkline: number[], yMin: number, yRange: number): string {
   if (sparkline.length === 0) return '';
   const parts: string[] = [];
@@ -91,6 +117,34 @@ function buildIndexPath(sparkline: number[], yMin: number, yRange: number): stri
     parts.push(`${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
   }
   return parts.join('');
+}
+
+/* ─── Hover helpers ──────────────────────────────────────────────────────── */
+
+interface HoverInfo {
+  ticker: string;
+  value: number;
+  timestamp: string;
+  color: string;
+  y: number;
+}
+
+function getHoverIndex1D(timestamps: string[], svgX: number): number {
+  // Map svgX back to minutes, find closest timestamp
+  const targetMin = DAY_START_MIN + ((svgX - PAD.left) / PLOT_W) * DAY_RANGE_MIN;
+  let best = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < timestamps.length; i++) {
+    const min = toMinutesET(timestamps[i]);
+    const dist = Math.abs(min - targetMin);
+    if (dist < bestDist) { bestDist = dist; best = i; }
+  }
+  return best;
+}
+
+function getHoverIndexByPosition(count: number, svgX: number): number {
+  const frac = (svgX - PAD.left) / PLOT_W;
+  return Math.max(0, Math.min(count - 1, Math.round(frac * (count - 1))));
 }
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
@@ -105,6 +159,8 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const [loading, setLoading] = useState(true);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
   const [hoverX, setHoverX] = useState<number | null>(null);
+  const [hoverInfos, setHoverInfos] = useState<HoverInfo[]>([]);
+  const [hoverTime, setHoverTime] = useState<string>('');
   const svgRef = useRef<SVGSVGElement>(null);
 
   const fetchData = useCallback(async (p: Period) => {
@@ -125,23 +181,37 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return () => clearInterval(interval);
   }, [period, fetchData]);
 
-  // Y-axis: only compute range + the 0% line position
-  const { yMin, yRange } = useMemo((): { yMin: number; yRange: number } => {
-    if (!data) return { yMin: -3, yRange: 6 };
-    const allValues = [
-      ...data.sectors.flatMap(s => s.sparkline),
-      ...data.benchmark.sparkline,
-      0,
+  // Clean sparklines and build sorted items list
+  const allItems = useMemo(() => {
+    if (!data) return [];
+    const items = [
+      ...data.sectors.map(s => ({
+        ticker: s.ticker,
+        changePercent: s.changePercent,
+        sparkline: cleanSparkline(s.sparkline),
+        timestamps: s.timestamps,
+      })),
+      {
+        ticker: 'SPY',
+        changePercent: data.benchmark.changePercent,
+        sparkline: cleanSparkline(data.benchmark.sparkline),
+        timestamps: data.benchmark.timestamps,
+      },
     ];
+    return items.sort((a, b) => b.changePercent - a.changePercent);
+  }, [data]);
+
+  // Y-axis range
+  const { yMin, yRange } = useMemo((): { yMin: number; yRange: number } => {
+    if (allItems.length === 0) return { yMin: -3, yRange: 6 };
+    const allValues = [...allItems.flatMap(s => s.sparkline), 0];
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
     const padding = Math.max((max - min) * 0.15, 0.3);
-    const computedMin = min - padding;
-    const computedMax = max + padding;
-    return { yMin: computedMin, yRange: computedMax - computedMin };
-  }, [data]);
+    return { yMin: min - padding, yRange: max - min + padding * 2 };
+  }, [allItems]);
 
-  // Y-axis labels: just a few key values (top, 0%, bottom)
+  // Y-axis labels
   const yLabels = useMemo(() => {
     const labels: { value: number; y: number }[] = [];
     const step = yRange > 8 ? 2 : yRange > 4 ? 1 : 0.5;
@@ -153,16 +223,54 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return labels;
   }, [yMin, yRange]);
 
+  // Hover handler — compute crosshair + per-sector values at cursor position
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!svgRef.current) return;
+      if (!svgRef.current || allItems.length === 0) return;
       const rect = svgRef.current.getBoundingClientRect();
       const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
-      if (svgX < PAD.left || svgX > CHART_W - PAD.right) { setHoverX(null); return; }
+      if (svgX < PAD.left || svgX > CHART_W - PAD.right) {
+        setHoverX(null);
+        setHoverInfos([]);
+        setHoverTime('');
+        return;
+      }
       setHoverX(svgX);
+
+      // Find value at hover position for each sector
+      const infos: HoverInfo[] = [];
+      let timeStr = '';
+      for (const item of allItems) {
+        if (item.sparkline.length === 0) continue;
+        const idx = period === '1D'
+          ? getHoverIndex1D(item.timestamps, svgX)
+          : getHoverIndexByPosition(item.sparkline.length, svgX);
+        const val = item.sparkline[idx];
+        const ts = item.timestamps[idx];
+        if (!timeStr && ts) {
+          timeStr = formatTimestampET(ts, period !== '1D');
+        }
+        const y = PAD.top + PLOT_H - ((val - yMin) / (yRange || 1)) * PLOT_H;
+        infos.push({
+          ticker: item.ticker,
+          value: val,
+          timestamp: ts || '',
+          color: lineColor(item.changePercent),
+          y,
+        });
+      }
+      setHoverInfos(infos);
+      setHoverTime(timeStr);
     },
-    [],
+    [allItems, period, yMin, yRange],
   );
+
+  const handleMouseLeave = useCallback(() => {
+    setHoverX(null);
+    setHoveredTicker(null);
+    setHoverInfos([]);
+    setHoverTime('');
+  }, []);
 
   if (loading && !data) {
     return (
@@ -170,20 +278,13 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     );
   }
 
-  if (!data || data.sectors.length === 0) return null;
-
-  // Merge sectors + benchmark into one sorted list for leaderboard
-  const allItems = [
-    ...data.sectors.map(s => ({ ticker: s.ticker, changePercent: s.changePercent, sparkline: s.sparkline, timestamps: s.timestamps, isBenchmark: false })),
-    { ticker: 'SPY', changePercent: data.benchmark.changePercent, sparkline: data.benchmark.sparkline, timestamps: data.benchmark.timestamps, isBenchmark: true },
-  ].sort((a, b) => b.changePercent - a.changePercent);
+  if (!data || allItems.length === 0) return null;
 
   const pathFor = (sparkline: number[], timestamps: string[]) =>
     period === '1D'
       ? buildTimePath(sparkline, timestamps, yMin, yRange)
       : buildIndexPath(sparkline, yMin, yRange);
 
-  // 0% line y position
   const zeroY = PAD.top + PLOT_H - ((0 - yMin) / (yRange || 1)) * PLOT_H;
 
   const timeLabels1D = [
@@ -198,6 +299,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     { min: 18 * 60, label: '6 PM' },
     { min: 20 * 60, label: '8 PM' },
   ];
+
+  // Hovered item for tooltip
+  const hoveredInfo = hoveredTicker ? hoverInfos.find(h => h.ticker === hoveredTicker) : null;
 
   return (
     <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
@@ -227,28 +331,28 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       </div>
 
       <div className="flex">
-        {/* Chart */}
-        <div className="flex-1 min-w-0 px-2 pb-1">
+        {/* Chart area */}
+        <div className="flex-1 min-w-0 px-2 pb-1 relative">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${CHART_W} ${CHART_H}`}
             className="w-full"
             preserveAspectRatio="xMidYMid meet"
             onMouseMove={handleMouseMove}
-            onMouseLeave={() => { setHoverX(null); setHoveredTicker(null); }}
+            onMouseLeave={handleMouseLeave}
           >
-            {/* Only the 0% baseline — no grid clutter */}
+            {/* 0% baseline */}
             {zeroY >= PAD.top && zeroY <= PAD.top + PLOT_H && (
               <line
                 x1={PAD.left} x2={CHART_W - PAD.right}
                 y1={zeroY} y2={zeroY}
-                stroke="rgba(150,150,150,0.25)"
-                strokeWidth={0.6}
+                stroke="rgba(150,150,150,0.2)"
+                strokeWidth={0.5}
                 strokeDasharray="4,4"
               />
             )}
 
-            {/* Y-axis labels only */}
+            {/* Y-axis labels */}
             {yLabels.map(({ value, y }) => (
               <text
                 key={value}
@@ -269,31 +373,28 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 <line
                   x1={x} x2={x}
                   y1={PAD.top} y2={PAD.top + PLOT_H}
-                  stroke="rgba(0,200,5,0.12)"
+                  stroke="rgba(0,200,5,0.1)"
                   strokeWidth={0.5}
                   strokeDasharray="3,3"
                 />
               );
             })()}
 
-            {/* Sector + benchmark lines */}
+            {/* Sector lines — simple green/red based on change direction */}
             {allItems.map((item, i) => {
               const isHovered = hoveredTicker === item.ticker;
               const anyHovered = hoveredTicker !== null;
-              const color = item.isBenchmark
-                ? 'rgba(255,255,255,0.5)'
-                : getLineColor(i, allItems.length, item.changePercent);
-              const opacity = anyHovered ? (isHovered ? 1 : 0.1) : 0.85;
+              const color = lineShade(item.changePercent, i, allItems.length);
+              const opacity = anyHovered ? (isHovered ? 1 : 0.08) : 0.8;
               return (
                 <path
                   key={item.ticker}
                   d={pathFor(item.sparkline, item.timestamps)}
                   fill="none"
-                  stroke={color}
-                  strokeWidth={isHovered ? 2.5 : item.isBenchmark ? 1 : 1.4}
+                  stroke={isHovered ? lineColor(item.changePercent) : color}
+                  strokeWidth={isHovered ? 2.5 : 1.3}
                   opacity={opacity}
                   strokeLinejoin="round"
-                  strokeDasharray={item.isBenchmark ? '5,3' : undefined}
                   style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }}
                 />
               );
@@ -304,7 +405,19 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               <line
                 x1={hoverX} x2={hoverX}
                 y1={PAD.top} y2={PAD.top + PLOT_H}
-                stroke="rgba(150,150,150,0.25)"
+                stroke="rgba(150,150,150,0.3)"
+                strokeWidth={0.5}
+              />
+            )}
+
+            {/* Hover dots on each line */}
+            {hoverX !== null && hoveredTicker && hoveredInfo && (
+              <circle
+                cx={hoverX}
+                cy={hoveredInfo.y}
+                r={3.5}
+                fill={hoveredInfo.color}
+                stroke="rgba(0,0,0,0.3)"
                 strokeWidth={0.5}
               />
             )}
@@ -327,10 +440,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 );
               })
             ) : (() => {
-              // Use the longest sector's timestamps for label positioning (index-based)
-              const longestTs = [data.benchmark, ...data.sectors]
-                .reduce((a, b) => a.timestamps.length >= b.timestamps.length ? a : b)
-                .timestamps;
+              const longestTs = allItems.reduce((a, b) =>
+                a.timestamps.length >= b.timestamps.length ? a : b
+              ).timestamps;
               if (longestTs.length === 0) return null;
               const count = longestTs.length;
               const indices = [0, Math.floor(count / 4), Math.floor(count / 2), Math.floor(count * 3 / 4), count - 1];
@@ -354,31 +466,63 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               });
             })()}
           </svg>
+
+          {/* Hover tooltip */}
+          {hoverX !== null && hoveredTicker && hoveredInfo && (
+            <div
+              className="absolute pointer-events-none z-10"
+              style={{
+                left: `${(hoverX / CHART_W) * 100}%`,
+                top: '8px',
+                transform: hoverX > CHART_W * 0.7 ? 'translateX(-110%)' : 'translateX(8px)',
+              }}
+            >
+              <div className="bg-gray-900/90 dark:bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-white/10">
+                <div className="text-[10px] text-white/50 mb-1">{hoverTime}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white">{hoveredInfo.ticker}</span>
+                  <span className="text-xs font-bold tabular-nums" style={{ color: hoveredInfo.color }}>
+                    {hoveredInfo.value > 0 ? '+' : ''}{hoveredInfo.value.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Leaderboard — no scroll, all items visible */}
-        <div className="w-[170px] shrink-0 border-l border-gray-200/30 dark:border-white/[0.06] flex flex-col">
-          {allItems.map(item => (
-            <button
-              key={item.ticker}
-              className="w-full flex items-center justify-between px-3 flex-1 min-h-0 hover:brightness-125 transition-all cursor-pointer"
-              style={{
-                background: hoveredTicker === item.ticker
-                  ? 'rgba(255,255,255,0.08)'
-                  : getLeaderboardBg(item.changePercent),
-              }}
-              onMouseEnter={() => setHoveredTicker(item.ticker)}
-              onMouseLeave={() => setHoveredTicker(null)}
-              onClick={() => onTickerClick?.(item.ticker)}
-            >
-              <span className={`text-[11px] font-bold ${item.isBenchmark ? 'text-gray-300 dark:text-white/40' : 'text-gray-700 dark:text-white/70'}`}>
-                {item.ticker}
-              </span>
-              <span className="text-[11px] font-bold tabular-nums" style={{ color: changeColor(item.changePercent) }}>
-                {item.changePercent > 0 ? '+' : ''}{item.changePercent.toFixed(2)}%
-              </span>
-            </button>
-          ))}
+        {/* Glassmorphed Leaderboard */}
+        <div className="w-[175px] shrink-0 flex flex-col my-1 mr-1 rounded-lg overflow-hidden bg-gray-100/40 dark:bg-white/[0.03] backdrop-blur-md border border-gray-200/30 dark:border-white/[0.06]">
+          {allItems.map((item, i) => {
+            const isHovered = hoveredTicker === item.ticker;
+            const bg = leaderboardBg(item.changePercent);
+            const color = lineColor(item.changePercent);
+            return (
+              <button
+                key={item.ticker}
+                className={`w-full flex items-center justify-between px-3 flex-1 min-h-0 transition-all cursor-pointer ${
+                  i < allItems.length - 1 ? 'border-b border-gray-200/10 dark:border-white/[0.04]' : ''
+                }`}
+                style={{
+                  background: isHovered ? 'rgba(255,255,255,0.08)' : bg,
+                }}
+                onMouseEnter={() => setHoveredTicker(item.ticker)}
+                onMouseLeave={() => setHoveredTicker(null)}
+                onClick={() => onTickerClick?.(item.ticker)}
+              >
+                <span className={`text-[11px] font-bold tracking-tight ${
+                  isHovered ? 'text-white' : 'text-gray-600 dark:text-white/60'
+                }`}>
+                  {item.ticker}
+                </span>
+                <span
+                  className="text-[11px] font-bold tabular-nums"
+                  style={{ color: isHovered ? color : color }}
+                >
+                  {item.changePercent > 0 ? '+' : ''}{item.changePercent.toFixed(2)}%
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
