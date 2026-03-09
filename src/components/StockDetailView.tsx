@@ -409,7 +409,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
             )}
           </button>
-          <ShareButton type="stock" ticker={ticker} size="md" showLabel className="shrink-0" />
+          <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="shrink-0" />
           {/* Intelligence feed toggle */}
           <button
             onClick={toggleIntelFeed}

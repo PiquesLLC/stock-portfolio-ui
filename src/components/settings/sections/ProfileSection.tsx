@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { ToggleSwitch } from '../ToggleSwitch';
 import { UserSettings } from '../../../api';
 
@@ -74,6 +75,11 @@ export function ProfileSection({
         )}
       </div>
 
+      {/* Invite Friends */}
+      {settings?.username && (
+        <InviteCard username={settings.username} />
+      )}
+
       {/* Privacy */}
       <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-5">
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Privacy</h3>
@@ -138,6 +144,85 @@ export function ProfileSection({
             </label>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InviteCard({ username }: { username: string }) {
+  const [copied, setCopied] = useState(false);
+  const referralUrl = `${window.location.origin}/join?ref=${encodeURIComponent(username)}`;
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(referralUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* silent */ }
+  }, [referralUrl]);
+
+  const handleShareX = useCallback(() => {
+    const text = `Track your portfolio like a pro with Nala`;
+    const url = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(referralUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer,width=550,height=420');
+  }, [referralUrl]);
+
+  return (
+    <div className="rounded-xl border border-rh-green/20 bg-rh-green/[0.04] p-6 space-y-3">
+      <div className="flex items-center gap-2">
+        <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        </svg>
+        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Invite Friends</h3>
+      </div>
+      <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+        Share your referral link with friends. When they sign up, they&apos;ll be connected to your network.
+      </p>
+
+      {/* Referral link input + copy */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          readOnly
+          value={referralUrl}
+          className="flex-1 px-3 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.08]
+            bg-white dark:bg-rh-black text-xs text-rh-light-text dark:text-rh-text truncate"
+          onClick={handleCopy}
+        />
+        <button
+          onClick={handleCopy}
+          className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+            copied
+              ? 'bg-rh-green/20 text-rh-green'
+              : 'bg-rh-green/10 text-rh-green hover:bg-rh-green/20'
+          }`}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+
+      {/* Share buttons */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={handleShareX}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-white/50 hover:text-rh-light-text dark:hover:text-white/80 hover:border-gray-300 dark:hover:border-white/[0.15] transition-all"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          Share on X
+        </button>
+        {typeof navigator.share === 'function' && (
+          <button
+            onClick={() => navigator.share({ title: 'Join Nala', text: 'Track your portfolio like a pro', url: referralUrl })}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-white/50 hover:text-rh-light-text dark:hover:text-white/80 hover:border-gray-300 dark:hover:border-white/[0.15] transition-all"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            More
+          </button>
+        )}
       </div>
     </div>
   );
