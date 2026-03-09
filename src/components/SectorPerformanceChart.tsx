@@ -61,47 +61,27 @@ function lineShade(pct: number, rank: number, total: number): string {
   return `rgba(255,59,48,${alpha.toFixed(2)})`;
 }
 
-function leaderboardBg(pct: number): string {
-  if (pct >= 1.5) return 'rgba(0,200,5,0.25)';
-  if (pct >= 0.5) return 'rgba(0,200,5,0.15)';
-  if (pct > 0.02) return 'rgba(0,200,5,0.07)';
-  if (pct > -0.02) return 'rgba(120,120,120,0.05)';
-  if (pct > -0.5) return 'rgba(255,59,48,0.07)';
-  if (pct > -1.5) return 'rgba(255,59,48,0.15)';
-  return 'rgba(255,59,48,0.25)';
-}
-
-/* ─── Outlier filtering ──────────────────────────────────────────────────── */
-
-/** Clamp sudden jumps in sparkline data (e.g. bad candle from API) */
-function cleanSparkline(sparkline: number[]): number[] {
-  if (sparkline.length < 3) return sparkline;
-  const diffs = [];
-  for (let i = 1; i < sparkline.length; i++) diffs.push(Math.abs(sparkline[i] - sparkline[i - 1]));
-  const mean = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-  const std = Math.sqrt(diffs.reduce((a, b) => a + (b - mean) ** 2, 0) / diffs.length);
-  const threshold = mean + Math.max(std * 4, 0.5);
-
-  const result = [sparkline[0]];
-  for (let i = 1; i < sparkline.length; i++) {
-    const jump = Math.abs(sparkline[i] - result[i - 1]);
-    result.push(jump > threshold ? result[i - 1] : sparkline[i]);
-  }
-  return result;
-}
 
 /* ─── SVG path builders ──────────────────────────────────────────────────── */
+
+const GAP_THRESHOLD_MIN = 30; // Break path if gap > 30 minutes
 
 function buildTimePath(sparkline: number[], timestamps: string[], yMin: number, yRange: number): string {
   if (sparkline.length === 0 || timestamps.length === 0) return '';
   const parts: string[] = [];
+  let prevMin = -Infinity;
+  let needsMove = true;
   for (let i = 0; i < sparkline.length; i++) {
     const min = toMinutesET(timestamps[i]);
     const xFrac = (min - DAY_START_MIN) / DAY_RANGE_MIN;
     if (xFrac < 0 || xFrac > 1) continue;
+    // Break path at large time gaps (e.g. pre-market → regular hours)
+    if (min - prevMin > GAP_THRESHOLD_MIN) needsMove = true;
     const x = PAD.left + xFrac * PLOT_W;
     const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
-    parts.push(`${parts.length === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
+    parts.push(`${needsMove ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
+    needsMove = false;
+    prevMin = min;
   }
   return parts.join('');
 }
@@ -188,13 +168,13 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       ...data.sectors.map(s => ({
         ticker: s.ticker,
         changePercent: s.changePercent,
-        sparkline: cleanSparkline(s.sparkline),
+        sparkline: s.sparkline,
         timestamps: s.timestamps,
       })),
       {
         ticker: 'SPY',
         changePercent: data.benchmark.changePercent,
-        sparkline: cleanSparkline(data.benchmark.sparkline),
+        sparkline: data.benchmark.sparkline,
         timestamps: data.benchmark.timestamps,
       },
     ];
@@ -223,23 +203,27 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return labels;
   }, [yMin, yRange]);
 
-  // Hover handler — compute crosshair + per-sector values at cursor position
+  // Hover handler — crosshair + find nearest line + tooltip
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
       if (!svgRef.current || allItems.length === 0) return;
       const rect = svgRef.current.getBoundingClientRect();
       const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
+      const svgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
       if (svgX < PAD.left || svgX > CHART_W - PAD.right) {
         setHoverX(null);
         setHoverInfos([]);
         setHoverTime('');
+        setHoveredTicker(null);
         return;
       }
       setHoverX(svgX);
 
-      // Find value at hover position for each sector
+      // Find value at hover position for each sector + nearest line
       const infos: HoverInfo[] = [];
       let timeStr = '';
+      let nearestTicker = '';
+      let nearestDist = Infinity;
       for (const item of allItems) {
         if (item.sparkline.length === 0) continue;
         const idx = period === '1D'
@@ -258,9 +242,17 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
           color: lineColor(item.changePercent),
           y,
         });
+        // Track which line is closest to cursor Y
+        const dist = Math.abs(y - svgY);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestTicker = item.ticker;
+        }
       }
       setHoverInfos(infos);
       setHoverTime(timeStr);
+      // Auto-highlight nearest line (within 30px SVG units)
+      setHoveredTicker(nearestDist < 30 ? nearestTicker : null);
     },
     [allItems, period, yMin, yRange],
   );
@@ -491,34 +483,44 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         </div>
 
         {/* Glassmorphed Leaderboard */}
-        <div className="w-[175px] shrink-0 flex flex-col my-1 mr-1 rounded-lg overflow-hidden bg-gray-100/40 dark:bg-white/[0.03] backdrop-blur-md border border-gray-200/30 dark:border-white/[0.06]">
+        <div className="w-[190px] shrink-0 flex flex-col m-2 rounded-xl overflow-hidden backdrop-blur-xl border border-white/[0.08] shadow-lg"
+          style={{ background: 'linear-gradient(135deg, rgba(30,30,35,0.85), rgba(20,20,25,0.95))' }}
+        >
           {allItems.map((item, i) => {
             const isHovered = hoveredTicker === item.ticker;
-            const bg = leaderboardBg(item.changePercent);
-            const color = lineColor(item.changePercent);
+            const pct = item.changePercent;
+            const color = lineColor(pct);
+            // Vivid row backgrounds
+            const rowBg = isHovered
+              ? 'rgba(255,255,255,0.1)'
+              : pct >= 1.0 ? 'rgba(0,200,5,0.3)'
+              : pct >= 0.3 ? 'rgba(0,200,5,0.18)'
+              : pct > 0.02 ? 'rgba(0,200,5,0.08)'
+              : pct > -0.02 ? 'transparent'
+              : pct > -0.3 ? 'rgba(255,59,48,0.08)'
+              : pct > -1.0 ? 'rgba(255,59,48,0.18)'
+              : 'rgba(255,59,48,0.3)';
             return (
               <button
                 key={item.ticker}
-                className={`w-full flex items-center justify-between px-3 flex-1 min-h-0 transition-all cursor-pointer ${
-                  i < allItems.length - 1 ? 'border-b border-gray-200/10 dark:border-white/[0.04]' : ''
-                }`}
-                style={{
-                  background: isHovered ? 'rgba(255,255,255,0.08)' : bg,
-                }}
+                className={`w-full flex items-center justify-between px-3.5 flex-1 min-h-0 transition-all duration-150 cursor-pointer ${
+                  i < allItems.length - 1 ? 'border-b border-white/[0.05]' : ''
+                } hover:bg-white/[0.08]`}
+                style={{ background: rowBg }}
                 onMouseEnter={() => setHoveredTicker(item.ticker)}
                 onMouseLeave={() => setHoveredTicker(null)}
                 onClick={() => onTickerClick?.(item.ticker)}
               >
-                <span className={`text-[11px] font-bold tracking-tight ${
-                  isHovered ? 'text-white' : 'text-gray-600 dark:text-white/60'
+                <span className={`text-[12px] font-bold tracking-tight transition-colors ${
+                  isHovered ? 'text-white' : 'text-white/70'
                 }`}>
                   {item.ticker}
                 </span>
                 <span
-                  className="text-[11px] font-bold tabular-nums"
-                  style={{ color: isHovered ? color : color }}
+                  className="text-[12px] font-bold tabular-nums"
+                  style={{ color }}
                 >
-                  {item.changePercent > 0 ? '+' : ''}{item.changePercent.toFixed(2)}%
+                  {pct > 0 ? '+' : ''}{pct.toFixed(2)}%
                 </span>
               </button>
             );
