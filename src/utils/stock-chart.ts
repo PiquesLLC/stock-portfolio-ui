@@ -9,7 +9,7 @@ export const PAD_BOTTOM = 30;
 export const PAD_LEFT = 0;
 export const PAD_RIGHT = 0;
 
-export const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', 'YTD', '1Y', 'MAX'];
+export const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', 'MAX'];
 
 // ── Data Types ───────────────────────────────────────────────────
 export interface DataPoint {

@@ -84,6 +84,20 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
   const [hoveredCrossIndex, setHoveredCrossIndex] = useState<number | null>(null);
+  // Overlays dropdown
+  const [overlaysOpen, setOverlaysOpen] = useState(false);
+  const overlaysDropdownRef = useRef<HTMLDivElement>(null);
+  const overlayCount = enabledMAs.size + (volumeEnabled ? 1 : 0) + (signalsEnabled ? 1 : 0) + (eventsEnabled ? 1 : 0);
+  useEffect(() => {
+    if (!overlaysOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (overlaysDropdownRef.current && !overlaysDropdownRef.current.contains(e.target as Node)) {
+        setOverlaysOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [overlaysOpen]);
   // Load persisted measurements from localStorage
   const loadMeasurements = useCallback(() => {
     if (!ticker) return { a: null, b: null, c: null };
@@ -243,6 +257,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     let startMs: number;
     switch (period) {
       case '3M': startMs = now - 90 * 86400000; break;
+      case '6M': startMs = now - 182 * 86400000; break;
       case 'YTD': startMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
       case '1Y': startMs = now - 365 * 86400000; break;
       default: startMs = now - 365 * 86400000; break;
@@ -555,7 +570,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
   }, [updateHoverFromClientX, onHoverPrice]);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+  // Attached via useEffect with { passive: false } so preventDefault() works on touch
+  const handleTouchMoveRef = useRef((_e: TouchEvent) => {});
+  handleTouchMoveRef.current = (e: TouchEvent) => {
     // Two-finger measurement: update both points in real-time
     if (e.touches.length === 2 && isTwoFingerRef.current && svgRef.current) {
       e.preventDefault();
@@ -594,7 +611,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       e.preventDefault();
       updateHoverFromClientX(e.touches[0].clientX);
     }
-  }, [updateHoverFromClientX]);
+  };
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const handler = (e: TouchEvent) => handleTouchMoveRef.current(e);
+    el.addEventListener('touchmove', handler, { passive: false });
+    return () => el.removeEventListener('touchmove', handler);
+  }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     // Two-finger measurement: clear when fingers lift (Robinhood-style)
@@ -1761,6 +1785,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   })() : null;
 
   return (
+    <div className="relative">
     <div className="relative" style={{ overflowX: 'clip', overflowY: 'visible' }}>
       {/* Signal HUD — absolutely positioned top-right, extends up into parent header area */}
       {hudData && hoveredCluster && (
@@ -1905,7 +1930,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           onMouseLeave={handleMouseLeave}
           onDoubleClick={handleDoubleClick}
           onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{ cursor: isPanning ? 'grabbing' : zoomRange ? 'grab' : undefined, touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
           onClick={(e) => {
@@ -3081,8 +3105,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         );
       })()}
 
-      {/* Period selector + MA toggles */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+    </div>{/* end overflowX:clip wrapper */}
+      {/* Period selector + Overlays dropdown */}
+      <div className="flex items-center justify-between gap-2 mt-3">
         <div className="flex gap-1">
           {PERIODS.map(period => {
             const disabled = period !== '1D' && candlesLoaded === true && (!candles || candles.closes.length === 0);
@@ -3105,58 +3130,94 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           })}
         </div>
 
-        <div className="flex gap-1 sm:gap-1.5">
-          {MA_PERIODS.map(ma => {
-            const active = enabledMAs.has(ma);
-            return (
-              <button
-                key={ma}
-                onClick={() => toggleMA(ma)}
-                className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
-                  active
-                    ? 'text-white border-transparent'
-                    : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-                style={active ? { backgroundColor: MA_COLORS[ma], borderColor: MA_COLORS[ma] } : undefined}
-              >
-                MA{ma}
-              </button>
-            );
-          })}
-          <span className="w-px bg-rh-light-border dark:bg-rh-border mx-0.5" />
+        {/* Overlays dropdown */}
+        <div className="relative" ref={overlaysDropdownRef}>
           <button
-            onClick={toggleVolume}
-            className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
-              volumeEnabled
-                ? 'text-white border-transparent'
+            onClick={() => setOverlaysOpen(prev => !prev)}
+            className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border ${
+              overlayCount > 0
+                ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
                 : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
-            style={volumeEnabled ? { backgroundColor: '#6B7280', borderColor: '#6B7280' } : undefined}
           >
-            Vol
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            {overlayCount > 0 ? overlayCount : <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>}
           </button>
-          <button
-            onClick={toggleSignals}
-            className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
-              signalsEnabled
-                ? 'text-white border-transparent'
-                : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
-            }`}
-            style={signalsEnabled ? { backgroundColor: '#F59E0B', borderColor: '#F59E0B' } : undefined}
-          >
-            Signals
-          </button>
-          <button
-            onClick={toggleEvents}
-            className={`px-1.5 sm:px-2 py-1 rounded text-[9px] sm:text-[10px] font-semibold tracking-wide transition-all border ${
-              eventsEnabled
-                ? 'text-white border-transparent'
-                : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
-            }`}
-            style={eventsEnabled ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' } : undefined}
-          >
-            Events
-          </button>
+          {overlaysOpen && (
+            <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-lg border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-md shadow-xl py-2 px-1">
+              <div className="px-2 pb-1.5 mb-1 border-b border-gray-100 dark:border-white/[0.06]">
+                <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Moving Averages</span>
+              </div>
+              <div className="grid grid-cols-2 gap-0.5 px-1 mb-1">
+                {MA_PERIODS.map(ma => {
+                  const active = enabledMAs.has(ma);
+                  return (
+                    <button
+                      key={ma}
+                      onClick={() => toggleMA(ma)}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                        active
+                          ? 'text-white'
+                          : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      <span
+                        className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${active ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
+                        style={active ? { backgroundColor: MA_COLORS[ma], borderColor: MA_COLORS[ma] } : undefined}
+                      />
+                      MA{ma}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="border-t border-gray-100 dark:border-white/[0.06] mt-1 pt-1 px-1">
+                <button
+                  onClick={toggleVolume}
+                  className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                    volumeEnabled
+                      ? 'text-white'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span
+                    className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${volumeEnabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
+                    style={volumeEnabled ? { backgroundColor: '#6B7280', borderColor: '#6B7280' } : undefined}
+                  />
+                  Volume
+                </button>
+                <button
+                  onClick={toggleSignals}
+                  className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                    signalsEnabled
+                      ? 'text-white'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span
+                    className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${signalsEnabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
+                    style={signalsEnabled ? { backgroundColor: '#F59E0B', borderColor: '#F59E0B' } : undefined}
+                  />
+                  Signals
+                </button>
+                <button
+                  onClick={toggleEvents}
+                  className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                    eventsEnabled
+                      ? 'text-white'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span
+                    className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${eventsEnabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
+                    style={eventsEnabled ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' } : undefined}
+                  />
+                  Events
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

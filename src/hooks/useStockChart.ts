@@ -108,6 +108,7 @@ export function useStockChart({
       case '1W': cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7); break;
       case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
       case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
+      case '6M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 6); break;
       case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
       case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
       case 'MAX': cutoff = new Date(1970, 0, 1); break;
@@ -125,7 +126,7 @@ export function useStockChart({
     const latestPrice = quote.extendedPrice ?? quote.currentPrice;
     const change = latestPrice - startPrice;
     const changePct = startPrice !== 0 ? (change / startPrice) * 100 : 0;
-    const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', 'YTD': 'Year to Date', '1Y': 'Past Year', 'MAX': 'All Time' };
+    const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', '6M': 'Past 6 Months', 'YTD': 'Year to Date', '1Y': 'Past Year', 'MAX': 'All Time' };
     return { change, changePct, label: labels[chartPeriod] || chartPeriod };
   }, [chartPeriod, data]);
 
@@ -143,6 +144,7 @@ export function useStockChart({
       case '1D': case '1W': return { active: false };
       case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
       case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
+      case '6M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 6); break;
       case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
       case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
       case 'MAX': cutoff = new Date(1970, 0, 1); break;

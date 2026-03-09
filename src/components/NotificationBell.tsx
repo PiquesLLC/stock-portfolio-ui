@@ -162,7 +162,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         getUnreadAnomalyCount(),
       ]);
       setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
-    } catch (e) { console.error('Unread count fetch failed:', e); }
+    } catch { /* silent — background poll, 401s are expected when session expires */ }
   }, [userId, notificationsEnabled]);
 
   const fetchEvents = useCallback(async () => {

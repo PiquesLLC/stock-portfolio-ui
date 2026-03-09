@@ -852,7 +852,7 @@ export interface IncomeInsightsResponse {
 }
 
 // Stock Detail types
-export type ChartPeriod = '1D' | '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'MAX';
+export type ChartPeriod = '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'MAX';
 
 export interface StockProfile {
   ticker: string;

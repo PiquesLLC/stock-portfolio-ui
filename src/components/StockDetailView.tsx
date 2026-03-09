@@ -352,87 +352,87 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               {exchangeLabel}
             </span>
           )}
-          <div className="flex items-center gap-2 ml-auto">
-            <button
-              onClick={() => setShowAddHolding(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-rh-green/25 text-rh-green hover:bg-rh-green/10 transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <button
+            onClick={() => setShowAddHolding(true)}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-rh-green/25 text-rh-green hover:bg-rh-green/10 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            {holding ? 'Edit' : 'Add'}
+          </button>
+          <button
+            onClick={() => setShowWatchlistModal(true)}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-amber-500/25 text-amber-400 hover:bg-amber-500/10 transition-colors"
+            title="Add to watchlist"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Watch
+          </button>
+          <button
+            onClick={async () => {
+              const wasFollowing = isFollowingStock;
+              setIsFollowingStock(!wasFollowing);
+              try {
+                if (wasFollowing) await unfollowStock(ticker);
+                else await followStock(ticker);
+              } catch {
+                setIsFollowingStock(wasFollowing);
+              }
+            }}
+            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+              isFollowingStock
+                ? 'border-purple-500/25 text-purple-400 hover:bg-purple-500/10'
+                : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+            }`}
+            title={isFollowingStock ? 'Unfollow stock' : 'Follow stock'}
+          >
+            <svg className="w-3.5 h-3.5" fill={isFollowingStock ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            {isFollowingStock ? 'Following' : 'Follow'}
+          </button>
+          <button
+            onClick={() => setShowAlertModal(true)}
+            className="shrink-0 relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            Alert
+            {priceAlerts.filter(a => a.enabled && !a.triggered).length > 0 && (
+              <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
+            )}
+          </button>
+          <ShareButton type="stock" ticker={ticker} size="md" showLabel className="shrink-0" />
+          {/* Intelligence feed toggle */}
+          <button
+            onClick={toggleIntelFeed}
+            onDoubleClick={() => setShowIntelFeed(false)}
+            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+              showIntelFeed && !intelCollapsed
+                ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
+                : showIntelFeed && intelCollapsed
+                  ? 'border-blue-500/15 text-blue-400/50 hover:bg-blue-500/10'
+                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
+            }`}
+            title={!showIntelFeed ? 'Show intelligence feed' : intelCollapsed ? 'Expand intelligence feed (double-click to hide)' : 'Collapse intelligence feed (double-click to hide)'}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
+            </svg>
+            Intel
+            {showIntelFeed && (
+              <svg className={`w-2.5 h-2.5 transition-transform ${intelCollapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
               </svg>
-              {holding ? 'Edit' : 'Add'}
-            </button>
-            <button
-              onClick={() => setShowWatchlistModal(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-amber-500/25 text-amber-400 hover:bg-amber-500/10 transition-colors"
-              title="Add to watchlist"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Watch
-            </button>
-            <button
-              onClick={async () => {
-                const wasFollowing = isFollowingStock;
-                setIsFollowingStock(!wasFollowing);
-                try {
-                  if (wasFollowing) await unfollowStock(ticker);
-                  else await followStock(ticker);
-                } catch {
-                  setIsFollowingStock(wasFollowing);
-                }
-              }}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-                isFollowingStock
-                  ? 'border-purple-500/25 text-purple-400 hover:bg-purple-500/10'
-                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15]'
-              }`}
-              title={isFollowingStock ? 'Unfollow stock' : 'Follow stock'}
-            >
-              <svg className="w-3.5 h-3.5" fill={isFollowingStock ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              {isFollowingStock ? 'Following' : 'Follow'}
-            </button>
-            <button
-              onClick={() => setShowAlertModal(true)}
-              className="relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              Alert
-              {priceAlerts.filter(a => a.enabled && !a.triggered).length > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
-              )}
-            </button>
-            <ShareButton type="stock" ticker={ticker} size="md" showLabel />
-            {/* Intelligence feed toggle — desktop only */}
-            <button
-              onClick={toggleIntelFeed}
-              onDoubleClick={() => setShowIntelFeed(false)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-                showIntelFeed && !intelCollapsed
-                  ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
-                  : showIntelFeed && intelCollapsed
-                    ? 'border-blue-500/15 text-blue-400/50 hover:bg-blue-500/10'
-                    : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
-              }`}
-              title={!showIntelFeed ? 'Show intelligence feed' : intelCollapsed ? 'Expand intelligence feed (double-click to hide)' : 'Collapse intelligence feed (double-click to hide)'}
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
-              </svg>
-              Intel
-              {showIntelFeed && (
-                <svg className={`w-2.5 h-2.5 transition-transform ${intelCollapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              )}
-            </button>
-          </div>
+            )}
+          </button>
         </div>
         <div style={{ minHeight: '22px' }}>
           {goldenCrossInfo.active && (
@@ -561,6 +561,26 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             </button>
           )}
         </div>
+      </div>
+
+      {/* Intelligence Feed - mobile only (desktop shows in right column) */}
+      <div className="lg:hidden">
+        {showIntelFeed && !intelCollapsed && (
+          <div className="mb-6">
+            {aiEvents?.events && aiEvents.events.length > 0 ? (
+              <EventFeed events={aiEvents.events} ticker={ticker} />
+            ) : (
+              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
+                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
+                  </svg>
+                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : aiEventsLoaded ? 'No intelligence events found' : 'Loading intelligence events...'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Warning Panel */}
@@ -771,26 +791,6 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           </div>
         </div>
       )}
-
-      {/* Intelligence Feed - mobile only (desktop shows in right column) */}
-      <div className="lg:hidden">
-        {showIntelFeed && !intelCollapsed && (
-          <div className="mb-6">
-            {aiEvents?.events && aiEvents.events.length > 0 ? (
-              <EventFeed events={aiEvents.events} ticker={ticker} />
-            ) : (
-              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
-                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
-                  </svg>
-                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : aiEventsLoaded ? 'No intelligence events found' : 'Loading intelligence events...'}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* Financials & Earnings */}
       <div id="section-earnings" className="scroll-mt-32">
