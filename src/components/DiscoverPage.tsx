@@ -30,7 +30,8 @@ interface DiscoverPageProps {
 
 /** Parse subtab string like "heatmap:THEMES" into { subTab, heatmapIndex } */
 function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; heatmapIndex?: MarketIndex } {
-  if (!raw) return { subTab: 'heatmap' };
+  if (!raw) return { subTab: 'sectors' };
+  if (raw === 'sectors') return { subTab: 'sectors' };
   if (raw === 'top100') return { subTab: 'top100' };
   if (raw === 'screener') return { subTab: 'screener' };
   if (raw === 'creators') return { subTab: 'creators' };
@@ -1008,7 +1009,7 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'heatmap' | 'top100' | 'screener' | 'creators';
+type DiscoverSubTab = 'sectors' | 'heatmap' | 'top100' | 'screener' | 'creators';
 
 /* ─── Top 100 by Volume ─── */
 
@@ -1874,11 +1875,11 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
 
   return (
     <div className="space-y-3">
-      {/* Sector Performance Chart */}
-      <SectorPerformanceChart onTickerClick={onTickerClick} />
-
       {/* Sub-tab bar */}
       <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+        <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
+          Sectors
+        </button>
         <button onClick={() => setSubTab('heatmap')} className={tabClass(subTab === 'heatmap')}>
           Heatmap
         </button>
@@ -1893,7 +1894,9 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         </button>
       </div>
 
-      {subTab === 'heatmap' ? (
+      {subTab === 'sectors' ? (
+        <SectorPerformanceChart onTickerClick={onTickerClick} />
+      ) : subTab === 'heatmap' ? (
         <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
       ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />

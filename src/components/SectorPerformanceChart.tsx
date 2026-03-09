@@ -3,26 +3,44 @@ import { getSectorPerformance, SectorPerformanceResponse } from '../api';
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
-const CHART_W = 600;
-const CHART_H = 200;
-const PAD = { top: 8, right: 8, bottom: 20, left: 42 };
+const CHART_W = 700;
+const CHART_H = 260;
+const PAD = { top: 10, right: 10, bottom: 22, left: 44 };
 const PLOT_W = CHART_W - PAD.left - PAD.right;
 const PLOT_H = CHART_H - PAD.top - PAD.bottom;
 
 type Period = '1D' | '1W' | '1M';
 
+// 1D window: 4 AM – 8 PM ET (16 hours) in minutes from midnight ET
+const DAY_START_MIN = 4 * 60;   // 4:00 AM ET
+const DAY_END_MIN = 20 * 60;    // 8:00 PM ET
+const DAY_RANGE_MIN = DAY_END_MIN - DAY_START_MIN; // 960 minutes
+const MARKET_OPEN_MIN = 9 * 60 + 30; // 9:30 AM ET
+
+/* ─── Time helpers ───────────────────────────────────────────────────────── */
+
+/** Convert ISO timestamp to minutes since midnight ET */
+function toMinutesET(iso: string): number {
+  const d = new Date(iso);
+  const et = new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  return et.getHours() * 60 + et.getMinutes();
+}
+
+/** Convert ISO timestamp to ms epoch */
+function toMs(iso: string): number {
+  return new Date(iso).getTime();
+}
+
 /* ─── Color helpers ──────────────────────────────────────────────────────── */
 
-/** Assign line colors: top 3 green shades, bottom 3 red shades, middle gray, benchmark dashed */
-function getLineColor(index: number, total: number, changePercent: number): string {
-  if (changePercent > 0.5) return index === 0 ? '#00c805' : index === 1 ? '#34d058' : '#6fdd8b';
-  if (changePercent < -0.5) {
-    const fromBottom = total - 1 - index;
-    if (fromBottom === 0) return '#ff3b30';
-    if (fromBottom === 1) return '#ff6b6b';
-    if (fromBottom === 2) return '#ff9999';
+function getLineColor(index: number, _total: number, changePercent: number): string {
+  if (changePercent > 0.3) return index === 0 ? '#00c805' : index === 1 ? '#34d058' : '#6fdd8b';
+  if (changePercent < -0.3) {
+    if (index >= _total - 1) return '#ff3b30';
+    if (index >= _total - 2) return '#ff6b6b';
+    if (index >= _total - 3) return '#ff9999';
   }
-  return 'rgba(150,150,150,0.5)';
+  return 'rgba(150,150,150,0.45)';
 }
 
 function getLeaderboardBg(changePercent: number): string {
@@ -38,18 +56,35 @@ function changeColor(pct: number): string {
   return pct > 0 ? '#00c805' : pct < 0 ? '#ff3b30' : '#999';
 }
 
-/* ─── SVG path builder ───────────────────────────────────────────────────── */
+/* ─── SVG path builders ──────────────────────────────────────────────────── */
 
-function buildPath(sparkline: number[], yMin: number, yRange: number): string {
+/** 1D: time-based x-axis mapped to 4 AM – 8 PM ET window */
+function buildTimePath(sparkline: number[], timestamps: string[], yMin: number, yRange: number): string {
+  if (sparkline.length === 0 || timestamps.length === 0) return '';
+  const parts: string[] = [];
+  for (let i = 0; i < sparkline.length; i++) {
+    const min = toMinutesET(timestamps[i]);
+    const xFrac = (min - DAY_START_MIN) / DAY_RANGE_MIN;
+    if (xFrac < 0 || xFrac > 1) continue;
+    const x = PAD.left + xFrac * PLOT_W;
+    const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
+    parts.push(`${parts.length === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  return parts.join('');
+}
+
+/** Non-1D: epoch-based x-axis (min/max from all timestamps) */
+function buildEpochPath(sparkline: number[], timestamps: string[], epochMin: number, epochRange: number, yMin: number, yRange: number): string {
   if (sparkline.length === 0) return '';
-  const xStep = PLOT_W / Math.max(sparkline.length - 1, 1);
-  return sparkline
-    .map((val, i) => {
-      const x = PAD.left + i * xStep;
-      const y = PAD.top + PLOT_H - ((val - yMin) / (yRange || 1)) * PLOT_H;
-      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join('');
+  const parts: string[] = [];
+  for (let i = 0; i < sparkline.length; i++) {
+    const ms = toMs(timestamps[i]);
+    const xFrac = epochRange > 0 ? (ms - epochMin) / epochRange : 0;
+    const x = PAD.left + Math.max(0, Math.min(1, xFrac)) * PLOT_W;
+    const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
+    parts.push(`${parts.length === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  return parts.join('');
 }
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
@@ -63,7 +98,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const [period, setPeriod] = useState<Period>('1D');
   const [loading, setLoading] = useState(true);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hoverX, setHoverX] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const fetchData = useCallback(async (p: Period) => {
@@ -84,7 +119,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return () => clearInterval(interval);
   }, [period, fetchData]);
 
-  // Compute Y-axis range from all sparklines
+  // Y-axis range
   const { yMin, yRange, gridLines } = useMemo((): { yMin: number; yRange: number; gridLines: number[] } => {
     if (!data) return { yMin: -3, yRange: 6, gridLines: [] };
     const allValues = [
@@ -94,13 +129,11 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     ];
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
-    const padding = Math.max((max - min) * 0.1, 0.5);
+    const padding = Math.max((max - min) * 0.12, 0.3);
     const computedMin = min - padding;
     const computedMax = max + padding;
     const range = computedMax - computedMin;
-
-    // Grid lines at nice intervals
-    const step = range > 6 ? 2 : range > 3 ? 1 : 0.5;
+    const step = range > 8 ? 2 : range > 4 ? 1 : 0.5;
     const lines: number[] = [];
     for (let v = Math.ceil(computedMin / step) * step; v <= computedMax; v += step) {
       lines.push(Math.round(v * 100) / 100);
@@ -108,29 +141,34 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return { yMin: computedMin, yRange: range, gridLines: lines };
   }, [data]);
 
-  // Hover handler
+  // Epoch range for non-1D
+  const { epochMin, epochRange } = useMemo(() => {
+    if (!data || period === '1D') return { epochMin: 0, epochRange: 1 };
+    const allTs = [
+      ...data.sectors.flatMap(s => s.timestamps),
+      ...data.benchmark.timestamps,
+    ].map(toMs).filter(Number.isFinite);
+    if (allTs.length === 0) return { epochMin: 0, epochRange: 1 };
+    const mn = Math.min(...allTs);
+    const mx = Math.max(...allTs);
+    return { epochMin: mn, epochRange: Math.max(mx - mn, 1) };
+  }, [data, period]);
+
+  // Hover
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!data || !svgRef.current) return;
+      if (!svgRef.current) return;
       const rect = svgRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const relX = x - PAD.left;
-      if (relX < 0 || relX > PLOT_W) { setHoverIndex(null); return; }
-      const maxLen = Math.max(...data.sectors.map(s => s.sparkline.length), data.benchmark.sparkline.length);
-      const idx = Math.round((relX / PLOT_W) * (maxLen - 1));
-      setHoverIndex(Math.max(0, Math.min(idx, maxLen - 1)));
+      const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
+      if (svgX < PAD.left || svgX > CHART_W - PAD.right) { setHoverX(null); return; }
+      setHoverX(svgX);
     },
-    [data],
+    [],
   );
-
-  const handleMouseLeave = useCallback(() => {
-    setHoverIndex(null);
-    setHoveredTicker(null);
-  }, []);
 
   if (loading && !data) {
     return (
-      <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] p-4 animate-pulse h-[260px]" />
+      <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] p-4 animate-pulse h-[300px]" />
     );
   }
 
@@ -138,6 +176,26 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
   const allSectors = data.sectors;
   const benchmark = data.benchmark;
+
+  // Build path function based on period
+  const pathFor = (sparkline: number[], timestamps: string[]) =>
+    period === '1D'
+      ? buildTimePath(sparkline, timestamps, yMin, yRange)
+      : buildEpochPath(sparkline, timestamps, epochMin, epochRange, yMin, yRange);
+
+  // 1D time labels: fixed positions across the 4 AM – 8 PM window
+  const timeLabels1D = [
+    { min: 4 * 60, label: '4 AM' },
+    { min: 6 * 60, label: '6 AM' },
+    { min: 8 * 60, label: '8 AM' },
+    { min: 9 * 60 + 30, label: '9:30' },
+    { min: 11 * 60, label: '11 AM' },
+    { min: 13 * 60, label: '1 PM' },
+    { min: 15 * 60, label: '3 PM' },
+    { min: 16 * 60, label: '4 PM' },
+    { min: 18 * 60, label: '6 PM' },
+    { min: 20 * 60, label: '8 PM' },
+  ];
 
   return (
     <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
@@ -154,7 +212,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all ${
+              className={`px-2.5 py-0.5 text-[10px] font-semibold rounded transition-all ${
                 period === p
                   ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
                   : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50'
@@ -168,13 +226,14 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
       <div className="flex">
         {/* Chart */}
-        <div className="flex-1 min-w-0 px-2 pb-2">
+        <div className="flex-1 min-w-0 px-2 pb-1">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${CHART_W} ${CHART_H}`}
             className="w-full"
+            preserveAspectRatio="xMidYMid meet"
             onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            onMouseLeave={() => { setHoverX(null); setHoveredTicker(null); }}
           >
             {/* Grid lines */}
             {gridLines.map(v => {
@@ -184,9 +243,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                   <line
                     x1={PAD.left} x2={CHART_W - PAD.right}
                     y1={y} y2={y}
-                    stroke={v === 0 ? 'rgba(150,150,150,0.3)' : 'rgba(150,150,150,0.1)'}
+                    stroke={v === 0 ? 'rgba(150,150,150,0.35)' : 'rgba(150,150,150,0.08)'}
                     strokeWidth={v === 0 ? 0.8 : 0.5}
-                    strokeDasharray={v === 0 ? undefined : '2,3'}
+                    strokeDasharray={v === 0 ? undefined : '3,4'}
                   />
                   <text
                     x={PAD.left - 4} y={y + 3}
@@ -201,65 +260,95 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               );
             })}
 
+            {/* 1D: Market open line at 9:30 AM */}
+            {period === '1D' && (() => {
+              const x = PAD.left + ((MARKET_OPEN_MIN - DAY_START_MIN) / DAY_RANGE_MIN) * PLOT_W;
+              return (
+                <line
+                  x1={x} x2={x}
+                  y1={PAD.top} y2={PAD.top + PLOT_H}
+                  stroke="rgba(0,200,5,0.15)"
+                  strokeWidth={0.5}
+                  strokeDasharray="3,3"
+                />
+              );
+            })()}
+
             {/* Sector lines */}
             {allSectors.map((sector, i) => {
               const isHovered = hoveredTicker === sector.ticker;
               const anyHovered = hoveredTicker !== null;
               const color = getLineColor(i, allSectors.length, sector.changePercent);
-              const opacity = anyHovered ? (isHovered ? 1 : 0.15) : 0.7;
+              const opacity = anyHovered ? (isHovered ? 1 : 0.12) : 0.75;
               return (
                 <path
                   key={sector.ticker}
-                  d={buildPath(sector.sparkline, yMin, yRange)}
+                  d={pathFor(sector.sparkline, sector.timestamps)}
                   fill="none"
                   stroke={color}
-                  strokeWidth={isHovered ? 2 : 1.2}
+                  strokeWidth={isHovered ? 2.2 : 1.2}
                   opacity={opacity}
+                  strokeLinejoin="round"
                   style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }}
                 />
               );
             })}
 
-            {/* Benchmark line (dashed) */}
+            {/* Benchmark line (dashed white) */}
             <path
-              d={buildPath(benchmark.sparkline, yMin, yRange)}
+              d={pathFor(benchmark.sparkline, benchmark.timestamps)}
               fill="none"
-              stroke="rgba(255,255,255,0.4)"
-              strokeWidth={1}
-              strokeDasharray="4,3"
-              opacity={hoveredTicker ? 0.15 : 0.5}
+              stroke="rgba(255,255,255,0.45)"
+              strokeWidth={1.2}
+              strokeDasharray="5,3"
+              opacity={hoveredTicker ? 0.12 : 0.55}
+              strokeLinejoin="round"
             />
 
             {/* Hover crosshair */}
-            {hoverIndex !== null && (() => {
-              const maxLen = Math.max(...allSectors.map(s => s.sparkline.length), benchmark.sparkline.length);
-              const x = PAD.left + (hoverIndex / Math.max(maxLen - 1, 1)) * PLOT_W;
-              return (
-                <line
-                  x1={x} x2={x}
-                  y1={PAD.top} y2={PAD.top + PLOT_H}
-                  stroke="rgba(150,150,150,0.3)"
-                  strokeWidth={0.5}
-                />
-              );
-            })()}
+            {hoverX !== null && (
+              <line
+                x1={hoverX} x2={hoverX}
+                y1={PAD.top} y2={PAD.top + PLOT_H}
+                stroke="rgba(150,150,150,0.3)"
+                strokeWidth={0.5}
+              />
+            )}
 
             {/* Time labels */}
-            {benchmark.timestamps.length > 0 && (() => {
-              const ts = benchmark.timestamps;
-              const indices = [0, Math.floor(ts.length / 4), Math.floor(ts.length / 2), Math.floor(ts.length * 3 / 4), ts.length - 1];
+            {period === '1D' ? (
+              timeLabels1D.map(({ min, label }) => {
+                const x = PAD.left + ((min - DAY_START_MIN) / DAY_RANGE_MIN) * PLOT_W;
+                return (
+                  <text
+                    key={label}
+                    x={x} y={CHART_H - 5}
+                    textAnchor="middle"
+                    className="fill-gray-400 dark:fill-white/20"
+                    fontSize="7"
+                    fontFamily="system-ui"
+                  >
+                    {label}
+                  </text>
+                );
+              })
+            ) : (() => {
+              // Non-1D: pick 5 evenly spaced labels from all timestamps
+              const allTs = [...new Set([...data.sectors.flatMap(s => s.timestamps), ...benchmark.timestamps])].sort();
+              if (allTs.length === 0) return null;
+              const indices = [0, Math.floor(allTs.length / 4), Math.floor(allTs.length / 2), Math.floor(allTs.length * 3 / 4), allTs.length - 1];
               return indices.map(idx => {
-                const x = PAD.left + (idx / Math.max(ts.length - 1, 1)) * PLOT_W;
-                const d = new Date(ts[idx]);
-                const label = period === '1D'
-                  ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })
-                  : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const ms = toMs(allTs[idx]);
+                const xFrac = (ms - epochMin) / epochRange;
+                const x = PAD.left + xFrac * PLOT_W;
+                const d = new Date(allTs[idx]);
+                const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 return (
                   <text
                     key={idx}
-                    x={x} y={CHART_H - 4}
+                    x={x} y={CHART_H - 5}
                     textAnchor="middle"
-                    className="fill-gray-400 dark:fill-white/25"
+                    className="fill-gray-400 dark:fill-white/20"
                     fontSize="7"
                     fontFamily="system-ui"
                   >
@@ -272,7 +361,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         </div>
 
         {/* Leaderboard */}
-        <div className="w-[160px] shrink-0 border-l border-gray-200/30 dark:border-white/[0.06] py-1 overflow-y-auto max-h-[220px]">
+        <div className="w-[150px] shrink-0 border-l border-gray-200/30 dark:border-white/[0.06] py-0.5 overflow-y-auto max-h-[270px]">
           {/* Benchmark row */}
           <button
             className="w-full flex items-center justify-between px-2.5 py-[3px] text-[10px] font-semibold border-b border-gray-200/20 dark:border-white/[0.04] hover:bg-gray-100/50 dark:hover:bg-white/[0.03] transition-colors"
