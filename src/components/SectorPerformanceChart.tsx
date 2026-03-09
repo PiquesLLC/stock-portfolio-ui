@@ -144,6 +144,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   // Track locked sector + accumulated vertical movement for cycling
   const lockedTickerRef = useRef<string | null>(null);
+  const lastXRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
   const vertAccumRef = useRef<number>(0);
 
@@ -211,7 +212,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   // Hover handler — sticky sector lock with up/down cycling:
   // Left/right scrubs time on the locked sector.
   // Accumulated vertical movement cycles to the next line above/below.
-  const CYCLE_THRESHOLD = 12; // SVG units of vertical movement to trigger a cycle
+  const CYCLE_THRESHOLD = 18; // SVG units of vertical movement to trigger a cycle
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
@@ -268,27 +269,35 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         }
         lockedTickerRef.current = nearest.ticker;
         setHoveredTicker(nearest.ticker);
+        lastXRef.current = svgX;
         lastYRef.current = svgY;
         vertAccumRef.current = 0;
       } else {
-        // Accumulate vertical movement
+        const dx = Math.abs(svgX - lastXRef.current);
         const dy = svgY - lastYRef.current;
+        const absDy = Math.abs(dy);
+        lastXRef.current = svgX;
         lastYRef.current = svgY;
-        vertAccumRef.current += dy;
+
+        // Only accumulate vertical movement when it's the dominant direction.
+        // If horizontal movement is 2x+ the vertical, ignore the vertical wobble.
+        if (absDy > 0.5 && (dx < absDy * 2)) {
+          vertAccumRef.current += dy;
+        } else {
+          // Mostly horizontal — decay the accumulator toward zero
+          vertAccumRef.current *= 0.7;
+        }
 
         if (Math.abs(vertAccumRef.current) > CYCLE_THRESHOLD) {
-          const direction = vertAccumRef.current > 0 ? 1 : -1; // +1 = moving down, -1 = moving up
+          const direction = vertAccumRef.current > 0 ? 1 : -1;
           const currentIdx = sorted.findIndex(s => s.ticker === lockedTickerRef.current);
           if (currentIdx !== -1) {
-            // Moving down in screen = next line below (higher index in sorted)
-            // Moving up in screen = next line above (lower index in sorted)
             const nextIdx = Math.max(0, Math.min(sorted.length - 1, currentIdx + direction));
             lockedTickerRef.current = sorted[nextIdx].ticker;
             setHoveredTicker(sorted[nextIdx].ticker);
           }
-          vertAccumRef.current = 0; // Reset accumulator after cycling
+          vertAccumRef.current = 0;
         } else {
-          // Stay on locked sector
           setHoveredTicker(lockedTickerRef.current);
         }
       }
