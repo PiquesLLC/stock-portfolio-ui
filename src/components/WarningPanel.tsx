@@ -31,6 +31,7 @@ interface WarningPanelProps {
 function dailyReturns(closes: number[]): number[] {
   const r: number[] = [];
   for (let i = 1; i < closes.length; i++) {
+    if (closes[i - 1] === 0) continue; // skip zero-close to avoid Infinity
     r.push((closes[i] - closes[i - 1]) / closes[i - 1]);
   }
   return r;
@@ -46,8 +47,13 @@ function movingAverage(values: number[], period: number): number | null {
 function percentileRank(value: number, history: number[]): number {
   if (history.length === 0) return 50;
   let below = 0;
-  for (const v of history) if (v < value) below++;
-  return (below / history.length) * 100;
+  let equal = 0;
+  for (const v of history) {
+    if (v < value) below++;
+    else if (v === value) equal++;
+  }
+  // Mid-rank: count below + half of equal for tie-breaking
+  return ((below + equal * 0.5) / history.length) * 100;
 }
 
 function stdDev(values: number[]): number {
@@ -273,7 +279,7 @@ function computeTrendBreak(closes: number[]): MetricResult | null {
     } else if (belowMA200) {
       value = `Below MA200 (${daysBelow200}d)`;
       context = `Death cross watch: MA50 ${ma50toMA200 >= 0 ? '+' : ''}${ma50toMA200.toFixed(1)}% vs MA200`;
-      level = 'high';
+      level = daysBelow200 >= 5 ? 'high' : 'elevated';
     } else if (belowMA100) {
       value = 'Below MA100';
       context = `Above MA200 · MA50 ${ma50toMA200 >= 0 ? '+' : ''}${ma50toMA200.toFixed(1)}% vs MA200`;
@@ -497,6 +503,10 @@ function computeEuphoriaMeter(closes: number[], volPctl: number | undefined, tre
   } catch { return null; }
 }
 
+function levelToScore(level: MetricResult['level']): number {
+  return level === 'high' ? 95 : level === 'elevated' ? 65 : 30;
+}
+
 function computeRiskTemperature(metrics: {
   volPctl?: number;
   trendPctl?: number;
@@ -504,28 +514,61 @@ function computeRiskTemperature(metrics: {
   crashPctl?: number;
   ddPct?: number;
   trendLevel?: MetricResult['level'];
+  correctionLevel?: MetricResult['level'];
+  gapPctl?: number;
+  distributionLevel?: MetricResult['level'];
 }): MetricResult | null {
   try {
-    const {
-      volPctl = 50, trendPctl = 50, euphoria = 50,
-      crashPctl = 50, ddPct = 0, trendLevel = 'low',
-    } = metrics;
+    const raw = metrics;
+    // Sanitize: default undefined to neutral, clamp NaN to neutral
+    const safe = (v: number | undefined, fallback: number) => { const n = v ?? fallback; return Number.isFinite(n) ? n : fallback; };
+    const volPctl = safe(raw.volPctl, 50);
+    const trendPctl = safe(raw.trendPctl, 50);
+    const euphoria = safe(raw.euphoria, 50);
+    const crashPctl = safe(raw.crashPctl, 50);
+    const ddPct = safe(raw.ddPct, 0);
+    const gapPctl = safe(raw.gapPctl, 50);
+    const trendLevel = raw.trendLevel ?? 'low';
+    const correctionLevel = raw.correctionLevel ?? 'low';
+    const distributionLevel = raw.distributionLevel ?? 'low';
 
-    const trendBreakScore = trendLevel === 'high' ? 85 : trendLevel === 'elevated' ? 60 : 30;
-    const ddScore = Math.abs(ddPct) > 20 ? 80 : Math.abs(ddPct) > 10 ? 60 : 30;
+    // Trend distance: two-tailed — far above OR far below trend is risky (0 at center, 100 at extremes)
+    const trendRisk = Math.abs(trendPctl - 50) * 2;
 
+    // Categorical scores
+    const trendBreakScore = levelToScore(trendLevel);
+    const correctionScore = levelToScore(correctionLevel);
+    const distributionScore = levelToScore(distributionLevel);
+
+    // Drawdown: graduated scale
+    const absDd = Math.abs(ddPct);
+    const ddScore = absDd > 25 ? 95 : absDd > 15 ? 75 : absDd > 8 ? 55 : 30;
+
+    // Weighted composite — all 9 metrics included
     const score =
-      volPctl * 0.20 +
-      trendPctl * 0.15 +
-      euphoria * 0.20 +
-      crashPctl * 0.15 +
-      trendBreakScore * 0.15 +
-      ddScore * 0.15;
+      volPctl * 0.15 +          // Realized Volatility
+      trendRisk * 0.10 +        // Distance to Trend (two-tailed)
+      trendBreakScore * 0.15 +  // Trend Break
+      crashPctl * 0.12 +        // Crash Cluster
+      ddScore * 0.15 +          // Drawdown Pressure
+      correctionScore * 0.10 +  // Correction Clocks
+      gapPctl * 0.08 +          // Overnight Gap Risk
+      distributionScore * 0.10 + // Distribution Days
+      euphoria * 0.05;          // Euphoria (low weight — regime flavor)
+
+    // Breadth boost: if most metrics are HIGH, nudge score up
+    const catLevels = [trendLevel, correctionLevel, distributionLevel];
+    const pctlHighCount = [volPctl, crashPctl, gapPctl, trendRisk].filter(p => p > 80).length;
+    const catHighCount = catLevels.filter(l => l === 'high').length;
+    const totalHigh = pctlHighCount + catHighCount + (absDd > 20 ? 1 : 0) + (euphoria > 75 ? 1 : 0);
+    const breadthBoost = totalHigh >= 5 ? 8 : totalHigh >= 3 ? 4 : 0;
+
+    const finalScore = Math.min(100, score + breadthBoost);
 
     let label = 'Low';
     let level: MetricResult['level'] = 'low';
-    if (score >= 70) { label = 'High'; level = 'high'; }
-    else if (score >= 50) { label = 'Elevated'; level = 'elevated'; }
+    if (finalScore >= 70) { label = 'High'; level = 'high'; }
+    else if (finalScore >= 50) { label = 'Elevated'; level = 'elevated'; }
 
     const explanation = level === 'low'
       ? 'Most risk metrics are within normal historical ranges.'
@@ -534,12 +577,12 @@ function computeRiskTemperature(metrics: {
         : 'Multiple risk metrics are at historically elevated levels.';
 
     return {
-      value: `${score.toFixed(0)}`,
+      value: `${finalScore.toFixed(0)}`,
       context: label,
-      percentile: score,
+      percentile: finalScore,
       explanation,
       level,
-      detail: `Composite risk context score (0–100) from volatility, trend, euphoria, crash clustering, and drawdown metrics. Descriptive — not a prediction. Not financial advice.`,
+      detail: `Composite risk score (0–100) from 9 metrics: volatility, trend distance, trend break, crash clustering, drawdown, correction clocks, gap risk, distribution days, and euphoria. Descriptive — not a prediction. Not financial advice.`,
     };
   } catch { return null; }
 }
@@ -633,50 +676,43 @@ const ICONS: Record<string, string> = {
   euphoria: '🎢',
 };
 
-function WarningCard({ id, title, metric }: { id: string; title: string; metric: MetricResult }) {
+function MetricRow({ id, title, metric }: { id: string; title: string; metric: MetricResult }) {
+  const [showDetail, setShowDetail] = useState(false);
   const c = LEVEL_COLORS[metric.level];
-  const isTemp = id === 'temperature';
-  const tempScore = isTemp ? parseFloat(metric.value) : 0;
   return (
-    <div
-      className={`${c.bg} rounded-xl border ${c.border} p-4 overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${c.glow}`}
-      title={metric.detail || ''}
+    <button
+      onClick={() => setShowDetail(d => !d)}
+      className={`w-full text-left px-3 py-2 rounded-lg ${c.bg} border ${c.border} transition-all hover:brightness-110`}
     >
-      <div className="flex items-start justify-between mb-2">
-        <span className="text-xl">{ICONS[id] || '📊'}</span>
-        <div className={`text-[10px] font-semibold uppercase tracking-wider ${c.text}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-xs shrink-0">{ICONS[id] || '📊'}</span>
+        <span className="text-[11px] font-medium text-rh-light-muted dark:text-white/50 min-w-0 truncate">{title}</span>
+        <span className={`ml-auto text-sm font-bold ${c.text} shrink-0 tabular-nums`}>
+          {metric.value}
+        </span>
+        <span className={`text-[9px] font-semibold uppercase tracking-wider ${c.text} shrink-0 w-14 text-right`}>
           {metric.level}
-        </div>
+        </span>
       </div>
-      <h3 className="text-xs font-medium text-rh-light-muted dark:text-white/50 mb-1">{title}</h3>
-      <div className={`text-xl font-bold ${c.text} mb-0.5 leading-tight break-words`} style={{ fontVariantNumeric: 'tabular-nums', wordBreak: 'break-word' }}>
-        {isTemp ? `${metric.value} / 100` : metric.value}
-      </div>
-      {/* Gradient bar for Risk Temperature */}
-      {isTemp && (
-        <div className="relative h-1.5 rounded-full bg-gray-100/60 dark:bg-white/[0.06] mt-1.5 mb-1.5 overflow-hidden">
-          <div
-            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
-            style={{
-              width: `${Math.min(100, Math.max(0, tempScore))}%`,
-              background: tempScore > 70 ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : tempScore > 45 ? 'linear-gradient(90deg, #22c55e, #f59e0b)' : 'linear-gradient(90deg, #22c55e, #22c55e)',
-            }}
-          />
+      {showDetail && (
+        <div className="mt-1.5 pl-6">
+          <p className="text-[10px] text-rh-light-muted/70 dark:text-white/40 leading-snug">{metric.context}</p>
+          {metric.explanation && (
+            <p className="text-[10px] text-rh-light-muted/50 dark:text-white/25 leading-snug mt-0.5 italic">{metric.explanation}</p>
+          )}
         </div>
       )}
-      <p className="text-[11px] text-rh-light-muted/70 dark:text-white/40 leading-snug break-words">{metric.context}</p>
-      {/* Explanation — always visible, replaces hover tooltip */}
-      {metric.explanation && (
-        <p className="text-[10px] text-rh-light-muted/60 dark:text-white/30 mt-1.5 leading-snug italic break-words" style={{ wordBreak: 'break-word' }}>{metric.explanation}</p>
-      )}
-    </div>
+    </button>
   );
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
+const LEVEL_ORDER: Record<MetricResult['level'], number> = { high: 0, elevated: 1, low: 2 };
+
 export function WarningPanel({ candles }: WarningPanelProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showLow, setShowLow] = useState(false);
 
   // Gate: need at least 200 days of data
   const hasData = candles && candles.closes.length >= 200;
@@ -736,8 +772,11 @@ export function WarningPanel({ candles }: WarningPanelProps) {
       crashPctl: crashCluster?.percentile,
       ddPct: ddVal,
       trendLevel: trendBreak?.level,
+      correctionLevel: correctionClocks?.level,
+      gapPctl: gapRisk?.percentile,
+      distributionLevel: distributionDays?.level,
     });
-  }, [hasData, volatility, trendDistance, euphoriaMeter, crashCluster, drawdownPressure, trendBreak]);
+  }, [hasData, volatility, trendDistance, euphoriaMeter, crashCluster, drawdownPressure, trendBreak, correctionClocks, gapRisk, distributionDays]);
 
   if (!hasData) return null;
 
@@ -854,14 +893,59 @@ export function WarningPanel({ candles }: WarningPanelProps) {
         </div>
       )}
 
-      {/* Expanded: card grid */}
-      {expanded && (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
-          {cards.map(card => (
-            <WarningCard key={card.id} id={card.id} title={card.title} metric={card.metric} />
-          ))}
-        </div>
-      )}
+      {/* Expanded: compact list — severity sorted, LOW hidden by default */}
+      {expanded && (() => {
+        const sorted = [...cards].sort((a, b) => LEVEL_ORDER[a.metric.level] - LEVEL_ORDER[b.metric.level]);
+        // Pull Risk Temperature to top
+        const temp = sorted.find(c => c.id === 'temperature');
+        const rest = sorted.filter(c => c.id !== 'temperature');
+        const elevated = rest.filter(c => c.metric.level !== 'low');
+        const low = rest.filter(c => c.metric.level === 'low');
+        const tempScore = temp ? parseFloat(temp.metric.value) : 0;
+        const tempC = temp ? LEVEL_COLORS[temp.metric.level] : LEVEL_COLORS.low;
+        return (
+          <>
+            {/* Risk Temperature bar */}
+            {temp && (
+              <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${tempC.bg} border ${tempC.border} mb-2`}>
+                <span className="text-sm">🌡️</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-medium text-rh-light-muted dark:text-white/50">Risk Temperature</span>
+                    <span className={`text-sm font-bold ${tempC.text} tabular-nums`}>{temp.metric.value} / 100</span>
+                  </div>
+                  <div className="relative h-1.5 rounded-full bg-gray-100/60 dark:bg-white/[0.06] overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, tempScore))}%`,
+                        background: tempScore > 70 ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : tempScore > 45 ? 'linear-gradient(90deg, #22c55e, #f59e0b)' : 'linear-gradient(90deg, #22c55e, #22c55e)',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Metric rows */}
+            <div className="flex flex-col gap-1.5 mb-2">
+              {elevated.map(card => (
+                <MetricRow key={card.id} id={card.id} title={card.title} metric={card.metric} />
+              ))}
+              {showLow && low.map(card => (
+                <MetricRow key={card.id} id={card.id} title={card.title} metric={card.metric} />
+              ))}
+            </div>
+            {low.length > 0 && (
+              <button
+                onClick={() => setShowLow(s => !s)}
+                className="text-[11px] font-medium text-rh-light-muted/60 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/60 transition-colors mb-2"
+              >
+                {showLow ? 'Hide low risk metrics' : `Show ${low.length} low risk metric${low.length > 1 ? 's' : ''}`}
+              </button>
+            )}
+          </>
+        );
+      })()}
 
       {/* Disclaimer */}
       <p className="text-[10px] text-rh-light-muted/40 dark:text-white/20 leading-relaxed">
