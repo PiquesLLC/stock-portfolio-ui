@@ -142,6 +142,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const [hoverInfos, setHoverInfos] = useState<HoverInfo[]>([]);
   const [hoverTime, setHoverTime] = useState<string>('');
   const svgRef = useRef<SVGSVGElement>(null);
+  // Track locked sector + last Y for sticky hover behavior
+  const lockedTickerRef = useRef<string | null>(null);
+  const lastYRef = useRef<number>(0);
 
   const fetchData = useCallback(async (p: Period) => {
     setLoading(true);
@@ -203,7 +206,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return labels;
   }, [yMin, yRange]);
 
-  // Hover handler — crosshair + find nearest line + tooltip
+  // Hover handler — sticky sector lock:
+  // Left/right scrubs time on the locked sector.
+  // Up/down switches to the nearest sector when vertical movement is significant.
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
       if (!svgRef.current || allItems.length === 0) return;
@@ -215,11 +220,12 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         setHoverInfos([]);
         setHoverTime('');
         setHoveredTicker(null);
+        lockedTickerRef.current = null;
         return;
       }
       setHoverX(svgX);
 
-      // Find value at hover position for each sector + nearest line
+      // Compute Y position for each sector at this X
       const infos: HoverInfo[] = [];
       let timeStr = '';
       let nearestTicker = '';
@@ -242,7 +248,6 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
           color: lineColor(item.changePercent),
           y,
         });
-        // Track which line is closest to cursor Y
         const dist = Math.abs(y - svgY);
         if (dist < nearestDist) {
           nearestDist = dist;
@@ -251,8 +256,27 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       }
       setHoverInfos(infos);
       setHoverTime(timeStr);
-      // Auto-highlight nearest line (within 30px SVG units)
-      setHoveredTicker(nearestDist < 30 ? nearestTicker : null);
+
+      // Sticky lock: only switch sectors on significant vertical movement
+      const verticalDelta = Math.abs(svgY - lastYRef.current);
+      lastYRef.current = svgY;
+
+      if (!lockedTickerRef.current) {
+        // First hover — lock to nearest line
+        if (nearestDist < 40) {
+          lockedTickerRef.current = nearestTicker;
+          setHoveredTicker(nearestTicker);
+        }
+      } else if (verticalDelta > 8) {
+        // Significant vertical movement — switch to nearest line
+        if (nearestDist < 40) {
+          lockedTickerRef.current = nearestTicker;
+          setHoveredTicker(nearestTicker);
+        }
+      } else {
+        // Horizontal movement — stay locked on current sector
+        setHoveredTicker(lockedTickerRef.current);
+      }
     },
     [allItems, period, yMin, yRange],
   );
@@ -262,6 +286,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     setHoveredTicker(null);
     setHoverInfos([]);
     setHoverTime('');
+    lockedTickerRef.current = null;
   }, []);
 
   if (loading && !data) {
