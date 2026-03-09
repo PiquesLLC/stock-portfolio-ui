@@ -2117,6 +2117,37 @@ export async function getEtfHeatmap(period: HeatmapPeriod = '1D'): Promise<impor
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Sector Performance
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface SectorPerformanceItem {
+  ticker: string;
+  name: string;
+  changePercent: number;
+  sparkline: number[];
+  timestamps: string[];
+  lastPrice: number;
+  previousClose: number;
+}
+
+export interface SectorPerformanceResponse {
+  sectors: SectorPerformanceItem[];
+  benchmark: {
+    ticker: string;
+    changePercent: number;
+    sparkline: number[];
+    timestamps: string[];
+  };
+  asOf: string;
+  period: string;
+  error?: string;
+}
+
+export async function getSectorPerformance(period: '1D' | '1W' | '1M' = '1D'): Promise<SectorPerformanceResponse> {
+  return fetchJson(`${API_BASE_URL}/market/sectors/performance?period=${period}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Waitlist Admin API
 // ═══════════════════════════════════════════════════════════════════════════
 

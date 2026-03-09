@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
+import { SectorPerformanceChart } from './SectorPerformanceChart';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 import { StockLogo } from './StockLogo';
@@ -1873,6 +1874,9 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
 
   return (
     <div className="space-y-3">
+      {/* Sector Performance Chart */}
+      <SectorPerformanceChart onTickerClick={onTickerClick} />
+
       {/* Sub-tab bar */}
       <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
         <button onClick={() => setSubTab('heatmap')} className={tabClass(subTab === 'heatmap')}>
