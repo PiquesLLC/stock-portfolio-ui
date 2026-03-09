@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { PriceAlertCondition, ReferencePriceType } from '../types';
 import { createPriceAlert } from '../api';
 
@@ -46,6 +47,15 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
   const [customDate, setCustomDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input after mount without scrolling the background
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    });
+  }, [condition]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -150,7 +160,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
   const referencePriceLabel = referencePriceType === 'open' ? "today's open" :
     referencePriceType === 'avgCost' ? 'your avg cost' : 'current price';
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={onClose}>
       <div
         className="bg-white/90 dark:bg-white/[0.06] backdrop-blur-xl border border-gray-200/50 dark:border-white/[0.08] rounded-xl p-5 w-full max-w-sm mx-4 shadow-2xl dark:shadow-black/40"
@@ -205,7 +215,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
                   onChange={(e) => setTargetPrice(e.target.value)}
                   placeholder="Target price"
                   className="w-full pl-7 pr-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/50"
-                  autoFocus
+                  ref={inputRef}
                 />
               </div>
             </div>
@@ -223,7 +233,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
                   onChange={(e) => setPercentChange(e.target.value)}
                   placeholder="Percent change"
                   className="w-full pr-8 pl-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/50"
-                  autoFocus
+                  ref={inputRef}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted text-sm">%</span>
               </div>
@@ -382,6 +392,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

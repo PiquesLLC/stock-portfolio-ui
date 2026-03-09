@@ -1627,6 +1627,18 @@ export async function getMarketHeatmap(period: HeatmapPeriod = '1D', index?: Mar
   return fetchJson<import('./types').HeatmapResponse>(`${API_BASE_URL}/market/heatmap?${params}`);
 }
 
+// Market Sentiment
+export interface MarketSentiment {
+  score: number;
+  label: string;
+  signals: Record<string, { value: number; signal: number }>;
+  timestamp: string;
+}
+
+export async function getMarketSentiment(): Promise<MarketSentiment> {
+  return fetchJson<MarketSentiment>(`${API_BASE_URL}/market/sentiment`);
+}
+
 // Cash Interest
 export interface CashInterestAccrual {
   cashBalance: number;

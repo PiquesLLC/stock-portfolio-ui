@@ -365,12 +365,22 @@ export default function App() {
     if (!currentUserId || !portfolio) return;
     // Don't show daily briefing during onboarding tour
     if (showOnboardingTour) return;
-    const today = new Date().toDateString();
+    // Use market-day boundaries: new trading day starts at 9:30 AM ET (market open)
+    // Before 9:30 AM ET, the "market day" is still the previous calendar day
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const marketOpenMinutes = 9 * 60 + 30; // 9:30 AM ET
+    const currentMinutes = et.getHours() * 60 + et.getMinutes();
+    const marketDay = new Date(et);
+    if (currentMinutes < marketOpenMinutes) {
+      marketDay.setDate(marketDay.getDate() - 1);
+    }
+    const marketDayKey = marketDay.toDateString();
     const lastShown = localStorage.getItem('dailyReportLastShown');
     const disabled = localStorage.getItem('dailyReportDisabled') === 'true';
-    if (!disabled && lastShown !== today) {
+    if (!disabled && lastShown !== marketDayKey) {
       setShowDailyReport(true);
-      localStorage.setItem('dailyReportLastShown', today);
+      localStorage.setItem('dailyReportLastShown', marketDayKey);
     }
   }, [currentUserId, portfolio, showOnboardingTour]);
 
@@ -1455,6 +1465,7 @@ export default function App() {
         <DailyReportModal
           onClose={() => { setShowDailyReport(false); setDailyReportHidden(false); }}
           hidden={dailyReportHidden}
+          portfolio={portfolio}
           onTickerClick={(ticker) => {
             setDailyReportHidden(true);
             setViewingStock({ ticker, holding: findHolding(ticker) });

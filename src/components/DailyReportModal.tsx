@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import { getDailyReport, regenerateDailyReport, getFastQuote } from '../api';
-import { DailyReportResponse } from '../types';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { getDailyReport, regenerateDailyReport, getFastQuote, getMarketHeatmap, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, EarningsSummaryItem, MarketSentiment } from '../api';
+import { DailyReportResponse, Portfolio, HeatmapSector, DividendEvent } from '../types';
 import { timeAgo } from '../utils/format';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { toPng } from 'html-to-image';
 
 interface DailyReportModalProps {
   onClose: () => void;
   onTickerClick?: (ticker: string) => void;
   hidden?: boolean;
+  portfolio?: Portfolio | null;
 }
 
 // Common English words that look like tickers but aren't
@@ -33,83 +35,336 @@ const TICKER_BLACKLIST = new Set([
   'SMALL', 'STACK', 'STILL', 'STOCK', 'THEIR', 'THERE', 'THESE', 'THINK', 'THOSE',
   'THREE', 'TODAY', 'TOTAL', 'TRADE', 'UNDER', 'UNTIL', 'UPPER', 'VALUE', 'WATCH',
   'WHERE', 'WHICH', 'WHILE', 'WHOLE', 'WHOSE', 'WORTH', 'WOULD', 'YIELD',
-  // Economic indicators / non-stock acronyms
   'CPI', 'GDP', 'PCE', 'PPI', 'PMI', 'ISM', 'FOMC', 'FED', 'SEC', 'IPO', 'ETF',
   'NYSE', 'YOY', 'QOQ', 'MOM', 'BPS', 'CEO', 'CFO', 'COO', 'CTO',
-  // Financial time periods and metrics
   'YTD', 'QTD', 'MTD', 'ATH', 'ATL', 'EPS', 'ROE', 'ROA', 'ROI', 'NAV', 'AUM',
   'DCF', 'FCF', 'EBIT', 'WACC', 'CAGR', 'GAAP', 'IFRS',
-  // Common partial company names / ambiguous 2-letter abbreviations
   'SK', 'AI', 'EV', 'IV', 'PE', 'PB', 'PS',
 ]);
 
-
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 }
 
-// Strip Perplexity citation references like [1], [2], [headlines], [4] from text
 function stripCitations(text: string): string {
   return text
     .replace(/\[\d+\]|\[headlines?\]|\[sources?\]|\[provided\]|\[portfolio[^\]]*\]/gi, '')
     .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
     .replace(/\/(?=[A-Z]{2,5}\b)/g, ', ')
+    // Strip static percentages near tickers — live quotes replace these
+    .replace(/\s*\([+-]?\d+\.?\d*%\)/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
-// Extract ticker symbols from text
 function extractTickers(text: string): string[] {
   const matches = stripCitations(text).match(/\b[A-Z]{2,5}\b/g) || [];
   return [...new Set(matches.filter(t => !TICKER_BLACKLIST.has(t)))];
 }
 
-// Extract all tickers from the full report
 function extractAllTickers(data: DailyReportResponse): string[] {
   const texts = [
-    data.marketOverview,
-    data.portfolioSummary,
+    data.marketOverview, data.portfolioSummary,
     ...data.topStories.map(s => s.headline + ' ' + s.body),
     ...data.topStories.flatMap(s => s.relatedTickers),
     ...data.watchToday,
   ];
-  const all = texts.flatMap(t => extractTickers(t));
-  return [...new Set(all)];
+  return [...new Set(texts.flatMap(t => extractTickers(t)))];
 }
 
-type LiveQuotes = Record<string, { changePercent: number }>;
+function estimateReadingTime(data: DailyReportResponse): number {
+  const text = [
+    data.greeting, data.marketOverview, data.portfolioSummary,
+    ...data.topStories.map(s => s.headline + ' ' + s.body),
+    ...data.watchToday,
+  ].join(' ');
+  return Math.max(1, Math.ceil(text.split(/\s+/).length / 200));
+}
 
-// Render text with inline clickable ticker symbols + live badges
-function renderWithTickers(text: string, onClick?: (ticker: string) => void, quotes?: LiveQuotes): (string | JSX.Element)[] {
+function formatCurrency(n: number): string {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function formatPct(n: number): string {
+  return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+}
+
+type LiveQuotes = Record<string, { changePercent: number; currentPrice?: number; previousClose?: number }>;
+
+// Subtle inline ticker with small change% suffix
+function TickerPill({ ticker, quote, onClick }: { ticker: string; quote?: { changePercent: number }; onClick?: (t: string) => void }) {
+  const pct = quote?.changePercent ?? 0;
+  const isUp = pct >= 0;
+  return (
+    <span className="inline-flex items-baseline gap-0.5">
+      <button
+        onClick={(e) => { e.stopPropagation(); onClick?.(ticker); }}
+        className="text-white/90 font-semibold underline decoration-white/15 underline-offset-2 hover:decoration-rh-green hover:text-rh-green transition-colors"
+      >
+        {ticker}
+      </button>
+      {quote && (
+        <span className={`text-[11px] font-mono font-medium ${isUp ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+          {isUp ? '+' : ''}{pct.toFixed(1)}%
+        </span>
+      )}
+    </span>
+  );
+}
+
+// Render text with pill badges for tickers
+function renderWithPills(text: string, onClick?: (ticker: string) => void, quotes?: LiveQuotes): (string | JSX.Element)[] {
   const cleaned = stripCitations(text);
   const parts = cleaned.split(/\b([A-Z]{1,5})\b/g);
   return parts.map((part, i) => {
     if (i % 2 === 1 && !TICKER_BLACKLIST.has(part) && part.length >= 2) {
-      const q = quotes?.[part];
-      return (
-        <span key={i} className="inline-flex items-baseline gap-0.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); onClick?.(part); }}
-            className="text-white/90 font-medium underline decoration-white/20 underline-offset-2 hover:decoration-rh-green hover:text-rh-green transition-colors"
-          >
-            {part}
-          </button>
-          {q && (
-            <span className={`text-[12px] font-mono font-medium ${q.changePercent >= 0 ? 'text-rh-green/80' : 'text-rh-red/80'}`}>
-              {q.changePercent >= 0 ? '+' : ''}{q.changePercent.toFixed(1)}%
-            </span>
-          )}
-        </span>
-      );
+      return <TickerPill key={i} ticker={part} quote={quotes?.[part]} onClick={onClick} />;
     }
     return part;
   });
+}
+
+// Collapsible section
+function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-8">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 w-full text-left group mb-4">
+        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">
+          {title}
+        </h3>
+        <svg className={`w-3 h-3 text-white/30 transition-transform ${open ? 'rotate-0' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+        <div className="flex-1 border-t border-white/[0.06]" />
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+function isEffectivelyZero(pct: number): boolean {
+  return Math.abs(pct) < 0.005;
+}
+
+// Sector → ETF ticker mapping
+const SECTOR_ETF_MAP: Record<string, string> = {
+  'Technology': 'XLK', 'Tech': 'XLK',
+  'Financial': 'XLF', 'Finance': 'XLF', 'Financials': 'XLF',
+  'Healthcare': 'XLV', 'Health Care': 'XLV',
+  'Consumer': 'XLY', 'Consumer Cyclical': 'XLY', 'Consumer Defensive': 'XLP',
+  'Industrial': 'XLI', 'Industrials': 'XLI',
+  'Energy': 'XLE',
+  'Communication': 'XLC', 'Communication Services': 'XLC',
+  'Materials': 'XLB', 'Basic Materials': 'XLB',
+  'Utilities': 'XLU',
+  'Real Estate': 'XLRE',
+};
+
+// Horizontal sector bars (matches Discover page style)
+function SectorBars({ sectors, onTickerClick }: { sectors: HeatmapSector[]; onTickerClick?: (ticker: string) => void }) {
+  const sorted = [...sectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent);
+  const maxAbs = Math.max(...sorted.map(s => Math.abs(s.avgChangePercent)), 1);
+  return (
+    <div className="space-y-1.5">
+      {sorted.map(s => {
+        const pct = s.avgChangePercent;
+        const barWidth = (Math.abs(pct) / maxAbs) * 50;
+        const isPositive = pct >= 0;
+        const zero = isEffectivelyZero(pct);
+        const etf = SECTOR_ETF_MAP[s.name];
+        return (
+          <div key={s.name} className={`flex items-center gap-3 ${etf ? 'cursor-pointer hover:bg-white/[0.03] -mx-2 px-2 rounded-lg transition-colors' : ''}`}
+            onClick={() => etf && onTickerClick?.(etf)}>
+            <span className="text-xs w-24 text-right shrink-0 font-medium text-white/40">{s.name}</span>
+            <div className="flex-1 flex items-center h-5">
+              <div className="relative w-full h-full flex items-center">
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/[0.08]" />
+                <div
+                  className="absolute h-4 rounded-sm transition-all duration-500"
+                  style={{
+                    left: isPositive ? '50%' : `${50 - barWidth}%`,
+                    width: `${barWidth}%`,
+                    background: zero ? '#888' : isPositive ? '#00C805' : '#E8544E',
+                    opacity: 0.8,
+                  }}
+                />
+              </div>
+            </div>
+            <span className={`text-xs font-semibold min-w-[50px] text-right font-mono ${zero ? 'text-white/40' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+              {isPositive ? '+' : ''}{pct.toFixed(2)}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+type IndexQuote = { price: number; changePct: number; change: number };
+
+// Sentiment gauge — Fear & Greed speedometer
+// Top semicircle: score 0 (fear/left) to 100 (greed/right).
+// SVG negative angles: -180° (left) through -90° (top) to 0° (right).
+function SentimentGauge({ sentiment }: { sentiment: MarketSentiment }) {
+  const { score, label } = sentiment;
+
+  const labelColor =
+    score <= 25 ? '#ef4444' :
+    score <= 45 ? '#f97316' :
+    score <= 55 ? '#a3a3a3' :
+    score <= 75 ? '#84cc16' : '#22c55e';
+
+  const cx = 150, cy = 140, r = 105;
+  const arcWidth = 24;
+
+  function scoreToRad(s: number): number {
+    return ((-180 + (s / 100) * 180) * Math.PI) / 180;
+  }
+
+  function wedgePath(s0: number, s1: number): string {
+    const rOuter = r + arcWidth / 2;
+    const rInner = r - arcWidth / 2;
+    const a0 = scoreToRad(s0);
+    const a1 = scoreToRad(s1);
+    const ox0 = cx + rOuter * Math.cos(a0);
+    const oy0 = cy + rOuter * Math.sin(a0);
+    const ox1 = cx + rOuter * Math.cos(a1);
+    const oy1 = cy + rOuter * Math.sin(a1);
+    const ix0 = cx + rInner * Math.cos(a1);
+    const iy0 = cy + rInner * Math.sin(a1);
+    const ix1 = cx + rInner * Math.cos(a0);
+    const iy1 = cy + rInner * Math.sin(a0);
+    return `M ${ox0} ${oy0} A ${rOuter} ${rOuter} 0 0 1 ${ox1} ${oy1} L ${ix0} ${iy0} A ${rInner} ${rInner} 0 0 0 ${ix1} ${iy1} Z`;
+  }
+
+  const segments = [
+    { s0: 0, s1: 25, color: '#ef4444' },   // extreme fear
+    { s0: 25, s1: 42, color: '#f97316' },   // fear
+    { s0: 42, s1: 58, color: '#737373' },   // neutral
+    { s0: 58, s1: 75, color: '#84cc16' },   // greed
+    { s0: 75, s1: 100, color: '#22c55e' },  // extreme greed
+  ];
+
+  // Needle
+  const needleRad = scoreToRad(score);
+  const needleLen = r - arcWidth / 2 - 6;
+  const tipX = cx + needleLen * Math.cos(needleRad);
+  const tipY = cy + needleLen * Math.sin(needleRad);
+  const baseW = 3.5;
+  const perpRad = needleRad + Math.PI / 2;
+  const b1x = cx + baseW * Math.cos(perpRad);
+  const b1y = cy + baseW * Math.sin(perpRad);
+  const b2x = cx - baseW * Math.cos(perpRad);
+  const b2y = cy - baseW * Math.sin(perpRad);
+  const tailLen = 12;
+  const tailX = cx - tailLen * Math.cos(needleRad);
+  const tailY = cy - tailLen * Math.sin(needleRad);
+
+  // Zone labels inside the arc
+  const zoneLabels = [
+    { score: 12.5, text: 'EXTREME', text2: 'FEAR' },
+    { score: 33.5, text: 'FEAR' },
+    { score: 50, text: 'NEUTRAL' },
+    { score: 66.5, text: 'GREED' },
+    { score: 87.5, text: 'EXTREME', text2: 'GREED' },
+  ];
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Fear & Greed Index</h3>
+      </div>
+
+      {/* Score number above the gauge */}
+      <div className="text-center">
+        <span className="text-5xl font-extrabold tabular-nums" style={{ color: labelColor }}>{score}</span>
+      </div>
+
+      <div className="flex justify-center -mt-2">
+        <svg viewBox="0 0 300 160" className="w-full max-w-[340px]">
+          <defs>
+            <filter id="needle-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor={labelColor} floodOpacity="0.4" />
+            </filter>
+          </defs>
+
+          {/* Arc segments */}
+          {segments.map((seg, i) => (
+            <path key={i} d={wedgePath(seg.s0, seg.s1)} fill={seg.color} opacity={0.9} />
+          ))}
+
+          {/* Zone labels inside the arc */}
+          {zoneLabels.map((z, i) => {
+            const a = scoreToRad(z.score);
+            const labelR = r;
+            const lx = cx + labelR * Math.cos(a);
+            const ly = cy + labelR * Math.sin(a);
+            const rotDeg = (z.score / 100) * 180 - 180 + 90;
+            return (
+              <g key={i} transform={`translate(${lx},${ly}) rotate(${rotDeg})`}>
+                {z.text2 ? (
+                  <>
+                    <text textAnchor="middle" y={-3} fill="black" stroke="black" strokeWidth="1.4" fontSize="6.5" fontWeight="800" letterSpacing="0.5" paintOrder="stroke">{z.text}</text>
+                    <text textAnchor="middle" y={-3} fill="white" fontSize="6.5" fontWeight="800" letterSpacing="0.5">{z.text}</text>
+                    <text textAnchor="middle" y={4.5} fill="black" stroke="black" strokeWidth="1.4" fontSize="6.5" fontWeight="800" letterSpacing="0.5" paintOrder="stroke">{z.text2}</text>
+                    <text textAnchor="middle" y={4.5} fill="white" fontSize="6.5" fontWeight="800" letterSpacing="0.5">{z.text2}</text>
+                  </>
+                ) : (
+                  <>
+                    <text textAnchor="middle" y={1.5} fill="black" stroke="black" strokeWidth="1.4" fontSize="8" fontWeight="800" letterSpacing="0.5" paintOrder="stroke">{z.text}</text>
+                    <text textAnchor="middle" y={1.5} fill="white" fontSize="8" fontWeight="800" letterSpacing="0.5">{z.text}</text>
+                  </>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Needle */}
+          <polygon
+            points={`${tipX},${tipY} ${b1x},${b1y} ${tailX},${tailY} ${b2x},${b2y}`}
+            fill={labelColor} filter="url(#needle-shadow)"
+          />
+          {/* Center hub */}
+          <circle cx={cx} cy={cy} r={7} fill="#111" stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
+          <circle cx={cx} cy={cy} r={3.5} fill={labelColor} opacity={0.8} />
+        </svg>
+      </div>
+
+      <div className="text-center -mt-3">
+        <p className="text-sm font-bold tracking-wide" style={{ color: labelColor }}>{label}</p>
+      </div>
+
+      {/* Signal breakdown */}
+      <div className="mt-5 space-y-2 px-2">
+        {([
+          { key: 'vix', label: 'Market Volatility' },
+          { key: 'momentum', label: 'Market Momentum' },
+          { key: 'breadth', label: 'Stock Price Breadth' },
+          { key: 'priceStrength', label: 'Stock Price Strength' },
+          { key: 'putCall', label: 'Put/Call Options' },
+          { key: 'safeHaven', label: 'Safe Haven Demand' },
+          { key: 'junkBond', label: 'Junk Bond Demand' },
+        ] as const).map(({ key, label: sigLabel }) => {
+          const sig = sentiment.signals[key];
+          if (!sig || (sig.signal === 0 && sig.value === 0)) return null;
+          const sigColor = sig.signal <= 25 ? '#ef4444' : sig.signal <= 45 ? '#f97316' : sig.signal <= 55 ? '#a3a3a3' : sig.signal <= 75 ? '#84cc16' : '#22c55e';
+          const sigText = sig.signal <= 25 ? 'Extreme Fear' : sig.signal <= 45 ? 'Fear' : sig.signal <= 55 ? 'Neutral' : sig.signal <= 75 ? 'Greed' : 'Extreme Greed';
+          return (
+            <div key={key} className="flex items-center gap-3">
+              <span className="text-[11px] text-white/50 w-36 shrink-0">{sigLabel}</span>
+              <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${sig.signal}%`, backgroundColor: sigColor }} />
+              </div>
+              <span className="text-[11px] font-medium w-20 text-right shrink-0" style={{ color: sigColor }}>{sigText}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReportModalProps) {
@@ -119,287 +374,420 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [dontShowAgain, setDontShowAgain] = useLocalStorage('dailyReportDisabled', false);
   const [liveQuotes, setLiveQuotes] = useState<LiveQuotes>({});
   const [regenerating, setRegenerating] = useState(false);
-  const quotesFetchedRef = useRef(false);
+  const [indexQuotes, setIndexQuotes] = useState<Record<string, IndexQuote>>({});
+  const [heatmapSectors, setHeatmapSectors] = useState<HeatmapSector[]>([]);
+  const [earnings, setEarnings] = useState<EarningsSummaryItem[]>([]);
+  const [dividends, setDividends] = useState<DividendEvent[]>([]);
+  const [sentiment, setSentiment] = useState<MarketSentiment | null>(null);
+  const [livePortfolio, setLivePortfolio] = useState<Portfolio | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Escape key handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
-      }
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
 
-  // Lock body scroll when modal is visible
+  // Lock body + html scroll (prevents double scrollbar on Windows)
   useEffect(() => {
     if (hidden) return;
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => { document.documentElement.style.overflow = ''; document.body.style.overflow = ''; };
   }, [hidden]);
 
-  // Fetch on mount
-  const fetchReport = async () => {
+  // Fetch daily report
+  const fetchReport = useCallback(async () => {
     setLoading(true);
     setError(false);
-    try {
-      const report = await getDailyReport();
-      setData(report);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    try { setData(await getDailyReport()); }
+    catch { setError(true); }
+    finally { setLoading(false); }
+  }, []);
 
-  useEffect(() => { fetchReport(); }, []);
+  useEffect(() => { fetchReport(); }, [fetchReport]);
 
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    setLiveQuotes({});
-    quotesFetchedRef.current = false;
-    try {
-      const report = await regenerateDailyReport();
-      setData(report);
-    } catch {
-      // fall back to existing data
-    } finally {
-      setRegenerating(false);
-    }
-  };
+  // Fetch supplementary data (one-time)
+  useEffect(() => {
+    if (hidden) return;
+    // Earnings this week
+    getEarningsSummary().then(r => {
+      setEarnings(r.results.filter(e => e.daysUntil >= 0 && e.daysUntil <= 7));
+    }).catch(() => {});
+    // Upcoming dividends — only show if ex-date is today
+    getUpcomingDividends().then(divs => {
+      const today = new Date().toDateString();
+      setDividends(divs.filter(d => new Date(d.exDate).toDateString() === today));
+    }).catch(() => {});
+  }, [hidden]);
 
-  // Fetch live quotes for all tickers mentioned in the article, refresh every 30s
+  // Live quotes — index quotes + portfolio refresh every 30s
+  useEffect(() => {
+    if (hidden) return;
+    const fetchLiveQuotes = () => {
+      ['SPY', 'QQQ', 'DIA'].forEach(ticker => {
+        getFastQuote(ticker).then(q => {
+          setIndexQuotes(prev => ({ ...prev, [ticker]: { price: q.currentPrice, changePct: q.changePercent, change: q.change } }));
+        }).catch(() => {});
+      });
+      getPortfolio().then(setLivePortfolio).catch(() => {});
+    };
+    fetchLiveQuotes();
+    const interval = setInterval(fetchLiveQuotes, 30000);
+    return () => clearInterval(interval);
+  }, [hidden]);
+
+  // Heavy data — sectors, sentiment: fetch once on mount (cached on API side)
+  useEffect(() => {
+    if (hidden) return;
+    getMarketHeatmap('1D', 'SP500').then(r => setHeatmapSectors(r.sectors)).catch(() => {});
+    getMarketSentiment().then(setSentiment).catch(() => {});
+  }, [hidden]);
+
+  // Fetch live quotes for mentioned tickers — every 30s
   useEffect(() => {
     if (!data || hidden) return;
     const tickers = extractAllTickers(data);
     if (tickers.length === 0) return;
-
     const fetchQuotes = () => {
       tickers.forEach(ticker => {
-        getFastQuote(ticker)
-          .then(q => {
-            setLiveQuotes(prev => ({ ...prev, [ticker]: { changePercent: q.changePercent } }));
-          })
-          .catch(e => console.error('Fast quote fetch failed:', e));
+        getFastQuote(ticker).then(q => {
+          setLiveQuotes(prev => ({ ...prev, [ticker]: { changePercent: q.changePercent, currentPrice: q.currentPrice, previousClose: q.previousClose } }));
+        }).catch(() => {});
       });
     };
-
     fetchQuotes();
     const interval = setInterval(fetchQuotes, 30000);
     return () => clearInterval(interval);
   }, [data, hidden]);
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black overflow-hidden"
-      role="dialog" aria-modal="true"
-      style={{ paddingTop: 'env(safe-area-inset-top)', display: hidden ? 'none' : undefined }}
-    >
-      <div className="h-full overflow-y-auto"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        {/* Top bar */}
-        <div className="sticky z-10 flex items-center justify-between px-6 py-4 bg-black border-b border-white/[0.06]" style={{ top: 0 }}>
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
-          >
-            <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleRegenerate}
-              disabled={regenerating}
-              className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-rh-green transition-colors disabled:opacity-50"
-            >
-              <svg className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              {regenerating ? 'Generating...' : 'Refresh'}
-            </button>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="w-3 h-3 accent-rh-green"
-              />
-              <span className="text-[11px] text-white/30">Don't show on startup</span>
-            </label>
-          </div>
-        </div>
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    setLiveQuotes({});
+    try { setData(await regenerateDailyReport()); }
+    catch { /* keep existing data */ }
+    finally { setRegenerating(false); }
+  };
 
-        <div className="max-w-3xl mx-auto px-6 pt-16 pb-10">
-          {/* Loading state */}
-          {loading && (
-            <div className="animate-pulse space-y-10">
-              <div className="text-center">
-                <div className="h-10 w-80 bg-white/[0.06] rounded mx-auto mb-3" />
-                <div className="h-4 w-48 bg-white/[0.06] rounded mx-auto" />
-              </div>
-              <div className="border-t border-white/[0.06] pt-8">
-                <div className="h-5 w-32 bg-white/[0.06] rounded mb-4" />
-                <div className="space-y-3">
-                  <div className="h-4 bg-white/[0.04] rounded w-full" />
-                  <div className="h-4 bg-white/[0.04] rounded w-5/6" />
-                  <div className="h-4 bg-white/[0.04] rounded w-4/6" />
-                </div>
-              </div>
-              {[1, 2, 3].map(i => (
-                <div key={i} className="border-t border-white/[0.06] pt-8">
-                  <div className="h-5 w-40 bg-white/[0.06] rounded mb-4" />
-                  <div className="space-y-3">
-                    <div className="h-4 bg-white/[0.04] rounded w-full" />
-                    <div className="h-4 bg-white/[0.04] rounded w-3/4" />
+  const handleShare = async () => {
+    if (!contentRef.current) return;
+    setSharing(true);
+    try {
+      const dataUrl = await toPng(contentRef.current, {
+        backgroundColor: '#000000',
+        pixelRatio: 2,
+        filter: (node) => {
+          // Exclude share/refresh buttons from the image
+          if (node instanceof HTMLElement && node.dataset.excludeShare) return false;
+          return true;
+        },
+      });
+      // Try native share, fall back to download
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'nala-daily-brief.png', { type: 'image/png' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Nala - Today's Brief" });
+      } else {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'nala-daily-brief.png';
+        a.click();
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  // Compute top movers from portfolio
+  const movers = (() => {
+    if (!livePortfolio?.holdings || livePortfolio.holdings.length === 0) return { gainers: [], losers: [] };
+    const sorted = [...livePortfolio.holdings]
+      .filter(h => h.shares > 0 && h.dayChangePercent != null)
+      .sort((a, b) => (b.dayChangePercent ?? 0) - (a.dayChangePercent ?? 0));
+    return {
+      gainers: sorted.filter(h => (h.dayChangePercent ?? 0) > 0).slice(0, 3),
+      losers: sorted.filter(h => (h.dayChangePercent ?? 0) < 0).slice(-3).reverse().map(h => h),
+    };
+  })();
+  // Re-sort losers worst first
+  movers.losers.sort((a, b) => (a.dayChangePercent ?? 0) - (b.dayChangePercent ?? 0));
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black overflow-y-auto"
+      role="dialog" aria-modal="true"
+      style={{ paddingTop: 'env(safe-area-inset-top)', display: hidden ? 'none' : undefined, WebkitOverflowScrolling: 'touch' }}
+    >
+      {/* Sticky top bar */}
+      <div className="sticky z-10 flex items-center justify-between px-6 py-3 bg-black/95 backdrop-blur-sm border-b border-white/[0.06]" style={{ top: 0 }}>
+        <button onClick={onClose} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          Back
+        </button>
+        <div className="flex items-center gap-3" data-exclude-share="true">
+          <button onClick={handleShare} disabled={sharing || loading} className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-rh-green transition-colors disabled:opacity-50">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+            {sharing ? 'Saving...' : 'Share'}
+          </button>
+          <button onClick={handleRegenerate} disabled={regenerating} className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-rh-green transition-colors disabled:opacity-50">
+            <svg className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            {regenerating ? 'Generating...' : 'Refresh'}
+          </button>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={dontShowAgain} onChange={(e) => setDontShowAgain(e.target.checked)} className="w-3 h-3 accent-rh-green" />
+            <span className="text-[11px] text-white/30">Don't show on startup</span>
+          </label>
+        </div>
+      </div>
+
+      <div ref={contentRef} className="max-w-3xl mx-auto px-6 pt-10 pb-10">
+        {/* Loading state */}
+        {loading && (
+          <div className="animate-pulse space-y-8">
+            <div className="text-center"><div className="h-10 w-80 bg-white/[0.06] rounded mx-auto mb-3" /><div className="h-4 w-48 bg-white/[0.06] rounded mx-auto" /></div>
+            <div className="grid grid-cols-3 gap-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-white/[0.04] rounded-xl" />)}</div>
+            {[1,2,3].map(i => <div key={i} className="border-t border-white/[0.06] pt-6"><div className="h-5 w-40 bg-white/[0.06] rounded mb-4" /><div className="space-y-3"><div className="h-4 bg-white/[0.04] rounded w-full" /><div className="h-4 bg-white/[0.04] rounded w-3/4" /></div></div>)}
+          </div>
+        )}
+
+        {/* Error state */}
+        {!loading && error && (
+          <div className="text-center py-20">
+            <h2 className="text-2xl font-bold text-white mb-3">Unable to load your daily report</h2>
+            <p className="text-white/40 mb-6">Something went wrong fetching today's briefing.</p>
+            <button onClick={fetchReport} className="px-6 py-2.5 bg-rh-green text-white font-semibold rounded-full hover:bg-rh-green/90 transition-colors">Retry</button>
+          </div>
+        )}
+
+        {/* Loaded state */}
+        {!loading && !error && data && (
+          <>
+            {/* Title + reading time */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white tracking-tight mb-1">Today's Brief</h1>
+              <p className="text-sm text-rh-green mb-1">{formatDate(data.generatedAt)}</p>
+              <p className="text-[11px] text-white/30">{estimateReadingTime(data)} min read</p>
+            </div>
+
+            {/* Key Market Metrics */}
+            <div className="grid grid-cols-3 gap-3 mb-8">
+              {[
+                { label: 'S&P 500', ticker: 'SPY' },
+                { label: 'Nasdaq', ticker: 'QQQ' },
+                { label: 'Dow', ticker: 'DIA' },
+              ].map(({ label, ticker }) => {
+                const q = indexQuotes[ticker];
+                return (
+                  <div key={ticker} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 cursor-pointer hover:bg-white/[0.06] transition-colors"
+                    onClick={() => onTickerClick?.(ticker)}>
+                    <p className="text-[11px] text-white/40 mb-1">{label}</p>
+                    {q ? (
+                      <>
+                        <p className="text-lg font-semibold text-white font-mono">${q.price.toFixed(2)}</p>
+                        <p className={`text-sm font-mono ${q.changePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                          {q.changePct >= 0 ? '+' : ''}{q.changePct.toFixed(2)}%
+                        </p>
+                      </>
+                    ) : (
+                      <div className="h-10 bg-white/[0.04] rounded animate-pulse" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+
+            {/* Portfolio Snapshot Card */}
+            {livePortfolio && (
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4 mb-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Your Portfolio</p>
+                    <p className="text-2xl font-bold text-white font-mono">{formatCurrency(livePortfolio.netEquity ?? livePortfolio.totalValue)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-lg font-semibold font-mono ${livePortfolio.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {livePortfolio.dayChange >= 0 ? '+' : ''}{formatCurrency(livePortfolio.dayChange)}
+                    </p>
+                    <p className={`text-sm font-mono ${livePortfolio.dayChangePercent >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                      {formatPct(livePortfolio.dayChangePercent)}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                {/* Total return line */}
+                <div className="mt-2 pt-2 border-t border-white/[0.06] flex justify-between text-[12px]">
+                  <span className="text-white/30">Total Return</span>
+                  <span className={`font-mono ${livePortfolio.totalPLPercent >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                    {formatPct(livePortfolio.totalPLPercent)} ({livePortfolio.totalPL >= 0 ? '+' : ''}{formatCurrency(livePortfolio.totalPL)})
+                  </span>
+                </div>
+              </div>
+            )}
 
-          {/* Error state */}
-          {!loading && error && (
-            <div className="text-center py-20">
-              <h2 className="text-2xl font-bold text-white mb-3">
-                Unable to load your daily report
-              </h2>
-              <p className="text-white/40 mb-6">
-                Something went wrong fetching today's briefing.
+            {/* Top Movers */}
+            {(movers.gainers.length > 0 || movers.losers.length > 0) && (
+              <div className="mb-8">
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-3">Top Movers</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Gainers */}
+                  <div className="space-y-1.5">
+                    {movers.gainers.map(h => (
+                      <button key={h.ticker} onClick={() => onTickerClick?.(h.ticker)}
+                        className="w-full flex items-center justify-between px-3 py-2 bg-rh-green/[0.06] border border-rh-green/10 rounded-lg hover:bg-rh-green/10 transition-colors">
+                        <span className="text-sm font-medium text-white">{h.ticker}</span>
+                        <span className="text-sm font-mono text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+                      </button>
+                    ))}
+                    {movers.gainers.length === 0 && <p className="text-[12px] text-white/20 px-3 py-2">No gainers</p>}
+                  </div>
+                  {/* Losers */}
+                  <div className="space-y-1.5">
+                    {movers.losers.map(h => (
+                      <button key={h.ticker} onClick={() => onTickerClick?.(h.ticker)}
+                        className="w-full flex items-center justify-between px-3 py-2 bg-rh-red/[0.06] border border-rh-red/10 rounded-lg hover:bg-rh-red/10 transition-colors">
+                        <span className="text-sm font-medium text-white">{h.ticker}</span>
+                        <span className="text-sm font-mono text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+                      </button>
+                    ))}
+                    {movers.losers.length === 0 && <p className="text-[12px] text-white/20 px-3 py-2">No losers</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Market Sentiment Gauge */}
+            {sentiment && <SentimentGauge sentiment={sentiment} />}
+
+            <div className="border-t border-white/[0.08] mb-8" />
+
+            {/* Greeting / AI headline */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-white leading-snug">{stripCitations(data.greeting)}</h2>
+            </div>
+
+            {/* Market Overview */}
+            <Section title="Market Overview">
+              <p className="text-[15px] text-white/80 leading-[1.8]">
+                {renderWithPills(data.marketOverview, onTickerClick, liveQuotes)}
               </p>
-              <button
-                onClick={fetchReport}
-                className="px-6 py-2.5 bg-rh-green text-white font-semibold rounded-full hover:bg-rh-green/90 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          )}
+            </Section>
 
-          {/* Loaded state */}
-          {!loading && !error && data && (
-            <>
-              {/* Title */}
-              <div className="text-center mb-10">
-                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
-                  Today's Brief
-                </h1>
-                <p className="text-sm text-rh-green">
-                  {formatDate(data.generatedAt)}
-                </p>
-              </div>
+            {/* Your Portfolio AI summary */}
+            <Section title="Portfolio Analysis">
+              <p className="text-[15px] text-white/80 leading-[1.8]">
+                {renderWithPills(data.portfolioSummary, onTickerClick, liveQuotes)}
+              </p>
+            </Section>
 
-              {/* Greeting / headline */}
-              <div className="mb-10">
-                <h2 className="text-2xl font-bold text-white leading-snug mb-6">
-                  {stripCitations(data.greeting)}
-                </h2>
-                <div className="border-t border-white/[0.08]" />
-              </div>
+            {/* S&P 500 Sector Performance Bars */}
+            {heatmapSectors.length > 0 && (
+              <Section title="S&P 500 Sectors">
+                <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
+              </Section>
+            )}
 
-              {/* Market Overview */}
-              <div className="mb-10">
-                <p className="text-[15px] text-white/80 leading-[1.8]">
-                  {renderWithTickers(data.marketOverview, onTickerClick, liveQuotes)}
-                </p>
-              </div>
-
-              <div className="border-t border-white/[0.08] mb-10" />
-
-              {/* Your Portfolio */}
-              <div className="mb-10">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-green mb-4">
-                  Your Portfolio
-                </h3>
-                <p className="text-[15px] text-white/80 leading-[1.8]">
-                  {renderWithTickers(data.portfolioSummary, onTickerClick, liveQuotes)}
-                </p>
-              </div>
-
-              <div className="border-t border-white/[0.08] mb-10" />
-
-              {/* Top Stories */}
-              <div className="mb-10">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-6">
-                  Top Stories
-                </h3>
-                <div className="space-y-6">
-                  {data.topStories.map((story, i) => (
-                    <div key={i} className="group">
-                      <div className="flex items-start gap-4">
-                        {/* Sentiment indicator */}
-                        <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                          story.sentiment === 'positive'
-                            ? 'bg-rh-green'
-                            : story.sentiment === 'negative'
-                              ? 'bg-rh-red'
-                              : 'bg-white/20'
-                        }`} />
-                        <div className="flex-1">
-                          <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
-                            {renderWithTickers(story.headline, onTickerClick, liveQuotes)}
-                          </h4>
-                          <p className="text-sm text-white/50 leading-relaxed">
-                            {renderWithTickers(story.body, onTickerClick, liveQuotes)}
-                          </p>
-                          {story.relatedTickers.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {story.relatedTickers.map(ticker => (
-                                <button
-                                  key={ticker}
-                                  onClick={() => onTickerClick?.(ticker)}
-                                  className="text-[11px] font-medium text-rh-green/80 hover:text-rh-green transition-colors"
-                                >
-                                  {ticker}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+            {/* Top Stories */}
+            <Section title="Top Stories">
+              <div className="space-y-5">
+                {data.topStories.map((story, i) => (
+                  <div key={i}>
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                        story.sentiment === 'positive' ? 'bg-rh-green'
+                          : story.sentiment === 'negative' ? 'bg-rh-red' : 'bg-white/20'
+                      }`} />
+                      <div className="flex-1">
+                        <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
+                          {renderWithPills(story.headline, onTickerClick, liveQuotes)}
+                        </h4>
+                        <p className="text-sm text-white/50 leading-relaxed">
+                          {renderWithPills(story.body, onTickerClick, liveQuotes)}
+                        </p>
+                        {story.relatedTickers.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {story.relatedTickers.map(ticker => (
+                              <TickerPill key={ticker} ticker={ticker} quote={liveQuotes[ticker]} onClick={onTickerClick} />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {i < data.topStories.length - 1 && (
-                        <div className="border-t border-white/[0.04] mt-6" />
-                      )}
                     </div>
+                    {i < data.topStories.length - 1 && <div className="border-t border-white/[0.04] mt-5" />}
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            {/* Earnings This Week — only if there are upcoming earnings */}
+            {earnings.length > 0 && (
+              <Section title="Earnings This Week">
+                <div className="space-y-2">
+                  {earnings.map(e => (
+                    <button key={e.ticker} onClick={() => onTickerClick?.(e.ticker)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg hover:bg-white/[0.04] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        <span className="text-sm font-medium text-white">{e.ticker}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[12px] text-white/50">
+                          {e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `In ${e.daysUntil} days`}
+                        </p>
+                        {e.estimatedEPS != null && (
+                          <p className="text-[11px] text-white/30 font-mono">Est. EPS ${e.estimatedEPS.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </button>
                   ))}
                 </div>
-              </div>
+              </Section>
+            )}
 
-              <div className="border-t border-white/[0.08] mb-10" />
-
-              {/* Watch Today */}
-              <div className="mb-16">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-6">
-                  Watch Today
-                </h3>
-                <div className="space-y-4">
-                  {data.watchToday.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className="text-rh-green text-xs mt-1">{'–'}</span>
-                      <p className="text-[15px] text-white/70 leading-relaxed">{renderWithTickers(item, onTickerClick, liveQuotes)}</p>
-                    </div>
+            {/* Dividends — only if ex-date is today */}
+            {dividends.length > 0 && (
+              <Section title="Ex-Dividend Today">
+                <div className="space-y-2">
+                  {dividends.map(d => (
+                    <button key={d.id} onClick={() => onTickerClick?.(d.ticker)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg hover:bg-white/[0.04] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-rh-green" />
+                        <span className="text-sm font-medium text-white">{d.ticker}</span>
+                      </div>
+                      <p className="text-[11px] text-white/30 font-mono">${d.amountPerShare.toFixed(4)}/share</p>
+                    </button>
                   ))}
                 </div>
-              </div>
+              </Section>
+            )}
 
-              {/* Dismiss */}
-              <div className="text-center pb-10">
-                <button
-                  onClick={onClose}
-                  className="px-10 py-3 bg-white/[0.06] text-white font-medium rounded-full hover:bg-white/[0.1] transition-colors border border-white/[0.08]"
-                >
-                  Continue to Portfolio
-                </button>
-                <p className="text-[11px] text-white/20 mt-3">
-                  Generated {timeAgo(new Date(data.generatedAt))}
-                </p>
+            {/* Watch Today */}
+            <Section title="Watch Today">
+              <div className="space-y-3">
+                {data.watchToday.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="text-rh-green text-xs mt-1">-</span>
+                    <p className="text-[15px] text-white/70 leading-relaxed">{renderWithPills(item, onTickerClick, liveQuotes)}</p>
+                  </div>
+                ))}
               </div>
-            </>
-          )}
-        </div>
+            </Section>
+
+
+            {/* Dismiss */}
+            <div className="text-center pt-4 pb-10">
+              <button onClick={onClose} className="px-10 py-3 bg-white/[0.06] text-white font-medium rounded-full hover:bg-white/[0.1] transition-colors border border-white/[0.08]">
+                Continue to Portfolio
+              </button>
+              <p className="text-[11px] text-white/20 mt-3">Generated {timeAgo(new Date(data.generatedAt))}</p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
