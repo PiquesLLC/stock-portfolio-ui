@@ -4,61 +4,67 @@ import { getSectorPerformance, SectorPerformanceResponse } from '../api';
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
 const CHART_W = 700;
-const CHART_H = 260;
-const PAD = { top: 10, right: 10, bottom: 22, left: 44 };
+const CHART_H = 320;
+const PAD = { top: 12, right: 6, bottom: 24, left: 44 };
 const PLOT_W = CHART_W - PAD.left - PAD.right;
 const PLOT_H = CHART_H - PAD.top - PAD.bottom;
 
 type Period = '1D' | '1W' | '1M';
 
 // 1D window: 4 AM – 8 PM ET (16 hours) in minutes from midnight ET
-const DAY_START_MIN = 4 * 60;   // 4:00 AM ET
-const DAY_END_MIN = 20 * 60;    // 8:00 PM ET
-const DAY_RANGE_MIN = DAY_END_MIN - DAY_START_MIN; // 960 minutes
-const MARKET_OPEN_MIN = 9 * 60 + 30; // 9:30 AM ET
+const DAY_START_MIN = 4 * 60;
+const DAY_END_MIN = 20 * 60;
+const DAY_RANGE_MIN = DAY_END_MIN - DAY_START_MIN;
+const MARKET_OPEN_MIN = 9 * 60 + 30;
 
 /* ─── Time helpers ───────────────────────────────────────────────────────── */
 
-/** Convert ISO timestamp to minutes since midnight ET */
 function toMinutesET(iso: string): number {
   const d = new Date(iso);
   const et = new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
   return et.getHours() * 60 + et.getMinutes();
 }
 
-/** Convert ISO timestamp to ms epoch */
-function toMs(iso: string): number {
-  return new Date(iso).getTime();
-}
-
 /* ─── Color helpers ──────────────────────────────────────────────────────── */
 
-function getLineColor(index: number, _total: number, changePercent: number): string {
-  if (changePercent > 0.3) return index === 0 ? '#00c805' : index === 1 ? '#34d058' : '#6fdd8b';
-  if (changePercent < -0.3) {
-    if (index >= _total - 1) return '#ff3b30';
-    if (index >= _total - 2) return '#ff6b6b';
-    if (index >= _total - 3) return '#ff9999';
+// Bloomberg-style: gold/yellow for top performers, greens for mid-positive,
+// reds for negative, dark/black for worst
+function getLineColor(rank: number, total: number, changePercent: number): string {
+  // Split into positive/neutral/negative groups based on actual change
+  if (changePercent > 0.1) {
+    // Positive: gold → green spectrum
+    if (rank === 0) return '#e8b230';
+    if (rank === 1) return '#c9a028';
+    return rank <= 3 ? '#22c55e' : '#15803d';
   }
-  return 'rgba(150,150,150,0.45)';
+  if (changePercent < -0.1) {
+    // Negative: red → dark spectrum
+    const negRank = rank - total; // distance from bottom
+    if (negRank >= -1) return '#1c1917'; // worst = black
+    if (negRank >= -2) return '#292524';
+    if (negRank >= -3) return '#7f1d1d';
+    return rank >= total - 5 ? '#991b1b' : '#dc2626';
+  }
+  // Near zero
+  return 'rgba(120,120,120,0.5)';
 }
 
 function getLeaderboardBg(changePercent: number): string {
-  if (changePercent >= 1.5) return 'rgba(0,200,5,0.25)';
-  if (changePercent >= 0.5) return 'rgba(0,200,5,0.15)';
-  if (changePercent > 0) return 'rgba(0,200,5,0.07)';
-  if (changePercent > -0.5) return 'rgba(255,59,48,0.07)';
-  if (changePercent > -1.5) return 'rgba(255,59,48,0.15)';
-  return 'rgba(255,59,48,0.25)';
+  if (changePercent >= 1.5) return 'rgba(0,180,5,0.35)';
+  if (changePercent >= 0.5) return 'rgba(0,180,5,0.22)';
+  if (changePercent > 0.05) return 'rgba(0,180,5,0.12)';
+  if (changePercent > -0.05) return 'rgba(100,100,100,0.08)';
+  if (changePercent > -0.5) return 'rgba(220,38,38,0.12)';
+  if (changePercent > -1.5) return 'rgba(220,38,38,0.22)';
+  return 'rgba(220,38,38,0.35)';
 }
 
 function changeColor(pct: number): string {
-  return pct > 0 ? '#00c805' : pct < 0 ? '#ff3b30' : '#999';
+  return pct > 0.01 ? '#00c805' : pct < -0.01 ? '#ff3b30' : '#999';
 }
 
 /* ─── SVG path builders ──────────────────────────────────────────────────── */
 
-/** 1D: time-based x-axis mapped to 4 AM – 8 PM ET window */
 function buildTimePath(sparkline: number[], timestamps: string[], yMin: number, yRange: number): string {
   if (sparkline.length === 0 || timestamps.length === 0) return '';
   const parts: string[] = [];
@@ -73,16 +79,16 @@ function buildTimePath(sparkline: number[], timestamps: string[], yMin: number, 
   return parts.join('');
 }
 
-/** Non-1D: epoch-based x-axis (min/max from all timestamps) */
-function buildEpochPath(sparkline: number[], timestamps: string[], epochMin: number, epochRange: number, yMin: number, yRange: number): string {
+/** Non-1D: index-based x-axis — evenly spaced points, no gaps for weekends */
+function buildIndexPath(sparkline: number[], yMin: number, yRange: number): string {
   if (sparkline.length === 0) return '';
   const parts: string[] = [];
-  for (let i = 0; i < sparkline.length; i++) {
-    const ms = toMs(timestamps[i]);
-    const xFrac = epochRange > 0 ? (ms - epochMin) / epochRange : 0;
-    const x = PAD.left + Math.max(0, Math.min(1, xFrac)) * PLOT_W;
+  const count = sparkline.length;
+  for (let i = 0; i < count; i++) {
+    const xFrac = count > 1 ? i / (count - 1) : 0.5;
+    const x = PAD.left + xFrac * PLOT_W;
     const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
-    parts.push(`${parts.length === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
+    parts.push(`${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
   }
   return parts.join('');
 }
@@ -119,9 +125,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     return () => clearInterval(interval);
   }, [period, fetchData]);
 
-  // Y-axis range
-  const { yMin, yRange, gridLines } = useMemo((): { yMin: number; yRange: number; gridLines: number[] } => {
-    if (!data) return { yMin: -3, yRange: 6, gridLines: [] };
+  // Y-axis: only compute range + the 0% line position
+  const { yMin, yRange } = useMemo((): { yMin: number; yRange: number } => {
+    if (!data) return { yMin: -3, yRange: 6 };
     const allValues = [
       ...data.sectors.flatMap(s => s.sparkline),
       ...data.benchmark.sparkline,
@@ -129,32 +135,24 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     ];
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
-    const padding = Math.max((max - min) * 0.12, 0.3);
+    const padding = Math.max((max - min) * 0.15, 0.3);
     const computedMin = min - padding;
     const computedMax = max + padding;
-    const range = computedMax - computedMin;
-    const step = range > 8 ? 2 : range > 4 ? 1 : 0.5;
-    const lines: number[] = [];
-    for (let v = Math.ceil(computedMin / step) * step; v <= computedMax; v += step) {
-      lines.push(Math.round(v * 100) / 100);
-    }
-    return { yMin: computedMin, yRange: range, gridLines: lines };
+    return { yMin: computedMin, yRange: computedMax - computedMin };
   }, [data]);
 
-  // Epoch range for non-1D
-  const { epochMin, epochRange } = useMemo(() => {
-    if (!data || period === '1D') return { epochMin: 0, epochRange: 1 };
-    const allTs = [
-      ...data.sectors.flatMap(s => s.timestamps),
-      ...data.benchmark.timestamps,
-    ].map(toMs).filter(Number.isFinite);
-    if (allTs.length === 0) return { epochMin: 0, epochRange: 1 };
-    const mn = Math.min(...allTs);
-    const mx = Math.max(...allTs);
-    return { epochMin: mn, epochRange: Math.max(mx - mn, 1) };
-  }, [data, period]);
+  // Y-axis labels: just a few key values (top, 0%, bottom)
+  const yLabels = useMemo(() => {
+    const labels: { value: number; y: number }[] = [];
+    const step = yRange > 8 ? 2 : yRange > 4 ? 1 : 0.5;
+    for (let v = Math.ceil(yMin / step) * step; v <= yMin + yRange; v += step) {
+      const rounded = Math.round(v * 100) / 100;
+      const y = PAD.top + PLOT_H - ((rounded - yMin) / (yRange || 1)) * PLOT_H;
+      labels.push({ value: rounded, y });
+    }
+    return labels;
+  }, [yMin, yRange]);
 
-  // Hover
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
       if (!svgRef.current) return;
@@ -168,22 +166,26 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
   if (loading && !data) {
     return (
-      <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] p-4 animate-pulse h-[300px]" />
+      <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] p-4 animate-pulse h-[360px]" />
     );
   }
 
   if (!data || data.sectors.length === 0) return null;
 
-  const allSectors = data.sectors;
-  const benchmark = data.benchmark;
+  // Merge sectors + benchmark into one sorted list for leaderboard
+  const allItems = [
+    ...data.sectors.map(s => ({ ticker: s.ticker, changePercent: s.changePercent, sparkline: s.sparkline, timestamps: s.timestamps, isBenchmark: false })),
+    { ticker: 'SPY', changePercent: data.benchmark.changePercent, sparkline: data.benchmark.sparkline, timestamps: data.benchmark.timestamps, isBenchmark: true },
+  ].sort((a, b) => b.changePercent - a.changePercent);
 
-  // Build path function based on period
   const pathFor = (sparkline: number[], timestamps: string[]) =>
     period === '1D'
       ? buildTimePath(sparkline, timestamps, yMin, yRange)
-      : buildEpochPath(sparkline, timestamps, epochMin, epochRange, yMin, yRange);
+      : buildIndexPath(sparkline, yMin, yRange);
 
-  // 1D time labels: fixed positions across the 4 AM – 8 PM window
+  // 0% line y position
+  const zeroY = PAD.top + PLOT_H - ((0 - yMin) / (yRange || 1)) * PLOT_H;
+
   const timeLabels1D = [
     { min: 4 * 60, label: '4 AM' },
     { min: 6 * 60, label: '6 AM' },
@@ -235,30 +237,30 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
             onMouseMove={handleMouseMove}
             onMouseLeave={() => { setHoverX(null); setHoveredTicker(null); }}
           >
-            {/* Grid lines */}
-            {gridLines.map(v => {
-              const y = PAD.top + PLOT_H - ((v - yMin) / yRange) * PLOT_H;
-              return (
-                <g key={v}>
-                  <line
-                    x1={PAD.left} x2={CHART_W - PAD.right}
-                    y1={y} y2={y}
-                    stroke={v === 0 ? 'rgba(150,150,150,0.35)' : 'rgba(150,150,150,0.08)'}
-                    strokeWidth={v === 0 ? 0.8 : 0.5}
-                    strokeDasharray={v === 0 ? undefined : '3,4'}
-                  />
-                  <text
-                    x={PAD.left - 4} y={y + 3}
-                    textAnchor="end"
-                    className="fill-gray-400 dark:fill-white/25"
-                    fontSize="8"
-                    fontFamily="system-ui"
-                  >
-                    {v > 0 ? '+' : ''}{v.toFixed(1)}%
-                  </text>
-                </g>
-              );
-            })}
+            {/* Only the 0% baseline — no grid clutter */}
+            {zeroY >= PAD.top && zeroY <= PAD.top + PLOT_H && (
+              <line
+                x1={PAD.left} x2={CHART_W - PAD.right}
+                y1={zeroY} y2={zeroY}
+                stroke="rgba(150,150,150,0.25)"
+                strokeWidth={0.6}
+                strokeDasharray="4,4"
+              />
+            )}
+
+            {/* Y-axis labels only */}
+            {yLabels.map(({ value, y }) => (
+              <text
+                key={value}
+                x={PAD.left - 4} y={y + 3}
+                textAnchor="end"
+                className="fill-gray-400 dark:fill-white/25"
+                fontSize="8"
+                fontFamily="system-ui"
+              >
+                {value > 0 ? '+' : ''}{value.toFixed(1)}%
+              </text>
+            ))}
 
             {/* 1D: Market open line at 9:30 AM */}
             {period === '1D' && (() => {
@@ -267,50 +269,42 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 <line
                   x1={x} x2={x}
                   y1={PAD.top} y2={PAD.top + PLOT_H}
-                  stroke="rgba(0,200,5,0.15)"
+                  stroke="rgba(0,200,5,0.12)"
                   strokeWidth={0.5}
                   strokeDasharray="3,3"
                 />
               );
             })()}
 
-            {/* Sector lines */}
-            {allSectors.map((sector, i) => {
-              const isHovered = hoveredTicker === sector.ticker;
+            {/* Sector + benchmark lines */}
+            {allItems.map((item, i) => {
+              const isHovered = hoveredTicker === item.ticker;
               const anyHovered = hoveredTicker !== null;
-              const color = getLineColor(i, allSectors.length, sector.changePercent);
-              const opacity = anyHovered ? (isHovered ? 1 : 0.12) : 0.75;
+              const color = item.isBenchmark
+                ? 'rgba(255,255,255,0.5)'
+                : getLineColor(i, allItems.length, item.changePercent);
+              const opacity = anyHovered ? (isHovered ? 1 : 0.1) : 0.85;
               return (
                 <path
-                  key={sector.ticker}
-                  d={pathFor(sector.sparkline, sector.timestamps)}
+                  key={item.ticker}
+                  d={pathFor(item.sparkline, item.timestamps)}
                   fill="none"
                   stroke={color}
-                  strokeWidth={isHovered ? 2.2 : 1.2}
+                  strokeWidth={isHovered ? 2.5 : item.isBenchmark ? 1 : 1.4}
                   opacity={opacity}
                   strokeLinejoin="round"
+                  strokeDasharray={item.isBenchmark ? '5,3' : undefined}
                   style={{ transition: 'opacity 0.15s, stroke-width 0.15s' }}
                 />
               );
             })}
-
-            {/* Benchmark line (dashed white) */}
-            <path
-              d={pathFor(benchmark.sparkline, benchmark.timestamps)}
-              fill="none"
-              stroke="rgba(255,255,255,0.45)"
-              strokeWidth={1.2}
-              strokeDasharray="5,3"
-              opacity={hoveredTicker ? 0.12 : 0.55}
-              strokeLinejoin="round"
-            />
 
             {/* Hover crosshair */}
             {hoverX !== null && (
               <line
                 x1={hoverX} x2={hoverX}
                 y1={PAD.top} y2={PAD.top + PLOT_H}
-                stroke="rgba(150,150,150,0.3)"
+                stroke="rgba(150,150,150,0.25)"
                 strokeWidth={0.5}
               />
             )}
@@ -333,15 +327,17 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 );
               })
             ) : (() => {
-              // Non-1D: pick 5 evenly spaced labels from all timestamps
-              const allTs = [...new Set([...data.sectors.flatMap(s => s.timestamps), ...benchmark.timestamps])].sort();
-              if (allTs.length === 0) return null;
-              const indices = [0, Math.floor(allTs.length / 4), Math.floor(allTs.length / 2), Math.floor(allTs.length * 3 / 4), allTs.length - 1];
+              // Use the longest sector's timestamps for label positioning (index-based)
+              const longestTs = [data.benchmark, ...data.sectors]
+                .reduce((a, b) => a.timestamps.length >= b.timestamps.length ? a : b)
+                .timestamps;
+              if (longestTs.length === 0) return null;
+              const count = longestTs.length;
+              const indices = [0, Math.floor(count / 4), Math.floor(count / 2), Math.floor(count * 3 / 4), count - 1];
               return indices.map(idx => {
-                const ms = toMs(allTs[idx]);
-                const xFrac = (ms - epochMin) / epochRange;
+                const xFrac = count > 1 ? idx / (count - 1) : 0.5;
                 const x = PAD.left + xFrac * PLOT_W;
-                const d = new Date(allTs[idx]);
+                const d = new Date(longestTs[idx]);
                 const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 return (
                   <text
@@ -360,35 +356,26 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
           </svg>
         </div>
 
-        {/* Leaderboard */}
-        <div className="w-[150px] shrink-0 border-l border-gray-200/30 dark:border-white/[0.06] py-0.5 overflow-y-auto max-h-[270px]">
-          {/* Benchmark row */}
-          <button
-            className="w-full flex items-center justify-between px-2.5 py-[3px] text-[10px] font-semibold border-b border-gray-200/20 dark:border-white/[0.04] hover:bg-gray-100/50 dark:hover:bg-white/[0.03] transition-colors"
-            style={{ background: getLeaderboardBg(benchmark.changePercent) }}
-            onMouseEnter={() => setHoveredTicker('SPY')}
-            onMouseLeave={() => setHoveredTicker(null)}
-            onClick={() => onTickerClick?.('SPY')}
-          >
-            <span className="text-gray-500 dark:text-white/50">SPY</span>
-            <span style={{ color: changeColor(benchmark.changePercent) }}>
-              {benchmark.changePercent > 0 ? '+' : ''}{benchmark.changePercent.toFixed(2)}%
-            </span>
-          </button>
-
-          {/* Sector rows */}
-          {allSectors.map(sector => (
+        {/* Leaderboard — no scroll, all items visible */}
+        <div className="w-[170px] shrink-0 border-l border-gray-200/30 dark:border-white/[0.06] flex flex-col">
+          {allItems.map(item => (
             <button
-              key={sector.ticker}
-              className="w-full flex items-center justify-between px-2.5 py-[3px] text-[10px] hover:bg-gray-100/50 dark:hover:bg-white/[0.03] transition-colors"
-              style={{ background: hoveredTicker === sector.ticker ? 'rgba(255,255,255,0.06)' : getLeaderboardBg(sector.changePercent) }}
-              onMouseEnter={() => setHoveredTicker(sector.ticker)}
+              key={item.ticker}
+              className="w-full flex items-center justify-between px-3 flex-1 min-h-0 hover:brightness-125 transition-all cursor-pointer"
+              style={{
+                background: hoveredTicker === item.ticker
+                  ? 'rgba(255,255,255,0.08)'
+                  : getLeaderboardBg(item.changePercent),
+              }}
+              onMouseEnter={() => setHoveredTicker(item.ticker)}
               onMouseLeave={() => setHoveredTicker(null)}
-              onClick={() => onTickerClick?.(sector.ticker)}
+              onClick={() => onTickerClick?.(item.ticker)}
             >
-              <span className="text-gray-600 dark:text-white/60 font-semibold truncate mr-1">{sector.ticker}</span>
-              <span className="font-bold tabular-nums whitespace-nowrap" style={{ color: changeColor(sector.changePercent) }}>
-                {sector.changePercent > 0 ? '+' : ''}{sector.changePercent.toFixed(2)}%
+              <span className={`text-[11px] font-bold ${item.isBenchmark ? 'text-gray-300 dark:text-white/40' : 'text-gray-700 dark:text-white/70'}`}>
+                {item.ticker}
+              </span>
+              <span className="text-[11px] font-bold tabular-nums" style={{ color: changeColor(item.changePercent) }}>
+                {item.changePercent > 0 ? '+' : ''}{item.changePercent.toFixed(2)}%
               </span>
             </button>
           ))}
