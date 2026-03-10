@@ -1664,11 +1664,19 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
   initialIndex?: MarketIndex;
   onIndexChange?: (index: MarketIndex) => void;
 }) {
-  const [period, setPeriod] = useState<HeatmapPeriod>('1D');
+  const [period, setPeriodInternal] = useState<HeatmapPeriod>('1D');
   const [index, setIndexInternal] = useState<MarketIndex>(initialIndex ?? 'SP500');
+  // Clear stale data synchronously on switch to avoid one-frame flash of old chart
   const setIndex = (idx: MarketIndex) => {
+    const cached = heatmapCache.get(cacheKey(period, idx));
+    if (cached) { setData(cached.data); } else { setData(null); setLoading(true); }
     setIndexInternal(idx);
     onIndexChange?.(idx);
+  };
+  const setPeriod = (p: HeatmapPeriod) => {
+    const cached = heatmapCache.get(cacheKey(p, index));
+    if (cached) { setData(cached.data); } else { setData(null); setLoading(true); }
+    setPeriodInternal(p);
   };
   const [highlightedSector, setHighlightedSector] = useState<string | null>(null);
   const treemapRef = useRef<HTMLDivElement>(null);

@@ -15,53 +15,91 @@ function formatQuarter(dateStr: string): string {
   return `${q} '${String(d.getFullYear()).slice(2)}`;
 }
 
-// Side-by-side comparison bars: faint estimate behind, colored actual in front
-function ComparisonChart({ quarters }: { quarters: ParsedQuarterlyEarning[] }) {
+// Surprise % chart: positive bars up (green), negative bars down (red), zero line in middle
+function SurpriseChart({ quarters }: { quarters: ParsedQuarterlyEarning[] }) {
+  const [hovered, setHovered] = useState<number | null>(null);
   const display = quarters.slice(0, 8).reverse();
   if (display.length === 0) return null;
 
-  // Scale bars by EPS value — find max across all reported & estimated
-  const allValues = display.flatMap(q => [q.reportedEPS, q.estimatedEPS].filter((v): v is number => v != null));
-  const maxEPS = Math.max(...allValues, 0.01);
-  const barMaxH = 100;
+  const surprises = display.map(q => q.surprisePercentage).filter((v): v is number => v != null);
+  if (surprises.length === 0) return null;
+
+  const maxPos = Math.max(...surprises, 0);
+  const maxNeg = Math.abs(Math.min(...surprises, 0));
+  const maxAbs = Math.max(maxPos, maxNeg, 1);
+  const halfH = 70; // px for each direction from zero line
+  const totalH = halfH * 2;
+
+  const hoveredQ = hovered != null ? display[hovered] : null;
+  const hoveredSp = hoveredQ?.surprisePercentage;
 
   return (
     <div className="mb-4">
-      {/* Baseline + bars */}
-      <div className="relative px-1">
-        {/* Baseline line — slightly brightened */}
-        <div className="absolute bottom-0 left-1 right-1 h-px bg-gray-300/40 dark:bg-white/[0.08]" />
-        <div className="flex items-end gap-3" style={{ height: `${barMaxH + 8}px` }}>
+      {/* Inline tooltip — sits above chart, fixed height so layout doesn't shift */}
+      <div className="h-5 flex items-center gap-2 px-1 mb-1">
+        {hoveredQ && hoveredSp != null ? (
+          <>
+            <span className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/60">{formatQuarter(hoveredQ.fiscalDateEnding)}</span>
+            <span className={`text-[10px] font-mono tabular-nums font-semibold ${hoveredSp >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+              {hoveredSp > 0 ? '+' : ''}{hoveredSp.toFixed(1)}%
+            </span>
+            {hoveredQ.reportedEPS != null && (
+              <span className="text-[10px] font-mono tabular-nums text-rh-light-text/50 dark:text-white/40">EPS: {formatEPS(hoveredQ.reportedEPS)}</span>
+            )}
+            {hoveredQ.estimatedEPS != null && (
+              <span className="text-[10px] font-mono tabular-nums text-rh-light-muted/40 dark:text-white/25">Est: {formatEPS(hoveredQ.estimatedEPS)}</span>
+            )}
+          </>
+        ) : null}
+      </div>
+      <div className="relative pl-7 pr-1" style={{ height: `${totalH}px` }}>
+        {/* 0% axis label */}
+        <span
+          className="absolute left-0 text-[9px] font-mono text-rh-light-muted/30 dark:text-white/15 tabular-nums leading-none"
+          style={{ top: `${halfH}px`, transform: 'translateY(-50%)' }}
+        >0%</span>
+        {/* Zero line */}
+        <div className="absolute left-7 right-1 h-px bg-gray-300/40 dark:bg-white/[0.08]" style={{ top: `${halfH}px` }} />
+        <div className="flex gap-3 h-full">
           {display.map((q, i) => {
-            const estH = q.estimatedEPS != null ? Math.max((q.estimatedEPS / maxEPS) * barMaxH, 3) : 0;
-            const actH = q.reportedEPS != null ? Math.max((q.reportedEPS / maxEPS) * barMaxH, 3) : 0;
-            const isBeat = q.beat === true;
-            const isMiss = q.beat === false;
-            // Recency: last 4 (rightmost) = full, older = dimmed
+            const sp = q.surprisePercentage;
             const isRecent = i >= display.length - 4;
             const opacity = isRecent ? 1 : 0.45;
 
+            if (sp == null) {
+              return (
+                <div key={i} className="flex-1 min-w-0 flex justify-center" style={{ opacity: hovered != null ? 0.3 : opacity }}>
+                  <div className="relative w-[18px] h-full">
+                    <div
+                      className="absolute left-0 right-0 rounded-t bg-gray-400/25 dark:bg-white/[0.08]"
+                      style={{ top: `${halfH - 3}px`, height: '3px' }}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            const barPx = Math.max((Math.abs(sp) / maxAbs) * halfH, 3);
+            const isPositive = sp >= 0;
+
             return (
-              <div key={i} className="flex-1 min-w-0 flex items-end justify-center" style={{ opacity }}>
-                <div className="relative flex items-end justify-center">
-                  {/* Estimated bar — narrower, faint */}
-                  {estH > 0 && (
-                    <div
-                      className="w-[11px] rounded-t bg-gray-400/35 dark:bg-white/[0.14]"
-                      style={{ height: `${estH}px` }}
-                    />
-                  )}
-                  {/* Actual bar — full width, colored */}
-                  {actH > 0 && (
-                    <div
-                      className={`w-[14px] rounded-t ml-[2px] ${
-                        isMiss ? 'bg-rh-red' :
-                        isBeat ? 'bg-rh-green' :
-                        'bg-gray-400/50 dark:bg-white/[0.2]'
-                      }`}
-                      style={{ height: `${actH}px` }}
-                    />
-                  )}
+              <div
+                key={i}
+                className="flex-1 min-w-0 flex justify-center"
+                style={{ opacity: hovered != null ? (hovered === i ? 1 : 0.3) : opacity }}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                <div className="relative w-[18px] h-full">
+                  <div
+                    className={`absolute left-0 right-0 ${
+                      isPositive ? 'rounded-t bg-rh-green' : 'rounded-b bg-rh-red'
+                    }`}
+                    style={isPositive
+                      ? { top: `${halfH - barPx}px`, height: `${barPx}px` }
+                      : { top: `${halfH}px`, height: `${barPx}px` }
+                    }
+                  />
                 </div>
               </div>
             );
@@ -69,7 +107,7 @@ function ComparisonChart({ quarters }: { quarters: ParsedQuarterlyEarning[] }) {
         </div>
       </div>
       {/* Quarter labels */}
-      <div className="flex gap-3 px-1 mt-1.5">
+      <div className="flex gap-3 pl-7 pr-1 mt-1.5">
         {display.map((q, i) => {
           const isRecent = i >= display.length - 4;
           return (
@@ -258,8 +296,8 @@ export function EarningsSection({ ticker }: { ticker: string }) {
             className="overflow-hidden"
           >
             <div className="px-5 pb-5">
-              {/* Comparison bars: faint estimate + colored actual */}
-              <ComparisonChart quarters={data.quarterly} />
+              {/* Surprise % bars: green up / red down */}
+              <SurpriseChart quarters={data.quarterly} />
 
               {/* Table */}
               <div className="overflow-x-auto">
@@ -267,8 +305,8 @@ export function EarningsSection({ ticker }: { ticker: string }) {
                   <thead>
                     <tr className="border-b border-gray-200/30 dark:border-white/[0.05]">
                       <th className="text-left py-2 pr-2 font-medium text-rh-light-muted/40 dark:text-white/20 text-[10px] uppercase tracking-wider w-[72px]">Quarter</th>
-                      <th className="text-right py-2 px-1.5 font-medium text-rh-light-muted/40 dark:text-white/20 text-[10px] uppercase tracking-wider">EPS</th>
                       <th className="text-right py-2 px-1.5 font-medium text-rh-light-muted/40 dark:text-white/20 text-[10px] uppercase tracking-wider">Est.</th>
+                      <th className="text-right py-2 px-1.5 font-medium text-rh-light-muted/40 dark:text-white/20 text-[10px] uppercase tracking-wider">EPS</th>
                       <th className="text-right py-2 px-1.5 font-medium text-rh-light-muted/40 dark:text-white/20 text-[10px] uppercase tracking-wider">Surprise</th>
                       <th className="text-right py-2 pl-1.5 font-medium text-rh-light-muted/40 dark:text-white/20 text-[10px] uppercase tracking-wider w-10"></th>
                     </tr>
@@ -296,17 +334,17 @@ export function EarningsSection({ ticker }: { ticker: string }) {
                         </td>
                         <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
                           i === 0
-                            ? 'font-semibold text-rh-light-text dark:text-white/90'
-                            : 'text-rh-light-text dark:text-white/80'
-                        }`}>
-                          {formatEPS(q.reportedEPS)}
-                        </td>
-                        <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
-                          i === 0
                             ? 'text-rh-light-muted/60 dark:text-white/40'
                             : 'text-rh-light-muted/50 dark:text-white/30'
                         }`}>
                           {formatEPS(q.estimatedEPS)}
+                        </td>
+                        <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
+                          i === 0
+                            ? 'font-semibold text-rh-light-text dark:text-white/90'
+                            : 'text-rh-light-text dark:text-white/80'
+                        }`}>
+                          {formatEPS(q.reportedEPS)}
                         </td>
                         <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
                           i === 0 ? 'font-semibold' : ''
