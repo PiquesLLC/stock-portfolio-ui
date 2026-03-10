@@ -23,6 +23,25 @@ interface DeadLetterEntry {
   createdAt: string;
 }
 
+interface SnapshotHealth {
+  userId: string;
+  username: string;
+  lastSnapshotAge: number; // minutes
+  snapshotsLast24h: number;
+  gapCount: number;
+  longestGapMinutes: number;
+  status: 'healthy' | 'stale' | 'gaps' | 'critical';
+}
+
+interface StuckJob {
+  id: string;
+  jobName: string;
+  attempt: number;
+  maxAttempts: number;
+  startedAt: string;
+  durationMs: number | null;
+}
+
 interface JobsResponse {
   summary: {
     totalJobs: number;
@@ -55,6 +74,28 @@ async function resolveEntry(id: string): Promise<void> {
   if (!res.ok) throw new Error('Failed to resolve entry');
 }
 
+async function fetchSnapshotHealth(): Promise<SnapshotHealth[]> {
+  const res = await fetch('/api/admin/jobs/snapshot-health', { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch snapshot health');
+  const data = await res.json();
+  return data.reports;
+}
+
+async function fetchStuckJobs(): Promise<StuckJob[]> {
+  const res = await fetch('/api/admin/jobs/stuck', { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch stuck jobs');
+  const data = await res.json();
+  return data.stuck;
+}
+
+async function healStuckJobs(): Promise<void> {
+  const res = await fetch('/api/admin/jobs/heal', {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to heal stuck jobs');
+}
+
 interface Props {
   onBack: () => void;
 }
@@ -62,19 +103,25 @@ interface Props {
 export function JobsDashboard({ onBack }: Props) {
   const [stats, setStats] = useState<JobsResponse | null>(null);
   const [deadLetters, setDeadLetters] = useState<DeadLetterEntry[]>([]);
+  const [healthEntries, setHealthEntries] = useState<SnapshotHealth[]>([]);
+  const [stuckJobs, setStuckJobs] = useState<StuckJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<'overview' | 'dead-letter'>('overview');
+  const [tab, setTab] = useState<'overview' | 'dead-letter' | 'health' | 'stuck'>('overview');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [jobStats, dlEntries] = await Promise.all([
+      const [jobStats, dlEntries, health, stuck] = await Promise.all([
         fetchJobStats(),
         fetchDeadLetterEntries(),
+        fetchSnapshotHealth(),
+        fetchStuckJobs(),
       ]);
       setStats(jobStats);
       setDeadLetters(dlEntries);
+      setHealthEntries(health);
+      setStuckJobs(stuck);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
@@ -86,6 +133,7 @@ export function JobsDashboard({ onBack }: Props) {
   useEffect(() => { load(); }, [load]);
 
   const [resolving, setResolving] = useState<string | null>(null);
+  const [healing, setHealing] = useState(false);
 
   const handleResolve = async (id: string) => {
     setResolving(id);
@@ -96,6 +144,19 @@ export function JobsDashboard({ onBack }: Props) {
       setError('Failed to resolve entry');
     } finally {
       setResolving(null);
+    }
+  };
+
+  const handleHealAll = async () => {
+    setHealing(true);
+    try {
+      await healStuckJobs();
+      const stuck = await fetchStuckJobs();
+      setStuckJobs(stuck);
+    } catch {
+      setError('Failed to heal stuck jobs');
+    } finally {
+      setHealing(false);
     }
   };
 
@@ -149,6 +210,22 @@ export function JobsDashboard({ onBack }: Props) {
             >
               Dead Letter ({deadLetters.length})
             </button>
+            <button
+              onClick={() => setTab('health')}
+              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === 'health' ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
+              }`}
+            >
+              Health ({healthEntries.length})
+            </button>
+            <button
+              onClick={() => setTab('stuck')}
+              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === 'stuck' ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
+              }`}
+            >
+              Stuck ({stuckJobs.length})
+            </button>
           </div>
 
           {tab === 'overview' && (
@@ -200,6 +277,87 @@ export function JobsDashboard({ onBack }: Props) {
               )}
             </div>
           )}
+
+          {tab === 'health' && (
+            <div className="space-y-2">
+              {healthEntries.length === 0 ? (
+                <div className="text-center py-8 text-rh-light-muted dark:text-rh-muted text-sm">
+                  No snapshot health data
+                </div>
+              ) : (
+                [...healthEntries]
+                  .sort((a, b) => {
+                    const priority: Record<string, number> = { critical: 0, stale: 1, gaps: 2, healthy: 3 };
+                    return (priority[a.status] ?? 4) - (priority[b.status] ?? 4);
+                  })
+                  .map(entry => (
+                    <div key={entry.username} className="p-3 rounded-lg bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">
+                          {entry.username}
+                        </span>
+                        <HealthBadge status={entry.status} />
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                        <div>
+                          <span className="text-rh-light-muted dark:text-rh-muted">Last snapshot: </span>
+                          <span className="text-rh-light-text dark:text-rh-text">{entry.lastSnapshotAge < 1 ? '<1 min' : `${Math.round(entry.lastSnapshotAge)} min`}</span>
+                        </div>
+                        <div>
+                          <span className="text-rh-light-muted dark:text-rh-muted">24h count: </span>
+                          <span className="text-rh-light-text dark:text-rh-text">{entry.snapshotsLast24h}</span>
+                        </div>
+                        <div>
+                          <span className="text-rh-light-muted dark:text-rh-muted">Gaps: </span>
+                          <span className="text-rh-light-text dark:text-rh-text">{entry.gapCount}</span>
+                        </div>
+                        <div>
+                          <span className="text-rh-light-muted dark:text-rh-muted">Longest gap: </span>
+                          <span className="text-rh-light-text dark:text-rh-text">{entry.longestGapMinutes > 0 ? `${Math.round(entry.longestGapMinutes)} min` : '—'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          )}
+
+          {tab === 'stuck' && (
+            <div className="space-y-2">
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={handleHealAll}
+                  disabled={healing || stuckJobs.length === 0}
+                  className="text-xs px-3 py-1.5 rounded-md bg-rh-green text-white font-medium hover:bg-rh-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {healing ? 'Healing...' : 'Heal All'}
+                </button>
+              </div>
+              {stuckJobs.length === 0 ? (
+                <div className="text-center py-8 text-rh-light-muted dark:text-rh-muted text-sm">
+                  No stuck jobs
+                </div>
+              ) : (
+                stuckJobs.map(job => (
+                  <div key={job.id} className="p-3 rounded-lg bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">
+                        {job.jobName.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 dark:text-red-400 font-medium">
+                        Stuck
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-[11px] text-rh-light-muted dark:text-rh-muted">
+                      <span>Attempt: {job.attempt}/{job.maxAttempts}</span>
+                      <span>Started: {timeAgo(job.startedAt)}</span>
+                      <span>Running: {Math.round((Date.now() - new Date(job.startedAt).getTime()) / 60000)} min</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -213,6 +371,20 @@ function StatCard({ label, value, color }: { label: string; value: number; color
       <div className={`text-2xl font-bold ${valueColor}`}>{value}</div>
       <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">{label}</div>
     </div>
+  );
+}
+
+function HealthBadge({ status }: { status: SnapshotHealth['status'] }) {
+  const styles: Record<string, string> = {
+    healthy: 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400',
+    stale: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+    gaps: 'bg-orange-500/10 text-orange-500 dark:text-orange-400',
+    critical: 'bg-red-500/10 text-red-500 dark:text-red-400',
+  };
+  return (
+    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${styles[status] ?? styles.healthy}`}>
+      {status}
+    </span>
   );
 }
 
