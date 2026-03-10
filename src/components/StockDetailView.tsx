@@ -797,7 +797,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         <EarningsSection ticker={ticker} />
       </div>
       <div id="section-financials" className="scroll-mt-32">
-        <FundamentalsSection ticker={ticker} />
+        <FundamentalsSection ticker={ticker} currentPrice={data?.quote?.currentPrice ?? undefined} />
       </div>
 
       {/* AI Research Q&A */}

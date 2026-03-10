@@ -37,7 +37,7 @@ function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; heatmapInde
   if (raw === 'creators') return { subTab: 'creators' };
   if (raw.startsWith('heatmap:')) {
     const idx = raw.slice(8) as MarketIndex;
-    if (['SP500', 'DOW30', 'NASDAQ100', 'THEMES'].includes(idx)) {
+    if (['SP500', 'DOW30', 'NASDAQ100', 'THEMES', 'ETF'].includes(idx)) {
       return { subTab: 'heatmap', heatmapIndex: idx };
     }
   }
@@ -1745,7 +1745,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
         <p className="text-rh-light-muted dark:text-rh-muted mb-2">Failed to load market data</p>
         <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">{error}</p>
         <button
-          onClick={() => { setError(''); setLoading(true); getMarketHeatmap(period, index).then(setData).catch(e => setError(e.message)).finally(() => setLoading(false)); }}
+          onClick={() => { setError(''); setLoading(true); (index === 'THEMES' ? getThemesHeatmap(period) : index === 'ETF' ? getEtfHeatmap(period) : getMarketHeatmap(period, index)).then(setData).catch(e => setError(e.message)).finally(() => setLoading(false)); }}
           className="mt-4 px-4 py-2 rounded-lg bg-rh-green text-black text-sm font-medium hover:brightness-110 transition"
         >
           Retry

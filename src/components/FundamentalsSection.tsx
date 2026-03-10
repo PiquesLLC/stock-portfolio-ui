@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { FundamentalsResponse, ParsedIncomeStatement, ParsedBalanceSheet, ParsedCashFlow } from '../types';
 import { getFundamentals } from '../api';
+import { DCFCalculator } from './DCFCalculator';
 
-type FundTab = 'revenue' | 'balance' | 'cashflow';
+type FundTab = 'revenue' | 'balance' | 'cashflow' | 'dcf';
 type PeriodToggle = 'annual' | 'quarterly';
 
 const GREEN = '#00c805';
@@ -353,7 +354,7 @@ function CashFlowTable({ data, period }: { data: ParsedCashFlow[]; period: Perio
 const fundCache = new Map<string, { data: FundamentalsResponse; time: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
 
-export function FundamentalsSection({ ticker }: { ticker: string }) {
+export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; currentPrice?: number }) {
   const [data, setData] = useState<FundamentalsResponse | null>(fundCache.get(ticker)?.data ?? null);
   const [loading, setLoading] = useState(!fundCache.has(ticker));
   const [tab, setTab] = useState<FundTab>('revenue');
@@ -361,6 +362,9 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
   const [collapsed, setCollapsed] = useState(false); // Start expanded to show charts
   const [showTable, setShowTable] = useState(false);
   const mountedRef = useRef(true);
+
+  // Reset tab on ticker change to avoid blank panel
+  useEffect(() => { setTab('revenue'); }, [ticker]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -402,10 +406,12 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
 
   if (!hasIncome && !hasBalance && !hasCash) return null;
 
+  const hasDCF = hasCash && hasIncome && currentPrice != null && currentPrice > 0;
   const tabs: { id: FundTab; label: string; available: boolean }[] = [
     { id: 'revenue', label: 'Income', available: hasIncome },
     { id: 'balance', label: 'Balance Sheet', available: hasBalance },
     { id: 'cashflow', label: 'Cash Flow', available: hasCash },
+    { id: 'dcf', label: 'DCF', available: hasDCF },
   ];
 
   const incomeData = period === 'annual' ? data!.incomeStatements.annual : data!.incomeStatements.quarterly;
@@ -463,22 +469,24 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
                 </button>
               ))}
             </div>
-            {/* Period toggle */}
-            <div className="flex gap-0.5 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-0.5">
-              {(['annual', 'quarterly'] as PeriodToggle[]).map(p => (
-                <button
-                  key={p}
-                  onClick={(e) => { e.stopPropagation(); setPeriod(p); }}
-                  className={`px-2.5 py-0.5 text-[10px] font-medium rounded-md transition-colors
-                    ${period === p
-                      ? 'bg-white dark:bg-white/[0.06] text-rh-green shadow-sm'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                    }`}
-                >
-                  {p === 'annual' ? 'Annual' : 'Quarterly'}
-                </button>
-              ))}
-            </div>
+            {/* Period toggle (hidden for DCF) */}
+            {tab !== 'dcf' && (
+              <div className="flex gap-0.5 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-0.5">
+                {(['annual', 'quarterly'] as PeriodToggle[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={(e) => { e.stopPropagation(); setPeriod(p); }}
+                    className={`px-2.5 py-0.5 text-[10px] font-medium rounded-md transition-colors
+                      ${period === p
+                        ? 'bg-white dark:bg-white/[0.06] text-rh-green shadow-sm'
+                        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                      }`}
+                  >
+                    {p === 'annual' ? 'Annual' : 'Quarterly'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Chart */}
@@ -486,23 +494,30 @@ export function FundamentalsSection({ ticker }: { ticker: string }) {
             {tab === 'revenue' && <IncomeChart data={incomeData} period={period} />}
             {tab === 'balance' && <BalanceChart data={balanceData} period={period} />}
             {tab === 'cashflow' && <CashFlowChart data={cashData} period={period} />}
+            {tab === 'dcf' && data && currentPrice != null && (
+              <DCFCalculator key={ticker} data={data} currentPrice={currentPrice} />
+            )}
           </div>
 
-          {/* Show/hide table toggle */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowTable(t => !t); }}
-            className="text-[10px] text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-text dark:hover:text-white/50 transition-colors mb-2"
-          >
-            {showTable ? 'Hide details' : 'Show details'}
-          </button>
+          {/* Show/hide table toggle (not for DCF) */}
+          {tab !== 'dcf' && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowTable(t => !t); }}
+                className="text-[10px] text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-text dark:hover:text-white/50 transition-colors mb-2"
+              >
+                {showTable ? 'Hide details' : 'Show details'}
+              </button>
 
-          {/* Table detail (collapsible) */}
-          {showTable && (
-            <div className="border-t border-gray-200/20 dark:border-white/[0.04] pt-3">
-              {tab === 'revenue' && <RevenueTable data={incomeData} period={period} />}
-              {tab === 'balance' && <BalanceTable data={balanceData} period={period} />}
-              {tab === 'cashflow' && <CashFlowTable data={cashData} period={period} />}
-            </div>
+              {/* Table detail (collapsible) */}
+              {showTable && (
+                <div className="border-t border-gray-200/20 dark:border-white/[0.04] pt-3">
+                  {tab === 'revenue' && <RevenueTable data={incomeData} period={period} />}
+                  {tab === 'balance' && <BalanceTable data={balanceData} period={period} />}
+                  {tab === 'cashflow' && <CashFlowTable data={cashData} period={period} />}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

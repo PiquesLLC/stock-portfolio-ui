@@ -15,34 +15,47 @@ function formatQuarter(dateStr: string): string {
   return `${q} '${String(d.getFullYear()).slice(2)}`;
 }
 
-// Surprise % chart: positive bars up (green), negative bars down (red), zero line in middle
-function SurpriseChart({ quarters }: { quarters: ParsedQuarterlyEarning[] }) {
-  const [hovered, setHovered] = useState<number | null>(null);
+// EPS comparison chart: paired bars (estimate + actual) per quarter
+// hoveredTableIdx uses table ordering (0=newest). Chart displays reversed (0=oldest).
+function EarningsChart({ quarters, hoveredTableIdx, setHoveredTableIdx }: {
+  quarters: ParsedQuarterlyEarning[];
+  hoveredTableIdx: number | null;
+  setHoveredTableIdx: (idx: number | null) => void;
+}) {
   const display = quarters.slice(0, 8).reverse();
+  const count = display.length;
+  const hovered = hoveredTableIdx != null ? count - 1 - hoveredTableIdx : null;
   if (display.length === 0) return null;
 
-  const surprises = display.map(q => q.surprisePercentage).filter((v): v is number => v != null);
-  if (surprises.length === 0) return null;
+  // Collect all EPS values to determine scale
+  const allEps: number[] = [];
+  for (const q of display) {
+    if (q.reportedEPS != null) allEps.push(q.reportedEPS);
+    if (q.estimatedEPS != null) allEps.push(q.estimatedEPS);
+  }
+  if (allEps.length === 0) return null;
 
-  const maxPos = Math.max(...surprises, 0);
-  const maxNeg = Math.abs(Math.min(...surprises, 0));
-  const maxAbs = Math.max(maxPos, maxNeg, 1);
-  const halfH = 70; // px for each direction from zero line
-  const totalH = halfH * 2;
+  const maxEps = Math.max(...allEps, 0);
+  const minEps = Math.min(...allEps, 0);
+  const range = Math.max(maxEps - minEps, 0.01);
+  const chartH = 120;
+  // Zero line position: distance from bottom
+  const zeroFromBottom = minEps < 0 ? (Math.abs(minEps) / range) * chartH : 0;
 
   const hoveredQ = hovered != null ? display[hovered] : null;
-  const hoveredSp = hoveredQ?.surprisePercentage;
 
   return (
     <div className="mb-4">
-      {/* Inline tooltip — sits above chart, fixed height so layout doesn't shift */}
+      {/* Inline tooltip */}
       <div className="h-5 flex items-center gap-2 px-1 mb-1">
-        {hoveredQ && hoveredSp != null ? (
+        {hoveredQ ? (
           <>
             <span className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/60">{formatQuarter(hoveredQ.fiscalDateEnding)}</span>
-            <span className={`text-[10px] font-mono tabular-nums font-semibold ${hoveredSp >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-              {hoveredSp > 0 ? '+' : ''}{hoveredSp.toFixed(1)}%
-            </span>
+            {hoveredQ.surprisePercentage != null && (
+              <span className={`text-[10px] font-mono tabular-nums font-semibold ${hoveredQ.surprisePercentage >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                {hoveredQ.surprisePercentage > 0 ? '+' : ''}{hoveredQ.surprisePercentage.toFixed(1)}%
+              </span>
+            )}
             {hoveredQ.reportedEPS != null && (
               <span className="text-[10px] font-mono tabular-nums text-rh-light-text/50 dark:text-white/40">EPS: {formatEPS(hoveredQ.reportedEPS)}</span>
             )}
@@ -52,54 +65,56 @@ function SurpriseChart({ quarters }: { quarters: ParsedQuarterlyEarning[] }) {
           </>
         ) : null}
       </div>
-      <div className="relative pl-7 pr-1" style={{ height: `${totalH}px` }}>
-        {/* 0% axis label */}
+      <div className="relative pl-7 pr-1" style={{ height: `${chartH}px` }}>
+        {/* 0 axis label */}
         <span
           className="absolute left-0 text-[9px] font-mono text-rh-light-muted/30 dark:text-white/15 tabular-nums leading-none"
-          style={{ top: `${halfH}px`, transform: 'translateY(-50%)' }}
-        >0%</span>
+          style={{ bottom: `${zeroFromBottom}px`, transform: 'translateY(50%)' }}
+        >0</span>
         {/* Zero line */}
-        <div className="absolute left-7 right-1 h-px bg-gray-300/40 dark:bg-white/[0.08]" style={{ top: `${halfH}px` }} />
-        <div className="flex gap-3 h-full">
+        <div className="absolute left-7 right-1 h-px bg-gray-300/40 dark:bg-white/[0.08]" style={{ bottom: `${zeroFromBottom}px` }} />
+        <div className="flex gap-3 h-full items-end">
           {display.map((q, i) => {
-            const sp = q.surprisePercentage;
             const isRecent = i >= display.length - 4;
             const opacity = isRecent ? 1 : 0.45;
+            const est = q.estimatedEPS;
+            const actual = q.reportedEPS;
+            const isBeat = q.beat === true;
 
-            if (sp == null) {
-              return (
-                <div key={i} className="flex-1 min-w-0 flex justify-center" style={{ opacity: hovered != null ? 0.3 : opacity }}>
-                  <div className="relative w-[18px] h-full">
-                    <div
-                      className="absolute left-0 right-0 rounded-t bg-gray-400/25 dark:bg-white/[0.08]"
-                      style={{ top: `${halfH - 3}px`, height: '3px' }}
-                    />
-                  </div>
-                </div>
-              );
-            }
-
-            const barPx = Math.max((Math.abs(sp) / maxAbs) * halfH, 3);
-            const isPositive = sp >= 0;
+            const estH = est != null ? Math.max((Math.abs(est) / range) * chartH, 3) : 0;
+            const actualH = actual != null ? Math.max((Math.abs(actual) / range) * chartH, 3) : 0;
+            const estPositive = est != null && est >= 0;
+            const actualPositive = actual != null && actual >= 0;
 
             return (
               <div
                 key={i}
                 className="flex-1 min-w-0 flex justify-center"
                 style={{ opacity: hovered != null ? (hovered === i ? 1 : 0.3) : opacity }}
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
+                onMouseEnter={() => setHoveredTableIdx(count - 1 - i)}
+                onMouseLeave={() => setHoveredTableIdx(null)}
               >
-                <div className="relative w-[18px] h-full">
-                  <div
-                    className={`absolute left-0 right-0 ${
-                      isPositive ? 'rounded-t bg-rh-green' : 'rounded-b bg-rh-red'
-                    }`}
-                    style={isPositive
-                      ? { top: `${halfH - barPx}px`, height: `${barPx}px` }
-                      : { top: `${halfH}px`, height: `${barPx}px` }
-                    }
-                  />
+                <div className="relative h-full flex items-end gap-[2px]" style={{ width: '24px' }}>
+                  {/* Estimate bar */}
+                  {est != null && (
+                    <div
+                      className={`w-[10px] ${estPositive ? 'rounded-t' : 'rounded-b'} ${isBeat ? 'bg-rh-green/20' : 'bg-rh-red/20'}`}
+                      style={estPositive
+                        ? { position: 'absolute', bottom: `${zeroFromBottom}px`, left: 0, height: `${estH}px` }
+                        : { position: 'absolute', bottom: `${zeroFromBottom - estH}px`, left: 0, height: `${estH}px` }
+                      }
+                    />
+                  )}
+                  {/* Actual EPS bar */}
+                  {actual != null && (
+                    <div
+                      className={`w-[10px] ${actualPositive ? 'rounded-t' : 'rounded-b'} ${isBeat ? 'bg-rh-green' : 'bg-rh-red'}`}
+                      style={actualPositive
+                        ? { position: 'absolute', bottom: `${zeroFromBottom}px`, right: 0, height: `${actualH}px` }
+                        : { position: 'absolute', bottom: `${zeroFromBottom - actualH}px`, right: 0, height: `${actualH}px` }
+                      }
+                    />
+                  )}
                 </div>
               </div>
             );
@@ -110,11 +125,14 @@ function SurpriseChart({ quarters }: { quarters: ParsedQuarterlyEarning[] }) {
       <div className="flex gap-3 pl-7 pr-1 mt-1.5">
         {display.map((q, i) => {
           const isRecent = i >= display.length - 4;
+          const isLabelHovered = hovered === i;
           return (
-            <span key={i} className={`text-[8px] font-mono flex-1 text-center tabular-nums ${
-              isRecent
-                ? 'text-rh-light-muted/50 dark:text-white/25'
-                : 'text-rh-light-muted/30 dark:text-white/12'
+            <span key={i} className={`text-[8px] font-mono flex-1 text-center tabular-nums transition-colors duration-100 ${
+              isLabelHovered
+                ? 'text-rh-light-text/80 dark:text-white/70 font-semibold'
+                : isRecent
+                  ? 'text-rh-light-muted/50 dark:text-white/25'
+                  : 'text-rh-light-muted/30 dark:text-white/12'
             }`}>
               {formatQuarter(q.fiscalDateEnding)}
             </span>
@@ -170,6 +188,7 @@ export function EarningsSection({ ticker }: { ticker: string }) {
   const [data, setData] = useState<EarningsResponse | null>(earningsCache.get(ticker)?.data ?? null);
   const [loading, setLoading] = useState(!earningsCache.has(ticker));
   const [expanded, setExpanded] = useState(false);
+  const [hoveredTableIdx, setHoveredTableIdx] = useState<number | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -297,7 +316,7 @@ export function EarningsSection({ ticker }: { ticker: string }) {
           >
             <div className="px-5 pb-5">
               {/* Surprise % bars: green up / red down */}
-              <SurpriseChart quarters={data.quarterly} />
+              <EarningsChart quarters={data.quarterly} hoveredTableIdx={hoveredTableIdx} setHoveredTableIdx={setHoveredTableIdx} />
 
               {/* Table */}
               <div className="overflow-x-auto">
@@ -315,14 +334,20 @@ export function EarningsSection({ ticker }: { ticker: string }) {
                     {data.quarterly.slice(0, 8).map((q, i) => {
                       // Last 4 quarters = full opacity, older = dimmed
                       const rowOpacity = i < 4 ? 1 : 0.55;
+                      const isRowHovered = hoveredTableIdx === i;
+                      const anyHovered = hoveredTableIdx != null;
                       return (
                       <motion.tr
                         key={i}
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: rowOpacity }}
-                        transition={{ duration: 0.15, delay: i * 0.025 }}
-                        className={`border-b border-gray-200/15 dark:border-white/[0.025] last:border-b-0 ${
-                          i === 0 ? 'bg-gray-100/40 dark:bg-white/[0.02]' : ''
+                        animate={{ opacity: anyHovered ? (isRowHovered ? 1 : 0.35) : rowOpacity }}
+                        transition={{ duration: 0.15, delay: anyHovered ? 0 : i * 0.025 }}
+                        onMouseEnter={() => setHoveredTableIdx(i)}
+                        onMouseLeave={() => setHoveredTableIdx(null)}
+                        className={`border-b border-gray-200/15 dark:border-white/[0.025] last:border-b-0 cursor-default ${
+                          isRowHovered
+                            ? 'bg-gray-200/50 dark:bg-white/[0.04]'
+                            : i === 0 ? 'bg-gray-100/40 dark:bg-white/[0.02]' : ''
                         }`}
                       >
                         <td className={`py-2.5 pr-2 font-mono tabular-nums w-[72px] ${
@@ -349,7 +374,7 @@ export function EarningsSection({ ticker }: { ticker: string }) {
                         <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
                           i === 0 ? 'font-semibold' : ''
                         } ${
-                          q.surprise != null && q.surprise >= 0 ? 'text-rh-green' : 'text-rh-red'
+                          q.surprisePercentage != null && q.surprisePercentage >= 0 ? 'text-rh-green' : 'text-rh-red'
                         }`}>
                           {q.surprisePercentage != null
                             ? `${q.surprisePercentage > 0 ? '+' : ''}${q.surprisePercentage.toFixed(1)}%`
