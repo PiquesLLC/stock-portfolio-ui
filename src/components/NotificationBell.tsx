@@ -461,7 +461,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
             <div>
               {groupByDay(notifications.slice(0, 30)).map(group => (
                 <div key={group.label}>
-                  <div className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 bg-rh-light-bg/50 dark:bg-rh-dark/30 sticky top-0">
+                  <div className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 bg-rh-light-card dark:bg-rh-card sticky top-0 z-10">
                     {group.label}
                   </div>
                   {group.items.map(notification => (

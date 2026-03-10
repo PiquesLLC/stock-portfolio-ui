@@ -440,8 +440,7 @@ export default function App() {
     return <LandingPage />;
   }
 
-  // Hard gate: block entire app until email is verified
-  // TODO: Re-enable once Resend is active in production
+  // Hard gate: block entire app until email is verified (Resend active in production since Mar 8)
   if (import.meta.env.VITE_EMAIL_VERIFICATION_ENABLED === 'true' && user && user.emailVerified === false) {
     // Missing email edge case — show recovery path
     if (!user.email) {
@@ -477,6 +476,9 @@ export default function App() {
               <h2 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Verify Your Email</h2>
               <p className="text-sm text-rh-light-muted dark:text-rh-muted mt-1">
                 Enter the 6-digit code sent to <span className="text-rh-light-text dark:text-rh-text font-medium">{user.email}</span>
+              </p>
+              <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mt-1">
+                Check your spam folder if you don't see it
               </p>
             </div>
             {verifyError && (
@@ -522,9 +524,10 @@ export default function App() {
                   if (verifyResendCooldown > 0) return;
                   try {
                     await resendVerification(user.email!);
+                    setVerifyError('');
                     setVerifyResendCooldown(60);
                     const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
-                  } catch { setVerifyError('Failed to resend code'); }
+                  } catch { setVerifyError('Failed to resend code. Try again in a moment.'); }
                 }}
                 disabled={verifyResendCooldown > 0}
                 className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-muted/40 dark:disabled:text-rh-muted/40 transition-colors"
