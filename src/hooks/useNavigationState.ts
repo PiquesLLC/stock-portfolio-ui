@@ -52,7 +52,7 @@ export function useNavigationState({
   const [compareStocks, setCompareStocks] = useState<string[] | null>(initialNav.compareStocks ?? null);
   const [settingsView, setSettingsView] = useState(initialSettingsView);
   const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
-  const [adminView, setAdminView] = useState<'waitlist' | null>(initialAdminView);
+  const [adminView, setAdminView] = useState<'waitlist' | 'jobs' | null>(initialAdminView);
 
   /** Reset all sub-view navigation state — call before switching tabs */
   const resetNavigation = useCallback(() => {
