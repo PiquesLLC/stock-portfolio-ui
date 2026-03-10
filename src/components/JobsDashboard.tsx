@@ -26,7 +26,7 @@ interface DeadLetterEntry {
 interface SnapshotHealth {
   userId: string;
   username: string;
-  lastSnapshotAge: number; // minutes
+  lastSnapshotAge: number | null; // minutes, null if never
   snapshotsLast24h: number;
   gapCount: number;
   longestGapMinutes: number;
@@ -291,7 +291,7 @@ export function JobsDashboard({ onBack }: Props) {
                     return (priority[a.status] ?? 4) - (priority[b.status] ?? 4);
                   })
                   .map(entry => (
-                    <div key={entry.username} className="p-3 rounded-lg bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border">
+                    <div key={entry.userId} className="p-3 rounded-lg bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">
                           {entry.username}
@@ -301,7 +301,7 @@ export function JobsDashboard({ onBack }: Props) {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
                         <div>
                           <span className="text-rh-light-muted dark:text-rh-muted">Last snapshot: </span>
-                          <span className="text-rh-light-text dark:text-rh-text">{entry.lastSnapshotAge < 1 ? '<1 min' : `${Math.round(entry.lastSnapshotAge)} min`}</span>
+                          <span className="text-rh-light-text dark:text-rh-text">{entry.lastSnapshotAge == null ? '—' : entry.lastSnapshotAge < 1 ? '<1 min' : `${Math.round(entry.lastSnapshotAge)} min`}</span>
                         </div>
                         <div>
                           <span className="text-rh-light-muted dark:text-rh-muted">24h count: </span>
