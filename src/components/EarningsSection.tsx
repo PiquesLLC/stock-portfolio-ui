@@ -23,7 +23,7 @@ function ComparisonChart({ quarters }: { quarters: ParsedQuarterlyEarning[] }) {
   // Scale bars by EPS value — find max across all reported & estimated
   const allValues = display.flatMap(q => [q.reportedEPS, q.estimatedEPS].filter((v): v is number => v != null));
   const maxEPS = Math.max(...allValues, 0.01);
-  const barMaxH = 64;
+  const barMaxH = 100;
 
   return (
     <div className="mb-4">
