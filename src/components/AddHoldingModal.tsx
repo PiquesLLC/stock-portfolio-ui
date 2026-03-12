@@ -10,9 +10,10 @@ interface AddHoldingModalProps {
   onAdded?: () => void;
   holding?: Holding | null;
   onClose: () => void;
+  portfolioId?: string;
 }
 
-export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClose }: AddHoldingModalProps) {
+export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClose, portfolioId }: AddHoldingModalProps) {
   const [shares, setShares] = useState('');
   const [avgCost, setAvgCost] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +42,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
     setSubmitting(true);
     setFormError(null);
     try {
-      await addHolding({ ticker: ticker.toUpperCase(), shares: s, averageCost: c, ...(!logAsTrade ? { skipActivity: true } : {}) });
+      await addHolding({ ticker: ticker.toUpperCase(), shares: s, averageCost: c, ...(!logAsTrade ? { skipActivity: true } : {}), portfolioId });
       showToast(`${ticker.toUpperCase()} added to portfolio`, 'success');
       onAdded?.();
       onClose();

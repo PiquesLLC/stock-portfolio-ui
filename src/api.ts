@@ -565,14 +565,17 @@ export async function updateCashBalance(cashBalance: number): Promise<{ cashBala
 }
 
 export async function addHolding(holding: HoldingInput): Promise<void> {
-  await fetchJson(`${API_BASE_URL}/portfolio/holdings`, {
+  const { portfolioId, ...body } = holding;
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  await fetchJson(`${API_BASE_URL}/portfolio/holdings${qs}`, {
     method: 'POST',
-    body: JSON.stringify(holding),
+    body: JSON.stringify(body),
   });
 }
 
-export async function deleteHolding(ticker: string): Promise<void> {
-  await fetchJson(`${API_BASE_URL}/portfolio/holdings/${ticker}`, {
+export async function deleteHolding(ticker: string, portfolioId?: string): Promise<void> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  await fetchJson(`${API_BASE_URL}/portfolio/holdings/${ticker}${qs}`, {
     method: 'DELETE',
   });
 }

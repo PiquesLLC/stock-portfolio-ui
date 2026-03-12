@@ -16,15 +16,12 @@ const PLAN_LIMITS: Record<string, number> = {
 
 export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPlan }: PortfolioPickerProps) {
   const [portfolios, setPortfolios] = useState<PortfolioRecord[]>([]);
-  const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Guard: ignore outside-click for a brief window after entering create mode
-  const justEnteredCreateRef = useRef(false);
 
   const limit = PLAN_LIMITS[userPlan] ?? 1;
   const canCreate = portfolios.length < limit;
@@ -33,43 +30,11 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     listPortfolios().then(setPortfolios).catch(() => {});
   }, []);
 
-  // Close on outside click/touch
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: Event) => {
-      // Skip if we just entered create mode (prevents race on mobile)
-      if (justEnteredCreateRef.current) {
-        justEnteredCreateRef.current = false;
-        return;
-      }
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setCreating(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('touchstart', handler);
-    };
-  }, [open]);
-
-  const selectedLabel = selectedPortfolioId
-    ? portfolios.find(p => p.id === selectedPortfolioId)?.name ?? 'Portfolio'
-    : 'All Portfolios';
-
   const handleStartCreating = useCallback(() => {
-    justEnteredCreateRef.current = true;
     setCreating(true);
     setError('');
     setNewName('');
-    // Focus the input after React renders it
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      // Reset the guard after the event cycle completes
-      justEnteredCreateRef.current = false;
-    });
+    requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
 
   const handleCreate = async () => {
@@ -82,142 +47,166 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
       setNewName('');
       setCreating(false);
       onSelect(created.id);
-      setOpen(false);
     } catch (err: any) {
       const msg = err?.message ?? '';
       if (msg.includes('limit_reached')) {
-        setError('Upgrade to create more portfolios');
+        setError('Upgrade plan for more');
       } else if (msg.includes('already exists')) {
-        setError('Name already taken');
+        setError('Name taken');
       } else {
-        setError('Failed to create portfolio');
+        setError('Failed');
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDelete = async (id: string) => {
     try {
       await deletePortfolio(id);
       setPortfolios(prev => prev.filter(p => p.id !== id));
+      setConfirmDelete(null);
       if (selectedPortfolioId === id) {
         onSelect(undefined);
       }
     } catch {
-      // silently fail — user sees the portfolio still there
+      setConfirmDelete(null);
     }
   };
 
-  // Don't render if only one portfolio (or none) and can't create more
+  // Don't render if only one portfolio and can't create more
   if (portfolios.length <= 1 && !canCreate) return null;
 
+  const isAllSelected = !selectedPortfolioId;
+
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
+      {/* "All" tab */}
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-medium
-          bg-transparent text-gray-500 dark:text-white/40
-          hover:text-gray-700 dark:hover:text-white/60 transition-colors"
+        onClick={() => onSelect(undefined)}
+        className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+          isAllSelected
+            ? 'bg-[#00c805]/10 text-[#00c805] dark:bg-[#00c805]/15'
+            : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
+        }`}
       >
-        <span>{selectedLabel}</span>
-        <svg className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        All
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-64 sm:w-56 z-50 rounded-lg shadow-lg
-          bg-white dark:bg-[#1a1a1e]/95 border border-gray-200 dark:border-white/[0.08]
-          py-1 overflow-hidden">
-          {/* All Portfolios option */}
-          <button
-            onClick={() => { onSelect(undefined); setOpen(false); }}
-            className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2
-              hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors
-              ${!selectedPortfolioId ? 'text-[#00c805] font-medium' : 'text-gray-700 dark:text-white/70'}`}
-          >
-            <span className="w-4 text-center">{!selectedPortfolioId ? '✓' : ''}</span>
-            All Portfolios
-          </button>
+      {/* Divider */}
+      <div className="w-px h-4 bg-gray-200 dark:bg-white/[0.08] shrink-0" />
 
-          <div className="border-t border-gray-100 dark:border-white/[0.06] my-1" />
-
-          {/* Individual portfolios */}
-          {portfolios.map(p => (
-            <button
-              key={p.id}
-              onClick={() => { onSelect(p.id); setOpen(false); }}
-              className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 group
-                hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors
-                ${selectedPortfolioId === p.id ? 'text-[#00c805] font-medium' : 'text-gray-700 dark:text-white/70'}`}
-            >
-              <span className="w-4 text-center">{selectedPortfolioId === p.id ? '✓' : ''}</span>
-              <span className="flex-1 truncate">{p.name}</span>
-              <span className="text-xs text-gray-400 dark:text-white/30">{p.holdingsCount}</span>
-              {!p.isDefault && p.holdingsCount === 0 && (
-                <span
-                  onClick={(e) => handleDelete(p.id, e)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 dark:text-white/30 dark:hover:text-red-400 transition-all cursor-pointer p-1"
-                  title="Delete portfolio"
-                >
-                  ×
-                </span>
-              )}
-            </button>
-          ))}
-
-          {/* Create new */}
-          {canCreate && (
-            <>
-              <div className="border-t border-gray-100 dark:border-white/[0.06] my-1" />
-              {creating ? (
-                <div className="px-3 py-2.5">
-                  <input
-                    ref={inputRef}
-                    autoFocus
-                    value={newName}
-                    onChange={e => setNewName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') { setCreating(false); setError(''); } }}
-                    placeholder="Portfolio name"
-                    className="w-full text-sm px-2.5 py-2 rounded border border-gray-200 dark:border-white/[0.1]
-                      bg-white dark:bg-white/[0.04] text-gray-800 dark:text-white/80
-                      focus:outline-none focus:border-[#00c805]"
-                    maxLength={50}
-                    inputMode="text"
-                    autoComplete="off"
-                    autoCapitalize="words"
-                  />
-                  {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
-                  <div className="flex gap-3 mt-2">
-                    <button
-                      onClick={handleCreate}
-                      disabled={submitting || !newName.trim()}
-                      className="text-sm text-[#00c805] font-medium hover:underline py-1 px-1 disabled:opacity-40"
-                    >
-                      {submitting ? 'Creating...' : 'Create'}
-                    </button>
-                    <button
-                      onClick={() => { setCreating(false); setError(''); }}
-                      className="text-sm text-gray-400 hover:underline py-1 px-1"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
+      {/* Portfolio tabs */}
+      {portfolios.map(p => {
+        const isActive = selectedPortfolioId === p.id;
+        const isConfirmingDelete = confirmDelete === p.id;
+        return (
+          <div key={p.id} className="relative shrink-0 group flex items-center">
+            {isConfirmingDelete ? (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-500/10 dark:bg-red-500/15">
+                <span className="text-xs text-red-500 font-medium">Delete?</span>
                 <button
-                  onClick={handleStartCreating}
-                  className="w-full text-left px-3 py-2.5 text-sm text-[#00c805] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors flex items-center gap-2"
+                  onClick={() => handleDelete(p.id)}
+                  className="text-xs text-red-500 font-bold hover:underline px-1"
                 >
-                  <span className="w-4 text-center">+</span>
-                  New Portfolio
+                  Yes
                 </button>
-              )}
-            </>
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="text-xs text-gray-400 hover:underline px-1"
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => onSelect(p.id)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-[#00c805]/10 text-[#00c805] dark:bg-[#00c805]/15'
+                    : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
+                }`}
+              >
+                {p.name}
+                {p.holdingsCount > 0 && (
+                  <span className={`ml-1.5 text-[10px] ${isActive ? 'text-[#00c805]/60' : 'text-gray-400 dark:text-white/25'}`}>
+                    {p.holdingsCount}
+                  </span>
+                )}
+              </button>
+            )}
+            {/* Delete button — only for non-default empty portfolios */}
+            {!p.isDefault && p.holdingsCount === 0 && !isConfirmingDelete && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gray-200 dark:bg-white/10
+                  text-gray-500 dark:text-white/40 text-[10px] leading-none flex items-center justify-center
+                  opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-500
+                  dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-all"
+                title="Delete portfolio"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Create new tab */}
+      {canCreate && (
+        <>
+          {creating ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                ref={inputRef}
+                autoFocus
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleCreate();
+                  if (e.key === 'Escape') { setCreating(false); setError(''); }
+                }}
+                placeholder="Name..."
+                className="w-24 sm:w-32 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-white/[0.1]
+                  bg-white dark:bg-white/[0.04] text-gray-800 dark:text-white/80
+                  focus:outline-none focus:border-[#00c805]"
+                maxLength={50}
+                inputMode="text"
+                autoComplete="off"
+                autoCapitalize="words"
+              />
+              <button
+                onClick={handleCreate}
+                disabled={submitting || !newName.trim()}
+                className="text-xs text-[#00c805] font-medium px-1.5 py-1.5 disabled:opacity-40 hover:underline"
+              >
+                {submitting ? '...' : 'Add'}
+              </button>
+              <button
+                onClick={() => { setCreating(false); setError(''); }}
+                className="text-xs text-gray-400 px-1 py-1.5 hover:underline"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleStartCreating}
+              className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center
+                text-gray-400 dark:text-white/30 hover:text-[#00c805] hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-all"
+              title="New Portfolio"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           )}
-        </div>
+        </>
+      )}
+
+      {/* Error toast */}
+      {error && (
+        <span className="text-[10px] text-red-500 shrink-0 ml-1">{error}</span>
       )}
     </div>
   );

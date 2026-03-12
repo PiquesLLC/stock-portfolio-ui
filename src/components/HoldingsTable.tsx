@@ -36,6 +36,7 @@ interface Props {
   userId?: string;
   actionsRef?: React.MutableRefObject<HoldingsTableActions | null>;
   chartPeriod?: import('../types').PortfolioChartPeriod;
+  portfolioId?: string;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent' | 'custom';
@@ -106,7 +107,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef, chartPeriod = '1D' }: Props) {
+export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef, chartPeriod = '1D', portfolioId }: Props) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>(() => {
@@ -448,7 +449,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       const oldHoldingsValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
       const oldNetEquity = oldHoldingsValue + cashBalance - marginDebt;
 
-      await addHolding({ ticker, shares, averageCost, ...(!formData.logAsTrade ? { skipActivity: true } : {}) });
+      await addHolding({ ticker, shares, averageCost, ...(!formData.logAsTrade ? { skipActivity: true } : {}), portfolioId });
 
       // If buying on margin, adjust margin debt to keep net equity unchanged.
       // We fetch the fresh portfolio to get the actual new totalAssets at MARKET prices,

@@ -1209,11 +1209,15 @@ export default function App() {
 
             {/* Empty portfolio state — show when portfolio exists but has no holdings */}
             {portfolio && portfolio.holdings.length === 0 && selectedPortfolioId && (
-              <div className="rounded-xl border border-dashed border-gray-300 dark:border-white/[0.1] bg-gray-50/50 dark:bg-white/[0.02] p-8 text-center">
-                <div className="text-3xl mb-3">📂</div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-white/70 mb-1">Empty Portfolio</h3>
-                <p className="text-xs text-gray-500 dark:text-white/40 mb-4">
-                  Search for a stock and add it to start tracking this portfolio.
+              <div className="rounded-xl border border-dashed border-gray-300 dark:border-white/[0.1] bg-gray-50/50 dark:bg-white/[0.02] p-10 text-center">
+                <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-white/70 mb-1">No holdings yet</h3>
+                <p className="text-xs text-gray-500 dark:text-white/40">
+                  Search for a stock above or use Add Stock below to start building this portfolio.
                 </p>
               </div>
             )}
@@ -1378,6 +1382,7 @@ export default function App() {
                 marginDebt={portfolio?.marginDebt ?? 0}
                 userId={currentUserId}
                 chartPeriod={chartPeriod}
+                portfolioId={selectedPortfolioId}
               />
               {(portfolio?.options?.length ?? 0) > 0 && (
                 <div className="px-3 sm:px-6">

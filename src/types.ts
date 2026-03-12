@@ -84,6 +84,7 @@ export interface HoldingInput {
   shares: number;
   averageCost: number;
   skipActivity?: boolean;
+  portfolioId?: string;
 }
 
 // Dividend types
