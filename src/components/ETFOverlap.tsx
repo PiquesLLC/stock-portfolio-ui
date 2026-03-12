@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { EtfOverlapResponse, EtfOverlapPair } from '../types';
 import { getEtfOverlap } from '../api';
 import { SkeletonCard } from './SkeletonCard';
@@ -36,12 +36,21 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
   const [loading, setLoading] = useState(true);
   const [expandedEtf, setExpandedEtf] = useState<string | null>(null);
   const [selectedPair, setSelectedPair] = useState<EtfOverlapPair | null>(null);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   useEffect(() => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     setLoading(true);
     getEtfOverlap(portfolioId)
-      .then(setData)
-      .catch(() => setData(null))
+      .then((result) => {
+        if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
+        setData(result);
+      })
+      .catch(() => {
+        if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
+        setData(null);
+      })
       .finally(() => setLoading(false));
   }, [portfolioId]);
 

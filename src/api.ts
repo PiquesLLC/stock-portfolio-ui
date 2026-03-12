@@ -1619,8 +1619,9 @@ export async function removeWatchlistHolding(watchlistId: string, ticker: string
 }
 
 // Performance Report
-export async function getPerformanceReport(period: PerformanceWindow, benchmark: string = 'SPY', theme: 'light' | 'dark' = 'light'): Promise<string> {
-  const url = `${API_BASE_URL}/portfolio/report?period=${period}&benchmark=${benchmark}&theme=${theme}`;
+export async function getPerformanceReport(period: PerformanceWindow, benchmark: string = 'SPY', theme: 'light' | 'dark' = 'light', portfolioId?: string): Promise<string> {
+  let url = `${API_BASE_URL}/portfolio/report?period=${period}&benchmark=${benchmark}&theme=${theme}`;
+  if (portfolioId) url += `&portfolioId=${encodeURIComponent(portfolioId)}`;
   const headers: Record<string, string> = {
     'Bypass-Tunnel-Reminder': 'true',
     ...(isNative ? { 'X-Nala-Native': '1' } : {}),

@@ -388,6 +388,8 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
 
   // Reset state when portfolioId changes to avoid stale data flash
   const prevPortfolioIdRef = useRef(portfolioId);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
   useEffect(() => {
     if (prevPortfolioIdRef.current !== portfolioId) {
       prevPortfolioIdRef.current = portfolioId;
@@ -400,12 +402,15 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
   }, [portfolioId]);
 
   const fetchGoals = useCallback(async (showSpinner = false) => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     try {
       if (showSpinner) setLoading(true);
       setError(null);
       const data = await getGoals(portfolioId);
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setGoals(data);
     } catch (err) {
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       if (goals.length === 0) {
         setError(err instanceof Error ? err.message : 'Failed to load goals');
       }

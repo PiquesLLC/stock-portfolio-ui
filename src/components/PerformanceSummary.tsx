@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PerformanceSummary as PerformanceSummaryType } from '../types';
 import { getPerformanceSummary } from '../api';
 import { Acronym } from './Acronym';
@@ -38,6 +38,8 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   // Reset data when portfolioId changes to avoid showing stale data
   useEffect(() => {
@@ -45,12 +47,15 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
   }, [portfolioId]);
 
   const fetchData = useCallback(async () => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     try {
       setLoading(true);
       const summary = await getPerformanceSummary(portfolioId);
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setData(summary);
       setError('');
     } catch (err) {
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setError(err instanceof Error ? err.message : 'Failed to fetch summary');
     } finally {
       setLoading(false);

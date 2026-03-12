@@ -616,6 +616,8 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
   const [cashInterest, setCashInterest] = useState<CashInterestAccrual | null>(null);
   const [annualSalary, setAnnualSalary] = useState<number | null>(null);
   const mountedRef = useRef(true);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
   const { user } = useAuth();
   const userId = user?.id;
 
@@ -631,6 +633,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
   }, [portfolioId]);
 
   const fetchData = useCallback(async () => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     try {
       setLoading(true);
       const [result, interest, settings] = await Promise.all([
@@ -638,7 +641,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
         getCashInterestAccrual().catch(e => { console.error('Cash interest fetch failed:', e); return null; }),
         userId ? getUserSettings(userId).catch(e => { console.error('Settings fetch failed:', e); return null; }) : Promise.resolve(null),
       ]);
-      if (mountedRef.current) {
+      if (mountedRef.current && fetchPortfolioId === currentPortfolioIdRef.current) {
         setData(result);
         setCashInterest(interest);
         setAnnualSalary(settings?.annualSalary ?? null);

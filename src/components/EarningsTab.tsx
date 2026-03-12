@@ -22,6 +22,11 @@ interface UpcomingEarning {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const upcomingCacheMap = new Map<string | undefined, { data: UpcomingEarning[]; timestamp: number }>();
 
+/** Clear module-level cache (call on logout to prevent data leaks). */
+export function clearEarningsTabCache() {
+  upcomingCacheMap.clear();
+}
+
 function getDayLabel(daysUntil: number, dateMs: number): string {
   if (daysUntil === 0) return 'Today';
   if (daysUntil === 1) return 'Tomorrow';
@@ -51,11 +56,14 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
   const [upcoming, setUpcoming] = useState<UpcomingEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   useEffect(() => {
     mountedRef.current = true;
 
     async function fetchUpcoming() {
+      const fetchPortfolioId = portfolioId; // capture at call time
       // Use cache if fresh (keyed by portfolioId)
       const cached = upcomingCacheMap.get(portfolioId);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -67,7 +75,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
       setLoading(true);
       try {
         const { results } = await getEarningsSummary(portfolioId);
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || fetchPortfolioId !== currentPortfolioIdRef.current) return;
 
         const mapped = results.map(toUpcomingEarning);
         mapped.sort((a, b) => a.daysUntil - b.daysUntil);

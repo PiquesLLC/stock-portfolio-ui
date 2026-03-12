@@ -33,15 +33,20 @@ export default function PortfolioBriefing({ portfolioId }: { portfolioId?: strin
   const [explanations, setExplanations] = useState<Record<number, BriefingExplainResponse>>({});
   const [loadingIdxs, setLoadingIdxs] = useState<Set<number>>(new Set());
   const prefetchedRef = useRef(false);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   const fetchBriefing = async () => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     setLoading(true);
     setError(null);
     prefetchedRef.current = false;
     try {
       const data = await getPortfolioBriefing(portfolioId);
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setBriefing(data);
     } catch (err: any) {
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setError(err.message || 'Failed to load briefing');
     } finally {
       setLoading(false);

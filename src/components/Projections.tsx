@@ -81,6 +81,8 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
   // Reset state when portfolioId changes to avoid stale data flash
   const prevPortfolioIdRef = useRef(portfolioId);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
   useEffect(() => {
     if (prevPortfolioIdRef.current !== portfolioId) {
       prevPortfolioIdRef.current = portfolioId;
@@ -92,19 +94,23 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
   }, [portfolioId]);
 
   const fetchData = useCallback(async () => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     try {
       // Only show loading spinner on initial load, not background refreshes
       if (!hasData) setLoading(true);
       if (mode === 'pace') {
         const response = await getCurrentPace(paceWindow, portfolioId);
+        if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
         setPaceData(response);
         onPaceData?.(response);
       } else {
         const response = await getProjections('sp500', '1y', portfolioId);
+        if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
         setData(response);
       }
       setError('');
     } catch (err) {
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       // On refresh errors, keep previous data instead of showing error
       if (!hasData) {
         setError(err instanceof Error ? err.message : 'Failed to fetch projections');

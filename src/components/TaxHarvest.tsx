@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TaxHarvestResponse } from '../types';
 import { getTaxHarvestSuggestions } from '../api';
 
@@ -19,18 +19,21 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
   const [data, setData] = useState<TaxHarvestResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   useEffect(() => {
     let mounted = true;
+    const fetchPortfolioId = portfolioId; // capture at call time
     setLoading(true);
     getTaxHarvestSuggestions(portfolioId)
       .then((res) => {
-        if (mounted) {
+        if (mounted && fetchPortfolioId === currentPortfolioIdRef.current) {
           if (res) setData(res);
           else setError('No data available');
         }
       })
-      .catch((e) => { if (mounted) setError(e.message); })
+      .catch((e) => { if (mounted && fetchPortfolioId === currentPortfolioIdRef.current) setError(e.message); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [portfolioId]);

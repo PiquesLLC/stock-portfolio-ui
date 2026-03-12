@@ -135,7 +135,7 @@ const REPORT_PERIODS: { value: PerformanceWindow; label: string }[] = [
   { value: 'ALL', label: 'All' },
 ];
 
-function PerformanceReportCard() {
+function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
   const [period, setPeriod] = useState<PerformanceWindow>('1M');
   const [generating, setGenerating] = useState(false);
   const { showToast } = useToast();
@@ -144,7 +144,7 @@ function PerformanceReportCard() {
     setGenerating(true);
     try {
       const isDark = document.documentElement.classList.contains('dark');
-      const html = await getPerformanceReport(period, 'SPY', isDark ? 'dark' : 'light');
+      const html = await getPerformanceReport(period, 'SPY', isDark ? 'dark' : 'light', portfolioId);
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         showToast('Pop-up blocked — please allow pop-ups for this site', 'error');
@@ -163,7 +163,7 @@ function PerformanceReportCard() {
     } finally {
       setGenerating(false);
     }
-  }, [period, showToast]);
+  }, [period, showToast, portfolioId]);
 
   return (
     <PremiumOverlay
@@ -267,6 +267,8 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const holdingsFetchedRef = useRef(false);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   // Clear cache and reset state when portfolioId changes
   const prevPortfolioIdRef = useRef(portfolioId);
@@ -294,19 +296,23 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const fetchInsights = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
+    const fetchPortfolioId = portfolioId; // capture at call time
 
     try {
       // Fetch each insight independently - errors in one don't block others
       const fetchPromises = [
         getHealthScore(portfolioId)
-          .then(data => { if (mountedRef.current) setHealthScore(data); })
+          .then(data => { if (mountedRef.current && fetchPortfolioId === currentPortfolioIdRef.current) setHealthScore(data); })
           .catch(e => { console.error('Health score error:', e); showToast('Failed to load health score', 'error'); }),
         getPortfolioIntelligence('1d', portfolioId)
-          .then(data => { if (mountedRef.current) setIntelligence(data); })
+          .then(data => { if (mountedRef.current && fetchPortfolioId === currentPortfolioIdRef.current) setIntelligence(data); })
           .catch(e => { console.error('Intelligence error:', e); showToast('Failed to load intelligence', 'error'); }),
       ];
 
       await Promise.allSettled(fetchPromises);
+
+      // Discard stale response if portfolioId changed during fetch
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return;
 
       // Only mark cache as fresh if both data sources loaded — prevents
       // caching a partial success that skips retrying the failed source
@@ -347,9 +353,10 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Fetch holdings on mount (needed for Allocation + What-If tabs)
   useEffect(() => {
     holdingsFetchedRef.current = true;
+    const fetchPortfolioId = portfolioId; // capture at call time
     getPortfolio(undefined, portfolioId)
       .then((p) => {
-        if (mountedRef.current) setHoldings(p.holdings);
+        if (mountedRef.current && fetchPortfolioId === currentPortfolioIdRef.current) setHoldings(p.holdings);
       })
       .catch((e) => { console.error('Failed to fetch holdings:', e); showToast('Failed to load holdings', 'error'); });
   }, [showToast, portfolioId]);
@@ -562,7 +569,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       {healthScore && <HealthScore data={healthScore} />}
 
       {/* Performance Report (Elite) */}
-      <PerformanceReportCard />
+      <PerformanceReportCard portfolioId={portfolioId} />
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (

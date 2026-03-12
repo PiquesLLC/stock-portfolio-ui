@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { getBehaviorInsights, BehaviorInsightsResponse, BehaviorInsight } from '../api';
 import { timeAgo } from '../utils/format';
 
@@ -117,14 +117,19 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   const fetchData = async () => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     setLoading(true);
     setError(null);
     try {
       const result = await getBehaviorInsights(portfolioId);
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setData(result);
     } catch (err: any) {
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setError(err.message || 'Failed to load behavior insights');
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PerformanceData, PerformanceWindow } from '../types';
 import { getPerformance } from '../api';
 import { Acronym } from './Acronym';
@@ -23,13 +23,18 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
   const [benchmark, setBenchmark] = useState('SPY');
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   const fetchData = useCallback(async () => {
+    const fetchPortfolioId = portfolioId; // capture at call time
     try {
       setLoading(true);
       const result = await getPerformance(window, benchmark, portfolioId);
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setData(result);
     } catch {
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setData(null);
     } finally {
       setLoading(false);

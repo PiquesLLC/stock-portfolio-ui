@@ -23,12 +23,18 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
   const lastValidPortfolio = useRef<Portfolio | null>(null);
   const hasPortfolioRef = useRef(false);
   const lastTotalAssets = useRef<number | null>(null);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   const fetchData = useCallback(async () => {
     if (!currentUserId || authLoading) return;
+    const fetchPortfolioId = portfolioId; // capture at call time
     try {
       const portfolioData = await getPortfolio(undefined, portfolioId);
       const settingsData = await getSettings();
+
+      // Discard stale response if portfolioId changed during fetch
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return;
 
       const hasValidData = portfolioData.holdings.length === 0 ||
         portfolioData.holdings.some(h => !h.priceUnavailable && h.currentPrice > 0);

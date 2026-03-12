@@ -191,11 +191,14 @@ function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewP
   const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
 
   useEffect(() => {
     mountedRef.current = true;
 
     async function fetchPreviews() {
+      const fetchPortfolioId = portfolioId; // capture at call time
       const cachedEntry = previewCacheMap.get(portfolioId);
       if (cachedEntry && Date.now() - cachedEntry.timestamp < CACHE_TTL_MS) {
         setItems(cachedEntry.data);
@@ -207,11 +210,11 @@ function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewP
       setError(null);
       try {
         const resp = await getEarningsPreviews(portfolioId);
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || fetchPortfolioId !== currentPortfolioIdRef.current) return;
         previewCacheMap.set(portfolioId, { data: resp.results, partial: resp.partial, timestamp: Date.now() });
         setItems(resp.results);
       } catch (e: unknown) {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || fetchPortfolioId !== currentPortfolioIdRef.current) return;
         const msg = e instanceof Error ? e.message : 'Failed to load previews';
         if (msg.includes('upgrade_required')) {
           // Plan gate handled by PremiumOverlay wrapper, shouldn't reach here
