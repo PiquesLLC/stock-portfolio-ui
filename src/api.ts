@@ -539,11 +539,15 @@ export async function getPortfolio(userId?: string, portfolioId?: string): Promi
 
 export async function getProjections(
   mode: ProjectionMode = 'sp500',
-  lookback: LookbackPeriod = '1y'
+  lookback: LookbackPeriod = '1y',
+  portfolioId?: string
 ): Promise<ProjectionResponse> {
   const params = new URLSearchParams({ mode });
   if (mode === 'realized') {
     params.append('lookback', lookback);
+  }
+  if (portfolioId) {
+    params.append('portfolioId', portfolioId);
   }
   return fetchJson<ProjectionResponse>(`${API_BASE_URL}/portfolio/projections?${params}`);
 }
@@ -856,26 +860,30 @@ export async function seedSamplePortfolio(): Promise<{ seeded: boolean; holdings
 }
 
 // Goals endpoints
-export async function getGoals(): Promise<Goal[]> {
-  return fetchJson<Goal[]>(`${API_BASE_URL}/goals`);
+export async function getGoals(portfolioId?: string): Promise<Goal[]> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<Goal[]>(`${API_BASE_URL}/goals${qs}`);
 }
 
-export async function createGoal(input: GoalInput): Promise<Goal> {
-  return fetchJson<Goal>(`${API_BASE_URL}/goals`, {
+export async function createGoal(input: GoalInput, portfolioId?: string): Promise<Goal> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<Goal>(`${API_BASE_URL}/goals${qs}`, {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
-export async function updateGoal(id: string, input: Partial<GoalInput>): Promise<Goal> {
-  return fetchJson<Goal>(`${API_BASE_URL}/goals/${id}`, {
+export async function updateGoal(id: string, input: Partial<GoalInput>, portfolioId?: string): Promise<Goal> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<Goal>(`${API_BASE_URL}/goals/${id}${qs}`, {
     method: 'PUT',
     body: JSON.stringify(input),
   });
 }
 
-export async function deleteGoal(id: string): Promise<void> {
-  await fetchJson(`${API_BASE_URL}/goals/${id}`, {
+export async function deleteGoal(id: string, portfolioId?: string): Promise<void> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  await fetchJson(`${API_BASE_URL}/goals/${id}${qs}`, {
     method: 'DELETE',
   });
 }
@@ -903,8 +911,12 @@ export async function searchSymbols(
 }
 
 // Current Pace endpoint
-export async function getCurrentPace(window: PaceWindow = '1M'): Promise<CurrentPaceResponse> {
-  return fetchJson<CurrentPaceResponse>(`${API_BASE_URL}/portfolio/projections/current-pace?window=${window}`);
+export async function getCurrentPace(window: PaceWindow = '1M', portfolioId?: string): Promise<CurrentPaceResponse> {
+  const params = new URLSearchParams({ window });
+  if (portfolioId) {
+    params.append('portfolioId', portfolioId);
+  }
+  return fetchJson<CurrentPaceResponse>(`${API_BASE_URL}/portfolio/projections/current-pace?${params}`);
 }
 
 // YTD Settings endpoints

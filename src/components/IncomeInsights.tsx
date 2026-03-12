@@ -619,6 +619,17 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
   const { user } = useAuth();
   const userId = user?.id;
 
+  // Reset state when portfolioId changes to avoid stale data flash
+  const prevPortfolioIdRef = useRef(portfolioId);
+  useEffect(() => {
+    if (prevPortfolioIdRef.current !== portfolioId) {
+      prevPortfolioIdRef.current = portfolioId;
+      setData(null);
+      setLoading(true);
+      setCashInterest(null);
+    }
+  }, [portfolioId]);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);

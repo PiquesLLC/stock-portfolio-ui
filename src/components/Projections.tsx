@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ProjectionResponse,
   SP500ProjectionResponse,
@@ -15,6 +15,7 @@ interface Props {
   refreshTrigger?: number;
   session?: MarketSession;
   onPaceData?: (data: CurrentPaceResponse) => void;
+  portfolioId?: string;
 }
 
 function formatCurrency(value: number): string {
@@ -62,7 +63,7 @@ function isSP500Response(resp: ProjectionResponse): resp is SP500ProjectionRespo
   return resp.mode === 'sp500';
 }
 
-export function Projections({ currentValue, refreshTrigger = 0, session, onPaceData }: Props) {
+export function Projections({ currentValue, refreshTrigger = 0, session, onPaceData, portfolioId }: Props) {
   const [mode, setMode] = useState<ProjectionModeSimple>('sp500');
   const [data, setData] = useState<ProjectionResponse | null>(null);
   const [paceData, setPaceData] = useState<CurrentPaceResponse | null>(null);
@@ -78,16 +79,28 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
   const hasData = data !== null || paceData !== null;
 
+  // Reset state when portfolioId changes to avoid stale data flash
+  const prevPortfolioIdRef = useRef(portfolioId);
+  useEffect(() => {
+    if (prevPortfolioIdRef.current !== portfolioId) {
+      prevPortfolioIdRef.current = portfolioId;
+      setData(null);
+      setPaceData(null);
+      setLoading(true);
+      setError('');
+    }
+  }, [portfolioId]);
+
   const fetchData = useCallback(async () => {
     try {
       // Only show loading spinner on initial load, not background refreshes
       if (!hasData) setLoading(true);
       if (mode === 'pace') {
-        const response = await getCurrentPace(paceWindow);
+        const response = await getCurrentPace(paceWindow, portfolioId);
         setPaceData(response);
         onPaceData?.(response);
       } else {
-        const response = await getProjections('sp500', '1y');
+        const response = await getProjections('sp500', '1y', portfolioId);
         setData(response);
       }
       setError('');
@@ -100,7 +113,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, paceWindow, refreshTrigger]);
+  }, [mode, paceWindow, refreshTrigger, portfolioId]);
 
   useEffect(() => {
     fetchData();
@@ -138,7 +151,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
       setShowYtdForm(false);
       // Refresh pace data to show updated True YTD
       if (paceWindow === 'YTD') {
-        const response = await getCurrentPace('YTD');
+        const response = await getCurrentPace('YTD', portfolioId);
         setPaceData(response);
         onPaceData?.(response);
       }

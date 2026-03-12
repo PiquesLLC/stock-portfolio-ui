@@ -375,9 +375,10 @@ interface GoalsPageProps {
   annualizedPacePct?: number | null;
   refreshTrigger?: number;
   session?: string;
+  portfolioId?: string;
 }
 
-export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsPageProps = {}) {
+export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfolioId }: GoalsPageProps = {}) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -385,11 +386,24 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Reset state when portfolioId changes to avoid stale data flash
+  const prevPortfolioIdRef = useRef(portfolioId);
+  useEffect(() => {
+    if (prevPortfolioIdRef.current !== portfolioId) {
+      prevPortfolioIdRef.current = portfolioId;
+      setGoals([]);
+      setLoading(true);
+      setError(null);
+      setShowForm(false);
+      setEditingGoal(null);
+    }
+  }, [portfolioId]);
+
   const fetchGoals = useCallback(async (showSpinner = false) => {
     try {
       if (showSpinner) setLoading(true);
       setError(null);
-      const data = await getGoals();
+      const data = await getGoals(portfolioId);
       setGoals(data);
     } catch (err) {
       if (goals.length === 0) {
@@ -398,13 +412,13 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
     } finally {
       setLoading(false);
     }
-  }, [goals.length]);
+  }, [goals.length, portfolioId]);
 
-  // Initial fetch — fetchGoals depends on goals.length so adding it would re-trigger on every goal change
+  // Initial fetch + re-fetch when portfolioId changes
   useEffect(() => {
     fetchGoals(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [portfolioId]);
 
   // Re-fetch when portfolio refreshes — same reason: fetchGoals identity changes with goals.length
   useEffect(() => {
@@ -426,20 +440,20 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session }: GoalsP
   }, [fetchGoals, session]);
 
   async function handleCreateGoal(input: GoalInput) {
-    await createGoal(input);
+    await createGoal(input, portfolioId);
     await fetchGoals();
     setShowForm(false);
   }
 
   async function handleUpdateGoal(input: GoalInput) {
     if (!editingGoal) return;
-    await updateGoal(editingGoal.id, input);
+    await updateGoal(editingGoal.id, input, portfolioId);
     await fetchGoals();
     setEditingGoal(null);
   }
 
   async function handleDeleteGoal(id: string) {
-    await deleteGoal(id);
+    await deleteGoal(id, portfolioId);
     setGoals((prev) => prev.filter((g) => g.id !== id));
   }
 

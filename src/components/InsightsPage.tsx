@@ -466,6 +466,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           currentValue={currentValue}
           refreshTrigger={refreshTrigger}
           session={session}
+          portfolioId={portfolioId}
         />
       </div>
     );

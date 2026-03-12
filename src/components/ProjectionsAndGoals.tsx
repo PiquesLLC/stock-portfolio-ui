@@ -7,9 +7,10 @@ interface Props {
   currentValue: number;
   refreshTrigger?: number;
   session?: MarketSession;
+  portfolioId?: string;
 }
 
-export function ProjectionsAndGoals({ currentValue, refreshTrigger, session }: Props) {
+export function ProjectionsAndGoals({ currentValue, refreshTrigger, session, portfolioId }: Props) {
   const [annualizedPacePct, setAnnualizedPacePct] = useState<number | null>(null);
 
   const handlePaceData = useCallback((data: CurrentPaceResponse) => {
@@ -23,8 +24,9 @@ export function ProjectionsAndGoals({ currentValue, refreshTrigger, session }: P
         refreshTrigger={refreshTrigger}
         session={session}
         onPaceData={handlePaceData}
+        portfolioId={portfolioId}
       />
-      <GoalsPage annualizedPacePct={annualizedPacePct} refreshTrigger={refreshTrigger} session={session} />
+      <GoalsPage annualizedPacePct={annualizedPacePct} refreshTrigger={refreshTrigger} session={session} portfolioId={portfolioId} />
     </div>
   );
 }
