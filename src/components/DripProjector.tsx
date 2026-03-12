@@ -225,6 +225,7 @@ function HoldingGrowthRow({ holding, onTickerClick }: { holding: HoldingGrowthDa
 interface Props {
   refreshTrigger?: number;
   onTickerClick?: (ticker: string) => void;
+  portfolioId?: string;
 }
 
 type Scenario = 'conservative' | 'moderate' | 'aggressive';
@@ -250,7 +251,7 @@ function computeProjectionRate(holdings: HoldingGrowthData[], scenarioCap: numbe
   return totalWeight > 0 ? weightedSum / totalWeight : 0;
 }
 
-export function DripProjector({ refreshTrigger, onTickerClick }: Props) {
+export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Props) {
   const [data, setData] = useState<DividendGrowthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -260,13 +261,19 @@ export function DripProjector({ refreshTrigger, onTickerClick }: Props) {
   const [showAllHoldings, setShowAllHoldings] = useState(false);
   const [scenario, setScenario] = useState<Scenario>('moderate');
 
+  // Race condition guard
+  const currentPortfolioIdRef = useRef(portfolioId);
+  currentPortfolioIdRef.current = portfolioId;
+
   useEffect(() => {
+    const fetchPortfolioId = portfolioId;
+    setData(null);
     setLoading(true);
-    getDividendGrowthRates()
-      .then(setData)
+    getDividendGrowthRates(portfolioId)
+      .then(d => { if (fetchPortfolioId === currentPortfolioIdRef.current) setData(d); })
       .catch(() => setError('Failed to load dividend growth data'))
       .finally(() => setLoading(false));
-  }, [refreshTrigger]);
+  }, [refreshTrigger, portfolioId]);
 
   // Calculate portfolio-level projection with capped growth rates
   const projectionRate = useMemo(() => {

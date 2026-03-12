@@ -703,7 +703,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
       <IncomeSignalCards signals={data.signals} cashInterest={cashInterest} annualSalary={annualSalary} />
 
       {/* DRIP Income Projector */}
-      <DripProjector refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} />
+      <DripProjector refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} portfolioId={portfolioId} />
 
       {/* Contributors + Concentration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

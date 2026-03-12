@@ -1748,8 +1748,10 @@ export interface DividendGrowthResponse {
   };
 }
 
-export async function getDividendGrowthRates(): Promise<DividendGrowthResponse> {
-  return fetchJson<DividendGrowthResponse>(`${API_BASE_URL}/dividends/growth-rates?excludeCurrentYear=true`);
+export async function getDividendGrowthRates(portfolioId?: string): Promise<DividendGrowthResponse> {
+  let url = `${API_BASE_URL}/dividends/growth-rates?excludeCurrentYear=true`;
+  if (portfolioId) url += `&portfolioId=${encodeURIComponent(portfolioId)}`;
+  return fetchJson<DividendGrowthResponse>(url);
 }
 
 // Earnings Track Record
