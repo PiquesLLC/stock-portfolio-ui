@@ -1,15 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
 import { timeAgo } from '../utils/format';
 
+type FailureCategory = 'TRANSIENT' | 'PERMANENT' | 'RATE_LIMITED' | 'DATA_QUALITY';
+
 interface JobStat {
   jobName: string;
   total: number;
   success: number;
   failed: number;
   deadLettered: number;
+  failureRate: number;
+  alertSeverity: 'none' | 'warning' | 'critical';
+  failureCategories: Record<FailureCategory, number>;
   avgDurationMs: number;
   lastRun: string | null;
   lastError: string | null;
+}
+
+interface ReliabilityMetrics {
+  period: { hours: number; since: string };
+  runs: {
+    total: number;
+    running: number;
+    success: number;
+    failed: number;
+    deadLettered: number;
+    successRate: number;
+    failureRate: number;
+    avgDurationMs: number;
+    p95DurationMs: number;
+  };
+  idempotency: { activeKeys: number; duplicateHits: number };
+  deadLetters: { unresolved: number };
 }
 
 interface DeadLetterEntry {
@@ -88,16 +110,68 @@ async function fetchStuckJobs(): Promise<StuckJob[]> {
   return data.stuck;
 }
 
-async function healStuckJobs(): Promise<void> {
+async function fetchReliabilityMetrics(): Promise<ReliabilityMetrics | null> {
+  try {
+    const res = await fetch('/api/health/job-metrics', { credentials: 'include' });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function healStuckJobs(dryRun = false): Promise<{ dryRun: boolean; wouldHeal?: number; healed?: number; details?: Array<{ id: string; jobName: string; action: string }> }> {
   const res = await fetch('/api/admin/jobs/heal', {
     method: 'POST',
     credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dryRun }),
   });
   if (!res.ok) throw new Error('Failed to heal stuck jobs');
+  return res.json();
 }
 
 interface Props {
   onBack: () => void;
+}
+
+type AlertLevel = 'ok' | 'warning' | 'critical';
+
+function getSystemAlertLevel(stats: JobsResponse | null, deadLetters: DeadLetterEntry[], healthEntries: SnapshotHealth[], stuckJobs: StuckJob[]): AlertLevel {
+  if (!stats) return 'ok';
+  const failureRate = stats.summary.totalRuns > 0 ? stats.summary.totalFailed / stats.summary.totalRuns : 0;
+  const criticalHealth = healthEntries.filter(h => h.status === 'critical').length;
+  if (failureRate > 0.15 || stuckJobs.length > 2 || criticalHealth > 2) return 'critical';
+  if (failureRate > 0.05 || stuckJobs.length > 0 || deadLetters.filter(d => !d.resolved).length > 3 || criticalHealth > 0) return 'warning';
+  return 'ok';
+}
+
+function AlertBanner({ level, stats, stuckCount, dlqCount, criticalCount }: { level: AlertLevel; stats: JobsResponse | null; stuckCount: number; dlqCount: number; criticalCount: number }) {
+  if (level === 'ok') return null;
+  const failureRate = stats && stats.summary.totalRuns > 0 ? ((stats.summary.totalFailed / stats.summary.totalRuns) * 100).toFixed(1) : '0';
+  const issues: string[] = [];
+  if (parseFloat(failureRate) > 5) issues.push(`${failureRate}% failure rate`);
+  if (stuckCount > 0) issues.push(`${stuckCount} stuck job${stuckCount > 1 ? 's' : ''}`);
+  if (dlqCount > 0) issues.push(`${dlqCount} unresolved DLQ`);
+  if (criticalCount > 0) issues.push(`${criticalCount} critical snapshot${criticalCount > 1 ? 's' : ''}`);
+  const isCritical = level === 'critical';
+  return (
+    <div className={`mb-4 px-4 py-3 rounded-xl border flex items-start gap-3 ${
+      isCritical
+        ? 'bg-red-500/10 border-red-500/20'
+        : 'bg-yellow-500/10 border-yellow-500/20'
+    }`}>
+      <span className={`text-lg mt-0.5 ${isCritical ? 'text-red-500' : 'text-yellow-500'}`}>
+        {isCritical ? '!' : '!'}
+      </span>
+      <div>
+        <p className={`text-sm font-medium ${isCritical ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+          {isCritical ? 'Critical — Immediate attention needed' : 'Warning — Issues detected'}
+        </p>
+        <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">{issues.join(' · ')}</p>
+      </div>
+    </div>
+  );
 }
 
 export function JobsDashboard({ onBack }: Props) {
@@ -105,23 +179,27 @@ export function JobsDashboard({ onBack }: Props) {
   const [deadLetters, setDeadLetters] = useState<DeadLetterEntry[]>([]);
   const [healthEntries, setHealthEntries] = useState<SnapshotHealth[]>([]);
   const [stuckJobs, setStuckJobs] = useState<StuckJob[]>([]);
+  const [reliability, setReliability] = useState<ReliabilityMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'overview' | 'dead-letter' | 'health' | 'stuck'>('overview');
+  const [healDryRun, setHealDryRun] = useState(true);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [jobStats, dlEntries, health, stuck] = await Promise.all([
+      const [jobStats, dlEntries, health, stuck, rel] = await Promise.all([
         fetchJobStats(),
         fetchDeadLetterEntries(),
         fetchSnapshotHealth(),
         fetchStuckJobs(),
+        fetchReliabilityMetrics(),
       ]);
       setStats(jobStats);
       setDeadLetters(dlEntries);
       setHealthEntries(health);
       setStuckJobs(stuck);
+      setReliability(rel);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
@@ -147,12 +225,22 @@ export function JobsDashboard({ onBack }: Props) {
     }
   };
 
+  const [healResult, setHealResult] = useState<string | null>(null);
+
   const handleHealAll = async () => {
     setHealing(true);
+    setHealResult(null);
     try {
-      await healStuckJobs();
-      const stuck = await fetchStuckJobs();
-      setStuckJobs(stuck);
+      const result = await healStuckJobs(healDryRun);
+      if (healDryRun) {
+        const count = result.wouldHeal ?? result.details?.length ?? 0;
+        setHealResult(`Dry run: ${count} job${count !== 1 ? 's' : ''} would be healed`);
+      } else {
+        const count = result.healed ?? result.details?.length ?? 0;
+        setHealResult(`Healed ${count} stuck job${count !== 1 ? 's' : ''}`);
+        const stuck = await fetchStuckJobs();
+        setStuckJobs(stuck);
+      }
     } catch {
       setError('Failed to heal stuck jobs');
     } finally {
@@ -182,50 +270,47 @@ export function JobsDashboard({ onBack }: Props) {
         <div className="text-center py-12 text-red-500 dark:text-red-400">{error}</div>
       )}
 
-      {stats && (
+      {stats && (() => {
+        const unresolvedDlq = deadLetters.filter(d => !d.resolved).length;
+        const criticalSnapshots = healthEntries.filter(h => h.status === 'critical').length;
+        const alertLevel = getSystemAlertLevel(stats, deadLetters, healthEntries, stuckJobs);
+        const failureRate = stats.summary.totalRuns > 0 ? ((stats.summary.totalFailed / stats.summary.totalRuns) * 100).toFixed(1) : '0';
+        return (
         <>
+          {/* System alert banner */}
+          <AlertBanner
+            level={alertLevel}
+            stats={stats}
+            stuckCount={stuckJobs.length}
+            dlqCount={unresolvedDlq}
+            criticalCount={criticalSnapshots}
+          />
+
           {/* Summary cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
             <StatCard label="Jobs (24h)" value={stats.summary.totalRuns} />
             <StatCard label="Active Jobs" value={stats.summary.totalJobs} />
             <StatCard label="Failed" value={stats.summary.totalFailed} color={stats.summary.totalFailed > 0 ? 'red' : undefined} />
             <StatCard label="Dead Letter" value={stats.summary.totalDeadLettered} color={stats.summary.totalDeadLettered > 0 ? 'orange' : undefined} />
+            <StatCard label="Fail Rate" value={parseFloat(failureRate)} suffix="%" color={parseFloat(failureRate) > 15 ? 'red' : parseFloat(failureRate) > 5 ? 'orange' : undefined} />
           </div>
+
+          {/* Reliability metrics */}
+          {reliability && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <StatCard label="P95 Duration" value={reliability.runs.p95DurationMs > 0 ? Math.round(reliability.runs.p95DurationMs / 1000 * 10) / 10 : 0} suffix="s" />
+              <StatCard label="Running Now" value={reliability.runs.running} color={reliability.runs.running > 3 ? 'orange' : undefined} />
+              <StatCard label="Idemp. Keys" value={reliability.idempotency.activeKeys} />
+              <StatCard label="Dedup Hits" value={reliability.idempotency.duplicateHits} color={reliability.idempotency.duplicateHits > 10 ? 'orange' : undefined} />
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-4 border-b border-rh-light-border dark:border-rh-border mb-4">
-            <button
-              onClick={() => setTab('overview')}
-              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'overview' ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
-              }`}
-            >
-              Job Status ({stats.jobs.length})
-            </button>
-            <button
-              onClick={() => setTab('dead-letter')}
-              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'dead-letter' ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
-              }`}
-            >
-              Dead Letter ({deadLetters.length})
-            </button>
-            <button
-              onClick={() => setTab('health')}
-              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'health' ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
-              }`}
-            >
-              Health ({healthEntries.length})
-            </button>
-            <button
-              onClick={() => setTab('stuck')}
-              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'stuck' ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
-              }`}
-            >
-              Stuck ({stuckJobs.length})
-            </button>
+            <TabButton active={tab === 'overview'} onClick={() => setTab('overview')} label="Job Status" count={stats.jobs.length} />
+            <TabButton active={tab === 'dead-letter'} onClick={() => setTab('dead-letter')} label="Dead Letter" count={unresolvedDlq} alertColor={unresolvedDlq > 3 ? 'red' : unresolvedDlq > 0 ? 'orange' : undefined} />
+            <TabButton active={tab === 'health'} onClick={() => setTab('health')} label="Health" count={healthEntries.length} alertColor={criticalSnapshots > 0 ? 'red' : undefined} />
+            <TabButton active={tab === 'stuck'} onClick={() => setTab('stuck')} label="Stuck" count={stuckJobs.length} alertColor={stuckJobs.length > 0 ? 'red' : undefined} />
           </div>
 
           {tab === 'overview' && (
@@ -324,15 +409,35 @@ export function JobsDashboard({ onBack }: Props) {
 
           {tab === 'stuck' && (
             <div className="space-y-2">
-              <div className="flex justify-end mb-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+                  <input
+                    type="checkbox"
+                    checked={healDryRun}
+                    onChange={(e) => setHealDryRun(e.target.checked)}
+                    className="rounded border-rh-border accent-rh-green"
+                  />
+                  Dry run (preview only)
+                </label>
                 <button
                   onClick={handleHealAll}
                   disabled={healing || stuckJobs.length === 0}
-                  className="text-xs px-3 py-1.5 rounded-md bg-rh-green text-white font-medium hover:bg-rh-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    healDryRun
+                      ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500/20'
+                      : 'bg-rh-green text-white hover:bg-rh-green/90'
+                  }`}
                 >
-                  {healing ? 'Healing...' : 'Heal All'}
+                  {healing ? 'Healing...' : healDryRun ? 'Preview Heal' : 'Heal All'}
                 </button>
               </div>
+              {healResult && (
+                <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${
+                  healDryRun ? 'bg-blue-500/10 border border-blue-500/20 text-blue-500' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400'
+                }`}>
+                  {healResult}
+                </div>
+              )}
               {stuckJobs.length === 0 ? (
                 <div className="text-center py-8 text-rh-light-muted dark:text-rh-muted text-sm">
                   No stuck jobs
@@ -359,18 +464,37 @@ export function JobsDashboard({ onBack }: Props) {
             </div>
           )}
         </>
-      )}
+        );
+      })()}
     </div>
   );
 }
 
-function StatCard({ label, value, color }: { label: string; value: number; color?: 'red' | 'orange' }) {
+function StatCard({ label, value, suffix, color }: { label: string; value: number; suffix?: string; color?: 'red' | 'orange' }) {
   const valueColor = color === 'red' ? 'text-red-500 dark:text-red-400' : color === 'orange' ? 'text-orange-500 dark:text-orange-400' : 'text-rh-light-text dark:text-rh-text';
   return (
     <div className="p-3 rounded-lg bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border text-center">
-      <div className={`text-2xl font-bold ${valueColor}`}>{value}</div>
+      <div className={`text-2xl font-bold ${valueColor}`}>
+        {Number.isInteger(value) ? value : value.toFixed(1)}{suffix || ''}
+      </div>
       <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">{label}</div>
     </div>
+  );
+}
+
+function TabButton({ active, onClick, label, count, alertColor }: { active: boolean; onClick: () => void; label: string; count: number; alertColor?: 'red' | 'orange' }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`pb-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+        active ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
+      }`}
+    >
+      {label} ({count})
+      {alertColor && count > 0 && (
+        <span className={`w-2 h-2 rounded-full ${alertColor === 'red' ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`} />
+      )}
+    </button>
   );
 }
 
@@ -388,25 +512,52 @@ function HealthBadge({ status }: { status: SnapshotHealth['status'] }) {
   );
 }
 
+const CATEGORY_STYLES: Record<FailureCategory, { bg: string; text: string; label: string }> = {
+  TRANSIENT: { bg: 'bg-blue-500/10', text: 'text-blue-500 dark:text-blue-400', label: 'Transient' },
+  PERMANENT: { bg: 'bg-red-500/10', text: 'text-red-500 dark:text-red-400', label: 'Permanent' },
+  RATE_LIMITED: { bg: 'bg-orange-500/10', text: 'text-orange-500 dark:text-orange-400', label: 'Rate Limited' },
+  DATA_QUALITY: { bg: 'bg-purple-500/10', text: 'text-purple-500 dark:text-purple-400', label: 'Data Quality' },
+};
+
 function JobRow({ job }: { job: JobStat }) {
   const successRate = job.total > 0 ? ((job.success / job.total) * 100).toFixed(0) : '—';
-  const hasIssues = job.failed > 0 || job.deadLettered > 0;
+  const severity = job.alertSeverity ?? 'none';
+  const dotColor = severity === 'critical' ? 'bg-red-500' : severity === 'warning' ? 'bg-orange-500' : job.failed > 0 || job.deadLettered > 0 ? 'bg-yellow-500' : 'bg-emerald-500';
+  const hasCategories = job.failureCategories && Object.values(job.failureCategories).some(v => v > 0);
 
   return (
     <div className="p-3 rounded-lg bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${hasIssues ? 'bg-orange-500' : 'bg-emerald-500'}`} />
+          <span className={`w-2 h-2 rounded-full ${dotColor}`} />
           <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">
             {job.jobName.replace(/_/g, ' ')}
           </span>
+          {severity === 'critical' && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 dark:text-red-400 font-medium">CRITICAL</span>
+          )}
+          {severity === 'warning' && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 font-medium">WARNING</span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-[11px] text-rh-light-muted dark:text-rh-muted">
           <span>{successRate}% ok</span>
           <span>{job.total} runs</span>
+          {job.failed > 0 && <span className="text-red-500 dark:text-red-400">{job.failed} failed</span>}
           <span>{job.avgDurationMs > 0 ? `${(job.avgDurationMs / 1000).toFixed(1)}s avg` : '—'}</span>
         </div>
       </div>
+      {hasCategories && (
+        <div className="flex items-center gap-1.5 mt-1.5 ml-4">
+          {(Object.entries(job.failureCategories) as [FailureCategory, number][])
+            .filter(([, count]) => count > 0)
+            .map(([cat, count]) => (
+              <span key={cat} className={`text-[9px] px-1.5 py-0.5 rounded ${CATEGORY_STYLES[cat].bg} ${CATEGORY_STYLES[cat].text} font-medium`}>
+                {CATEGORY_STYLES[cat].label} ({count})
+              </span>
+            ))}
+        </div>
+      )}
       {job.lastRun && (
         <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-1 ml-4">
           Last: {timeAgo(job.lastRun)}
