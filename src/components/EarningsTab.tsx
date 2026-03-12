@@ -20,7 +20,7 @@ interface UpcomingEarning {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
-let upcomingCache: { data: UpcomingEarning[]; timestamp: number } | null = null;
+const upcomingCacheMap = new Map<string | undefined, { data: UpcomingEarning[]; timestamp: number }>();
 
 function getDayLabel(daysUntil: number, dateMs: number): string {
   if (daysUntil === 0) return 'Today';
@@ -56,9 +56,10 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
     mountedRef.current = true;
 
     async function fetchUpcoming() {
-      // Use cache if fresh
-      if (upcomingCache && Date.now() - upcomingCache.timestamp < CACHE_TTL_MS) {
-        setUpcoming(upcomingCache.data);
+      // Use cache if fresh (keyed by portfolioId)
+      const cached = upcomingCacheMap.get(portfolioId);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        setUpcoming(cached.data);
         setLoading(false);
         return;
       }
@@ -70,7 +71,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
 
         const mapped = results.map(toUpcomingEarning);
         mapped.sort((a, b) => a.daysUntil - b.daysUntil);
-        upcomingCache = { data: mapped, timestamp: Date.now() };
+        upcomingCacheMap.set(portfolioId, { data: mapped, timestamp: Date.now() });
         setUpcoming(mapped);
       } catch {
         // Fall through with empty

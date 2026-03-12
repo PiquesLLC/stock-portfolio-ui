@@ -36,6 +36,11 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
     }
   }, [window, benchmark, portfolioId]);
 
+  // Reset data when portfolioId changes to avoid showing stale data
+  useEffect(() => {
+    setData(null);
+  }, [portfolioId]);
+
   // Sync window when portfolio chart period changes
   useEffect(() => {
     if (externalWindow) setWindow(externalWindow);

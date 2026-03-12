@@ -39,6 +39,11 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
   const [error, setError] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
 
+  // Reset data when portfolioId changes to avoid showing stale data
+  useEffect(() => {
+    setData(null);
+  }, [portfolioId]);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);

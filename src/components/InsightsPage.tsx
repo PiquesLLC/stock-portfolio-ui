@@ -268,6 +268,20 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const mountedRef = useRef(true);
   const holdingsFetchedRef = useRef(false);
 
+  // Clear cache and reset state when portfolioId changes
+  const prevPortfolioIdRef = useRef(portfolioId);
+  useEffect(() => {
+    if (prevPortfolioIdRef.current !== portfolioId) {
+      prevPortfolioIdRef.current = portfolioId;
+      clearInsightsCache();
+      setHealthScore(null);
+      setIntelligence(null);
+      setInitialLoadComplete(false);
+      setHoldings([]);
+      holdingsFetchedRef.current = false;
+    }
+  }, [portfolioId]);
+
   // Update cache when state changes
   useEffect(() => {
     insightsCache.healthScore = healthScore;
