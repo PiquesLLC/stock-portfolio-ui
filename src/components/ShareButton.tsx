@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-type ShareCardType = 'profile' | 'stock' | 'performance';
+type ShareCardType = 'stock' | 'performance';
 
 interface ShareButtonProps {
   /** What kind of share card to generate */
   type: ShareCardType;
-  /** userId for profile/performance cards */
+  /** userId for performance cards */
   userId?: string;
   /** username for file naming and profile URL */
   username?: string;
@@ -32,8 +32,6 @@ const SHARE_ICON = (
 
 function getCardUrl(type: ShareCardType, props: ShareButtonProps): string {
   switch (type) {
-    case 'profile':
-      return `${API_BASE_URL}/social/${props.userId}/share-card`;
     case 'stock':
       return `${API_BASE_URL}/social/stock/${props.ticker}/share-card?period=${props.period || '1W'}`;
     case 'performance':
@@ -43,8 +41,6 @@ function getCardUrl(type: ShareCardType, props: ShareButtonProps): string {
 
 function getFileName(type: ShareCardType, props: ShareButtonProps): string {
   switch (type) {
-    case 'profile':
-      return `nala-${props.username || 'profile'}.png`;
     case 'stock':
       return `nala-${props.ticker || 'stock'}.png`;
     case 'performance':
@@ -54,8 +50,6 @@ function getFileName(type: ShareCardType, props: ShareButtonProps): string {
 
 function getShareTitle(type: ShareCardType, props: ShareButtonProps): string {
   switch (type) {
-    case 'profile':
-      return `${props.displayName || 'Portfolio'} on Nala`;
     case 'stock':
       return `${props.ticker} on Nala`;
     case 'performance':
@@ -66,8 +60,6 @@ function getShareTitle(type: ShareCardType, props: ShareButtonProps): string {
 function getShareUrl(type: ShareCardType, props: ShareButtonProps): string {
   const origin = window.location.origin;
   switch (type) {
-    case 'profile':
-      return `${origin}/${props.username || ''}`;
     case 'stock':
       return `${origin}/#tab=portfolio&stock=${props.ticker}`;
     case 'performance':
@@ -77,8 +69,6 @@ function getShareUrl(type: ShareCardType, props: ShareButtonProps): string {
 
 function getShareText(type: ShareCardType, props: ShareButtonProps): string {
   switch (type) {
-    case 'profile':
-      return `Check out ${props.displayName || 'my portfolio'} on Nala`;
     case 'stock':
       return `Check out $${props.ticker} on Nala`;
     case 'performance':

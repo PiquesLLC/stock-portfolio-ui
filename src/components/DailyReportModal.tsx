@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getDailyReport, regenerateDailyReport, getFastQuote, getMarketHeatmap, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, EarningsSummaryItem, MarketSentiment } from '../api';
+import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, EarningsSummaryItem, MarketSentiment } from '../api';
 import { DailyReportResponse, Portfolio, HeatmapSector, DividendEvent } from '../types';
 import { timeAgo } from '../utils/format';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -10,6 +10,20 @@ interface DailyReportModalProps {
   onTickerClick?: (ticker: string) => void;
   hidden?: boolean;
   portfolio?: Portfolio | null;
+}
+
+type SectorBarItem = Pick<HeatmapSector, 'name' | 'avgChangePercent'>;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timeout) clearTimeout(timeout);
+  });
 }
 
 // Common English words that look like tickers but aren't
@@ -126,6 +140,93 @@ function renderWithPills(text: string, onClick?: (ticker: string) => void, quote
   });
 }
 
+// Animated loading screen — shows NALA "writing" the brief
+const LOADING_STEPS = [
+  { label: 'Scanning market data', icon: '1' },
+  { label: 'Analyzing your portfolio', icon: '2' },
+  { label: 'Reviewing top headlines', icon: '3' },
+  { label: 'Writing your briefing', icon: '4' },
+];
+
+function BriefingLoader() {
+  const [activeStep, setActiveStep] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const fullText = LOADING_STEPS[activeStep]?.label || '';
+
+  // Cycle through steps
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep(prev => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Typewriter effect for current step
+  useEffect(() => {
+    setTypedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      if (i <= fullText.length) {
+        setTypedText(fullText.slice(0, i));
+      } else {
+        clearInterval(interval);
+      }
+    }, 35);
+    return () => clearInterval(interval);
+  }, [activeStep, fullText]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-6">
+      {/* NALA logo / title */}
+      <div className="mb-10 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rh-green/10 border border-rh-green/20 mb-5">
+          <svg className="w-8 h-8 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-white mb-1">Preparing Your Brief</h2>
+        <p className="text-sm text-white/30">NALA AI is analyzing today's markets</p>
+      </div>
+
+      {/* Steps */}
+      <div className="w-full max-w-xs space-y-3 mb-10">
+        {LOADING_STEPS.map((step, i) => {
+          const isActive = i === activeStep;
+          const isDone = i < activeStep;
+          return (
+            <div key={i} className={`flex items-center gap-3 transition-all duration-500 ${isActive ? 'opacity-100' : isDone ? 'opacity-40' : 'opacity-15'}`}>
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-500 ${
+                isDone ? 'bg-rh-green/20 text-rh-green' : isActive ? 'bg-rh-green text-black' : 'bg-white/[0.06] text-white/30'
+              }`}>
+                {isDone ? (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : step.icon}
+              </div>
+              <span className={`text-sm transition-all duration-500 ${isActive ? 'text-white font-medium' : isDone ? 'text-white/50' : 'text-white/30'}`}>
+                {isActive ? typedText : step.label}
+                {isActive && <span className="inline-block w-[2px] h-[14px] bg-rh-green ml-0.5 align-middle animate-pulse" />}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Animated progress bar */}
+      <div className="w-full max-w-xs">
+        <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-rh-green/60 to-rh-green rounded-full transition-all duration-[3000ms] ease-linear"
+            style={{ width: `${Math.min(95, ((activeStep + 1) / LOADING_STEPS.length) * 100)}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Collapsible section
 function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -164,7 +265,7 @@ const SECTOR_ETF_MAP: Record<string, string> = {
 };
 
 // Horizontal sector bars (matches Discover page style)
-function SectorBars({ sectors, onTickerClick }: { sectors: HeatmapSector[]; onTickerClick?: (ticker: string) => void }) {
+function SectorBars({ sectors, onTickerClick }: { sectors: SectorBarItem[]; onTickerClick?: (ticker: string) => void }) {
   const sorted = [...sectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent);
   const maxAbs = Math.max(...sorted.map(s => Math.abs(s.avgChangePercent)), 1);
   return (
@@ -213,8 +314,8 @@ function SentimentGauge({ sentiment }: { sentiment: MarketSentiment }) {
 
   const labelColor =
     score <= 25 ? '#ef4444' :
-    score <= 45 ? '#f97316' :
-    score <= 55 ? '#a3a3a3' :
+    score < 42 ? '#f97316' :
+    score <= 58 ? '#a3a3a3' :
     score <= 75 ? '#84cc16' : '#22c55e';
 
   const cx = 150, cy = 140, r = 105;
@@ -350,8 +451,8 @@ function SentimentGauge({ sentiment }: { sentiment: MarketSentiment }) {
         ] as const).map(({ key, label: sigLabel }) => {
           const sig = sentiment.signals[key];
           if (!sig || (sig.signal === 0 && sig.value === 0)) return null;
-          const sigColor = sig.signal <= 25 ? '#ef4444' : sig.signal <= 45 ? '#f97316' : sig.signal <= 55 ? '#a3a3a3' : sig.signal <= 75 ? '#84cc16' : '#22c55e';
-          const sigText = sig.signal <= 25 ? 'Extreme Fear' : sig.signal <= 45 ? 'Fear' : sig.signal <= 55 ? 'Neutral' : sig.signal <= 75 ? 'Greed' : 'Extreme Greed';
+          const sigColor = sig.signal <= 25 ? '#ef4444' : sig.signal < 42 ? '#f97316' : sig.signal <= 58 ? '#a3a3a3' : sig.signal <= 75 ? '#84cc16' : '#22c55e';
+          const sigText = sig.signal <= 25 ? 'Extreme Fear' : sig.signal < 42 ? 'Fear' : sig.signal <= 58 ? 'Neutral' : sig.signal <= 75 ? 'Greed' : 'Extreme Greed';
           return (
             <div key={key} className="flex items-center gap-3">
               <span className="text-[11px] text-white/50 w-36 shrink-0">{sigLabel}</span>
@@ -375,10 +476,12 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [liveQuotes, setLiveQuotes] = useState<LiveQuotes>({});
   const [regenerating, setRegenerating] = useState(false);
   const [indexQuotes, setIndexQuotes] = useState<Record<string, IndexQuote>>({});
-  const [heatmapSectors, setHeatmapSectors] = useState<HeatmapSector[]>([]);
+  const [cachedSectors, setCachedSectors] = useLocalStorage<SectorBarItem[]>('dailyReportSectors', []);
+  const [cachedSentiment, setCachedSentiment] = useLocalStorage<MarketSentiment | null>('dailyReportSentiment', null);
+  const [heatmapSectors, setHeatmapSectors] = useState<SectorBarItem[]>(cachedSectors);
   const [earnings, setEarnings] = useState<EarningsSummaryItem[]>([]);
   const [dividends, setDividends] = useState<DividendEvent[]>([]);
-  const [sentiment, setSentiment] = useState<MarketSentiment | null>(null);
+  const [sentiment, setSentiment] = useState<MarketSentiment | null>(cachedSentiment);
   const [livePortfolio, setLivePortfolio] = useState<Portfolio | null>(null);
   const [sharing, setSharing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -404,8 +507,10 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const fetchReport = useCallback(async () => {
     setLoading(true);
     setError(false);
-    try { setData(await getDailyReport()); }
-    catch { setError(true); }
+    try {
+      const result = await withTimeout(getDailyReport(), 15000, 'daily report');
+      setData(result);
+    } catch { setError(true); }
     finally { setLoading(false); }
   }, []);
 
@@ -444,9 +549,20 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   // Heavy data — sectors, sentiment: fetch once on mount (cached on API side)
   useEffect(() => {
     if (hidden) return;
-    getMarketHeatmap('1D', 'SP500').then(r => setHeatmapSectors(r.sectors)).catch(() => {});
-    getMarketSentiment().then(setSentiment).catch(() => {});
-  }, [hidden]);
+    withTimeout(getSectorPerformance('1D'), 12000, 'sector performance')
+      .then((r) => {
+        const sectorBars = r.sectors.map((s) => ({ name: s.name, avgChangePercent: s.changePercent }));
+        setHeatmapSectors(sectorBars);
+        setCachedSectors(sectorBars);
+      })
+      .catch(() => {});
+    withTimeout(getMarketSentiment(), 12000, 'market sentiment')
+      .then((value) => {
+        setSentiment(value);
+        setCachedSentiment(value);
+      })
+      .catch(() => {});
+  }, [hidden, setCachedSectors, setCachedSentiment]);
 
   // Fetch live quotes for mentioned tickers — every 30s
   useEffect(() => {
@@ -547,13 +663,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
 
       <div ref={contentRef} className="max-w-3xl mx-auto px-6 pt-10 pb-10">
         {/* Loading state */}
-        {loading && (
-          <div className="animate-pulse space-y-8">
-            <div className="text-center"><div className="h-10 w-80 bg-white/[0.06] rounded mx-auto mb-3" /><div className="h-4 w-48 bg-white/[0.06] rounded mx-auto" /></div>
-            <div className="grid grid-cols-3 gap-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-white/[0.04] rounded-xl" />)}</div>
-            {[1,2,3].map(i => <div key={i} className="border-t border-white/[0.06] pt-6"><div className="h-5 w-40 bg-white/[0.06] rounded mb-4" /><div className="space-y-3"><div className="h-4 bg-white/[0.04] rounded w-full" /><div className="h-4 bg-white/[0.04] rounded w-3/4" /></div></div>)}
-          </div>
-        )}
+        {loading && <BriefingLoader />}
 
         {/* Error state */}
         {!loading && error && (

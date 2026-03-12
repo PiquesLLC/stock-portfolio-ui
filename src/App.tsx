@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { PortfolioChartPeriod } from './types';
-import { getPortfolio, getPortfolioChart, getUserByUsername } from './api';
+import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport } from './api';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -228,8 +228,15 @@ export default function App() {
     initialAdminView: _initialAdminView,
   });
 
+  // Pre-warm daily report cache — fire-and-forget on login so it's ready when user opens Daily Brief
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      getDailyReport().catch(() => {});
+    }
+  }, [isAuthenticated, authLoading]);
+
   const currentUserName = user?.displayName || user?.username || '';
-  const isPaidUser = user?.plan === 'pro' || user?.plan === 'premium';
+  const isPaidUser = user?.plan === 'pro' || user?.plan === 'premium' || user?.plan === 'elite';
   const visibleMoreTabs = useMemo(() =>
     isPaidUser ? MORE_TABS.filter(t => t.id !== 'pricing') : MORE_TABS,
     [isPaidUser]
@@ -248,6 +255,8 @@ export default function App() {
   const [verifyError, setVerifyError] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyResendCooldown, setVerifyResendCooldown] = useState(0);
+  const [verifyAttemptsLeft, setVerifyAttemptsLeft] = useState<number>(-1);
+  const [verifyLocked, setVerifyLocked] = useState(false);
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
 
   // Close "More" dropdown on outside click
@@ -483,41 +492,91 @@ export default function App() {
               </p>
             </div>
             {verifyError && (
-              <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{verifyError}</div>
+              <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-sm">
+                <p className="text-red-400">{verifyError}</p>
+                {verifyAttemptsLeft >= 0 && !verifyLocked && (
+                  <p className="text-red-400/60 text-xs mt-1">
+                    {verifyAttemptsLeft === 1 ? '1 attempt remaining' : `${verifyAttemptsLeft} attempts remaining`}
+                  </p>
+                )}
+              </div>
             )}
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (verifyCode.length !== 6 || verifyLoading) return;
-              setVerifyLoading(true);
-              setVerifyError('');
-              try {
-                await verifyEmail(user.email!, verifyCode);
-                setVerifyCode('');
-              } catch (err) {
-                setVerifyError(err instanceof Error ? err.message : 'Verification failed');
-              } finally {
-                setVerifyLoading(false);
-              }
-            }}>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={verifyCode}
-                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full px-4 py-3 bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text text-center text-2xl tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-rh-green/60 focus:border-rh-green"
-                placeholder="000000"
-                autoComplete="one-time-code"
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={verifyCode.length !== 6 || verifyLoading}
-                className="w-full mt-4 py-2.5 bg-rh-green hover:bg-rh-green/90 disabled:bg-rh-green/40 text-white font-semibold rounded-lg transition-colors"
-              >
-                {verifyLoading ? 'Verifying...' : 'Verify'}
-              </button>
-            </form>
+            {verifyLocked ? (
+              <div className="text-center">
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-4">
+                  <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">Too many attempts</p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+                    Your code has been invalidated. Request a new one below.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (verifyResendCooldown > 0) return;
+                    try {
+                      await resendVerification(user.email!);
+                      setVerifyError('');
+                      setVerifyLocked(false);
+                      setVerifyAttemptsLeft(-1);
+                      setVerifyCode('');
+                      setVerifyResendCooldown(60);
+                      const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
+                    } catch { setVerifyError('Failed to resend code. Try again in a moment.'); }
+                  }}
+                  disabled={verifyResendCooldown > 0}
+                  className="w-full py-2.5 bg-rh-green hover:bg-rh-green/90 disabled:bg-rh-green/40 text-white font-semibold rounded-lg transition-colors"
+                >
+                  {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Send new code'}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (verifyCode.length !== 6 || verifyLoading) return;
+                setVerifyLoading(true);
+                setVerifyError('');
+                try {
+                  await verifyEmail(user.email!, verifyCode);
+                  setVerifyCode('');
+                } catch (err) {
+                  if (err instanceof EmailVerifyError) {
+                    setVerifyAttemptsLeft(err.remainingAttempts);
+                    if (err.isLockout) {
+                      setVerifyLocked(true);
+                      setVerifyError('');
+                    } else {
+                      const msg = err.message.includes('expired')
+                        ? 'Code expired. Request a new one below.'
+                        : err.message;
+                      setVerifyError(msg);
+                    }
+                  } else {
+                    setVerifyError(err instanceof Error ? err.message : 'Verification failed');
+                  }
+                } finally {
+                  setVerifyLoading(false);
+                }
+              }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full px-4 py-3 bg-rh-light-bg dark:bg-rh-dark border border-rh-light-border dark:border-rh-border rounded-lg text-rh-light-text dark:text-rh-text text-center text-2xl tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-rh-green/60 focus:border-rh-green"
+                  placeholder="000000"
+                  autoComplete="one-time-code"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={verifyCode.length !== 6 || verifyLoading}
+                  className="w-full mt-4 py-2.5 bg-rh-green hover:bg-rh-green/90 disabled:bg-rh-green/40 text-white font-semibold rounded-lg transition-colors"
+                >
+                  {verifyLoading ? 'Verifying...' : 'Verify'}
+                </button>
+              </form>
+            )}
             <div className="flex items-center justify-between mt-4">
               <button
                 type="button"
@@ -530,7 +589,7 @@ export default function App() {
                     const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
                   } catch { setVerifyError('Failed to resend code. Try again in a moment.'); }
                 }}
-                disabled={verifyResendCooldown > 0}
+                disabled={verifyResendCooldown > 0 || verifyLocked}
                 className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-muted/40 dark:disabled:text-rh-muted/40 transition-colors"
               >
                 {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Resend code'}
@@ -1464,7 +1523,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      <footer className="relative z-[3] border-t border-rh-light-border/30 dark:border-rh-border/30 mt-12 py-6">
+      <footer className="relative z-[3] border-t border-rh-light-border/30 dark:border-rh-border/30 mt-4 py-4">
         <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
         </p>

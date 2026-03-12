@@ -3,9 +3,8 @@ import { PerformanceSummary as PerformanceSummaryType } from '../types';
 import { getPerformanceSummary } from '../api';
 import { Acronym } from './Acronym';
 import { TransactionManager } from './TransactionManager';
-import { useAuth } from '../context/AuthContext';
 import { PerformanceReportModal } from './PerformanceReportModal';
-import { ShareButton } from './ShareButton';
+
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -34,7 +33,6 @@ interface Props {
 }
 
 export function PerformanceSummary({ refreshTrigger }: Props) {
-  const { user } = useAuth();
   const [data, setData] = useState<PerformanceSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -92,7 +90,6 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rh-light-muted/70 dark:text-rh-muted/70">Current Holdings <Acronym label="P/L" /></h3>
             <div className="flex items-center gap-1">
-              <ShareButton type="performance" userId={user?.id} username={user?.username} displayName={user?.displayName} period="1M" />
               <button
                 onClick={() => setShowReportModal(true)}
                 title="Generate performance report"

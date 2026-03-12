@@ -623,10 +623,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 </span>
               )}
               <ShareButton
-                type="profile"
+                type="performance"
                 userId={userId}
                 username={profile?.username}
                 displayName={profile?.displayName}
+                period="1M"
                 className="shrink-0 ml-auto"
               />
             </div>
