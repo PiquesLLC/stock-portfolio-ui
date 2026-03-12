@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { PortfolioRecord, listPortfolios, createPortfolio, deletePortfolio } from '../api';
 
 interface PortfolioPickerProps {
@@ -20,7 +20,11 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Guard: ignore outside-click for a brief window after entering create mode
+  const justEnteredCreateRef = useRef(false);
 
   const limit = PLAN_LIMITS[userPlan] ?? 1;
   const canCreate = portfolios.length < limit;
@@ -29,26 +33,49 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     listPortfolios().then(setPortfolios).catch(() => {});
   }, []);
 
-  // Close on outside click
+  // Close on outside click/touch
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: Event) => {
+      // Skip if we just entered create mode (prevents race on mobile)
+      if (justEnteredCreateRef.current) {
+        justEnteredCreateRef.current = false;
+        return;
+      }
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpen(false);
         setCreating(false);
       }
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, [open]);
 
   const selectedLabel = selectedPortfolioId
     ? portfolios.find(p => p.id === selectedPortfolioId)?.name ?? 'Portfolio'
     : 'All Portfolios';
 
-  const handleCreate = async () => {
-    if (!newName.trim()) return;
+  const handleStartCreating = useCallback(() => {
+    justEnteredCreateRef.current = true;
+    setCreating(true);
     setError('');
+    setNewName('');
+    // Focus the input after React renders it
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      // Reset the guard after the event cycle completes
+      justEnteredCreateRef.current = false;
+    });
+  }, []);
+
+  const handleCreate = async () => {
+    if (!newName.trim() || submitting) return;
+    setError('');
+    setSubmitting(true);
     try {
       const created = await createPortfolio({ name: newName.trim() });
       setPortfolios(prev => [...prev, created]);
@@ -57,13 +84,16 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
       onSelect(created.id);
       setOpen(false);
     } catch (err: any) {
-      if (err?.message?.includes('limit_reached')) {
-        setError(`Upgrade to create more portfolios`);
-      } else if (err?.message?.includes('already exists')) {
+      const msg = err?.message ?? '';
+      if (msg.includes('limit_reached')) {
+        setError('Upgrade to create more portfolios');
+      } else if (msg.includes('already exists')) {
         setError('Name already taken');
       } else {
-        setError('Failed to create');
+        setError('Failed to create portfolio');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -80,14 +110,14 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     }
   };
 
-  // Don't render if only one portfolio (or none)
+  // Don't render if only one portfolio (or none) and can't create more
   if (portfolios.length <= 1 && !canCreate) return null;
 
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
+        className="flex items-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-medium
           bg-transparent text-gray-500 dark:text-white/40
           hover:text-gray-700 dark:hover:text-white/60 transition-colors"
       >
@@ -98,13 +128,13 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-56 z-50 rounded-lg shadow-lg
+        <div className="absolute right-0 top-full mt-1 w-64 sm:w-56 z-50 rounded-lg shadow-lg
           bg-white dark:bg-[#1a1a1e]/95 border border-gray-200 dark:border-white/[0.08]
           py-1 overflow-hidden">
           {/* All Portfolios option */}
           <button
             onClick={() => { onSelect(undefined); setOpen(false); }}
-            className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2
+            className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2
               hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors
               ${!selectedPortfolioId ? 'text-[#00c805] font-medium' : 'text-gray-700 dark:text-white/70'}`}
           >
@@ -119,7 +149,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
             <button
               key={p.id}
               onClick={() => { onSelect(p.id); setOpen(false); }}
-              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 group
+              className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 group
                 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors
                 ${selectedPortfolioId === p.id ? 'text-[#00c805] font-medium' : 'text-gray-700 dark:text-white/70'}`}
             >
@@ -129,7 +159,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
               {!p.isDefault && p.holdingsCount === 0 && (
                 <span
                   onClick={(e) => handleDelete(p.id, e)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 dark:text-white/30 dark:hover:text-red-400 transition-all cursor-pointer"
+                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 dark:text-white/30 dark:hover:text-red-400 transition-all cursor-pointer p-1"
                   title="Delete portfolio"
                 >
                   ×
@@ -143,28 +173,43 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
             <>
               <div className="border-t border-gray-100 dark:border-white/[0.06] my-1" />
               {creating ? (
-                <div className="px-3 py-2">
+                <div className="px-3 py-2.5">
                   <input
+                    ref={inputRef}
                     autoFocus
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setCreating(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') { setCreating(false); setError(''); } }}
                     placeholder="Portfolio name"
-                    className="w-full text-sm px-2 py-1 rounded border border-gray-200 dark:border-white/[0.1]
+                    className="w-full text-sm px-2.5 py-2 rounded border border-gray-200 dark:border-white/[0.1]
                       bg-white dark:bg-white/[0.04] text-gray-800 dark:text-white/80
                       focus:outline-none focus:border-[#00c805]"
                     maxLength={50}
+                    inputMode="text"
+                    autoComplete="off"
+                    autoCapitalize="words"
                   />
-                  {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-                  <div className="flex gap-2 mt-1.5">
-                    <button onClick={handleCreate} className="text-xs text-[#00c805] font-medium hover:underline">Create</button>
-                    <button onClick={() => { setCreating(false); setError(''); }} className="text-xs text-gray-400 hover:underline">Cancel</button>
+                  {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      onClick={handleCreate}
+                      disabled={submitting || !newName.trim()}
+                      className="text-sm text-[#00c805] font-medium hover:underline py-1 px-1 disabled:opacity-40"
+                    >
+                      {submitting ? 'Creating...' : 'Create'}
+                    </button>
+                    <button
+                      onClick={() => { setCreating(false); setError(''); }}
+                      className="text-sm text-gray-400 hover:underline py-1 px-1"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               ) : (
                 <button
-                  onClick={() => setCreating(true)}
-                  className="w-full text-left px-3 py-2 text-sm text-[#00c805] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors flex items-center gap-2"
+                  onClick={handleStartCreating}
+                  className="w-full text-left px-3 py-2.5 text-sm text-[#00c805] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors flex items-center gap-2"
                 >
                   <span className="w-4 text-center">+</span>
                   New Portfolio

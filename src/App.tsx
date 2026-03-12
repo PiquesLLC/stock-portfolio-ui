@@ -1196,16 +1196,33 @@ export default function App() {
               </div>
             )}
 
+            {/* Portfolio picker — always visible so user can create/switch portfolios */}
+            {user && (
+              <div className="flex justify-end mb-1 -mt-1">
+                <PortfolioPicker
+                  selectedPortfolioId={selectedPortfolioId}
+                  onSelect={setSelectedPortfolioId}
+                  userPlan={user.plan || 'free'}
+                />
+              </div>
+            )}
+
+            {/* Empty portfolio state — show when portfolio exists but has no holdings */}
+            {portfolio && portfolio.holdings.length === 0 && selectedPortfolioId && (
+              <div className="rounded-xl border border-dashed border-gray-300 dark:border-white/[0.1] bg-gray-50/50 dark:bg-white/[0.02] p-8 text-center">
+                <div className="text-3xl mb-3">📂</div>
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-white/70 mb-1">Empty Portfolio</h3>
+                <p className="text-xs text-gray-500 dark:text-white/40 mb-4">
+                  Search for a stock and add it to start tracking this portfolio.
+                </p>
+              </div>
+            )}
+
             {portfolio && portfolio.holdings.length > 0 && (
               <div className="-mx-3 sm:-mx-6 relative">
                 {user && (
                   <div className="absolute top-2 right-3 sm:right-6 z-10 flex items-center gap-2">
                     <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
-                    <PortfolioPicker
-                      selectedPortfolioId={selectedPortfolioId}
-                      onSelect={setSelectedPortfolioId}
-                      userPlan={user.plan || 'free'}
-                    />
                   </div>
                 )}
                 <PortfolioValueChart
