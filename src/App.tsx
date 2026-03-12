@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import { PortfolioChartPeriod } from './types';
 import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport } from './api';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
-import { HoldingsTable } from './components/HoldingsTable';
+import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
@@ -193,6 +193,7 @@ export default function App() {
   const initialNav = savedInitialNav;
   const currentUserId = user?.id || '';
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(undefined);
+  const holdingsActionsRef = useRef<HoldingsTableActions | null>(null);
   const {
     portfolio, loading, error, lastUpdate, isStale,
     healthStatus, summaryRefreshTrigger, portfolioRefreshCount,
@@ -1209,16 +1210,49 @@ export default function App() {
 
             {/* Empty portfolio state — show when portfolio exists but has no holdings */}
             {portfolio && portfolio.holdings.length === 0 && selectedPortfolioId && (
-              <div className="rounded-xl border border-dashed border-gray-300 dark:border-white/[0.1] bg-gray-50/50 dark:bg-white/[0.02] p-10 text-center">
+              <div className="rounded-xl border border-dashed border-gray-300/60 dark:border-white/[0.08]
+                bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm p-10 text-center">
                 <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
                   <svg className="w-5 h-5 text-gray-400 dark:text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
                   </svg>
                 </div>
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-white/70 mb-1">No holdings yet</h3>
-                <p className="text-xs text-gray-500 dark:text-white/40">
-                  Search for a stock above or use Add Stock below to start building this portfolio.
+                <p className="text-xs text-gray-500 dark:text-white/40 mb-5">
+                  Add stocks to start tracking this portfolio.
                 </p>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => holdingsActionsRef.current?.openCashMargin()}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/60 dark:border-white/[0.08]
+                      text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors text-xs font-medium"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Cash & Margin
+                  </button>
+                  <button
+                    onClick={() => holdingsActionsRef.current?.openAdd()}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
+                      hover:bg-green-600 transition-colors text-xs"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Stock
+                  </button>
+                  <button
+                    onClick={() => holdingsActionsRef.current?.openImport()}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.06]
+                      text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 hover:border-rh-green/30 transition-colors text-xs"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Import from CSV
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1288,7 +1322,7 @@ export default function App() {
                   <>
                     {/* Left card: Benchmark + Day/Total P/L */}
                     <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl shadow-sm shadow-black/[0.03] dark:shadow-none overflow-hidden">
-                      <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} />
+                      <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} portfolioId={selectedPortfolioId} />
                       <div className="border-t border-rh-light-border/30 dark:border-white/[0.04]" />
                       <div className="px-5 py-4 space-y-2">
                         <div>
@@ -1383,6 +1417,8 @@ export default function App() {
                 userId={currentUserId}
                 chartPeriod={chartPeriod}
                 portfolioId={selectedPortfolioId}
+                actionsRef={holdingsActionsRef}
+                hideEmptyState={!!selectedPortfolioId && (portfolio?.holdings?.length ?? 0) === 0}
               />
               {(portfolio?.options?.length ?? 0) > 0 && (
                 <div className="px-3 sm:px-6">
@@ -1393,7 +1429,7 @@ export default function App() {
                 </div>
               )}
               {(portfolio?.holdings?.length ?? 0) > 0 && (
-                <PerformanceSummary refreshTrigger={summaryRefreshTrigger} />
+                <PerformanceSummary refreshTrigger={summaryRefreshTrigger} portfolioId={selectedPortfolioId} />
               )}
             </div>
 

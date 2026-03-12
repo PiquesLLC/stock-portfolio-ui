@@ -683,8 +683,11 @@ export async function clearBrokerLifetime(): Promise<void> {
 }
 
 // Performance summary endpoint
-export async function getPerformanceSummary(): Promise<PerformanceSummary> {
-  return fetchJson<PerformanceSummary>(`${API_BASE_URL}/portfolio/summary`);
+export async function getPerformanceSummary(portfolioId?: string): Promise<PerformanceSummary> {
+  const url = portfolioId
+    ? `${API_BASE_URL}/portfolio/summary?portfolioId=${portfolioId}`
+    : `${API_BASE_URL}/portfolio/summary`;
+  return fetchJson<PerformanceSummary>(url);
 }
 
 // Insights endpoints
@@ -1142,11 +1145,12 @@ export async function getUserChart(userId: string, period: PortfolioChartPeriod 
 // Performance comparison endpoint
 export async function getPerformance(
   window: PerformanceWindow = '1M',
-  benchmark: string = 'SPY'
+  benchmark: string = 'SPY',
+  portfolioId?: string
 ): Promise<PerformanceData> {
-  return fetchJson<PerformanceData>(
-    `${API_BASE_URL}/portfolio/performance?window=${window}&benchmark=${benchmark}`
-  );
+  let url = `${API_BASE_URL}/portfolio/performance?window=${window}&benchmark=${benchmark}`;
+  if (portfolioId) url += `&portfolioId=${portfolioId}`;
+  return fetchJson<PerformanceData>(url);
 }
 
 // Ticker activity (buy/sell/update events for a specific stock)

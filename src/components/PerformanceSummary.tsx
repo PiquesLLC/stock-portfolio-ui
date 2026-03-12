@@ -30,9 +30,10 @@ function formatDate(dateString: string): string {
 
 interface Props {
   refreshTrigger?: number;
+  portfolioId?: string;
 }
 
-export function PerformanceSummary({ refreshTrigger }: Props) {
+export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
   const [data, setData] = useState<PerformanceSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +42,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const summary = await getPerformanceSummary();
+      const summary = await getPerformanceSummary(portfolioId);
       setData(summary);
       setError('');
     } catch (err) {
@@ -49,7 +50,7 @@ export function PerformanceSummary({ refreshTrigger }: Props) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [portfolioId]);
 
   useEffect(() => {
     fetchData();

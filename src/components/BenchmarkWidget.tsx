@@ -15,9 +15,10 @@ interface Props {
   refreshTrigger?: number;
   window?: PerformanceWindow;
   chartReturnPct?: number | null; // from portfolio chart, overrides API return for consistency
+  portfolioId?: string;
 }
 
-export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartReturnPct }: Props) {
+export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartReturnPct, portfolioId }: Props) {
   const [window, setWindow] = useState<PerformanceWindow>(externalWindow || '1M');
   const [benchmark, setBenchmark] = useState('SPY');
   const [data, setData] = useState<PerformanceData | null>(null);
@@ -26,14 +27,14 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await getPerformance(window, benchmark);
+      const result = await getPerformance(window, benchmark, portfolioId);
       setData(result);
     } catch {
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [window, benchmark]);
+  }, [window, benchmark, portfolioId]);
 
   // Sync window when portfolio chart period changes
   useEffect(() => {
