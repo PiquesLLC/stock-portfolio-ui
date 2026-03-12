@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 interface Props {
   refreshTrigger?: number;
   onTickerClick?: (ticker: string) => void;
+  portfolioId?: string;
 }
 
 function formatCurrency(amount: number): string {
@@ -609,7 +610,7 @@ function IncomeDividendTimeline({
 // MAIN COMPONENT
 // ============================================================================
 
-export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
+export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: Props) {
   const [data, setData] = useState<IncomeInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [cashInterest, setCashInterest] = useState<CashInterestAccrual | null>(null);
@@ -622,7 +623,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
     try {
       setLoading(true);
       const [result, interest, settings] = await Promise.all([
-        getIncomeInsights('today'),
+        getIncomeInsights('today', portfolioId),
         getCashInterestAccrual().catch(e => { console.error('Cash interest fetch failed:', e); return null; }),
         userId ? getUserSettings(userId).catch(e => { console.error('Settings fetch failed:', e); return null; }) : Promise.resolve(null),
       ]);
@@ -638,7 +639,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick }: Props) {
         setLoading(false);
       }
     }
-  }, [userId]);
+  }, [userId, portfolioId]);
 
   useEffect(() => {
     mountedRef.current = true;

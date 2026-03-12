@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { PortfolioChartPeriod } from './types';
-import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport } from './api';
+import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord } from './api';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -193,6 +193,7 @@ export default function App() {
   const initialNav = savedInitialNav;
   const currentUserId = user?.id || '';
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(undefined);
+  const [userPortfolios, setUserPortfolios] = useState<PortfolioRecord[]>([]);
   const holdingsActionsRef = useRef<HoldingsTableActions | null>(null);
   const {
     portfolio, loading, error, lastUpdate, isStale,
@@ -242,6 +243,13 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       getDailyReport().catch(() => {});
+    }
+  }, [isAuthenticated, authLoading]);
+
+  // Fetch portfolios list for insights page picker
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      listPortfolios().then(setUserPortfolios).catch(() => {});
     }
   }, [isAuthenticated, authLoading]);
 
@@ -1463,6 +1471,9 @@ export default function App() {
                 marginDebt={portfolio?.marginDebt ?? 0}
                 initialSubTab={insightsSubTab}
                 onSubTabChange={setInsightsSubTab}
+                portfolioId={selectedPortfolioId}
+                onPortfolioChange={setSelectedPortfolioId}
+                portfolios={userPortfolios.map(p => ({ id: p.id, name: p.name }))}
               />
             </ErrorBoundary>
           )}

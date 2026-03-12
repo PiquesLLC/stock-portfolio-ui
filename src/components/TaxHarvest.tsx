@@ -12,9 +12,10 @@ function formatPct(v: number): string {
 
 interface Props {
   onTickerClick?: (ticker: string) => void;
+  portfolioId?: string;
 }
 
-export function TaxHarvest({ onTickerClick }: Props) {
+export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
   const [data, setData] = useState<TaxHarvestResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function TaxHarvest({ onTickerClick }: Props) {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    getTaxHarvestSuggestions()
+    getTaxHarvestSuggestions(portfolioId)
       .then((res) => {
         if (mounted) {
           if (res) setData(res);
@@ -32,7 +33,7 @@ export function TaxHarvest({ onTickerClick }: Props) {
       .catch((e) => { if (mounted) setError(e.message); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [portfolioId]);
 
   if (loading) {
     return (

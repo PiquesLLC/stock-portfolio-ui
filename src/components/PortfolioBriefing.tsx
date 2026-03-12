@@ -25,7 +25,7 @@ function extractHighlights(text: string): string[] {
   return matches ? [...new Set(matches)].slice(0, 3) : [];
 }
 
-export default function PortfolioBriefing() {
+export default function PortfolioBriefing({ portfolioId }: { portfolioId?: string }) {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export default function PortfolioBriefing() {
     setError(null);
     prefetchedRef.current = false;
     try {
-      const data = await getPortfolioBriefing();
+      const data = await getPortfolioBriefing(portfolioId);
       setBriefing(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load briefing');
@@ -48,7 +48,7 @@ export default function PortfolioBriefing() {
     }
   };
 
-  useEffect(() => { fetchBriefing(); }, []);
+  useEffect(() => { fetchBriefing(); }, [portfolioId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const prefetchAll = useCallback((sections: PortfolioBriefingResponse['sections']) => {
     sections.forEach((section, idx) => {

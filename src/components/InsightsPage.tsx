@@ -243,9 +243,12 @@ interface InsightsPageProps {
   marginDebt?: number;
   initialSubTab?: string | null;
   onSubTabChange?: (subtab: string) => void;
+  portfolioId?: string;
+  onPortfolioChange?: (id: string | undefined) => void;
+  portfolios?: Array<{ id: string; name: string }>;
 }
 
-export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, marginDebt = 0, initialSubTab, onSubTabChange }: InsightsPageProps) {
+export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, marginDebt = 0, initialSubTab, onSubTabChange, portfolioId, onPortfolioChange, portfolios }: InsightsPageProps) {
   const { showToast } = useToast();
   const [subTab, setSubTabLocal] = useState<InsightsSubTab>(
     () => (initialSubTab && VALID_SUBTABS.has(initialSubTab as InsightsSubTab)) ? initialSubTab as InsightsSubTab : 'intelligence'
@@ -281,10 +284,10 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     try {
       // Fetch each insight independently - errors in one don't block others
       const fetchPromises = [
-        getHealthScore()
+        getHealthScore(portfolioId)
           .then(data => { if (mountedRef.current) setHealthScore(data); })
           .catch(e => { console.error('Health score error:', e); showToast('Failed to load health score', 'error'); }),
-        getPortfolioIntelligence('1d')
+        getPortfolioIntelligence('1d', portfolioId)
           .then(data => { if (mountedRef.current) setIntelligence(data); })
           .catch(e => { console.error('Intelligence error:', e); showToast('Failed to load intelligence', 'error'); }),
       ];
@@ -302,7 +305,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     } finally {
       fetchingRef.current = false;
     }
-  }, [showToast]);
+  }, [showToast, portfolioId]);
 
   // Fetch on mount only if cache is stale or empty
   useEffect(() => {
@@ -329,15 +332,13 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   // Fetch holdings on mount (needed for Allocation + What-If tabs)
   useEffect(() => {
-    if (!holdingsFetchedRef.current) {
-      holdingsFetchedRef.current = true;
-      getPortfolio()
-        .then((p) => {
-          if (mountedRef.current) setHoldings(p.holdings);
-        })
-        .catch((e) => { console.error('Failed to fetch holdings:', e); showToast('Failed to load holdings', 'error'); });
-    }
-  }, [showToast]);
+    holdingsFetchedRef.current = true;
+    getPortfolio(undefined, portfolioId)
+      .then((p) => {
+        if (mountedRef.current) setHoldings(p.holdings);
+      })
+      .catch((e) => { console.error('Failed to fetch holdings:', e); showToast('Failed to load holdings', 'error'); });
+  }, [showToast, portfolioId]);
 
   // Check if we have any data to show
   const hasAnyData = healthScore || intelligence;
@@ -357,16 +358,46 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'tax-harvest', label: 'Tax Harvest' },
   ], []);
 
+  // Inline portfolio picker — only render when multiple portfolios exist
+  const portfolioPicker = portfolios && portfolios.length > 1 && onPortfolioChange ? (
+    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+      <button
+        onClick={() => onPortfolioChange(undefined)}
+        className={`px-3 py-1 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
+          !portfolioId
+            ? 'bg-rh-green/15 text-rh-green'
+            : 'bg-gray-100 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+        }`}
+      >
+        All
+      </button>
+      {portfolios.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => onPortfolioChange(p.id)}
+          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
+            portfolioId === p.id
+              ? 'bg-rh-green/15 text-rh-green'
+              : 'bg-gray-100 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+          }`}
+        >
+          {p.name}
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   // AI Briefing subtab (Premium)
   if (subTab === 'ai-briefing') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <PremiumOverlay
           featureName="AI Portfolio Briefing"
           description="Weekly AI-generated briefing analyzing your portfolio's performance, market conditions, and actionable insights tailored to your holdings."
         >
-          <PortfolioBriefing />
+          <PortfolioBriefing portfolioId={portfolioId} />
         </PremiumOverlay>
       </div>
     );
@@ -376,9 +407,10 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'earnings') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <EarningsPreview onTickerClick={onTickerClick} />
-        <EarningsTab holdings={holdings} onTickerClick={onTickerClick} />
+        <EarningsPreview onTickerClick={onTickerClick} portfolioId={portfolioId} />
+        <EarningsTab holdings={holdings} onTickerClick={onTickerClick} portfolioId={portfolioId} />
       </div>
     );
   }
@@ -387,12 +419,13 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'ai-behavior') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <PremiumOverlay
           featureName="AI Behavior Coach"
           description="Personalized behavioral analysis of your trading patterns. Get scored on discipline, diversification, and risk management with actionable coaching tips."
         >
-          <BehaviorInsights onTickerClick={onTickerClick} portfolioTickers={holdings.map(h => h.ticker)} />
+          <BehaviorInsights onTickerClick={onTickerClick} portfolioTickers={holdings.map(h => h.ticker)} portfolioId={portfolioId} />
         </PremiumOverlay>
       </div>
     );
@@ -402,8 +435,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'income') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <IncomeInsights refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} />
+        <IncomeInsights refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} portfolioId={portfolioId} />
       </div>
     );
   }
@@ -412,6 +446,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'projections-goals') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <ProjectionsAndGoals
           currentValue={currentValue}
@@ -427,6 +462,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue ?? 0), 0);
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <AllocationDonut
           holdings={holdings}
@@ -441,6 +477,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'what-if') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <WhatIfSimulator
           holdings={holdings}
@@ -457,8 +494,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'etf-overlap') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <ETFOverlap onTickerClick={onTickerClick} />
+        <ETFOverlap onTickerClick={onTickerClick} portfolioId={portfolioId} />
       </div>
     );
   }
@@ -467,8 +505,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (subTab === 'tax-harvest') {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <TaxHarvest onTickerClick={onTickerClick} />
+        <TaxHarvest onTickerClick={onTickerClick} portfolioId={portfolioId} />
       </div>
     );
   }
@@ -477,6 +516,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   if (!initialLoadComplete && !hasAnyData) {
     return (
       <div className="space-y-3">
+        {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <SkeletonCard lines={4} height="180px" />
         <SkeletonCard lines={5} height="220px" />
@@ -490,6 +530,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   return (
     <div className="space-y-3">
+      {/* Portfolio picker */}
+      {portfolioPicker}
+
       {/* Sub-tabs */}
       <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
 

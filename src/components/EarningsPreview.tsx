@@ -6,6 +6,7 @@ import { useAuth, PlanTier } from '../context/AuthContext';
 
 interface EarningsPreviewProps {
   onTickerClick?: (ticker: string) => void;
+  portfolioId?: string;
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -184,7 +185,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
   );
 }
 
-function EarningsPreviewContent({ onTickerClick }: EarningsPreviewProps) {
+function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewProps) {
   const [items, setItems] = useState<EarningsPreviewItem[]>(previewCache?.data ?? []);
   const [loading, setLoading] = useState(!previewCache);
   const [error, setError] = useState<string | null>(null);
@@ -203,7 +204,7 @@ function EarningsPreviewContent({ onTickerClick }: EarningsPreviewProps) {
       setLoading(true);
       setError(null);
       try {
-        const resp = await getEarningsPreviews();
+        const resp = await getEarningsPreviews(portfolioId);
         if (!mountedRef.current) return;
         previewCache = { data: resp.results, partial: resp.partial, timestamp: Date.now() };
         setItems(resp.results);
@@ -222,7 +223,7 @@ function EarningsPreviewContent({ onTickerClick }: EarningsPreviewProps) {
 
     fetchPreviews();
     return () => { mountedRef.current = false; };
-  }, []);
+  }, [portfolioId]);
 
   if (loading) {
     return (
@@ -268,7 +269,7 @@ function EarningsPreviewContent({ onTickerClick }: EarningsPreviewProps) {
 
 const PLAN_RANK: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2, elite: 3 };
 
-export function EarningsPreview({ onTickerClick }: EarningsPreviewProps) {
+export function EarningsPreview({ onTickerClick, portfolioId }: EarningsPreviewProps) {
   const { user } = useAuth();
   const hasAccess = PLAN_RANK[user?.plan || 'free'] >= PLAN_RANK['elite'];
 
@@ -278,7 +279,7 @@ export function EarningsPreview({ onTickerClick }: EarningsPreviewProps) {
       description="Get AI-powered previews for upcoming earnings with analyst sentiment, catalysts, and risk factors for your holdings."
       requiredPlan="elite"
     >
-      {hasAccess ? <EarningsPreviewContent onTickerClick={onTickerClick} /> : undefined}
+      {hasAccess ? <EarningsPreviewContent onTickerClick={onTickerClick} portfolioId={portfolioId} /> : undefined}
     </PremiumOverlay>
   );
 }

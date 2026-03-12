@@ -5,6 +5,7 @@ import { SkeletonCard } from './SkeletonCard';
 
 interface Props {
   onTickerClick?: (ticker: string) => void;
+  portfolioId?: string;
 }
 
 function formatDollars(v: number): string {
@@ -30,7 +31,7 @@ function OverlapCell({ pair, onClick }: { pair: EtfOverlapPair | null; onClick?:
   );
 }
 
-export function ETFOverlap({ onTickerClick }: Props) {
+export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
   const [data, setData] = useState<EtfOverlapResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedEtf, setExpandedEtf] = useState<string | null>(null);
@@ -38,11 +39,11 @@ export function ETFOverlap({ onTickerClick }: Props) {
 
   useEffect(() => {
     setLoading(true);
-    getEtfOverlap()
+    getEtfOverlap(portfolioId)
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, []);
+  }, [portfolioId]);
 
   if (loading) {
     return (

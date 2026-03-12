@@ -7,6 +7,7 @@ import { SkeletonCard } from './SkeletonCard';
 interface EarningsTabProps {
   holdings: Holding[];
   onTickerClick?: (ticker: string) => void;
+  portfolioId?: string;
 }
 
 interface UpcomingEarning {
@@ -46,7 +47,7 @@ function toUpcomingEarning(item: EarningsSummaryItem): UpcomingEarning {
   };
 }
 
-export function EarningsTab({ holdings, onTickerClick }: EarningsTabProps) {
+export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTabProps) {
   const [upcoming, setUpcoming] = useState<UpcomingEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -64,7 +65,7 @@ export function EarningsTab({ holdings, onTickerClick }: EarningsTabProps) {
 
       setLoading(true);
       try {
-        const { results } = await getEarningsSummary();
+        const { results } = await getEarningsSummary(portfolioId);
         if (!mountedRef.current) return;
 
         const mapped = results.map(toUpcomingEarning);
@@ -79,7 +80,7 @@ export function EarningsTab({ holdings, onTickerClick }: EarningsTabProps) {
 
     fetchUpcoming();
     return () => { mountedRef.current = false; };
-  }, [holdings]);
+  }, [holdings, portfolioId]);
 
   const thisWeek = upcoming.filter(e => e.daysUntil <= 7);
   const next = upcoming[0];

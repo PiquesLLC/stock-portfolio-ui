@@ -691,32 +691,41 @@ export async function getPerformanceSummary(portfolioId?: string): Promise<Perfo
 }
 
 // Insights endpoints
-export async function getHealthScore(): Promise<HealthScore> {
-  return fetchJson<HealthScore>(`${API_BASE_URL}/insights/health`);
+export async function getHealthScore(portfolioId?: string): Promise<HealthScore> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<HealthScore>(`${API_BASE_URL}/insights/health${qs}`);
 }
 
-export async function getAttribution(window: AttributionWindow = '1d'): Promise<Attribution> {
-  return fetchJson<Attribution>(`${API_BASE_URL}/insights/attribution?window=${window}`);
+export async function getAttribution(window: AttributionWindow = '1d', portfolioId?: string): Promise<Attribution> {
+  let url = `${API_BASE_URL}/insights/attribution?window=${window}`;
+  if (portfolioId) url += `&portfolioId=${encodeURIComponent(portfolioId)}`;
+  return fetchJson<Attribution>(url);
 }
 
-export async function getLeakDetector(): Promise<LeakDetectorResult> {
-  return fetchJson<LeakDetectorResult>(`${API_BASE_URL}/insights/leak-detector`);
+export async function getLeakDetector(portfolioId?: string): Promise<LeakDetectorResult> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<LeakDetectorResult>(`${API_BASE_URL}/insights/leak-detector${qs}`);
 }
 
-export async function getRiskForecast(): Promise<RiskForecast> {
-  return fetchJson<RiskForecast>(`${API_BASE_URL}/insights/risk-forecast`);
+export async function getRiskForecast(portfolioId?: string): Promise<RiskForecast> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<RiskForecast>(`${API_BASE_URL}/insights/risk-forecast${qs}`);
 }
 
-export async function getIncomeInsights(window: IncomeWindow = 'today'): Promise<IncomeInsightsResponse> {
-  return fetchJson<IncomeInsightsResponse>(`${API_BASE_URL}/insights/income?window=${window}`);
+export async function getIncomeInsights(window: IncomeWindow = 'today', portfolioId?: string): Promise<IncomeInsightsResponse> {
+  let url = `${API_BASE_URL}/insights/income?window=${window}`;
+  if (portfolioId) url += `&portfolioId=${encodeURIComponent(portfolioId)}`;
+  return fetchJson<IncomeInsightsResponse>(url);
 }
 
-export async function getDailyReport(): Promise<DailyReportResponse> {
-  return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report`);
+export async function getDailyReport(portfolioId?: string): Promise<DailyReportResponse> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report${qs}`);
 }
 
-export async function regenerateDailyReport(): Promise<DailyReportResponse> {
-  return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report/regenerate`, {
+export async function regenerateDailyReport(portfolioId?: string): Promise<DailyReportResponse> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report/regenerate${qs}`, {
     method: 'POST',
   });
 }
@@ -730,8 +739,9 @@ export interface EarningsSummaryItem {
   daysUntil: number;
 }
 
-export async function getEarningsSummary(): Promise<{ results: EarningsSummaryItem[]; partial: boolean }> {
-  return fetchJson<{ results: EarningsSummaryItem[]; partial: boolean }>(`${API_BASE_URL}/insights/earnings-summary`);
+export async function getEarningsSummary(portfolioId?: string): Promise<{ results: EarningsSummaryItem[]; partial: boolean }> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<{ results: EarningsSummaryItem[]; partial: boolean }>(`${API_BASE_URL}/insights/earnings-summary${qs}`);
 }
 
 // Portfolio import endpoints
@@ -917,11 +927,12 @@ export async function clearYtdSettings(): Promise<void> {
 
 // Portfolio Intelligence endpoint
 export async function getPortfolioIntelligence(
-  window: IntelligenceWindow = '1d'
+  window: IntelligenceWindow = '1d',
+  portfolioId?: string
 ): Promise<PortfolioIntelligenceResponse> {
-  return fetchJson<PortfolioIntelligenceResponse>(
-    `${API_BASE_URL}/intelligence?window=${window}`
-  );
+  let url = `${API_BASE_URL}/intelligence?window=${window}`;
+  if (portfolioId) url += `&portfolioId=${encodeURIComponent(portfolioId)}`;
+  return fetchJson<PortfolioIntelligenceResponse>(url);
 }
 
 // Leaderboard endpoints
@@ -1283,8 +1294,9 @@ export interface PortfolioBriefingResponse {
   cached: boolean;
 }
 
-export async function getPortfolioBriefing(): Promise<PortfolioBriefingResponse> {
-  return fetchJson<PortfolioBriefingResponse>(`${API_BASE_URL}/insights/briefing`);
+export async function getPortfolioBriefing(portfolioId?: string): Promise<PortfolioBriefingResponse> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<PortfolioBriefingResponse>(`${API_BASE_URL}/insights/briefing${qs}`);
 }
 
 export interface BriefingExplainResponse {
@@ -1318,8 +1330,9 @@ export interface BehaviorInsightsResponse {
   cached: boolean;
 }
 
-export async function getBehaviorInsights(): Promise<BehaviorInsightsResponse> {
-  return fetchJson<BehaviorInsightsResponse>(`${API_BASE_URL}/insights/behavior`);
+export async function getBehaviorInsights(portfolioId?: string): Promise<BehaviorInsightsResponse> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<BehaviorInsightsResponse>(`${API_BASE_URL}/insights/behavior${qs}`);
 }
 
 export interface PriceData {
@@ -1740,9 +1753,10 @@ export async function getEarningsTrack(ticker: string): Promise<EarningsTrackRes
 }
 
 // Tax-Loss Harvesting
-export async function getTaxHarvestSuggestions(): Promise<TaxHarvestResponse | null> {
+export async function getTaxHarvestSuggestions(portfolioId?: string): Promise<TaxHarvestResponse | null> {
   try {
-    return await fetchJson<TaxHarvestResponse>(`${API_BASE_URL}/insights/tax-harvest`);
+    const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+    return await fetchJson<TaxHarvestResponse>(`${API_BASE_URL}/insights/tax-harvest${qs}`);
   } catch {
     return null;
   }
@@ -1771,9 +1785,10 @@ export async function getNalaScore(ticker: string): Promise<NalaScoreResponse | 
 }
 
 // ETF Overlap
-export async function getEtfOverlap(): Promise<EtfOverlapResponse | null> {
+export async function getEtfOverlap(portfolioId?: string): Promise<EtfOverlapResponse | null> {
   try {
-    return await fetchJson<EtfOverlapResponse>(`${API_BASE_URL}/portfolio/etf-overlap`);
+    const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+    return await fetchJson<EtfOverlapResponse>(`${API_BASE_URL}/portfolio/etf-overlap${qs}`);
   } catch {
     return null;
   }
@@ -1832,8 +1847,9 @@ export interface EarningsPreviewResponse {
   partial: boolean;
 }
 
-export async function getEarningsPreviews(): Promise<EarningsPreviewResponse> {
-  return fetchJson<EarningsPreviewResponse>(`${API_BASE_URL}/insights/earnings-preview`);
+export async function getEarningsPreviews(portfolioId?: string): Promise<EarningsPreviewResponse> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+  return fetchJson<EarningsPreviewResponse>(`${API_BASE_URL}/insights/earnings-preview${qs}`);
 }
 
 // ── Account History ──────────────────────────────────────────────

@@ -109,9 +109,10 @@ function extractTickers(text: string, portfolioTickers: string[]): string[] {
 interface BehaviorInsightsProps {
   onTickerClick?: (ticker: string) => void;
   portfolioTickers?: string[];
+  portfolioId?: string;
 }
 
-export default function BehaviorInsights({ onTickerClick, portfolioTickers = [] }: BehaviorInsightsProps) {
+export default function BehaviorInsights({ onTickerClick, portfolioTickers = [], portfolioId }: BehaviorInsightsProps) {
   const [data, setData] = useState<BehaviorInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +122,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [] 
     setLoading(true);
     setError(null);
     try {
-      const result = await getBehaviorInsights();
+      const result = await getBehaviorInsights(portfolioId);
       setData(result);
     } catch (err: any) {
       setError(err.message || 'Failed to load behavior insights');
@@ -130,7 +131,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [] 
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [portfolioId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sort insights: warnings first, then info, then positive
   // Track the first warning index for "top priority" treatment
