@@ -57,8 +57,9 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
     });
   }, [condition]);
 
-  // Handle ESC key to close modal
+  // Handle ESC key to close modal + body scroll lock
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
@@ -66,7 +67,10 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
       }
     };
     window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
   }, [onClose]);
 
   const isPriceCondition = condition === 'above' || condition === 'below';
@@ -209,6 +213,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted text-sm">$</span>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min="0.01"
                   value={targetPrice}
@@ -227,6 +232,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
               <div className="relative">
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.1"
                   min="0.1"
                   value={percentChange}

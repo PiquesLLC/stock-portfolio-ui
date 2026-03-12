@@ -856,7 +856,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
             <h2 className={SECTION_TITLE}>Referral Breakdown</h2>
             <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Credited on Premium signup</span>
           </div>
-          <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <div className="text-center">
               <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{referralData.totalReferrals}</p>
               <p className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Total</p>
@@ -927,7 +927,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
 
               {/* Summary strip */}
               {ledgerSummary && (
-                <div className="grid grid-cols-3 divide-x divide-gray-200/40 dark:divide-white/[0.06] border-b border-gray-200/40 dark:border-white/[0.06]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-x divide-gray-200/40 dark:divide-white/[0.06] border-b border-gray-200/40 dark:border-white/[0.06]">
                   <div className="py-3 px-4 text-center">
                     <p className="text-lg font-bold text-rh-green">{formatCents(ledgerSummary.availableCents)}</p>
                     <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Available</p>

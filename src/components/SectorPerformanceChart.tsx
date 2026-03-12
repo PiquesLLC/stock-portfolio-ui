@@ -134,6 +134,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const [hoverInfos, setHoverInfos] = useState<HoverInfo[]>([]);
   const [hoverTime, setHoverTime] = useState<string>('');
   const svgRef = useRef<SVGSVGElement>(null);
+  const isTouchingRef = useRef(false);
   // Track locked sector + accumulated vertical movement for cycling
   const lockedTickerRef = useRef<string | null>(null);
   const lastXRef = useRef<number>(0);
@@ -232,12 +233,13 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   // Accumulated vertical movement cycles to the next line above/below.
   const CYCLE_THRESHOLD = 18; // SVG units of vertical movement to trigger a cycle
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
+  // Shared hover computation used by both mouse and touch
+  const updateHover = useCallback(
+    (clientX: number, clientY: number) => {
       if (!svgRef.current || allItems.length === 0) return;
       const rect = svgRef.current.getBoundingClientRect();
-      const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
-      const svgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
+      const svgX = ((clientX - rect.left) / rect.width) * CHART_W;
+      const svgY = ((clientY - rect.top) / rect.height) * CHART_H;
       if (svgX < PAD.left || svgX > CHART_W - PAD.right) {
         setHoverX(null);
         setHoverInfos([]);
@@ -323,7 +325,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     [allItems, period, yMin, yRange, minutesMap],
   );
 
-  const handleMouseLeave = useCallback(() => {
+  const clearHover = useCallback(() => {
     setHoverX(null);
     setHoveredTicker(null);
     setHoverInfos([]);
@@ -331,6 +333,44 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     lockedTickerRef.current = null;
     vertAccumRef.current = 0;
   }, []);
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => updateHover(e.clientX, e.clientY),
+    [updateHover],
+  );
+
+  const handleMouseLeave = useCallback(() => clearHover(), [clearHover]);
+
+  // Touch handlers — press and drag to scrub, just like mouse hover
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<SVGSVGElement>) => {
+      if (e.touches.length !== 1) return;
+      isTouchingRef.current = true;
+      const t = e.touches[0];
+      updateHover(t.clientX, t.clientY);
+    },
+    [updateHover],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    isTouchingRef.current = false;
+    clearHover();
+  }, [clearHover]);
+
+  // Native touchmove listener with { passive: false } so preventDefault() works
+  // This prevents page scrolling while scrubbing the chart
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isTouchingRef.current || e.touches.length !== 1) return;
+      e.preventDefault(); // Block scroll while scrubbing
+      const t = e.touches[0];
+      updateHover(t.clientX, t.clientY);
+    };
+    svg.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => svg.removeEventListener('touchmove', onTouchMove);
+  }, [updateHover]);
 
   if (loading && !data) {
     return (
@@ -390,6 +430,11 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
             preserveAspectRatio="xMidYMid meet"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            data-no-tab-swipe
+            style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
           >
             {/* 0% baseline */}
             {zeroY >= PAD.top && zeroY <= PAD.top + PLOT_H && (
@@ -558,6 +603,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${isHovered ? 'bg-gray-100 dark:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-white/5'}`}
                 onMouseEnter={() => setHoveredTicker(item.ticker)}
                 onMouseLeave={() => setHoveredTicker(null)}
+                onTouchStart={() => setHoveredTicker(prev => prev === item.ticker ? null : item.ticker)}
                 onClick={() => onTickerClick?.(item.ticker)}
               >
                 <span className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium transition-colors ${isHovered ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>

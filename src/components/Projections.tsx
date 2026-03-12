@@ -305,6 +305,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1">Net Equity on Jan 1 ($)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={ytdEquity}
                     onChange={(e) => setYtdEquity(e.target.value)}
@@ -316,6 +317,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1">Net Contributions YTD ($)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={ytdContributions}
                     onChange={(e) => setYtdContributions(e.target.value)}
@@ -377,7 +379,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
           {!loading && paceData && paceData.dataStatus === 'ok' && (
             <>
               {/* Metrics row */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-4">
                   <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Window Return</p>
                   <p className={`text-lg font-bold ${

@@ -840,6 +840,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                             <td className="px-3 py-1.5 text-right">
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 value={row.shares}
                                 onChange={(e) => updateRow(i, 'shares', e.target.value)}
                                 className="w-20 bg-transparent text-rh-light-text dark:text-rh-text text-right focus:outline-none focus:underline tabular-nums"
@@ -848,6 +849,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                             <td className="px-3 py-1.5 text-right">
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 step="0.01"
                                 value={row.averageCost}
                                 onChange={(e) => updateRow(i, 'averageCost', e.target.value)}
@@ -965,6 +967,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-rh-light-muted/50 dark:text-rh-muted/40">$</span>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="0.01"
                     placeholder="0.00"

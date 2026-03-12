@@ -1761,7 +1761,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                 }
                 handlePeriodChange(period);
               }}
-              className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 flex items-center gap-1 ${
+              className={`px-3 py-2.5 rounded-full text-sm font-semibold transition-all duration-150 flex items-center gap-1 ${
                 selectedPeriod === period
                   ? `${isGain ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'}`
                   : isLocked

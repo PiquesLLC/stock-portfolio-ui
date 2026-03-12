@@ -603,7 +603,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <button
                 key={tab.id}
                 onClick={() => document.getElementById(tab.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full border border-rh-light-border/40 dark:border-rh-border/40 text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-rh-green/40 hover:bg-rh-green/5 transition-colors"
+                className="flex-shrink-0 px-3 py-2 text-xs font-medium rounded-full border border-rh-light-border/40 dark:border-rh-border/40 text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-rh-green/40 hover:bg-rh-green/5 transition-colors"
               >
                 {tab.label}
               </button>

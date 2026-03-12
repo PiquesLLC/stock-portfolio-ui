@@ -428,6 +428,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={addShares}
                   onChange={(e) => setAddShares(e.target.value)}
                   min="0.001"
@@ -446,6 +447,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={addCost}
                   onChange={(e) => setAddCost(e.target.value)}
                   min="0.01"
@@ -722,6 +724,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                   <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={editShares}
                     onChange={(e) => setEditShares(e.target.value)}
                     min="0.001"
@@ -733,6 +736,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                   <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Avg Cost ($)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={editCost}
                     onChange={(e) => setEditCost(e.target.value)}
                     min="0.01"

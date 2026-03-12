@@ -3116,7 +3116,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 key={period}
                 onClick={() => !disabled && onPeriodChange(period)}
                 disabled={disabled}
-                className={`px-2 sm:px-3 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
+                className={`px-2 sm:px-3 py-2.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
                   selectedPeriod === period
                     ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
                     : disabled

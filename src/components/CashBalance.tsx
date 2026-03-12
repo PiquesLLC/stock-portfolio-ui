@@ -46,6 +46,7 @@ export function CashBalance({ currentBalance, onUpdate }: Props) {
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted">$</span>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0"
               value={value}

@@ -242,9 +242,13 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
 
   useEffect(() => {
     if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -263,7 +267,7 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
             <button
               onClick={onClose}
               aria-label="Close"
-              className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
+              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
             >
               <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

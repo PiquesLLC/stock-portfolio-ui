@@ -22,9 +22,13 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
   const trapRef = useFocusTrap(true);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,7 +64,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">
             {holding ? 'Update Holding' : 'Add to Portfolio'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="text-rh-light-muted/60 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-light-muted/60 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white transition-colors">
             <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -76,6 +80,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
             <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">Shares</label>
             <input
               type="number"
+              inputMode="decimal"
               step="any"
               min="0.001"
               value={shares}
@@ -89,6 +94,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
             <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">Avg Cost per Share</label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0.01"
               value={avgCost}

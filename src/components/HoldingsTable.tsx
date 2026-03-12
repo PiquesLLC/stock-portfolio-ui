@@ -502,6 +502,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
         <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
         <input
           type="number"
+          inputMode="decimal"
           step="0.0001"
           min="0"
           value={formData.shares}
@@ -516,6 +517,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
         <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-1">Average Cost ($)</label>
         <input
           type="number"
+          inputMode="decimal"
           step="0.01"
           min="0"
           value={formData.averageCost}
@@ -1173,7 +1175,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                 <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Cash Balance</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
-                  <input type="number" step="0.01" min="0" value={cashValue} onChange={e => setCashValue(e.target.value)}
+                  <input type="number" inputMode="decimal" step="0.01" min="0" value={cashValue} onChange={e => setCashValue(e.target.value)}
                     className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl dark:rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
                     placeholder="0.00" />
                 </div>
@@ -1193,7 +1195,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                 <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Margin Debt</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
-                  <input type="number" step="0.01" min="0" value={marginValue} onChange={e => setMarginValue(e.target.value)}
+                  <input type="number" inputMode="decimal" step="0.01" min="0" value={marginValue} onChange={e => setMarginValue(e.target.value)}
                     className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl dark:rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
                     placeholder="0.00" />
                 </div>

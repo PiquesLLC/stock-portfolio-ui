@@ -150,13 +150,9 @@ const _initialSettingsView = (() => {
   const params = new URLSearchParams(hash);
   return params.get('tab') === 'settings';
 })();
-const _initialAdminView = (() => {
-  const hash = window.location.hash.slice(1);
-  if (!hash) return null;
-  const params = new URLSearchParams(hash);
-  if (params.get('tab') === 'admin-waitlist') return 'waitlist' as const;
-  return null;
-})();
+// Admin view is set ONLY after auth confirms isWaitlistAdmin — never from URL hash alone.
+// This prevents non-admins from deep-linking to admin pages.
+const _initialAdminView = null;
 
 // Detect shareable profile URL: nalaai.com/<username>
 // Strict guard: single path segment, no file extension, valid username chars,
@@ -230,6 +226,16 @@ export default function App() {
   });
 
   const jobAlerts = useJobAlerts(!!user?.isWaitlistAdmin);
+
+  // Restore admin view from URL hash AFTER auth confirms admin status
+  useEffect(() => {
+    if (!user?.isWaitlistAdmin) return;
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+    const tab = params.get('tab');
+    if (tab === 'admin-waitlist') setAdminView('waitlist');
+    else if (tab === 'admin-jobs') setAdminView('jobs');
+  }, [user?.isWaitlistAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-warm daily report cache — fire-and-forget on login so it's ready when user opens Daily Brief
   useEffect(() => {
@@ -1505,13 +1511,13 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {adminView === 'waitlist' && !settingsView && !creatorView && (
+          {adminView === 'waitlist' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
             <ErrorBoundary>
               <WaitlistAdminPage onBack={() => setAdminView(null)} />
             </ErrorBoundary>
           )}
 
-          {adminView === 'jobs' && !settingsView && !creatorView && (
+          {adminView === 'jobs' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
             <ErrorBoundary>
               <JobsDashboard onBack={() => setAdminView(null)} />
             </ErrorBoundary>

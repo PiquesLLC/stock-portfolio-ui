@@ -100,7 +100,7 @@ export function CreatorLedger({ onBack }: CreatorLedgerProps) {
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-3">
           <div className="h-6 w-40 bg-gray-200 dark:bg-white/10 rounded" />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-16 bg-gray-200 dark:bg-white/10 rounded-xl" />
             ))}
@@ -136,7 +136,7 @@ export function CreatorLedger({ onBack }: CreatorLedgerProps) {
 
       {/* Summary boxes */}
       {summary && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
             bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-3 text-center">
             <p className="text-lg font-bold text-rh-green">{formatCents(summary.availableCents)}</p>

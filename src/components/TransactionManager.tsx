@@ -166,6 +166,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
                 </select>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Amount"

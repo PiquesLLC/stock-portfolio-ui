@@ -71,9 +71,13 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
 
   useEffect(() => {
     if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -213,7 +217,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
             {view === 'backup-codes' && 'Backup Codes'}
             {view === 'regenerate-backup' && 'Regenerate Backup Codes'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 text-rh-muted hover:text-white transition-colors rounded">
+          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-muted hover:text-white transition-colors rounded">
             <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

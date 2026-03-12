@@ -59,6 +59,7 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
   setHoveredIdx: (i: number | null) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const isTouchingRef = useRef(false);
   const W = 600, H = 220;
   const pad = { t: 20, r: 16, b: 28, l: 52 };
   const plotW = W - pad.l - pad.r;
@@ -75,14 +76,45 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
   // Y-axis ticks
   const yTicks = [0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal];
 
+  const computeIdx = useCallback((clientX: number) => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    const mx = ((clientX - rect.left) / rect.width) * W;
+    const idx = Math.round(((mx - pad.l) / plotW) * (points.length - 1));
+    return Math.max(0, Math.min(points.length - 1, idx));
+  }, [points.length, pad.l, plotW]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (isTouchingRef.current) return;
+    const idx = computeIdx(e.clientX);
+    if (idx !== null) setHoveredIdx(idx);
+  }, [computeIdx, setHoveredIdx]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    isTouchingRef.current = true;
+    const idx = computeIdx(e.touches[0].clientX);
+    if (idx !== null) setHoveredIdx(idx);
+  }, [computeIdx, setHoveredIdx]);
+
+  const handleTouchEnd = useCallback(() => {
+    isTouchingRef.current = false;
+    setHoveredIdx(null);
+  }, [setHoveredIdx]);
+
+  // Native touchmove listener with { passive: false } for scroll prevention
+  useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const mx = ((e.clientX - rect.left) / rect.width) * W;
-    const idx = Math.round(((mx - pad.l) / plotW) * (points.length - 1));
-    setHoveredIdx(Math.max(0, Math.min(points.length - 1, idx)));
-  }, [points.length, setHoveredIdx, pad.l, plotW]);
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isTouchingRef.current) return;
+      e.preventDefault();
+      const idx = computeIdx(e.touches[0].clientX);
+      if (idx !== null) setHoveredIdx(idx);
+    };
+    svg.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => svg.removeEventListener('touchmove', onTouchMove);
+  }, [computeIdx, setHoveredIdx]);
 
   return (
     <svg
@@ -91,6 +123,11 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
       className="w-full h-auto"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredIdx(null)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      data-no-tab-swipe
+      style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
     >
       <defs>
         <linearGradient id="drip-gradient" x1="0" y1="0" x2="0" y2="1">
@@ -376,7 +413,7 @@ export function DripProjector({ refreshTrigger, onTickerClick }: Props) {
       )}
 
       {/* Portfolio growth stats */}
-      <div className="px-5 py-3 border-t border-gray-200/30 dark:border-white/[0.06] grid grid-cols-3 gap-4">
+      <div className="px-5 py-3 border-t border-gray-200/30 dark:border-white/[0.06] grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <p className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">Proj. Growth</p>
           <p className={`text-sm font-semibold ${projectionRate > 0 ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text'}`}>

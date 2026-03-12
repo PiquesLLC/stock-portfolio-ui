@@ -14,6 +14,7 @@ interface MeasurePoint {
 // Full-size interactive chart — styled to match portfolio chart, with click-to-measure
 export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const isTouchingRef = useRef(false);
   const [hover, setHover] = useState<{ idx: number; x: number; y: number; date: string; value: number } | null>(null);
   const [measureA, setMeasureA] = useState<MeasurePoint | null>(null);
   const [measureB, setMeasureB] = useState<MeasurePoint | null>(null);
@@ -102,11 +103,11 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
 
   const last = points[points.length - 1];
 
-  const findClosestIdx = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+  const findClosestIdxFromClientX = useCallback((clientX: number) => {
     const svg = svgRef.current;
     if (!svg) return 0;
     const rect = svg.getBoundingClientRect();
-    const mouseX = ((e.clientX - rect.left) / rect.width) * w;
+    const mouseX = ((clientX - rect.left) / rect.width) * w;
     let ci = 0;
     let cd = Infinity;
     for (let i = 0; i < points.length; i++) {
@@ -116,22 +117,24 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
     return ci;
   }, [points]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    const ci = findClosestIdx(e);
+  const updateHoverFromClientX = useCallback((clientX: number) => {
+    const ci = findClosestIdxFromClientX(clientX);
     setHover({ idx: ci, x: points[ci].x, y: points[ci].y, date: history[ci].date, value: history[ci].value });
-  }, [history, points, findClosestIdx]);
+  }, [history, points, findClosestIdxFromClientX]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    updateHoverFromClientX(e.clientX);
+  }, [updateHoverFromClientX]);
 
   const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    const ci = findClosestIdx(e);
+    const ci = findClosestIdxFromClientX(e.clientX);
     const pt: MeasurePoint = { idx: ci, x: points[ci].x, y: points[ci].y, date: history[ci].date, value: history[ci].value };
 
     if (!measureA) {
-      // First click — set point A
       setMeasureA(pt);
       setMeasureB(null);
     } else if (!measureB) {
-      // Second click — set point B (ensure A < B order)
-      if (pt.idx === measureA.idx) return; // same point, ignore
+      if (pt.idx === measureA.idx) return;
       if (pt.idx < measureA.idx) {
         setMeasureB(measureA);
         setMeasureA(pt);
@@ -139,27 +142,56 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
         setMeasureB(pt);
       }
     } else {
-      // Third click — clear measurement
       setMeasureA(null);
       setMeasureB(null);
     }
-  }, [measureA, measureB, findClosestIdx, points, history]);
+  }, [measureA, measureB, findClosestIdxFromClientX, points, history]);
 
   const handleMouseLeave = useCallback(() => {
     setHover(null);
   }, []);
 
-  // Click outside chart clears measurement
+  // Touch handlers — press and drag to scrub crosshair
+  const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length !== 1) return;
+    isTouchingRef.current = true;
+    updateHoverFromClientX(e.touches[0].clientX);
+  }, [updateHoverFromClientX]);
+
+  const handleTouchEnd = useCallback(() => {
+    isTouchingRef.current = false;
+    setHover(null);
+  }, []);
+
+  // Native touchmove with { passive: false } so preventDefault blocks scrolling
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isTouchingRef.current || e.touches.length !== 1) return;
+      e.preventDefault();
+      updateHoverFromClientX(e.touches[0].clientX);
+    };
+    svg.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => svg.removeEventListener('touchmove', onTouchMove);
+  }, [updateHoverFromClientX]);
+
+  // Click/touch outside chart clears measurement
   useEffect(() => {
     if (!measureA) return;
-    const handler = (e: MouseEvent) => {
-      if (svgRef.current && !svgRef.current.contains(e.target as Node)) {
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e instanceof TouchEvent ? e.touches[0]?.target ?? e.target : e.target;
+      if (svgRef.current && !svgRef.current.contains(target as Node)) {
         setMeasureA(null);
         setMeasureB(null);
       }
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, [measureA]);
 
   if (!history || history.length < 2) return null;
@@ -239,6 +271,11 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          data-no-tab-swipe
+          style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">

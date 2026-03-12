@@ -148,10 +148,28 @@ const LOADING_STEPS = [
   { label: 'Writing your briefing', icon: '4' },
 ];
 
-function BriefingLoader() {
+const MAX_RETRIES = 2;
+
+/** Returns true if the response looks like a real, complete report */
+function isValidReport(result: DailyReportResponse): boolean {
+  // A valid report has at least one top story with content
+  if (!result.topStories || result.topStories.length === 0) return false;
+  // If it's cached, trust it
+  if (result.cached) return true;
+  // Non-cached: check that stories have actual content (not placeholder text)
+  const hasContent = result.topStories.some(s => s.headline.length > 5 && s.body.length > 10);
+  return hasContent;
+}
+
+function BriefingLoader({ retryAttempt }: { retryAttempt: number }) {
   const [activeStep, setActiveStep] = useState(0);
   const [typedText, setTypedText] = useState('');
   const fullText = LOADING_STEPS[activeStep]?.label || '';
+
+  // Reset steps when retry attempt changes
+  useEffect(() => {
+    setActiveStep(0);
+  }, [retryAttempt]);
 
   // Cycle through steps
   useEffect(() => {
@@ -176,6 +194,10 @@ function BriefingLoader() {
     return () => clearInterval(interval);
   }, [activeStep, fullText]);
 
+  const retryMessage = retryAttempt > 0
+    ? `Still preparing... (attempt ${retryAttempt + 1} of ${MAX_RETRIES + 1})`
+    : 'Preparing your daily brief...';
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6">
       {/* NALA logo / title */}
@@ -186,7 +208,7 @@ function BriefingLoader() {
           </svg>
         </div>
         <h2 className="text-xl font-bold text-white mb-1">Preparing Your Brief</h2>
-        <p className="text-sm text-white/30">NALA AI is analyzing today's markets</p>
+        <p className="text-sm text-white/30">{retryMessage}</p>
       </div>
 
       {/* Steps */}
@@ -472,6 +494,8 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [data, setData] = useState<DailyReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [retriesExhausted, setRetriesExhausted] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useLocalStorage('dailyReportDisabled', false);
   const [liveQuotes, setLiveQuotes] = useState<LiveQuotes>({});
   const [regenerating, setRegenerating] = useState(false);
@@ -485,6 +509,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [livePortfolio, setLivePortfolio] = useState<Portfolio | null>(null);
   const [sharing, setSharing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Escape key handler
   useEffect(() => {
@@ -503,16 +528,58 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
     return () => { document.documentElement.style.overflow = ''; document.body.style.overflow = ''; };
   }, [hidden]);
 
-  // Fetch daily report
-  const fetchReport = useCallback(async () => {
+  // Clean up retry timer on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, []);
+
+  // Fetch daily report with auto-retry logic
+  const fetchReport = useCallback(async (attempt = 0) => {
     setLoading(true);
     setError(false);
+    setRetriesExhausted(false);
+    setRetryAttempt(attempt);
     try {
       const result = await withTimeout(getDailyReport(), 15000, 'daily report');
-      setData(result);
-    } catch { setError(true); }
-    finally { setLoading(false); }
+      // Check if the response is a valid, complete report
+      if (isValidReport(result)) {
+        setData(result);
+        setLoading(false);
+        return;
+      }
+      // Got a quick fallback / incomplete response — auto-retry if attempts remain
+      if (attempt < MAX_RETRIES) {
+        retryTimerRef.current = setTimeout(() => {
+          fetchReport(attempt + 1);
+        }, 3000);
+        return; // Stay in loading state while waiting for retry
+      }
+      // All retries exhausted with incomplete data
+      setLoading(false);
+      setRetriesExhausted(true);
+    } catch {
+      // Network/timeout error — auto-retry if attempts remain
+      if (attempt < MAX_RETRIES) {
+        retryTimerRef.current = setTimeout(() => {
+          fetchReport(attempt + 1);
+        }, 3000);
+        return; // Stay in loading state while waiting for retry
+      }
+      // All retries exhausted with error
+      setLoading(false);
+      setRetriesExhausted(true);
+    }
   }, []);
+
+  // Manual refresh resets everything and starts fresh
+  const handleManualRefresh = useCallback(() => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    setData(null);
+    setRetriesExhausted(false);
+    fetchReport(0);
+  }, [fetchReport]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -663,19 +730,43 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
 
       <div ref={contentRef} className="max-w-3xl mx-auto px-6 pt-10 pb-10">
         {/* Loading state */}
-        {loading && <BriefingLoader />}
+        {loading && <BriefingLoader retryAttempt={retryAttempt} />}
 
-        {/* Error state */}
-        {!loading && error && (
+        {/* Retries exhausted — friendly fallback */}
+        {!loading && retriesExhausted && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] px-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rh-green/10 border border-rh-green/20 mb-6">
+              <svg className="w-8 h-8 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2 text-center">Your daily brief is being prepared in the background</h2>
+            <p className="text-sm text-white/40 mb-8 text-center max-w-sm">
+              It'll be ready in a moment — try refreshing.
+            </p>
+            <button
+              onClick={handleManualRefresh}
+              className="px-8 py-3 bg-rh-green text-white font-semibold rounded-full hover:bg-rh-green/90 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
+        )}
+
+        {/* Error state (should rarely hit — most errors auto-retry first) */}
+        {!loading && error && !retriesExhausted && (
           <div className="text-center py-20">
             <h2 className="text-2xl font-bold text-white mb-3">Unable to load your daily report</h2>
             <p className="text-white/40 mb-6">Something went wrong fetching today's briefing.</p>
-            <button onClick={fetchReport} className="px-6 py-2.5 bg-rh-green text-white font-semibold rounded-full hover:bg-rh-green/90 transition-colors">Retry</button>
+            <button onClick={handleManualRefresh} className="px-6 py-2.5 bg-rh-green text-white font-semibold rounded-full hover:bg-rh-green/90 transition-colors">Retry</button>
           </div>
         )}
 
         {/* Loaded state */}
-        {!loading && !error && data && (
+        {!loading && !error && !retriesExhausted && data && (
           <>
             {/* Title + reading time */}
             <div className="text-center mb-8">

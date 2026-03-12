@@ -154,6 +154,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                 <div className="flex items-center gap-1 ml-1">
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="1"
                     max="25"
                     step="0.5"
@@ -208,6 +209,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                       <span className="text-xs text-rh-light-muted dark:text-rh-muted">Threshold:</span>
                       <input
                         type="number"
+                        inputMode="decimal"
                         min="0"
                         value={alert.threshold ?? ''}
                         onChange={e => handleThresholdChange(alert, e.target.value)}

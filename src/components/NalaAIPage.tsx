@@ -357,7 +357,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
 
                   {/* Metrics grid */}
                   <div className="bg-gray-100/40 dark:bg-white/[0.02] rounded-2xl p-3 mb-4">
-                    <div className="grid grid-cols-4 gap-x-3 gap-y-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2.5">
                       {Array.from({ length: 8 }).map((_, j) => (
                         <div key={j}>
                           <div className="h-2 w-8 rounded bg-gray-200/40 dark:bg-white/[0.04] mb-1" />

@@ -247,6 +247,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
             <span className="text-sm text-rh-light-text dark:text-rh-text">$</span>
             <input
               type="number"
+              inputMode="decimal"
               min="1.00"
               max="999.99"
               step="0.01"

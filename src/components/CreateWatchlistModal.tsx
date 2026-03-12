@@ -32,11 +32,15 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
   }, []);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKey);
+    };
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,7 +64,7 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
           <h3 className="text-base font-bold text-rh-light-text dark:text-white">
             {isEdit ? 'Edit Watchlist' : 'New Watchlist'}
           </h3>
-          <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
             <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

@@ -368,6 +368,7 @@ function Treemap({
   return (
     <div ref={containerRef} className="w-full relative isolate" onMouseMove={handleMouseMove}
       onClick={() => { if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); } }}
+      style={{ touchAction: 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
     >
       {/* Back button for themes drilldown */}
       {isThemesDrilldown && drilldownTheme && (
@@ -389,7 +390,7 @@ function Treemap({
         width={dims.width}
         height={dims.height}
         className="block"
-        style={{ background: 'transparent' }}
+        style={{ background: 'transparent', touchAction: 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
       >
         {displayRects.map((sr) => (
           <g key={sr.sector.name}>

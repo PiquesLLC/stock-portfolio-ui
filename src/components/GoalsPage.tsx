@@ -140,6 +140,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           </label>
           <input
             type="number"
+            inputMode="decimal"
             value={targetValue}
             onChange={(e) => setTargetValue(e.target.value)}
             placeholder="1000000"
@@ -155,6 +156,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           </label>
           <input
             type="number"
+            inputMode="decimal"
             value={monthlyContribution}
             onChange={(e) => setMonthlyContribution(e.target.value)}
             placeholder="500"

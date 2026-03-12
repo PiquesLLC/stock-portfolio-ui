@@ -2393,3 +2393,179 @@ export async function setDefaultPortfolio(id: string): Promise<{ id: string; nam
     method: 'PATCH',
   });
 }
+
+// ─── Job Admin ────────────────────────────────────────────────────────────
+
+export type JobAlertSeverity = 'none' | 'warning' | 'critical';
+export type JobFailureCategory = 'TRANSIENT' | 'PERMANENT' | 'RATE_LIMITED' | 'DATA_QUALITY' | 'UNKNOWN';
+
+export interface JobMetricsResponse {
+  period: { hours: number; since: string };
+  runs: {
+    total: number;
+    running: number;
+    success: number;
+    failed: number;
+    deadLettered: number;
+    successRate: number;
+    failureRate: number;
+    avgDurationMs: number;
+    p95DurationMs: number;
+  };
+  idempotency: { activeKeys: number; duplicateHits: number };
+  deadLetters: { unresolved: number };
+  jobs: Array<{
+    jobName: string;
+    total: number;
+    success: number;
+    failed: number;
+    deadLettered: number;
+    failureRate: number;
+    alertSeverity: JobAlertSeverity;
+    alertThresholds: { warning: number; critical: number };
+  }>;
+}
+
+export interface JobSummaryJob {
+  jobName: string;
+  runCount: number;
+  successCount: number;
+  failureCount: number;
+  failRatePercent: number;
+  lastRun: string | null;
+  alertStatus: JobAlertSeverity;
+  alertThresholds: { warning: number; critical: number };
+  avgDurationMs: number;
+  lastError: string | null;
+}
+
+export interface JobSummaryResponse {
+  generatedAt: string;
+  totalJobs: number;
+  jobs: JobSummaryJob[];
+}
+
+export interface JobStatsResponse {
+  summary: {
+    totalJobs: number;
+    totalRuns: number;
+    totalFailed: number;
+    totalDeadLettered: number;
+    failureRate: string;
+    alert: {
+      failureRate: number;
+      warningThreshold: number;
+      criticalThreshold: number;
+      severity: JobAlertSeverity;
+    };
+  };
+  jobs: Array<{
+    jobName: string;
+    total: number;
+    success: number;
+    failed: number;
+    deadLettered: number;
+    failureRate: number;
+    alertSeverity: JobAlertSeverity;
+    alertThresholds: { warning: number; critical: number };
+    failureCategories: Record<JobFailureCategory, number>;
+    avgDurationMs: number;
+    lastRun: string | null;
+    lastError: string | null;
+  }>;
+}
+
+export interface DeadLetterEntry {
+  id: string;
+  jobName: string;
+  error: string;
+  attempts: number;
+  context: string | null;
+  resolved: boolean;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  createdAt: string;
+}
+
+export interface DeadLetterPaginatedResponse {
+  entries: DeadLetterEntry[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+export interface SnapshotHealthEntry {
+  userId: string;
+  username: string;
+  lastSnapshotAge: number | null;
+  snapshotsLast24h: number;
+  gapCount: number;
+  longestGapMinutes: number;
+  status: 'healthy' | 'stale' | 'gaps' | 'critical';
+}
+
+export interface StuckJobEntry {
+  id: string;
+  jobName: string;
+  attempt: number;
+  maxAttempts: number;
+  startedAt: string;
+  durationMs: number | null;
+}
+
+export function getJobMetrics(hours = 24): Promise<JobMetricsResponse> {
+  return fetchJson<JobMetricsResponse>(`${API_BASE_URL}/health/job-metrics?hours=${hours}`);
+}
+
+export function getJobSummary(): Promise<JobSummaryResponse> {
+  return fetchJson<JobSummaryResponse>(`${API_BASE_URL}/admin/jobs/summary`);
+}
+
+export function getJobStats(jobName?: string): Promise<JobStatsResponse> {
+  const qs = jobName ? `?jobName=${encodeURIComponent(jobName)}` : '';
+  return fetchJson<JobStatsResponse>(`${API_BASE_URL}/admin/jobs/stats${qs}`);
+}
+
+export function getDeadLetterEntries(opts?: { resolved?: boolean; page?: number; pageSize?: number }): Promise<DeadLetterPaginatedResponse> {
+  const params = new URLSearchParams();
+  if (opts?.resolved) params.set('resolved', 'true');
+  if (opts?.page) params.set('page', String(opts.page));
+  if (opts?.pageSize) params.set('pageSize', String(opts.pageSize));
+  const qs = params.toString();
+  return fetchJson<DeadLetterPaginatedResponse>(`${API_BASE_URL}/admin/jobs/dead-letter${qs ? `?${qs}` : ''}`);
+}
+
+export function retryDeadLetterEntry(id: string): Promise<{ retried: boolean; entry: DeadLetterEntry }> {
+  return fetchJson(`${API_BASE_URL}/admin/jobs/dead-letter/${encodeURIComponent(id)}/retry`, {
+    method: 'POST',
+  });
+}
+
+export function resolveDeadLetterEntry(id: string): Promise<{ entry: DeadLetterEntry }> {
+  return fetchJson(`${API_BASE_URL}/admin/jobs/dead-letter/${encodeURIComponent(id)}/resolve`, {
+    method: 'POST',
+  });
+}
+
+export function getSnapshotHealth(): Promise<{ summary: Record<string, number>; reports: SnapshotHealthEntry[] }> {
+  return fetchJson(`${API_BASE_URL}/admin/jobs/snapshot-health`);
+}
+
+export function getStuckJobs(thresholdMinutes = 30): Promise<{ stuck: StuckJobEntry[]; count: number }> {
+  return fetchJson(`${API_BASE_URL}/admin/jobs/stuck?thresholdMinutes=${thresholdMinutes}`);
+}
+
+export function healStuckJobs(dryRun = true): Promise<{ dryRun: boolean; wouldHeal?: number; healed?: number; details?: Array<{ id: string; jobName: string; action: string }> }> {
+  return fetchJson(`${API_BASE_URL}/admin/jobs/heal`, {
+    method: 'POST',
+    body: JSON.stringify({ dryRun }),
+  });
+}
+
+export function pruneOldJobRuns(): Promise<{ deleted: number; message: string }> {
+  return fetchJson(`${API_BASE_URL}/admin/jobs/prune`, { method: 'POST' });
+}

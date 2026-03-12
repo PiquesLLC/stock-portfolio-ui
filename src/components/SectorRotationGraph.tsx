@@ -478,7 +478,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
           viewBox={`0 0 ${width} ${height}`}
           className="w-full"
           onMouseLeave={() => setHoveredSector(null)}
-          style={{ contain: 'layout style paint', willChange: 'transform' }}
+          style={{ contain: 'layout style paint', willChange: 'transform', touchAction: 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
         >
           <defs>
             <style>{`
@@ -829,6 +829,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
               }}
               onMouseEnter={() => setHoveredSector(dot.ticker)}
               onMouseLeave={() => setHoveredSector(null)}
+              onTouchStart={() => setHoveredSector(prev => prev === dot.ticker ? null : dot.ticker)}
               className={`inline-flex items-center gap-1 px-1 py-0.5 rounded transition-opacity text-[10px] ${
                 isHov ? 'opacity-100' : hoveredSector ? 'opacity-25' : 'opacity-50'
               }`}
@@ -853,6 +854,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                 key={d.ticker}
                 onMouseEnter={() => setHoveredSector(d.ticker)}
                 onMouseLeave={() => setHoveredSector(null)}
+                onTouchStart={() => setHoveredSector(prev => prev === d.ticker ? null : d.ticker)}
                 onClick={() => {
                   if (hoveredSector === d.ticker) {
                     onTickerClick?.(d.ticker);

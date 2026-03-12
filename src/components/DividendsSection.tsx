@@ -442,7 +442,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="text" placeholder="Ticker (e.g. AAPL)" value={ticker} onChange={e => setTicker(e.target.value)} className={inputClass} />
-          <input type="number" step="0.0001" placeholder="Amount per share" value={amountPerShare} onChange={e => setAmountPerShare(e.target.value)} className={inputClass} />
+          <input type="number" inputMode="decimal" step="0.0001" placeholder="Amount per share" value={amountPerShare} onChange={e => setAmountPerShare(e.target.value)} className={inputClass} />
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] text-rh-light-muted dark:text-rh-muted">Ex-Date</label>

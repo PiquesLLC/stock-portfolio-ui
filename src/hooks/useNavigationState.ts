@@ -82,6 +82,15 @@ export function useNavigationState({
   // Sync navigation state → URL hash (only when authenticated)
   useEffect(() => {
     if (!isAuthenticated) return;
+    // Admin views get their own hash so they survive refresh
+    if (adminView === 'waitlist') {
+      window.location.hash = 'tab=admin-waitlist';
+      return;
+    }
+    if (adminView === 'jobs') {
+      window.location.hash = 'tab=admin-jobs';
+      return;
+    }
     if (compareStocks && compareStocks.length >= 2) {
       const p = new URLSearchParams();
       p.set('tab', 'compare');
@@ -95,7 +104,7 @@ export function useNavigationState({
     const hashTab = activeTab;
     const hashProfile = activeTab === 'profile' ? null : viewingProfileId;
     setHash(hashTab, stockTicker, hashProfile, leaderboardUserId, subtab);
-  }, [isAuthenticated, activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab, compareStocks]);
+  }, [isAuthenticated, activeTab, viewingStock, viewingProfileId, leaderboardUserId, insightsSubTab, discoverSubTab, compareStocks, adminView]);
 
   // Handle browser back/forward
   useEffect(() => {
@@ -109,9 +118,20 @@ export function useNavigationState({
 
       if (rawTab === 'settings') {
         setSettingsView(true);
+        setAdminView(null);
         return;
       }
       setSettingsView(false);
+
+      if (rawTab === 'admin-waitlist') {
+        setAdminView('waitlist');
+        return;
+      }
+      if (rawTab === 'admin-jobs') {
+        setAdminView('jobs');
+        return;
+      }
+      setAdminView(null);
 
       if (rawTab === 'compare') {
         const stocksRaw = params.get('stocks')?.split(',').filter(Boolean) ?? [];

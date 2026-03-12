@@ -111,7 +111,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
 
       {/* Metrics grid — glassmorphic inner card */}
       <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-2xl border border-gray-200/40 dark:border-white/[0.05] p-3 mb-4">
-        <div className="grid grid-cols-4 gap-x-3 gap-y-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2.5">
           <MetricCell label="P/E" value={formatMetric(m.peRatio)} />
           <MetricCell label="ROE" value={formatMetric(m.roe, '%')} />
           <MetricCell label="Div Yield" value={formatMetric(m.dividendYield, '%')} />

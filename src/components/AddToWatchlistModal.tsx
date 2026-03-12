@@ -47,12 +47,16 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
   }, [ticker]);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     loadData();
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [onClose, loadData]);
 
   const handleToggle = async (wlId: string) => {
@@ -102,7 +106,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
           <h3 className="text-base font-bold text-rh-light-text dark:text-white">
             Add {ticker} to Watchlist
           </h3>
-          <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
             <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -170,6 +174,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
                         <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
                         <input
                           type="number"
+                          inputMode="decimal"
                           value={shares}
                           onChange={(e) => setShares(e.target.value)}
                           min="0.001"
@@ -181,6 +186,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
                         <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Avg Cost</label>
                         <input
                           type="number"
+                          inputMode="decimal"
                           value={averageCost}
                           onChange={(e) => setAverageCost(e.target.value)}
                           min="0.01"

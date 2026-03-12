@@ -73,6 +73,7 @@ export function HoldingForm({ onUpdate, heldTickers = [] }: Props) {
             <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.0001"
               min="0"
               value={shares}
@@ -87,6 +88,7 @@ export function HoldingForm({ onUpdate, heldTickers = [] }: Props) {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted">$</span>
               <input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 value={averageCost}

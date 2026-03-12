@@ -151,6 +151,7 @@ export function PortfolioDataSection({
           <div className="relative w-32">
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0"
               max="20"
@@ -175,6 +176,7 @@ export function PortfolioDataSection({
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0.01"
               value={ytdBaseline}
@@ -197,6 +199,7 @@ export function PortfolioDataSection({
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0"
               value={marginDebt}
@@ -219,6 +222,7 @@ export function PortfolioDataSection({
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
             <input
               type="number"
+              inputMode="decimal"
               step="1000"
               min="0"
               value={annualSalary}

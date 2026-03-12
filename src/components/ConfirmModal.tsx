@@ -17,12 +17,16 @@ export function ConfirmModal({ title, message, confirmLabel = 'Confirm', cancelL
   const trapRef = useFocusTrap(true);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
     };
     document.addEventListener('keydown', handleKey);
     confirmRef.current?.focus();
-    return () => document.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [onCancel]);
 
   return createPortal(

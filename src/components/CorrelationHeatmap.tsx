@@ -226,20 +226,30 @@ export default function CorrelationHeatmap({ holdings }: CorrelationHeatmapProps
     fetchData();
   }, [fetchData]);
 
-  // Handle mouse move on grid cells
-  const handleCellMouse = (
+  // Handle mouse/touch on grid cells
+  const handleCellInteraction = (
     row: number,
     col: number,
-    e: React.MouseEvent
+    clientX: number,
+    clientY: number,
   ) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     setTooltip({
       row,
       col,
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: clientX - rect.left,
+      y: clientY - rect.top,
     });
+  };
+
+  const handleCellMouse = (row: number, col: number, e: React.MouseEvent) => {
+    handleCellInteraction(row, col, e.clientX, e.clientY);
+  };
+
+  const handleCellTouch = (row: number, col: number, e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    handleCellInteraction(row, col, e.touches[0].clientX, e.touches[0].clientY);
   };
 
   const handleCellLeave = () => setTooltip(null);
@@ -354,6 +364,8 @@ export default function CorrelationHeatmap({ holdings }: CorrelationHeatmapProps
                     onMouseEnter={e => handleCellMouse(ri, ci, e)}
                     onMouseMove={e => handleCellMouse(ri, ci, e)}
                     onMouseLeave={handleCellLeave}
+                    onTouchStart={e => handleCellTouch(ri, ci, e)}
+                    onTouchEnd={handleCellLeave}
                   >
                     <span
                       className="text-[10px] font-mono font-semibold select-none"

@@ -426,6 +426,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                     </button>
                     <input
                       type="number"
+                      inputMode="decimal"
                       value={changePct}
                       onChange={e => updateChange(ticker, parseFloat(e.target.value) || 0)}
                       onDoubleClick={() => updateChange(ticker, 0)}
@@ -832,7 +833,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
         <div className="flex items-center gap-1">
           <span className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/40">$</span>
           <input
-            type="number" min={0} step={100} value={monthlyContrib || ''}
+            type="number" inputMode="decimal" min={0} step={100} value={monthlyContrib || ''}
             placeholder="0"
             onChange={e => setMonthlyContrib(Math.max(0, parseFloat(e.target.value) || 0))}
             className="w-24 h-6 text-[11px] font-medium tabular-nums rounded border border-gray-200/40 dark:border-white/[0.06] bg-transparent text-rh-light-text dark:text-rh-text outline-none px-2 focus:ring-1 focus:ring-rh-green/40"
@@ -946,7 +947,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
 
                 {/* Avg return input */}
                 <div className="flex items-center justify-center gap-0.5" onClick={e => e.stopPropagation()}>
-                  <input type="number" step={0.1}
+                  <input type="number" inputMode="decimal" step={0.1}
                     value={displayRate !== null ? parseFloat(displayRate.toFixed(1)) : ''}
                     placeholder="--"
                     onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val)) updateOverride(ticker, val); }}
