@@ -60,8 +60,8 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const isTouchingRef = useRef(false);
-  const W = 600, H = 220;
-  const pad = { t: 20, r: 16, b: 28, l: 52 };
+  const W = 600, H = 160;
+  const pad = { t: 14, r: 16, b: 24, l: 52 };
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
 
@@ -298,7 +298,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
       <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-gray-200 dark:bg-white/[0.06] rounded w-48" />
-          <div className="h-[220px] bg-gray-100 dark:bg-white/[0.04] rounded-lg" />
+          <div className="h-[160px] bg-gray-100 dark:bg-white/[0.04] rounded-lg" />
         </div>
       </div>
     );
@@ -323,7 +323,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
   return (
     <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
       {/* Header */}
-      <div className="px-5 pt-5 pb-3">
+      <div className="px-5 pt-4 pb-2">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <svg className="w-4.5 h-4.5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1475,7 +1475,7 @@ export default function App() {
               <InsightsPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
                 currentValue={portfolio?.netEquity ?? 0}
-                refreshTrigger={portfolioRefreshCount}
+                refreshTrigger={summaryRefreshTrigger}
                 session={portfolio?.session}
                 cashBalance={portfolio?.cashBalance ?? 0}
                 totalAssets={portfolio?.totalAssets ?? 0}
