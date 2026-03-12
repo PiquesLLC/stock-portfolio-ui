@@ -140,6 +140,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const lastXRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
   const vertAccumRef = useRef<number>(0);
+  // Touch-to-navigate: first tap highlights, second tap on same ticker navigates
+  const touchTriggeredRef = useRef(false);
+  const hoveredAtTouchStartRef = useRef<string | null>(null);
 
   const fetchData = useCallback(async (p: Period) => {
     setLoading(true);
@@ -422,7 +425,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         </div>
       </div>
 
-      <div className="px-2 pb-1 relative">
+      <div className="px-2 pb-1 relative" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}>
           <svg
             ref={svgRef}
             viewBox={`0 0 ${CHART_W} ${CHART_H}`}
@@ -603,8 +606,23 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${isHovered ? 'bg-gray-100 dark:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-white/5'}`}
                 onMouseEnter={() => setHoveredTicker(item.ticker)}
                 onMouseLeave={() => setHoveredTicker(null)}
-                onTouchStart={() => setHoveredTicker(prev => prev === item.ticker ? null : item.ticker)}
-                onClick={() => onTickerClick?.(item.ticker)}
+                onTouchStart={() => {
+                  touchTriggeredRef.current = true;
+                  hoveredAtTouchStartRef.current = hoveredTicker;
+                  setHoveredTicker(item.ticker);
+                }}
+                onClick={() => {
+                  if (touchTriggeredRef.current) {
+                    touchTriggeredRef.current = false;
+                    // Only navigate if this ticker was already highlighted before this tap
+                    if (hoveredAtTouchStartRef.current === item.ticker) {
+                      onTickerClick?.(item.ticker);
+                    }
+                    return;
+                  }
+                  // Mouse click: navigate immediately
+                  onTickerClick?.(item.ticker);
+                }}
               >
                 <span className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium transition-colors ${isHovered ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>
                   {item.name}
