@@ -436,7 +436,7 @@ function IncomeContributors({
     return (
       <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
-          Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Past 12 Months</span>
+          Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Annual</span>
         </h3>
         <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-4">
           No dividend income recorded yet.
@@ -450,7 +450,7 @@ function IncomeContributors({
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
       <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">
-        Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Past 12 Months</span>
+        Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Annual</span>
       </h3>
       <div className="space-y-3">
         {contributors.slice(0, 7).map((c) => (
@@ -497,7 +497,7 @@ function IncomeConcentration({ data }: { data: IncomeInsightsResponse['concentra
     }`}>
       <div className="flex items-center gap-2 mb-3">
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-          Income Concentration <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Past 12 Months</span>
+          Income Concentration <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Annual</span>
         </h3>
         {data.isConcentrated && (
           <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-400/20 text-orange-400 rounded">
