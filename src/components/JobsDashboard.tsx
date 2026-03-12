@@ -208,7 +208,11 @@ export function JobsDashboard({ onBack }: Props) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30_000); // auto-refresh every 30s
+    return () => clearInterval(id);
+  }, [load]);
 
   const [resolving, setResolving] = useState<string | null>(null);
   const [healing, setHealing] = useState(false);

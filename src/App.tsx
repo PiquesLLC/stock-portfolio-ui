@@ -38,6 +38,7 @@ import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { usePortfolioData } from './hooks/usePortfolioData';
 import { useNavigationState } from './hooks/useNavigationState';
+import { useJobAlerts } from './hooks/useJobAlerts';
 
 // Lazy-loaded page components
 const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
@@ -227,6 +228,8 @@ export default function App() {
     initialSettingsView: _initialSettingsView,
     initialAdminView: _initialAdminView,
   });
+
+  const jobAlerts = useJobAlerts(!!user?.isWaitlistAdmin);
 
   // Pre-warm daily report cache — fire-and-forget on login so it's ready when user opens Daily Brief
   useEffect(() => {
@@ -935,12 +938,15 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => { setAdminView('jobs'); setSettingsView(false); setCreatorView(null); }}
-                    className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                    className="relative p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                     title="Admin — Background Jobs"
                   >
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
+                    {jobAlerts.level !== 'ok' && (
+                      <span className={`absolute top-1 right-1 w-2 h-2 rounded-full ${jobAlerts.level === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`} />
+                    )}
                   </button>
                 </>
               )}
@@ -1031,6 +1037,9 @@ export default function App() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         Admin — Jobs
+                        {jobAlerts.level !== 'ok' && (
+                          <span className={`ml-auto w-2 h-2 rounded-full ${jobAlerts.level === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`} />
+                        )}
                       </button>
                     </>
                   )}
