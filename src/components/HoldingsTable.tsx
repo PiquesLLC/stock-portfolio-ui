@@ -25,6 +25,7 @@ let earningsBadgeCache: { data: Record<string, EarningsBadge>; timestamp: number
 export interface HoldingsTableActions {
   openAdd: () => void;
   openCashMargin: () => void;
+  openImport: () => void;
 }
 
 interface Props {
@@ -37,6 +38,7 @@ interface Props {
   actionsRef?: React.MutableRefObject<HoldingsTableActions | null>;
   chartPeriod?: import('../types').PortfolioChartPeriod;
   portfolioId?: string;
+  hideEmptyState?: boolean;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent' | 'custom';
@@ -107,7 +109,7 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef, chartPeriod = '1D', portfolioId }: Props) {
+export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef, chartPeriod = '1D', portfolioId, hideEmptyState }: Props) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>(() => {
@@ -389,7 +391,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   // Expose actions to parent via ref
   useEffect(() => {
     if (actionsRef) {
-      actionsRef.current = { openAdd: handleOpenAdd, openCashMargin: handleOpenCashMargin };
+      actionsRef.current = { openAdd: handleOpenAdd, openCashMargin: handleOpenCashMargin, openImport: () => setShowImport(true) };
     }
   }, [handleOpenAdd, handleOpenCashMargin, actionsRef]);
 
@@ -610,48 +612,52 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
   if (holdings.length === 0) {
     return (
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Holdings</h2>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleOpenCashMargin}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
-                text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors text-xs sm:text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Cash & Margin
-            </button>
-            <button
-              ref={addStockButtonRef}
-              type="button"
-              onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
-                hover:bg-green-600 transition-colors text-xs sm:text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Stock
-            </button>
+      <>
+        {!hideEmptyState && (
+          <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Holdings</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenCashMargin}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
+                    text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors text-xs sm:text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Cash & Margin
+                </button>
+                <button
+                  ref={addStockButtonRef}
+                  type="button"
+                  onClick={handleOpenAdd}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-rh-green text-black font-semibold
+                    hover:bg-green-600 transition-colors text-xs sm:text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Stock
+                </button>
+              </div>
+            </div>
+            <div className="text-center py-8 space-y-4">
+              <p className="text-rh-light-muted dark:text-rh-muted">No holdings yet. Add your first stock above.</p>
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white hover:border-rh-green/30 transition-colors text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Import from CSV
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="text-center py-8 space-y-4">
-          <p className="text-rh-light-muted dark:text-rh-muted">No holdings yet. Add your first stock above.</p>
-          <button
-            type="button"
-            onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white hover:border-rh-green/30 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Import from CSV
-          </button>
-        </div>
+        )}
 
         {showImport && (
           <PortfolioImport
@@ -662,7 +668,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           />
         )}
 
-        {showAddModal && (
+        {showAddModal && createPortal(
           <div
             className="fixed inset-0 z-50 flex items-center justify-center px-4"
             role="dialog"
@@ -701,9 +707,78 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               </div>
               {renderModalContent(false)}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
-      </div>
+
+        {showCashMarginModal && createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 modal-overlay bg-black/60 backdrop-blur-sm" onClick={() => setShowCashMarginModal(false)} aria-hidden="true" />
+            <div
+              className="relative modal-container bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl rounded-[18px] p-0 dark:p-6 w-full max-w-[440px] dark:max-w-sm border border-gray-200/60 dark:border-white/[0.1] [box-shadow:0_8px_32px_rgba(0,0,0,0.12)] dark:[box-shadow:0_8px_32px_rgba(0,0,0,0.5)]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between px-5 pt-5 pb-0 dark:px-0 dark:pt-0 dark:pb-0 mb-1 dark:mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Cash & Margin</h3>
+                  <p className="text-xs text-rh-light-muted/60 mt-0.5 dark:hidden">Used to calculate your net equity and returns.</p>
+                </div>
+                <button type="button" onClick={() => setShowCashMarginModal(false)}
+                  className="text-rh-light-muted/50 dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
+                  <svg className="w-4 h-4 dark:w-5 dark:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <form onSubmit={handleSaveCashMargin} className="px-5 pb-5 dark:px-0 dark:pb-0 space-y-4">
+                <div>
+                  <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Cash Balance</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
+                    <input type="number" inputMode="decimal" step="0.01" min="0" value={cashValue} onChange={e => setCashValue(e.target.value)}
+                      className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
+                      placeholder="0.00" />
+                  </div>
+                  <p className="text-[11px] text-rh-light-muted/50 mt-1 dark:hidden">Uninvested cash in your brokerage account.</p>
+                  <div className="flex gap-2 mt-2">
+                    <button type="button" onClick={() => { const amt = prompt('Deposit amount:'); if (amt && parseFloat(amt) > 0) setCashValue(v => (parseFloat(v || '0') + parseFloat(amt)).toFixed(2)); }}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-rh-green/10 text-rh-green font-medium hover:bg-rh-green/20 transition-colors">
+                      + Deposit
+                    </button>
+                    <button type="button" onClick={() => { const amt = prompt('Withdraw amount:'); if (amt && parseFloat(amt) > 0) setCashValue(v => Math.max(0, parseFloat(v || '0') - parseFloat(amt)).toFixed(2)); }}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-rh-red/10 text-rh-red font-medium hover:bg-rh-red/20 transition-colors">
+                      - Withdraw
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Margin Debt</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
+                    <input type="number" inputMode="decimal" step="0.01" min="0" value={marginValue} onChange={e => setMarginValue(e.target.value)}
+                      className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
+                      placeholder="0.00" />
+                  </div>
+                  <p className="text-[11px] text-rh-light-muted/50 mt-1 dark:hidden">Amount borrowed (used to compute net equity).</p>
+                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1 hidden dark:block">Enter your broker margin balance to calculate net equity</p>
+                </div>
+                {cashMarginError && <p className="text-rh-red text-sm">{cashMarginError}</p>}
+                <div className="border-t border-black/[0.06] dark:border-transparent pt-4 dark:pt-0 flex justify-end gap-3 dark:block">
+                  <button type="button" onClick={() => setShowCashMarginModal(false)}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-rh-light-muted hover:text-rh-light-text hover:bg-black/[0.04] transition-colors dark:hidden">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={cashMarginLoading}
+                    className="px-6 py-2.5 dark:w-full dark:px-4 dark:py-2.5 bg-rh-green hover:bg-green-600 hover:shadow-lg hover:shadow-rh-green/20 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-black font-semibold rounded-xl text-sm transition-all">
+                    {cashMarginLoading ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+      </>
     );
   }
 
