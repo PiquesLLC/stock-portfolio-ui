@@ -192,7 +192,18 @@ export default function App() {
   useBiometricUnlock();
   const initialNav = savedInitialNav;
   const currentUserId = user?.id || '';
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(undefined);
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(() => {
+    try { return localStorage.getItem('nala:selectedPortfolioId') || undefined; } catch { return undefined; }
+  });
+
+  // Persist portfolio selection across refreshes
+  useEffect(() => {
+    try {
+      if (selectedPortfolioId) localStorage.setItem('nala:selectedPortfolioId', selectedPortfolioId);
+      else localStorage.removeItem('nala:selectedPortfolioId');
+    } catch { /* ignore */ }
+  }, [selectedPortfolioId]);
+
   const [userPortfolios, setUserPortfolios] = useState<PortfolioRecord[]>([]);
   const holdingsActionsRef = useRef<HoldingsTableActions | null>(null);
   const {

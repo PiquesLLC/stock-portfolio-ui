@@ -277,6 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearInsightsCache();
     clearEarningsPreviewCache();
     clearEarningsTabCache();
+    // Clear portfolio selection
+    try { localStorage.removeItem('nala:selectedPortfolioId'); } catch { /* ignore */ }
     // Clear biometric token on logout
     clearBiometricToken();
     // Clean URL + stale nav state so user lands on a fresh landing page
