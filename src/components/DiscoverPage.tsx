@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
 import { SectorPerformanceChart } from './SectorPerformanceChart';
+import { SectorRotationGraph } from './SectorRotationGraph';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
 import { StockLogo } from './StockLogo';
@@ -29,19 +30,25 @@ interface DiscoverPageProps {
 }
 
 /** Parse subtab string like "heatmap:THEMES" into { subTab, heatmapIndex } */
-function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; heatmapIndex?: MarketIndex } {
-  if (!raw) return { subTab: 'heatmap' };
-  if (raw === 'sectors') return { subTab: 'sectors' };
+function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; sectorInner?: SectorInnerTab; heatmapIndex?: MarketIndex } {
+  if (!raw) return { subTab: 'sectors', sectorInner: 'heatmap' };
   if (raw === 'top100') return { subTab: 'top100' };
   if (raw === 'screener') return { subTab: 'screener' };
   if (raw === 'creators') return { subTab: 'creators' };
-  if (raw.startsWith('heatmap:')) {
-    const idx = raw.slice(8) as MarketIndex;
+  // Backward compat: old 'heatmap' and 'movement' map into sectors inner tabs
+  if (raw === 'heatmap') return { subTab: 'sectors', sectorInner: 'heatmap' };
+  if (raw === 'movement') return { subTab: 'sectors', sectorInner: 'movement' };
+  if (raw === 'sectors') return { subTab: 'sectors', sectorInner: 'heatmap' };
+  if (raw === 'sectors:performance') return { subTab: 'sectors', sectorInner: 'performance' };
+  if (raw === 'sectors:movement') return { subTab: 'sectors', sectorInner: 'movement' };
+  if (raw.startsWith('heatmap:') || raw.startsWith('sectors:heatmap:')) {
+    const part = raw.startsWith('sectors:heatmap:') ? raw.slice(16) : raw.slice(8);
+    const idx = part as MarketIndex;
     if (['SP500', 'DOW30', 'NASDAQ100', 'THEMES', 'ETF'].includes(idx)) {
-      return { subTab: 'heatmap', heatmapIndex: idx };
+      return { subTab: 'sectors', sectorInner: 'heatmap', heatmapIndex: idx };
     }
   }
-  return { subTab: 'heatmap' };
+  return { subTab: 'sectors', sectorInner: 'heatmap' };
 }
 
 // --- Squarified treemap layout algorithm ---
@@ -916,56 +923,6 @@ function TopMovers({
   );
 }
 
-// --- Sector performance bars ---
-
-function SectorBars({ sectors, highlightedSector, onSectorClick, isThemes }: { sectors: HeatmapSector[]; highlightedSector?: string | null; onSectorClick?: (name: string) => void; isThemes?: boolean }) {
-  const sorted = useMemo(() =>
-    [...sectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent),
-    [sectors],
-  );
-  const maxAbs = Math.max(...sorted.map(s => Math.abs(s.avgChangePercent)), 1);
-
-  return (
-    <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4 mt-4">
-      <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">{isThemes ? 'Theme Performance' : 'Sector Performance'}</h3>
-      <div className="space-y-2">
-        {sorted.map((s) => {
-          const pct = s.avgChangePercent;
-          const barWidth = (Math.abs(pct) / maxAbs) * 50;
-          const isPositive = pct >= 0;
-          const isZero = isEffectivelyZero(pct);
-          return (
-            <div
-              key={s.name}
-              className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${highlightedSector === s.name ? 'bg-gray-100 dark:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-white/5'}`}
-              onClick={() => onSectorClick?.(s.name)}
-            >
-              <span className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium transition-colors ${highlightedSector === s.name ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>{s.name}</span>
-              <div className="flex-1 flex items-center h-5">
-                <div className="relative w-full h-full flex items-center">
-                  <div className="absolute left-1/2 top-0 bottom-0 w-px bg-rh-light-border/40 dark:bg-rh-border/40" />
-                  <div
-                    className="absolute h-4 rounded-sm transition-all duration-500"
-                    style={{
-                      left: isPositive ? '50%' : `${50 - barWidth}%`,
-                      width: `${barWidth}%`,
-                      background: isZero ? '#888' : isPositive ? '#00C805' : '#E8544E',
-                      opacity: 0.8,
-                    }}
-                  />
-                </div>
-              </div>
-              <span className={`text-xs font-semibold min-w-[50px] text-right ${isZero ? 'text-rh-light-muted dark:text-rh-muted' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
-                {isPositive ? '+' : ''}{pct.toFixed(2)}%
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // --- Main page ---
 
 const PERIODS: { id: HeatmapPeriod; label: string }[] = [
@@ -1009,7 +966,8 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'sectors' | 'heatmap' | 'top100' | 'screener' | 'creators';
+type DiscoverSubTab = 'sectors' | 'top100' | 'screener' | 'creators';
+type SectorInnerTab = 'heatmap' | 'performance' | 'movement';
 
 /* ─── Top 100 by Volume ─── */
 
@@ -1818,18 +1776,6 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
         <Treemap sectors={data.sectors} onTickerClick={onTickerClick} highlightedSector={highlightedSector} stockCount={allStocks.length} isThemes={index === 'THEMES'} />
       </div>
       <ColorLegend />
-      <SectorBars
-        sectors={data.sectors}
-        highlightedSector={highlightedSector}
-        onSectorClick={(name) => {
-          const next = highlightedSector === name ? null : name;
-          setHighlightedSector(next);
-          if (next && treemapRef.current) {
-            treemapRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }}
-        isThemes={index === 'THEMES'}
-      />
       {index !== 'THEMES' && <TopMovers stocks={allStocks} onTickerClick={onTickerClick} />}
     </div>
   );
@@ -1840,11 +1786,26 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
 export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTab, onSubTabChange, portfolioTickers }: DiscoverPageProps) {
   const parsed = useMemo(() => parseSubTab(externalSubTab), [externalSubTab]);
   const [subTab, setSubTabInternal] = useState<DiscoverSubTab>(parsed.subTab);
+  const [sectorInner, setSectorInnerInternal] = useState<SectorInnerTab>(parsed.sectorInner ?? 'heatmap');
   const [heatmapIndex, setHeatmapIndex] = useState<MarketIndex>(parsed.heatmapIndex ?? 'SP500');
+
+  const notifyParent = useCallback((tab: DiscoverSubTab, inner: SectorInnerTab, idx: MarketIndex) => {
+    if (tab === 'sectors') {
+      if (inner === 'heatmap') onSubTabChange?.(`heatmap:${idx}`);
+      else onSubTabChange?.(`sectors:${inner}`);
+    } else {
+      onSubTabChange?.(tab);
+    }
+  }, [onSubTabChange]);
 
   const setSubTab = (tab: DiscoverSubTab) => {
     setSubTabInternal(tab);
-    onSubTabChange?.(tab === 'heatmap' ? `heatmap:${heatmapIndex}` : tab);
+    notifyParent(tab, tab === 'sectors' ? sectorInner : 'heatmap', heatmapIndex);
+  };
+
+  const setSectorInner = (inner: SectorInnerTab) => {
+    setSectorInnerInternal(inner);
+    notifyParent('sectors', inner, heatmapIndex);
   };
 
   const handleIndexChange = (idx: MarketIndex) => {
@@ -1861,13 +1822,13 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
     if (cached) {
       setAllStocks(cached.data.sectors.flatMap(s => s.stocks));
     }
-    // Also fetch fresh data for Top 100
+    // Also fetch fresh data
     getMarketHeatmap('1D', 'SP500').then(resp => {
       setAllStocks(resp.sectors.flatMap(s => s.stocks));
       heatmapCache.set(cacheKey('1D', 'SP500'), { data: resp, ts: Date.now() });
     }).catch(e => console.error('Top 100 heatmap fetch failed:', e));
 
-    // Refresh every hour for Top 100
+    // Refresh every hour
     const interval = setInterval(() => {
       getMarketHeatmap('1D', 'SP500').then(resp => {
         setAllStocks(resp.sectors.flatMap(s => s.stocks));
@@ -1884,13 +1845,17 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
     }`;
 
+  const innerTabClass = (active: boolean) =>
+    `px-3 py-1 text-[11px] font-medium rounded-md transition-all ${
+      active
+        ? 'bg-white dark:bg-rh-card text-rh-green shadow-sm'
+        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+    }`;
+
   return (
     <div className="space-y-3">
-      {/* Sub-tab bar */}
+      {/* Top-level tab bar */}
       <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
-        <button onClick={() => setSubTab('heatmap')} className={tabClass(subTab === 'heatmap')}>
-          Heatmap
-        </button>
         <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
           Sectors
         </button>
@@ -1906,9 +1871,28 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       </div>
 
       {subTab === 'sectors' ? (
-        <SectorPerformanceChart onTickerClick={onTickerClick} />
-      ) : subTab === 'heatmap' ? (
-        <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
+        <div className="space-y-2">
+          {/* Inner sector tabs */}
+          <div className="flex gap-0.5 bg-gray-100/50 dark:bg-white/[0.03] rounded-lg p-0.5 w-fit">
+            <button onClick={() => setSectorInner('heatmap')} className={innerTabClass(sectorInner === 'heatmap')}>
+              Heatmap
+            </button>
+            <button onClick={() => setSectorInner('performance')} className={innerTabClass(sectorInner === 'performance')}>
+              Performance
+            </button>
+            <button onClick={() => setSectorInner('movement')} className={innerTabClass(sectorInner === 'movement')}>
+              Movement
+            </button>
+          </div>
+
+          {sectorInner === 'heatmap' ? (
+            <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
+          ) : sectorInner === 'performance' ? (
+            <SectorPerformanceChart onTickerClick={onTickerClick} />
+          ) : (
+            <SectorRotationGraph onTickerClick={onTickerClick} />
+          )}
+        </div>
       ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'screener' ? (

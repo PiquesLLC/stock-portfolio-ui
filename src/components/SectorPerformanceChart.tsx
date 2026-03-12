@@ -9,7 +9,7 @@ const PAD = { top: 12, right: 6, bottom: 24, left: 44 };
 const PLOT_W = CHART_W - PAD.left - PAD.right;
 const PLOT_H = CHART_H - PAD.top - PAD.bottom;
 
-type Period = '1D' | '1W' | '1M';
+type Period = '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y';
 
 const DAY_START_MIN = 4 * 60;
 const DAY_END_MIN = 20 * 60;
@@ -64,23 +64,18 @@ function lineShade(pct: number, rank: number, total: number): string {
 
 /* ─── SVG path builders ──────────────────────────────────────────────────── */
 
-const GAP_THRESHOLD_MIN = 90; // Break path if gap > 90 minutes (handles hourly candles)
-
 function buildTimePathFromMinutes(sparkline: number[], minutes: number[], yMin: number, yRange: number): string {
   if (sparkline.length === 0 || minutes.length === 0) return '';
   const parts: string[] = [];
-  let prevMin = -Infinity;
-  let needsMove = true;
+  let started = false;
   for (let i = 0; i < sparkline.length; i++) {
     const min = minutes[i];
     const xFrac = (min - DAY_START_MIN) / DAY_RANGE_MIN;
     if (xFrac < 0 || xFrac > 1) continue;
-    if (min - prevMin > GAP_THRESHOLD_MIN) needsMove = true;
     const x = PAD.left + xFrac * PLOT_W;
     const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
-    parts.push(`${needsMove ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
-    needsMove = false;
-    prevMin = min;
+    parts.push(`${started ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`);
+    started = true;
   }
   return parts.join('');
 }
@@ -170,12 +165,14 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     const items = [
       ...data.sectors.map(s => ({
         ticker: s.ticker,
+        name: s.name,
         changePercent: s.changePercent,
         sparkline: s.sparkline,
         timestamps: s.timestamps,
       })),
       {
         ticker: 'SPY',
+        name: 'S&P 500',
         changePercent: data.benchmark.changePercent,
         sparkline: data.benchmark.sparkline,
         timestamps: data.benchmark.timestamps,
@@ -365,15 +362,15 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-white/90">Sector Performance</h3>
           <span className="text-[10px] text-gray-400 dark:text-white/30 font-medium">
-            {period === '1D' ? 'Today' : period === '1W' ? 'Past Week' : 'Past Month'}
+            {period === '1D' ? 'Today' : period === '1W' ? 'Past Week' : period === '1M' ? 'Past Month' : period === '3M' ? 'Past 3 Months' : period === '6M' ? 'Past 6 Months' : period === 'YTD' ? 'Year to Date' : 'Past Year'}
           </span>
         </div>
         <div className="flex gap-0.5 bg-gray-100/60 dark:bg-white/[0.04] rounded-md p-0.5">
-          {(['1D', '1W', '1M'] as Period[]).map(p => (
+          {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as Period[]).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-2.5 py-0.5 text-[10px] font-semibold rounded transition-all ${
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all ${
                 period === p
                   ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
                   : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50'
@@ -385,9 +382,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         </div>
       </div>
 
-      <div className="flex">
-        {/* Chart area */}
-        <div className="flex-1 min-w-0 px-2 pb-1 relative">
+      <div className="px-2 pb-1 relative">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${CHART_W} ${CHART_H}`}
@@ -545,44 +540,47 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               </div>
             </div>
           )}
-        </div>
+      </div>
 
-        {/* Leaderboard */}
-        <div className="w-[180px] shrink-0 flex flex-col my-2 mr-1 overflow-hidden">
+      {/* Horizontal bar chart — same data as leaderboard */}
+      <div className="px-4 pb-4 pt-2 border-t border-gray-200/30 dark:border-white/[0.06]">
+        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">Sector Performance</h3>
+        <div className="space-y-2">
           {allItems.map((item) => {
-            const isHovered = hoveredTicker === item.ticker;
             const pct = item.changePercent;
-            const color = lineColor(pct);
             const maxAbsPct = Math.max(...allItems.map(it => Math.abs(it.changePercent)), 0.01);
-            const barWidth = (Math.abs(pct) / maxAbsPct) * 100;
+            const barWidth = (Math.abs(pct) / maxAbsPct) * 50;
+            const isPositive = pct >= 0;
+            const isHovered = hoveredTicker === item.ticker;
             return (
-              <button
+              <div
                 key={item.ticker}
-                className={`w-full flex items-center gap-1.5 px-2 flex-1 min-h-0 transition-all duration-150 cursor-pointer rounded-md ${
-                  isHovered ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'
-                }`}
+                className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${isHovered ? 'bg-gray-100 dark:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-white/5'}`}
                 onMouseEnter={() => setHoveredTicker(item.ticker)}
                 onMouseLeave={() => setHoveredTicker(null)}
                 onClick={() => onTickerClick?.(item.ticker)}
               >
-                <span className={`text-[11px] font-semibold w-9 shrink-0 transition-colors ${
-                  isHovered ? 'text-white' : 'text-white/50'
-                }`}>
-                  {item.ticker}
+                <span className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium transition-colors ${isHovered ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+                  {item.name}
                 </span>
-                <div className="flex-1 h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{ width: `${barWidth}%`, backgroundColor: color, opacity: isHovered ? 1 : 0.5 }}
-                  />
+                <div className="flex-1 flex items-center h-5">
+                  <div className="relative w-full h-full flex items-center">
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-rh-light-border/40 dark:bg-rh-border/40" />
+                    <div
+                      className="absolute h-4 rounded-sm transition-all duration-500"
+                      style={{
+                        left: isPositive ? '50%' : `${50 - barWidth}%`,
+                        width: `${barWidth}%`,
+                        background: isPositive ? '#00C805' : '#E8544E',
+                        opacity: 0.8,
+                      }}
+                    />
+                  </div>
                 </div>
-                <span
-                  className="text-[11px] font-semibold tabular-nums w-[52px] text-right shrink-0"
-                  style={{ color }}
-                >
-                  {pct > 0 ? '+' : ''}{pct.toFixed(2)}%
+                <span className={`text-xs font-semibold min-w-[50px] text-right ${isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {isPositive ? '+' : ''}{pct.toFixed(2)}%
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>

@@ -462,12 +462,31 @@ export async function validateReferralCode(code: string): Promise<{ valid: boole
   return fetchJson<{ valid: boolean; displayName?: string }>(`${API_BASE_URL}/referral/validate/${encodeURIComponent(code)}`);
 }
 
+export class EmailVerifyError extends Error {
+  remainingAttempts: number;
+  isLockout: boolean;
+  constructor(message: string, remainingAttempts: number, isLockout: boolean) {
+    super(message);
+    this.remainingAttempts = remainingAttempts;
+    this.isLockout = isLockout;
+  }
+}
+
 export async function verifySignupEmail(_email: string, code: string): Promise<{ message: string }> {
   // email param kept for API compat but server resolves from authenticated session
-  return fetchJson(`${API_BASE_URL}/auth/verify-email`, {
+  const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
     method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
     body: JSON.stringify({ code }),
   });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: 'Verification failed' }));
+    const remaining = typeof data.remainingAttempts === 'number' ? data.remainingAttempts : -1;
+    const isLockout = response.status === 429 || remaining === 0;
+    throw new EmailVerifyError(data.error || 'Verification failed', remaining, isLockout);
+  }
+  return response.json();
 }
 
 export async function resendSignupVerification(email: string): Promise<{ message: string }> {
@@ -2155,7 +2174,7 @@ export interface SectorPerformanceResponse {
   error?: string;
 }
 
-export async function getSectorPerformance(period: '1D' | '1W' | '1M' = '1D'): Promise<SectorPerformanceResponse> {
+export async function getSectorPerformance(period: '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' = '1D'): Promise<SectorPerformanceResponse> {
   return fetchJson(`${API_BASE_URL}/market/sectors/performance?period=${period}`);
 }
 
