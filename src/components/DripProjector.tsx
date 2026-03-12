@@ -284,8 +284,9 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
   const projection = useMemo(() => {
     if (!data) return null;
     const currentAnnual = data.portfolio.totalAnnualIncome;
-    const avgYield = data.holdings.length > 0
-      ? data.holdings.reduce((sum, h) => sum + h.dividendYield, 0) / data.holdings.length
+    const holdingsWithYield = data.holdings.filter(h => h.dividendYield != null && h.dividendYield > 0);
+    const avgYield = holdingsWithYield.length > 0
+      ? holdingsWithYield.reduce((sum, h) => sum + h.dividendYield!, 0) / holdingsWithYield.length
       : 0;
     return projectIncome(currentAnnual, projectionRate, years, reinvest, avgYield);
   }, [data, years, reinvest, projectionRate]);

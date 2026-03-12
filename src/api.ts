@@ -1727,7 +1727,7 @@ export interface DividendGrowthHistory {
 export interface HoldingGrowthData {
   ticker: string;
   currentAnnualDividend: number;
-  dividendYield: number;
+  dividendYield: number | null;
   growthRates: {
     '1yr': number | null;
     '3yr': number | null;
