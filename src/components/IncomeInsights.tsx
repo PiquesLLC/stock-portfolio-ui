@@ -546,7 +546,7 @@ function IncomeDividendTimeline({
 }) {
   if (events.length === 0) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 flex-1">
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
           Dividend Timeline
         </h3>
@@ -560,7 +560,7 @@ function IncomeDividendTimeline({
   const hasEstimatedDates = events.some(e => e.dateEstimated);
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 flex-1">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
           Dividend Timeline
@@ -706,11 +706,13 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
       <DripProjector refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} portfolioId={portfolioId} />
 
       {/* Contributors + Concentration */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <IncomeContributors contributors={data.contributors} onTickerClick={onTickerClick} />
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           <IncomeConcentration data={data.concentration} />
-          <IncomeDividendTimeline events={data.timeline} onTickerClick={onTickerClick} />
+          <div className="flex-1 flex flex-col">
+            <IncomeDividendTimeline events={data.timeline} onTickerClick={onTickerClick} />
+          </div>
         </div>
       </div>
     </div>
