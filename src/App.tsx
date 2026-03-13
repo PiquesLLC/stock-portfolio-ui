@@ -226,7 +226,13 @@ export default function App() {
     fetchData, handleUpdate,
   } = usePortfolioData({ currentUserId, authLoading, portfolioId: selectedPortfolioId });
 
-  const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
+  const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>(() => {
+    try {
+      const saved = sessionStorage.getItem('nala:chartPeriod');
+      if (saved && ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', 'ALL'].includes(saved)) return saved as PortfolioChartPeriod;
+    } catch { /* ignore */ }
+    return '1D';
+  });
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
   const [chartMeasurement, setChartMeasurement] = useState<ChartMeasurement | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
@@ -1350,7 +1356,7 @@ export default function App() {
             {portfolio && portfolio.holdings.length > 0 && (
               <div className="-mx-3 sm:-mx-6 relative">
                 {user && (
-                  <div className="absolute top-2 right-3 sm:right-6 z-10 flex items-center gap-2">
+                  <div className="absolute top-2 right-3 sm:right-6 z-20 flex items-center gap-2">
                     <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
                   </div>
                 )}
@@ -1364,7 +1370,7 @@ export default function App() {
                   afterHoursChangePercent={portfolio.afterHoursChangePercent}
                   refreshTrigger={portfolioRefreshCount}
                   fetchFn={(period) => getPortfolioChart(period, undefined, selectedPortfolioId)}
-                  onPeriodChange={setChartPeriod}
+                  onPeriodChange={(p: PortfolioChartPeriod) => { setChartPeriod(p); try { sessionStorage.setItem('nala:chartPeriod', p); } catch {} }}
                   onReturnChange={setChartReturnPct}
                   onMeasurementChange={setChartMeasurement}
                   session={portfolio.session}
