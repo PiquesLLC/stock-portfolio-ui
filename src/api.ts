@@ -2653,3 +2653,38 @@ export function healStuckJobs(dryRun = true): Promise<{ dryRun: boolean; wouldHe
 export function pruneOldJobRuns(): Promise<{ deleted: number; message: string }> {
   return fetchJson(`${API_BASE_URL}/admin/jobs/prune`, { method: 'POST' });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Analytics API
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface AnalyticsDashboardFeature {
+  feature: string;
+  views: number;
+  uniqueUsers: number;
+  totalTimeMs: number;
+  avgTimeMs: number;
+  pctOfTotal: number;
+}
+
+export interface AnalyticsDashboardResponse {
+  overview: {
+    totalEvents: number;
+    uniqueUsers: number;
+    totalSessions: number;
+    avgSessionDurationMs: number;
+  };
+  featureUsage: AnalyticsDashboardFeature[];
+  userEngagement: {
+    registeredUsers: number;
+    activeUsers: number;
+    portfoliosCreated: number;
+    holdingsCount: number;
+    watchlistsCount: number;
+  };
+  dauTrend: Array<{ date: string; count: number }>;
+}
+
+export function getAnalyticsDashboard(period = '7d'): Promise<AnalyticsDashboardResponse> {
+  return fetchJson<AnalyticsDashboardResponse>(`${API_BASE_URL}/admin/analytics/dashboard?period=${encodeURIComponent(period)}`);
+}

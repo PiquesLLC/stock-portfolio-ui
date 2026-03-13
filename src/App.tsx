@@ -39,6 +39,7 @@ import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { usePortfolioData } from './hooks/usePortfolioData';
 import { useNavigationState } from './hooks/useNavigationState';
 import { useJobAlerts } from './hooks/useJobAlerts';
+import { useAnalytics } from './hooks/useAnalytics';
 
 // Lazy-loaded page components
 const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
@@ -59,6 +60,7 @@ const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m =
 const GettingStartedChecklist = lazy(() => import('./components/GettingStartedChecklist').then(m => ({ default: m.GettingStartedChecklist })));
 const WaitlistAdminPage = lazy(() => import('./components/WaitlistAdminPage').then(m => ({ default: m.WaitlistAdminPage })));
 const JobsDashboard = lazy(() => import('./components/JobsDashboard').then(m => ({ default: m.JobsDashboard })));
+const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
 const AccountSettingsPageComp2 = lazy(() => import('./components/settings/AccountSettingsPage'));
 const PublicProfilePage = lazy(() => import('./components/PublicProfilePage'));
 
@@ -250,6 +252,7 @@ export default function App() {
     const tab = params.get('tab');
     if (tab === 'admin-waitlist') setAdminView('waitlist');
     else if (tab === 'admin-jobs') setAdminView('jobs');
+    else if (tab === 'admin-analytics') setAdminView('analytics');
   }, [user?.isWaitlistAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for hash changes from Upgrade buttons (#pricing or #tab=pricing)
@@ -297,6 +300,13 @@ export default function App() {
   const utilsMenuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDailyReport, setShowDailyReport] = useState(false);
+
+  // Analytics telemetry — tracks feature views with duration, batches events to API
+  useAnalytics(
+    { activeTab, viewingStock, compareStocks, viewingProfileId, settingsView, creatorView, adminView, showDailyReport, comparingUser },
+    isAuthenticated,
+  );
+
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms'>('privacy');
   const [dailyReportHidden, setDailyReportHidden] = useState(false);
@@ -996,6 +1006,15 @@ export default function App() {
                       <span className={`absolute top-1 right-1 w-2 h-2 rounded-full ${jobAlerts.level === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`} />
                     )}
                   </button>
+                  <button
+                    onClick={() => { setAdminView('analytics'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-analytics'; }}
+                    className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                    title="Admin — Analytics"
+                  >
+                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </button>
                 </>
               )}
               {currentUserId && (
@@ -1088,6 +1107,15 @@ export default function App() {
                         {jobAlerts.level !== 'ok' && (
                           <span className={`ml-auto w-2 h-2 rounded-full ${jobAlerts.level === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`} />
                         )}
+                      </button>
+                      <button
+                        onClick={() => { setAdminView('analytics'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-analytics'; }}
+                        className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
+                      >
+                        <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Admin — Analytics
                       </button>
                     </>
                   )}
@@ -1637,6 +1665,12 @@ export default function App() {
           {adminView === 'jobs' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
             <ErrorBoundary>
               <JobsDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
+            </ErrorBoundary>
+          )}
+
+          {adminView === 'analytics' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
+            <ErrorBoundary>
+              <AnalyticsDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
             </ErrorBoundary>
           )}
 
