@@ -178,11 +178,22 @@ export function GettingStartedChecklist({
     safeSetItem(dismissedKey(userId), '1');
   }, [userId]);
 
+  const completedCount = STEPS.filter(s => completed.has(s.id)).length;
+  const allDone = completedCount === STEPS.length;
+
+  // Auto-dismiss 3 seconds after completing all steps
+  useEffect(() => {
+    if (allDone && !dismissed) {
+      const timer = setTimeout(() => {
+        handleDismiss();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [allDone, dismissed, handleDismiss]);
+
   if (dismissed) return null;
 
-  const completedCount = STEPS.filter(s => completed.has(s.id)).length;
   const progressPct = Math.round((completedCount / STEPS.length) * 100);
-  const allDone = completedCount === STEPS.length;
 
   return (
     <div className="mb-3 rounded-xl border border-rh-green/20 dark:border-rh-green/15 bg-white/80 dark:bg-white/[0.03] overflow-hidden">
@@ -227,15 +238,12 @@ export function GettingStartedChecklist({
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Dismiss button */}
+          {/* Skip / Dismiss button — visible text so users know they can skip */}
           <button
             onClick={(e) => { e.stopPropagation(); handleDismiss(); }}
-            className="p-1.5 rounded-lg text-gray-400 dark:text-white/20 hover:text-gray-600 dark:hover:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-            aria-label="Dismiss getting started checklist"
+            className="px-2 py-1 rounded-lg text-[11px] font-medium text-gray-400 dark:text-white/25 hover:text-gray-600 dark:hover:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            {allDone ? 'Done' : 'Skip'}
           </button>
           {/* Collapse chevron */}
           <svg

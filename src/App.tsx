@@ -154,8 +154,18 @@ const _initialSettingsView = (() => {
   const params = new URLSearchParams(hash);
   return params.get('tab') === 'settings';
 })();
-// Admin view is set ONLY after auth confirms isWaitlistAdmin — never from URL hash alone.
-// This prevents non-admins from deep-linking to admin pages.
+// Capture the admin hash at module load (before nav sync can overwrite it).
+// Actual state is applied only AFTER auth confirms isWaitlistAdmin — see useEffect below.
+const _initialAdminHash = (() => {
+  const hash = window.location.hash.slice(1);
+  if (!hash) return null;
+  const params = new URLSearchParams(hash);
+  const tab = params.get('tab');
+  if (tab === 'admin-waitlist') return 'waitlist' as const;
+  if (tab === 'admin-jobs') return 'jobs' as const;
+  if (tab === 'admin-analytics') return 'analytics' as const;
+  return null;
+})();
 const _initialAdminView = null;
 
 // Detect shareable profile URL: nalaai.com/<username>
@@ -244,15 +254,12 @@ export default function App() {
 
   const jobAlerts = useJobAlerts(!!user?.isWaitlistAdmin);
 
-  // Restore admin view from URL hash AFTER auth confirms admin status
+  // Restore admin view from URL hash AFTER auth confirms admin status.
+  // Uses _initialAdminHash (captured at module load) because the nav sync effect
+  // overwrites window.location.hash before this effect fires.
   useEffect(() => {
-    if (!user?.isWaitlistAdmin) return;
-    const hash = window.location.hash.slice(1);
-    const params = new URLSearchParams(hash);
-    const tab = params.get('tab');
-    if (tab === 'admin-waitlist') setAdminView('waitlist');
-    else if (tab === 'admin-jobs') setAdminView('jobs');
-    else if (tab === 'admin-analytics') setAdminView('analytics');
+    if (!user?.isWaitlistAdmin || !_initialAdminHash) return;
+    setAdminView(_initialAdminHash);
   }, [user?.isWaitlistAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for hash changes from Upgrade buttons (#pricing or #tab=pricing)
