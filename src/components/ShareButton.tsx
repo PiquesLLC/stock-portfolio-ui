@@ -31,11 +31,12 @@ const SHARE_ICON = (
 );
 
 function getCardUrl(type: ShareCardType, props: ShareButtonProps): string {
+  const cacheBust = `&_t=${Date.now()}`;
   switch (type) {
     case 'stock':
-      return `${API_BASE_URL}/social/stock/${props.ticker}/share-card?period=${props.period || '1W'}`;
+      return `${API_BASE_URL}/social/stock/${props.ticker}/share-card?period=${props.period || '1W'}${cacheBust}`;
     case 'performance':
-      return `${API_BASE_URL}/social/${props.userId}/performance-card?period=${props.period || '1M'}`;
+      return `${API_BASE_URL}/social/${props.userId}/performance-card?period=${props.period || '1M'}${cacheBust}`;
   }
 }
 
