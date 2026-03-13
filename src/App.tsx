@@ -976,7 +976,7 @@ export default function App() {
               {currentUserId && user?.isWaitlistAdmin && (
                 <>
                   <button
-                    onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); }}
+                    onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-waitlist'; }}
                     className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                     title="Admin — Waitlist"
                   >
@@ -985,7 +985,7 @@ export default function App() {
                     </svg>
                   </button>
                   <button
-                    onClick={() => { setAdminView('jobs'); setSettingsView(false); setCreatorView(null); }}
+                    onClick={() => { setAdminView('jobs'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-jobs'; }}
                     className="relative p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                     title="Admin — Background Jobs"
                   >
@@ -1069,7 +1069,7 @@ export default function App() {
                   {currentUserId && user?.isWaitlistAdmin && (
                     <>
                       <button
-                        onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); }}
+                        onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-waitlist'; }}
                         className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                       >
                         <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1078,7 +1078,7 @@ export default function App() {
                         Admin — Waitlist
                       </button>
                       <button
-                        onClick={() => { setAdminView('jobs'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); }}
+                        onClick={() => { setAdminView('jobs'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-jobs'; }}
                         className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                       >
                         <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1630,13 +1630,13 @@ export default function App() {
 
           {adminView === 'waitlist' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
             <ErrorBoundary>
-              <WaitlistAdminPage onBack={() => setAdminView(null)} />
+              <WaitlistAdminPage onBack={() => { setAdminView(null); window.location.hash = ''; }} />
             </ErrorBoundary>
           )}
 
           {adminView === 'jobs' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
             <ErrorBoundary>
-              <JobsDashboard onBack={() => setAdminView(null)} />
+              <JobsDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
             </ErrorBoundary>
           )}
 
