@@ -117,7 +117,7 @@ export function ShareButton(props: ShareButtonProps) {
     setMenuOpen(false);
     setLoading(true);
     try {
-      const res = await fetch(getCardUrl(type, props));
+      const res = await fetch(getCardUrl(type, props), { cache: 'no-store' });
       if (!res.ok) throw new Error('fetch failed');
       const blob = await res.blob();
       const file = new File([blob], getFileName(type, props), { type: 'image/png' });
@@ -162,24 +162,16 @@ export function ShareButton(props: ShareButtonProps) {
     window.open(xUrl, '_blank', 'noopener,noreferrer,width=550,height=420');
   }, [type, props]);
 
-  const handleDownloadImage = useCallback(async () => {
+  const handleDownloadImage = useCallback(() => {
     setMenuOpen(false);
-    setLoading(true);
-    try {
-      const res = await fetch(getCardUrl(type, props));
-      if (!res.ok) throw new Error('fetch failed');
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = getFileName(type, props);
-      a.click();
-      URL.revokeObjectURL(a.href);
-      showToast('Saved!');
-    } catch {
-      showToast('Failed');
-    } finally {
-      setLoading(false);
-    }
+    // Use direct anchor navigation — completely bypasses fetch API cache
+    const a = document.createElement('a');
+    a.href = getCardUrl(type, props);
+    a.download = getFileName(type, props);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('Saved!');
   }, [type, props, showToast]);
 
   const sizeClasses = size === 'sm'
