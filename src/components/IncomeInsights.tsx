@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { IncomeInsightsResponse, IncomeCategoryDetail, IncomeHealthDetails } from '../types';
 import { getIncomeInsights, getCashInterestAccrual, CashInterestAccrual, downloadDividendCalendar, getUserSettings } from '../api';
 import { DripProjector } from './DripProjector';
+import { YtdDividendBreakdown } from './YtdDividendBreakdown';
 import { useAuth } from '../context/AuthContext';
 
 interface Props {
@@ -615,6 +616,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
   const [loading, setLoading] = useState(true);
   const [cashInterest, setCashInterest] = useState<CashInterestAccrual | null>(null);
   const [annualSalary, setAnnualSalary] = useState<number | null>(null);
+  const [dismissTrigger, setDismissTrigger] = useState(0);
   const mountedRef = useRef(true);
   const currentPortfolioIdRef = useRef(portfolioId);
   currentPortfolioIdRef.current = portfolioId;
@@ -661,7 +663,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
     return () => {
       mountedRef.current = false;
     };
-  }, [fetchData, refreshTrigger]);
+  }, [fetchData, refreshTrigger, dismissTrigger]);
 
   if (loading && !data) {
     return (
@@ -704,6 +706,9 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
 
       {/* DRIP Income Projector */}
       <DripProjector refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} portfolioId={portfolioId} />
+
+      {/* YTD Dividend Breakdown */}
+      <YtdDividendBreakdown refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} portfolioId={portfolioId} onDismissChange={() => setDismissTrigger(n => n + 1)} />
 
       {/* Contributors + Concentration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">

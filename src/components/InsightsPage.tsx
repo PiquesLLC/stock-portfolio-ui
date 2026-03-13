@@ -157,6 +157,8 @@ function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
       const msg = e instanceof Error ? e.message : 'Failed to generate report';
       if (msg.includes('upgrade_required')) {
         showToast('Elite plan required for performance reports', 'error');
+        window.location.hash = '#pricing';
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
       } else {
         showToast(msg, 'error');
       }

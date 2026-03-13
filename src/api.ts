@@ -722,6 +722,46 @@ export async function getIncomeInsights(window: IncomeWindow = 'today', portfoli
   return fetchJson<IncomeInsightsResponse>(url);
 }
 
+export interface YtdDividendEntry {
+  dividendEventId: string;
+  ticker: string;
+  payDate: string;
+  amountPerShare: number;
+  shares: number;
+  income: number;
+  dividendType: string;
+  dismissed: boolean;
+}
+
+export interface YtdDividendBreakdown {
+  entries: YtdDividendEntry[];
+  totalIncome: number;
+  totalDismissed: number;
+  netIncome: number;
+}
+
+export async function getYtdDividendBreakdown(portfolioId?: string): Promise<YtdDividendBreakdown> {
+  let url = `${API_BASE_URL}/insights/income/ytd-breakdown`;
+  if (portfolioId) url += `?portfolioId=${encodeURIComponent(portfolioId)}`;
+  return fetchJson<YtdDividendBreakdown>(url);
+}
+
+export async function dismissDividendEvent(dividendEventId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/insights/income/dismiss-dividend`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dividendEventId }),
+  });
+}
+
+export async function restoreDividendEvent(dividendEventId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/insights/income/restore-dividend`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dividendEventId }),
+  });
+}
+
 export async function getDailyReport(portfolioId?: string): Promise<DailyReportResponse> {
   const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
   return fetchJson<DailyReportResponse>(`${API_BASE_URL}/insights/daily-report${qs}`);
@@ -2251,6 +2291,12 @@ export async function approveWaitlistEntry(id: string): Promise<{ entry: Waitlis
 
 export async function rejectWaitlistEntry(id: string): Promise<{ entry: WaitlistEntry }> {
   return fetchJson<{ entry: WaitlistEntry }>(`${API_BASE_URL}/waitlist/${encodeURIComponent(id)}/reject`, {
+    method: 'POST',
+  });
+}
+
+export async function resendWaitlistEmail(id: string): Promise<{ success: boolean }> {
+  return fetchJson<{ success: boolean }>(`${API_BASE_URL}/waitlist/${encodeURIComponent(id)}/resend`, {
     method: 'POST',
   });
 }

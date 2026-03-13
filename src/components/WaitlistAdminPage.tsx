@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getWaitlistEntries, approveWaitlistEntry, rejectWaitlistEntry, WaitlistEntry, WaitlistResponse } from '../api';
+import { getWaitlistEntries, approveWaitlistEntry, rejectWaitlistEntry, resendWaitlistEmail, WaitlistEntry, WaitlistResponse } from '../api';
 
 const CARD = 'rounded-xl border border-gray-200/40 dark:border-white/[0.06] bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl';
 
@@ -75,6 +75,18 @@ export function WaitlistAdminPage({ onBack }: WaitlistAdminPageProps) {
       await fetchData();
     } catch (err: any) {
       setError(err.message || 'Failed to reject');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResend = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await resendWaitlistEmail(id);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend email');
     } finally {
       setActionLoading(null);
     }
@@ -165,6 +177,7 @@ export function WaitlistAdminPage({ onBack }: WaitlistAdminPageProps) {
               loading={actionLoading === entry.id}
               onApprove={() => handleApprove(entry.id)}
               onReject={() => handleReject(entry.id)}
+              onResend={() => handleResend(entry.id)}
             />
           ))}
         </div>
@@ -173,11 +186,12 @@ export function WaitlistAdminPage({ onBack }: WaitlistAdminPageProps) {
   );
 }
 
-function EntryRow({ entry, loading, onApprove, onReject }: {
+function EntryRow({ entry, loading, onApprove, onReject, onResend }: {
   entry: WaitlistEntry;
   loading: boolean;
   onApprove: () => void;
   onReject: () => void;
+  onResend: () => void;
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 gap-3">
@@ -200,24 +214,35 @@ function EntryRow({ entry, loading, onApprove, onReject }: {
           )}
         </div>
       </div>
-      {entry.status === 'pending' && (
-        <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {entry.status === 'pending' && (
+          <>
+            <button
+              onClick={onApprove}
+              disabled={loading}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-500/15 text-green-600 dark:text-green-400 hover:bg-green-500/25 transition-colors disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              onClick={onReject}
+              disabled={loading}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 text-red-600 dark:text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
+            >
+              Reject
+            </button>
+          </>
+        )}
+        {entry.status === 'approved' && (
           <button
-            onClick={onApprove}
+            onClick={onResend}
             disabled={loading}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-500/15 text-green-600 dark:text-green-400 hover:bg-green-500/25 transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 transition-colors disabled:opacity-50"
           >
-            Approve
+            {loading ? 'Sending...' : 'Resend Email'}
           </button>
-          <button
-            onClick={onReject}
-            disabled={loading}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 text-red-600 dark:text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
-          >
-            Reject
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

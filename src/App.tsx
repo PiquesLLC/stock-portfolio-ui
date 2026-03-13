@@ -56,6 +56,7 @@ const CompareStocksPage = lazy(() => import('./components/CompareStocksPage').th
 const CreatorDashboardPage = lazy(() => import('./components/CreatorDashboard').then(m => ({ default: m.CreatorDashboard })));
 const CreatorSettingsPageComp = lazy(() => import('./components/CreatorSettingsPage').then(m => ({ default: m.CreatorSettingsPage })));
 const OnboardingTour = lazy(() => import('./components/OnboardingTour').then(m => ({ default: m.OnboardingTour })));
+const GettingStartedChecklist = lazy(() => import('./components/GettingStartedChecklist').then(m => ({ default: m.GettingStartedChecklist })));
 const WaitlistAdminPage = lazy(() => import('./components/WaitlistAdminPage').then(m => ({ default: m.WaitlistAdminPage })));
 const JobsDashboard = lazy(() => import('./components/JobsDashboard').then(m => ({ default: m.JobsDashboard })));
 const AccountSettingsPageComp2 = lazy(() => import('./components/settings/AccountSettingsPage'));
@@ -114,7 +115,8 @@ function parseHash(): NavState & { compareStocks?: string[] } {
   const hash = window.location.hash.slice(1);
   if (hash) {
     const params = new URLSearchParams(hash);
-    const rawTab = params.get('tab') || 'portfolio';
+    // Support bare #pricing (no tab= prefix) — used by Upgrade buttons
+    const rawTab = params.get('tab') || (VALID_TABS.has(hash as TabType) ? hash : 'portfolio');
 
     // Handle compare page on initial load
     if (rawTab === 'compare') {
@@ -249,6 +251,24 @@ export default function App() {
     if (tab === 'admin-waitlist') setAdminView('waitlist');
     else if (tab === 'admin-jobs') setAdminView('jobs');
   }, [user?.isWaitlistAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for hash changes from Upgrade buttons (#pricing or #tab=pricing)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const raw = window.location.hash.slice(1);
+      if (!raw) return;
+      // Support both #pricing and #tab=pricing formats — only pricing, to avoid
+      // conflicting with useNavigationState's hash listener for other tabs
+      const params = new URLSearchParams(raw);
+      const tab = params.get('tab') || raw;
+      if (tab === 'pricing') {
+        resetNavigation();
+        setActiveTab('pricing');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-warm daily report cache — fire-and-forget on login so it's ready when user opens Daily Brief
   useEffect(() => {
@@ -404,6 +424,8 @@ export default function App() {
     if (!currentUserId || !portfolio) return;
     // Don't show daily briefing during onboarding tour
     if (showOnboardingTour) return;
+    // Don't auto-show for users with no holdings — they'd just see a loading loop
+    if (!portfolio.holdings || portfolio.holdings.length === 0) return;
     // Use market-day boundaries: new trading day starts at 9:30 AM ET (market open)
     // Before 9:30 AM ET, the "market day" is still the previous calendar day
     const now = new Date();
@@ -800,7 +822,7 @@ export default function App() {
               return (
               <button
                 key={tab.id}
-                onClick={() => { resetNavigation(); setActiveTab(tab.id); }}
+                onClick={() => { resetNavigation(); if (tab.id === 'profile' && currentUserId) setViewingProfileId(currentUserId); setActiveTab(tab.id); }}
                 className={`relative px-3 py-2 text-[13px] rounded-md transition-all duration-150 whitespace-nowrap
                   ${collapseAtSmLg ? 'hidden lg:inline-flex' : ''}
                   ${activeTab === tab.id
@@ -858,7 +880,7 @@ export default function App() {
                   {collapsedPrimaryTabs.map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => { resetNavigation(); setActiveTab(tab.id); setMoreDropdownOpen(false); }}
+                      onClick={() => { resetNavigation(); if (tab.id === 'profile' && currentUserId) setViewingProfileId(currentUserId); setActiveTab(tab.id); setMoreDropdownOpen(false); }}
                       className={`lg:hidden w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
                         ${activeTab === tab.id
                           ? 'text-rh-green font-semibold bg-rh-green/[0.06]'
@@ -872,7 +894,7 @@ export default function App() {
                   {visibleMoreTabs.map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => { resetNavigation(); setActiveTab(tab.id); setMoreDropdownOpen(false); }}
+                      onClick={() => { resetNavigation(); if (tab.id === 'profile' && currentUserId) setViewingProfileId(currentUserId); setActiveTab(tab.id); setMoreDropdownOpen(false); }}
                       className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors duration-150
                         ${activeTab === tab.id
                           ? 'text-rh-green font-semibold bg-rh-green/[0.06]'
@@ -1117,6 +1139,7 @@ export default function App() {
       <div className="sm:hidden">
         <Navigation activeTab={activeTab} userPlan={user?.plan} onTabChange={(tab) => {
           resetNavigation();
+          if (tab === 'profile' && currentUserId) setViewingProfileId(currentUserId);
           setActiveTab(tab);
         }} />
       </div>
@@ -1225,6 +1248,20 @@ export default function App() {
                   userPlan={user.plan || 'free'}
                 />
               </div>
+            )}
+
+            {/* Getting started checklist for new users */}
+            {currentUserId && (
+              <Suspense fallback={null}>
+                <GettingStartedChecklist
+                  userId={currentUserId}
+                  hasHoldings={!!portfolio && portfolio.holdings.length > 0}
+                  onNavigate={(tab) => { resetNavigation(); setActiveTab(tab as TabType); }}
+                  onOpenDailyBrief={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
+                  onOpenCreatorSettings={() => setCreatorView('settings')}
+                  onOpenAddStock={() => holdingsActionsRef.current?.openAdd()}
+                />
+              </Suspense>
             )}
 
             {/* Empty portfolio state — show when portfolio exists but has no holdings */}

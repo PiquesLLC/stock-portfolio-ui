@@ -152,6 +152,8 @@ const MAX_RETRIES = 2;
 
 /** Returns true if the response looks like a real, complete report */
 function isValidReport(result: DailyReportResponse): boolean {
+  // Sample reports for new users are always valid
+  if (result.sample) return true;
   // A valid report has at least one top story with content
   if (!result.topStories || result.topStories.length === 0) return false;
   // If it's cached, trust it
@@ -768,11 +770,19 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
         {/* Loaded state */}
         {!loading && !error && !retriesExhausted && data && (
           <>
+            {/* Sample banner for new users */}
+            {data.sample && (
+              <div className="mb-6 px-5 py-4 rounded-xl bg-rh-green/10 border border-rh-green/20 text-center">
+                <p className="text-sm font-semibold text-rh-green mb-1">Sample Brief</p>
+                <p className="text-xs text-white/50">This is a preview of your daily brief. Add holdings to your portfolio to get a personalized report each morning.</p>
+              </div>
+            )}
+
             {/* Title + reading time */}
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-white tracking-tight mb-1">Today's Brief</h1>
               <p className="text-sm text-rh-green mb-1">{formatDate(data.generatedAt)}</p>
-              <p className="text-[11px] text-white/30">{estimateReadingTime(data)} min read</p>
+              {!data.sample && <p className="text-[11px] text-white/30">{estimateReadingTime(data)} min read</p>}
             </div>
 
             {/* Key Market Metrics */}

@@ -1213,6 +1213,7 @@ export interface DailyReportResponse {
   }[];
   watchToday: string[];
   cached: boolean;
+  sample?: boolean;
 }
 
 // Watchlist types
