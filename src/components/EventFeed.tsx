@@ -192,7 +192,7 @@ export default function EventFeed({ events }: EventFeedProps) {
                     </a>
                   ) : (
                     <span className="text-[10px] font-mono text-rh-light-muted/50 dark:text-white/25">
-                      perplexity.ai
+                      nala ai
                     </span>
                   )}
                 </div>
