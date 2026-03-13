@@ -107,6 +107,7 @@ function saveCompleted(userId: string, completed: Set<string>) {
 interface GettingStartedChecklistProps {
   userId: string;
   hasHoldings: boolean;
+  holdingsCount: number;
   onNavigate: (tab: string) => void;
   onOpenDailyBrief: () => void;
   onOpenCreatorSettings: () => void;
@@ -116,6 +117,7 @@ interface GettingStartedChecklistProps {
 export function GettingStartedChecklist({
   userId,
   hasHoldings,
+  holdingsCount,
   onNavigate,
   onOpenDailyBrief,
   onOpenCreatorSettings,
@@ -124,6 +126,14 @@ export function GettingStartedChecklist({
   const [completed, setCompleted] = useState<Set<string>>(() => loadCompleted(userId));
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setDismissed] = useState(() => safeGetItem(dismissedKey(userId)) === '1');
+
+  // Auto-dismiss for existing users (2+ holdings means not a new user)
+  useEffect(() => {
+    if (holdingsCount >= 2 && !dismissed) {
+      setDismissed(true);
+      safeSetItem(dismissedKey(userId), '1');
+    }
+  }, [holdingsCount, userId, dismissed]);
 
   // Auto-complete "add stock" when holdings exist
   useEffect(() => {

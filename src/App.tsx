@@ -1297,6 +1297,7 @@ export default function App() {
                 <GettingStartedChecklist
                   userId={currentUserId}
                   hasHoldings={!!portfolio && portfolio.holdings.length > 0}
+                  holdingsCount={portfolio?.holdings?.length ?? 0}
                   onNavigate={(tab) => { resetNavigation(); setActiveTab(tab as TabType); }}
                   onOpenDailyBrief={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
                   onOpenCreatorSettings={() => setCreatorView('settings')}
