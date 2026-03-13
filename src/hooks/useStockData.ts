@@ -119,12 +119,11 @@ export function useStockData(ticker: string, chartPeriod: string) {
   const fetchInitial = useCallback(async () => {
     setCandlesLoaded(false);
     try {
-      // PHASE 1: Quick load - quote + chart candles via Yahoo Finance (all fast, no queue)
-      const [quoteResult, intraday, hourly1W, hourly1M] = await Promise.all([
+      // PHASE 1: Quick load - only fetch what the default 1D open state needs.
+      // Don't block the whole stock view on 1W/1M hourly prefetch.
+      const [quoteResult, intraday] = await Promise.all([
         getFastQuote(ticker).catch(e => { console.error('Fast quote fetch failed:', e); return null; }),
         getIntradayCandles(ticker).catch(e => { console.error('Intraday candles fetch failed:', e); return []; }),
-        getHourlyCandles(ticker, '1W').catch(e => { console.error('Hourly 1W candles fetch failed:', e); return []; }),
-        getHourlyCandles(ticker, '1M').catch(e => { console.error('Hourly 1M candles fetch failed:', e); return []; }),
       ]);
 
       if (fetchStaleRef.current) return;
@@ -139,16 +138,25 @@ export function useStockData(ticker: string, chartPeriod: string) {
           candles: null,
         });
         setIntradayCandles(intraday);
-        hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
-        const currentPeriod = chartPeriodRef.current;
-        if (currentPeriod === '1W') setHourlyCandles(hourly1W);
-        else if (currentPeriod === '1M') setHourlyCandles(hourly1M);
         setQuickLoaded(true);
 
         // Seed live prices with current price
         const now = new Date().toISOString();
         setLivePrices([{ time: now, price: quoteResult.currentPrice }]);
       }
+
+      // Prefetch hourly data in the background so period switches stay snappy,
+      // but don't hold up initial stock-detail paint for it.
+      Promise.all([
+        getHourlyCandles(ticker, '1W').catch(e => { console.error('Hourly 1W candles fetch failed:', e); return []; }),
+        getHourlyCandles(ticker, '1M').catch(e => { console.error('Hourly 1M candles fetch failed:', e); return []; }),
+      ]).then(([hourly1W, hourly1M]) => {
+        if (fetchStaleRef.current) return;
+        hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
+        const currentPeriod = chartPeriodRef.current;
+        if (currentPeriod === '1W') setHourlyCandles(hourly1W);
+        else if (currentPeriod === '1M') setHourlyCandles(hourly1M);
+      });
 
       // PHASE 2: Full load - profile, metrics, historical candles (slower - Finnhub queue)
       const result = await getStockDetails(ticker);
