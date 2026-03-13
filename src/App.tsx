@@ -1515,7 +1515,6 @@ export default function App() {
                 userId={currentUserId}
                 chartPeriod={chartPeriod}
                 portfolioId={selectedPortfolioId}
-                actionsRef={holdingsActionsRef}
                 hideEmptyState={!!selectedPortfolioId && (portfolio?.holdings?.length ?? 0) === 0}
               />
               {(portfolio?.options?.length ?? 0) > 0 && (

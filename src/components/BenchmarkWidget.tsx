@@ -46,9 +46,13 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
     setData(null);
   }, [portfolioId]);
 
-  // Sync window when portfolio chart period changes
+  // Sync window when portfolio chart period changes — clear stale data immediately
+  // so the widget never shows data from a different period while refetching
   useEffect(() => {
-    if (externalWindow) setWindow(externalWindow);
+    if (externalWindow && externalWindow !== window) {
+      setWindow(externalWindow);
+      setData(null);
+    }
   }, [externalWindow]);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PortfolioChartData, PortfolioChartPeriod } from '../types';
-import { getPortfolioChart, getBenchmarkCloses, getIntradayCandles, getHourlyCandles, BenchmarkCandle, IntradayCandle } from '../api';
+import { getPortfolioChart, getBenchmarkCloses, getIntradayCandlesWithPrevClose, getHourlyCandles, BenchmarkCandle, IntradayCandle } from '../api';
 import {
   MarketSessionProp,
   getMarketStatus,
@@ -151,6 +151,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const [measureB, setMeasureB] = useState<number | null>(null); // index of second click
   const [benchmarkCandles, setBenchmarkCandles] = useState<BenchmarkCandle[]>([]);
   const [intradayBenchmark, setIntradayBenchmark] = useState<BenchmarkCandle[]>([]);
+  const [spyPreviousClose, setSpyPreviousClose] = useState<number | null>(null);
   const [showHint, setShowHint] = useState(true);
   const [showBenchmark, setShowBenchmark] = useState(false);
   const [heroAnimationIndex, setHeroAnimationIndex] = useState(0);
@@ -251,11 +252,15 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
       try {
         let candles: IntradayCandle[];
         if (selectedPeriod === '1D') {
-          candles = await getIntradayCandles('SPY');
+          const result = await getIntradayCandlesWithPrevClose('SPY');
+          candles = result.candles;
+          setSpyPreviousClose(result.previousClose);
         } else if (selectedPeriod === '1W' || selectedPeriod === '1M' || selectedPeriod === 'YTD') {
           candles = await getHourlyCandles('SPY', selectedPeriod);
+          setSpyPreviousClose(null);
         } else {
           setIntradayBenchmark([]);
+          setSpyPreviousClose(null);
           return;
         }
         setIntradayBenchmark(candles.map(c => ({
@@ -265,6 +270,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
         })));
       } catch {
         setIntradayBenchmark([]);
+        setSpyPreviousClose(null);
       }
     };
     fetchIntraday();
@@ -456,12 +462,18 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
       : benchmarkCandles;
     if (candles.length === 0) return null;
 
-    const chartStart = points[0].time;
-
-    // Find SPY close at chart start
-    const startIdx = findBenchmarkIndex(candles, chartStart);
-    if (startIdx === null) return null;
-    const spyStartClose = candles[startIdx].close;
+    // For 1D: use SPY's previousClose as baseline so the overlay measures from
+    // yesterday's close (matching the portfolio's periodStartValue baseline),
+    // not from the first candle which may be today's pre-market open.
+    let spyStartClose: number;
+    if (selectedPeriod === '1D' && spyPreviousClose && spyPreviousClose > 0) {
+      spyStartClose = spyPreviousClose;
+    } else {
+      const chartStart = points[0].time;
+      const startIdx = findBenchmarkIndex(candles, chartStart);
+      if (startIdx === null) return null;
+      spyStartClose = candles[startIdx].close;
+    }
     if (spyStartClose === 0) return null;
 
     const portfolioStartVal = periodStartValue;
@@ -483,7 +495,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
 
     if (normalized.length < 2) return null;
     return normalized;
-  }, [showBenchmark, points, selectedPeriod, benchmarkCandles, intradayBenchmark, periodStartValue]);
+  }, [showBenchmark, points, selectedPeriod, benchmarkCandles, intradayBenchmark, periodStartValue, spyPreviousClose]);
 
   // Compute hero display values
   const hoverValue = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex].value : null;
@@ -535,16 +547,14 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const { paddedMin, paddedMax } = useMemo(() => {
     if (points.length < 2) return { paddedMin: 0, paddedMax: 1 };
     const values = points.map(p => p.value);
-    // Include benchmark values so the y-axis accommodates both lines
-    if (benchmarkNormalized) {
-      for (const bp of benchmarkNormalized) values.push(bp.value);
-    }
+    // Y-axis bounds based on portfolio only — benchmark is clipped via SVG clipPath
+    // so toggling SPY never shifts the portfolio chart
     let minV = Math.min(...values, periodStartValue);
     let maxV = Math.max(...values, periodStartValue);
     if (maxV === minV) { maxV += 1; minV -= 1; }
     const range = maxV - minV;
     return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
-  }, [points, periodStartValue, benchmarkNormalized]);
+  }, [points, periodStartValue]);
 
   // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   // Derive the trading day from the data points (not "today") so it works after hours / weekends
@@ -1007,9 +1017,28 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                 else hoverSession = 'after';
               }
 
-              // Pre-market hover: single line showing pre-market change from previous close.
-              // No "Today" line — the regular session hasn't happened yet.
+              // Pre-market hover: show pre-market change at hovered point.
+              // If regular session has started (POST/REG), also show "Today" for comparison.
               if (hoverSession === 'pre' && hoverIndex !== null) {
+                if (session !== 'PRE') {
+                  // Market has opened — show both Today and Pre-market for comparison
+                  const regChange = regularDayChange ?? dayChange;
+                  const regChangePct = regularDayChangePercent ?? dayChangePercent;
+                  return (
+                    <>
+                      <p className={`text-base mt-2 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        {formatChange(regChange)} ({formatPct(regChangePct)})
+                        <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                      </p>
+                      <p className={`text-sm mt-0.5 font-medium ${displayChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                        {formatChange(displayChange)} ({formatPct(displayChangePct)})
+                        <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">Pre-market</span>
+                        {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                      </p>
+                    </>
+                  );
+                }
+                // Still in pre-market — single line
                 return (
                   <p className={`text-base mt-2 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatChange(displayChange)} ({formatPct(displayChangePct)})
@@ -1041,8 +1070,18 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                 );
               }
 
-              // Not hovering + outside regular hours: existing two-line behavior
-              if (selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session !== 'REG') {
+              // Not hovering + pre-market: single line labeled "Pre-market" (no regular session yet today)
+              if (selectedPeriod === '1D' && hoverIndex === null && session === 'PRE') {
+                return (
+                  <p className={`text-base mt-2 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {formatChange(displayChange)} ({formatPct(displayChangePct)})
+                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Pre-market</span>
+                  </p>
+                );
+              }
+
+              // Not hovering + after hours: two-line "Today" + "After hours"
+              if (selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST') {
                 return (
                   <>
                     <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
@@ -1051,7 +1090,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
                     </p>
                     <p className={`text-sm mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                       {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
-                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">{session === 'PRE' ? 'Pre-market' : 'After hours'}</span>
+                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">After hours</span>
                     </p>
                   </>
                 );
@@ -1282,9 +1321,10 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               <stop offset="0%" stopColor={measureColor} stopOpacity="0.20" />
               <stop offset="100%" stopColor={measureColor} stopOpacity="0.03" />
             </linearGradient>
-            {/* Clip benchmark — generous top overflow, clipped at bottom to avoid bleeding into labels */}
+            {/* Clip benchmark to plot area so SPY doesn't bleed outside chart bounds.
+                Extra 30px on right for "SPY" label, extra 10px top/bottom for stroke width. */}
             <clipPath id="chart-clip">
-              <rect x={PAD_LEFT} y={-200} width={CHART_W - PAD_LEFT - PAD_RIGHT} height={CHART_H - PAD_BOTTOM + 200} />
+              <rect x={PAD_LEFT} y={PAD_TOP - 10} width={CHART_W - PAD_LEFT - PAD_RIGHT + 30} height={plotH + 20} />
             </clipPath>
           </defs>
 
