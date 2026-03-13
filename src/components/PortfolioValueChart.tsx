@@ -501,10 +501,11 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   const hoverValue = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex].value : null;
   const displayValue = hoverValue ?? currentValue;
 
-  // For 1D non-hover: use API dayChange props directly — these are purely price-based
-  // and immune to margin debt timing mismatches (portfolio refreshes before chart data).
-  // For hover or non-1D: compute from chart data as before.
-  const is1DLive = selectedPeriod === '1D' && hoverIndex === null;
+  // For 1D non-hover (or hovering on the very last point): use API dayChange props
+  // directly — these are purely price-based and immune to margin debt timing mismatches.
+  // For hover on earlier points or non-1D: compute from chart data as before.
+  const isLastPoint = hoverIndex !== null && hoverIndex === points.length - 1;
+  const is1DLive = selectedPeriod === '1D' && (hoverIndex === null || isLastPoint);
   const displayChange = is1DLive ? dayChange : displayValue - periodStartValue;
   const displayChangePct = is1DLive ? dayChangePercent : (periodStartValue > 0 ? (displayChange / periodStartValue) * 100 : 0);
   const confidenceThreshold = chartData?.confidenceThreshold ?? 80;
