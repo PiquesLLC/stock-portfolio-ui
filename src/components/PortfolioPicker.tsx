@@ -132,8 +132,9 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     el.scrollBy({ left: dir === 'left' ? -120 : 120, behavior: 'smooth' });
   };
 
-  // Don't render if only one portfolio and can't create more
-  if (displayPortfolios.length <= 1 && !canCreate) return null;
+  // Don't render if the user truly has only one portfolio and can't create more.
+  // Normalization can intentionally hide legacy/system tabs, so use the raw count here.
+  if (portfolios.length <= 1 && !canCreate) return null;
 
   return (
     <div className="relative flex items-center max-w-[280px] sm:max-w-[360px]">
