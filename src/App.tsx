@@ -1310,6 +1310,16 @@ export default function App() {
             )}
 
             {/* Empty portfolio state — show when portfolio exists but has no holdings */}
+            {user && (
+              <div className="px-3 sm:px-6 mb-2 flex justify-end">
+                <PortfolioPicker
+                  selectedPortfolioId={selectedPortfolioId}
+                  onSelect={setSelectedPortfolioId}
+                  userPlan={user.plan || 'free'}
+                />
+              </div>
+            )}
+
             {portfolio && portfolio.holdings.length === 0 && selectedPortfolioId && (
               <div className="rounded-xl border border-dashed border-gray-300/60 dark:border-white/[0.08]
                 bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm p-10 text-center">
@@ -1354,16 +1364,6 @@ export default function App() {
                     Import from CSV
                   </button>
                 </div>
-              </div>
-            )}
-
-            {user && (
-              <div className="px-3 sm:px-6 mb-2 flex justify-end">
-                <PortfolioPicker
-                  selectedPortfolioId={selectedPortfolioId}
-                  onSelect={setSelectedPortfolioId}
-                  userPlan={user.plan || 'free'}
-                />
               </div>
             )}
 
