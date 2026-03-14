@@ -30,7 +30,7 @@ interface UseNavigationStateParams {
   currentUserId: string;
   isAuthenticated: boolean;
   initialSettingsView: boolean;
-  initialAdminView: 'waitlist' | 'analytics' | null;
+  initialAdminView: 'waitlist' | 'jobs' | 'analytics' | null;
 }
 
 export function useNavigationState({
@@ -128,14 +128,35 @@ export function useNavigationState({
       setSettingsView(false);
 
       if (rawTab === 'admin-waitlist') {
+        setViewingProfileId(null);
+        setViewingStock(null);
+        setLeaderboardUserId(null);
+        setComparingUser(null);
+        setCompareStocks(null);
+        setCreatorView(null);
+        setSettingsView(false);
         setAdminView('waitlist');
         return;
       }
       if (rawTab === 'admin-jobs') {
+        setViewingProfileId(null);
+        setViewingStock(null);
+        setLeaderboardUserId(null);
+        setComparingUser(null);
+        setCompareStocks(null);
+        setCreatorView(null);
+        setSettingsView(false);
         setAdminView('jobs');
         return;
       }
       if (rawTab === 'admin-analytics') {
+        setViewingProfileId(null);
+        setViewingStock(null);
+        setLeaderboardUserId(null);
+        setComparingUser(null);
+        setCompareStocks(null);
+        setCreatorView(null);
+        setSettingsView(false);
         setAdminView('analytics');
         return;
       }
