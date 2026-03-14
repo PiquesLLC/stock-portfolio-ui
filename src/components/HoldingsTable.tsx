@@ -4,7 +4,7 @@ import { Reorder } from 'framer-motion';
 import { Holding } from '../types';
 import { useToast } from '../context/ToastContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { deleteHolding, addHolding, updateSettings, getPortfolio, getEarningsSummary } from '../api';
+import { deleteHolding, addHolding, updateSettings, getPortfolio, getEarningsSummary, getFastQuote } from '../api';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { MiniSparkline } from './MiniSparkline';
 import { StockLogo } from './StockLogo';
@@ -147,6 +147,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin', logAsTrade: true });
+  const [addCurrentPrice, setAddCurrentPrice] = useState<number | null>(null);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
   // Custom order for drag-to-reorder (scoped by userId)
@@ -385,6 +386,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   const handleOpenAdd = useCallback(() => {
     setShowAddModal(true);
     setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash', logAsTrade: true });
+    setAddCurrentPrice(null);
     setModalError('');
   }, []);
 
@@ -401,6 +403,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     setShowAddModal(false);
     setModalError('');
     setFormData({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash', logAsTrade: true });
+    setAddCurrentPrice(null);
     // Return focus to the Add Stock button for accessibility
     setTimeout(() => {
       addStockButtonRef.current?.focus();
@@ -494,7 +497,30 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
         ) : (
           <TickerAutocompleteInput
             value={formData.ticker}
-            onChange={(value) => setFormData({ ...formData, ticker: value })}
+            onChange={(value) => {
+              setFormData({ ...formData, ticker: value });
+              if (!value) {
+                setAddCurrentPrice(null);
+                setFormData(prev => ({ ...prev, ticker: value, averageCost: '' }));
+              }
+            }}
+            onSelect={async (result) => {
+              setFormData(prev => ({ ...prev, ticker: result.symbol }));
+              setAddCurrentPrice(null);
+              try {
+                const quote = await getFastQuote(result.symbol);
+                if (quote?.currentPrice) {
+                  setAddCurrentPrice(quote.currentPrice);
+                  setFormData(prev => ({
+                    ...prev,
+                    ticker: result.symbol,
+                    averageCost: prev.averageCost.trim() ? prev.averageCost : quote.currentPrice.toFixed(2),
+                  }));
+                }
+              } catch {
+                // Leave manual cost entry available if quote fetch fails.
+              }
+            }}
             placeholder="e.g. AAPL"
             autoFocus
             heldTickers={heldTickers}
@@ -517,7 +543,14 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-1">Average Cost ($)</label>
+        <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+          Average Cost ($)
+          {!isEditing && addCurrentPrice !== null && (
+            <span className="ml-1.5 text-rh-green font-normal">
+              Current: ${addCurrentPrice.toFixed(2)}
+            </span>
+          )}
+        </label>
         <input
           type="number"
           inputMode="decimal"
@@ -525,7 +558,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
           min="0"
           value={formData.averageCost}
           onChange={(e) => setFormData({ ...formData, averageCost: e.target.value })}
-          placeholder="e.g. 150.00"
+          placeholder={!isEditing && addCurrentPrice !== null ? `$${addCurrentPrice.toFixed(2)}` : 'e.g. 150.00'}
           className="w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-white/[0.08]
             bg-rh-light-bg dark:bg-white/[0.04] text-rh-light-text dark:text-rh-text
             focus:outline-none focus:ring-2 focus:ring-rh-green/20 focus:border-rh-green/40"
