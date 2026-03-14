@@ -30,6 +30,20 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
   const limit = PLAN_LIMITS[userPlan] ?? 1;
   const canCreate = portfolios.length < limit;
   const visiblePortfolios = normalizePortfolioTabs(portfolios);
+  const displayPortfolios = (() => {
+    if (!selectedPortfolioId || visiblePortfolios.some((p) => p.id === selectedPortfolioId)) {
+      return visiblePortfolios;
+    }
+    const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
+    if (!selectedPortfolio) return visiblePortfolios;
+    return [
+      {
+        ...selectedPortfolio,
+        name: selectedPortfolio.isDefault ? 'Portfolio 1' : selectedPortfolio.name,
+      },
+      ...visiblePortfolios,
+    ];
+  })();
 
   useEffect(() => {
     listPortfolios().then(setPortfolios).catch(() => {});
@@ -81,16 +95,18 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
 
   // Auto-select the first portfolio if none is selected
   useEffect(() => {
-    if (!selectedPortfolioId && visiblePortfolios.length > 0) {
-      onSelect(visiblePortfolios[0].id);
+    if (!selectedPortfolioId && displayPortfolios.length > 0) {
+      onSelect(displayPortfolios[0].id);
     }
-  }, [selectedPortfolioId, visiblePortfolios, onSelect]);
+  }, [selectedPortfolioId, displayPortfolios, onSelect]);
 
   useEffect(() => {
-    if (selectedPortfolioId && !visiblePortfolios.some(p => p.id === selectedPortfolioId) && visiblePortfolios.length > 0) {
-      onSelect(visiblePortfolios[0].id);
+    if (!selectedPortfolioId) return;
+    if (displayPortfolios.length === 0) return;
+    if (!displayPortfolios.some((p) => p.id === selectedPortfolioId)) {
+      onSelect(displayPortfolios[0].id);
     }
-  }, [selectedPortfolioId, visiblePortfolios, onSelect]);
+  }, [selectedPortfolioId, displayPortfolios, onSelect]);
 
   // Check scroll overflow
   const checkOverflow = useCallback(() => {
@@ -117,7 +133,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
   };
 
   // Don't render if only one portfolio and can't create more
-  if (visiblePortfolios.length <= 1 && !canCreate) return null;
+  if (displayPortfolios.length <= 1 && !canCreate) return null;
 
   return (
     <div className="relative flex items-center max-w-[280px] sm:max-w-[360px]">
@@ -136,7 +152,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
 
       {/* Scrollable tab row */}
       <div ref={scrollRef} className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-0.5 py-0.5">
-        {visiblePortfolios.map(p => {
+        {displayPortfolios.map(p => {
           const isActive = selectedPortfolioId === p.id;
           const isConfirmingDelete = confirmDelete === p.id;
           return (
