@@ -7,11 +7,13 @@ import { MfaVerifyStep } from './MfaVerifyStep';
 import { PLANS } from '../data/plans';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
+import { isNative } from '../utils/platform';
 import { generateUuid } from '../utils/uuid';
 const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = isAppleOAuthEnabled();
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
+const DIRECT_SIGNUP_ENABLED = !WAITLIST_ENABLED || isNative;
 
 /** Map raw API error codes to user-friendly messages */
 function friendlyError(msg: string): string {
@@ -69,7 +71,8 @@ export function LandingPage() {
   const openAuth = (mode: 'login' | 'signup' | 'waitlist') => { setAuthMode(mode); setAuthOpen(true); };
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
-  const ctaMode = WAITLIST_ENABLED ? 'waitlist' as const : 'signup' as const;
+  const ctaMode = DIRECT_SIGNUP_ENABLED ? 'signup' as const : 'waitlist' as const;
+  const ctaLabel = DIRECT_SIGNUP_ENABLED ? 'Open Account' : 'Join the Waitlist Now';
   const [resetEmail, setResetEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -98,7 +101,7 @@ export function LandingPage() {
     if (ref) {
       setReferralCode(ref);
       setAuthOpen(true);
-      setAuthMode(WAITLIST_ENABLED ? 'waitlist' : 'signup');
+      setAuthMode(DIRECT_SIGNUP_ENABLED ? 'signup' : 'waitlist');
     }
     if (window.location.hash === '#signup') {
       setAuthOpen(true);
@@ -307,11 +310,11 @@ export function LandingPage() {
           </div>
           <div className="hidden sm:flex items-center gap-4">
             <button onClick={() => openAuth('login')} className="text-[13px] text-white/60 hover:text-white transition-colors">Log in</button>
-            <button onClick={() => openAuth(ctaMode)} className="px-4 py-1.5 text-[13px] text-white/90 font-medium border border-white/[0.15] rounded-full hover:border-white/30 transition-all">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Open Account'}</button>
+            <button onClick={() => openAuth(ctaMode)} className="px-4 py-1.5 text-[13px] text-white/90 font-medium border border-white/[0.15] rounded-full hover:border-white/30 transition-all">{ctaLabel}</button>
           </div>
           <div className="flex sm:hidden items-center gap-3">
             <button onClick={() => openAuth('login')} className="text-[13px] text-white/60">Log in</button>
-            <button onClick={() => openAuth(ctaMode)} className="px-3 py-1.5 text-[13px] text-white/90 border border-white/[0.15] rounded-full">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Sign Up'}</button>
+            <button onClick={() => openAuth(ctaMode)} className="px-3 py-1.5 text-[13px] text-white/90 border border-white/[0.15] rounded-full">{DIRECT_SIGNUP_ENABLED ? 'Sign Up' : 'Join the Waitlist Now'}</button>
           </div>
         </div>
       </nav>
@@ -388,7 +391,7 @@ export function LandingPage() {
             </p>
             <div className="flex items-center justify-center gap-3">
               <button onClick={() => scrollToRef(featuresRef)} className="px-6 py-2.5 text-[13px] text-white/60 font-medium border border-white/[0.12] rounded-full hover:border-white/25 hover:text-white transition-all">Learn More</button>
-              <button onClick={() => openAuth(ctaMode)} className="px-6 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Open Account'}</button>
+              <button onClick={() => openAuth(ctaMode)} className="px-6 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{ctaLabel}</button>
             </div>
           </div>
         </div>
@@ -434,7 +437,7 @@ export function LandingPage() {
           {/* Section CTA */}
           <div className="mt-16 text-center">
             <button onClick={() => openAuth(ctaMode)} className="px-7 py-2.5 text-[13px] font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all min-h-[44px]">
-              {WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Start Free'}
+              {DIRECT_SIGNUP_ENABLED ? 'Start Free' : 'Join the Waitlist Now'}
             </button>
             <p className="text-[11px] text-white/20 mt-3">Free forever. Upgrade anytime.</p>
           </div>
@@ -553,17 +556,17 @@ export function LandingPage() {
 
       {/* ═══ CTA ═══ */}
       <section className="py-20 sm:py-28 px-5 sm:px-8 text-center">
-        <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-5 text-white/95" style={sf}>{WAITLIST_ENABLED ? <>Get early access to<br /><span className="text-rh-green italic">Nala</span> today</> : <>Start investing smarter in<br /><span className="text-rh-green italic">10 minutes</span> today</>}</h2>
-        <p className="text-sm text-white/25 mb-10 max-w-sm mx-auto">{WAITLIST_ENABLED ? 'Join the waitlist, get approved, and start tracking your portfolio.' : 'Create your free account, add your holdings, and follow top investors.'}</p>
+        <h2 className="text-2xl sm:text-[2.8rem] leading-[1.1] mb-5 text-white/95" style={sf}>{DIRECT_SIGNUP_ENABLED ? <>Start investing smarter in<br /><span className="text-rh-green italic">10 minutes</span> today</> : <>Get early access to<br /><span className="text-rh-green italic">Nala</span> today</>}</h2>
+        <p className="text-sm text-white/25 mb-10 max-w-sm mx-auto">{DIRECT_SIGNUP_ENABLED ? 'Create your free account, add your holdings, and follow top investors.' : 'Join the waitlist, get approved, and start tracking your portfolio.'}</p>
         <div className="flex items-center justify-center gap-3 mb-10">
-          {(WAITLIST_ENABLED ? ['Join waitlist','Get approved','Start earning'] : ['Sign up','Add holdings','Start earning']).map((step,i)=>(
+          {(DIRECT_SIGNUP_ENABLED ? ['Sign up','Add holdings','Start earning'] : ['Join waitlist','Get approved','Start earning']).map((step,i)=>(
             <div key={step} className="flex items-center gap-3">
               <div className="flex items-center gap-2"><div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${i===2?'bg-rh-green/20 text-rh-green':'bg-white/[0.05] text-white/30'}`}>{i+1}</div><span className="text-[11px] text-white/25">{step}</span></div>
               {i<2&&<div className="w-8 h-px bg-white/10" />}
             </div>
           ))}
         </div>
-        <button onClick={() => openAuth(ctaMode)} className="px-7 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{WAITLIST_ENABLED ? 'Join the Waitlist Now' : 'Open Account'}</button>
+        <button onClick={() => openAuth(ctaMode)} className="px-7 py-2.5 text-[13px] text-black font-semibold bg-white rounded-full hover:bg-white/90 transition-colors">{ctaLabel}</button>
       </section>
 
       {/* ═══ FAQ ═══ */}
@@ -668,7 +671,7 @@ export function LandingPage() {
                     </div>
                   </div>
                 )}
-                {(authMode==='login'||authMode==='signup')&&<div className={`${OAUTH_ENABLED ? 'mt-3' : 'mt-5'} pt-4 border-t border-white/[0.04] text-center text-[12px] text-white/25`}>{authMode==='login'?<>New to Nala? <button onClick={()=>setAuthMode(WAITLIST_ENABLED ? 'waitlist' : 'signup')} className="text-white/60 hover:text-white">{WAITLIST_ENABLED ? 'Join the waitlist' : 'Create an account'}</button></>:<>Have an account? <button onClick={()=>setAuthMode('login')} className="text-white/60 hover:text-white">Sign in</button></>}</div>}
+                {(authMode==='login'||authMode==='signup')&&<div className={`${OAUTH_ENABLED ? 'mt-3' : 'mt-5'} pt-4 border-t border-white/[0.04] text-center text-[12px] text-white/25`}>{authMode==='login'?<>New to Nala? <button onClick={()=>setAuthMode(DIRECT_SIGNUP_ENABLED ? 'signup' : 'waitlist')} className="text-white/60 hover:text-white">{DIRECT_SIGNUP_ENABLED ? 'Create an account' : 'Join the waitlist'}</button></>:<>Have an account? <button onClick={()=>setAuthMode('login')} className="text-white/60 hover:text-white">Sign in</button></>}</div>}
               </>
             )}
           </div>
