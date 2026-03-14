@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 import { TabType } from '../components/Navigation';
+import { generateUuid } from '../utils/uuid';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -23,7 +24,7 @@ type Feature =
 
 // ── Session ID (once per page load) ────────────────────────────────────
 
-const sessionId = crypto.randomUUID();
+const sessionId = generateUuid();
 
 // ── Feature derivation ─────────────────────────────────────────────────
 

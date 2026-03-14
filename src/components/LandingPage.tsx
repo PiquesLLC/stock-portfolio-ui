@@ -6,8 +6,10 @@ import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { PLANS } from '../data/plans';
 import { isValidEmail, validatePassword } from '../utils/validation';
+import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
+import { generateUuid } from '../utils/uuid';
 const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const APPLE_ENABLED = !!import.meta.env.VITE_APPLE_CLIENT_ID;
+const APPLE_ENABLED = isAppleOAuthEnabled();
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
 
@@ -212,23 +214,9 @@ export function LandingPage() {
   // Load Apple JS SDK dynamically
   useEffect(() => {
     if (!APPLE_ENABLED) return;
-    if (document.getElementById('apple-signin-sdk')) return;
-    const script = document.createElement('script');
-    script.id = 'apple-signin-sdk';
-    script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
-    script.async = true;
-    script.onload = () => {
-      const AppleID = (window as any).AppleID;
-      if (AppleID?.auth) {
-        AppleID.auth.init({
-          clientId: import.meta.env.VITE_APPLE_CLIENT_ID,
-          scope: 'name email',
-          redirectURI: import.meta.env.VITE_APPLE_REDIRECT_URI || window.location.origin,
-          usePopup: true,
-        });
-      }
-    };
-    document.head.appendChild(script);
+    ensureAppleAuthReady().catch(() => {
+      // Ignore preload failures here; click handler reports actionable errors.
+    });
   }, []);
 
   const handleAppleLogin = useCallback(async () => {
@@ -236,10 +224,9 @@ export function LandingPage() {
     setOauthLoading(true);
     setError('');
     try {
-      const AppleID = (window as any).AppleID;
-      if (!AppleID?.auth) throw new Error('Apple Sign-In not loaded');
-      const nonce = crypto.randomUUID();
-      const response = await AppleID.auth.signIn({ nonce });
+      const auth = await ensureAppleAuthReady();
+      const nonce = generateUuid();
+      const response = await auth.signIn({ nonce });
       const idToken = response.authorization?.id_token;
       if (!idToken) throw new Error('No Apple ID token received');
       const name = response.user ? { firstName: response.user.name?.firstName, lastName: response.user.name?.lastName } : undefined;
