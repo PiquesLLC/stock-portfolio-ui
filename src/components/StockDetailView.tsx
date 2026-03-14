@@ -128,6 +128,15 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [compareInput, setCompareInput] = useState('');
   const [showCompareInput, setShowCompareInput] = useState(false);
   const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[]>([]);
+  const [showNalaScore, setShowNalaScore] = useState(false);
+
+  useEffect(() => {
+    setShowNalaScore(false);
+    if (!quickLoaded) return;
+
+    const timer = window.setTimeout(() => setShowNalaScore(true), 150);
+    return () => window.clearTimeout(timer);
+  }, [ticker, quickLoaded]);
 
   // Fetch comparison data whenever compareTickers or chartPeriod changes
   useEffect(() => {
@@ -642,7 +651,14 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       )}
 
       {/* Nala Score */}
-      <NalaScore ticker={ticker} />
+      {showNalaScore ? (
+        <NalaScore ticker={ticker} />
+      ) : (
+        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6 animate-pulse">
+          <div className="h-4 w-24 bg-gray-200/50 dark:bg-white/[0.06] rounded mb-4" />
+          <div className="h-40 bg-gray-200/30 dark:bg-white/[0.03] rounded-lg" />
+        </div>
+      )}
 
       {/* About Section */}
       {(about?.description || profile?.name) && (
