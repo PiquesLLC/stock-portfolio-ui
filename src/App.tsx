@@ -296,7 +296,18 @@ export default function App() {
   // Fetch portfolios list for insights page picker
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      listPortfolios().then(setUserPortfolios).catch(() => {});
+      listPortfolios()
+        .then((portfolios) => {
+          setUserPortfolios(portfolios);
+          const visiblePortfolios = portfolios.filter((p) => p.name.trim().toLowerCase() !== 'all');
+          if (visiblePortfolios.length === 0) return;
+
+          setSelectedPortfolioId((current) => {
+            if (current && visiblePortfolios.some((p) => p.id === current)) return current;
+            return visiblePortfolios[0].id;
+          });
+        })
+        .catch(() => {});
     }
   }, [isAuthenticated, authLoading]);
 
@@ -1280,16 +1291,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Portfolio picker — always visible so user can create/switch portfolios */}
-            {user && (
-              <div className="flex justify-end mb-1 -mt-1">
-                <PortfolioPicker
-                  selectedPortfolioId={selectedPortfolioId}
-                  onSelect={setSelectedPortfolioId}
-                  userPlan={user.plan || 'free'}
-                />
-              </div>
-            )}
+            {/* Portfolio picker moved to above chart */}
 
             {/* Getting started checklist for new users */}
             {currentUserId && (
@@ -1357,7 +1359,12 @@ export default function App() {
             {portfolio && portfolio.holdings.length > 0 && (
               <div className="-mx-3 sm:-mx-6 relative">
                 {user && (
-                  <div className="absolute top-2 right-3 sm:right-6 z-20 flex items-center gap-2">
+                  <div className="absolute top-2 right-3 sm:right-6 z-20 flex items-center gap-3">
+                    <PortfolioPicker
+                      selectedPortfolioId={selectedPortfolioId}
+                      onSelect={setSelectedPortfolioId}
+                      userPlan={user.plan || 'free'}
+                    />
                     <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
                   </div>
                 )}

@@ -382,19 +382,14 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   ], []);
 
   // Inline portfolio picker — only render when multiple portfolios exist
-  const portfolioPicker = portfolios && portfolios.length > 1 && onPortfolioChange ? (
+  const visiblePortfolios = useMemo(
+    () => (portfolios ?? []).filter((p) => p.name.trim().toLowerCase() !== 'all'),
+    [portfolios]
+  );
+
+  const portfolioPicker = visiblePortfolios.length > 1 && onPortfolioChange ? (
     <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-      <button
-        onClick={() => onPortfolioChange(undefined)}
-        className={`px-3 py-1 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
-          !portfolioId
-            ? 'bg-rh-green/15 text-rh-green'
-            : 'bg-gray-100 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-        }`}
-      >
-        All
-      </button>
-      {portfolios.map((p) => (
+      {visiblePortfolios.map((p, index) => (
         <button
           key={p.id}
           onClick={() => onPortfolioChange(p.id)}
@@ -404,7 +399,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
               : 'bg-gray-100 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
           }`}
         >
-          {p.name}
+          {index === 0 ? 'Portfolio 1' : p.name}
         </button>
       ))}
     </div>
