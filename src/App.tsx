@@ -1358,14 +1358,19 @@ export default function App() {
             )}
 
             {portfolio && portfolio.holdings.length > 0 && (
-              <div className="-mx-3 sm:-mx-6 relative">
+              <>
                 {user && (
-                  <div className="absolute top-2 right-3 sm:right-6 z-20 flex items-center gap-3">
+                  <div className="px-3 sm:px-6 mb-2 flex justify-end">
                     <PortfolioPicker
                       selectedPortfolioId={selectedPortfolioId}
                       onSelect={setSelectedPortfolioId}
                       userPlan={user.plan || 'free'}
                     />
+                  </div>
+                )}
+                <div className="-mx-3 sm:-mx-6 relative">
+                {user && (
+                  <div className="absolute top-2 right-3 sm:right-6 z-20">
                     <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
                   </div>
                 )}
@@ -1385,7 +1390,8 @@ export default function App() {
                   session={portfolio.session}
                   quotesStale={isStale || !!portfolio.quotesMeta?.anyRepricing || (portfolio.quotesUnavailableCount ?? 0) > 0}
                 />
-              </div>
+                </div>
+              </>
             )}
 
             {portfolio && portfolio.holdings.length > 0 && (
