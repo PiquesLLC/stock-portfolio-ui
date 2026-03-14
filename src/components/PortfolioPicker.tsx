@@ -137,7 +137,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
   if (portfolios.length <= 1 && !canCreate) return null;
 
   return (
-    <div className="relative flex items-center max-w-[230px] sm:max-w-[320px]">
+    <div className="relative flex items-center max-w-[210px] sm:max-w-[300px] overflow-hidden">
       {/* Left fade + chevron */}
       {canScrollLeft && (
         <button
@@ -154,7 +154,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
       {/* Scrollable tab row */}
       <div
         ref={scrollRef}
-        className="flex items-center gap-1 overflow-x-auto no-scrollbar px-0.5 py-0.5"
+        className="flex items-center gap-1 overflow-x-auto no-scrollbar px-0.5 py-0.5 pb-2 -mb-2"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {displayPortfolios.map(p => {
@@ -181,7 +181,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
               ) : (
                 <button
                   onClick={() => onSelect(p.id)}
-                  className={`px-2.5 py-0.5 rounded-md text-[10px] font-semibold transition-all duration-200 whitespace-nowrap flex items-center
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all duration-200 whitespace-nowrap flex items-center
                     ${isActive
                       ? 'bg-[#0f2614] text-[#2fd05a] border border-[#184222]'
                       : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 bg-gray-100/80 dark:bg-white/[0.04] hover:bg-gray-200/80 dark:hover:bg-white/[0.08]'
