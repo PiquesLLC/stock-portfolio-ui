@@ -315,6 +315,7 @@ export function TickerAutocompleteInput({
         <input
           ref={inputRef}
           type="text"
+          name={compact ? 'header-ticker-search' : 'ticker-search'}
           value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -326,10 +327,15 @@ export function TickerAutocompleteInput({
           disabled={disabled}
           placeholder={compact ? 'Search stocks...' : placeholder}
           autoFocus={autoFocus}
+          inputMode="search"
+          enterKeyHint="search"
           autoComplete="off"
           autoCorrect="off"
-          autoCapitalize="characters"
+          autoCapitalize="none"
           spellCheck={false}
+          data-form-type="other"
+          data-lpignore="true"
+          data-1p-ignore="true"
           className={compact
             ? `w-full pl-8 pr-3 py-1.5 rounded-lg border border-rh-light-border dark:border-rh-border
               bg-rh-light-bg dark:bg-rh-dark text-base sm:text-sm text-rh-light-text dark:text-rh-text

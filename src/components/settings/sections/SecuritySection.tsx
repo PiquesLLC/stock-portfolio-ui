@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { changePassword } from '../../../api';
+import { changePassword, forgotPassword } from '../../../api';
+import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { validatePassword } from '../../../utils/validation';
 
@@ -8,6 +9,7 @@ interface SecuritySectionProps {
 }
 
 export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -15,6 +17,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const handleChangePassword = async () => {
     setPasswordError('');
@@ -49,6 +52,25 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
       setPasswordError(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const handleResetPasswordByEmail = async () => {
+    setPasswordError('');
+
+    if (!user?.email) {
+      setPasswordError('No email is available on this account for password reset');
+      return;
+    }
+
+    setSendingReset(true);
+    try {
+      await forgotPassword(user.email);
+      showToast('Password reset email sent', 'success');
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to start password reset');
+    } finally {
+      setSendingReset(false);
     }
   };
 
@@ -148,6 +170,14 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
                 {changingPassword ? 'Changing...' : 'Change Password'}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={handleResetPasswordByEmail}
+              disabled={sendingReset}
+              className="text-xs font-medium text-rh-green hover:text-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {sendingReset ? 'Sending reset email...' : 'Forgot your password? Reset via email'}
+            </button>
           </div>
         )}
 
