@@ -503,6 +503,13 @@ export async function forgotPassword(email: string): Promise<{ message: string }
   });
 }
 
+export async function forgotUsername(email: string): Promise<{ message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/forgot-username`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
   return fetchJson(`${API_BASE_URL}/auth/reset-password`, {
     method: 'POST',

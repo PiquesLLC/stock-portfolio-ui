@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { setPassword as apiSetPassword, checkHasPassword, forgotPassword, resetPassword } from '../api';
+import { setPassword as apiSetPassword, checkHasPassword, forgotPassword, forgotUsername, resetPassword } from '../api';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
+import { getGoogleClientId } from '../utils/oauth-config';
 import { generateUuid } from '../utils/uuid';
 
-const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = getGoogleClientId();
+const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = isAppleOAuthEnabled();
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 
@@ -55,7 +57,7 @@ export function LoginPage() {
   const [password, setPasswordValue] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<'login' | 'set-password' | 'signup' | 'verify-email' | 'forgot-password' | 'reset-password'>('login');
+  const [mode, setMode] = useState<'login' | 'set-password' | 'signup' | 'verify-email' | 'forgot-password' | 'forgot-username' | 'reset-password'>('login');
   const [resetEmail, setResetEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -116,7 +118,7 @@ export function LoginPage() {
       return;
     }
     const client = google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      client_id: GOOGLE_CLIENT_ID,
       scope: 'openid email profile',
       callback: async (tokenResponse: any) => {
         if (tokenResponse.error) {
@@ -168,7 +170,18 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (mode === 'forgot-password') {
+      if (mode === 'forgot-username') {
+        if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
+          setError('Please enter a valid email address');
+          setIsLoading(false);
+          return;
+        }
+        await forgotUsername(resetEmail);
+        setSuccessMessage('If this email is registered, your username was sent.');
+        setMode('login');
+        setIsLoading(false);
+        return;
+      } else if (mode === 'forgot-password') {
         if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
           setError('Please enter a valid email address');
           setIsLoading(false);
@@ -301,6 +314,7 @@ export function LoginPage() {
       case 'signup': return 'Create Account';
       case 'set-password': return 'Set Password';
       case 'verify-email': return 'Verify Your Email';
+      case 'forgot-username': return 'Recover Username';
       case 'forgot-password': return 'Reset Password';
       case 'reset-password': return 'Enter Reset Code';
       default: return 'Welcome Back';
@@ -312,6 +326,7 @@ export function LoginPage() {
       case 'signup': return 'Create Account';
       case 'set-password': return 'Set Password';
       case 'verify-email': return 'Verify';
+      case 'forgot-username': return 'Email My Username';
       case 'forgot-password': return 'Send Reset Code';
       case 'reset-password': return 'Reset Password';
       default: return 'Sign In';
@@ -407,6 +422,34 @@ export function LoginPage() {
                   </button>
                   <span className="text-xs text-rh-muted/40">Check your spam folder</span>
                 </div>
+              </>) : mode === 'forgot-username' ? (<>
+                <p className="text-sm text-rh-muted leading-relaxed">
+                  Enter the email address associated with your account and we'll send your username.
+                </p>
+                <div>
+                  <label htmlFor="usernameEmail" className="block text-sm font-medium text-rh-muted mb-2">
+                    Email
+                  </label>
+                  <input
+                    id="usernameEmail"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className={inputClasses}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(''); setSuccessMessage(''); }}
+                  className="text-sm text-rh-green hover:text-rh-green/80 transition-colors"
+                >
+                  Back to sign in
+                </button>
               </>) : mode === 'forgot-password' ? (<>
                 <p className="text-sm text-rh-muted leading-relaxed">
                   Enter the email address associated with your account and we'll send you a reset code.
@@ -559,6 +602,21 @@ export function LoginPage() {
                   spellCheck="false"
                   required
                 />
+                {mode === 'login' && (
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('forgot-username');
+                        setError('');
+                        setSuccessMessage('');
+                      }}
+                      className="text-xs text-rh-muted/70 hover:text-rh-green transition-colors"
+                    >
+                      Forgot username?
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Display Name Field (Signup only) */}

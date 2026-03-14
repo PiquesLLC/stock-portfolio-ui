@@ -1,15 +1,17 @@
 import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { checkHasPassword, forgotPassword, resetPassword, joinWaitlist } from '../api';
+import { checkHasPassword, forgotPassword, forgotUsername, resetPassword, joinWaitlist } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { PLANS } from '../data/plans';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
+import { getGoogleClientId } from '../utils/oauth-config';
 import { isNative } from '../utils/platform';
 import { generateUuid } from '../utils/uuid';
-const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = getGoogleClientId();
+const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = isAppleOAuthEnabled();
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
@@ -67,7 +69,7 @@ export function LandingPage() {
   }, [lightbox]);
 
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'waitlist' | 'forgot-password' | 'reset-password'>('signup');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'waitlist' | 'forgot-password' | 'forgot-username' | 'reset-password'>('signup');
   const openAuth = (mode: 'login' | 'signup' | 'waitlist') => { setAuthMode(mode); setAuthOpen(true); };
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
@@ -127,7 +129,7 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
-  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
+  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'forgot-username' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
   const resetCooldownActive = resetCooldown > 0;
   useEffect(() => { if (!resetCooldownActive) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldownActive]);
 
@@ -138,6 +140,12 @@ export function LandingPage() {
         if (!waitlistEmail.trim() || !isValidEmail(waitlistEmail)) { setError('Please enter a valid email address'); return; }
         await joinWaitlist(waitlistEmail);
         setWaitlistSuccess(true);
+        return;
+      } else if (authMode === 'forgot-username') {
+        if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
+        await forgotUsername(resetEmail);
+        showToast('If this email is registered, your username was sent.', 'success');
+        setAuthMode('login'); setError('');
         return;
       } else if (authMode === 'forgot-password') {
         if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
@@ -180,7 +188,7 @@ export function LandingPage() {
       return;
     }
     const client = google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      client_id: GOOGLE_CLIENT_ID,
       scope: 'openid email profile',
       callback: async (tokenResponse: any) => {
         if (tokenResponse.error) {
@@ -604,7 +612,7 @@ export function LandingPage() {
             <div className="text-center mb-6"><div className="inline-flex items-center gap-2"><img src="/north-signal-logo.png" alt="" className="h-7 w-7" /><span className="text-lg font-bold text-white tracking-tight">Nala</span></div></div>
             {mfaChallenge ? <MfaVerifyStep challenge={mfaChallenge} /> : (
               <>
-                <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'waitlist' ? 'Join the Waitlist' : authMode === 'signup' ? 'Create Account' : authMode === 'forgot-password' ? 'Reset Password' : authMode === 'reset-password' ? 'Enter Reset Code' : 'Welcome Back'}</h2>
+                <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'waitlist' ? 'Join the Waitlist' : authMode === 'signup' ? 'Create Account' : authMode === 'forgot-username' ? 'Recover Username' : authMode === 'forgot-password' ? 'Reset Password' : authMode === 'reset-password' ? 'Enter Reset Code' : 'Welcome Back'}</h2>
                 {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-start gap-2" role="alert"><svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg><span>{error}</span></div>}
                 <form onSubmit={handleSubmit} noValidate><div className="space-y-4">
                   {authMode === 'waitlist' ? (waitlistSuccess ? (
@@ -619,7 +627,12 @@ export function LandingPage() {
                     <div><label htmlFor="auth-waitlist-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-waitlist-email" type="email" value={waitlistEmail} onChange={e=>setWaitlistEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
                     <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Joining...</span>:'Join Waitlist'}</button>
                     <div className="text-center"><button type="button" onClick={()=>setAuthMode('login')} className="text-[12px] text-white/25">Have an account? <span className="text-white/60 hover:text-white">Sign in</span></button></div>
-                  </>)) : authMode === 'forgot-password' ? (<>
+                  </>)) : authMode === 'forgot-username' ? (<>
+                    <p className="text-[12px] text-white/30 leading-relaxed">Enter the email on your account and we'll send your username.</p>
+                    <div><label htmlFor="auth-username-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-username-email" type="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
+                    <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Email My Username'}</button>
+                    <div className="text-center"><button type="button" onClick={()=>{setAuthMode('login');setError('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
+                  </>) : authMode === 'forgot-password' ? (<>
                     <p className="text-[12px] text-white/30 leading-relaxed">Enter the email on your account and we'll send a reset code.</p>
                     <div><label htmlFor="auth-reset-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-reset-email" type="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
                     <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Send Reset Code'}</button>
@@ -635,7 +648,7 @@ export function LandingPage() {
                   <div><label htmlFor="auth-username" className="block text-[12px] font-medium text-white/30 mb-1.5">Username</label><input id="auth-username" type="text" value={username} onChange={e=>setUsername(e.target.value)} onBlur={checkAndSwitchMode} className={ic} placeholder="e.g. nala_investor" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck="false" required /></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-displayName" className="block text-[12px] font-medium text-white/30 mb-1.5">Display Name</label><input id="auth-displayName" type="text" value={displayName} onChange={e=>setDisplayName(e.target.value)} className={ic} placeholder="How others will see you" autoComplete="name" required /></div>}
                   {authMode==='signup'&&<div><label htmlFor="auth-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-email" type="email" value={landingEmail} onChange={e=>setLandingEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoCapitalize="none" required /></div>}
-                  <div><div className="flex items-center justify-between mb-1.5"><label htmlFor="auth-password" className="block text-[12px] font-medium text-white/30">Password</label>{authMode==='login'&&<button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>{setAuthMode('forgot-password');setError('');}}>Forgot?</button>}</div><div className="relative"><input id="auth-password" type={showPassword?'text':'password'} value={password} onChange={e=>setPasswordValue(e.target.value)} className={`${ic} pr-11`} placeholder={authMode==='login'?'••••••••':'Min. 8 chars, upper/lower/number'} autoComplete={authMode==='login'?'current-password':'new-password'} required /><button type="button" onClick={()=>setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>
+                  <div><div className="flex items-center justify-between mb-1.5"><label htmlFor="auth-password" className="block text-[12px] font-medium text-white/30">Password</label>{authMode==='login'&&<div className="flex items-center gap-3"><button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>{setAuthMode('forgot-username');setError('');}}>Forgot username?</button><button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>{setAuthMode('forgot-password');setError('');}}>Forgot password?</button></div>}</div><div className="relative"><input id="auth-password" type={showPassword?'text':'password'} value={password} onChange={e=>setPasswordValue(e.target.value)} className={`${ic} pr-11`} placeholder={authMode==='login'?'••••••••':'Min. 8 chars, upper/lower/number'} autoComplete={authMode==='login'?'current-password':'new-password'} required /><button type="button" onClick={()=>setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><div className="relative"><input id="auth-confirm" type={showConfirmPassword?'text':'password'} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className={`${ic} pr-11`} placeholder="Re-enter password" autoComplete="new-password" required /><button type="button" onClick={()=>setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showConfirmPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>}
                   {authMode==='signup'&&referralCode&&<div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rh-green/10 border border-rh-green/20"><span className="text-rh-green text-sm font-medium">Invited by @{referralCode}</span></div>}
                   {authMode==='signup'&&<label className="flex items-start gap-2.5 cursor-pointer"><input type="checkbox" checked={acceptedTerms} onChange={e=>setAcceptedTerms(e.target.checked)} className="w-4 h-4 mt-0.5 rounded border-white/10 bg-white/5 text-rh-green accent-rh-green" /><span className="text-[12px] text-white/25 leading-tight">I agree to the{' '}<button type="button" onClick={()=>{setPrivacyTab('privacy');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Privacy Policy</button>{' & '}<button type="button" onClick={()=>{setPrivacyTab('terms');setShowPrivacyPolicy(true);}} className="text-white/50 hover:underline">Terms</button></span></label>}

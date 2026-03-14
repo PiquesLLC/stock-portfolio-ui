@@ -1,6 +1,7 @@
 const APPLE_SDK_ID = 'apple-signin-sdk';
 const APPLE_SDK_SRC = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
 import { generateUuid } from './uuid';
+import { getAppleConfig as getOAuthAppleConfig } from './oauth-config';
 
 type AppleUser = { name?: { firstName?: string; lastName?: string } };
 type AppleAuthResponse = {
@@ -27,14 +28,12 @@ declare global {
 let loadPromise: Promise<AppleAuthApi> | null = null;
 let initializedKey: string | null = null;
 
-function getAppleConfig() {
-  const clientId = import.meta.env.VITE_APPLE_CLIENT_ID as string | undefined;
-  const redirectURI = (import.meta.env.VITE_APPLE_REDIRECT_URI as string | undefined) || window.location.origin;
-  return { clientId, redirectURI };
+function getAppleRuntimeConfig() {
+  return getOAuthAppleConfig();
 }
 
 function initAppleAuth(auth: AppleAuthApi): AppleAuthApi {
-  const { clientId, redirectURI } = getAppleConfig();
+  const { clientId, redirectURI } = getAppleRuntimeConfig();
   if (!clientId) {
     throw new Error('Apple Sign-In not configured');
   }
@@ -54,7 +53,7 @@ function initAppleAuth(auth: AppleAuthApi): AppleAuthApi {
 }
 
 export function isAppleOAuthEnabled(): boolean {
-  return !!getAppleConfig().clientId;
+  return !!getAppleRuntimeConfig().clientId;
 }
 
 export async function ensureAppleAuthReady(): Promise<AppleAuthApi> {
