@@ -164,14 +164,28 @@ export function ShareButton(props: ShareButtonProps) {
 
   const handleDownloadImage = useCallback(() => {
     setMenuOpen(false);
-    // Use direct anchor navigation — completely bypasses fetch API cache
-    const a = document.createElement('a');
-    a.href = getCardUrl(type, props);
-    a.download = getFileName(type, props);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('Saved!');
+
+    const download = async () => {
+      try {
+        const res = await fetch(getCardUrl(type, props), { cache: 'no-store' });
+        if (!res.ok) throw new Error('fetch failed');
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = getFileName(type, props);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objectUrl);
+        showToast('Saved!');
+      } catch {
+        showToast('Failed');
+      }
+    };
+
+    void download();
   }, [type, props, showToast]);
 
   const sizeClasses = size === 'sm'
