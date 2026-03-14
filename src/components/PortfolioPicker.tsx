@@ -21,10 +21,14 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const limit = PLAN_LIMITS[userPlan] ?? 1;
   const canCreate = portfolios.length < limit;
+  const visiblePortfolios = portfolios.filter(p => p.name.trim().toLowerCase() !== 'all');
 
   useEffect(() => {
     listPortfolios().then(setPortfolios).catch(() => {});
@@ -74,139 +78,188 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     }
   };
 
-  // Don't render if only one portfolio and can't create more
-  if (portfolios.length <= 1 && !canCreate) return null;
+  // Auto-select the first portfolio if none is selected
+  useEffect(() => {
+    if (!selectedPortfolioId && visiblePortfolios.length > 0) {
+      onSelect(visiblePortfolios[0].id);
+    }
+  }, [selectedPortfolioId, visiblePortfolios, onSelect]);
 
-  const isAllSelected = !selectedPortfolioId;
+  useEffect(() => {
+    if (selectedPortfolioId && !visiblePortfolios.some(p => p.id === selectedPortfolioId) && visiblePortfolios.length > 0) {
+      onSelect(visiblePortfolios[0].id);
+    }
+  }, [selectedPortfolioId, visiblePortfolios, onSelect]);
+
+  // Check scroll overflow
+  const checkOverflow = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    checkOverflow();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkOverflow, { passive: true });
+    const ro = new ResizeObserver(checkOverflow);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', checkOverflow); ro.disconnect(); };
+  }, [checkOverflow, portfolios]);
+
+  const scroll = (dir: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'left' ? -120 : 120, behavior: 'smooth' });
+  };
+
+  // Don't render if only one portfolio and can't create more
+  if (visiblePortfolios.length <= 1 && !canCreate) return null;
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
-      {/* "All" tab */}
-      <button
-        onClick={() => onSelect(undefined)}
-        className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
-          isAllSelected
-            ? 'bg-[#00c805]/10 text-[#00c805] dark:bg-[#00c805]/15'
-            : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
-        }`}
-      >
-        All
-      </button>
+    <div className="relative flex items-center max-w-[280px] sm:max-w-[360px]">
+      {/* Left fade + chevron */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 z-10 h-full w-6 flex items-center justify-start
+            bg-gradient-to-r from-[#111]/90 to-transparent"
+        >
+          <svg className="w-3 h-3 text-white/50 hover:text-white/80 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
 
-      {/* Divider */}
-      <div className="w-px h-4 bg-gray-200 dark:bg-white/[0.08] shrink-0" />
-
-      {/* Portfolio tabs */}
-      {portfolios.map(p => {
-        const isActive = selectedPortfolioId === p.id;
-        const isConfirmingDelete = confirmDelete === p.id;
-        return (
-          <div key={p.id} className="relative shrink-0 group flex items-center">
-            {isConfirmingDelete ? (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-500/10 dark:bg-red-500/15">
-                <span className="text-xs text-red-500 font-medium">Delete?</span>
+      {/* Scrollable tab row */}
+      <div ref={scrollRef} className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-0.5 py-0.5">
+        {visiblePortfolios.map(p => {
+          const isActive = selectedPortfolioId === p.id;
+          const isConfirmingDelete = confirmDelete === p.id;
+          const label = p.isDefault ? 'Portfolio 1' : p.name;
+          return (
+            <div key={p.id} className="relative shrink-0 group flex items-center">
+              {isConfirmingDelete ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 dark:bg-red-500/10 border border-red-500/20">
+                  <span className="text-xs text-red-400 font-medium">Delete?</span>
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    className="text-xs text-red-400 font-bold hover:text-red-300 px-1"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(null)}
+                    className="text-xs text-gray-400 hover:text-gray-300 px-1"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => handleDelete(p.id)}
-                  className="text-xs text-red-500 font-bold hover:underline px-1"
+                  onClick={() => onSelect(p.id)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 whitespace-nowrap flex items-center gap-2
+                    ${isActive
+                      ? 'bg-[#00c805] text-black shadow-[0_0_12px_rgba(0,200,5,0.25)]'
+                      : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 bg-gray-100/80 dark:bg-white/[0.04] hover:bg-gray-200/80 dark:hover:bg-white/[0.08]'
+                    }`}
                 >
-                  Yes
+                  <span>{label}</span>
+                </button>
+              )}
+              {/* Delete button — only for non-default empty portfolios */}
+              {!p.isDefault && p.holdingsCount === 0 && !isConfirmingDelete && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full
+                    bg-gray-300 dark:bg-white/15 text-gray-600 dark:text-white/50
+                    text-[10px] leading-none flex items-center justify-center
+                    opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white
+                    dark:hover:bg-red-500 dark:hover:text-white transition-all duration-150 shadow-sm"
+                  title="Delete portfolio"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Create new tab */}
+        {canCreate && (
+          <>
+            {creating ? (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <input
+                  ref={inputRef}
+                  autoFocus
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleCreate();
+                    if (e.key === 'Escape') { setCreating(false); setError(''); }
+                  }}
+                  placeholder="Portfolio name..."
+                  className="w-28 sm:w-36 text-xs px-3 py-1.5 rounded-lg border border-[#00c805]/30
+                    bg-white dark:bg-white/[0.04] text-gray-800 dark:text-white/80
+                    focus:outline-none focus:border-[#00c805] focus:shadow-[0_0_8px_rgba(0,200,5,0.15)]
+                    placeholder:text-gray-400 dark:placeholder:text-white/20 transition-all"
+                  maxLength={50}
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCapitalize="words"
+                />
+                <button
+                  onClick={handleCreate}
+                  disabled={submitting || !newName.trim()}
+                  className="text-xs font-semibold text-[#00c805] px-2 py-1.5 rounded-md
+                    disabled:opacity-30 hover:bg-[#00c805]/10 transition-all"
+                >
+                  {submitting ? '...' : 'Add'}
                 </button>
                 <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="text-xs text-gray-400 hover:underline px-1"
+                  onClick={() => { setCreating(false); setError(''); }}
+                  className="text-xs text-gray-400 dark:text-white/30 px-1 py-1.5 hover:text-gray-600 dark:hover:text-white/50 transition-all"
                 >
-                  No
+                  ×
                 </button>
               </div>
             ) : (
               <button
-                onClick={() => onSelect(p.id)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-[#00c805]/10 text-[#00c805] dark:bg-[#00c805]/15'
-                    : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
-                }`}
+                onClick={handleStartCreating}
+                className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center
+                  text-gray-400 dark:text-white/25 bg-gray-100/80 dark:bg-white/[0.04]
+                  hover:text-[#00c805] hover:bg-[#00c805]/10 hover:shadow-[0_0_8px_rgba(0,200,5,0.1)]
+                  transition-all duration-200"
+                title="New Portfolio"
               >
-                {p.name}
-                {p.holdingsCount > 0 && (
-                  <span className={`ml-1.5 text-[10px] ${isActive ? 'text-[#00c805]/60' : 'text-gray-400 dark:text-white/25'}`}>
-                    {p.holdingsCount}
-                  </span>
-                )}
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
               </button>
             )}
-            {/* Delete button — only for non-default empty portfolios */}
-            {!p.isDefault && p.holdingsCount === 0 && !isConfirmingDelete && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gray-200 dark:bg-white/10
-                  text-gray-500 dark:text-white/40 text-[10px] leading-none flex items-center justify-center
-                  opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-500
-                  dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-all"
-                title="Delete portfolio"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        );
-      })}
+          </>
+        )}
+      </div>
 
-      {/* Create new tab */}
-      {canCreate && (
-        <>
-          {creating ? (
-            <div className="flex items-center gap-1 shrink-0">
-              <input
-                ref={inputRef}
-                autoFocus
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') handleCreate();
-                  if (e.key === 'Escape') { setCreating(false); setError(''); }
-                }}
-                placeholder="Name..."
-                className="w-24 sm:w-32 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-white/[0.1]
-                  bg-white dark:bg-white/[0.04] text-gray-800 dark:text-white/80
-                  focus:outline-none focus:border-[#00c805]"
-                maxLength={50}
-                inputMode="text"
-                autoComplete="off"
-                autoCapitalize="words"
-              />
-              <button
-                onClick={handleCreate}
-                disabled={submitting || !newName.trim()}
-                className="text-xs text-[#00c805] font-medium px-1.5 py-1.5 disabled:opacity-40 hover:underline"
-              >
-                {submitting ? '...' : 'Add'}
-              </button>
-              <button
-                onClick={() => { setCreating(false); setError(''); }}
-                className="text-xs text-gray-400 px-1 py-1.5 hover:underline"
-              >
-                ×
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleStartCreating}
-              className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center
-                text-gray-400 dark:text-white/30 hover:text-[#00c805] hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-all"
-              title="New Portfolio"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-          )}
-        </>
+      {/* Right fade + chevron */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 z-10 h-full w-6 flex items-center justify-end
+            bg-gradient-to-l from-[#111]/90 to-transparent"
+        >
+          <svg className="w-3 h-3 text-white/50 hover:text-white/80 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       )}
 
       {/* Error toast */}
       {error && (
-        <span className="text-[10px] text-red-500 shrink-0 ml-1">{error}</span>
+        <span className="text-[10px] text-red-400 font-medium shrink-0 ml-1">{error}</span>
       )}
     </div>
   );
