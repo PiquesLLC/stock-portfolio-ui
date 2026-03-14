@@ -17,6 +17,7 @@ import { ETFOverlap } from './ETFOverlap';
 import { TaxHarvest } from './TaxHarvest';
 import { MarketSession } from '../types';
 import { useToast } from '../context/ToastContext';
+import { normalizePortfolioTabs } from '../utils/portfolioDisplay';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap' | 'tax-harvest';
 
@@ -383,13 +384,13 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
   // Inline portfolio picker — only render when multiple portfolios exist
   const visiblePortfolios = useMemo(
-    () => (portfolios ?? []).filter((p) => p.name.trim().toLowerCase() !== 'all'),
+    () => normalizePortfolioTabs(portfolios ?? []),
     [portfolios]
   );
 
   const portfolioPicker = visiblePortfolios.length > 1 && onPortfolioChange ? (
     <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-      {visiblePortfolios.map((p, index) => (
+      {visiblePortfolios.map((p) => (
         <button
           key={p.id}
           onClick={() => onPortfolioChange(p.id)}
@@ -399,7 +400,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
               : 'bg-gray-100 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
           }`}
         >
-          {index === 0 ? 'Portfolio 1' : p.name}
+          {p.name}
         </button>
       ))}
     </div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { PortfolioRecord, listPortfolios, createPortfolio, deletePortfolio } from '../api';
+import { normalizePortfolioTabs } from '../utils/portfolioDisplay';
 
 interface PortfolioPickerProps {
   selectedPortfolioId: string | undefined;
@@ -28,7 +29,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
 
   const limit = PLAN_LIMITS[userPlan] ?? 1;
   const canCreate = portfolios.length < limit;
-  const visiblePortfolios = portfolios.filter(p => p.name.trim().toLowerCase() !== 'all');
+  const visiblePortfolios = normalizePortfolioTabs(portfolios);
 
   useEffect(() => {
     listPortfolios().then(setPortfolios).catch(() => {});
@@ -138,7 +139,6 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
         {visiblePortfolios.map(p => {
           const isActive = selectedPortfolioId === p.id;
           const isConfirmingDelete = confirmDelete === p.id;
-          const label = p.isDefault ? 'Portfolio 1' : p.name;
           return (
             <div key={p.id} className="relative shrink-0 group flex items-center">
               {isConfirmingDelete ? (
@@ -166,7 +166,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
                       : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 bg-gray-100/80 dark:bg-white/[0.04] hover:bg-gray-200/80 dark:hover:bg-white/[0.08]'
                     }`}
                 >
-                  <span>{label}</span>
+                  <span>{p.name}</span>
                 </button>
               )}
               {/* Delete button — only for non-default empty portfolios */}

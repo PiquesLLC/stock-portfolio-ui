@@ -34,6 +34,7 @@ import { Term } from './components/Term';
 import { formatCurrency, formatPercent } from './utils/format';
 import { getInitialTheme, applyTheme } from './utils/theme';
 import { getLocalTzAbbr } from './utils/market';
+import { normalizePortfolioTabs } from './utils/portfolioDisplay';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { usePortfolioData } from './hooks/usePortfolioData';
@@ -298,8 +299,8 @@ export default function App() {
     if (isAuthenticated && !authLoading) {
       listPortfolios()
         .then((portfolios) => {
-          setUserPortfolios(portfolios);
-          const visiblePortfolios = portfolios.filter((p) => p.name.trim().toLowerCase() !== 'all');
+          const visiblePortfolios = normalizePortfolioTabs(portfolios);
+          setUserPortfolios(visiblePortfolios);
           if (visiblePortfolios.length === 0) return;
 
           setSelectedPortfolioId((current) => {
