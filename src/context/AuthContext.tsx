@@ -1,6 +1,7 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, clearNativeAuthSession, ApiError } from '../api';
 import { isNativePlatform } from '../utils/platform';
+import { nativeLog } from '../utils/nativeDebug';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
 import { clearInsightsCache } from '../utils/insights-cache';
 import { clearEarningsPreviewCache, clearEarningsTabCache } from '../utils/earnings-cache';
@@ -155,9 +156,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const baseDelayMs = 500;
 
     const loadUser = async () => {
+      nativeLog('BOOT', `loadUser attempt=${attempt}`, { isSameOrigin: isSameOriginApi() });
       try {
         const current = await getCurrentUser();
         if (cancelled) return;
+        nativeLog('BOOT', 'loadUser OK', { id: current.id, username: current.username });
         const u: User = { ...current, plan: current.plan as PlanTier | undefined };
         setUser(u);
         writeCachedUser(u);
@@ -167,6 +170,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Only log out on confirmed terminal auth failure (SESSION_EXPIRED).
         // SERVER_UNAVAILABLE, NETWORK_ERROR, HTTP_ERROR are all retryable.
         const isAuthDead = err instanceof ApiError && err.code === 'SESSION_EXPIRED';
+        nativeLog('BOOT', 'loadUser FAILED', {
+          code: err?.code,
+          message: err?.message,
+          isAuthDead,
+          isSameOrigin: isSameOriginApi(),
+        });
         if (isAuthDead) {
           if (isSameOriginApi()) {
             setUser(null);
@@ -180,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         attempt += 1;
         if (attempt >= maxAttempts) {
+          nativeLog('BOOT', 'loadUser max attempts reached, giving up');
           // Keep cached user (if any) when backend is temporarily unavailable
           setIsLoading(false);
           return;
@@ -195,7 +205,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
   const login = useCallback(async (username: string, password: string) => {
+    nativeLog('LOGIN', 'apiLogin called');
     const response = await apiLogin(username, password);
+    nativeLog('LOGIN', 'apiLogin response', {
+      isMfa: isMfaChallenge(response),
+      hasUser: 'user' in response,
+      hasAccessToken: 'accessToken' in response,
+      hasRefreshToken: 'refreshToken' in response,
+      responseKeys: Object.keys(response),
+    });
     if (isMfaChallenge(response)) {
       // MFA required — store challenge, don't set user yet
       setMfaChallenge({
@@ -207,9 +225,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // No MFA — login sets httpOnly cookie automatically
     resetAuthState();
+    nativeLog('LOGIN', 'calling setNativeAuthSession', {
+      accessTokenType: typeof (response as any).accessToken,
+      refreshTokenType: typeof (response as any).refreshToken,
+      accessTokenLen: ((response as any).accessToken || '').length,
+      refreshTokenLen: ((response as any).refreshToken || '').length,
+    });
     setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
     setUser(response.user);
     writeCachedUser(response.user);
+    nativeLog('LOGIN', 'login complete — user set', { userId: response.user.id, username: response.user.username });
 
     // On native, prompt biometric enrollment
     promptBiometricEnrollment((response as any).refreshToken);

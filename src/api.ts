@@ -1,6 +1,7 @@
 import { CapacitorHttp } from '@capacitor/core';
 import { API_BASE_URL } from './config';
 import { isNative, isNativePlatform } from './utils/platform';
+import { nativeLog } from './utils/nativeDebug';
 import {
   Portfolio,
   ProjectionResponse,
@@ -86,6 +87,16 @@ export function setAuthExpiredHandler(handler: (() => void) | null) {
 
 const NATIVE_AUTH_STORAGE_KEY = 'nala_native_auth';
 
+// Emit boot diagnostics immediately
+nativeLog('INIT', 'api.ts loaded', {
+  isNative,
+  isNativePlatform: isNativePlatform(),
+  API_BASE_URL,
+  isSameOrigin: isSameOriginApi(),
+  protocol: typeof window !== 'undefined' ? window.location.protocol : 'N/A',
+  origin: typeof window !== 'undefined' ? window.location.origin : 'N/A',
+});
+
 type NativeAuthSession = {
   accessToken: string;
   refreshToken: string;
@@ -121,8 +132,20 @@ function writeNativeAuthSession(session: NativeAuthSession | null): void {
 }
 
 export function setNativeAuthSession(accessToken?: string | null, refreshToken?: string | null): void {
-  if (!accessToken || !refreshToken) return;
+  nativeLog('AUTH', 'setNativeAuthSession called', {
+    hasAccessToken: !!accessToken,
+    hasRefreshToken: !!refreshToken,
+    accessTokenLen: accessToken?.length ?? 0,
+    refreshTokenLen: refreshToken?.length ?? 0,
+  });
+  if (!accessToken || !refreshToken) {
+    nativeLog('AUTH', 'setNativeAuthSession SKIPPED — missing tokens');
+    return;
+  }
   writeNativeAuthSession({ accessToken, refreshToken });
+  // Verify write
+  const verify = readNativeAuthSession();
+  nativeLog('AUTH', 'setNativeAuthSession verify', { stored: !!verify });
 }
 
 export function clearNativeAuthSession(): void {
@@ -154,6 +177,11 @@ async function tryRefreshToken(): Promise<boolean> {
   try {
     const nativeSession = readNativeAuthSession();
     const nativeRuntime = isNativePlatform();
+    nativeLog('REFRESH', 'tryRefreshToken', {
+      nativeRuntime,
+      hasRefreshToken: !!nativeSession?.refreshToken,
+      refreshTokenLen: nativeSession?.refreshToken?.length ?? 0,
+    });
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
@@ -163,11 +191,13 @@ async function tryRefreshToken(): Promise<boolean> {
       },
       ...(nativeSession?.refreshToken ? { body: JSON.stringify({ refreshToken: nativeSession.refreshToken }) } : {}),
     });
+    nativeLog('REFRESH', `← ${res.status}`);
     if (res.ok) {
       if (nativeRuntime) {
         const data = await res.json().catch(() => ({} as Record<string, unknown>));
         const accessToken = typeof data.accessToken === 'string' ? data.accessToken : null;
         const refreshToken = typeof data.refreshToken === 'string' ? data.refreshToken : null;
+        nativeLog('REFRESH', 'tokens in response', { hasAccess: !!accessToken, hasRefresh: !!refreshToken });
         if (accessToken && refreshToken) {
           setNativeAuthSession(accessToken, refreshToken);
         }
@@ -178,10 +208,14 @@ async function tryRefreshToken(): Promise<boolean> {
     // Only mark auth dead on 401 (definitive token failure).
     // Other 4xx (e.g. 429 rate-limit, 400 validation) are NOT terminal auth failures.
     if (res.status === 401) {
+      nativeLog('REFRESH', 'FAILED 401 — marking authDead');
+      const body = await res.json().catch(() => ({}));
+      nativeLog('REFRESH', 'error body', body);
       authDead = true;
     }
     return false;
-  } catch {
+  } catch (err) {
+    nativeLog('REFRESH', 'NETWORK ERROR', { message: (err as Error)?.message });
     // Network error (server down, timeout) — don't kill auth,
     // the session may still be valid once the server comes back
     return false;
@@ -197,14 +231,23 @@ async function refreshOnce(): Promise<boolean> {
 
 /** Reset auth-dead flag after successful login */
 export function resetAuthState(): void {
+  nativeLog('AUTH', 'resetAuthState — clearing authDead + native session');
   authDead = false;
   clearNativeAuthSession();
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const shortUrl = url.replace(API_BASE_URL, '');
   const doFetch = () => {
     const nativeSession = readNativeAuthSession();
     const nativeRuntime = isNativePlatform();
+    const hasBearer = !!nativeSession?.accessToken;
+    nativeLog('FETCH', `→ ${options?.method || 'GET'} ${shortUrl}`, {
+      nativeRuntime,
+      hasBearer,
+      hasNativeSession: !!nativeSession,
+      authDead,
+    });
     return fetch(url, {
       ...options,
       credentials: 'include',
@@ -219,22 +262,29 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   };
 
   let response = await doFetch();
+  nativeLog('FETCH', `← ${response.status} ${shortUrl}`);
 
   // On 401, try refreshing tokens once then retry the original request
   if (response.status === 401 && !url.includes('/auth/refresh') && !url.includes('/auth/login')) {
+    nativeLog('FETCH', `401 on ${shortUrl} — attempting refresh`, { authDead });
     if (authDead) {
+      nativeLog('FETCH', 'authDead=true, throwing SESSION_EXPIRED immediately');
       throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
     }
     const refreshed = await refreshOnce();
     if (refreshed) {
+      nativeLog('FETCH', `refresh OK — retrying ${shortUrl}`);
       response = await doFetch();
+      nativeLog('FETCH', `← ${response.status} ${shortUrl} (retry)`);
     } else if (authDead) {
+      nativeLog('FETCH', 'refresh failed (authDead) — SESSION_EXPIRED');
       // Refresh failed with a definitive auth error (4xx) — session is dead.
       if (onAuthExpired && isSameOriginApi()) {
         onAuthExpired();
       }
       throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
     } else {
+      nativeLog('FETCH', 'refresh failed (network) — SERVER_UNAVAILABLE');
       // Refresh failed due to network error (server down, timeout).
       // Session may still be valid once the server comes back.
       throw new ApiError('Server unavailable', 'SERVER_UNAVAILABLE');

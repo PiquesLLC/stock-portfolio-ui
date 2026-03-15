@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { checkHasPassword, forgotUsername, resetPassword, joinWaitlist } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
+import { NativeDebugOverlay } from './NativeDebugOverlay';
 import { PLANS } from '../data/plans';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
@@ -823,6 +824,7 @@ export function LandingPage() {
         </div>
       )}
       <PrivacyPolicyModal isOpen={showPrivacyPolicy} onClose={() => setShowPrivacyPolicy(false)} initialTab={privacyTab} />
+      <NativeDebugOverlay />
     </div>
   );
 }

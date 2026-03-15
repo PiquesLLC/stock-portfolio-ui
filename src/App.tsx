@@ -23,6 +23,7 @@ import { DailyReportModal } from './components/DailyReportModal';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { SupportPage } from './components/SupportPage';
+import { NativeDebugOverlay } from './components/NativeDebugOverlay';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import PortfolioPicker from './components/PortfolioPicker';
@@ -731,6 +732,7 @@ export default function App() {
         <div className="relative z-10 text-center">
           <img src="/north-signal-logo-transparent.png" alt="" className="h-12 w-12 animate-spin mx-auto mb-4" />
         </div>
+        <NativeDebugOverlay />
       </div>
     );
   }
@@ -750,6 +752,7 @@ export default function App() {
             Retry
           </button>
         </div>
+        <NativeDebugOverlay />
       </div>
     );
   }
@@ -1819,6 +1822,7 @@ export default function App() {
       )}
       <ShortcutToast message={toastMessage} />
       <KeyboardCheatSheet isOpen={isCheatSheetOpen} onClose={closeCheatSheet} />
+      <NativeDebugOverlay />
     </div>
   );
 }
