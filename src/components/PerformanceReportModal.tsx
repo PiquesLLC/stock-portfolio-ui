@@ -15,7 +15,7 @@ const PERIODS: { value: PerformanceWindow; label: string }[] = [
 const BENCHMARKS = ['SPY', 'QQQ', 'DIA'];
 
 function getTheme(): 'light' | 'dark' {
-  return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  return typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 }
 
 interface Props {

@@ -18,6 +18,8 @@ import { TaxHarvest } from './TaxHarvest';
 import { MarketSession } from '../types';
 import { useToast } from '../context/ToastContext';
 import { normalizePortfolioTabs } from '../utils/portfolioDisplay';
+import { clearInsightsCache, INSIGHTS_CACHE_TTL_MS, insightsCache } from '../utils/insights-cache';
+import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap' | 'tax-harvest';
 
@@ -105,27 +107,6 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   );
 }
 
-// Cache for insights data - persists across component mounts
-const insightsCache: {
-  healthScore: HealthScoreType | null;
-  intelligence: PortfolioIntelligenceResponse | null;
-  lastFetchTime: number | null;
-} = {
-  healthScore: null,
-  intelligence: null,
-  lastFetchTime: null,
-};
-
-// Cache TTL: 5 minutes before considering stale
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-/** Clear module-level cache (call on logout to prevent data leaks). */
-export function clearInsightsCache() {
-  insightsCache.healthScore = null;
-  insightsCache.intelligence = null;
-  insightsCache.lastFetchTime = null;
-}
-
 const REPORT_PERIODS: { value: PerformanceWindow; label: string }[] = [
   { value: '1W', label: '1W' },
   { value: '1M', label: '1M' },
@@ -158,8 +139,7 @@ function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
       const msg = e instanceof Error ? e.message : 'Failed to generate report';
       if (msg.includes('upgrade_required')) {
         showToast('Elite plan required for performance reports', 'error');
-        window.location.hash = '#pricing';
-        window.dispatchEvent(new HashChangeEvent('hashchange'));
+        navigateToPricing();
       } else {
         showToast(msg, 'error');
       }
@@ -338,7 +318,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       ? Date.now() - insightsCache.lastFetchTime
       : Infinity;
 
-    const cacheIsStale = cacheAge > CACHE_TTL_MS;
+    const cacheIsStale = cacheAge > INSIGHTS_CACHE_TTL_MS;
     const hasNoData = !insightsCache.healthScore && !insightsCache.intelligence;
 
     if (hasNoData) {

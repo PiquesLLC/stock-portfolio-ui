@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { askStockQuestion, StockQAResponse } from '../api';
+import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 const SUGGESTIONS = [
   'What are the biggest risks?',
@@ -18,12 +19,15 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
   const [response, setResponse] = useState<StockQAResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const requestIdRef = useRef(0);
 
   // Reset when ticker changes
   useEffect(() => {
+    requestIdRef.current += 1;
     setQuestion('');
     setResponse(null);
     setError(null);
+    setLoading(false);
   }, [ticker]);
 
   const handleAsk = async (q?: string) => {
@@ -33,14 +37,21 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
     setLoading(true);
     setError(null);
     setQuestion(query);
+    const requestId = requestIdRef.current;
 
     try {
       const data = await askStockQuestion(ticker, query);
-      setResponse(data);
+      if (requestIdRef.current === requestId) {
+        setResponse(data);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to get answer');
+      if (requestIdRef.current === requestId) {
+        setError(err.message || 'Failed to get answer');
+      }
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) {
+        setLoading(false);
+      }
     }
   };
 
@@ -148,8 +159,8 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
           <div className="mt-4 p-4 rounded-xl bg-gray-50/80 dark:bg-white/[0.04] text-center">
             <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Upgrade to Premium to ask AI questions about stocks.</p>
             <a
-              href="#pricing"
-              onClick={(e) => { e.preventDefault(); window.location.hash = '#pricing'; window.dispatchEvent(new HashChangeEvent('hashchange')); }}
+              href="#tab=pricing"
+              onClick={(e) => { e.preventDefault(); navigateToPricing(); }}
               className="inline-block px-4 py-1.5 rounded-lg text-xs font-semibold bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
             >
               Upgrade to Premium

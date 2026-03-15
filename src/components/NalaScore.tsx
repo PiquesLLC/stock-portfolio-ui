@@ -273,14 +273,25 @@ export function NalaScore({ ticker }: NalaScoreProps) {
   const [drawerDim, setDrawerDim] = useState<NalaDimension | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setLoading(true);
     setData(null);
     getNalaScore(ticker)
-      .then(setData)
+      .then((resp) => {
+        if (requestIdRef.current === requestId) {
+          setData(resp);
+        }
+      })
       .catch(e => console.error('Nala score fetch failed:', e))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (requestIdRef.current === requestId) {
+          setLoading(false);
+        }
+      });
   }, [ticker]);
 
   if (loading) {

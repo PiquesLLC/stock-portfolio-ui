@@ -1054,10 +1054,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               <span className="text-rh-light-muted dark:text-rh-muted">Risk posture</span>
               <span className={`font-medium ${riskPosture.color}`}>{riskPosture.level}</span>
             </div>
-            {perf?.correlation !== null && (
+            {perf?.correlation != null && (
               <div className="flex justify-between items-center">
                 <span className="text-rh-light-muted dark:text-rh-muted">SPY correlation</span>
-                <span className="text-rh-light-text dark:text-rh-text font-medium">{perf!.correlation!.toFixed(2)}</span>
+                <span className="text-rh-light-text dark:text-rh-text font-medium">{perf.correlation.toFixed(2)}</span>
               </div>
             )}
             {intelligence?.topContributor && effectiveReturn(perf) && Math.abs(effectiveReturn(perf)!) > 0 && (() => {

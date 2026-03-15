@@ -43,6 +43,13 @@ interface DrawerProps {
   details: HealthScoreDetails;
 }
 
+function getCategoryDetail(
+  details: HealthScoreDetails,
+  categoryKey: Exclude<CategoryKey, 'margin'>,
+): HealthCategoryDetail {
+  return details[categoryKey];
+}
+
 function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +77,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
 
   const catDetail: HealthCategoryDetail | null = isMargin
     ? null
-    : details[categoryKey as Exclude<CategoryKey, 'margin'>];
+    : getCategoryDetail(details, categoryKey as Exclude<CategoryKey, 'margin'>);
 
   const title = CATEGORY_LABELS[categoryKey];
   const scoreLabel = isMargin
@@ -284,6 +291,11 @@ export function HealthScore({ data }: HealthScoreProps) {
   const [showAllReasons, setShowAllReasons] = useState(false);
 
   const hasDetails = !!details;
+  const hasCategoryDetail = (category: CategoryKey) => {
+    if (!details) return false;
+    if (category === 'margin') return breakdown.margin > 0;
+    return ['concentration', 'volatility', 'drawdown', 'diversification'].includes(category);
+  };
   const visibleReasons = showAllReasons ? reasons : reasons.slice(0, 2);
 
   if (partial) {
@@ -325,23 +337,23 @@ export function HealthScore({ data }: HealthScoreProps) {
 
         {/* Breakdown bars */}
         <div className="space-y-1 mb-4">
-          <BreakdownRow label="Concentration" value={breakdown.concentration} hasDetail={hasDetails} onClick={() => setSelectedCategory('concentration')} />
-          <BreakdownRow label="Volatility" value={breakdown.volatility} hasDetail={hasDetails} onClick={() => setSelectedCategory('volatility')} />
-          <BreakdownRow label="Drawdown" value={breakdown.drawdown} hasDetail={hasDetails} onClick={() => setSelectedCategory('drawdown')} />
-          <BreakdownRow label="Diversification" value={breakdown.diversification} hasDetail={hasDetails} onClick={() => setSelectedCategory('diversification')} />
+          <BreakdownRow label="Concentration" value={breakdown.concentration} hasDetail={hasCategoryDetail('concentration')} onClick={() => setSelectedCategory('concentration')} />
+          <BreakdownRow label="Volatility" value={breakdown.volatility} hasDetail={hasCategoryDetail('volatility')} onClick={() => setSelectedCategory('volatility')} />
+          <BreakdownRow label="Drawdown" value={breakdown.drawdown} hasDetail={hasCategoryDetail('drawdown')} onClick={() => setSelectedCategory('drawdown')} />
+          <BreakdownRow label="Diversification" value={breakdown.diversification} hasDetail={hasCategoryDetail('diversification')} onClick={() => setSelectedCategory('diversification')} />
           {breakdown.margin > 0 && (
             <button
-              onClick={() => hasDetails && setSelectedCategory('margin')}
-              onKeyDown={(e) => { if (hasDetails && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelectedCategory('margin'); } }}
+              onClick={() => hasCategoryDetail('margin') && setSelectedCategory('margin')}
+              onKeyDown={(e) => { if (hasCategoryDetail('margin') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelectedCategory('margin'); } }}
               className={`flex items-center gap-3 w-full text-left rounded-lg px-2 py-1.5 -mx-2
-                ${hasDetails ? 'hover:bg-rh-light-bg dark:hover:bg-rh-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer' : ''}
+                ${hasCategoryDetail('margin') ? 'hover:bg-rh-light-bg dark:hover:bg-rh-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer' : ''}
                 transition-colors`}
               aria-label={`Margin Penalty: -${breakdown.margin} points — click for details`}
-              disabled={!hasDetails}
+              disabled={!hasCategoryDetail('margin')}
             >
               <span className="text-sm text-rh-light-text/70 dark:text-white/50 w-28">Margin Penalty</span>
               <span className="text-sm text-rh-red">-{breakdown.margin} points</span>
-              {hasDetails && (
+              {hasCategoryDetail('margin') && (
                 <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -395,7 +407,7 @@ export function HealthScore({ data }: HealthScoreProps) {
       </div>
 
       {/* Drawer */}
-      {hasDetails && selectedCategory && (
+      {hasDetails && selectedCategory && hasCategoryDetail(selectedCategory) && (
         <Drawer
           open={!!selectedCategory}
           onClose={() => setSelectedCategory(null)}

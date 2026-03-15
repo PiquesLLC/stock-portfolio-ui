@@ -601,7 +601,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
   const ref = useRef<HTMLDivElement>(null);
 
   const updatePos = useCallback(() => {
-    if (!ref.current) return;
+    if (!ref.current || typeof window === 'undefined') return;
     const rect = ref.current.getBoundingClientRect();
     const tipW = 240;
     // Prefer right side; fall back to left if it would overflow viewport
@@ -626,7 +626,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
       onMouseLeave={() => setShow(false)}
     >
       {children}
-      {show && pos && createPortal(
+      {show && pos && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed z-[9999] px-3 py-2 rounded-lg text-[11px] leading-relaxed text-white/80 pointer-events-none"
           style={{

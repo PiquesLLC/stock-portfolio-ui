@@ -35,7 +35,9 @@ interface TickerAutocompleteInputProps {
 function getRecentTickers(): string[] {
   try {
     const stored = localStorage.getItem(RECENT_TICKERS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
   } catch {
     return [];
   }

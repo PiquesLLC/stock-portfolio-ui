@@ -189,10 +189,11 @@ export function EarningsSection({ ticker }: { ticker: string }) {
   const [loading, setLoading] = useState(!earningsCache.has(ticker));
   const [expanded, setExpanded] = useState(false);
   const [hoveredTableIdx, setHoveredTableIdx] = useState<number | null>(null);
-  const mountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
-    mountedRef.current = true;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     const cached = earningsCache.get(ticker);
     if (cached && Date.now() - cached.time < CACHE_TTL) {
       setData(cached.data);
@@ -200,20 +201,19 @@ export function EarningsSection({ ticker }: { ticker: string }) {
       return;
     }
 
+    setData(null);
     setLoading(!cached);
     getEarnings(ticker)
       .then(resp => {
-        if (mountedRef.current) {
+        if (requestIdRef.current === requestId) {
           setData(resp);
           earningsCache.set(ticker, { data: resp, time: Date.now() });
           setLoading(false);
         }
       })
       .catch(() => {
-        if (mountedRef.current) setLoading(false);
+        if (requestIdRef.current === requestId) setLoading(false);
       });
-
-    return () => { mountedRef.current = false; };
   }, [ticker]);
 
   useEffect(() => { setExpanded(false); }, [ticker]);

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getInitialTheme, applyTheme } from './theme';
 
 describe('getInitialTheme', () => {
@@ -38,5 +38,24 @@ describe('applyTheme', () => {
     applyTheme('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
     expect(localStorage.getItem('theme')).toBe('light');
+  });
+});
+
+describe('browser guard behavior', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns dark when localStorage is unavailable', () => {
+    vi.stubGlobal('localStorage', undefined);
+
+    expect(getInitialTheme()).toBe('dark');
+  });
+
+  it('does not throw when applying theme without document or localStorage', () => {
+    vi.stubGlobal('document', undefined);
+    vi.stubGlobal('localStorage', undefined);
+
+    expect(() => applyTheme('dark')).not.toThrow();
   });
 });

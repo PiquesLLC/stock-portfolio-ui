@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 
+export function readIsDarkFromDom(): boolean {
+  return typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+}
+
 export function useIsDark(): boolean {
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const [isDark, setIsDark] = useState(readIsDarkFromDom);
   useEffect(() => {
-    const obs = new MutationObserver(() => setIsDark(document.documentElement.classList.contains('dark')));
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+    const obs = new MutationObserver(() => setIsDark(readIsDarkFromDom()));
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => obs.disconnect();
   }, []);

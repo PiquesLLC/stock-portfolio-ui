@@ -151,10 +151,12 @@ export function ProfileSection({
 
 function InviteCard({ username }: { username: string }) {
   const [copied, setCopied] = useState(false);
-  const referralUrl = `${window.location.origin}/join?ref=${encodeURIComponent(username)}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const referralUrl = origin ? `${origin}/join?ref=${encodeURIComponent(username)}` : '';
 
   const handleCopy = useCallback(async () => {
     try {
+      if (typeof navigator === 'undefined' || !navigator.clipboard || !referralUrl) throw new Error('clipboard unavailable');
       await navigator.clipboard.writeText(referralUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -162,6 +164,7 @@ function InviteCard({ username }: { username: string }) {
   }, [referralUrl]);
 
   const handleShareX = useCallback(() => {
+    if (!referralUrl || typeof window === 'undefined') return;
     const text = `Track your portfolio like a pro with Nala`;
     const url = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(referralUrl)}`;
     window.open(url, '_blank', 'noopener,noreferrer,width=550,height=420');
@@ -212,7 +215,7 @@ function InviteCard({ username }: { username: string }) {
           </svg>
           Share on X
         </button>
-        {typeof navigator.share === 'function' && (
+        {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
           <button
             onClick={() => navigator.share({ title: 'Join Nala', text: 'Track your portfolio like a pro', url: referralUrl })}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-white/50 hover:text-rh-light-text dark:hover:text-white/80 hover:border-gray-300 dark:hover:border-white/[0.15] transition-all"

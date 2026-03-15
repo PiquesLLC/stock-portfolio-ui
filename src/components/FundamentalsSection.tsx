@@ -361,13 +361,14 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
   const [period, setPeriod] = useState<PeriodToggle>('annual');
   const [collapsed, setCollapsed] = useState(false); // Start expanded to show charts
   const [showTable, setShowTable] = useState(false);
-  const mountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   // Reset tab on ticker change to avoid blank panel
   useEffect(() => { setTab('revenue'); }, [ticker]);
 
   useEffect(() => {
-    mountedRef.current = true;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     const cached = fundCache.get(ticker);
     if (cached && Date.now() - cached.time < CACHE_TTL) {
       setData(cached.data);
@@ -375,20 +376,19 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
       return;
     }
 
+    setData(null);
     setLoading(!cached);
     getFundamentals(ticker)
       .then(resp => {
-        if (mountedRef.current) {
+        if (requestIdRef.current === requestId) {
           setData(resp);
           fundCache.set(ticker, { data: resp, time: Date.now() });
           setLoading(false);
         }
       })
       .catch(() => {
-        if (mountedRef.current) setLoading(false);
+        if (requestIdRef.current === requestId) setLoading(false);
       });
-
-    return () => { mountedRef.current = false; };
   }, [ticker]);
 
   if (loading) {

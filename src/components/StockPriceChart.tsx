@@ -70,7 +70,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const [enabledMAs, setEnabledMAs] = useState<Set<MAPeriod>>(() => {
     try {
       const saved = localStorage.getItem('stockChartMAs');
-      if (saved) return new Set(JSON.parse(saved) as MAPeriod[]);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return new Set(parsed.filter((value): value is MAPeriod => typeof value === 'number'));
+        }
+      }
     } catch { /* ignore */ }
     return new Set();
   });

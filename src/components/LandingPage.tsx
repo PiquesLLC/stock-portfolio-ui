@@ -128,6 +128,23 @@ export function LandingPage() {
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
+  useEffect(() => {
+    const syncHashRoute = () => {
+      const raw = window.location.hash.slice(1);
+      if (!raw) return;
+      const params = new URLSearchParams(raw);
+      const tab = params.get('tab') || raw;
+      if (tab !== 'pricing') return;
+      requestAnimationFrame(() => {
+        pricingRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      });
+    };
+
+    syncHashRoute();
+    window.addEventListener('hashchange', syncHashRoute);
+    return () => window.removeEventListener('hashchange', syncHashRoute);
+  }, []);
+
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
   useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'forgot-username' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
   const resetCooldownActive = resetCooldown > 0;

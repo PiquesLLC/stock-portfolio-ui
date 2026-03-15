@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent } from '../types';
-import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, getUnreadAnomalyCount, markAnomalyRead, markAllAnomaliesRead } from '../api';
+import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, markAnomalyRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
@@ -30,6 +30,9 @@ interface UnifiedNotification {
   ticker?: string;
 }
 
+function isVisibleAnomaly(event: AnomalyEvent): boolean {
+  return event.type !== 'concentration';
+}
 
 function groupByDay(notifications: UnifiedNotification[]): { label: string; items: UnifiedNotification[] }[] {
   const now = new Date();
@@ -154,19 +157,20 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
   const fetchCount = useCallback(async () => {
     if (!userId || !notificationsEnabled) return;
     try {
-      const [alertCount, priceAlertCount, analystCount, milestoneCount, anomalyCount] = await Promise.all([
+      const [alertCount, priceAlertCount, analystCount, milestoneCount, anomalyEvents] = await Promise.all([
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
         getUnreadAnalystCount(),
         getUnreadMilestoneCount(),
-        getUnreadAnomalyCount(),
+        getAnomalies(100),
       ]);
-      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + anomalyCount.count);
+      const visibleUnreadAnomalyCount = anomalyEvents.filter((event: AnomalyEvent) => isVisibleAnomaly(event) && !event.read).length;
+      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + visibleUnreadAnomalyCount);
     } catch { /* silent — background poll, 401s are expected when session expires */ }
   }, [userId, notificationsEnabled]);
 
-  const fetchEvents = useCallback(async () => {
-    if (!userId) return;
+  const fetchEvents = useCallback(async (): Promise<UnifiedNotification[]> => {
+    if (!userId) return [];
     try {
       const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents, anomalyEvents] = await Promise.all([
         getAlertEvents(userId),
@@ -220,7 +224,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       }));
 
       // Convert anomaly events to unified format (exclude concentration — shown in Health Score instead)
-      const unifiedAnomalies: UnifiedNotification[] = anomalyEvents.filter((e: AnomalyEvent) => e.type !== 'concentration').map((e: AnomalyEvent) => ({
+      const unifiedAnomalies: UnifiedNotification[] = anomalyEvents.filter(isVisibleAnomaly).map((e: AnomalyEvent) => ({
         id: e.id,
         type: 'anomaly' as const,
         label: ALERT_TYPE_LABELS[e.type] || e.type.replace('_', ' '),
@@ -239,7 +243,9 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
       // Compute unread from filtered merged list (avoids counting excluded types like concentration)
       setUnreadCount(merged.filter(n => !n.read).length);
+      return merged;
     } catch (e) { console.error('Notifications fetch failed:', e); }
+    return [];
   }, [userId]);
 
   // Poll unread count every 30s (but not while dropdown is open)
@@ -257,18 +263,18 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
   // Load events when dropdown opens, mark as read instantly
   useEffect(() => {
     if (open) {
-      fetchEvents();
-      // Clear badge immediately for instant feedback
-      if (unreadCount > 0) {
-        setUnreadCount(0);
-        // Then mark as read on server in background
-        if (!markingReadRef.current) {
-          markingReadRef.current = true;
-          handleMarkAllRead().finally(() => {
-            markingReadRef.current = false;
-          });
+      fetchEvents().then((merged) => {
+        const unreadVisibleCount = merged.filter(n => !n.read).length;
+        if (unreadVisibleCount > 0) {
+          setUnreadCount(0);
+          if (!markingReadRef.current) {
+            markingReadRef.current = true;
+            handleMarkAllRead(merged).finally(() => {
+              markingReadRef.current = false;
+            });
+          }
         }
-      }
+      });
     }
     // fetchEvents/handleMarkAllRead/unreadCount excluded: only `open` toggle should trigger; adding others causes unnecessary re-runs
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -322,7 +328,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     }
   };
 
-  const handleMarkAllRead = async () => {
+  const handleMarkAllRead = async (currentNotifications?: UnifiedNotification[]) => {
     try {
       // Mark all portfolio alerts as read
       await markAllAlertsRead(userId);
@@ -339,7 +345,9 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       await markAllMilestoneEventsRead();
 
       // Mark all anomaly events as read
-      await markAllAnomaliesRead();
+      const sourceNotifications = currentNotifications ?? notifications;
+      const visibleUnreadAnomalies = sourceNotifications.filter(n => n.type === 'anomaly' && !n.read);
+      await Promise.all(visibleUnreadAnomalies.map(n => markAnomalyRead(n.id)));
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
@@ -380,7 +388,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button
-                  onClick={handleMarkAllRead}
+                  onClick={() => { void handleMarkAllRead(); }}
                   className="text-xs text-rh-green hover:underline"
                 >
                   Mark all read

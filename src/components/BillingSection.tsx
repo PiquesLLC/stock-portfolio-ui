@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth, PlanTier } from '../context/AuthContext';
 import { getBillingStatus, createPortalSession, BillingStatus } from '../api';
 import { useToast } from '../context/ToastContext';
+import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 const PLAN_LABELS: Record<PlanTier, { name: string; color: string; bg: string }> = {
   free: { name: 'Free', color: 'text-rh-light-muted dark:text-rh-muted', bg: 'bg-gray-200/50 dark:bg-white/[0.06]' },
@@ -91,11 +92,10 @@ export function BillingSection() {
         <div className="flex items-center gap-2">
           {plan === 'free' ? (
             <a
-              href="#pricing"
+              href="#tab=pricing"
               onClick={(e) => {
                 e.preventDefault();
-                window.location.hash = '#pricing';
-                window.dispatchEvent(new HashChangeEvent('hashchange'));
+                navigateToPricing();
               }}
               className="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-center bg-rh-green text-white hover:bg-rh-green/90 transition-colors min-h-[44px] flex items-center justify-center"
             >

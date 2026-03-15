@@ -6,6 +6,10 @@ interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   userPlan?: string;
+  portfolioMenuOpen?: boolean;
+  portfolioMenu?: React.ReactNode;
+  onPortfolioTabClick?: () => void;
+  onPortfolioMenuClose?: () => void;
 }
 
 const TAB_ICONS: Record<TabType, JSX.Element> = {
@@ -40,9 +44,18 @@ const OVERFLOW_TABS: { id: TabType; label: string }[] = [
   { id: 'pricing', label: 'Pricing' },
 ];
 
-export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps) {
+export function Navigation({
+  activeTab,
+  onTabChange,
+  userPlan,
+  portfolioMenuOpen = false,
+  portfolioMenu,
+  onPortfolioTabClick,
+  onPortfolioMenuClose,
+}: NavigationProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const portfolioMenuRef = useRef<HTMLDivElement>(null);
   const isPaid = userPlan === 'pro' || userPlan === 'premium';
   const visibleOverflow = useMemo(() =>
     isPaid ? OVERFLOW_TABS.filter(t => t.id !== 'pricing') : OVERFLOW_TABS,
@@ -65,6 +78,19 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
     };
   }, [moreOpen]);
 
+  useEffect(() => {
+    if (!portfolioMenuOpen || !onPortfolioMenuClose) return;
+    const handler = (e: MouseEvent) => {
+      if (portfolioMenuRef.current && !portfolioMenuRef.current.contains(e.target as Node)) {
+        onPortfolioMenuClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+    };
+  }, [portfolioMenuOpen, onPortfolioMenuClose]);
+
   const allTabs = [...PRIMARY_TABS, ...visibleOverflow];
   const isOverflowActive = visibleOverflow.some(t => t.id === activeTab);
   const activeOverflowLabel = visibleOverflow.find(t => t.id === activeTab)?.label;
@@ -74,6 +100,7 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
   const dragging = useRef(false);
   const didDrag = useRef(false);
   const startTab = useRef<TabType | null>(null);
+  const ignoreNextClick = useRef(false);
 
   const getTabFromPoint = useCallback((x: number, y: number): TabType | null => {
     const el = document.elementFromPoint(x, y);
@@ -107,11 +134,16 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
     if (!dragging.current) return;
     dragging.current = false;
     if (dragTab) {
-      onTabChange(dragTab);
+      ignoreNextClick.current = true;
+      if (dragTab === 'portfolio' && onPortfolioTabClick) {
+        onPortfolioTabClick();
+      } else {
+        onTabChange(dragTab);
+      }
       setMoreOpen(false);
     }
     setDragTab(null);
-  }, [dragTab, onTabChange]);
+  }, [dragTab, onPortfolioTabClick, onTabChange]);
 
   return (
     <nav className="border-b border-rh-light-border/60 dark:border-rh-border/60 bg-rh-light-bg/95 dark:bg-black/80 backdrop-blur-md">
@@ -155,26 +187,46 @@ export function Navigation({ activeTab, onTabChange, userPlan }: NavigationProps
             const isDragging = dragTab !== null;
             const isUnderFinger = dragTab === tab.id;
             const isActive = activeTab === tab.id;
+            const showPortfolioActive = tab.id === 'portfolio' && portfolioMenuOpen;
             const lit = isDragging ? isUnderFinger : isActive;
             return (
-            <button
-              key={tab.id}
-              data-tab-id={tab.id}
-              onClick={(e) => { if (didDrag.current) { e.preventDefault(); return; } onTabChange(tab.id); setMoreOpen(false); }}
-              className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
-                ${lit
-                  ? 'text-rh-green'
-                  : 'text-rh-light-muted dark:text-rh-muted'
-                }`}
-            >
-              <span className={`transition-opacity duration-200 ${lit ? 'opacity-100' : 'opacity-50'}`}>
-                {TAB_ICONS[tab.id]}
-              </span>
-              <span className="text-[10px]">{tab.label}</span>
-              <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
-                lit ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
-              }`} />
-            </button>
+            <div key={tab.id} className="relative" ref={tab.id === 'portfolio' ? portfolioMenuRef : undefined}>
+              <button
+                data-tab-id={tab.id}
+                onClick={(e) => {
+                  if (ignoreNextClick.current) {
+                    ignoreNextClick.current = false;
+                    e.preventDefault();
+                    return;
+                  }
+                  if (didDrag.current) { e.preventDefault(); return; }
+                  if (tab.id === 'portfolio' && onPortfolioTabClick) {
+                    onPortfolioTabClick();
+                  } else {
+                    onTabChange(tab.id);
+                  }
+                  setMoreOpen(false);
+                }}
+                className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
+                  ${(lit || showPortfolioActive)
+                    ? 'text-rh-green'
+                    : 'text-rh-light-muted dark:text-rh-muted'
+                  }`}
+              >
+                <span className={`transition-opacity duration-200 ${(lit || showPortfolioActive) ? 'opacity-100' : 'opacity-50'}`}>
+                  {TAB_ICONS[tab.id]}
+                </span>
+                <span className="text-[10px]">{tab.label}</span>
+                <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
+                  (lit || showPortfolioActive) ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                }`} />
+              </button>
+              {tab.id === 'portfolio' && portfolioMenuOpen && portfolioMenu && (
+                <div className="absolute left-0 top-full mt-1 z-50 min-w-[220px] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1b] shadow-2xl p-2" data-no-tab-swipe>
+                  {portfolioMenu}
+                </div>
+              )}
+            </div>
             );
           })}
 

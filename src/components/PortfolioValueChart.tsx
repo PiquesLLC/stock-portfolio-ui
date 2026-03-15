@@ -13,6 +13,7 @@ import {
 import { computeChartGroups } from '../utils/chart-groups';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 /** Compute the ET date string and UTC→ET offset for a given date using the "noon trick". */
 function getEtOffset(refDate: Date): { etDateStr: string; etOffsetMs: number } {
@@ -52,6 +53,7 @@ interface Props {
   session?: MarketSessionProp;
   /** When true, quote data is degraded (repricing/stale/unavailable) — suppress live point */
   quotesStale?: boolean;
+  mobileTopPadding?: 'tight' | 'normal';
 }
 
 export function shouldShowEstimatedBadge(
@@ -76,7 +78,23 @@ const HERO_VALUE_ANIMATIONS = [
 // Periods available on the free plan
 const FREE_PERIODS: Set<PortfolioChartPeriod> = new Set(['1D', '1W', 'YTD']);
 
-export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent, regularDayChange, regularDayChangePercent, afterHoursChange, afterHoursChangePercent, refreshTrigger, fetchFn, onPeriodChange, onReturnChange, onMeasurementChange, session, quotesStale }: Props) {
+export function PortfolioValueChart({
+  currentValue,
+  dayChange,
+  dayChangePercent,
+  regularDayChange,
+  regularDayChangePercent,
+  afterHoursChange,
+  afterHoursChangePercent,
+  refreshTrigger,
+  fetchFn,
+  onPeriodChange,
+  onReturnChange,
+  onMeasurementChange,
+  session,
+  quotesStale,
+  mobileTopPadding = 'normal',
+}: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const userPlan = user?.plan || 'free';
@@ -983,7 +1001,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative pt-5 pb-3 ${
+    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-0 sm:pt-5' : 'pt-5'} pb-3 ${
       isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
     }`}>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
@@ -1796,8 +1814,7 @@ export function PortfolioValueChart({ currentValue, dayChange, dayChangePercent,
               onClick={() => {
                 if (isLocked) {
                   showToast('Upgrade to Pro for all chart periods', 'info');
-                  window.location.hash = '#pricing';
-                  window.dispatchEvent(new HashChangeEvent('hashchange'));
+                  navigateToPricing();
                   return;
                 }
                 handlePeriodChange(period);

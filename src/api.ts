@@ -83,12 +83,17 @@ export function setAuthExpiredHandler(handler: (() => void) | null) {
   onAuthExpired = handler;
 }
 
+function getBrowserOrigin(): string {
+  return typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+}
+
 export function isSameOriginApi(): boolean {
   if (typeof window === 'undefined') return true;
   if (!API_BASE_URL || API_BASE_URL.startsWith('/')) return true;
   try {
-    const url = new URL(API_BASE_URL, window.location.origin);
-    return url.origin === window.location.origin;
+    const origin = getBrowserOrigin();
+    const url = new URL(API_BASE_URL, origin);
+    return url.origin === origin;
   } catch {
     return true;
   }
@@ -2613,6 +2618,16 @@ export interface StuckJobEntry {
   durationMs: number | null;
 }
 
+export interface HealStuckJobsResponse {
+  target: 'stuck_jobs';
+  dryRun: boolean;
+  thresholdMinutes: number;
+  wouldHeal?: number;
+  healed?: number;
+  details?: Array<{ id: string; jobName: string; action: string }>;
+  message?: string;
+}
+
 export function getJobMetrics(hours = 24): Promise<JobMetricsResponse> {
   return fetchJson<JobMetricsResponse>(`${API_BASE_URL}/health/job-metrics?hours=${hours}`);
 }
@@ -2655,10 +2670,12 @@ export function getStuckJobs(thresholdMinutes = 30): Promise<{ stuck: StuckJobEn
   return fetchJson(`${API_BASE_URL}/admin/jobs/stuck?thresholdMinutes=${thresholdMinutes}`);
 }
 
-export function healStuckJobs(dryRun = true): Promise<{ dryRun: boolean; wouldHeal?: number; healed?: number; details?: Array<{ id: string; jobName: string; action: string }> }> {
+export function healStuckJobs(opts?: { dryRun?: boolean; thresholdMinutes?: number }): Promise<HealStuckJobsResponse> {
+  const dryRun = opts?.dryRun ?? true;
+  const thresholdMinutes = opts?.thresholdMinutes ?? 30;
   return fetchJson(`${API_BASE_URL}/admin/jobs/heal`, {
     method: 'POST',
-    body: JSON.stringify({ dryRun }),
+    body: JSON.stringify({ target: 'stuck_jobs', dryRun, thresholdMinutes }),
   });
 }
 

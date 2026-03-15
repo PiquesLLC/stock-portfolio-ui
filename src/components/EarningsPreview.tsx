@@ -3,18 +3,11 @@ import { getEarningsPreviews, EarningsPreviewItem } from '../api';
 import { SkeletonCard } from './SkeletonCard';
 import { PremiumOverlay } from './PremiumOverlay';
 import { useAuth, PlanTier } from '../context/AuthContext';
+import { earningsPreviewCache, EARNINGS_CACHE_TTL_MS } from '../utils/earnings-cache';
 
 interface EarningsPreviewProps {
   onTickerClick?: (ticker: string) => void;
   portfolioId?: string;
-}
-
-const CACHE_TTL_MS = 5 * 60 * 1000;
-const previewCacheMap = new Map<string | undefined, { data: EarningsPreviewItem[]; partial: boolean; timestamp: number }>();
-
-/** Clear module-level cache (call on logout to prevent data leaks). */
-export function clearEarningsPreviewCache() {
-  previewCacheMap.clear();
 }
 
 function StreakDots({ type, count }: { type: string; count: number }) {
@@ -186,7 +179,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
 }
 
 function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewProps) {
-  const cached = previewCacheMap.get(portfolioId);
+  const cached = earningsPreviewCache.get(portfolioId);
   const [items, setItems] = useState<EarningsPreviewItem[]>(cached?.data ?? []);
   const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
@@ -199,8 +192,8 @@ function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewP
 
     async function fetchPreviews() {
       const fetchPortfolioId = portfolioId; // capture at call time
-      const cachedEntry = previewCacheMap.get(portfolioId);
-      if (cachedEntry && Date.now() - cachedEntry.timestamp < CACHE_TTL_MS) {
+      const cachedEntry = earningsPreviewCache.get(portfolioId);
+      if (cachedEntry && Date.now() - cachedEntry.timestamp < EARNINGS_CACHE_TTL_MS) {
         setItems(cachedEntry.data);
         setLoading(false);
         return;
@@ -211,7 +204,7 @@ function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewP
       try {
         const resp = await getEarningsPreviews(portfolioId);
         if (!mountedRef.current || fetchPortfolioId !== currentPortfolioIdRef.current) return;
-        previewCacheMap.set(portfolioId, { data: resp.results, partial: resp.partial, timestamp: Date.now() });
+        earningsPreviewCache.set(portfolioId, { data: resp.results, partial: resp.partial, timestamp: Date.now() });
         setItems(resp.results);
       } catch (e: unknown) {
         if (!mountedRef.current || fetchPortfolioId !== currentPortfolioIdRef.current) return;
@@ -227,7 +220,7 @@ function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewP
     }
 
     // Reset state when portfolioId changes to avoid showing stale data
-    const prevCached = previewCacheMap.get(portfolioId);
+    const prevCached = earningsPreviewCache.get(portfolioId);
     setItems(prevCached?.data ?? []);
     setLoading(!prevCached);
     setError(null);

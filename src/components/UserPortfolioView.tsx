@@ -56,7 +56,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(null);
   const [sortKey, setSortKey] = useState<HoldingSortKey>('ticker');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding } | null>(null);
+  const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(null);
   const [chartRefreshCount, setChartRefreshCount] = useState(0);
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
   const lastValidPortfolio = useRef<Portfolio | null>(null);
@@ -214,6 +214,10 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
         ticker={viewingStock.ticker}
         holding={viewingStock.holding}
         portfolioTotal={portfolio?.totalValue ?? 0}
+        onTickerNavigate={(ticker) => {
+          const nextHolding = portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null;
+          setViewingStock({ ticker, holding: nextHolding });
+        }}
         onBack={() => setViewingStock(null)}
       />
     );

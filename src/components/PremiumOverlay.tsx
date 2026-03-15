@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { useAuth, PlanTier } from '../context/AuthContext';
+import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 interface PremiumOverlayProps {
   featureName: string;
@@ -40,11 +41,10 @@ export function PremiumOverlay({ featureName, description, requiredPlan = 'premi
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">{description}</p>
         </div>
         <a
-          href="#pricing"
+          href="#tab=pricing"
           onClick={(e) => {
             e.preventDefault();
-            window.location.hash = '#pricing';
-            window.dispatchEvent(new HashChangeEvent('hashchange'));
+            navigateToPricing();
           }}
           className="px-4 py-2 rounded-lg text-xs font-semibold bg-rh-green text-white hover:bg-rh-green/90 transition-colors flex-shrink-0"
         >

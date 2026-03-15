@@ -30,6 +30,14 @@ const SHARE_ICON = (
   </svg>
 );
 
+function getShareOrigin(): string {
+  return typeof window !== 'undefined' ? window.location.origin : '';
+}
+
+function isMobileDevice(): boolean {
+  return typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
 function getCardUrl(type: ShareCardType, props: ShareButtonProps): string {
   const cacheBust = `&_t=${Date.now()}`;
   switch (type) {
@@ -59,7 +67,7 @@ function getShareTitle(type: ShareCardType, props: ShareButtonProps): string {
 }
 
 function getShareUrl(type: ShareCardType, props: ShareButtonProps): string {
-  const origin = window.location.origin;
+  const origin = getShareOrigin();
   switch (type) {
     case 'stock':
       return `${origin}/#tab=portfolio&stock=${props.ticker}`;
@@ -101,7 +109,7 @@ export function ShareButton(props: ShareButtonProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isMobile = isMobileDevice();
 
   const handleClick = useCallback(() => {
     // On mobile with native share, go directly to native share
@@ -147,6 +155,7 @@ export function ShareButton(props: ShareButtonProps) {
     setMenuOpen(false);
     const shareUrl = getShareUrl(type, props);
     try {
+      if (typeof navigator === 'undefined' || !navigator.clipboard) throw new Error('clipboard unavailable');
       await navigator.clipboard.writeText(shareUrl);
       showToast('Link copied!');
     } catch {
@@ -159,7 +168,9 @@ export function ShareButton(props: ShareButtonProps) {
     const shareUrl = getShareUrl(type, props);
     const text = getShareText(type, props);
     const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
-    window.open(xUrl, '_blank', 'noopener,noreferrer,width=550,height=420');
+    if (typeof window !== 'undefined') {
+      window.open(xUrl, '_blank', 'noopener,noreferrer,width=550,height=420');
+    }
   }, [type, props]);
 
   const handleDownloadImage = useCallback(() => {

@@ -34,6 +34,21 @@ const SECTION_META: Record<SettingsSection, { title: string; description: string
   creator: { title: 'Creator', description: 'Your creator profile and subscriber management.' },
 };
 
+function readStorageFlag(key: string, defaultValue: boolean): boolean {
+  if (typeof localStorage === 'undefined') return defaultValue;
+  const stored = localStorage.getItem(key);
+  return stored !== null ? stored === 'true' : defaultValue;
+}
+
+function readThemePreference(): 'dark' | 'light' {
+  if (typeof localStorage === 'undefined') return 'dark';
+  return localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
+}
+
+function readViewportIsMobile(): boolean {
+  return typeof window !== 'undefined' ? window.innerWidth < 640 : false;
+}
+
 export default function AccountSettingsPage({ userId, onBack, onSave, healthStatus, onCreatorNavigate }: AccountSettingsPageProps) {
   const isAdmin = userId === ADMIN_USER_ID;
   const { showToast } = useToast();
@@ -47,7 +62,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
 
   // Active section
   const [activeSection, setActiveSection] = useState<SettingsSection | null>(() => {
-    return window.innerWidth >= 640 ? 'profile' : null;
+    return readViewportIsMobile() ? null : 'profile';
   });
 
   // Profile state
@@ -58,15 +73,12 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
   const [holdingsVisibility, setHoldingsVisibility] = useState<'all' | 'top5' | 'sectors' | 'hidden'>('all');
 
   // Appearance state
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
-  });
+  const [theme, setTheme] = useState<'dark' | 'light'>(readThemePreference);
   const [extendedHours, setExtendedHours] = useState(() => {
-    const stored = localStorage.getItem('showExtendedHours');
-    return stored !== null ? stored === 'true' : true;
+    return readStorageFlag('showExtendedHours', true);
   });
   const [starfieldEnabled, setStarfieldEnabled] = useState(() => {
-    return localStorage.getItem('starfieldEnabled') !== 'false';
+    return readStorageFlag('starfieldEnabled', true);
   });
   const [dripEnabled, setDripEnabled] = useState(false);
   const [cashInterestRate, setCashInterestRate] = useState('');
@@ -76,13 +88,13 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
 
   // Notification state
   const [notifyPriceAlerts, setNotifyPriceAlerts] = useState(() => {
-    return localStorage.getItem('notifyPriceAlerts') !== 'false';
+    return readStorageFlag('notifyPriceAlerts', true);
   });
   const [notifyFollowedActivity, setNotifyFollowedActivity] = useState(() => {
-    return localStorage.getItem('notifyFollowedActivity') !== 'false';
+    return readStorageFlag('notifyFollowedActivity', true);
   });
   const [notifyEarnings, setNotifyEarnings] = useState(() => {
-    return localStorage.getItem('notifyEarnings') !== 'false';
+    return readStorageFlag('notifyEarnings', true);
   });
   const [notifStatus, setNotifStatus] = useState<NotificationStatus | null>(null);
 
@@ -107,12 +119,12 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
   // Dirty tracking
   const isDirty = useMemo(() => {
     if (!settings) return false;
-    const localTheme = localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
-    const localEH = (() => { const s = localStorage.getItem('showExtendedHours'); return s !== null ? s === 'true' : true; })();
-    const localSF = localStorage.getItem('starfieldEnabled') !== 'false';
-    const localPA = localStorage.getItem('notifyPriceAlerts') !== 'false';
-    const localFA = localStorage.getItem('notifyFollowedActivity') !== 'false';
-    const localEA = localStorage.getItem('notifyEarnings') !== 'false';
+    const localTheme = readThemePreference();
+    const localEH = readStorageFlag('showExtendedHours', true);
+    const localSF = readStorageFlag('starfieldEnabled', true);
+    const localPA = readStorageFlag('notifyPriceAlerts', true);
+    const localFA = readStorageFlag('notifyFollowedActivity', true);
+    const localEA = readStorageFlag('notifyEarnings', true);
 
     return (
       displayName !== settings.displayName ||
@@ -190,17 +202,21 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       const salaryVal = annualSalary && Number.isFinite(parsedSalary) ? parsedSalary : null;
       if (salaryVal !== (settings.annualSalary ?? null)) updates.annualSalary = salaryVal;
 
-      localStorage.setItem('theme', theme);
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('theme', theme);
+        localStorage.setItem('showExtendedHours', String(extendedHours));
+        localStorage.setItem('starfieldEnabled', String(starfieldEnabled));
+        localStorage.setItem('notifyPriceAlerts', String(notifyPriceAlerts));
+        localStorage.setItem('notifyFollowedActivity', String(notifyFollowedActivity));
+        localStorage.setItem('notifyEarnings', String(notifyEarnings));
       }
-      localStorage.setItem('showExtendedHours', String(extendedHours));
-      localStorage.setItem('starfieldEnabled', String(starfieldEnabled));
-      localStorage.setItem('notifyPriceAlerts', String(notifyPriceAlerts));
-      localStorage.setItem('notifyFollowedActivity', String(notifyFollowedActivity));
-      localStorage.setItem('notifyEarnings', String(notifyEarnings));
+      if (typeof document !== 'undefined') {
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
 
       if (Object.keys(updates).length > 0) {
         const updated = await updateUserSettings(userId, updates);
@@ -231,7 +247,9 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       const { clearBiometricToken } = await import('../../utils/biometric');
       await clearBiometricToken();
       await deleteAccount(deletePassword);
-      window.location.href = '/';
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Failed to delete account');
     } finally {
@@ -241,7 +259,9 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
 
   const handleSelectSection = (section: SettingsSection) => {
     setActiveSection(section);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleMobileBack = () => {
@@ -249,8 +269,9 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
   };
 
   // Responsive
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+  const [isMobile, setIsMobile] = useState(readViewportIsMobile);
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const onResize = () => {
       const mobile = window.innerWidth < 640;
       setIsMobile(mobile);

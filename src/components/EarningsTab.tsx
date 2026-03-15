@@ -3,6 +3,7 @@ import { Holding } from '../types';
 import { getEarningsSummary, EarningsSummaryItem } from '../api';
 import EventsCalendar from './EventsCalendar';
 import { SkeletonCard } from './SkeletonCard';
+import { earningsUpcomingCache, EARNINGS_CACHE_TTL_MS, UpcomingEarningCacheEntry } from '../utils/earnings-cache';
 
 interface EarningsTabProps {
   holdings: Holding[];
@@ -10,22 +11,7 @@ interface EarningsTabProps {
   portfolioId?: string;
 }
 
-interface UpcomingEarning {
-  ticker: string;
-  date: string;
-  dateMs: number;
-  estimatedEPS: number | null;
-  daysUntil: number;
-  dayLabel: string;
-}
-
-const CACHE_TTL_MS = 5 * 60 * 1000;
-const upcomingCacheMap = new Map<string | undefined, { data: UpcomingEarning[]; timestamp: number }>();
-
-/** Clear module-level cache (call on logout to prevent data leaks). */
-export function clearEarningsTabCache() {
-  upcomingCacheMap.clear();
-}
+type UpcomingEarning = UpcomingEarningCacheEntry;
 
 function getDayLabel(daysUntil: number, dateMs: number): string {
   if (daysUntil === 0) return 'Today';
@@ -65,8 +51,8 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
     async function fetchUpcoming() {
       const fetchPortfolioId = portfolioId; // capture at call time
       // Use cache if fresh (keyed by portfolioId)
-      const cached = upcomingCacheMap.get(portfolioId);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      const cached = earningsUpcomingCache.get(portfolioId);
+      if (cached && Date.now() - cached.timestamp < EARNINGS_CACHE_TTL_MS) {
         setUpcoming(cached.data);
         setLoading(false);
         return;
@@ -79,7 +65,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
 
         const mapped = results.map(toUpcomingEarning);
         mapped.sort((a, b) => a.daysUntil - b.daysUntil);
-        upcomingCacheMap.set(portfolioId, { data: mapped, timestamp: Date.now() });
+        earningsUpcomingCache.set(portfolioId, { data: mapped, timestamp: Date.now() });
         setUpcoming(mapped);
       } catch {
         // Fall through with empty

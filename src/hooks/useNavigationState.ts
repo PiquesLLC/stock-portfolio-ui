@@ -4,6 +4,22 @@ import { Holding } from '../types';
 
 const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'pricing', 'profile']);
 
+function getLocationHash(): string {
+  return typeof window !== 'undefined' ? window.location.hash : '';
+}
+
+function setLocationHash(value: string): void {
+  if (typeof window !== 'undefined') {
+    window.location.hash = value;
+  }
+}
+
+function persistNavState(state: { tab: string; stock: string | null; profile: string | null; lbuser: string | null; subtab: string | null }): void {
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('navState', JSON.stringify(state));
+  }
+}
+
 function setHash(tab: TabType, stock?: string | null, profile?: string | null, lbuser?: string | null, subtab?: string | null) {
   const params = new URLSearchParams();
   if (tab !== 'portfolio') params.set('tab', tab);
@@ -12,8 +28,8 @@ function setHash(tab: TabType, stock?: string | null, profile?: string | null, l
   if (lbuser) params.set('lbuser', lbuser);
   if (subtab) params.set('subtab', subtab);
   const str = params.toString();
-  window.location.hash = str ? str : '';
-  sessionStorage.setItem('navState', JSON.stringify({ tab, stock, profile, lbuser, subtab }));
+  setLocationHash(str ? str : '');
+  persistNavState({ tab, stock: stock ?? null, profile: profile ?? null, lbuser: lbuser ?? null, subtab: subtab ?? null });
 }
 
 interface NavState {
@@ -84,23 +100,23 @@ export function useNavigationState({
     if (!isAuthenticated) return;
     // Admin views get their own hash so they survive refresh
     if (adminView === 'waitlist') {
-      window.location.hash = 'tab=admin-waitlist';
+      setLocationHash('tab=admin-waitlist');
       return;
     }
     if (adminView === 'jobs') {
-      window.location.hash = 'tab=admin-jobs';
+      setLocationHash('tab=admin-jobs');
       return;
     }
     if (adminView === 'analytics') {
-      window.location.hash = 'tab=admin-analytics';
+      setLocationHash('tab=admin-analytics');
       return;
     }
     if (compareStocks && compareStocks.length >= 2) {
       const p = new URLSearchParams();
       p.set('tab', 'compare');
       p.set('stocks', compareStocks.join(','));
-      window.location.hash = p.toString();
-      sessionStorage.setItem('navState', JSON.stringify({ tab: 'compare', stock: null, profile: null, lbuser: null, subtab: null }));
+      setLocationHash(p.toString());
+      persistNavState({ tab: 'compare', stock: null, profile: null, lbuser: null, subtab: null });
       return;
     }
     const stockTicker = viewingStock?.ticker || null;
@@ -112,8 +128,9 @@ export function useNavigationState({
 
   // Handle browser back/forward
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const onHashChange = () => {
-      const params = new URLSearchParams(window.location.hash.slice(1));
+      const params = new URLSearchParams(getLocationHash().slice(1));
       const rawTab = params.get('tab') || 'portfolio';
       const stock = params.get('stock') || null;
       const profile = params.get('profile') || null;

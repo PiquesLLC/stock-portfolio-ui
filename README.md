@@ -98,9 +98,19 @@ src/
 ```bash
 npm install
 npm run dev     # Starts on http://localhost:5173
+npm run smoke:test  # Local UI smoke test
+npm run test:e2e    # Browser regression test (Playwright)
 ```
 
 Requires the [API server](https://github.com/PiquesLLC/stock-portfolio-api) running on port 3001. Vite proxy rewrites `/api` requests automatically.
+
+For first-time Playwright setup, install the browser once:
+
+```bash
+npx playwright install chromium
+```
+
+The authenticated Playwright specs mint a short-lived local auth cookie from the sibling API `.env`, so they are intended for local development only.
 
 ---
 

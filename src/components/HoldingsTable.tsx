@@ -144,6 +144,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   });
   const [showDisplayMenu, setShowDisplayMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin', logAsTrade: true });
@@ -323,6 +324,18 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       return sortDir === 'desc' ? -comparison : comparison;
     });
   }, [holdings, sortKey, sortDir, customOrder]);
+
+  const normalizedSearch = searchQuery.trim().toUpperCase();
+  const matchingHoldingIds = useMemo(() => {
+    if (!normalizedSearch) return new Set<string>();
+    return new Set(
+      sortedHoldings
+        .filter((holding) => holding.ticker.toUpperCase().includes(normalizedSearch))
+        .map((holding) => holding.id),
+    );
+  }, [sortedHoldings, normalizedSearch]);
+  const matchCount = matchingHoldingIds.size;
+  const hasActiveFilter = normalizedSearch.length > 0;
 
   // Ordered IDs for Reorder.Group
   const orderedIds = useMemo(() => sortedHoldings.map(h => h.id), [sortedHoldings]);
@@ -817,9 +830,38 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
   return (
     <div className="rounded-xl overflow-hidden">
-      <div className="px-3 sm:px-4 pb-4 pt-2 flex items-center justify-between">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <div className="px-3 sm:px-4 pb-4 pt-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
+          <div className="relative w-[150px] sm:w-[190px]">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/50 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter ticker..."
+              className="w-full pl-8 pr-8 py-1.5 rounded-lg border border-gray-200/40 dark:border-white/[0.08] bg-white/60 dark:bg-white/[0.04] text-[12px] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:ring-2 focus:ring-rh-green/20 focus:border-rh-green/30"
+            />
+            {hasActiveFilter && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                aria-label="Clear holdings filter"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {hasActiveFilter && (
+            <span className="hidden sm:inline text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 whitespace-nowrap">
+              {matchCount} match{matchCount === 1 ? '' : 'es'}
+            </span>
+          )}
           {/* Desktop: Simple/Detailed toggle */}
           <div className="hidden md:flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
             <button
@@ -968,7 +1010,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       </div>
       {/* ── Mobile Card List ──────────────────────────────────────── */}
       <div className="md:hidden">
-        {showReorderHint && customOrder.length === 0 && holdings.length > 1 && (
+        {showReorderHint && !hasActiveFilter && customOrder.length === 0 && holdings.length > 1 && (
           <div className="flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
@@ -976,27 +1018,59 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             Press and hold to reorder
           </div>
         )}
-        <Reorder.Group axis="y" values={orderedIds} onReorder={handleReorder} as="div">
-          {sortedHoldings.map((holding, idx) => (
-            <DraggableHoldingCard
-              key={holding.id}
-              holding={holding}
-              idx={idx}
-              displayMetric={displayMetric}
-              chartPeriod={chartPeriod}
-              earningsBadge={earningsBadges[holding.ticker]}
-              onTickerClick={onTickerClick}
-              getMetricDisplay={getMetricDisplay}
-              formatCurrency={formatCurrency}
-              dragActiveId={dragActiveId}
-              onDragActiveChange={setDragActiveId}
-            />
-          ))}
-        </Reorder.Group>
+        {hasActiveFilter && matchCount === 0 && (
+          <div className="py-2 text-center text-[11px] text-rh-light-muted dark:text-rh-muted">
+            No tickers match "{searchQuery.trim()}" yet.
+          </div>
+        )}
+        {!hasActiveFilter ? (
+          <Reorder.Group axis="y" values={orderedIds} onReorder={handleReorder} as="div">
+            {sortedHoldings.map((holding, idx) => (
+              <DraggableHoldingCard
+                key={holding.id}
+                holding={holding}
+                idx={idx}
+                displayMetric={displayMetric}
+                chartPeriod={chartPeriod}
+                earningsBadge={earningsBadges[holding.ticker]}
+                onTickerClick={onTickerClick}
+                getMetricDisplay={getMetricDisplay}
+                formatCurrency={formatCurrency}
+                dragActiveId={dragActiveId}
+                onDragActiveChange={setDragActiveId}
+              />
+            ))}
+          </Reorder.Group>
+        ) : (
+          <Reorder.Group axis="y" values={orderedIds} onReorder={() => {}} as="div">
+            {sortedHoldings.map((holding, idx) => (
+              <DraggableHoldingCard
+                key={holding.id}
+                holding={holding}
+                idx={idx}
+                displayMetric={displayMetric}
+                chartPeriod={chartPeriod}
+                earningsBadge={earningsBadges[holding.ticker]}
+                onTickerClick={onTickerClick}
+                getMetricDisplay={getMetricDisplay}
+                formatCurrency={formatCurrency}
+                dragActiveId={null}
+                onDragActiveChange={() => {}}
+                isSearchMatch={matchingHoldingIds.has(holding.id)}
+                isSearchDimmed={!matchingHoldingIds.has(holding.id)}
+              />
+            ))}
+          </Reorder.Group>
+        )}
       </div>
 
       {/* ── Desktop Table ─────────────────────────────────────────── */}
       <div className="hidden md:block overflow-x-auto">
+        {hasActiveFilter && matchCount === 0 && (
+          <div className="py-4 text-center text-[11px] text-rh-light-muted dark:text-rh-muted">
+            No tickers match "{searchQuery.trim()}" yet. Your holdings remain visible for context.
+          </div>
+        )}
         <table className={`w-full ${viewMode === 'compact' ? 'table-fixed' : ''}`}>
           <thead className="sticky top-0 z-10 backdrop-blur-sm bg-rh-light-bg/90 dark:bg-rh-black/90">
             <tr className="border-t border-b border-rh-light-border/25 dark:border-rh-border/25 text-left text-xs uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60">
@@ -1041,11 +1115,13 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               const isUnavailable = holding.priceUnavailable;
               const isRepricing = holding.isRepricing || holding.priceIsStale;
               const hasValidPrice = !isUnavailable && holding.currentPrice > 0;
+              const isSearchMatch = !hasActiveFilter || matchingHoldingIds.has(holding.id);
 
               return (
                 <React.Fragment key={holding.id}>
                 <tr
-                  className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''}`}
+                  data-search-match={isSearchMatch ? 'true' : 'false'}
+                  className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''} ${hasActiveFilter ? (isSearchMatch ? 'bg-rh-green/10 ring-1 ring-inset ring-rh-green/20' : 'opacity-55') : ''}`}
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
                 >
                   <td className="px-4 py-2.5 font-semibold text-rh-light-text dark:text-rh-text">

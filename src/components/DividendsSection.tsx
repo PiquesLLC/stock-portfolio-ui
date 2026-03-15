@@ -288,7 +288,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-rh-green font-medium">{formatCurrency(c.amountGross)}</span>
-                        {isReinvested && c.reinvestment && (
+                        {isReinvested && c.reinvestment?.sharesPurchased != null && (
                           <span className="text-rh-green/70 text-[10px]">
                             +{c.reinvestment.sharesPurchased.toFixed(4)} sh
                           </span>

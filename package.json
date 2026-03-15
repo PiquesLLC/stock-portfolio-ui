@@ -10,6 +10,9 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "smoke:test": "node scripts/smoke-test.mjs",
     "generate-icons": "node scripts/generate-icons.mjs",
     "build:cap": "tsc -b && vite build --mode capacitor",
     "cap:sync": "npm run build:cap && npx cap sync",
@@ -37,6 +40,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.0.2",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/papaparse": "^5.5.2",

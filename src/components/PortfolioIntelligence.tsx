@@ -119,6 +119,15 @@ function formatPct(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 }
 
+function hasContributorDetails(entry: ContributorEntry): entry is ContributorEntry & {
+  shares: number;
+  avgCost: number;
+  currentPrice: number;
+  currentValue: number;
+} {
+  return entry.shares != null && entry.avgCost != null && entry.currentPrice != null && entry.currentValue != null;
+}
+
 function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalAbsDollar, isDimmed, onHover }: {
   entry: ContributorEntry;
   maxAbsDollar: number;
@@ -131,7 +140,7 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
   const [showPopover, setShowPopover] = useState(false);
   const barWidth = maxAbsDollar > 0 ? (Math.abs(entry.contributionDollar) / maxAbsDollar) * 100 : 0;
   const weightPct = totalAbsDollar > 0 ? (Math.abs(entry.contributionDollar) / totalAbsDollar) * 100 : 0;
-  const hasDetails = entry.shares != null && entry.currentPrice != null;
+  const hasDetails = hasContributorDetails(entry);
 
   return (
     <div
@@ -218,19 +227,19 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
               <div>
                 <span className="text-rh-light-muted/70 dark:text-white/40">Shares</span>
-                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">{entry.shares!.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">{entry.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               </div>
               <div>
                 <span className="text-rh-light-muted/70 dark:text-white/40">Price</span>
-                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentPrice!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div>
                 <span className="text-rh-light-muted/70 dark:text-white/40">Avg Cost</span>
-                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.avgCost!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.avgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div>
                 <span className="text-rh-light-muted/70 dark:text-white/40">Position</span>
-                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentValue!.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
               </div>
             </div>
             {/* Arrow */}

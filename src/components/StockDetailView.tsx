@@ -37,6 +37,7 @@ interface Props {
   portfolioTotal: number;
   onBack: () => void;
   onHoldingAdded?: () => void;
+  onTickerNavigate?: (ticker: string) => void;
 }
 
 function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
@@ -67,7 +68,7 @@ function PositionCard({ label, value, valueColor, sub }: {
 
 const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, amber, pink, cyan
 
-export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded }: Props) {
+export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded, onTickerNavigate }: Props) {
   // Chart period — owned by component, shared between both hooks
   const [chartPeriod, setChartPeriod] = useLocalStorage<ChartPeriod>('stockChartPeriod', '1D', {
     serialize: v => v,
@@ -129,6 +130,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [showCompareInput, setShowCompareInput] = useState(false);
   const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[]>([]);
   const [showNalaScore, setShowNalaScore] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   useEffect(() => {
     setShowNalaScore(false);
@@ -137,6 +139,27 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     const timer = window.setTimeout(() => setShowNalaScore(true), 150);
     return () => window.clearTimeout(timer);
   }, [ticker, quickLoaded]);
+
+  useEffect(() => {
+    setCompareTickers([]);
+    setCompareInput('');
+    setShowCompareInput(false);
+    setCompareData([]);
+    setActionsOpen(false);
+  }, [ticker]);
+
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('[data-stock-actions-menu]')) {
+        setActionsOpen(false);
+        setShowCompareInput(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [actionsOpen]);
 
   // Fetch comparison data whenever compareTickers or chartPeriod changes
   useEffect(() => {
@@ -259,6 +282,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [showCreateWatchlist, setShowCreateWatchlist] = useState(false);
   const [showIntelFeed, setShowIntelFeed] = useLocalStorage('stockIntelFeed', true);
   const [intelCollapsed, setIntelCollapsed] = useState(false);
+  const isModalOpen = showAlertModal || showAddHolding || showWatchlistModal || showCreateWatchlist;
   const toggleIntelFeed = () => {
     if (showIntelFeed) {
       // If enabled, toggle collapsed state instead of hiding
@@ -272,12 +296,14 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
   // ESC key handler
   useEffect(() => {
+    if (isModalOpen) return;
+
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onBack();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onBack]);
+  }, [isModalOpen, onBack]);
 
   // Full skeleton only when we don't even have the quick quote yet
   if (!quickLoaded) {
@@ -314,7 +340,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // Extended hours pricing from Yahoo Finance (returned by API)
   // Always show the most recent price (extended if available) on all timeframes
   const hasExtended = quote.extendedPrice != null && quote.extendedPrice !== quote.currentPrice;
-  const showExtendedLine = hasExtended && chartPeriod === '1D'; // sub-line only on 1D
+  const hasExtendedChange = quote.extendedChange != null && quote.extendedChangePercent != null;
+  const showExtendedLine = hasExtended && hasExtendedChange && chartPeriod === '1D'; // sub-line only on 1D
   const basePrice = hasExtended ? quote.extendedPrice! : quote.currentPrice;
   const displayPrice = hoverPrice ?? basePrice;
   const isHovering = hoverPrice !== null;
@@ -334,35 +361,121 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   // Infer exchange label from ticker suffix or profile
   const exchangeLabel = profile?.exchange || inferExchangeLabel(ticker);
 
+  const renderActionsMenu = (className: string) => (
+    <div className={className} data-stock-actions-menu>
+      <button
+        onClick={() => setActionsOpen(prev => !prev)}
+        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg className={`w-2.5 h-2.5 transition-transform ${actionsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {actionsOpen && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[220px] rounded-lg border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-md shadow-xl py-2 px-1">
+          <div className="px-2 pb-1.5 mb-1 border-b border-gray-100 dark:border-white/[0.06]">
+            <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Stock Actions</span>
+          </div>
+          <div className="grid grid-cols-2 gap-0.5 px-1 mb-1">
+            <button onClick={() => { setShowAddHolding(true); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-green hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+              Edit
+            </button>
+            <button onClick={() => { setShowWatchlistModal(true); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-amber-400 hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+              Watch
+            </button>
+            <button
+              onClick={async () => {
+                const wasFollowing = isFollowingStock;
+                setIsFollowingStock(!wasFollowing);
+                try {
+                  if (wasFollowing) await unfollowStock(ticker);
+                  else await followStock(ticker);
+                } catch {
+                  setIsFollowingStock(wasFollowing);
+                } finally {
+                  setActionsOpen(false);
+                }
+              }}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+            >
+              {isFollowingStock ? 'Following' : 'Follow'}
+            </button>
+            <button onClick={() => { setShowAlertModal(true); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+              Alert
+            </button>
+            <button onClick={() => setShowCompareInput(prev => !prev)} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+              Compare
+            </button>
+            <button onClick={() => { toggleIntelFeed(); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-blue-400 hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+              Intel
+            </button>
+          </div>
+          {showCompareInput && (
+            <div className="px-2 pt-1 pb-2 border-t border-gray-100 dark:border-white/[0.06]">
+              <TickerAutocompleteInput
+                value={compareInput}
+                onChange={(v) => setCompareInput(v)}
+                onSelect={(result) => { addCompareTicker(result.symbol); setShowCompareInput(false); }}
+                placeholder="Compare ticker"
+                autoFocus
+                className="!w-full !px-2 !py-1.5 !text-[11px] !font-semibold !bg-transparent !border-gray-300/60 dark:!border-white/[0.12] !rounded-md !text-rh-light-text dark:!text-rh-text"
+              />
+            </div>
+          )}
+          {compareTickers.length > 0 && (
+            <div className="px-2 pt-1 pb-2 border-t border-gray-100 dark:border-white/[0.06]">
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {compareTickers.map((ct, i) => (
+                  <span
+                    key={ct}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold border"
+                    style={{ borderColor: COMPARE_COLORS[i % COMPARE_COLORS.length] + '40', color: COMPARE_COLORS[i % COMPARE_COLORS.length] }}
+                  >
+                    {ct}
+                    <button onClick={() => removeCompareTicker(ct)} className="opacity-70 hover:opacity-100">&times;</button>
+                  </span>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  const all = [ticker, ...compareTickers];
+                  window.location.hash = new URLSearchParams({ tab: 'compare', stocks: all.join(',') }).toString();
+                  setActionsOpen(false);
+                }}
+                className="w-full px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-green border border-rh-green/30 hover:bg-rh-green/10 transition-all"
+              >
+                Full Compare
+              </button>
+            </div>
+          )}
+          <div className="border-t border-gray-100 dark:border-white/[0.06] mt-1 pt-1 px-1">
+            <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="!w-full justify-start !rounded-md !border-0 !px-2 !py-1.5 !text-[11px] !font-semibold !text-rh-light-muted dark:!text-rh-muted hover:!bg-gray-50 dark:hover:!bg-white/[0.04]" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="pt-2 pb-6">
-      {/* Back button */}
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors">
-        <span>&larr;</span> Back
-      </button>
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
+          <span>&larr;</span> Back
+        </button>
+        {renderActionsMenu('relative shrink-0 lg:hidden')}
+      </div>
 
       {/* Two-column layout: main content + sticky intelligence sidebar */}
       <div className="lg:flex lg:gap-6 lg:items-start">
         {/* Left / Main column — scrolls with the page */}
         <div className="lg:flex-1 lg:min-w-0">
 
-      {/* Header: Company name + ticker + actions */}
-      <div className="mb-2">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-          <StockLogo ticker={ticker} size="lg" />
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text">
-            {profile?.name || ticker}
-          </h1>
-          {profile?.name && (
-            <span className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">{ticker}</span>
-          )}
-          {exchangeLabel && (
-            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 rounded-lg bg-gray-50/60 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.06] text-rh-light-muted/60 dark:text-white/25">
-              {exchangeLabel}
-            </span>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      {/* Header: company identity */}
+      <div className="mb-0.5">
+        <div className="hidden flex-wrap items-center gap-1.5 sm:gap-2 mb-3">
           <button
             onClick={() => setShowAddHolding(true)}
             className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-rh-green/25 text-rh-green hover:bg-rh-green/10 transition-colors"
@@ -418,8 +531,51 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
             )}
           </button>
+          {compareTickers.map((ct, i) => (
+            <span
+              key={ct}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border"
+              style={{ borderColor: COMPARE_COLORS[i % COMPARE_COLORS.length] + '40', color: COMPARE_COLORS[i % COMPARE_COLORS.length] }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[i % COMPARE_COLORS.length], display: 'inline-block' }} />
+              {ct}
+              <button onClick={() => removeCompareTicker(ct)} className="ml-0.5 opacity-60 hover:opacity-100">&times;</button>
+            </span>
+          ))}
+          {compareTickers.length < 4 && (
+            showCompareInput ? (
+              <div className="inline-flex items-center relative" style={{ width: '120px' }}>
+                <TickerAutocompleteInput
+                  value={compareInput}
+                  onChange={(v) => setCompareInput(v)}
+                  onSelect={(result) => { addCompareTicker(result.symbol); setShowCompareInput(false); }}
+                  placeholder="Compare..."
+                  autoFocus
+                  className="!w-full !px-2 !py-1 !text-[11px] !font-semibold !bg-transparent !border-gray-300/60 dark:!border-white/[0.12] !rounded-lg !text-rh-light-text dark:!text-rh-text"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowCompareInput(true)}
+                className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
+                title="Compare with another ticker"
+              >
+                Compare
+              </button>
+            )
+          )}
+          {compareTickers.length >= 1 && (
+            <button
+              onClick={() => {
+                const all = [ticker, ...compareTickers];
+                window.location.hash = new URLSearchParams({ tab: 'compare', stocks: all.join(',') }).toString();
+              }}
+              className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-rh-green border border-rh-green/30 hover:bg-rh-green/10 transition-all"
+            >
+              Full Compare →
+            </button>
+          )}
           <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="shrink-0" />
-          {/* Intelligence feed toggle */}
           <button
             onClick={toggleIntelFeed}
             onDoubleClick={() => setShowIntelFeed(false)}
@@ -443,7 +599,22 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             )}
           </button>
         </div>
-        <div style={{ minHeight: '22px' }}>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-0.5">
+          <StockLogo ticker={ticker} size="lg" />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text">
+            {profile?.name || ticker}
+          </h1>
+          {profile?.name && (
+            <span className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">{ticker}</span>
+          )}
+          {exchangeLabel && (
+            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 rounded-lg bg-gray-50/60 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.06] text-rh-light-muted/60 dark:text-white/25">
+              {exchangeLabel}
+            </span>
+          )}
+          {renderActionsMenu('relative ml-auto hidden lg:block')}
+        </div>
+        <div style={{ minHeight: goldenCrossInfo.active ? '22px' : '0px' }}>
           {goldenCrossInfo.active && (
             <span className="inline-block text-[10px] px-2 py-0.5 rounded-lg font-semibold tracking-wider" style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)', color: '#FFD700', border: '1px solid rgba(255, 215, 0, 0.15)' }}
               title={`Golden Cross on ${goldenCrossInfo.date} — MA100: $${goldenCrossInfo.ma100.toFixed(2)}, MA200: $${goldenCrossInfo.ma200.toFixed(2)}. Signal only — not financial advice.`}>
@@ -469,21 +640,27 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {isHovering ? hoverLabel : periodChange.label}
           </span>
         </div>
-        {showExtendedLine && (
-          <div className={`flex items-center gap-2 mt-1 h-[20px] transition-opacity duration-100 ${
-            isHovering ? 'opacity-0' : (quote.extendedChange! >= 0 ? 'text-rh-green' : 'text-rh-red')
-          }`}>
-            <span className="text-xs font-medium tabular-nums">
-              {formatDelta(quote.extendedChange!)}
-            </span>
-            <span className="text-xs tabular-nums">
-              ({formatPercent(quote.extendedChangePercent!)})
-            </span>
-            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
-              {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}
-            </span>
-          </div>
-        )}
+        {showExtendedLine && (() => {
+          const extendedChange = quote.extendedChange;
+          const extendedChangePercent = quote.extendedChangePercent;
+          if (extendedChange == null || extendedChangePercent == null) return null;
+
+          return (
+            <div className={`flex items-center gap-2 mt-1 h-[20px] transition-opacity duration-100 ${
+              isHovering ? 'opacity-0' : (extendedChange >= 0 ? 'text-rh-green' : 'text-rh-red')
+            }`}>
+              <span className="text-xs font-medium tabular-nums">
+                {formatDelta(extendedChange)}
+              </span>
+              <span className="text-xs tabular-nums">
+                ({formatPercent(extendedChangePercent)})
+              </span>
+              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+                {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}
+              </span>
+            </div>
+          );
+        })()}
         {quote.session && quote.session !== 'REG' && (
           <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${
             quote.session === 'CLOSED' ? 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-rh-border' :
@@ -496,7 +673,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       </div>
 
       {/* Chart */}
-      <div className="mb-8">
+      <div className="mb-8 relative">
         <StockPriceChart
           key={ticker}
           ticker={ticker}
@@ -524,8 +701,63 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           comparisons={compareData.length > 0 ? compareData : undefined}
         />
 
-        {/* Compare tickers UI */}
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
+      {/* Compare tickers UI */}
+        <div className="hidden items-center gap-2 mt-2 flex-wrap">
+          <button
+            onClick={() => setShowAddHolding(true)}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-rh-green/25 text-rh-green hover:bg-rh-green/10 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            {holding ? 'Edit' : 'Add'}
+          </button>
+          <button
+            onClick={() => setShowWatchlistModal(true)}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-amber-500/25 text-amber-400 hover:bg-amber-500/10 transition-colors"
+            title="Add to watchlist"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Watch
+          </button>
+          <button
+            onClick={async () => {
+              const wasFollowing = isFollowingStock;
+              setIsFollowingStock(!wasFollowing);
+              try {
+                if (wasFollowing) await unfollowStock(ticker);
+                else await followStock(ticker);
+              } catch {
+                setIsFollowingStock(wasFollowing);
+              }
+            }}
+            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+              isFollowingStock
+                ? 'border-purple-500/25 text-purple-400 hover:bg-purple-500/10'
+                : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+            }`}
+            title={isFollowingStock ? 'Unfollow stock' : 'Follow stock'}
+          >
+            <svg className="w-3.5 h-3.5" fill={isFollowingStock ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            {isFollowingStock ? 'Following' : 'Follow'}
+          </button>
+          <button
+            onClick={() => setShowAlertModal(true)}
+            className="shrink-0 relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            Alert
+            {priceAlerts.filter(a => a.enabled && !a.triggered).length > 0 && (
+              <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
+            )}
+          </button>
           {compareTickers.map((ct, i) => (
             <span
               key={ct}
@@ -555,7 +787,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 className="px-2 py-0.5 rounded-md text-[11px] font-medium text-rh-light-muted dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text border border-rh-light-border/30 dark:border-white/[0.08] hover:border-rh-green/30 transition-all"
                 title="Compare with another ticker"
               >
-                + Compare
+                Compare
               </button>
             )
           )}
@@ -570,57 +802,31 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               Full Compare →
             </button>
           )}
-        </div>
-      </div>
-
-      {/* Intelligence Feed - mobile only (desktop shows in right column) */}
-      <div className="lg:hidden">
-        {showIntelFeed && !intelCollapsed && (
-          <div className="mb-6">
-            {aiEvents?.events && aiEvents.events.length > 0 ? (
-              <EventFeed events={aiEvents.events} ticker={ticker} />
-            ) : (
-              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
-                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
-                  </svg>
-                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : aiEventsLoaded ? 'No intelligence events found' : 'Loading intelligence events...'}
-                </div>
-              </div>
+          <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="shrink-0" />
+          <button
+            onClick={toggleIntelFeed}
+            onDoubleClick={() => setShowIntelFeed(false)}
+            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+              showIntelFeed && !intelCollapsed
+                ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
+                : showIntelFeed && intelCollapsed
+                  ? 'border-blue-500/15 text-blue-400/50 hover:bg-blue-500/10'
+                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
+            }`}
+            title={!showIntelFeed ? 'Show intelligence feed' : intelCollapsed ? 'Expand intelligence feed (double-click to hide)' : 'Collapse intelligence feed (double-click to hide)'}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
+            </svg>
+            Intel
+            {showIntelFeed && (
+              <svg className={`w-2.5 h-2.5 transition-transform ${intelCollapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
             )}
-          </div>
-        )}
-      </div>
-
-      {/* Warning Panel */}
-      {!loading && <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />}
-
-      {/* Section Nav */}
-      {!loading && (
-        <div className="sticky top-[calc(env(safe-area-inset-top)+88px)] sm:top-[calc(env(safe-area-inset-top)+52px)] z-20 -mx-3 sm:-mx-0 px-3 sm:px-0 py-2 bg-rh-light-bg/95 dark:bg-rh-black/95 backdrop-blur-md mb-4">
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
-            {[
-              ...(holding ? [{ id: 'section-position', label: 'Position' }] : []),
-              { id: 'section-about', label: 'About' },
-              { id: 'section-stats', label: 'Stats' },
-              { id: 'section-earnings', label: 'Earnings' },
-              { id: 'section-financials', label: 'Financials' },
-              { id: 'section-qa', label: 'Q&A' },
-              ...(etfHoldings?.isETF ? [{ id: 'section-etf', label: 'ETF Details' }] : []),
-              ...(priceAlerts.length > 0 ? [{ id: 'section-alerts', label: 'Alerts' }] : []),
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => document.getElementById(tab.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="flex-shrink-0 px-3 py-2 text-xs font-medium rounded-full border border-rh-light-border/40 dark:border-rh-border/40 text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-rh-green/40 hover:bg-rh-green/5 transition-colors"
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Your Position */}
       {holding && (
@@ -649,6 +855,29 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           </div>
         </div>
       )}
+
+      {/* Intelligence Feed - mobile only (desktop shows in right column) */}
+      <div className="lg:hidden">
+        {showIntelFeed && !intelCollapsed && (
+          <div className="mb-6">
+            {aiEvents?.events && aiEvents.events.length > 0 ? (
+              <EventFeed events={aiEvents.events} ticker={ticker} />
+            ) : (
+              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
+                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
+                  </svg>
+                  {chartPeriod === '1D' ? 'Switch to a longer period to see intelligence events' : aiEventsLoaded ? 'No intelligence events found' : 'Loading intelligence events...'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Warning Panel */}
+      {!loading && <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />}
 
       {/* Nala Score */}
       {showNalaScore ? (
@@ -831,9 +1060,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           dividendCredits={tickerCredits}
           etfHoldings={etfHoldings}
           holding={holding}
-          onTickerClick={(t) => {
-            window.location.hash = `#stock/${t}`;
-          }}
+          onTickerClick={(t) => onTickerNavigate?.(t)}
         />
         </div>
       ) : null}

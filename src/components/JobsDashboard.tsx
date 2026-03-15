@@ -22,6 +22,7 @@ import {
 
 const CARD = 'rounded-xl border border-gray-200/40 dark:border-white/[0.06] bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl';
 const AUTO_REFRESH_MS = 30_000;
+const STUCK_THRESHOLD_MINUTES = 30;
 
 /** Humanize a snake_case job name */
 function humanJobName(name: string): string {
@@ -72,7 +73,7 @@ export function JobsDashboard({ onBack }: Props) {
         getJobStats().catch(() => null),
         fetchDeadLetterEntries({ pageSize: 50 }).catch(() => null),
         getSnapshotHealth().catch(() => null),
-        getStuckJobs().catch(() => null),
+        getStuckJobs(STUCK_THRESHOLD_MINUTES).catch(() => null),
       ]);
       if (!mountedRef.current) return;
       if (metricsRes) setMetrics(metricsRes);
@@ -134,14 +135,14 @@ export function JobsDashboard({ onBack }: Props) {
     setHealing(true);
     setHealResult(null);
     try {
-      const result = await healStuckJobs(healDryRun);
+      const result = await healStuckJobs({ dryRun: healDryRun, thresholdMinutes: STUCK_THRESHOLD_MINUTES });
       if (healDryRun) {
         const count = result.wouldHeal ?? result.details?.length ?? 0;
         setHealResult(`Dry run: ${count} job${count !== 1 ? 's' : ''} would be healed`);
       } else {
         const count = result.healed ?? result.details?.length ?? 0;
         setHealResult(`Healed ${count} stuck job${count !== 1 ? 's' : ''}`);
-        const stuckRes = await getStuckJobs();
+        const stuckRes = await getStuckJobs(STUCK_THRESHOLD_MINUTES);
         setStuckJobs(stuckRes.stuck);
       }
     } catch {

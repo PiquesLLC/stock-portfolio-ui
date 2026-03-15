@@ -216,15 +216,17 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
           </div>
         )}
 
-        <button
-          onClick={() => { onClose(); onCreateNew(); }}
-          className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border border-dashed border-gray-300/60 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:text-rh-green hover:border-rh-green/30 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Create New Watchlist
-        </button>
+        {!loading && watchlists.length > 0 && (
+          <button
+            onClick={() => { onClose(); onCreateNew(); }}
+            className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border border-dashed border-gray-300/60 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:text-rh-green hover:border-rh-green/30 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create New Watchlist
+          </button>
+        )}
       </div>
     </div>,
     document.body

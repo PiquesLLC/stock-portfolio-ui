@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPortfolioBriefing, explainBriefingSection, PortfolioBriefingResponse, BriefingExplainResponse } from '../api';
 import { timeAgo } from '../utils/format';
+import { navigateToPricing } from '../utils/navigate-to-pricing';
+
+function getSourceHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return 'source';
+  }
+}
 
 function getSentimentEmoji(_verdict?: string, sections?: PortfolioBriefingResponse['sections']): string {
   if (!sections || sections.length === 0) return '📊';
@@ -114,8 +123,8 @@ export default function PortfolioBriefing({ portfolioId }: { portfolioId?: strin
           <h3 className="text-sm font-bold text-rh-light-text dark:text-white mb-1">AI Portfolio Briefing</h3>
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">Upgrade to Premium to unlock AI-powered portfolio briefings.</p>
           <a
-            href="#pricing"
-            onClick={(e) => { e.preventDefault(); window.location.hash = '#pricing'; window.dispatchEvent(new HashChangeEvent('hashchange')); }}
+            href="#tab=pricing"
+            onClick={(e) => { e.preventDefault(); navigateToPricing(); }}
             className="inline-block px-5 py-2 rounded-xl text-sm font-semibold bg-rh-green text-white hover:bg-rh-green/90 transition-colors"
           >
             Upgrade to Premium
@@ -272,7 +281,7 @@ export default function PortfolioBriefing({ portfolioId }: { portfolioId?: strin
                               rel="noopener noreferrer"
                               className="text-[10px] text-rh-green/70 hover:text-rh-green truncate max-w-[200px]"
                             >
-                              {new URL(url).hostname}
+                              {getSourceHostname(url)}
                             </a>
                           ))}
                         </div>

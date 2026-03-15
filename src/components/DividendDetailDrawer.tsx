@@ -214,18 +214,18 @@ export function DividendDetailDrawer({ credit, open, onClose, onReinvested }: Pr
                   <SummaryRow label="Amount per Share" value={formatCurrency(timeline.amountPerShare)} />
                   <SummaryRow label="Total Amount" value={formatCurrency(timeline.totalAmount)} highlight />
 
-                  {timeline.steps.reinvestment?.completed && (
+                  {timeline.steps.reinvestment?.completed && timeline.steps.reinvestment.sharesPurchased != null && timeline.steps.reinvestment.pricePerShare != null && (
                     <>
                       <div className="border-t border-rh-light-border/30 dark:border-rh-border/30 my-2" />
                       <SummaryRow
                         label="Shares Purchased"
-                        value={`+${formatShares(timeline.steps.reinvestment.sharesPurchased!)}`}
+                        value={`+${formatShares(timeline.steps.reinvestment.sharesPurchased)}`}
                         highlight
                         green
                       />
                       <SummaryRow
                         label="Price per Share"
-                        value={formatCurrency(timeline.steps.reinvestment.pricePerShare!)}
+                        value={formatCurrency(timeline.steps.reinvestment.pricePerShare)}
                       />
                     </>
                   )}

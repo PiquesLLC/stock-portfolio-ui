@@ -29,6 +29,8 @@ interface DraggableHoldingCardProps {
   formatCurrency: (value: number) => string;
   dragActiveId: string | null;
   onDragActiveChange?: (id: string | null) => void;
+  isSearchMatch?: boolean;
+  isSearchDimmed?: boolean;
 }
 
 export function DraggableHoldingCard({
@@ -42,6 +44,8 @@ export function DraggableHoldingCard({
   formatCurrency,
   dragActiveId,
   onDragActiveChange,
+  isSearchMatch = false,
+  isSearchDimmed = false,
 }: DraggableHoldingCardProps) {
   const dragControls = useDragControls();
   const { isPressed, isDragActive, onPointerDown, onPointerMove, onPointerUp, shouldSuppressClick } = useLongPressDrag(dragControls);
@@ -81,6 +85,7 @@ export function DraggableHoldingCard({
       className="list-none"
     >
       <div
+        data-search-match={isSearchMatch ? 'true' : 'false'}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -90,6 +95,12 @@ export function DraggableHoldingCard({
           idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''
         } ${
           onTickerClick && !isDragActive ? 'cursor-pointer active:bg-gray-100 dark:active:bg-white/[0.03]' : ''
+        } ${
+          isSearchMatch
+            ? 'bg-rh-green/10 ring-1 ring-rh-green/25 rounded-xl'
+            : isSearchDimmed
+            ? 'opacity-55'
+            : ''
         } ${
           isDragActive
             ? 'scale-[1.03] shadow-lg bg-white dark:bg-rh-card rounded-xl'

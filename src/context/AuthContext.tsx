@@ -1,10 +1,9 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, ApiError } from '../api';
-import { clearInsightsCache } from '../components/InsightsPage';
-import { clearEarningsPreviewCache } from '../components/EarningsPreview';
-import { clearEarningsTabCache } from '../components/EarningsTab';
 import { isNative } from '../utils/platform';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
+import { clearInsightsCache } from '../utils/insights-cache';
+import { clearEarningsPreviewCache, clearEarningsTabCache } from '../utils/earnings-cache';
 
 export type PlanTier = 'free' | 'pro' | 'premium' | 'elite';
 
@@ -106,6 +105,17 @@ function writeCachedUser(user: User | null): void {
   }
 }
 
+function clearSessionCaches(): void {
+  clearInsightsCache();
+  clearEarningsPreviewCache();
+  clearEarningsTabCache();
+}
+
+function clearStoredNavigationState(): void {
+  try { localStorage.removeItem('nala:selectedPortfolioId'); } catch { /* ignore */ }
+  try { sessionStorage.removeItem('navState'); } catch { /* ignore */ }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     if (DEV_USER) return DEV_USER;
@@ -113,6 +123,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
+
+  const clearClientSessionState = useCallback((options?: { clearBiometric?: boolean; resetLocation?: boolean }) => {
+    setUser(null);
+    setMfaChallenge(null);
+    writeCachedUser(null);
+    resetAuthState();
+    clearSessionCaches();
+    clearStoredNavigationState();
+    if (options?.clearBiometric) {
+      clearBiometricToken();
+    }
+    if (options?.resetLocation) {
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   // Check if user is authenticated on mount (cookie-based auth)
   useEffect(() => {
@@ -270,27 +295,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    // Clear local state immediately so UI updates instantly
-    setUser(null);
-    writeCachedUser(null);
-    resetAuthState();
-    clearInsightsCache();
-    clearEarningsPreviewCache();
-    clearEarningsTabCache();
-    // Clear portfolio selection
-    try { localStorage.removeItem('nala:selectedPortfolioId'); } catch { /* ignore */ }
-    // Clear biometric token on logout
-    clearBiometricToken();
-    // Clean URL + stale nav state so user lands on a fresh landing page
-    sessionStorage.removeItem('navState');
-    window.history.replaceState({}, '', '/');
+    clearClientSessionState({ clearBiometric: true, resetLocation: true });
     try {
       // Call logout endpoint to clear cookie server-side
       await apiLogout();
     } catch {
       // Even if logout request fails, local state is already cleared
     }
-  }, []);
+  }, [clearClientSessionState]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -298,26 +310,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u: User = { ...current, plan: current.plan as PlanTier | undefined };
       setUser(u);
       writeCachedUser(u);
-    } catch {
-      // Silently fail — user stays with cached state
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.code === 'SESSION_EXPIRED') {
+        clearClientSessionState({ resetLocation: true });
+      }
     }
-  }, []);
+  }, [clearClientSessionState]);
 
   // When any API call gets an unrecoverable 401, force back to login
   useEffect(() => {
     setAuthExpiredHandler(() => {
       if (isSameOriginApi()) {
-        setUser(null);
-        writeCachedUser(null);
-        clearInsightsCache();
-        clearEarningsPreviewCache();
-        clearEarningsTabCache();
+        clearClientSessionState({ resetLocation: true });
       } else {
         console.warn('[Auth] Skipping auto-logout due to cross-origin API base.');
       }
     });
     return () => setAuthExpiredHandler(null);
-  }, []);
+  }, [clearClientSessionState]);
 
   return (
     <AuthContext.Provider
@@ -350,5 +360,4 @@ export function useAuth() {
   }
   return context;
 }
-
 

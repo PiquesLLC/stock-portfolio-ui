@@ -34,7 +34,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
   const [quickLoaded, setQuickLoaded] = useState(false);
   const [candlesLoaded, setCandlesLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fetchStaleRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   // Intraday candles for 1D chart (from Yahoo Finance via API)
   const [intradayCandles, setIntradayCandles] = useState<IntradayCandle[]>([]);
@@ -83,13 +83,27 @@ export function useStockData(ticker: string, chartPeriod: string) {
   // Price alerts
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
 
-  const fetchPriceAlerts = useCallback(() => {
-    getPriceAlerts(ticker).then(setPriceAlerts).catch(() => setPriceAlerts([]));
+  const fetchPriceAlerts = useCallback(async () => {
+    try {
+      const alerts = await getPriceAlerts(ticker);
+      setPriceAlerts(alerts);
+    } catch {
+      setPriceAlerts([]);
+    }
   }, [ticker]);
 
   // Fetch supplementary data (dividends, earnings, about, etc.)
   useEffect(() => {
     let stale = false;
+    setTickerDividends([]);
+    setTickerCredits([]);
+    setEarnings(null);
+    setTradeEvents([]);
+    setAnalystEvents([]);
+    setEtfHoldings(null);
+    setAbout(null);
+    setPriceAlerts([]);
+    setIsFollowingStock(false);
     getDividendEvents(ticker).then(d => { if (!stale) setTickerDividends(d); }).catch(e => console.error('Dividend events fetch failed:', e));
     getDividendCredits(ticker).then(d => { if (!stale) setTickerCredits(d); }).catch(e => console.error('Dividend credits fetch failed:', e));
     getEarnings(ticker).then(d => { if (!stale) setEarnings(d); }).catch(() => { if (!stale) setEarnings(null); });
@@ -97,10 +111,10 @@ export function useStockData(ticker: string, chartPeriod: string) {
     getAnalystEvents(50, ticker).then(d => { if (!stale) setAnalystEvents(d); }).catch(() => { if (!stale) setAnalystEvents([]); });
     getETFHoldings(ticker).then(d => { if (!stale) setEtfHoldings(d); }).catch(() => { if (!stale) setEtfHoldings(null); });
     getAssetAbout(ticker).then(d => { if (!stale) setAbout(d); }).catch(() => { if (!stale) setAbout(null); });
-    fetchPriceAlerts();
+    getPriceAlerts(ticker).then(d => { if (!stale) setPriceAlerts(d); }).catch(() => { if (!stale) setPriceAlerts([]); });
     getStockFollowStatus(ticker).then(({ following }) => { if (!stale) setIsFollowingStock(following); }).catch(() => { if (!stale) setIsFollowingStock(false); });
     return () => { stale = true; };
-  }, [ticker, fetchPriceAlerts]);
+  }, [ticker]);
 
   // Fetch AI-powered events (Perplexity) — period-aware
   useEffect(() => {
@@ -108,6 +122,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
       '1D': 0, '1W': 14, '1M': 45, '3M': 100, 'YTD': 365, '1Y': 730, 'MAX': 7300,
     };
     const days = periodDays[chartPeriod] || 90;
+    setAiEvents(null);
     if (days === 0) { setAiEvents(null); setAiEventsLoaded(true); return; } // skip 1D
     let stale = false;
     setAiEventsLoaded(false);
@@ -116,7 +131,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
   }, [ticker, chartPeriod]);
 
   // Initial fetch — progressive loading: quote + chart first (fast), then full details
-  const fetchInitial = useCallback(async () => {
+  const fetchInitial = useCallback(async (requestId: number) => {
     setCandlesLoaded(false);
     try {
       // PHASE 1: Quick load - only fetch what the default 1D open state needs.
@@ -126,7 +141,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
         getIntradayCandles(ticker).catch(e => { console.error('Intraday candles fetch failed:', e); return []; }),
       ]);
 
-      if (fetchStaleRef.current) return;
+      if (requestIdRef.current !== requestId) return;
 
       // If fast quote succeeded, show it immediately
       if (quoteResult) {
@@ -151,7 +166,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
         getHourlyCandles(ticker, '1W').catch(e => { console.error('Hourly 1W candles fetch failed:', e); return []; }),
         getHourlyCandles(ticker, '1M').catch(e => { console.error('Hourly 1M candles fetch failed:', e); return []; }),
       ]).then(([hourly1W, hourly1M]) => {
-        if (fetchStaleRef.current) return;
+        if (requestIdRef.current !== requestId) return;
         hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
         const currentPeriod = chartPeriodRef.current;
         if (currentPeriod === '1W') setHourlyCandles(hourly1W);
@@ -160,7 +175,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
 
       // PHASE 2: Full load - profile, metrics, historical candles (slower - Finnhub queue)
       const result = await getStockDetails(ticker);
-      if (fetchStaleRef.current) return;
+      if (requestIdRef.current !== requestId) return;
 
       setData(result);
       setIntradayCandles(prev => intraday.length > 0 ? intraday : prev);
@@ -168,12 +183,12 @@ export function useStockData(ticker: string, chartPeriod: string) {
       setCandlesLoaded(true);
       setError(null);
     } catch (err) {
-      if (!fetchStaleRef.current) {
+      if (requestIdRef.current === requestId) {
         setError(err instanceof Error ? err.message : 'Failed to load stock details');
         setQuickLoaded(true); // Show whatever we have instead of infinite skeleton
       }
     } finally {
-      if (!fetchStaleRef.current) setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   }, [ticker]);
 
@@ -210,15 +225,17 @@ export function useStockData(ticker: string, chartPeriod: string) {
 
   // Reset + fetch on ticker change
   useEffect(() => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setLoading(true);
     setQuickLoaded(false);
     setError(null);
     setData(null);
     setLivePrices([]);
     setIntradayCandles([]);
-    fetchStaleRef.current = false;
-    fetchInitial();
-    return () => { fetchStaleRef.current = true; };
+    setHourlyCandles([]);
+    hourlyCache.current = {};
+    fetchInitial(requestId);
   }, [fetchInitial]);
 
   // Polling interval — adaptive based on market session

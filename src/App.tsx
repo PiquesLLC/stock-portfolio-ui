@@ -68,14 +68,34 @@ const PublicProfilePage = lazy(() => import('./components/PublicProfilePage'));
 // Typed heatmap preload on window for cross-component cache seeding
 declare global { interface Window { __heatmapPreload?: { data: import('./types').HeatmapResponse; ts: number } } }
 
+function isBrowser(): boolean {
+  return typeof window !== 'undefined';
+}
+
+function getSafeHash(): string {
+  return isBrowser() ? window.location.hash.slice(1) : '';
+}
+
+function getSafePathname(): string {
+  return isBrowser() ? window.location.pathname : '/';
+}
+
+function safeSessionStorageSet(key: string, value: string): void {
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem(key, value);
+  }
+}
+
 // Preload heatmap data 3s after boot so Heatmap tab opens instantly
-setTimeout(() => {
-  import('./api').then(({ getMarketHeatmap }) => {
-    getMarketHeatmap('1D', 'SP500').then(resp => {
-      window.__heatmapPreload = { data: resp, ts: Date.now() };
-    }).catch(e => console.error('Heatmap preload failed:', e));
-  });
-}, 3000);
+if (isBrowser()) {
+  setTimeout(() => {
+    import('./api').then(({ getMarketHeatmap }) => {
+      getMarketHeatmap('1D', 'SP500').then(resp => {
+        window.__heatmapPreload = { data: resp, ts: Date.now() };
+      }).catch(e => console.error('Heatmap preload failed:', e));
+    });
+  }, 3000);
+}
 
 function PageFallback() {
   return (
@@ -115,10 +135,10 @@ const MORE_TABS: { id: TabType; label: string }[] = [
 
 
 function parseHash(): NavState & { compareStocks?: string[] } {
-  const hash = window.location.hash.slice(1);
+  const hash = getSafeHash();
   if (hash) {
     const params = new URLSearchParams(hash);
-    // Support bare #pricing (no tab= prefix) — used by Upgrade buttons
+    // Support legacy bare #pricing links in addition to the canonical #tab=pricing format
     const rawTab = params.get('tab') || (VALID_TABS.has(hash as TabType) ? hash : 'portfolio');
 
     // Handle compare page on initial load
@@ -126,7 +146,7 @@ function parseHash(): NavState & { compareStocks?: string[] } {
       const stocksRaw = params.get('stocks')?.split(',').filter(Boolean) ?? [];
       const normalized = [...new Set(stocksRaw.map(s => s.trim().toUpperCase()).filter(Boolean))].slice(0, 4);
       if (normalized.length >= 2) {
-        sessionStorage.setItem('navState', JSON.stringify({ tab: 'compare', stock: null, profile: null, lbuser: null, subtab: null }));
+        safeSessionStorageSet('navState', JSON.stringify({ tab: 'compare', stock: null, profile: null, lbuser: null, subtab: null }));
         return { tab: 'portfolio', stock: null, profile: null, lbuser: null, subtab: null, compareStocks: normalized };
       }
     }
@@ -138,7 +158,7 @@ function parseHash(): NavState & { compareStocks?: string[] } {
       lbuser: params.get('lbuser') || null,
       subtab: params.get('subtab') || null,
     };
-    sessionStorage.setItem('navState', JSON.stringify(state));
+    safeSessionStorageSet('navState', JSON.stringify(state));
     return state;
   }
   // No hash fragment — always default to portfolio.
@@ -150,7 +170,7 @@ function parseHash(): NavState & { compareStocks?: string[] } {
 const savedInitialNav = parseHash();
 // Check if initial hash was #tab=settings or #tab=admin-waitlist
 const _initialSettingsView = (() => {
-  const hash = window.location.hash.slice(1);
+  const hash = getSafeHash();
   if (!hash) return false;
   const params = new URLSearchParams(hash);
   return params.get('tab') === 'settings';
@@ -158,7 +178,7 @@ const _initialSettingsView = (() => {
 // Capture the admin hash at module load (before nav sync can overwrite it).
 // Actual state is applied only AFTER auth confirms isWaitlistAdmin — see useEffect below.
 const _initialAdminHash = (() => {
-  const hash = window.location.hash.slice(1);
+  const hash = getSafeHash();
   if (!hash) return null;
   const params = new URLSearchParams(hash);
   const tab = params.get('tab');
@@ -173,7 +193,7 @@ const _initialAdminView = null;
 // Strict guard: single path segment, no file extension, valid username chars,
 // not a reserved path. Only true username candidates hit the API.
 // This set MUST stay aligned with RESERVED_USERNAMES in auth.validators.ts.
-const _pathname = window.location.pathname;
+const _pathname = getSafePathname();
 const _pathSegments = _pathname.split('/').filter(Boolean);
 const _RESERVED_PATHS = new Set([
   // Build / dev / static
@@ -269,12 +289,12 @@ export default function App() {
     setAdminView(_initialAdminHash);
   }, [user?.isWaitlistAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Listen for hash changes from Upgrade buttons (#pricing or #tab=pricing)
+  // Listen for pricing hash changes, keeping support for both legacy and canonical formats
   useEffect(() => {
     const handleHashChange = () => {
       const raw = window.location.hash.slice(1);
       if (!raw) return;
-      // Support both #pricing and #tab=pricing formats — only pricing, to avoid
+      // Support both legacy #pricing and canonical #tab=pricing formats — only pricing, to avoid
       // conflicting with useNavigationState's hash listener for other tabs
       const params = new URLSearchParams(raw);
       const tab = params.get('tab') || raw;
@@ -320,6 +340,7 @@ export default function App() {
   );
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const moreDropdownRef = useRef<HTMLDivElement>(null);
+  const [mobilePortfolioMenuOpen, setMobilePortfolioMenuOpen] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [utilsMenuOpen, setUtilsMenuOpen] = useState(false);
   const utilsMenuRef = useRef<HTMLDivElement>(null);
@@ -342,6 +363,7 @@ export default function App() {
   const [verifyAttemptsLeft, setVerifyAttemptsLeft] = useState<number>(-1);
   const [verifyLocked, setVerifyLocked] = useState(false);
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
+  const verificationEmail = user?.email ?? null;
 
   // Close "More" dropdown on outside click
   useEffect(() => {
@@ -599,8 +621,9 @@ export default function App() {
                   type="button"
                   onClick={async () => {
                     if (verifyResendCooldown > 0) return;
+                    if (!verificationEmail) { setVerifyError('Missing email for verification. Log out and sign in again.'); return; }
                     try {
-                      await resendVerification(user.email!);
+                      await resendVerification(verificationEmail);
                       setVerifyError('');
                       setVerifyLocked(false);
                       setVerifyAttemptsLeft(-1);
@@ -609,7 +632,7 @@ export default function App() {
                       const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
                     } catch { setVerifyError('Failed to resend code. Try again in a moment.'); }
                   }}
-                  disabled={verifyResendCooldown > 0}
+                  disabled={verifyResendCooldown > 0 || !verificationEmail}
                   className="w-full py-2.5 bg-rh-green hover:bg-rh-green/90 disabled:bg-rh-green/40 text-white font-semibold rounded-lg transition-colors"
                 >
                   {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Send new code'}
@@ -619,10 +642,11 @@ export default function App() {
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 if (verifyCode.length !== 6 || verifyLoading) return;
+                if (!verificationEmail) { setVerifyError('Missing email for verification. Log out and sign in again.'); return; }
                 setVerifyLoading(true);
                 setVerifyError('');
                 try {
-                  await verifyEmail(user.email!, verifyCode);
+                  await verifyEmail(verificationEmail, verifyCode);
                   setVerifyCode('');
                 } catch (err) {
                   if (err instanceof EmailVerifyError) {
@@ -668,14 +692,15 @@ export default function App() {
                 type="button"
                 onClick={async () => {
                   if (verifyResendCooldown > 0) return;
+                  if (!verificationEmail) { setVerifyError('Missing email for verification. Log out and sign in again.'); return; }
                   try {
-                    await resendVerification(user.email!);
+                    await resendVerification(verificationEmail);
                     setVerifyError('');
                     setVerifyResendCooldown(60);
                     const iv = setInterval(() => setVerifyResendCooldown(p => { if (p <= 1) { clearInterval(iv); return 0; } return p - 1; }), 1000);
                   } catch { setVerifyError('Failed to resend code. Try again in a moment.'); }
                 }}
-                disabled={verifyResendCooldown > 0 || verifyLocked}
+                disabled={verifyResendCooldown > 0 || verifyLocked || !verificationEmail}
                 className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-muted/40 dark:disabled:text-rh-muted/40 transition-colors"
               >
                 {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Resend code'}
@@ -1190,11 +1215,37 @@ export default function App() {
 
       {/* Mobile-only navigation */}
       <div className="sm:hidden">
-        <Navigation activeTab={activeTab} userPlan={user?.plan} onTabChange={(tab) => {
-          resetNavigation();
-          if (tab === 'profile' && currentUserId) setViewingProfileId(currentUserId);
-          setActiveTab(tab);
-        }} />
+        <Navigation
+          activeTab={activeTab}
+          userPlan={user?.plan}
+          portfolioMenuOpen={mobilePortfolioMenuOpen}
+          onPortfolioMenuClose={() => setMobilePortfolioMenuOpen(false)}
+          onPortfolioTabClick={() => {
+            resetNavigation();
+            if (activeTab !== 'portfolio') {
+              setActiveTab('portfolio');
+              setMobilePortfolioMenuOpen(true);
+              return;
+            }
+            setMobilePortfolioMenuOpen(prev => !prev);
+          }}
+          portfolioMenu={user ? (
+            <PortfolioPicker
+              selectedPortfolioId={selectedPortfolioId}
+              onSelect={(portfolioId) => {
+                setSelectedPortfolioId(portfolioId);
+                setMobilePortfolioMenuOpen(false);
+              }}
+              userPlan={user.plan || 'free'}
+            />
+          ) : null}
+          onTabChange={(tab) => {
+            resetNavigation();
+            if (tab === 'profile' && currentUserId) setViewingProfileId(currentUserId);
+            setActiveTab(tab);
+            setMobilePortfolioMenuOpen(false);
+          }}
+        />
       </div>
       </div>
 
@@ -1221,7 +1272,7 @@ export default function App() {
 
       <main
         ref={mainRef}
-        className={`relative z-10 mx-auto py-4 sm:py-6 space-y-6 sm:space-y-8 ${
+        className={`relative z-10 mx-auto pb-4 pt-0 sm:py-6 space-y-6 sm:space-y-8 ${
           activeTab === 'discover' && !viewingStock
             ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
             : 'max-w-[clamp(1080px,64vw,1530px)] px-3 sm:px-6'
@@ -1257,8 +1308,11 @@ export default function App() {
           <Suspense fallback={<PageFallback />}>
             <StockDetailView
               ticker={viewingStock.ticker}
-              holding={viewingStock.holding}
+              holding={findHolding(viewingStock.ticker) ?? viewingStock.holding}
               portfolioTotal={portfolio?.totalAssets ?? 0}
+              onTickerNavigate={(ticker) => {
+                setViewingStock({ ticker, holding: findHolding(ticker) });
+              }}
               onBack={() => {
                 if (dailyReportHidden) {
                   setDailyReportHidden(false);
@@ -1311,7 +1365,7 @@ export default function App() {
 
             {/* Empty portfolio state — show when portfolio exists but has no holdings */}
             {user && (
-              <div className="px-3 sm:px-6 mb-2 flex justify-end">
+              <div className="hidden sm:flex px-3 sm:px-6 mb-2 justify-end">
                 <PortfolioPicker
                   selectedPortfolioId={selectedPortfolioId}
                   onSelect={setSelectedPortfolioId}
@@ -1368,9 +1422,10 @@ export default function App() {
             )}
 
             {portfolio && portfolio.holdings.length > 0 && (
-              <div className="-mx-3 sm:-mx-6 relative">
+              <>
+              <div className={`-mx-3 sm:-mx-6 relative ${mobilePortfolioMenuOpen ? 'mt-0' : '-mt-5 sm:mt-0'}`}>
               {user && (
-                <div className="absolute top-2 right-3 sm:right-6 z-20">
+                <div className="absolute top-2 right-3 sm:top-2 sm:right-6 z-20">
                   <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
                 </div>
               )}
@@ -1389,8 +1444,10 @@ export default function App() {
                 onMeasurementChange={setChartMeasurement}
                 session={portfolio.session}
                 quotesStale={isStale || !!portfolio.quotesMeta?.anyRepricing || (portfolio.quotesUnavailableCount ?? 0) > 0}
+                mobileTopPadding={mobilePortfolioMenuOpen ? 'normal' : 'tight'}
               />
               </div>
+              </>
             )}
 
             {portfolio && portfolio.holdings.length > 0 && (
