@@ -20,6 +20,13 @@ const DIRECT_SIGNUP_ENABLED = !WAITLIST_ENABLED || isNative;
 const EMAIL_INPUT_TYPE = isNative ? 'text' : 'email';
 const NATIVE_PUBLIC_API_URL = 'https://stock-portfolio-api-production.up.railway.app';
 
+function isNativeRecoveryShell(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.protocol === 'capacitor:'
+    || window.location.protocol === 'ionic:'
+    || window.location.hostname === 'localhost';
+}
+
 /** Map raw API error codes to user-friendly messages */
 function friendlyError(msg: string): string {
   if (msg === 'WAITLIST_NOT_APPROVED') return 'Login failed — your waitlist application has not been approved yet. For support, email support@nalaai.com';
@@ -154,7 +161,7 @@ export function LandingPage() {
   const resetCooldownActive = resetCooldown > 0;
   useEffect(() => { if (!resetCooldownActive) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldownActive]);
   useEffect(() => {
-    if (!isNative || !authOpen || authMode !== 'forgot-password') return;
+    if (!authOpen || authMode !== 'forgot-password') return;
 
     const handleWindowError = (event: ErrorEvent) => {
       const detail = event.error instanceof Error
@@ -183,12 +190,13 @@ export function LandingPage() {
   const sendResetCodeDirect = useCallback(async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     const url = `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`;
+    const useNativeTransport = isNativeRecoveryShell();
 
-    if (isNative) console.log('[sendResetCodeDirect] START native=true url=', url, 'email=', normalizedEmail);
+    console.log('[sendResetCodeDirect] START native=', useNativeTransport, 'url=', url, 'email=', normalizedEmail);
     setAuthDebug(`entered sender for ${normalizedEmail}`);
 
     try {
-      if (!isNative) {
+      if (!useNativeTransport) {
         setAuthDebug('web fetch start');
         const response = await fetch(url, {
           method: 'POST',
@@ -205,7 +213,7 @@ export function LandingPage() {
         return { message: 'If this email is registered, a reset code was sent.' };
       }
 
-      if (isNative) console.log('[sendResetCodeDirect] calling CapacitorHttp.request...');
+      console.log('[sendResetCodeDirect] calling CapacitorHttp.request...');
       setAuthDebug('native request start');
       const response = await CapacitorHttp.request({
         url,
@@ -218,7 +226,7 @@ export function LandingPage() {
         data: { email: normalizedEmail },
         responseType: 'text',
       });
-      if (isNative) console.log('[sendResetCodeDirect] CapacitorHttp response status=', response.status, 'dataType=', typeof response.data, 'data=', String(response.data).slice(0, 100));
+      console.log('[sendResetCodeDirect] CapacitorHttp response status=', response.status, 'dataType=', typeof response.data, 'data=', String(response.data).slice(0, 100));
       setAuthDebug(`native request returned ${response.status}`);
 
       if (response.status < 200 || response.status >= 300) {
@@ -227,7 +235,7 @@ export function LandingPage() {
       return { message: 'If this email is registered, a reset code was sent.' };
     } catch (error) {
       const e = error instanceof Error ? error : new Error(String(error));
-      if (isNative) console.error('[sendResetCodeDirect] ERROR:', e.name, e.message, e.stack?.slice(0, 300));
+      console.error('[sendResetCodeDirect] ERROR:', e.name, e.message, e.stack?.slice(0, 300));
       throw new Error(`${e.name}: ${e.message}` || 'Unable to send reset code');
     }
   }, []);
@@ -250,15 +258,15 @@ export function LandingPage() {
         setAuthDebug('forgot-password submit entered');
         if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
         try {
-          if (isNative) console.log('[forgot-password] email:', resetEmail.trim(), 'url:', `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`);
+          console.log('[forgot-password] email:', resetEmail.trim(), 'url:', `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`, 'nativeShell=', isNativeRecoveryShell());
           await sendResetCodeDirect(resetEmail);
-          if (isNative) console.log('[forgot-password] success');
+          console.log('[forgot-password] success');
           setAuthDebug('forgot-password submit success');
           setAuthMode('reset-password'); setError('');
           return;
         } catch (fpErr) {
           const e = fpErr instanceof Error ? fpErr : new Error(String(fpErr));
-          if (isNative) console.error('[forgot-password] FAILED:', e.name, e.message, e.stack?.slice(0, 500));
+          console.error('[forgot-password] FAILED:', e.name, e.message, e.stack?.slice(0, 500));
           setAuthDebug(`forgot-password caught ${e.name}: ${e.message}`);
           // Re-throw with diagnostic info so we can see it in the UI
           throw new Error(`[forgot-pw] ${e.name}: ${e.message}`);
@@ -729,7 +737,7 @@ export function LandingPage() {
               <>
                 <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'waitlist' ? 'Join the Waitlist' : authMode === 'signup' ? 'Create Account' : authMode === 'forgot-username' ? 'Recover Username' : authMode === 'forgot-password' ? 'Reset Password' : authMode === 'reset-password' ? 'Enter Reset Code' : 'Welcome Back'}</h2>
                 {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-start gap-2" role="alert"><svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg><span>{error}</span></div>}
-                {isNative && authMode === 'forgot-password' && authDebug && (
+                {authMode === 'forgot-password' && authDebug && (
                   <div className="mb-4 p-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[11px] text-white/50 break-words">
                     Debug: {authDebug}
                   </div>
@@ -754,7 +762,7 @@ export function LandingPage() {
                     <div className="text-center"><button type="button" onClick={()=>{setAuthMode('login');setError('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
                   </>) : authMode === 'forgot-password' ? (<>
                     <p className="text-[12px] text-white/30 leading-relaxed">Enter the email on your account and we'll send a reset code.</p>
-                    <div><label htmlFor="auth-reset-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-reset-email" type={EMAIL_INPUT_TYPE} inputMode="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
+                    <div><label htmlFor="auth-reset-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-reset-email" type="text" inputMode="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoCapitalize="none" autoCorrect="off" autoFocus required /></div>
                     <button type="button" onClick={()=>{ void submitAuth(); }} disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Send Reset Code'}</button>
                     <div className="text-center"><button type="button" onClick={()=>{setAuthMode('login');setError('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
                   </>) : authMode === 'reset-password' ? (<>
