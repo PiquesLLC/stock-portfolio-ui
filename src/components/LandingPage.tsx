@@ -156,50 +156,47 @@ export function LandingPage() {
   const sendResetCodeDirect = useCallback(async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     const url = `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`;
-    const body = JSON.stringify({ email: normalizedEmail });
+
+    if (isNative) console.log('[sendResetCodeDirect] START native=true url=', url, 'email=', normalizedEmail);
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(isNative ? { 'X-Nala-Native': '1' } : {}),
-        },
-        body,
-      });
-      const raw = await response.text();
-      const data = raw ? JSON.parse(raw) as { error?: string; message?: string } : {};
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
+      if (!isNative) {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ email: normalizedEmail }),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return { message: 'If this email is registered, a reset code was sent.' };
       }
-      return data;
-    } catch (fetchErr) {
-      if (!isNative) throw fetchErr;
 
+      if (isNative) console.log('[sendResetCodeDirect] calling CapacitorHttp.request...');
       const response = await CapacitorHttp.request({
         url,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'X-Nala-Native': '1',
         },
         data: { email: normalizedEmail },
         responseType: 'text',
       });
-
-      const raw = typeof response.data === 'string' ? response.data : JSON.stringify(response.data ?? {});
-      let data: { error?: string; message?: string } = {};
-      try {
-        data = raw ? JSON.parse(raw) as { error?: string; message?: string } : {};
-      } catch {
-        data = {};
-      }
+      if (isNative) console.log('[sendResetCodeDirect] CapacitorHttp response status=', response.status, 'dataType=', typeof response.data, 'data=', String(response.data).slice(0, 100));
 
       if (response.status < 200 || response.status >= 300) {
-        throw new Error(data.error || `HTTP ${response.status}`);
+        throw new Error(`HTTP ${response.status}`);
       }
-
-      return data;
+      return { message: 'If this email is registered, a reset code was sent.' };
+    } catch (error) {
+      const e = error instanceof Error ? error : new Error(String(error));
+      if (isNative) console.error('[sendResetCodeDirect] ERROR:', e.name, e.message, e.stack?.slice(0, 300));
+      throw new Error(`${e.name}: ${e.message}` || 'Unable to send reset code');
     }
   }, []);
 
@@ -219,9 +216,18 @@ export function LandingPage() {
         return;
       } else if (authMode === 'forgot-password') {
         if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
-        await sendResetCodeDirect(resetEmail);
-        setAuthMode('reset-password'); setError('');
-        return;
+        try {
+          if (isNative) console.log('[forgot-password] email:', resetEmail.trim(), 'url:', `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`);
+          await sendResetCodeDirect(resetEmail);
+          if (isNative) console.log('[forgot-password] success');
+          setAuthMode('reset-password'); setError('');
+          return;
+        } catch (fpErr) {
+          const e = fpErr instanceof Error ? fpErr : new Error(String(fpErr));
+          if (isNative) console.error('[forgot-password] FAILED:', e.name, e.message, e.stack?.slice(0, 500));
+          // Re-throw with diagnostic info so we can see it in the UI
+          throw new Error(`[forgot-pw] ${e.name}: ${e.message}`);
+        }
       } else if (authMode === 'reset-password') {
         if (resetCode.length !== 6) { setError('Please enter the 6-digit reset code'); return; }
         const pwErr = validatePassword(newPassword);
