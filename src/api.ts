@@ -1,6 +1,6 @@
 import { CapacitorHttp } from '@capacitor/core';
 import { API_BASE_URL } from './config';
-import { isNative } from './utils/platform';
+import { isNative, isNativePlatform } from './utils/platform';
 import {
   Portfolio,
   ProjectionResponse,
@@ -92,7 +92,7 @@ type NativeAuthSession = {
 };
 
 function readNativeAuthSession(): NativeAuthSession | null {
-  if (!isNative || typeof window === 'undefined') return null;
+  if (!isNativePlatform() || typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(NATIVE_AUTH_STORAGE_KEY);
     if (!raw) return null;
@@ -108,7 +108,7 @@ function readNativeAuthSession(): NativeAuthSession | null {
 }
 
 function writeNativeAuthSession(session: NativeAuthSession | null): void {
-  if (!isNative || typeof window === 'undefined') return;
+  if (!isNativePlatform() || typeof window === 'undefined') return;
   try {
     if (!session) {
       localStorage.removeItem(NATIVE_AUTH_STORAGE_KEY);
@@ -153,17 +153,18 @@ let authDead = false;
 async function tryRefreshToken(): Promise<boolean> {
   try {
     const nativeSession = readNativeAuthSession();
+    const nativeRuntime = isNativePlatform();
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+        ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
       },
       ...(nativeSession?.refreshToken ? { body: JSON.stringify({ refreshToken: nativeSession.refreshToken }) } : {}),
     });
     if (res.ok) {
-      if (isNative) {
+      if (nativeRuntime) {
         const data = await res.json().catch(() => ({} as Record<string, unknown>));
         const accessToken = typeof data.accessToken === 'string' ? data.accessToken : null;
         const refreshToken = typeof data.refreshToken === 'string' ? data.refreshToken : null;
@@ -203,13 +204,14 @@ export function resetAuthState(): void {
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const doFetch = () => {
     const nativeSession = readNativeAuthSession();
+    const nativeRuntime = isNativePlatform();
     return fetch(url, {
       ...options,
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         'Bypass-Tunnel-Reminder': 'true',
-        ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+        ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
         ...(nativeSession?.accessToken ? { Authorization: `Bearer ${nativeSession.accessToken}` } : {}),
         ...options?.headers,
       },
@@ -272,14 +274,15 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T> {
+  const nativeRuntime = isNativePlatform();
   const headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+    ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
     ...options?.headers,
   };
 
-  if (isNative) {
+  if (nativeRuntime) {
     console.log('[fetchJsonPublic] native request:', options?.method || 'GET', url);
   }
 
@@ -289,7 +292,7 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
       headers,
     });
 
-    if (isNative) {
+    if (nativeRuntime) {
       console.log('[fetchJsonPublic] fetch response:', response.status, response.headers.get('content-type'), url);
     }
 
@@ -305,7 +308,7 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
         throw new Error(error.error || `HTTP ${response.status}`);
       }
       const text = await response.text().catch(() => '');
-      if (isNative) {
+      if (nativeRuntime) {
         console.error('[fetchJsonPublic] non-JSON error response:', response.status, text.slice(0, 200));
       }
       throw new Error(`HTTP ${response.status}: server returned non-JSON response`);
@@ -317,7 +320,7 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
 
     if (!isJson) {
       const text = await response.text().catch(() => '');
-      if (isNative) {
+      if (nativeRuntime) {
         console.error('[fetchJsonPublic] 200 but non-JSON content-type:', ct, text.slice(0, 200));
       }
       throw new Error('Server returned non-JSON response (got HTML or text instead)');
@@ -325,12 +328,12 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
 
     return response.json();
   } catch (fetchError) {
-    if (isNative) {
+    if (nativeRuntime) {
       const e = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
       console.error('[fetchJsonPublic] fetch path error:', e.name, e.message, url);
     }
 
-    if (!isNative) {
+    if (!nativeRuntime) {
       throw fetchError;
     }
 
@@ -347,7 +350,7 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
       }
     }
 
-    if (isNative) {
+    if (nativeRuntime) {
       console.log('[fetchJsonPublic] falling back to CapacitorHttp:', method, url);
     }
 
@@ -359,7 +362,7 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
       responseType: 'json',
     });
 
-    if (isNative) {
+    if (nativeRuntime) {
       console.log('[fetchJsonPublic] CapacitorHttp response:', response.status, typeof response.data);
     }
 
@@ -367,7 +370,7 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
       const errorData = response.data && typeof response.data === 'object'
         ? response.data as Record<string, unknown>
         : {};
-      if (isNative) {
+      if (nativeRuntime) {
         console.error('[fetchJsonPublic] CapacitorHttp error:', response.status, JSON.stringify(errorData).slice(0, 200));
       }
       throw new Error(

@@ -1,6 +1,6 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, clearNativeAuthSession, ApiError } from '../api';
-import { isNative } from '../utils/platform';
+import { isNativePlatform } from '../utils/platform';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
 import { clearInsightsCache } from '../utils/insights-cache';
 import { clearEarningsPreviewCache, clearEarningsTabCache } from '../utils/earnings-cache';
@@ -64,7 +64,7 @@ const BIOMETRIC_PROMPTED_KEY = 'nala_biometric_prompted';
  * Only prompts once per device (tracked in localStorage).
  */
 async function promptBiometricEnrollment(refreshToken?: string): Promise<void> {
-  if (!isNative || !refreshToken) return;
+  if (!isNativePlatform() || !refreshToken) return;
   if (localStorage.getItem(BIOMETRIC_PROMPTED_KEY)) return;
 
   const bioType = await isBiometricAvailable();
