@@ -157,6 +157,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (isNativePlatform() && !hasNativeRefreshSession()) {
+      nativeLog('BOOT', 'skipping loadUser on native - no refresh session');
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
     let attempt = 0;
     const maxAttempts = 5;
