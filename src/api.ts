@@ -1,3 +1,4 @@
+import { CapacitorHttp } from '@capacitor/core';
 import { API_BASE_URL } from './config';
 import { isNative } from './utils/platform';
 import {
@@ -211,6 +212,43 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T> {
+  if (isNative) {
+    const method = options?.method || 'GET';
+    const rawBody = options?.body;
+    let data: unknown = undefined;
+
+    if (typeof rawBody === 'string' && rawBody.length > 0) {
+      try {
+        data = JSON.parse(rawBody);
+      } catch {
+        data = rawBody;
+      }
+    }
+
+    const response = await CapacitorHttp.request({
+      url,
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Nala-Native': '1',
+        ...(options?.headers as Record<string, string> | undefined),
+      },
+      data,
+      responseType: 'json',
+    });
+
+    if (response.status < 200 || response.status >= 300) {
+      const errorData = response.data && typeof response.data === 'object'
+        ? response.data as Record<string, unknown>
+        : {};
+      throw new Error(
+        typeof errorData.error === 'string' ? errorData.error : `HTTP ${response.status}`,
+      );
+    }
+
+    return response.data as T;
+  }
+
   const response = await fetch(url, {
     ...options,
     headers: {
