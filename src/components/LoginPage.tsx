@@ -463,7 +463,8 @@ export function LoginPage() {
                   </label>
                   <input
                     id="resetEmail"
-                    type="email"
+                    type={EMAIL_INPUT_TYPE}
+                    inputMode="email"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     className={inputClasses}

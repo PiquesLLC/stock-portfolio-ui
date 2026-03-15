@@ -1,10 +1,11 @@
 // API URL configuration:
-// - Not set (default):     "/api" (Vite proxy in dev)
-// - VITE_API_URL="":       "" (same-origin production, no prefix)
-// - VITE_API_URL="http://...": direct API URL (Capacitor/remote)
-// For shipped Capacitor builds, only allow public HTTPS origins.
+// - Web dev default:         "/api" (Vite proxy)
+// - Web prod VITE_API_URL:   same-origin or custom web API origin
+// - Native VITE_NATIVE_API_URL: dedicated public API origin for Capacitor builds
 const envUrl = import.meta.env.VITE_API_URL as string | undefined;
-const PROD_NATIVE_API_URL = 'https://nalaai.com';
+const nativeEnvUrl = import.meta.env.VITE_NATIVE_API_URL as string | undefined;
+const PROD_NATIVE_API_URL = 'https://stock-portfolio-api-production.up.railway.app';
+const APP_WEB_ORIGIN = 'https://nalaai.com';
 
 function isPrivateApiUrl(value: string): boolean {
   try {
@@ -29,9 +30,20 @@ function isPublicHttpsApiUrl(value: string): boolean {
   }
 }
 
+function isAppWebOrigin(value: string): boolean {
+  try {
+    return new URL(value).origin === APP_WEB_ORIGIN;
+  } catch {
+    return false;
+  }
+}
+
 function resolveApiBaseUrl(): string {
   if (import.meta.env.MODE === 'capacitor') {
-    return envUrl && isPublicHttpsApiUrl(envUrl) ? envUrl : PROD_NATIVE_API_URL;
+    if (nativeEnvUrl && isPublicHttpsApiUrl(nativeEnvUrl) && !isAppWebOrigin(nativeEnvUrl)) {
+      return nativeEnvUrl;
+    }
+    return PROD_NATIVE_API_URL;
   }
   return envUrl !== undefined ? envUrl : '/api';
 }
