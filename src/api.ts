@@ -214,9 +214,14 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T> {
   const headers = {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
     ...(isNative ? { 'X-Nala-Native': '1' } : {}),
     ...options?.headers,
   };
+
+  if (isNative) {
+    console.log('[fetchJsonPublic] native request:', options?.method || 'GET', url);
+  }
 
   try {
     const response = await fetch(url, {
@@ -224,21 +229,52 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
       headers,
     });
 
+    if (isNative) {
+      console.log('[fetchJsonPublic] fetch response:', response.status, response.headers.get('content-type'), url);
+    }
+
+    // Guard against non-JSON responses (HTML error pages, redirects) —
+    // Safari/WebKit throws "The string did not match the expected pattern"
+    // when .json() is called on non-JSON content.
+    const ct = response.headers.get('content-type') || '';
+    const isJson = ct.includes('application/json');
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      if (isJson) {
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+      const text = await response.text().catch(() => '');
+      if (isNative) {
+        console.error('[fetchJsonPublic] non-JSON error response:', response.status, text.slice(0, 200));
+      }
+      throw new Error(`HTTP ${response.status}: server returned non-JSON response`);
     }
 
     if (response.status === 204) {
       return undefined as T;
     }
 
+    if (!isJson) {
+      const text = await response.text().catch(() => '');
+      if (isNative) {
+        console.error('[fetchJsonPublic] 200 but non-JSON content-type:', ct, text.slice(0, 200));
+      }
+      throw new Error('Server returned non-JSON response (got HTML or text instead)');
+    }
+
     return response.json();
   } catch (fetchError) {
+    if (isNative) {
+      const e = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+      console.error('[fetchJsonPublic] fetch path error:', e.name, e.message, url);
+    }
+
     if (!isNative) {
       throw fetchError;
     }
 
+    // Native fallback: use CapacitorHttp when fetch fails (e.g. CORS on WKWebView)
     const method = options?.method || 'GET';
     const rawBody = options?.body;
     let data: unknown = undefined;
@@ -251,6 +287,10 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
       }
     }
 
+    if (isNative) {
+      console.log('[fetchJsonPublic] falling back to CapacitorHttp:', method, url);
+    }
+
     const response = await CapacitorHttp.request({
       url,
       method,
@@ -259,10 +299,17 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
       responseType: 'json',
     });
 
+    if (isNative) {
+      console.log('[fetchJsonPublic] CapacitorHttp response:', response.status, typeof response.data);
+    }
+
     if (response.status < 200 || response.status >= 300) {
       const errorData = response.data && typeof response.data === 'object'
         ? response.data as Record<string, unknown>
         : {};
+      if (isNative) {
+        console.error('[fetchJsonPublic] CapacitorHttp error:', response.status, JSON.stringify(errorData).slice(0, 200));
+      }
       throw new Error(
         typeof errorData.error === 'string' ? errorData.error : `HTTP ${response.status}`,
       );
