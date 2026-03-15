@@ -466,7 +466,7 @@ export function LoginPage() {
                   </label>
                   <input
                     id="usernameEmail"
-                    type={EMAIL_INPUT_TYPE}
+                    type="text"
                     inputMode="email"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
@@ -474,6 +474,7 @@ export function LoginPage() {
                     placeholder="you@example.com"
                     autoComplete="email"
                     autoCapitalize="none"
+                    autoCorrect="off"
                     autoFocus
                     required
                   />
@@ -495,7 +496,7 @@ export function LoginPage() {
                   </label>
                   <input
                     id="resetEmail"
-                    type={EMAIL_INPUT_TYPE}
+                    type="text"
                     inputMode="email"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
@@ -503,6 +504,7 @@ export function LoginPage() {
                     placeholder="you@example.com"
                     autoComplete="email"
                     autoCapitalize="none"
+                    autoCorrect="off"
                     autoFocus
                     required
                   />
