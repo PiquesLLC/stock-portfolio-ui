@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, clearNativeAuthSession, ApiError } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, clearNativeAuthSession, hasNativeAuthSession, ApiError } from '../api';
 import { isNativePlatform } from '../utils/platform';
 import { nativeLog } from '../utils/nativeDebug';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
@@ -120,7 +120,14 @@ function clearStoredNavigationState(): void {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     if (DEV_USER) return DEV_USER;
-    return readCachedUser();
+    const cached = readCachedUser();
+    // On native, cached user is useless without tokens — cookies don't work cross-origin
+    if (cached && isNativePlatform() && !hasNativeAuthSession()) {
+      nativeLog('AUTH', 'clearing cached user — no native session on boot');
+      writeCachedUser(null);
+      return null;
+    }
+    return cached;
   });
   const [isLoading, setIsLoading] = useState(true);
   const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);

@@ -152,6 +152,10 @@ export function clearNativeAuthSession(): void {
   writeNativeAuthSession(null);
 }
 
+export function hasNativeAuthSession(): boolean {
+  return readNativeAuthSession() !== null;
+}
+
 function getBrowserOrigin(): string {
   return typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
 }
