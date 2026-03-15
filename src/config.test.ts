@@ -42,4 +42,14 @@ describe('config api base url', () => {
 
     expect(config.API_BASE_URL).toBe('https://stock-portfolio-api-production.up.railway.app');
   });
+
+  it('treats an empty web api env as unset and falls back to /api', async () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_API_URL', '');
+    vi.stubEnv('VITE_NATIVE_API_URL', '');
+
+    const config = await import('./config');
+
+    expect(config.API_BASE_URL).toBe('/api');
+  });
 });

@@ -7,6 +7,11 @@ const nativeEnvUrl = import.meta.env.VITE_NATIVE_API_URL as string | undefined;
 const PROD_NATIVE_API_URL = 'https://stock-portfolio-api-production.up.railway.app';
 const APP_WEB_ORIGIN = 'https://nalaai.com';
 
+function normalizeEnvUrl(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function isPrivateApiUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -39,13 +44,15 @@ function isAppWebOrigin(value: string): boolean {
 }
 
 function resolveApiBaseUrl(): string {
+  const webEnvUrl = normalizeEnvUrl(envUrl);
+  const nativeUrl = normalizeEnvUrl(nativeEnvUrl);
   if (import.meta.env.MODE === 'capacitor') {
-    if (nativeEnvUrl && isPublicHttpsApiUrl(nativeEnvUrl) && !isAppWebOrigin(nativeEnvUrl)) {
-      return nativeEnvUrl;
+    if (nativeUrl && isPublicHttpsApiUrl(nativeUrl) && !isAppWebOrigin(nativeUrl)) {
+      return nativeUrl;
     }
     return PROD_NATIVE_API_URL;
   }
-  return envUrl !== undefined ? envUrl : '/api';
+  return webEnvUrl ?? '/api';
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
