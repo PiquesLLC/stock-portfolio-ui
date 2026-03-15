@@ -1,7 +1,8 @@
+import { CapacitorHttp } from '@capacitor/core';
 import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { checkHasPassword, forgotPassword, forgotUsername, resetPassword, joinWaitlist } from '../api';
+import { checkHasPassword, forgotUsername, resetPassword, joinWaitlist } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { PLANS } from '../data/plans';
@@ -17,6 +18,7 @@ const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
 const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
 const DIRECT_SIGNUP_ENABLED = !WAITLIST_ENABLED || isNative;
 const EMAIL_INPUT_TYPE = isNative ? 'text' : 'email';
+const NATIVE_PUBLIC_API_URL = 'https://stock-portfolio-api-production.up.railway.app';
 
 /** Map raw API error codes to user-friendly messages */
 function friendlyError(msg: string): string {
@@ -151,6 +153,56 @@ export function LandingPage() {
   const resetCooldownActive = resetCooldown > 0;
   useEffect(() => { if (!resetCooldownActive) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldownActive]);
 
+  const sendResetCodeDirect = useCallback(async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const url = `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`;
+    const body = JSON.stringify({ email: normalizedEmail });
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+        },
+        body,
+      });
+      const raw = await response.text();
+      const data = raw ? JSON.parse(raw) as { error?: string; message?: string } : {};
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      return data;
+    } catch (fetchErr) {
+      if (!isNative) throw fetchErr;
+
+      const response = await CapacitorHttp.request({
+        url,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Nala-Native': '1',
+        },
+        data: { email: normalizedEmail },
+        responseType: 'text',
+      });
+
+      const raw = typeof response.data === 'string' ? response.data : JSON.stringify(response.data ?? {});
+      let data: { error?: string; message?: string } = {};
+      try {
+        data = raw ? JSON.parse(raw) as { error?: string; message?: string } : {};
+      } catch {
+        data = {};
+      }
+
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+
+      return data;
+    }
+  }, []);
+
   const submitAuth = async () => {
     setError(''); setIsLoading(true);
     try {
@@ -167,7 +219,7 @@ export function LandingPage() {
         return;
       } else if (authMode === 'forgot-password') {
         if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
-        await forgotPassword(resetEmail);
+        await sendResetCodeDirect(resetEmail);
         setAuthMode('reset-password'); setError('');
         return;
       } else if (authMode === 'reset-password') {
@@ -665,7 +717,7 @@ export function LandingPage() {
                     <div><label htmlFor="auth-new-pw" className="block text-[12px] font-medium text-white/30 mb-1.5">New Password</label><input id="auth-new-pw" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className={ic} placeholder="Min. 8 chars, upper/lower/number" autoComplete="new-password" required /></div>
                     <div><label htmlFor="auth-new-pw-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><input id="auth-new-pw-confirm" type="password" value={newPasswordConfirm} onChange={e=>setNewPasswordConfirm(e.target.value)} className={ic} placeholder="Re-enter new password" autoComplete="new-password" required /></div>
                     <button type="button" onClick={()=>{ void submitAuth(); }} disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Resetting...</span>:'Reset Password'}</button>
-                    <div className="flex items-center justify-between"><button type="button" onClick={async()=>{if(resetCooldown>0)return;try{await forgotPassword(resetEmail);showToast('Code resent','success');setResetCooldown(60);}catch(err){setError(err instanceof Error?err.message:'Failed');}}} disabled={resetCooldown>0} className="text-[12px] text-rh-green hover:text-rh-green/80 disabled:text-white/15 transition-colors">{resetCooldown>0?`Resend in ${resetCooldown}s`:'Resend code'}</button><button type="button" onClick={()=>{setAuthMode('login');setError('');setResetEmail('');setResetCode('');setNewPassword('');setNewPasswordConfirm('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
+                    <div className="flex items-center justify-between"><button type="button" onClick={async()=>{if(resetCooldown>0)return;try{await sendResetCodeDirect(resetEmail);showToast('Code resent','success');setResetCooldown(60);}catch(err){setError(err instanceof Error?err.message:'Failed');}}} disabled={resetCooldown>0} className="text-[12px] text-rh-green hover:text-rh-green/80 disabled:text-white/15 transition-colors">{resetCooldown>0?`Resend in ${resetCooldown}s`:'Resend code'}</button><button type="button" onClick={()=>{setAuthMode('login');setError('');setResetEmail('');setResetCode('');setNewPassword('');setNewPasswordConfirm('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
                   </>) : (<>
                   <div><label htmlFor="auth-username" className="block text-[12px] font-medium text-white/30 mb-1.5">Username</label><input id="auth-username" type="text" value={username} onChange={e=>setUsername(e.target.value)} onBlur={checkAndSwitchMode} className={ic} placeholder="e.g. nala_investor" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck="false" required /></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-displayName" className="block text-[12px] font-medium text-white/30 mb-1.5">Display Name</label><input id="auth-displayName" type="text" value={displayName} onChange={e=>setDisplayName(e.target.value)} className={ic} placeholder="How others will see you" autoComplete="name" required /></div>}
