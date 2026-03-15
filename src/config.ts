@@ -2,7 +2,7 @@
 // - Not set (default):     "/api" (Vite proxy in dev)
 // - VITE_API_URL="":       "" (same-origin production, no prefix)
 // - VITE_API_URL="http://...": direct API URL (Capacitor/remote)
-// For shipped Capacitor builds, never allow a private/LAN API URL fallback.
+// For shipped Capacitor builds, only allow public HTTPS origins.
 const envUrl = import.meta.env.VITE_API_URL as string | undefined;
 const PROD_NATIVE_API_URL = 'https://nalaai.com';
 
@@ -20,11 +20,18 @@ function isPrivateApiUrl(value: string): boolean {
   }
 }
 
+function isPublicHttpsApiUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !isPrivateApiUrl(value);
+  } catch {
+    return false;
+  }
+}
+
 function resolveApiBaseUrl(): string {
   if (import.meta.env.MODE === 'capacitor') {
-    if (!envUrl || isPrivateApiUrl(envUrl)) {
-      return PROD_NATIVE_API_URL;
-    }
+    return envUrl && isPublicHttpsApiUrl(envUrl) ? envUrl : PROD_NATIVE_API_URL;
   }
   return envUrl !== undefined ? envUrl : '/api';
 }

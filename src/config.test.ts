@@ -23,4 +23,13 @@ describe('config api base url', () => {
 
     expect(config.API_BASE_URL).toBe('https://api.example.com');
   });
+
+  it('falls back to production domain for non-https capacitor api urls', async () => {
+    vi.stubEnv('MODE', 'capacitor');
+    vi.stubEnv('VITE_API_URL', 'http://api.example.com');
+
+    const config = await import('./config');
+
+    expect(config.API_BASE_URL).toBe('https://nalaai.com');
+  });
 });
