@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, FormEvent } from 'react';
+import { CapacitorHttp } from '@capacitor/core';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { setPassword as apiSetPassword, checkHasPassword, forgotPassword, forgotUsername, resetPassword } from '../api';
+import { setPassword as apiSetPassword, checkHasPassword } from '../api';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
@@ -9,6 +10,35 @@ import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
 import { getGoogleClientId } from '../utils/oauth-config';
 import { isNative } from '../utils/platform';
 import { generateUuid } from '../utils/uuid';
+
+const NATIVE_API = 'https://stock-portfolio-api-production.up.railway.app';
+
+/** Native-safe public POST — bypasses fetch() entirely on iOS to avoid WebKit SYNTAX_ERR */
+async function nativePublicPost(path: string, body: Record<string, string>): Promise<void> {
+  const url = `${NATIVE_API}${path}`;
+  if (!isNative) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    return;
+  }
+  const res = await CapacitorHttp.request({
+    url,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Nala-Native': '1' },
+    data: body,
+    responseType: 'text',
+  });
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+}
 
 const GOOGLE_CLIENT_ID = getGoogleClientId();
 const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
@@ -177,7 +207,7 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        await forgotUsername(resetEmail);
+        await nativePublicPost('/auth/forgot-username', { email: resetEmail.trim().toLowerCase() });
         setSuccessMessage('If this email is registered, your username was sent.');
         setMode('login');
         setIsLoading(false);
@@ -188,7 +218,7 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        await forgotPassword(resetEmail);
+        await nativePublicPost('/auth/forgot-password', { email: resetEmail.trim().toLowerCase() });
         setMode('reset-password');
         setSuccessMessage('Reset code sent! Check your email.');
         setError('');
@@ -207,7 +237,7 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        await resetPassword(resetEmail, resetCode, newPassword);
+        await nativePublicPost('/auth/reset-password', { email: resetEmail.trim().toLowerCase(), code: resetCode, newPassword });
         setSuccessMessage('Password reset! You can now sign in.');
         setMode('login');
         setResetEmail('');
@@ -563,7 +593,7 @@ export function LoginPage() {
                     onClick={async () => {
                       if (resetCooldown > 0) return;
                       try {
-                        await forgotPassword(resetEmail);
+                        await nativePublicPost('/auth/forgot-password', { email: resetEmail.trim().toLowerCase() });
                         showToast('Reset code resent', 'success');
                         setResetCooldown(60);
                         const interval = setInterval(() => {
