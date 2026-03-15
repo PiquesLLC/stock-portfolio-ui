@@ -210,6 +210,28 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json();
+}
+
 /** Like fetchJson but for FormData uploads — handles 401 refresh + retry */
 async function fetchFormData<T>(url: string, formData: FormData, errorLabel = 'Upload failed'): Promise<T> {
   const doFetch = () => fetch(url, {
@@ -502,21 +524,21 @@ export async function resendSignupVerification(email: string): Promise<{ message
 }
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {
-  return fetchJson(`${API_BASE_URL}/auth/forgot-password`, {
+  return fetchJsonPublic(`${API_BASE_URL}/auth/forgot-password`, {
     method: 'POST',
     body: JSON.stringify({ email }),
   });
 }
 
 export async function forgotUsername(email: string): Promise<{ message: string }> {
-  return fetchJson(`${API_BASE_URL}/auth/forgot-username`, {
+  return fetchJsonPublic(`${API_BASE_URL}/auth/forgot-username`, {
     method: 'POST',
     body: JSON.stringify({ email }),
   });
 }
 
 export async function resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
-  return fetchJson(`${API_BASE_URL}/auth/reset-password`, {
+  return fetchJsonPublic(`${API_BASE_URL}/auth/reset-password`, {
     method: 'POST',
     body: JSON.stringify({ email, code, newPassword }),
   });
