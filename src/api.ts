@@ -212,7 +212,33 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T> {
-  if (isNative) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+    ...options?.headers,
+  };
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json();
+  } catch (fetchError) {
+    if (!isNative) {
+      throw fetchError;
+    }
+
     const method = options?.method || 'GET';
     const rawBody = options?.body;
     let data: unknown = undefined;
@@ -228,11 +254,7 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
     const response = await CapacitorHttp.request({
       url,
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Nala-Native': '1',
-        ...(options?.headers as Record<string, string> | undefined),
-      },
+      headers: headers as Record<string, string>,
       data,
       responseType: 'json',
     });
@@ -248,26 +270,6 @@ async function fetchJsonPublic<T>(url: string, options?: RequestInit): Promise<T
 
     return response.data as T;
   }
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(isNative ? { 'X-Nala-Native': '1' } : {}),
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
 }
 
 /** Like fetchJson but for FormData uploads — handles 401 refresh + retry */

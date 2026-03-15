@@ -151,8 +151,8 @@ export function LandingPage() {
   const resetCooldownActive = resetCooldown > 0;
   useEffect(() => { if (!resetCooldownActive) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldownActive]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault(); setError(''); setIsLoading(true);
+  const submitAuth = async () => {
+    setError(''); setIsLoading(true);
     try {
       if (authMode === 'waitlist') {
         if (!waitlistEmail.trim() || !isValidEmail(waitlistEmail)) { setError('Please enter a valid email address'); return; }
@@ -194,6 +194,10 @@ export function LandingPage() {
         }
       } else { await login(username, password); }
     } catch (err) { setError(friendlyError(err instanceof Error ? err.message : 'An error occurred')); } finally { setIsLoading(false); }
+  };
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await submitAuth();
   };
   const checkAndSwitchMode = async () => { if (!username.trim() || authMode !== 'login') return; try { const r = await checkHasPassword(username); if (!r.hasPassword) showToast('This account needs a password.', 'info'); } catch { /* ignore */ } };
 
@@ -648,19 +652,19 @@ export function LandingPage() {
                   </>)) : authMode === 'forgot-username' ? (<>
                     <p className="text-[12px] text-white/30 leading-relaxed">Enter the email on your account and we'll send your username.</p>
                     <div><label htmlFor="auth-username-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-username-email" type={EMAIL_INPUT_TYPE} inputMode="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
-                    <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Email My Username'}</button>
+                    <button type="button" onClick={()=>{ void submitAuth(); }} disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Email My Username'}</button>
                     <div className="text-center"><button type="button" onClick={()=>{setAuthMode('login');setError('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
                   </>) : authMode === 'forgot-password' ? (<>
                     <p className="text-[12px] text-white/30 leading-relaxed">Enter the email on your account and we'll send a reset code.</p>
                     <div><label htmlFor="auth-reset-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-reset-email" type={EMAIL_INPUT_TYPE} inputMode="email" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoFocus required /></div>
-                    <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Send Reset Code'}</button>
+                    <button type="button" onClick={()=>{ void submitAuth(); }} disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Sending...</span>:'Send Reset Code'}</button>
                     <div className="text-center"><button type="button" onClick={()=>{setAuthMode('login');setError('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
                   </>) : authMode === 'reset-password' ? (<>
                     <p className="text-[12px] text-white/30 leading-relaxed">Enter the 6-digit code sent to <span className="text-white/60 font-medium">{resetEmail}</span>.</p>
                     <div><label htmlFor="auth-reset-code" className="block text-[12px] font-medium text-white/30 mb-1.5">Reset Code</label><input id="auth-reset-code" type="text" inputMode="numeric" maxLength={6} value={resetCode} onChange={e=>setResetCode(e.target.value.replace(/\D/g,'').slice(0,6))} className={`${ic} text-center text-xl tracking-[0.3em] font-mono`} placeholder="000000" autoComplete="one-time-code" autoFocus required /></div>
                     <div><label htmlFor="auth-new-pw" className="block text-[12px] font-medium text-white/30 mb-1.5">New Password</label><input id="auth-new-pw" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className={ic} placeholder="Min. 8 chars, upper/lower/number" autoComplete="new-password" required /></div>
                     <div><label htmlFor="auth-new-pw-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><input id="auth-new-pw-confirm" type="password" value={newPasswordConfirm} onChange={e=>setNewPasswordConfirm(e.target.value)} className={ic} placeholder="Re-enter new password" autoComplete="new-password" required /></div>
-                    <button type="submit" disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Resetting...</span>:'Reset Password'}</button>
+                    <button type="button" onClick={()=>{ void submitAuth(); }} disabled={isLoading} className="w-full py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 disabled:bg-white/50 disabled:cursor-wait transition-all min-h-[44px]">{isLoading?<span className="inline-flex items-center gap-2"><Spinner />Resetting...</span>:'Reset Password'}</button>
                     <div className="flex items-center justify-between"><button type="button" onClick={async()=>{if(resetCooldown>0)return;try{await forgotPassword(resetEmail);showToast('Code resent','success');setResetCooldown(60);}catch(err){setError(err instanceof Error?err.message:'Failed');}}} disabled={resetCooldown>0} className="text-[12px] text-rh-green hover:text-rh-green/80 disabled:text-white/15 transition-colors">{resetCooldown>0?`Resend in ${resetCooldown}s`:'Resend code'}</button><button type="button" onClick={()=>{setAuthMode('login');setError('');setResetEmail('');setResetCode('');setNewPassword('');setNewPasswordConfirm('');}} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Back to sign in</button></div>
                   </>) : (<>
                   <div><label htmlFor="auth-username" className="block text-[12px] font-medium text-white/30 mb-1.5">Username</label><input id="auth-username" type="text" value={username} onChange={e=>setUsername(e.target.value)} onBlur={checkAndSwitchMode} className={ic} placeholder="e.g. nala_investor" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck="false" required /></div>

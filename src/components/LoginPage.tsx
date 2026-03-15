@@ -165,8 +165,7 @@ export function LoginPage() {
     }
   }, [loginWithApple, showToast]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submitAuth = async () => {
     setError('');
     setSuccessMessage('');
     setIsLoading(true);
@@ -278,6 +277,10 @@ export function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await submitAuth();
   };
 
   const checkAndSwitchMode = async () => {
@@ -792,7 +795,8 @@ export function LoginPage() {
               </>)}
               {/* Submit Button */}
               <button
-                type="submit"
+                type={mode === 'forgot-password' || mode === 'forgot-username' || mode === 'reset-password' ? 'button' : 'submit'}
+                onClick={mode === 'forgot-password' || mode === 'forgot-username' || mode === 'reset-password' ? () => { void submitAuth(); } : undefined}
                 disabled={isLoading}
                 className="w-full py-3 bg-rh-green hover:bg-rh-green/90 active:bg-rh-green/80 disabled:bg-rh-green/50 disabled:cursor-wait text-white font-semibold rounded-lg transition-all duration-150 shadow-lg shadow-rh-green/25 hover:shadow-rh-green/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green focus-visible:ring-offset-2 focus-visible:ring-offset-rh-card"
               >
