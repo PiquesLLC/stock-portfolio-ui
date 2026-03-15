@@ -7,12 +7,14 @@ import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
 import { getGoogleClientId } from '../utils/oauth-config';
+import { isNative } from '../utils/platform';
 import { generateUuid } from '../utils/uuid';
 
 const GOOGLE_CLIENT_ID = getGoogleClientId();
 const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = isAppleOAuthEnabled();
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
+const EMAIL_INPUT_TYPE = isNative ? 'text' : 'email';
 
 /** Map raw API error codes to user-friendly messages */
 function friendlyError(msg: string): string {
@@ -432,7 +434,8 @@ export function LoginPage() {
                   </label>
                   <input
                     id="usernameEmail"
-                    type="email"
+                    type={EMAIL_INPUT_TYPE}
+                    inputMode="email"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     className={inputClasses}
@@ -646,7 +649,8 @@ export function LoginPage() {
                   </label>
                   <input
                     id="email"
-                    type="email"
+                    type={EMAIL_INPUT_TYPE}
+                    inputMode="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={inputClasses}
