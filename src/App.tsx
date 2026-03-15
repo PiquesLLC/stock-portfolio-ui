@@ -22,6 +22,7 @@ import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcut
 import { DailyReportModal } from './components/DailyReportModal';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
+import { SupportPage } from './components/SupportPage';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import PortfolioPicker from './components/PortfolioPicker';
@@ -540,8 +541,12 @@ export default function App() {
     );
   }
 
-  // Public privacy/terms page (accessible without auth, needed for Plaid questionnaire)
+  // Public support/privacy/terms pages
+  const safePathname = getSafePathname();
   const rawHash = window.location.hash.slice(1);
+  if (safePathname === '/support' || rawHash === 'support') {
+    return <SupportPage />;
+  }
   if (rawHash === 'privacy' || rawHash === 'terms') {
     return <PrivacyPage initialTab={rawHash} />;
   }
