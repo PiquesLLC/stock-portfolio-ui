@@ -1,4 +1,3 @@
-import { CapacitorHttp } from '@capacitor/core';
 import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -25,6 +24,26 @@ function isNativeRecoveryShell(): boolean {
   return window.location.protocol === 'capacitor:'
     || window.location.protocol === 'ionic:'
     || window.location.hostname === 'localhost';
+}
+
+function xhrPost(url: string, body: Record<string, string>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`HTTP ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.ontimeout = () => reject(new Error('Request timed out'));
+    xhr.timeout = 15000;
+    xhr.send(JSON.stringify(body));
+  });
 }
 
 /** Map raw API error codes to user-friendly messages */
@@ -213,25 +232,10 @@ export function LandingPage() {
         return { message: 'If this email is registered, a reset code was sent.' };
       }
 
-      console.log('[sendResetCodeDirect] calling CapacitorHttp.request...');
-      setAuthDebug('native request start');
-      const response = await CapacitorHttp.request({
-        url,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Nala-Native': '1',
-        },
-        data: { email: normalizedEmail },
-        responseType: 'text',
-      });
-      console.log('[sendResetCodeDirect] CapacitorHttp response status=', response.status, 'dataType=', typeof response.data, 'data=', String(response.data).slice(0, 100));
-      setAuthDebug(`native request returned ${response.status}`);
-
-      if (response.status < 200 || response.status >= 300) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      console.log('[sendResetCodeDirect] calling XHR...');
+      setAuthDebug('native xhr start');
+      await xhrPost(url, { email: normalizedEmail });
+      setAuthDebug('native xhr returned 200');
       return { message: 'If this email is registered, a reset code was sent.' };
     } catch (error) {
       const e = error instanceof Error ? error : new Error(String(error));

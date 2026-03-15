@@ -11,6 +11,9 @@ const config: CapacitorConfig = {
     allowNavigation: ['*.localhost', '127.0.0.1'],
   },
   plugins: {
+    CapacitorHttp: {
+      enabled: false,
+    },
     SplashScreen: {
       launchAutoHide: true,
       backgroundColor: '#050505',

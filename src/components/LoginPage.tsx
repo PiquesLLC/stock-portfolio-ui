@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, FormEvent } from 'react';
-import { CapacitorHttp } from '@capacitor/core';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { setPassword as apiSetPassword, checkHasPassword } from '../api';
@@ -13,31 +12,31 @@ import { generateUuid } from '../utils/uuid';
 
 const NATIVE_API = 'https://stock-portfolio-api-production.up.railway.app';
 
-/** Native-safe public POST — bypasses fetch() entirely on iOS to avoid WebKit SYNTAX_ERR */
+/** Raw XMLHttpRequest POST — most compatible HTTP mechanism, no WebKit quirks */
+function xhrPost(url: string, body: Record<string, string>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`HTTP ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.ontimeout = () => reject(new Error('Request timed out'));
+    xhr.timeout = 15000;
+    xhr.send(JSON.stringify(body));
+  });
+}
+
+/** Native-safe public POST — uses XMLHttpRequest to avoid all WebKit fetch/CapacitorHttp quirks */
 async function nativePublicPost(path: string, body: Record<string, string>): Promise<void> {
   const url = `${NATIVE_API}${path}`;
-  if (!isNative) {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      throw new Error(data.error || `HTTP ${res.status}`);
-    }
-    return;
-  }
-  const res = await CapacitorHttp.request({
-    url,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Nala-Native': '1' },
-    data: body,
-    responseType: 'text',
-  });
-  if (res.status < 200 || res.status >= 300) {
-    throw new Error(`HTTP ${res.status}`);
-  }
+  return xhrPost(url, body);
 }
 
 const GOOGLE_CLIENT_ID = getGoogleClientId();
