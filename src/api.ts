@@ -84,6 +84,51 @@ export function setAuthExpiredHandler(handler: (() => void) | null) {
   onAuthExpired = handler;
 }
 
+const NATIVE_AUTH_STORAGE_KEY = 'nala_native_auth';
+
+type NativeAuthSession = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+function readNativeAuthSession(): NativeAuthSession | null {
+  if (!isNative || typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(NATIVE_AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<NativeAuthSession>;
+    if (!parsed.accessToken || !parsed.refreshToken) return null;
+    return {
+      accessToken: parsed.accessToken,
+      refreshToken: parsed.refreshToken,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeNativeAuthSession(session: NativeAuthSession | null): void {
+  if (!isNative || typeof window === 'undefined') return;
+  try {
+    if (!session) {
+      localStorage.removeItem(NATIVE_AUTH_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(NATIVE_AUTH_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Ignore storage failures
+  }
+}
+
+export function setNativeAuthSession(accessToken?: string | null, refreshToken?: string | null): void {
+  if (!accessToken || !refreshToken) return;
+  writeNativeAuthSession({ accessToken, refreshToken });
+}
+
+export function clearNativeAuthSession(): void {
+  writeNativeAuthSession(null);
+}
+
 function getBrowserOrigin(): string {
   return typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
 }
@@ -107,6 +152,7 @@ let authDead = false;
 
 async function tryRefreshToken(): Promise<boolean> {
   try {
+    const nativeSession = readNativeAuthSession();
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
@@ -114,8 +160,17 @@ async function tryRefreshToken(): Promise<boolean> {
         'Content-Type': 'application/json',
         ...(isNative ? { 'X-Nala-Native': '1' } : {}),
       },
+      ...(nativeSession?.refreshToken ? { body: JSON.stringify({ refreshToken: nativeSession.refreshToken }) } : {}),
     });
     if (res.ok) {
+      if (isNative) {
+        const data = await res.json().catch(() => ({} as Record<string, unknown>));
+        const accessToken = typeof data.accessToken === 'string' ? data.accessToken : null;
+        const refreshToken = typeof data.refreshToken === 'string' ? data.refreshToken : null;
+        if (accessToken && refreshToken) {
+          setNativeAuthSession(accessToken, refreshToken);
+        }
+      }
       authDead = false;
       return true;
     }
@@ -142,19 +197,24 @@ async function refreshOnce(): Promise<boolean> {
 /** Reset auth-dead flag after successful login */
 export function resetAuthState(): void {
   authDead = false;
+  clearNativeAuthSession();
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const doFetch = () => fetch(url, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true',
-      ...(isNative ? { 'X-Nala-Native': '1' } : {}),
-      ...options?.headers,
-    },
-  });
+  const doFetch = () => {
+    const nativeSession = readNativeAuthSession();
+    return fetch(url, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'Bypass-Tunnel-Reminder': 'true',
+        ...(isNative ? { 'X-Nala-Native': '1' } : {}),
+        ...(nativeSession?.accessToken ? { Authorization: `Bearer ${nativeSession.accessToken}` } : {}),
+        ...options?.headers,
+      },
+    });
+  };
 
   let response = await doFetch();
 
@@ -372,6 +432,8 @@ export interface LoginResponse {
     username: string;
     displayName: string;
   };
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export interface MfaChallengeResponse {
@@ -401,6 +463,8 @@ export async function login(username: string, password: string): Promise<LoginRe
 export interface OAuthLoginResponse {
   user: { id: string; username: string; displayName: string };
   isNewUser: boolean;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export type OAuthLoginResult = OAuthLoginResponse | MfaChallengeResponse;

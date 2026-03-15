@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, ApiError } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, clearNativeAuthSession, ApiError } from '../api';
 import { isNative } from '../utils/platform';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
 import { clearInsightsCache } from '../utils/insights-cache';
@@ -129,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMfaChallenge(null);
     writeCachedUser(null);
     resetAuthState();
+    clearNativeAuthSession();
     clearSessionCaches();
     clearStoredNavigationState();
     if (options?.clearBiometric) {
@@ -206,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // No MFA — login sets httpOnly cookie automatically
     resetAuthState();
+    setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
     setUser(response.user);
     writeCachedUser(response.user);
 
@@ -218,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await apiVerifyMfa(mfaChallenge.challengeToken, code, method);
     setMfaChallenge(null);
     resetAuthState();
+    setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
     setUser(response.user);
     writeCachedUser(response.user);
   }, [mfaChallenge]);
@@ -231,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await apiSignup(username, displayName, password, email, consent, referralCode);
     // Always set user — App.tsx hard gate checks emailVerified === false
     resetAuthState();
+    setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
     setUser(response.user);
     writeCachedUser(response.user);
 
@@ -267,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { isNewUser: false };
     }
     resetAuthState();
+    setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
     setUser(response.user);
     writeCachedUser(response.user);
     promptBiometricEnrollment((response as any).refreshToken);
@@ -288,6 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { isNewUser: false };
     }
     resetAuthState();
+    setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
     setUser(response.user);
     writeCachedUser(response.user);
     promptBiometricEnrollment((response as any).refreshToken);
@@ -360,4 +366,3 @@ export function useAuth() {
   }
   return context;
 }
-
