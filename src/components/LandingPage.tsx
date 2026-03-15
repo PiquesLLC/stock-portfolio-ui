@@ -4,7 +4,6 @@ import { useToast } from '../context/ToastContext';
 import { checkHasPassword, forgotUsername, resetPassword, joinWaitlist } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
-import { NativeDebugOverlay } from './NativeDebugOverlay';
 import { PLANS } from '../data/plans';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
@@ -120,7 +119,6 @@ export function LandingPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
-  const [authDebug, setAuthDebug] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [privacyTab, setPrivacyTab] = useState<'privacy' | 'terms'>('privacy');
@@ -177,47 +175,17 @@ export function LandingPage() {
   }, []);
 
   useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
-  useEffect(() => { setError(''); setAuthDebug(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'forgot-username' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
+  useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'forgot-username' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
   const resetCooldownActive = resetCooldown > 0;
   useEffect(() => { if (!resetCooldownActive) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldownActive]);
-  useEffect(() => {
-    if (!authOpen || authMode !== 'forgot-password') return;
-
-    const handleWindowError = (event: ErrorEvent) => {
-      const detail = event.error instanceof Error
-        ? `${event.error.name}: ${event.error.message}`
-        : event.message || 'unknown window error';
-      setAuthDebug(`window error: ${detail}`);
-      setError(`[window] ${detail}`);
-    };
-
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason instanceof Error
-        ? `${event.reason.name}: ${event.reason.message}`
-        : String(event.reason ?? 'unknown rejection');
-      setAuthDebug(`unhandled rejection: ${reason}`);
-      setError(`[promise] ${reason}`);
-    };
-
-    window.addEventListener('error', handleWindowError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    return () => {
-      window.removeEventListener('error', handleWindowError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, [authMode, authOpen]);
-
   const sendResetCodeDirect = useCallback(async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     const url = `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`;
     const useNativeTransport = isNativeRecoveryShell();
 
     console.log('[sendResetCodeDirect] START native=', useNativeTransport, 'url=', url, 'email=', normalizedEmail);
-    setAuthDebug(`entered sender for ${normalizedEmail}`);
-
     try {
       if (!useNativeTransport) {
-        setAuthDebug('web fetch start');
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -229,14 +197,11 @@ export function LandingPage() {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-        setAuthDebug(`web fetch ok ${response.status}`);
         return { message: 'If this email is registered, a reset code was sent.' };
       }
 
       console.log('[sendResetCodeDirect] calling XHR...');
-      setAuthDebug('native xhr start');
       await xhrPost(url, { email: normalizedEmail });
-      setAuthDebug('native xhr returned 200');
       return { message: 'If this email is registered, a reset code was sent.' };
     } catch (error) {
       const e = error instanceof Error ? error : new Error(String(error));
@@ -260,21 +225,17 @@ export function LandingPage() {
         setAuthMode('login'); setError('');
         return;
       } else if (authMode === 'forgot-password') {
-        setAuthDebug('forgot-password submit entered');
         if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
         try {
           console.log('[forgot-password] email:', resetEmail.trim(), 'url:', `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`, 'nativeShell=', isNativeRecoveryShell());
           await sendResetCodeDirect(resetEmail);
           console.log('[forgot-password] success');
-          setAuthDebug('forgot-password submit success');
           setAuthMode('reset-password'); setError('');
           return;
         } catch (fpErr) {
           const e = fpErr instanceof Error ? fpErr : new Error(String(fpErr));
           console.error('[forgot-password] FAILED:', e.name, e.message, e.stack?.slice(0, 500));
-          setAuthDebug(`forgot-password caught ${e.name}: ${e.message}`);
-          // Re-throw with diagnostic info so we can see it in the UI
-          throw new Error(`[forgot-pw] ${e.name}: ${e.message}`);
+          throw new Error('Unable to send reset code');
         }
       } else if (authMode === 'reset-password') {
         if (resetCode.length !== 6) { setError('Please enter the 6-digit reset code'); return; }
@@ -742,11 +703,6 @@ export function LandingPage() {
               <>
                 <h2 className="text-base font-semibold text-white/90 mb-5">{authMode === 'waitlist' ? 'Join the Waitlist' : authMode === 'signup' ? 'Create Account' : authMode === 'forgot-username' ? 'Recover Username' : authMode === 'forgot-password' ? 'Reset Password' : authMode === 'reset-password' ? 'Enter Reset Code' : 'Welcome Back'}</h2>
                 {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-start gap-2" role="alert"><svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg><span>{error}</span></div>}
-                {authMode === 'forgot-password' && authDebug && (
-                  <div className="mb-4 p-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[11px] text-white/50 break-words">
-                    Debug: {authDebug}
-                  </div>
-                )}
                 <form onSubmit={handleSubmit} noValidate><div className="space-y-4">
                   {authMode === 'waitlist' ? (waitlistSuccess ? (
                     <div className="text-center py-4">
@@ -824,7 +780,6 @@ export function LandingPage() {
         </div>
       )}
       <PrivacyPolicyModal isOpen={showPrivacyPolicy} onClose={() => setShowPrivacyPolicy(false)} initialTab={privacyTab} />
-      <NativeDebugOverlay />
     </div>
   );
 }
