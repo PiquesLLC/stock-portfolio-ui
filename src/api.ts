@@ -506,13 +506,63 @@ export function isMfaChallenge(result: LoginResult): result is MfaChallengeRespo
   return 'mfaRequired' in result && result.mfaRequired === true;
 }
 
+async function hydrateNativeAuthTokens<T extends { accessToken?: string; refreshToken?: string }>(response: T): Promise<T> {
+  if (!isNativePlatform()) return response;
+  if (typeof response.accessToken === 'string' && response.accessToken.length > 0) return response;
+  if (typeof response.refreshToken !== 'string' || response.refreshToken.length === 0) return response;
+
+  nativeLog('AUTH', 'native auth response missing accessToken — hydrating via refresh', {
+    hasAccessToken: !!response.accessToken,
+    hasRefreshToken: !!response.refreshToken,
+    refreshTokenLen: response.refreshToken.length,
+  });
+
+  try {
+    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Nala-Native': '1',
+      },
+      body: JSON.stringify({ refreshToken: response.refreshToken }),
+    });
+
+    nativeLog('AUTH', 'native auth hydration refresh response', { status: refreshResponse.status });
+
+    if (!refreshResponse.ok) {
+      const errorBody = await refreshResponse.json().catch(() => ({}));
+      nativeLog('AUTH', 'native auth hydration refresh failed', errorBody);
+      return response;
+    }
+
+    const hydrated = await refreshResponse.json().catch(() => ({} as Record<string, unknown>));
+    const accessToken = typeof hydrated.accessToken === 'string' ? hydrated.accessToken : undefined;
+    const refreshToken = typeof hydrated.refreshToken === 'string' ? hydrated.refreshToken : response.refreshToken;
+
+    nativeLog('AUTH', 'native auth hydration tokens', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+    });
+
+    if (!accessToken) return response;
+    return { ...response, accessToken, refreshToken };
+  } catch (error) {
+    nativeLog('AUTH', 'native auth hydration threw', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return response;
+  }
+}
+
 export async function login(username: string, password: string): Promise<LoginResult> {
   // Login sets httpOnly cookie automatically - no token in response body
   // May return MFA challenge instead if user has MFA enabled
-  return fetchJson<LoginResult>(`${API_BASE_URL}/auth/login`, {
+  const response = await fetchJson<LoginResult>(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     body: JSON.stringify({ username, password }),
   });
+  return isMfaChallenge(response) ? response : hydrateNativeAuthTokens(response);
 }
 
 // ─── OAuth API ───────────────────────────────────────────
@@ -527,10 +577,11 @@ export interface OAuthLoginResponse {
 export type OAuthLoginResult = OAuthLoginResponse | MfaChallengeResponse;
 
 export async function oauthGoogleLogin(accessToken: string): Promise<OAuthLoginResult> {
-  return fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/google/callback`, {
+  const response = await fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/google/callback`, {
     method: 'POST',
     body: JSON.stringify({ access_token: accessToken }),
   });
+  return isMfaChallenge(response) ? response : hydrateNativeAuthTokens(response);
 }
 
 export async function oauthAppleLogin(
@@ -538,10 +589,11 @@ export async function oauthAppleLogin(
   user?: { firstName?: string; lastName?: string },
   nonce?: string,
 ): Promise<OAuthLoginResult> {
-  return fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/apple/callback`, {
+  const response = await fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/apple/callback`, {
     method: 'POST',
     body: JSON.stringify({ id_token: idToken, user, ...(nonce ? { nonce } : {}) }),
   });
+  return isMfaChallenge(response) ? response : hydrateNativeAuthTokens(response);
 }
 
 // ─── MFA API ─────────────────────────────────────────────
@@ -558,10 +610,11 @@ export async function getMfaStatus(): Promise<MfaStatus> {
 }
 
 export async function verifyMfa(challengeToken: string, code: string, method: 'totp' | 'email' | 'backup'): Promise<LoginResponse> {
-  return fetchJson<LoginResponse>(`${API_BASE_URL}/auth/mfa/verify`, {
+  const response = await fetchJson<LoginResponse>(`${API_BASE_URL}/auth/mfa/verify`, {
     method: 'POST',
     body: JSON.stringify({ challengeToken, code, method }),
   });
+  return hydrateNativeAuthTokens(response);
 }
 
 export async function sendMfaEmailOtp(challengeToken: string): Promise<{ sent: boolean }> {
@@ -661,7 +714,7 @@ export async function signup(
   consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean },
   referralCode?: string
 ): Promise<SignupResponse> {
-  return fetchJson<SignupResponse>(`${API_BASE_URL}/auth/signup`, {
+  const response = await fetchJson<SignupResponse>(`${API_BASE_URL}/auth/signup`, {
     method: 'POST',
     body: JSON.stringify({
       username,
@@ -673,6 +726,7 @@ export async function signup(
       ...(referralCode ? { referralCode } : {}),
     }),
   });
+  return hydrateNativeAuthTokens(response);
 }
 
 export interface ReferralStats {
