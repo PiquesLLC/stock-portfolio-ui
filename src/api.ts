@@ -228,7 +228,10 @@ async function tryRefreshToken(): Promise<boolean> {
     if (res.ok) {
       if (nativeRuntime) {
         const data = await res.json().catch(() => ({} as Record<string, unknown>));
-        const accessToken = typeof data.accessToken === 'string' ? data.accessToken : null;
+        const accessToken =
+          typeof data.accessToken === 'string'
+            ? data.accessToken
+            : (typeof data.token === 'string' ? data.token : null);
         const refreshToken = typeof data.refreshToken === 'string' ? data.refreshToken : null;
         nativeLog('REFRESH', 'tokens in response', { hasAccess: !!accessToken, hasRefresh: !!refreshToken });
         if (accessToken && refreshToken) {
@@ -567,7 +570,10 @@ async function hydrateNativeAuthTokens<T extends { accessToken?: string; refresh
     }
 
     const hydrated = await refreshResponse.json().catch(() => ({} as Record<string, unknown>));
-    const accessToken = typeof hydrated.accessToken === 'string' ? hydrated.accessToken : undefined;
+    const accessToken =
+      typeof hydrated.accessToken === 'string'
+        ? hydrated.accessToken
+        : (typeof hydrated.token === 'string' ? hydrated.token : undefined);
     const refreshToken = typeof hydrated.refreshToken === 'string' ? hydrated.refreshToken : response.refreshToken;
 
     nativeLog('AUTH', 'native auth hydration tokens', {
