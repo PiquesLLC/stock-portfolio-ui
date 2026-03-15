@@ -98,9 +98,23 @@ nativeLog('INIT', 'api.ts loaded', {
 });
 
 type NativeAuthSession = {
-  accessToken: string;
+  accessToken?: string;
   refreshToken: string;
 };
+
+function readStoredNativeRefreshToken(): string | null {
+  if (!isNativePlatform() || typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(NATIVE_AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<NativeAuthSession>;
+    return typeof parsed.refreshToken === 'string' && parsed.refreshToken.length > 0
+      ? parsed.refreshToken
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 function readNativeAuthSession(): NativeAuthSession | null {
   if (!isNativePlatform() || typeof window === 'undefined') return null;
@@ -108,9 +122,9 @@ function readNativeAuthSession(): NativeAuthSession | null {
     const raw = localStorage.getItem(NATIVE_AUTH_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<NativeAuthSession>;
-    if (!parsed.accessToken || !parsed.refreshToken) return null;
+    if (!parsed.refreshToken) return null;
     return {
-      accessToken: parsed.accessToken,
+      ...(parsed.accessToken ? { accessToken: parsed.accessToken } : {}),
       refreshToken: parsed.refreshToken,
     };
   } catch {
@@ -156,6 +170,20 @@ export function hasNativeAuthSession(): boolean {
   return readNativeAuthSession() !== null;
 }
 
+export function hasNativeRefreshSession(): boolean {
+  return readStoredNativeRefreshToken() !== null;
+}
+
+export function setNativeRefreshSession(refreshToken?: string | null): void {
+  if (!isNativePlatform() || typeof window === 'undefined') return;
+  if (!refreshToken) return;
+  nativeLog('AUTH', 'setNativeRefreshSession fallback', {
+    hasRefreshToken: true,
+    refreshTokenLen: refreshToken.length,
+  });
+  writeNativeAuthSession({ refreshToken });
+}
+
 function getBrowserOrigin(): string {
   return typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
 }
@@ -181,10 +209,11 @@ async function tryRefreshToken(): Promise<boolean> {
   try {
     const nativeSession = readNativeAuthSession();
     const nativeRuntime = isNativePlatform();
+    const refreshToken = nativeSession?.refreshToken ?? readStoredNativeRefreshToken();
     nativeLog('REFRESH', 'tryRefreshToken', {
       nativeRuntime,
-      hasRefreshToken: !!nativeSession?.refreshToken,
-      refreshTokenLen: nativeSession?.refreshToken?.length ?? 0,
+      hasRefreshToken: !!refreshToken,
+      refreshTokenLen: refreshToken?.length ?? 0,
     });
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
@@ -193,7 +222,7 @@ async function tryRefreshToken(): Promise<boolean> {
         'Content-Type': 'application/json',
         ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
       },
-      ...(nativeSession?.refreshToken ? { body: JSON.stringify({ refreshToken: nativeSession.refreshToken }) } : {}),
+      ...(refreshToken ? { body: JSON.stringify({ refreshToken }) } : {}),
     });
     nativeLog('REFRESH', `← ${res.status}`);
     if (res.ok) {
@@ -245,11 +274,12 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const doFetch = () => {
     const nativeSession = readNativeAuthSession();
     const nativeRuntime = isNativePlatform();
+    const refreshToken = nativeSession?.refreshToken ?? readStoredNativeRefreshToken();
     const hasBearer = !!nativeSession?.accessToken;
     nativeLog('FETCH', `→ ${options?.method || 'GET'} ${shortUrl}`, {
       nativeRuntime,
       hasBearer,
-      hasNativeSession: !!nativeSession,
+      hasNativeSession: !!refreshToken,
       authDead,
     });
     return fetch(url, {

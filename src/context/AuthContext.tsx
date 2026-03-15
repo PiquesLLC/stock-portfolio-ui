@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, clearNativeAuthSession, hasNativeAuthSession, ApiError } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, setNativeRefreshSession, clearNativeAuthSession, hasNativeRefreshSession, ApiError } from '../api';
 import { isNativePlatform } from '../utils/platform';
 import { nativeLog } from '../utils/nativeDebug';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (DEV_USER) return DEV_USER;
     const cached = readCachedUser();
     // On native, cached user is useless without tokens — cookies don't work cross-origin
-    if (cached && isNativePlatform() && !hasNativeAuthSession()) {
+    if (cached && isNativePlatform() && !hasNativeRefreshSession()) {
       nativeLog('AUTH', 'clearing cached user — no native session on boot');
       writeCachedUser(null);
       return null;
@@ -239,6 +239,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshTokenLen: ((response as any).refreshToken || '').length,
     });
     setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
+    if (!(response as any).accessToken && (response as any).refreshToken) {
+      setNativeRefreshSession((response as any).refreshToken);
+    }
     setUser(response.user);
     writeCachedUser(response.user);
     nativeLog('LOGIN', 'login complete — user set', { userId: response.user.id, username: response.user.username });
@@ -253,6 +256,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMfaChallenge(null);
     resetAuthState();
     setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
+    if (!(response as any).accessToken && (response as any).refreshToken) {
+      setNativeRefreshSession((response as any).refreshToken);
+    }
     setUser(response.user);
     writeCachedUser(response.user);
   }, [mfaChallenge]);
@@ -267,6 +273,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Always set user — App.tsx hard gate checks emailVerified === false
     resetAuthState();
     setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
+    if (!(response as any).accessToken && (response as any).refreshToken) {
+      setNativeRefreshSession((response as any).refreshToken);
+    }
     setUser(response.user);
     writeCachedUser(response.user);
 
@@ -304,6 +313,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     resetAuthState();
     setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
+    if (!(response as any).accessToken && (response as any).refreshToken) {
+      setNativeRefreshSession((response as any).refreshToken);
+    }
     setUser(response.user);
     writeCachedUser(response.user);
     promptBiometricEnrollment((response as any).refreshToken);
@@ -326,6 +338,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     resetAuthState();
     setNativeAuthSession((response as any).accessToken, (response as any).refreshToken);
+    if (!(response as any).accessToken && (response as any).refreshToken) {
+      setNativeRefreshSession((response as any).refreshToken);
+    }
     setUser(response.user);
     writeCachedUser(response.user);
     promptBiometricEnrollment((response as any).refreshToken);
