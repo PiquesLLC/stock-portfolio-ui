@@ -1681,6 +1681,7 @@ export interface PortfolioBriefingResponse {
   sections: BriefingSection[];
   holdingCount: number;
   cached: boolean;
+  holdingReturns?: Record<string, number>;
 }
 
 export async function getPortfolioBriefing(portfolioId?: string, period?: string): Promise<PortfolioBriefingResponse> {

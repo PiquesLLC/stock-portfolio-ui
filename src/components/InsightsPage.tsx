@@ -374,7 +374,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
           featureName="AI Portfolio Briefing"
           description="Weekly AI-generated briefing analyzing your portfolio's performance, market conditions, and actionable insights tailored to your holdings."
         >
-          <PortfolioBriefing portfolioId={portfolioId} onTickerClick={onTickerClick} />
+          <PortfolioBriefing portfolioId={portfolioId} onTickerClick={onTickerClick} holdings={holdings} currentValue={currentValue} />
         </PremiumOverlay>
       </div>
     );

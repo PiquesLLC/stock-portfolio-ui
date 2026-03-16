@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { getPortfolioBriefing, PortfolioBriefingResponse } from '../api';
+import { Holding } from '../types';
 import { timeAgo } from '../utils/format';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
 
@@ -49,9 +50,11 @@ function renderBodyWithTickers(body: string, onTickerClick?: (ticker: string) =>
 interface Props {
   portfolioId?: string;
   onTickerClick?: (ticker: string) => void;
+  holdings?: Holding[];
+  currentValue?: number;
 }
 
-export default function PortfolioBriefing({ portfolioId, onTickerClick }: Props) {
+export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings = [] }: Props) {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -181,13 +184,13 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick }: Props)
             </button>
           </div>
           <h2 className="text-lg font-bold text-rh-light-text dark:text-white leading-snug">
-            {briefing.headline}
+            {briefing.sections.length > 0
+              ? briefing.sections[0].takeaway || briefing.headline
+              : briefing.headline}
           </h2>
-          {generatedAgo && (
-            <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 mt-1">
-              {generatedAgo}
-            </p>
-          )}
+          <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 mt-1">
+            {holdings.length} positions · {generatedAgo || 'just now'}
+          </p>
         </div>
       </div>
 
@@ -207,6 +210,95 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick }: Props)
           </button>
         ))}
       </div>
+
+      {/* Visual data cards */}
+      {holdings.length > 0 && (() => {
+        const totalValue = holdings.reduce((s, h) => s + (h.currentValue ?? 0), 0) || 1;
+        const sorted = [...holdings].sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0));
+
+        // Use period-specific returns from API when available, fallback to profitLossPercent
+        const returns = briefing?.holdingReturns ?? {};
+        const getReturn = (h: Holding) => returns[h.ticker] ?? h.profitLossPercent ?? 0;
+
+        const byReturn = [...holdings].sort((a, b) => getReturn(b) - getReturn(a));
+        const topGainers = byReturn.filter(h => getReturn(h) > 0).slice(0, 5);
+        const topLosers = byReturn.filter(h => getReturn(h) < 0).reverse().slice(0, 5);
+        const maxAbsReturn = Math.max(...holdings.map(h => Math.abs(getReturn(h))), 1);
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {/* Portfolio composition heatmap — proper grid */}
+            <div className="md:col-span-2 bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] p-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35 mb-3">Portfolio Composition</h3>
+              <div className="flex flex-wrap gap-1">
+                {sorted.slice(0, 20).map(h => {
+                  const weight = ((h.currentValue ?? 0) / totalValue);
+                  const pct = getReturn(h);
+                  const intensity = Math.min(Math.abs(pct) / 30, 1);
+                  const bg = pct >= 0
+                    ? `rgba(0,200,5,${0.15 + intensity * 0.45})`
+                    : `rgba(255,59,48,${0.15 + intensity * 0.45})`;
+                  // Scale size by weight: min 36px, max 90px
+                  const size = Math.max(36, Math.min(90, weight * 500));
+                  return (
+                    <div
+                      key={h.ticker}
+                      className="rounded-lg flex flex-col items-center justify-center cursor-pointer hover:ring-1 hover:ring-white/30 transition-all"
+                      style={{ backgroundColor: bg, width: `${size}px`, height: `${size}px` }}
+                      onClick={() => onTickerClick?.(h.ticker)}
+                    >
+                      <span className={`font-bold text-white leading-none ${size > 50 ? 'text-[11px]' : 'text-[9px]'}`}>{h.ticker}</span>
+                      <span className={`font-medium text-white/70 leading-none mt-0.5 ${size > 50 ? 'text-[9px]' : 'text-[7px]'}`}>{(weight * 100).toFixed(0)}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Best performers */}
+            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] p-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-green/60 mb-3">Best Performers</h3>
+              <div className="space-y-2">
+                {topGainers.map(h => {
+                  const ret = getReturn(h);
+                  const barW = (ret / maxAbsReturn) * 100;
+                  return (
+                    <div key={h.ticker} className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold text-rh-light-text dark:text-white/70 w-12 shrink-0 cursor-pointer hover:text-rh-green transition-colors" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</span>
+                      <div className="flex-1 h-5 bg-gray-100/20 dark:bg-white/[0.03] rounded overflow-hidden">
+                        <div className="h-full bg-rh-green/40 rounded" style={{ width: `${Math.max(barW, 4)}%` }} />
+                      </div>
+                      <span className="text-[11px] font-medium text-rh-green tabular-nums shrink-0 w-16 text-right">+{ret.toFixed(1)}%</span>
+                    </div>
+                  );
+                })}
+                {topGainers.length === 0 && <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">No gainers</p>}
+              </div>
+            </div>
+
+            {/* Worst performers */}
+            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] p-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-red/60 mb-3">Worst Performers</h3>
+              <div className="space-y-2">
+                {topLosers.map(h => {
+                  const ret = getReturn(h);
+                  const barW = (Math.abs(ret) / maxAbsReturn) * 100;
+                  return (
+                    <div key={h.ticker} className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold text-rh-light-text dark:text-white/70 w-12 shrink-0 cursor-pointer hover:text-rh-red transition-colors" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</span>
+                      <div className="flex-1 h-5 bg-gray-100/20 dark:bg-white/[0.03] rounded overflow-hidden">
+                        <div className="h-full bg-rh-red/40 rounded" style={{ width: `${Math.max(barW, 4)}%` }} />
+                      </div>
+                      <span className="text-[11px] font-medium text-rh-red tabular-nums shrink-0 w-16 text-right">{ret.toFixed(1)}%</span>
+                    </div>
+                  );
+                })}
+                {topLosers.length === 0 && <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">No losers</p>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Section Cards — 2x2 grid on desktop */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
