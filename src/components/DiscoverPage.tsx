@@ -1616,6 +1616,91 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
   );
 }
 
+/* ─── Heatmap Loader ─── */
+
+const HEATMAP_STEPS = [
+  'Fetching market data',
+  'Processing 500+ stocks',
+  'Calculating sector performance',
+  'Rendering heatmap',
+];
+
+function HeatmapLoader() {
+  const [activeStep, setActiveStep] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const fullText = HEATMAP_STEPS[activeStep] || '';
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep(prev => (prev < HEATMAP_STEPS.length - 1 ? prev + 1 : prev));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setTypedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      if (i <= fullText.length) setTypedText(fullText.slice(0, i));
+      else clearInterval(interval);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [activeStep, fullText]);
+
+  return (
+    <div className="flex items-center justify-center py-16">
+      <div className="w-full max-w-sm bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+        {/* Header with sparkle icon */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-xl bg-rh-green/10 border border-rh-green/20 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-rh-light-text dark:text-white">Building Market Heatmap</p>
+            <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25">Powered by NALA</p>
+          </div>
+        </div>
+
+        {/* Steps */}
+        <div className="space-y-2.5">
+          {HEATMAP_STEPS.map((step, i) => {
+            const isActive = i === activeStep;
+            const isDone = i < activeStep;
+            return (
+              <div key={i} className={`flex items-center gap-2.5 transition-all duration-500 ${isActive ? 'opacity-100' : isDone ? 'opacity-40' : 'opacity-15'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-500 ${
+                  isDone ? 'bg-rh-green/20 text-rh-green' : isActive ? 'bg-rh-green text-black' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-white/30'
+                }`}>
+                  {isDone ? (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (i + 1)}
+                </div>
+                <span className={`text-[12px] transition-all duration-500 ${isActive ? 'text-rh-light-text dark:text-white font-medium' : isDone ? 'text-rh-light-muted dark:text-white/50' : 'text-rh-light-muted/50 dark:text-white/30'}`}>
+                  {isActive ? typedText : step}
+                  {isActive && <span className="inline-block w-[2px] h-[12px] bg-rh-green ml-0.5 align-middle animate-pulse" />}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-4 h-1 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-rh-green/60 to-rh-green rounded-full transition-all duration-[3000ms] ease-linear"
+            style={{ width: `${Math.min(95, ((activeStep + 1) / HEATMAP_STEPS.length) * 100)}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Heatmap View (original DiscoverPage content) ─── */
 
 function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
@@ -1691,11 +1776,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
   }, [data]);
 
   if (loading && !data) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <img src="/north-signal-logo-transparent.png" alt="" className="h-10 w-10 animate-spin" />
-      </div>
-    );
+    return <HeatmapLoader />;
   }
 
   if (error && !data) {
