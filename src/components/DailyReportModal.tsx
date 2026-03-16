@@ -706,10 +706,10 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   return (
     <div className="fixed inset-0 z-50 bg-black overflow-y-auto"
       role="dialog" aria-modal="true"
-      style={{ paddingTop: 'env(safe-area-inset-top)', display: hidden ? 'none' : undefined, WebkitOverflowScrolling: 'touch' }}
+      style={{ display: hidden ? 'none' : undefined, WebkitOverflowScrolling: 'touch' }}
     >
-      {/* Sticky top bar */}
-      <div className="sticky z-20 flex items-center justify-between px-6 py-3 bg-black border-b border-white/[0.06]" style={{ top: 0 }}>
+      {/* Sticky top bar — safe-area padding lives here so content never leaks above */}
+      <div className="sticky z-20 flex items-center justify-between px-6 py-3 bg-black border-b border-white/[0.06]" style={{ top: 0, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
         <button onClick={onClose} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back
