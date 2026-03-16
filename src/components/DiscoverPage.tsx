@@ -1823,11 +1823,19 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
     if (cached) {
       setAllStocks(cached.data.sectors.flatMap(s => s.stocks));
     }
-    // Also fetch fresh data
+    // Fetch fresh SP500 data + pre-warm Nasdaq/Dow caches so index switching is instant
     getMarketHeatmap('1D', 'SP500').then(resp => {
       setAllStocks(resp.sectors.flatMap(s => s.stocks));
       heatmapCache.set(cacheKey('1D', 'SP500'), { data: resp, ts: Date.now() });
     }).catch(e => console.error('Top 100 heatmap fetch failed:', e));
+    // Pre-warm other indices in background
+    for (const idx of ['NASDAQ100', 'DOW30'] as const) {
+      if (!heatmapCache.has(cacheKey('1D', idx))) {
+        getMarketHeatmap('1D', idx).then(resp => {
+          heatmapCache.set(cacheKey('1D', idx), { data: resp, ts: Date.now() });
+        }).catch(() => {});
+      }
+    }
 
     // Refresh every hour
     const interval = setInterval(() => {

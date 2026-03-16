@@ -9,7 +9,6 @@ const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
   { id: '1W', label: '1W' },
   { id: '1M', label: '1M' },
   { id: 'YTD', label: 'YTD' },
-  { id: '1Y', label: '1Y' },
 ];
 
 const REGIONS: { id: LeaderboardRegion; label: string }[] = [

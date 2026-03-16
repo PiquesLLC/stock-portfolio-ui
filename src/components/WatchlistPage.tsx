@@ -797,7 +797,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
   // ─── List View ──────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mt-1">
+      <div className="flex items-center justify-between mt-2">
         <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Watchlists</h1>
         <button
           onClick={() => setShowCreate(true)}
