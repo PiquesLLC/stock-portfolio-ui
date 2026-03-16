@@ -1114,14 +1114,14 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
       {/* Header + segmented control — sticky below nav */}
       <div className="space-y-0 sticky top-[90px] sm:top-[52px] z-20 pb-3 bg-rh-light-bg dark:bg-[#050505]">
       {/* Header row */}
-      <div className="px-1 py-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
+      <div className="px-1 py-2 space-y-1">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text shrink-0">
             Top 100 <span className={`text-sm font-medium ${filter === 'losers' ? 'text-rh-red' : filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-light-muted dark:text-rh-muted'}`}>
               {filter === 'mostFollowed' ? 'by Following' : filter === 'gainers' || filter === 'losers' ? 'by Percentage' : 'by Volume'}
             </span>
           </h2>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <span className="text-[10px] uppercase tracking-wider font-semibold text-rh-light-muted dark:text-rh-muted">
               Vol <span className="text-rh-light-text dark:text-rh-text font-bold">{formatVolume(totalVol)}</span>
             </span>
@@ -1135,9 +1135,8 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
             )}
           </div>
         </div>
-
-        {/* Right: per-stock sparkline */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Per-stock sparkline preview */}
+        <div className="flex items-center gap-2">
           {heroStock && heroSparkline ? (
             <>
               <div className="flex items-center gap-1.5">
@@ -1190,10 +1189,10 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
               style={{
                 flex: '1 0 auto',
                 gap: 6,
-                padding: '0 12px',
+                padding: '0 10px',
                 height: 24,
                 borderRadius: 8,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 600,
                 fontVariantNumeric: 'tabular-nums',
                 cursor: 'pointer',
@@ -1241,16 +1240,16 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
       </div>
       </div>
 
-      {/* Column header */}
+      {/* Column header — matches row: rank(w-7) + gap-3 + logo(w-8) + gap-3 + flex-1 ... */}
       <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06] bg-rh-light-bg dark:bg-[#050505]">
         <div className="w-7 shrink-0" />
         <div className="w-8 shrink-0" />
-        <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Symbol</div>
-        <div className="text-right shrink-0 w-[72px] text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Price</div>
-        <div className="text-center shrink-0 w-[68px] text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Day</div>
-        <div className="text-center shrink-0 w-[68px] hidden sm:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>7D</div>
-        <div className="text-right shrink-0 w-[88px] hidden md:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>{filter === 'mostFollowed' ? 'Followers' : 'Volume'}</div>
-        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-bold uppercase text-gray-500 dark:text-[rgba(255,255,255,0.55)]" style={{ letterSpacing: '0.08em' }}>Mkt Cap</div>
+        <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Symbol</div>
+        <div className="text-right shrink-0 w-[72px] text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Price</div>
+        <div className="text-center shrink-0 w-[68px] text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Day</div>
+        <div className="text-center shrink-0 w-[68px] hidden sm:block text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>7D</div>
+        <div className="text-right shrink-0 w-[88px] hidden md:block text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>{filter === 'mostFollowed' ? 'Followers' : 'Volume'}</div>
+        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Mkt Cap</div>
       </div>
       </div>
 
@@ -1462,52 +1461,52 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
 
   return (
     <div className="space-y-3">
-      {/* Filter bar */}
-      <div className="flex flex-wrap gap-1.5">
-        {/* Sector dropdown */}
-        <select
-          value={sectorFilter}
-          onChange={e => setSectorFilter(e.target.value)}
-          className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-[#1a1a1e] text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E")` }}
-        >
-          <option value="all" className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">All Sectors</option>
-          {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">{s}</option>)}
-        </select>
-
-        {/* Cap range pills */}
-        {CAP_RANGES.map(c => (
-          <button key={c.id} onClick={() => setCapFilter(capFilter === c.id ? 'all' : c.id)} className={pillClass(capFilter === c.id && c.id !== 'all')}>
-            {c.label}
-          </button>
-        ))}
-
-        <div className="w-px bg-gray-200 dark:bg-white/10 mx-1 self-stretch" />
-
-        {/* PE pills */}
-        {PE_RANGES.map(p => (
-          <button key={p.id} onClick={() => setPeFilter(peFilter === p.id ? 'all' : p.id)} className={pillClass(peFilter === p.id && p.id !== 'all')}>
-            {p.label}
-          </button>
-        ))}
-
-        <div className="w-px bg-gray-200 dark:bg-white/10 mx-1 self-stretch" />
-
-        {/* Dividend pills */}
-        {DIV_RANGES.map(d => (
-          <button key={d.id} onClick={() => setDivFilter(divFilter === d.id ? 'all' : d.id)} className={pillClass(divFilter === d.id && d.id !== 'all')}>
-            {d.label}
-          </button>
-        ))}
-
-        <div className="w-px bg-gray-200 dark:bg-white/10 mx-1 self-stretch" />
-
-        {/* 52-week pills */}
-        {WEEK_RANGES.map(w => (
-          <button key={w.id} onClick={() => setWeekFilter(weekFilter === w.id ? 'all' : w.id)} className={pillClass(weekFilter === w.id && w.id !== 'all')}>
-            {w.label}
-          </button>
-        ))}
+      {/* Filter bar — grouped by category */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">Sector</span>
+          <select
+            value={sectorFilter}
+            onChange={e => setSectorFilter(e.target.value)}
+            className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-[#1a1a1e] text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E")` }}
+          >
+            <option value="all" className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">All Sectors</option>
+            {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">{s}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">Cap</span>
+          {CAP_RANGES.map(c => (
+            <button key={c.id} onClick={() => setCapFilter(capFilter === c.id ? 'all' : c.id)} className={pillClass(capFilter === c.id && c.id !== 'all')}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">P/E</span>
+          {PE_RANGES.map(p => (
+            <button key={p.id} onClick={() => setPeFilter(peFilter === p.id ? 'all' : p.id)} className={pillClass(peFilter === p.id && p.id !== 'all')}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">Div</span>
+          {DIV_RANGES.map(d => (
+            <button key={d.id} onClick={() => setDivFilter(divFilter === d.id ? 'all' : d.id)} className={pillClass(divFilter === d.id && d.id !== 'all')}>
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">52W</span>
+          {WEEK_RANGES.map(w => (
+            <button key={w.id} onClick={() => setWeekFilter(weekFilter === w.id ? 'all' : w.id)} className={pillClass(weekFilter === w.id && w.id !== 'all')}>
+              {w.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Results count */}
