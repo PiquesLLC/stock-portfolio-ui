@@ -1,116 +1,114 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { getPortfolioBriefing, explainBriefingSection, PortfolioBriefingResponse, BriefingExplainResponse } from '../api';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { getPortfolioBriefing, PortfolioBriefingResponse } from '../api';
 import { timeAgo } from '../utils/format';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
 
-function getSourceHostname(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return 'source';
+type BriefingPeriod = 'daily' | 'weekly' | 'monthly' | 'ytd' | '1y';
+const PERIODS: { id: BriefingPeriod; label: string }[] = [
+  { id: 'daily', label: 'Daily' },
+  { id: 'weekly', label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+  { id: 'ytd', label: 'YTD' },
+  { id: '1y', label: '1Y' },
+];
+
+function getSentimentPill(sentiment?: string, title?: string) {
+  // Use contextual labels based on section title
+  const lower = (title || '').toLowerCase();
+  if (lower.includes('concentration')) {
+    if (sentiment === 'negative') return { label: 'High', cls: 'bg-amber-500/15 text-amber-500' };
+    return { label: 'OK', cls: 'bg-rh-green/15 text-rh-green' };
   }
-}
-
-function getSentimentEmoji(_verdict?: string, sections?: PortfolioBriefingResponse['sections']): string {
-  if (!sections || sections.length === 0) return '📊';
-  const pos = sections.filter(s => s.sentiment === 'positive').length;
-  const neg = sections.filter(s => s.sentiment === 'negative').length;
-  if (pos > neg + 1) return '🚀';
-  if (pos > neg) return '📈';
-  if (neg > pos + 1) return '⚠️';
-  if (neg > pos) return '📉';
-  return '⚖️';
-}
-
-function getSentimentPill(sentiment?: string) {
   if (sentiment === 'positive') return { label: 'Tailwind', cls: 'bg-rh-green/15 text-rh-green' };
   if (sentiment === 'negative') return { label: 'Headwind', cls: 'bg-rh-red/15 text-rh-red' };
   return { label: 'Neutral', cls: 'bg-gray-200/80 dark:bg-white/[0.08] text-rh-light-muted dark:text-white/50' };
 }
 
-// Extract numbers/percentages from text for highlighting
-function extractHighlights(text: string): string[] {
-  const matches = text.match(/[-+]?\d+\.?\d*%|[-+]?\$[\d,]+\.?\d*|\$[\d,]+\.?\d*/g);
-  return matches ? [...new Set(matches)].slice(0, 3) : [];
+// Make ticker symbols in text clickable
+function renderBodyWithTickers(body: string, onTickerClick?: (ticker: string) => void): React.ReactNode {
+  if (!onTickerClick) return body;
+  // Match uppercase ticker-like words (2-5 chars, not common words)
+  const COMMON = new Set(['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'YOUR', 'WAS', 'ONE', 'OUR', 'OUT', 'HAS', 'HER', 'WAS', 'TWO', 'HOW', 'ITS', 'MAY', 'HAD']);
+  const parts = body.split(/\b([A-Z]{2,5})\b/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1 && !COMMON.has(part) && /^[A-Z]{2,5}$/.test(part)) {
+      return (
+        <span
+          key={i}
+          className="text-rh-green cursor-pointer hover:underline"
+          onClick={(e) => { e.stopPropagation(); onTickerClick(part); }}
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
 }
 
-export default function PortfolioBriefing({ portfolioId }: { portfolioId?: string }) {
+interface Props {
+  portfolioId?: string;
+  onTickerClick?: (ticker: string) => void;
+}
+
+export default function PortfolioBriefing({ portfolioId, onTickerClick }: Props) {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-  const [explanations, setExplanations] = useState<Record<number, BriefingExplainResponse>>({});
-  const [loadingIdxs, setLoadingIdxs] = useState<Set<number>>(new Set());
-  const prefetchedRef = useRef(false);
+  const [period, setPeriod] = useState<BriefingPeriod>('daily');
   const currentPortfolioIdRef = useRef(portfolioId);
   currentPortfolioIdRef.current = portfolioId;
+  const periodRef = useRef(period);
+  periodRef.current = period;
 
   const fetchBriefing = async () => {
-    const fetchPortfolioId = portfolioId; // capture at call time
+    const fetchPortfolioId = portfolioId;
+    const fetchPeriod = periodRef.current;
     setLoading(true);
     setError(null);
-    prefetchedRef.current = false;
     try {
-      const data = await getPortfolioBriefing(portfolioId);
-      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
+      const data = await getPortfolioBriefing(fetchPortfolioId, fetchPeriod);
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return;
+      if (fetchPeriod !== periodRef.current) return; // period changed during fetch
       setBriefing(data);
     } catch (err: any) {
-      if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return;
       setError(err.message || 'Failed to load briefing');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchBriefing(); }, [portfolioId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchBriefing(); }, [portfolioId, period]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const prefetchAll = useCallback((sections: PortfolioBriefingResponse['sections']) => {
-    sections.forEach((section, idx) => {
-      setLoadingIdxs((prev) => new Set(prev).add(idx));
-      explainBriefingSection(section.title, section.body)
-        .then((result) => {
-          setExplanations((prev) => ({ ...prev, [idx]: result }));
-        })
-        .catch(() => {
-          setExplanations((prev) => ({ ...prev, [idx]: { explanation: 'Unable to load detailed explanation at this time.', citations: [], cached: false } }));
-        })
-        .finally(() => {
-          setLoadingIdxs((prev) => { const next = new Set(prev); next.delete(idx); return next; });
-        });
-    });
-  }, []);
-
-  useEffect(() => {
-    if (briefing && briefing.sections.length > 0 && !prefetchedRef.current) {
-      prefetchedRef.current = true;
-      prefetchAll(briefing.sections);
-    }
-  }, [briefing, prefetchAll]);
-
-  const handleSectionClick = (idx: number) => {
-    setExpandedIdx(expandedIdx === idx ? null : idx);
-  };
+  // Filter out "portfolio overview" section since hero covers it
+  const sections = useMemo(() => {
+    if (!briefing) return [];
+    return briefing.sections.filter(s =>
+      !s.title.toLowerCase().includes('portfolio overview')
+    );
+  }, [briefing]);
 
   if (loading && !briefing) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 animate-pulse">
-          <div className="h-10 bg-gray-100/60 dark:bg-white/[0.06] rounded-lg w-16 mx-auto mb-4" />
-          <div className="h-5 bg-gray-100/60 dark:bg-white/[0.06] rounded w-2/3 mx-auto mb-3" />
-          <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/2 mx-auto" />
+          <div className="h-5 bg-gray-100/60 dark:bg-white/[0.06] rounded w-2/3 mb-3" />
+          <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/2" />
         </div>
-        {[1, 2, 3].map(i => (
-          <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] rounded-xl p-5 animate-pulse">
-            <div className="h-4 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/3 mb-3" />
-            <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
-          </div>
-        ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] rounded-xl p-5 animate-pulse">
+              <div className="h-4 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/3 mb-3" />
+              <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error && !briefing) {
-    // Check if this is a plan-gating 403
     const isPlanError = error.includes('upgrade_required') || error.includes('limit_reached');
     if (isPlanError) {
       return (
@@ -135,7 +133,7 @@ export default function PortfolioBriefing({ portfolioId }: { portfolioId?: strin
     return (
       <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
         <p className="text-sm text-rh-red">{error}</p>
-        <button onClick={fetchBriefing} className="mt-2 text-xs text-rh-green hover:underline">Try again</button>
+        <button onClick={() => fetchBriefing()} className="mt-2 text-xs text-rh-green hover:underline">Try again</button>
       </div>
     );
   }
@@ -156,157 +154,100 @@ export default function PortfolioBriefing({ portfolioId }: { portfolioId?: strin
         <p className="text-sm text-rh-light-muted dark:text-rh-muted">
           Briefing temporarily unavailable. Try again later.
         </p>
-        <button onClick={fetchBriefing} className="mt-3 text-xs text-rh-green hover:underline">Retry</button>
+        <button onClick={() => fetchBriefing()} className="mt-3 text-xs text-rh-green hover:underline">Retry</button>
       </div>
     );
   }
 
   const generatedAgo = briefing.generatedAt ? timeAgo(new Date(briefing.generatedAt)) : '';
+  const periodLabel = PERIODS.find(p => p.id === period)?.label || 'Daily';
 
   return (
-    <div className="space-y-4">
-      {/* Hero Verdict Card */}
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center relative overflow-hidden">
+    <div className="space-y-2.5">
+      {/* Hero Card */}
+      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5 relative overflow-hidden border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] hover:shadow-[0_0_30px_rgba(0,200,5,0.13)] transition-shadow">
         <div className="absolute inset-0 bg-gradient-to-b from-rh-green/[0.03] to-transparent pointer-events-none" />
         <div className="relative">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30">
-              Weekly Briefing
+              {periodLabel} Briefing
             </span>
             <button
-              onClick={fetchBriefing}
+              onClick={() => fetchBriefing()}
               disabled={loading}
               className="text-[10px] text-rh-green hover:underline disabled:opacity-50"
             >
               {loading ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
-          <div className="text-4xl mb-3">{getSentimentEmoji(briefing.verdict, briefing.sections)}</div>
-          <h2 className="text-lg font-bold text-rh-light-text dark:text-white leading-snug mb-2">
+          <h2 className="text-lg font-bold text-rh-light-text dark:text-white leading-snug">
             {briefing.headline}
           </h2>
-          {briefing.verdict && (
-            <p className="text-sm text-rh-light-muted dark:text-white/50 italic">
-              {briefing.verdict}
+          {generatedAgo && (
+            <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 mt-1">
+              {generatedAgo}
             </p>
           )}
         </div>
       </div>
 
-      {/* Section Cards */}
-      {briefing.sections.map((section, i) => {
-        const pill = getSentimentPill(section.sentiment);
-        const isExpanded = expandedIdx === i;
-        const highlights = extractHighlights(section.body);
-
-        return (
-          <div
-            key={i}
-            className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden transition-all"
+      {/* Period selector */}
+      <div className="flex items-center gap-1">
+        {PERIODS.map(p => (
+          <button
+            key={p.id}
+            onClick={() => setPeriod(p.id)}
+            className={`px-3 py-1 text-[12px] font-medium rounded-full transition-all ${
+              period === p.id
+                ? 'bg-rh-green text-black'
+                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white/70'
+            }`}
           >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Section Cards — 2x2 grid on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        {sections.map((section, i) => {
+          const pill = getSentimentPill(section.sentiment, section.title);
+
+          return (
             <div
-              onClick={() => handleSectionClick(i)}
-              className="p-5 cursor-pointer hover:bg-gray-100/80 dark:hover:bg-white/[0.06] transition-colors group"
+              key={i}
+              className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] hover:shadow-[0_0_30px_rgba(0,200,5,0.13)] transition-all p-4"
             >
               {/* Title + sentiment pill */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${pill.cls}`}>
-                  {pill.label}
-                </span>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">
+              <div className="flex items-center gap-2 mb-1.5">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">
                   {section.title}
                 </h3>
-                <svg
-                  className={`w-3.5 h-3.5 ml-auto text-rh-light-muted/40 dark:text-white/20 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${pill.cls}`}>
+                  {pill.label}
+                </span>
               </div>
 
-              {/* Bold takeaway as the main headline */}
+              {/* Bold takeaway */}
               {section.takeaway && (
-                <p className="text-sm font-semibold text-rh-light-text dark:text-white/90 mb-2 leading-snug">
+                <p className="text-[13px] font-semibold text-rh-light-text dark:text-white/90 mb-1.5 leading-snug">
                   {section.takeaway}
                 </p>
               )}
 
-              {/* Key number highlights */}
-              {highlights.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {highlights.map((h, hi) => (
-                    <span key={hi} className="text-lg font-mono font-bold text-rh-light-text dark:text-white/80">
-                      {h}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Body — collapsed by default, show 2 lines */}
-              <p className={`text-sm text-rh-light-muted dark:text-white/40 leading-relaxed ${
-                isExpanded ? '' : 'line-clamp-2'
-              }`}>
-                {section.body}
+              {/* Body with clickable tickers */}
+              <p className="text-[12px] text-rh-light-muted dark:text-white/40 leading-relaxed">
+                {renderBodyWithTickers(section.body, onTickerClick)}
               </p>
             </div>
-
-            {/* Deep-dive explanation */}
-            {isExpanded && (
-              <div className="px-5 pb-5 border-t border-gray-200/20 dark:border-white/[0.04]">
-                {loadingIdxs.has(i) ? (
-                  <div className="pt-4">
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">
-                      Researching — this may take 5–15 seconds...
-                    </p>
-                    <div className="space-y-3 animate-pulse">
-                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-full" />
-                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-5/6" />
-                      <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-4/6" />
-                    </div>
-                  </div>
-                ) : explanations[i] ? (
-                  <div className="pt-4">
-                    <div className="text-sm text-rh-light-text dark:text-rh-text leading-relaxed whitespace-pre-line">
-                      {explanations[i].explanation}
-                    </div>
-                    {explanations[i].citations.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-200/20 dark:border-white/[0.04]">
-                        <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/50 mb-1">Sources</p>
-                        <div className="flex flex-wrap gap-2">
-                          {explanations[i].citations.map((url, ci) => (
-                            <a
-                              key={ci}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[10px] text-rh-green/70 hover:text-rh-green truncate max-w-[200px]"
-                            >
-                              {getSourceHostname(url)}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-1">
-        <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
-          Context, not advice.
-        </span>
-        {generatedAgo && (
-          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
-            {generatedAgo}
-          </span>
-        )}
-      </div>
+      <p className="text-[9px] text-rh-light-muted/30 dark:text-rh-muted/20 text-center">
+        Context only. Not financial advice.
+      </p>
     </div>
   );
 }
-

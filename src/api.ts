@@ -1683,8 +1683,11 @@ export interface PortfolioBriefingResponse {
   cached: boolean;
 }
 
-export async function getPortfolioBriefing(portfolioId?: string): Promise<PortfolioBriefingResponse> {
-  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
+export async function getPortfolioBriefing(portfolioId?: string, period?: string): Promise<PortfolioBriefingResponse> {
+  const params = new URLSearchParams();
+  if (portfolioId) params.set('portfolioId', portfolioId);
+  if (period) params.set('period', period);
+  const qs = params.toString() ? `?${params.toString()}` : '';
   return fetchJson<PortfolioBriefingResponse>(`${API_BASE_URL}/insights/briefing${qs}`);
 }
 

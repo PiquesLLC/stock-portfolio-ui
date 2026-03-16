@@ -1820,7 +1820,7 @@ export default function App() {
             Terms of Service
           </button>
           <span>·</span>
-          <span>Piques LLC</span>
+          <span>Nala AI</span>
         </div>
       </footer>
 
