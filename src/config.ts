@@ -8,8 +8,8 @@ const PROD_NATIVE_API_URL = 'https://stock-portfolio-api-production.up.railway.a
 const APP_WEB_ORIGIN = 'https://nalaai.com';
 
 function normalizeEnvUrl(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+  if (value === undefined) return undefined;
+  return value.trim();
 }
 
 function isPrivateApiUrl(value: string): boolean {
