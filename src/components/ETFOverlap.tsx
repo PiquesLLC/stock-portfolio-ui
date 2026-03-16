@@ -36,7 +36,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
   const [loading, setLoading] = useState(true);
   const [expandedEtf, setExpandedEtf] = useState<string | null>(null);
   const [selectedPair, setSelectedPair] = useState<EtfOverlapPair | null>(null);
-  const [warningTicker, setWarningTicker] = useState<string | null>(null);
+  const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
   const currentPortfolioIdRef = useRef(portfolioId);
   currentPortfolioIdRef.current = portfolioId;
 
@@ -263,14 +263,19 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
               const hasWarning = warningTickers.has(exp.ticker);
 
               return (
-                <div key={exp.ticker} className="group relative">
+                <div
+                  key={exp.ticker}
+                  className="group relative"
+                  onMouseEnter={() => setExpandedTicker(exp.ticker)}
+                  onMouseLeave={() => setExpandedTicker(null)}
+                >
                 <div className="flex items-center gap-2">
                   <div className="w-16 flex items-center shrink-0">
                     {hasWarning ? (
                       <svg
                         className="w-3 h-3 text-amber-500 shrink-0 cursor-pointer hover:text-amber-400 transition-colors mr-1"
                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        onClick={() => setWarningTicker(warningTicker === exp.ticker ? null : exp.ticker)}
+                        onClick={() => setExpandedTicker(expandedTicker === exp.ticker ? null : exp.ticker)}
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
@@ -284,7 +289,10 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                       {exp.ticker}
                     </span>
                   </div>
-                  <div className="flex-1 h-5 bg-gray-100/50 dark:bg-white/[0.03] rounded-full overflow-hidden relative">
+                  <div
+                    className="flex-1 h-5 bg-gray-100/50 dark:bg-white/[0.03] rounded-full overflow-hidden relative cursor-pointer sm:cursor-default"
+                    onClick={() => { if (window.matchMedia('(hover: none)').matches) setExpandedTicker(expandedTicker === exp.ticker ? null : exp.ticker); }}
+                  >
                     <div
                       className="h-full flex rounded-full overflow-hidden"
                       style={{ width: `${Math.max(barWidth, 2)}%` }}
@@ -311,20 +319,29 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                       {formatDollars(exp.totalExposureValue)}
                     </span>
                   </div>
-                  {/* Source tooltip on hover — shows portfolio-level % per source */}
-                  {(() => {
-                    // Aggregate ETF source values by ETF name (handles merged tickers like GOOG/GOOGL)
-                    const etfAgg = new Map<string, number>();
-                    for (const s of etfSources) {
-                      if (s.etf) etfAgg.set(s.etf, (etfAgg.get(s.etf) ?? 0) + (s.value ?? 0));
-                    }
-                    // Portfolio-level %: (sourceValue / totalSourceValue) * exposurePct
-                    // This always sums exactly to exposurePct
-                    const directPortfolioPct = totalSourceValue > 0
-                      ? (directValue / totalSourceValue) * exp.exposurePct
-                      : (hasDirect ? exp.exposurePct : 0);
-                    return (
-                      <div className="invisible group-hover:visible absolute left-14 -top-7 flex items-center gap-1 z-10 bg-rh-light-card dark:bg-rh-card shadow-lg rounded-md px-2 py-1.5 border border-gray-200/40 dark:border-white/[0.08]">
+                </div>
+                {expandedTicker === exp.ticker && (() => {
+                  const etfAgg = new Map<string, number>();
+                  for (const s of etfSources) {
+                    if (s.etf) etfAgg.set(s.etf, (etfAgg.get(s.etf) ?? 0) + (s.value ?? 0));
+                  }
+                  const directPortfolioPct = totalSourceValue > 0
+                    ? (directValue / totalSourceValue) * exp.exposurePct
+                    : (hasDirect ? exp.exposurePct : 0);
+                  const hasSources = hasDirect || etfAgg.size > 0;
+                  if (!hasWarning && !hasSources) return null;
+                  return (
+                    <div className={`mt-1 ml-0.5 px-2.5 py-1.5 rounded-md space-y-1.5 ${
+                      hasWarning
+                        ? 'bg-amber-500/[0.06] border border-amber-500/10'
+                        : 'bg-gray-100/40 dark:bg-white/[0.03]'
+                    }`}>
+                      {hasWarning && (
+                        <div className="text-[11px] text-amber-600 dark:text-amber-400/80">
+                          High concentration — {exp.exposurePct.toFixed(1)}% of your portfolio is exposed to {exp.ticker}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
                         {hasDirect && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-rh-green/10 text-rh-green font-medium whitespace-nowrap">
                             Direct {directPortfolioPct.toFixed(1)}%
@@ -341,14 +358,9 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                           );
                         })}
                       </div>
-                    );
-                  })()}
-                </div>
-                {hasWarning && warningTicker === exp.ticker && (
-                  <div className="mt-1 ml-0.5 px-2.5 py-1.5 rounded-md bg-amber-500/[0.06] border border-amber-500/10 text-[11px] text-amber-600 dark:text-amber-400/80">
-                    High concentration — {exp.exposurePct.toFixed(1)}% of your portfolio is exposed to {exp.ticker}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
                 </div>
               );
             })}
