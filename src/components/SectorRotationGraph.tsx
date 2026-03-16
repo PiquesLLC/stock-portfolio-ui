@@ -418,60 +418,63 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
 
       {/* Main graph */}
       <div className="relative">
-        {/* Header: Title + Group filters + Period buttons */}
-        <div className="flex items-end justify-between mb-0 px-[1.4%]">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
-              Sector Rotation
-            </h3>
-            <button
-              onClick={() => setShowGuide(g => !g)}
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all shrink-0 ${
-                showGuide
-                  ? 'bg-rh-green text-black'
-                  : 'bg-gray-200/60 dark:bg-white/[0.08] text-rh-light-muted dark:text-white/40 hover:bg-gray-300/60 dark:hover:bg-white/[0.12]'
-              }`}
-              title="How to read this chart"
-            >?</button>
-            {/* Sector group filter pills */}
-            <div className="flex gap-1 ml-2">
-              {([
-                { group: 'cyclical' as const, label: 'Cyclical', color: '#f59e0b' },
-                { group: 'defensive' as const, label: 'Defensive', color: '#10b981' },
-                { group: 'sensitive' as const, label: 'Sensitive', color: '#3b82f6' },
-              ]).map(g => {
-                const active = activeGroups.has(g.group);
-                return (
-                  <button
-                    key={g.group}
-                    onClick={() => toggleGroup(g.group)}
-                    className={`px-2 py-0.5 text-[10px] font-medium rounded-full transition-all border ${
-                      active
-                        ? 'border-current'
-                        : 'border-transparent opacity-30 hover:opacity-50'
-                    }`}
-                    style={{ color: active ? g.color : isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}
-                  >
-                    {g.label}
-                  </button>
-                );
-              })}
+        {/* Header: Title + Group filters */}
+        <div className="space-y-1.5 mb-1 px-[1.4%]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
+                Sector Rotation
+              </h3>
+              <button
+                onClick={() => setShowGuide(g => !g)}
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold transition-all shrink-0 ${
+                  showGuide
+                    ? 'bg-rh-green text-black'
+                    : 'bg-gray-200/60 dark:bg-white/[0.08] text-rh-light-muted dark:text-white/40 hover:bg-gray-300/60 dark:hover:bg-white/[0.12]'
+                }`}
+                title="How to read this chart"
+              >?</button>
+            </div>
+            {/* Period selector */}
+            <div className="flex gap-0.5 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
+              {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
+                    viewMode === mode
+                      ? 'bg-white dark:bg-rh-card text-rh-green shadow-sm'
+                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="flex gap-0.5 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
-            {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
-                  viewMode === mode
-                    ? 'bg-white dark:bg-rh-card text-rh-green shadow-sm'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-              >
-                {mode}
-              </button>
-            ))}
+          {/* Sector group filter pills */}
+          <div className="flex gap-1.5">
+            {([
+              { group: 'cyclical' as const, label: 'Cyclical', color: '#f59e0b' },
+              { group: 'defensive' as const, label: 'Defensive', color: '#10b981' },
+              { group: 'sensitive' as const, label: 'Sensitive', color: '#3b82f6' },
+            ]).map(g => {
+              const active = activeGroups.has(g.group);
+              return (
+                <button
+                  key={g.group}
+                  onClick={() => toggleGroup(g.group)}
+                  className={`px-2.5 py-0.5 text-[10px] font-medium rounded-full transition-all border ${
+                    active
+                      ? 'border-current'
+                      : 'border-transparent opacity-30 hover:opacity-50'
+                  }`}
+                  style={{ color: active ? g.color : isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}
+                >
+                  {g.label}
+                </button>
+              );
+            })}
           </div>
         </div>
         <svg
