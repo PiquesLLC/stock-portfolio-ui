@@ -521,7 +521,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
               bg-rh-green text-white hover:bg-rh-green/90
               disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {activating ? 'Activating...' : 'Go Live'}
+            {activating ? 'Activating...' : 'Start Earning'}
           </button>
         </div>
       )}

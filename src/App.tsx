@@ -839,8 +839,8 @@ export default function App() {
               <UserMenu
                 userName={currentUserName}
                 userId={currentUserId}
-                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
-                onSettingsClick={() => { setSettingsView(true); window.location.hash = 'tab=settings'; }}
+                onProfileClick={() => { setCreatorView(null); setAdminView(null); setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
+                onSettingsClick={() => { setCreatorView(null); setAdminView(null); setSettingsView(true); window.location.hash = 'tab=settings'; }}
                 onLogoutClick={logout}
               />
             )}
@@ -1243,8 +1243,8 @@ export default function App() {
               <UserMenu
                 userName={currentUserName}
                 userId={currentUserId}
-                onProfileClick={() => { setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
-                onSettingsClick={() => { setSettingsView(true); window.location.hash = 'tab=settings'; }}
+                onProfileClick={() => { setCreatorView(null); setAdminView(null); setViewingStock(null); setViewingProfileId(currentUserId); setActiveTab('profile'); }}
+                onSettingsClick={() => { setCreatorView(null); setAdminView(null); setSettingsView(true); window.location.hash = 'tab=settings'; }}
                 onLogoutClick={logout}
               />
             )}
