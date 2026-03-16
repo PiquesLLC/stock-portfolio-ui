@@ -22,9 +22,27 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('ErrorBoundary caught:', error, info.componentStack);
+    // Auto-reload once for stale chunk errors (new deploy invalidated old JS bundles)
+    const msg = error?.message || '';
+    if (msg.includes('dynamically imported module') || msg.includes('Failed to fetch') || msg.includes('Loading chunk')) {
+      const key = 'nala_chunk_reload';
+      const lastReload = sessionStorage.getItem(key);
+      const now = Date.now();
+      // Only auto-reload once per 30 seconds to avoid infinite loops
+      if (!lastReload || now - Number(lastReload) > 30000) {
+        sessionStorage.setItem(key, String(now));
+        window.location.reload();
+      }
+    }
   }
 
   handleRetry = () => {
+    // Dynamic import failures mean stale chunks from a new deploy — full reload needed
+    const msg = this.state.error?.message || '';
+    if (msg.includes('dynamically imported module') || msg.includes('Failed to fetch') || msg.includes('Loading chunk')) {
+      window.location.reload();
+      return;
+    }
     this.setState({ hasError: false, error: null });
   };
 
