@@ -427,6 +427,25 @@ export default function App() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // --- Handle Stripe Connect onboarding return redirect ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connectStatus = params.get('connect');
+    if (connectStatus !== 'return' && connectStatus !== 'refresh') return;
+
+    // Clean the query param from URL immediately
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+
+    // Navigate to creator dashboard and refresh setup status
+    setCreatorView('dashboard');
+    if (connectStatus === 'return') {
+      showToast('Stripe Connect setup complete! Verifying account status...', 'success');
+    }
+    // Refresh creator setup status — the fallback API check will query Stripe directly
+    // if the webhook hasn't arrived yet
+    refreshCreatorSetupStatus();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // --- Resolve shareable profile URL: /username → profile view ---
   useEffect(() => {
     if (!_pendingUsername) return;
