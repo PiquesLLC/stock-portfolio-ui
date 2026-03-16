@@ -996,8 +996,8 @@ const VOLUME_FILTERS: { id: VolumeFilter; label: string; dot?: string }[] = [
   { id: 'top100', label: 'Top 100' },
   { id: 'gainers', label: 'Gainers', dot: '#16c784' },
   { id: 'losers', label: 'Losers', dot: '#ea3943' },
-  { id: 'unusual', label: 'Unusual Vol', dot: '#f5a524' },
-  { id: 'mostFollowed', label: 'Most Followed', dot: '#a855f7' },
+  { id: 'unusual', label: 'Unusual', dot: '#f5a524' },
+  { id: 'mostFollowed', label: 'Followed', dot: '#a855f7' },
 ];
 
 function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void; portfolioTickers?: Set<string> }) {
@@ -1185,11 +1185,12 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
               key={f.id}
               data-active={isActive || undefined}
               onClick={() => { setFilter(f.id); setVisibleCount(10); }}
-              className="flex items-center justify-center whitespace-nowrap flex-shrink-0"
+              className="flex items-center justify-center whitespace-nowrap"
               style={{
-                flex: '1 0 auto',
-                gap: 6,
-                padding: '0 10px',
+                flex: '1 1 0',
+                minWidth: 0,
+                gap: 4,
+                padding: '0 8px',
                 height: 24,
                 borderRadius: 8,
                 fontSize: 12,
