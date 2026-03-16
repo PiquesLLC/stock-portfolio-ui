@@ -73,6 +73,8 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
   const [targetValue, setTargetValue] = useState(initialValues?.targetValue?.toString() || '');
   const [monthlyContribution, setMonthlyContribution] = useState(initialValues?.monthlyContribution?.toString() || '');
   const [deadline, setDeadline] = useState(initialValues?.deadline || '');
+  const [trackSeparately, setTrackSeparately] = useState(true);
+  const [currentValue, setCurrentValue] = useState(initialValues?.currentValue?.toString() || '0');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,8 +83,8 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
     setError(null);
 
     const target = parseFloat(targetValue);
-    if (!name.trim()) {
-      setError('Name is required');
+    if (name.trim().length < 2) {
+      setError('Name must be at least 2 characters');
       return;
     }
     if (isNaN(target) || target <= 0) {
@@ -97,6 +99,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
         targetValue: target,
         monthlyContribution: monthlyContribution ? parseFloat(monthlyContribution) : 0,
         deadline: deadline || null,
+        currentValue: trackSeparately ? (parseFloat(currentValue) || 0) : null,
       });
 
       if (!isEditing) {
@@ -167,6 +170,42 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
         </div>
       </div>
 
+      {/* Track separately toggle */}
+      <div className="space-y-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={trackSeparately}
+            onClick={() => setTrackSeparately(prev => !prev)}
+            className={`relative w-9 h-5 rounded-full transition-colors ${trackSeparately ? 'bg-rh-green' : 'bg-gray-300 dark:bg-white/15'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${trackSeparately ? 'translate-x-4' : ''}`} />
+          </button>
+          <div>
+            <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Track separately from portfolio</span>
+            <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">Set your own starting amount instead of using portfolio value</p>
+          </div>
+        </label>
+        {trackSeparately && (
+          <div>
+            <label className="block text-sm font-medium text-rh-light-text dark:text-rh-text mb-1">
+              Current Amount ($)
+            </label>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={currentValue}
+              onChange={(e) => setCurrentValue(e.target.value)}
+              placeholder="0"
+              min="0"
+              step="any"
+              className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-3">
         <button
           type="submit"
@@ -191,15 +230,22 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
 
 interface GoalCardProps {
   goal: Goal;
-  onEdit: (goal: Goal) => void;
+  onUpdate: (id: string, input: GoalInput) => Promise<void>;
   onDelete: (id: string) => void;
   annualizedPacePct?: number | null;
 }
 
-function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) {
+function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(goal.name);
+  const [editTarget, setEditTarget] = useState(goal.targetValue.toString());
+  const [editMonthly, setEditMonthly] = useState(goal.monthlyContribution.toString());
+  const [editTrackSeparately, setEditTrackSeparately] = useState((goal as any).currentValue != null);
+  const [editCurrentValue, setEditCurrentValue] = useState(((goal as any).currentValue ?? 0).toString());
+  const [saving, setSaving] = useState(false);
 
   function handleDelete() {
     setShowConfirm(true);
@@ -223,7 +269,6 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
   const yourPaceMonths = annualizedPacePct != null && !isAchieved
     ? calculateTimeToGoalMonths(goal.currentPortfolioValue, goal.targetValue, annualizedPacePct, goal.monthlyContribution)
     : null;
-  const yourPaceDate = getProjectedDate(yourPaceMonths);
 
   // On-track indicator
   let trackStatus: 'ahead' | 'on-track' | 'behind' | null = null;
@@ -240,123 +285,197 @@ function GoalCard({ goal, onEdit, onDelete, annualizedPacePct }: GoalCardProps) 
   }
 
   return (
-    <div className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-4 sm:p-6 shadow-sm dark:shadow-none ${
-      isAchieved ? 'border-rh-green' : 'border-gray-200/30 dark:border-white/[0.04]'
-    }`}>
+    <div className={`group bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-4 sm:p-6 ${
+      isAchieved
+        ? 'border-rh-green shadow-[0_0_30px_rgba(0,200,5,0.25)]'
+        : 'border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.14)] hover:shadow-[0_0_30px_rgba(0,200,5,0.2)]'
+    } transition-shadow`}>
       <div className="flex items-start justify-between mb-4 gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-base sm:text-lg font-semibold text-rh-light-text dark:text-rh-text truncate">{goal.name}</h3>
-            {trackStatus === 'ahead' && (
-              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rh-green/15 text-rh-green">Ahead</span>
-            )}
-            {trackStatus === 'on-track' && (
-              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500/15 text-blue-400">On track</span>
-            )}
-            {trackStatus === 'behind' && (
-              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rh-red/15 text-rh-red">Behind</span>
-            )}
-          </div>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">
-            Target: {formatCurrency(goal.targetValue)}
-          </p>
+        <div className="min-w-0 flex-1">
+          {editing ? (
+            <input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              className="text-base sm:text-lg font-semibold text-rh-light-text dark:text-rh-text bg-transparent border-b border-rh-green/40 focus:outline-none focus:border-rh-green w-full mb-1"
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base sm:text-lg font-semibold text-rh-light-text dark:text-rh-text truncate">{goal.name}</h3>
+              {trackStatus === 'ahead' && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rh-green/15 text-rh-green">Ahead</span>}
+              {trackStatus === 'on-track' && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500/15 text-blue-400">On track</span>}
+              {trackStatus === 'behind' && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rh-red/15 text-rh-red">Behind</span>}
+            </div>
+          )}
+          {editing ? (
+            <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-rh-light-muted dark:text-rh-muted">Target:</span>
+                <span className="text-xs text-rh-light-muted dark:text-rh-muted">$</span>
+                <input type="number" value={editTarget} onChange={e => setEditTarget(e.target.value)}
+                  className="w-24 text-xs font-medium text-rh-light-text dark:text-rh-text bg-transparent border-b border-white/10 focus:outline-none focus:border-rh-green/40" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-rh-light-muted dark:text-rh-muted">/mo:</span>
+                <span className="text-xs text-rh-light-muted dark:text-rh-muted">$</span>
+                <input type="number" value={editMonthly} onChange={e => setEditMonthly(e.target.value)}
+                  className="w-16 text-xs font-medium text-rh-light-text dark:text-rh-text bg-transparent border-b border-white/10 focus:outline-none focus:border-rh-green/40" />
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+              Target: {formatCurrency(goal.targetValue)}
+            </p>
+          )}
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onEdit(goal)}
-            className="p-2 rounded-lg hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
-            title="Edit"
-          >
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
-            title="Delete"
-          >
-            <svg className="w-4 h-4 text-rh-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+        <div className={`flex gap-1 shrink-0 ${editing ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+          {editing ? (
+            <>
+              <button
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    await onUpdate(goal.id, {
+                      name: editName.trim() || goal.name,
+                      targetValue: parseFloat(editTarget) || goal.targetValue,
+                      monthlyContribution: parseFloat(editMonthly) || 0,
+                      currentValue: editTrackSeparately ? (parseFloat(editCurrentValue) || 0) : null,
+                    });
+                    setEditing(false);
+                  } catch (err) {
+                    showToast(err instanceof Error ? err.message : 'Failed to update', 'error');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+                className="p-1.5 rounded-lg text-rh-green hover:bg-rh-green/10 transition-colors"
+                title="Save"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  setEditing(false);
+                  setEditName(goal.name);
+                  setEditTarget(goal.targetValue.toString());
+                  setEditMonthly(goal.monthlyContribution.toString());
+                }}
+                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+                title="Cancel"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setEditing(true)}
+                className="p-1.5 rounded-lg hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+                title="Edit"
+              >
+                <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                title="Delete"
+              >
+                <svg className="w-4 h-4 text-rh-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="flex justify-between text-sm mb-1">
-          <span className="text-rh-light-muted dark:text-rh-muted">Progress</span>
-          <span className={isAchieved ? 'text-rh-green font-medium' : 'text-rh-light-text dark:text-rh-text'}>
-            {goal.currentProgress.toFixed(1)}%
-          </span>
-        </div>
-        <div className="h-3 bg-rh-light-border dark:bg-rh-border rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${isAchieved ? 'bg-rh-green' : 'bg-blue-500'}`}
-            style={{ width: `${Math.min(100, goal.currentProgress)}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-rh-light-muted dark:text-rh-muted mt-1">
-          <span>{formatCurrency(goal.currentPortfolioValue)}</span>
-          <span>{formatCurrency(goal.targetValue)}</span>
-        </div>
-      </div>
-
-      {/* Time to Goal Range */}
-      {!isAchieved && timeToGoal && (
-        <div className="mb-4 p-3 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg">
-          <p className="text-xs sm:text-sm font-medium text-rh-light-text dark:text-rh-text mb-2">Estimated Time to Goal</p>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs sm:text-sm gap-2">
-              <span className="text-rh-green shrink-0">Optimistic</span>
-              <span className="text-rh-green text-right">
-                {formatMonths(timeToGoal.optimistic)}
-                <span className="hidden sm:inline">{projectedDate.optimistic && ` (${formatDate(projectedDate.optimistic)})`}</span>
-              </span>
-            </div>
-            <div className="flex justify-between text-xs sm:text-sm gap-2">
-              <span className="text-blue-400 shrink-0">Base Case</span>
-              <span className="text-blue-400 text-right">
-                {formatMonths(timeToGoal.base)}
-                <span className="hidden sm:inline">{projectedDate.base && ` (${formatDate(projectedDate.base)})`}</span>
-              </span>
-            </div>
-            <div className="flex justify-between text-xs sm:text-sm gap-2">
-              <span className="text-rh-red shrink-0">Pessimistic</span>
-              <span className="text-rh-red text-right">
-                {formatMonths(timeToGoal.pessimistic)}
-                <span className="hidden sm:inline">{projectedDate.pessimistic && ` (${formatDate(projectedDate.pessimistic)})`}</span>
-              </span>
-            </div>
-            {annualizedPacePct != null && (
-              <div className="flex justify-between text-xs sm:text-sm border-t border-gray-200/30 dark:border-white/[0.04] pt-1 mt-1 gap-2">
-                <span className="text-amber-400 shrink-0">Your Pace ({annualizedPacePct > 0 ? '+' : ''}{annualizedPacePct.toFixed(1)}%)</span>
-                <span className="text-amber-400 text-right">
-                  {yourPaceMonths !== null
-                    ? `${formatMonths(yourPaceMonths)}${yourPaceDate ? ` (${formatDate(yourPaceDate)})` : ''}`
-                    : 'N/A'}
-                </span>
+      {/* Inline separate tracking toggle — only in edit mode */}
+      {editing && (
+        <div className="mb-3 flex items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={editTrackSeparately}
+            onClick={() => setEditTrackSeparately(prev => !prev)}
+            className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${editTrackSeparately ? 'bg-rh-green' : 'bg-gray-300 dark:bg-white/15'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${editTrackSeparately ? 'translate-x-4' : ''}`} />
+          </button>
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Track separately</span>
+            {editTrackSeparately && (
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Saved so far: $</span>
+                <input
+                  type="number"
+                  value={editCurrentValue}
+                  onChange={e => setEditCurrentValue(e.target.value)}
+                  className="w-20 text-[11px] font-medium text-rh-light-text dark:text-rh-text bg-transparent border-b border-white/10 focus:outline-none focus:border-rh-green/40"
+                />
               </div>
             )}
           </div>
         </div>
       )}
 
-      {isAchieved && (
-        <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
-          <span className="text-rh-green font-medium">Goal Achieved!</span>
+      {/* Progress Bar */}
+      <div className="mb-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="flex-1 h-2.5 bg-rh-light-border dark:bg-rh-border rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${isAchieved ? 'bg-rh-green' : 'bg-blue-500'}`}
+              style={{ width: `${Math.max(1, Math.min(100, goal.currentProgress))}%` }}
+            />
+          </div>
+          <span className={`text-xs font-medium tabular-nums shrink-0 ${isAchieved ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text'}`}>
+            {goal.currentProgress.toFixed(1)}%
+          </span>
+        </div>
+        <div className="flex justify-between text-[10px] text-rh-light-muted dark:text-rh-muted">
+          <span>{formatCurrency(goal.currentPortfolioValue)}</span>
+          <span>{formatCurrency(goal.targetValue)}</span>
+        </div>
+      </div>
+
+      {/* Time to Goal — flattened, no nested box */}
+      {!isAchieved && timeToGoal && (
+        <div className="mb-3 space-y-0.5">
+          <div className="flex justify-between text-xs gap-2">
+            <span className="text-rh-green">Optimistic</span>
+            <span className="text-rh-green">{formatMonths(timeToGoal.optimistic)}{projectedDate.optimistic ? ` (${formatDate(projectedDate.optimistic)})` : ''}</span>
+          </div>
+          <div className="flex justify-between text-xs gap-2">
+            <span className="text-blue-400">Base</span>
+            <span className="text-blue-400">{formatMonths(timeToGoal.base)}{projectedDate.base ? ` (${formatDate(projectedDate.base)})` : ''}</span>
+          </div>
+          <div className="flex justify-between text-xs gap-2">
+            <span className="text-rh-red">Pessimistic</span>
+            <span className="text-rh-red">{formatMonths(timeToGoal.pessimistic)}{projectedDate.pessimistic ? ` (${formatDate(projectedDate.pessimistic)})` : ''}</span>
+          </div>
+          {annualizedPacePct != null && (
+            <div className="flex justify-between text-xs border-t border-gray-200/20 dark:border-white/[0.04] pt-1 mt-1 gap-2">
+              <span className="text-amber-400">Your Pace</span>
+              <span className="text-amber-400">
+                {yourPaceMonths !== null
+                  ? `${formatMonths(yourPaceMonths)}${getProjectedDate(yourPaceMonths) ? ` (${formatDate(getProjectedDate(yourPaceMonths))})` : ''}`
+                  : 'N/A'}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Monthly Contribution */}
-      <div className="text-sm">
-        <span className="text-rh-light-muted dark:text-rh-muted">Monthly Contribution: </span>
-        <span className="font-medium text-rh-light-text dark:text-rh-text">
-          {goal.monthlyContribution > 0 ? formatCurrency(goal.monthlyContribution) : 'None'}
-        </span>
-      </div>
+      {isAchieved && (
+        <div className="text-xs text-rh-green font-medium mt-1">Goal Achieved</div>
+      )}
       {showConfirm && (
         <ConfirmModal
           title="Delete Goal"
@@ -378,12 +497,20 @@ interface GoalsPageProps {
   portfolioId?: string;
 }
 
+const GOAL_TEMPLATES: { name: string; target: number; icon: string; monthly: number }[] = [
+  { name: 'Retirement', target: 2000000, icon: '\u{1F3D6}\u{FE0F}', monthly: 500 },
+  { name: 'House Down Payment', target: 80000, icon: '\u{1F3E0}', monthly: 1000 },
+  { name: 'First $100K', target: 100000, icon: '\u{1F4AF}', monthly: 500 },
+  { name: 'Emergency Fund', target: 30000, icon: '\u{1F6E1}\u{FE0F}', monthly: 500 },
+  { name: 'Financial Independence', target: 1500000, icon: '\u{1F680}', monthly: 1000 },
+];
+
 export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfolioId }: GoalsPageProps = {}) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [goalTemplate, setGoalTemplate] = useState<{ name: string; target: number; icon: string; monthly: number } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Reset state when portfolioId changes to avoid stale data flash
@@ -397,7 +524,6 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
       setLoading(true);
       setError(null);
       setShowForm(false);
-      setEditingGoal(null);
     }
   }, [portfolioId]);
 
@@ -448,14 +574,9 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
     await createGoal(input, portfolioId);
     await fetchGoals();
     setShowForm(false);
+    setGoalTemplate(null);
   }
 
-  async function handleUpdateGoal(input: GoalInput) {
-    if (!editingGoal) return;
-    await updateGoal(editingGoal.id, input, portfolioId);
-    await fetchGoals();
-    setEditingGoal(null);
-  }
 
   async function handleDeleteGoal(id: string) {
     await deleteGoal(id, portfolioId);
@@ -498,79 +619,107 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
             Track your progress with optimistic, base, and pessimistic scenarios
           </p>
         </div>
-        {!showForm && !editingGoal && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-rh-green text-black rounded-lg font-medium hover:bg-green-600 transition-colors text-sm shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">Add Goal</span>
-            <span className="sm:hidden">Add</span>
-          </button>
-        )}
       </div>
 
-      {/* Add Goal Form */}
-      {showForm && (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Add New Goal</h3>
-          <GoalForm
-            onSubmit={handleCreateGoal}
-            onCancel={() => setShowForm(false)}
-          />
-        </div>
-      )}
-
-      {/* Edit Goal Form */}
-      {editingGoal && (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4">Edit Goal</h3>
-          <GoalForm
-            onSubmit={handleUpdateGoal}
-            onCancel={() => setEditingGoal(null)}
-            initialValues={{
-              name: editingGoal.name,
-              targetValue: editingGoal.targetValue,
-              monthlyContribution: editingGoal.monthlyContribution,
-              deadline: editingGoal.deadline?.split('T')[0] || '',
-            }}
-            isEditing
-          />
-        </div>
-      )}
+      {/* Edit is now inline on the goal card. Template picker / custom form is inline in the grid. */}
 
       {/* Goals List */}
       {goals.length === 0 ? (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-12 text-center">
-          <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-          <h3 className="text-lg font-medium text-rh-light-text dark:text-rh-text mb-2">No goals yet</h3>
-          <p className="text-rh-light-muted dark:text-rh-muted mb-4">
-            Set financial goals to track your progress with realistic time estimates
-          </p>
-          {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-4 py-2 bg-rh-green text-black rounded-lg font-medium hover:bg-green-600 transition-colors"
-            >
-              Create Your First Goal
-            </button>
-          )}
-        </div>
+        !showForm ? (
+          <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Choose a Goal</h3>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {GOAL_TEMPLATES.map(t => (
+                <button
+                  key={t.name}
+                  onClick={async () => {
+                    try {
+                      await handleCreateGoal({ name: t.name, targetValue: t.target, monthlyContribution: t.monthly, currentValue: 0 });
+                    } catch {}
+                  }}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-gray-200/30 dark:border-white/[0.06] bg-white/50 dark:bg-white/[0.02] hover:border-rh-green/40 hover:bg-rh-green/[0.04] shadow-[0_0_12px_rgba(0,200,5,0.08)] hover:shadow-[0_0_24px_rgba(0,200,5,0.2)] transition-all text-center"
+                >
+                  <span className="text-lg">{t.icon}</span>
+                  <span className="text-[12px] font-medium text-rh-light-text dark:text-rh-text leading-tight">{t.name}</span>
+                  <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">{formatCurrency(t.target)}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => { setShowForm(true); setGoalTemplate({ name: '', target: 0, icon: '', monthly: 0 }); }}
+                className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border border-dashed border-gray-300/40 dark:border-white/[0.08] hover:border-rh-green/40 hover:bg-rh-green/[0.04] transition-all"
+              >
+                <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                <span className="text-[12px] font-medium text-rh-light-muted dark:text-rh-muted">Custom</span>
+              </button>
+            </div>
+          </div>
+        ) : null
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {goals.map((goal) => (
             <GoalCard
               key={goal.id}
               goal={goal}
-              onEdit={setEditingGoal}
+              onUpdate={async (id, input) => {
+                await updateGoal(id, input, portfolioId);
+                await fetchGoals();
+              }}
               onDelete={handleDeleteGoal}
               annualizedPacePct={annualizedPacePct}
             />
           ))}
+          {/* Add Goal card — shows template picker inline when clicked */}
+          {!showForm ? (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex flex-col items-center justify-center gap-2 min-h-[120px] rounded-lg border border-dashed border-gray-300/30 dark:border-white/[0.06] hover:border-rh-green/30 hover:bg-rh-green/[0.03] transition-all"
+            >
+              <svg className="w-6 h-6 text-rh-light-muted/50 dark:text-white/15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-xs text-rh-light-muted/60 dark:text-white/20 font-medium">Add Goal</span>
+            </button>
+          ) : !goalTemplate ? (
+            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border border-gray-200/30 dark:border-white/[0.06] rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text">Choose a Goal</span>
+                <button onClick={() => setShowForm(false)} className="text-[10px] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">Cancel</button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {GOAL_TEMPLATES.map(t => (
+                  <button
+                    key={t.name}
+                    onClick={async () => {
+                      try {
+                        await handleCreateGoal({ name: t.name, targetValue: t.target, monthlyContribution: t.monthly, currentValue: 0 });
+                      } catch {}
+                    }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-md border border-gray-200/20 dark:border-white/[0.05] hover:border-rh-green/30 hover:bg-rh-green/[0.04] shadow-[0_0_10px_rgba(0,200,5,0.08)] hover:shadow-[0_0_20px_rgba(0,200,5,0.2)] transition-all text-center"
+                  >
+                    <span className="text-sm">{t.icon}</span>
+                    <span className="text-[10px] font-medium text-rh-light-text dark:text-rh-text leading-tight">{t.name}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setGoalTemplate({ name: '', target: 0, icon: '', monthly: 0 })}
+                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-md border border-dashed border-gray-300/30 dark:border-white/[0.06] hover:border-rh-green/30 hover:bg-rh-green/[0.04] transition-all"
+                >
+                  <svg className="w-3.5 h-3.5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  <span className="text-[10px] font-medium text-rh-light-muted dark:text-rh-muted">Custom</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border border-gray-200/30 dark:border-white/[0.06] rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">Custom Goal</h3>
+              <GoalForm
+                onSubmit={handleCreateGoal}
+                onCancel={() => { setShowForm(false); setGoalTemplate(null); }}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

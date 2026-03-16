@@ -65,6 +65,7 @@ function isSP500Response(resp: ProjectionResponse): resp is SP500ProjectionRespo
 
 export function Projections({ currentValue, refreshTrigger = 0, session, onPaceData, portfolioId }: Props) {
   const [mode, setMode] = useState<ProjectionModeSimple>('sp500');
+  const [showInfo, setShowInfo] = useState(false);
   const [data, setData] = useState<ProjectionResponse | null>(null);
   const [paceData, setPaceData] = useState<CurrentPaceResponse | null>(null);
   const [paceWindow, setPaceWindow] = useState<PaceWindow>('1M');
@@ -191,59 +192,71 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
   const sp500Data = data && isSP500Response(data) ? data : null;
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
-      {/* Header with mode toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Portfolio Projections</h2>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Mode toggle */}
-          <div className="flex rounded-lg overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setMode('sp500')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                mode === 'sp500'
-                  ? 'bg-rh-green text-black'
-                  : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white hover:bg-gray-200 dark:hover:bg-rh-border'
-              }`}
-            >
-              S&P 500
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('pace')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                mode === 'pace'
-                  ? 'bg-rh-green text-black'
-                  : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white hover:bg-gray-200 dark:hover:bg-rh-border'
-              }`}
-            >
-              Current Pace
-            </button>
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.14)] hover:shadow-[0_0_30px_rgba(0,200,5,0.2)] transition-shadow">
+      {/* Header — title + toggle + current value, stacked on mobile */}
+      <div className="mb-1">
+        <div className="flex items-start sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
+              Portfolio{mode === 'sp500' && sp500Data && (
+                <span className="relative inline-block ml-2" style={{ top: '-2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowInfo(!showInfo)}
+                    className="w-4 h-4 rounded-full inline-flex items-center justify-center text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text border border-gray-300/50 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 transition-colors text-[9px] font-bold leading-none"
+                  >
+                    i
+                  </button>
+                  {showInfo && (
+                    <span className="absolute left-0 top-full mt-1 z-30 w-64 p-3 rounded-lg bg-white dark:bg-[#1c1c1f] border border-gray-200/60 dark:border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.3)] text-xs font-normal text-rh-light-muted dark:text-rh-muted block">
+                      Assuming S&P 500 historical total return of{' '}
+                      <span className="text-rh-light-text dark:text-white font-medium">
+                        {formatPercent(sp500Data.assumptions.annualReturn)}
+                      </span>{' '}
+                      per year (dividends reinvested), compounded monthly.
+                      <button onClick={() => setShowInfo(false)} className="block mt-2 text-[10px] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text">Dismiss</button>
+                    </span>
+                  )}
+                </span>
+              )}{' '}Projections
+            </h2>
           </div>
+          <div className="flex rounded-lg overflow-hidden shrink-0">
+          <button
+            type="button"
+            onClick={() => setMode('sp500')}
+            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              mode === 'sp500'
+                ? 'bg-rh-green text-black'
+                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white hover:bg-gray-200 dark:hover:bg-rh-border'
+            }`}
+          >
+            S&P 500
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('pace')}
+            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              mode === 'pace'
+                ? 'bg-rh-green text-black'
+                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white hover:bg-gray-200 dark:hover:bg-rh-border'
+            }`}
+          >
+            Current Pace
+          </button>
         </div>
+        </div>
+      </div>
+
+      {/* Current Value */}
+      <div className="mb-4">
+        <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-1">Current Value</p>
+        <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(data?.currentValue ?? currentValue)}</p>
       </div>
 
       {/* S&P 500 Mode */}
       {mode === 'sp500' && (
         <>
-          <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3 mb-6 text-sm">
-            {sp500Data && (
-              <p className="text-rh-light-muted dark:text-rh-muted">
-                Assuming S&P 500 historical total return of{' '}
-                <span className="text-rh-light-text dark:text-white font-medium">
-                  {formatPercent(sp500Data.assumptions.annualReturn)}
-                </span>{' '}
-                per year (dividends reinvested), compounded monthly.
-              </p>
-            )}
-          </div>
-
-          <div className="mb-6">
-            <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-1">Current Value</p>
-            <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(data?.currentValue ?? currentValue)}</p>
-          </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {data &&
@@ -271,14 +284,9 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
               })}
           </div>
 
-          {sp500Data && (
-            <div className="border-t border-gray-200/30 dark:border-white/[0.04] pt-4">
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">
-                S&P 500 historical average includes dividends reinvested. Past performance does
-                not guarantee future results.
-              </p>
-            </div>
-          )}
+          <p className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-2">
+            Past performance does not guarantee future results.
+          </p>
         </>
       )}
 

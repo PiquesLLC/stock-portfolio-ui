@@ -489,6 +489,7 @@ export interface GoalInput {
   targetValue: number;
   monthlyContribution?: number;
   deadline?: string | null;
+  currentValue?: number | null;
 }
 
 // Portfolio Intelligence types
