@@ -22,10 +22,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const limit = PLAN_LIMITS[userPlan] ?? 1;
   const canCreate = portfolios.length < limit;
@@ -108,179 +105,86 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     }
   }, [selectedPortfolioId, displayPortfolios, onSelect]);
 
-  // Check scroll overflow
-  const checkOverflow = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 2);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
-  }, []);
-
-  useEffect(() => {
-    checkOverflow();
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', checkOverflow, { passive: true });
-    const ro = new ResizeObserver(checkOverflow);
-    ro.observe(el);
-    return () => { el.removeEventListener('scroll', checkOverflow); ro.disconnect(); };
-  }, [checkOverflow, portfolios]);
-
-  const scroll = (dir: 'left' | 'right') => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir === 'left' ? -120 : 120, behavior: 'smooth' });
-  };
-
   // Don't render if the user truly has only one portfolio and can't create more.
-  // Normalization can intentionally hide legacy/system tabs, so use the raw count here.
   if (portfolios.length <= 1 && !canCreate) return null;
 
   return (
-    <div className="relative flex items-center max-w-[210px] sm:max-w-[300px] overflow-hidden">
-      {/* Left fade + chevron */}
-      {canScrollLeft && (
-        <button
-          onClick={() => scroll('left')}
-          className="absolute left-0 z-10 h-full w-6 flex items-center justify-start
-            bg-gradient-to-r from-[#111]/90 to-transparent"
-        >
-          <svg className="w-3 h-3 text-white/50 hover:text-white/80 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      )}
+    <div>
+      {displayPortfolios.map(p => {
+        const isActive = selectedPortfolioId === p.id;
+        const isConfirmingDelete = confirmDelete === p.id;
 
-      {/* Scrollable tab row */}
-      <div
-        ref={scrollRef}
-        className="flex items-center gap-1 overflow-x-auto no-scrollbar px-0.5 py-0.5 pb-2 -mb-2"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {displayPortfolios.map(p => {
-          const isActive = selectedPortfolioId === p.id;
-          const isConfirmingDelete = confirmDelete === p.id;
+        if (isConfirmingDelete) {
           return (
-            <div key={p.id} className="relative shrink-0 group flex items-center">
-              {isConfirmingDelete ? (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 dark:bg-red-500/10 border border-red-500/20">
-                  <span className="text-xs text-red-400 font-medium">Delete?</span>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="text-xs text-red-400 font-bold hover:text-red-300 px-1"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(null)}
-                    className="text-xs text-gray-400 hover:text-gray-300 px-1"
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => onSelect(p.id)}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all duration-200 whitespace-nowrap flex items-center
-                    ${isActive
-                      ? 'bg-[#0f2614] text-[#2fd05a] border border-[#184222]'
-                      : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 bg-gray-100/80 dark:bg-white/[0.04] hover:bg-gray-200/80 dark:hover:bg-white/[0.08]'
-                    }`}
-                >
-                  <span>{p.name}</span>
-                </button>
-              )}
-              {/* Delete button — only for non-default empty portfolios */}
-              {!p.isDefault && p.holdingsCount === 0 && !isConfirmingDelete && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full
-                    bg-gray-300 dark:bg-white/15 text-gray-600 dark:text-white/50
-                    text-[10px] leading-none flex items-center justify-center
-                    opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white
-                    dark:hover:bg-red-500 dark:hover:text-white transition-all duration-150 shadow-sm"
-                  title="Delete portfolio"
-                >
-                  ×
-                </button>
-              )}
+            <div key={p.id} className="flex items-center gap-2 px-2.5 py-1">
+              <span className="text-[11px] text-red-400">Delete?</span>
+              <button onClick={() => handleDelete(p.id)} className="text-[11px] text-red-400 font-semibold hover:text-red-300">Y</button>
+              <button onClick={() => setConfirmDelete(null)} className="text-[11px] text-white/40 hover:text-white/60">N</button>
             </div>
           );
-        })}
+        }
 
-        {/* Create new tab */}
-        {canCreate && (
-          <>
-            {creating ? (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <input
-                  ref={inputRef}
-                  autoFocus
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleCreate();
-                    if (e.key === 'Escape') { setCreating(false); setError(''); }
-                  }}
-                  placeholder="Portfolio name..."
-                  className="w-28 sm:w-36 text-xs px-3 py-1.5 rounded-lg border border-[#00c805]/30
-                    bg-white dark:bg-white/[0.04] text-gray-800 dark:text-white/80
-                    focus:outline-none focus:border-[#00c805] focus:shadow-[0_0_8px_rgba(0,200,5,0.15)]
-                    placeholder:text-gray-400 dark:placeholder:text-white/20 transition-all"
-                  maxLength={50}
-                  inputMode="text"
-                  autoComplete="off"
-                  autoCapitalize="words"
-                />
-                <button
-                  onClick={handleCreate}
-                  disabled={submitting || !newName.trim()}
-                  className="text-xs font-semibold text-[#00c805] px-2 py-1.5 rounded-md
-                    disabled:opacity-30 hover:bg-[#00c805]/10 transition-all"
-                >
-                  {submitting ? '...' : 'Add'}
-                </button>
-                <button
-                  onClick={() => { setCreating(false); setError(''); }}
-                  className="text-xs text-gray-400 dark:text-white/30 px-1 py-1.5 hover:text-gray-600 dark:hover:text-white/50 transition-all"
-                >
-                  ×
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleStartCreating}
-                className="shrink-0 w-5.5 h-5.5 rounded-md flex items-center justify-center
-                  text-gray-400 dark:text-white/25 bg-gray-100/80 dark:bg-white/[0.04]
-                  hover:text-[#00c805] hover:bg-[#00c805]/10 hover:shadow-[0_0_8px_rgba(0,200,5,0.1)]
-                  transition-all duration-200"
-                title="New Portfolio"
+        return (
+          <button
+            key={p.id}
+            onClick={() => onSelect(p.id)}
+            className={`group flex items-center w-full px-2.5 py-1 rounded text-[12px] whitespace-nowrap transition-colors
+              ${isActive
+                ? 'text-rh-green font-semibold'
+                : 'text-gray-500 dark:text-white/45 font-medium hover:text-gray-800 dark:hover:text-white/75'
+              }`}
+          >
+            <span className="truncate">{p.name}</span>
+            {!p.isDefault && p.holdingsCount === 0 && (
+              <svg
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
+                className="w-2.5 h-2.5 ml-auto shrink-0 text-transparent group-hover:text-white/20 hover:!text-red-400 cursor-pointer transition-colors"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             )}
-          </>
-        )}
-      </div>
+          </button>
+        );
+      })}
 
-      {/* Right fade + chevron */}
-      {canScrollRight && (
-        <button
-          onClick={() => scroll('right')}
-          className="absolute right-0 z-10 h-full w-6 flex items-center justify-end
-            bg-gradient-to-l from-[#111]/90 to-transparent"
-        >
-          <svg className="w-3 h-3 text-white/50 hover:text-white/80 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      )}
-
-      {/* Error toast */}
-      {error && (
-        <span className="text-[10px] text-red-400 font-medium shrink-0 ml-1">{error}</span>
+      {canCreate && (
+        <>
+          <div className="mx-2 my-0.5 border-t border-gray-200/15 dark:border-white/[0.05]" />
+          {creating ? (
+            <div className="px-1.5 py-0.5">
+              <input
+                ref={inputRef}
+                autoFocus
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleCreate();
+                  if (e.key === 'Escape') { setCreating(false); setError(''); }
+                }}
+                placeholder="Name"
+                className="w-full text-[11px] px-2 py-0.5 rounded border border-white/10
+                  bg-transparent text-gray-800 dark:text-white/80 focus:outline-none focus:border-rh-green/40
+                  placeholder:text-gray-400 dark:placeholder:text-white/20"
+                maxLength={50}
+                autoComplete="off"
+              />
+              <div className="flex justify-end gap-2 mt-0.5">
+                <button onClick={() => { setCreating(false); setError(''); }} className="text-[10px] text-gray-400 dark:text-white/30">esc</button>
+                <button onClick={handleCreate} disabled={submitting || !newName.trim()} className="text-[10px] text-rh-green font-medium disabled:opacity-30">{submitting ? '...' : 'save'}</button>
+              </div>
+              {error && <p className="text-[10px] text-red-400 px-1">{error}</p>}
+            </div>
+          ) : (
+            <button
+              onClick={handleStartCreating}
+              className="w-full px-2.5 py-1 rounded text-[11px] text-left
+                text-gray-400 dark:text-white/20 hover:text-rh-green transition-colors"
+            >
+              + new
+            </button>
+          )}
+        </>
       )}
     </div>
   );

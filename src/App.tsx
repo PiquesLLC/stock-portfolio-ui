@@ -342,6 +342,8 @@ export default function App() {
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const moreDropdownRef = useRef<HTMLDivElement>(null);
   const [mobilePortfolioMenuOpen, setMobilePortfolioMenuOpen] = useState(false);
+  const [desktopPortfolioOpen, setDesktopPortfolioOpen] = useState(false);
+  const desktopPortfolioRef = useRef<HTMLDivElement>(null);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [utilsMenuOpen, setUtilsMenuOpen] = useState(false);
   const utilsMenuRef = useRef<HTMLDivElement>(null);
@@ -377,6 +379,18 @@ export default function App() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [moreDropdownOpen]);
+
+  // Close desktop portfolio dropdown on outside click
+  useEffect(() => {
+    if (!desktopPortfolioOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (desktopPortfolioRef.current && !desktopPortfolioRef.current.contains(e.target as Node)) {
+        setDesktopPortfolioOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [desktopPortfolioOpen]);
 
   // Close utils overflow menu on outside click
   useEffect(() => {
@@ -884,6 +898,7 @@ export default function App() {
             {PRIMARY_TABS.map((tab) => {
               // At sm–lg: show Portfolio, Insights, Discover, Leaderboard; collapse Watchlists + Nala AI into More
               const collapseAtSmLg = tab.id === 'watchlists' || tab.id === 'nala';
+
               return (
               <button
                 key={tab.id}
@@ -1227,12 +1242,8 @@ export default function App() {
           onPortfolioMenuClose={() => setMobilePortfolioMenuOpen(false)}
           onPortfolioTabClick={() => {
             resetNavigation();
-            if (activeTab !== 'portfolio') {
-              setActiveTab('portfolio');
-              setMobilePortfolioMenuOpen(true);
-              return;
-            }
-            setMobilePortfolioMenuOpen(prev => !prev);
+            setActiveTab('portfolio');
+            setMobilePortfolioMenuOpen(false);
           }}
           portfolioMenu={user ? (
             <PortfolioPicker
@@ -1368,16 +1379,7 @@ export default function App() {
               </Suspense>
             )}
 
-            {/* Empty portfolio state — show when portfolio exists but has no holdings */}
-            {user && (
-              <div className="hidden sm:flex px-3 sm:px-6 mb-2 justify-end">
-                <PortfolioPicker
-                  selectedPortfolioId={selectedPortfolioId}
-                  onSelect={setSelectedPortfolioId}
-                  userPlan={user.plan || 'free'}
-                />
-              </div>
-            )}
+            {/* Portfolio picker is now in the desktop nav tab dropdown */}
 
             {portfolio && portfolio.holdings.length === 0 && selectedPortfolioId && (
               <div className="rounded-xl border border-dashed border-gray-300/60 dark:border-white/[0.08]
@@ -1428,9 +1430,31 @@ export default function App() {
 
             {portfolio && portfolio.holdings.length > 0 && (
               <>
-              <div className={`-mx-3 sm:-mx-6 relative ${mobilePortfolioMenuOpen ? 'mt-0' : '-mt-5 sm:mt-0'}`}>
+              <div className="-mx-3 sm:-mx-6 relative">
               {user && (
-                <div className="absolute top-2 right-3 sm:top-2 sm:right-6 z-20">
+                <div className="absolute top-2 right-3 sm:top-2 sm:right-6 z-20 flex flex-col items-end gap-1.5">
+                  {userPortfolios.length > 1 && (
+                    <div className="relative" ref={desktopPortfolioRef}>
+                      <button
+                        onClick={() => setDesktopPortfolioOpen(prev => !prev)}
+                        className="flex items-center gap-1 text-[11px] font-medium text-rh-light-muted/70 dark:text-white/35 hover:text-rh-light-text dark:hover:text-white/60 transition-colors"
+                      >
+                        {userPortfolios.find(p => p.id === selectedPortfolioId)?.name || 'Portfolio 1'}
+                        <svg className={`w-2.5 h-2.5 transition-transform duration-150 ${desktopPortfolioOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {desktopPortfolioOpen && (
+                        <div className="absolute right-0 top-full mt-1 z-50 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#1c1c1f] shadow-[0_8px_32px_rgba(0,0,0,0.3)] py-1 px-0.5">
+                          <PortfolioPicker
+                            selectedPortfolioId={selectedPortfolioId}
+                            onSelect={(id) => { setSelectedPortfolioId(id); setDesktopPortfolioOpen(false); }}
+                            userPlan={user.plan || 'free'}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
                 </div>
               )}
@@ -1449,7 +1473,7 @@ export default function App() {
                 onMeasurementChange={setChartMeasurement}
                 session={portfolio.session}
                 quotesStale={isStale || !!portfolio.quotesMeta?.anyRepricing || (portfolio.quotesUnavailableCount ?? 0) > 0}
-                mobileTopPadding={mobilePortfolioMenuOpen ? 'normal' : 'tight'}
+                mobileTopPadding="normal"
               />
               </div>
               </>

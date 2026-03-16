@@ -222,7 +222,7 @@ export function Navigation({
                 }`} />
               </button>
               {tab.id === 'portfolio' && portfolioMenuOpen && portfolioMenu && (
-                <div className="absolute left-0 top-full mt-1 z-50 min-w-[220px] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1b] shadow-2xl p-2" data-no-tab-swipe>
+                <div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#1c1c1f] shadow-[0_8px_32px_rgba(0,0,0,0.3)] py-1 px-0.5" data-no-tab-swipe>
                   {portfolioMenu}
                 </div>
               )}

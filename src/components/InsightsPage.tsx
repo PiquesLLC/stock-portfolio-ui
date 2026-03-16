@@ -17,7 +17,6 @@ import { ETFOverlap } from './ETFOverlap';
 import { TaxHarvest } from './TaxHarvest';
 import { MarketSession } from '../types';
 import { useToast } from '../context/ToastContext';
-import { normalizePortfolioTabs } from '../utils/portfolioDisplay';
 import { clearInsightsCache, INSIGHTS_CACHE_TTL_MS, insightsCache } from '../utils/insights-cache';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
 
@@ -231,7 +230,7 @@ interface InsightsPageProps {
   portfolios?: Array<{ id: string; name: string }>;
 }
 
-export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, marginDebt = 0, initialSubTab, onSubTabChange, portfolioId, onPortfolioChange, portfolios }: InsightsPageProps) {
+export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, session, cashBalance = 0, totalAssets = 0, marginDebt = 0, initialSubTab, onSubTabChange, portfolioId }: InsightsPageProps) {
   const { showToast } = useToast();
   const [subTab, setSubTabLocal] = useState<InsightsSubTab>(
     () => (initialSubTab && VALID_SUBTABS.has(initialSubTab as InsightsSubTab)) ? initialSubTab as InsightsSubTab : 'intelligence'
@@ -362,29 +361,8 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     { id: 'tax-harvest', label: 'Tax Harvest' },
   ], []);
 
-  // Inline portfolio picker — only render when multiple portfolios exist
-  const visiblePortfolios = useMemo(
-    () => normalizePortfolioTabs(portfolios ?? []),
-    [portfolios]
-  );
-
-  const portfolioPicker = visiblePortfolios.length > 1 && onPortfolioChange ? (
-    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-      {visiblePortfolios.map((p) => (
-        <button
-          key={p.id}
-          onClick={() => onPortfolioChange(p.id)}
-          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
-            portfolioId === p.id
-              ? 'bg-rh-green/15 text-rh-green'
-              : 'bg-gray-100 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-          }`}
-        >
-          {p.name}
-        </button>
-      ))}
-    </div>
-  ) : null;
+  // Portfolio picker moved to nav dropdown — no inline picker needed
+  const portfolioPicker = null;
 
   // AI Briefing subtab (Premium)
   if (subTab === 'ai-briefing') {

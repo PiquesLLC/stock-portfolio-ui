@@ -54,6 +54,8 @@ interface Props {
   /** When true, quote data is degraded (repricing/stale/unavailable) — suppress live point */
   quotesStale?: boolean;
   mobileTopPadding?: 'tight' | 'normal';
+  /** Optional element rendered above the hero value (e.g. portfolio selector) */
+  headerLabel?: React.ReactNode;
 }
 
 export function shouldShowEstimatedBadge(
@@ -94,6 +96,7 @@ export function PortfolioValueChart({
   session,
   quotesStale,
   mobileTopPadding = 'normal',
+  headerLabel,
 }: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -1009,6 +1012,7 @@ export function PortfolioValueChart({
         {/* Hero value display — FOREGROUND: highest visual weight */}
         {!hasMeasurement && (
           <div>
+            {headerLabel && <div className="mb-0.5">{headerLabel}</div>}
             <button
               type="button"
               onClick={handleHeroValueClick}
