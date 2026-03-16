@@ -709,7 +709,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
       style={{ paddingTop: 'env(safe-area-inset-top)', display: hidden ? 'none' : undefined, WebkitOverflowScrolling: 'touch' }}
     >
       {/* Sticky top bar */}
-      <div className="sticky z-10 flex items-center justify-between px-6 py-3 bg-black/95 backdrop-blur-sm border-b border-white/[0.06]" style={{ top: 0 }}>
+      <div className="sticky z-20 flex items-center justify-between px-6 py-3 bg-black border-b border-white/[0.06]" style={{ top: 0 }}>
         <button onClick={onClose} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back
