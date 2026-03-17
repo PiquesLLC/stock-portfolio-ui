@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 
 export interface TickerTapeItem {
   ticker: string;
-  label?: string;        // e.g. "S&P 500" for SPY — falls back to ticker
+  label?: string;
   price: number;
   changePercent: number;
 }
@@ -17,7 +17,6 @@ function isEffectivelyZero(pct: number): boolean {
   return Math.abs(pct) < 0.005;
 }
 
-// Desktop: min-width 768px
 function useIsDesktop(): boolean {
   const [desktop, setDesktop] = useState(
     typeof window !== 'undefined' ? window.innerWidth >= 768 : true
@@ -33,60 +32,134 @@ function useIsDesktop(): boolean {
 
 const INDEX_TICKERS = new Set(['SPY', 'QQQ', 'DIA']);
 
+function formatPrice(price: number): string {
+  return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatChange(pct: number): string {
+  if (isEffectivelyZero(pct)) return '0.00%';
+  return (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+}
+
+function changeColorClass(pct: number): string {
+  if (isEffectivelyZero(pct)) return 'text-rh-light-muted dark:text-rh-muted';
+  return pct >= 0 ? 'text-rh-green' : 'text-rh-red';
+}
+
+/**
+ * Individual ticker item — updates price/change via refs to avoid
+ * re-rendering the parent (which would reset the CSS scroll animation).
+ */
+function TickerItem({ item, isSelected, onClick }: {
+  item: TickerTapeItem;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const priceRef = useRef<HTMLSpanElement>(null);
+  const changeRef = useRef<HTMLSpanElement>(null);
+
+  // Update text + color in-place when data changes — no parent re-render
+  useEffect(() => {
+    if (priceRef.current) {
+      priceRef.current.textContent = formatPrice(item.price);
+    }
+    if (changeRef.current) {
+      changeRef.current.textContent = formatChange(item.changePercent);
+      // Update color class
+      const el = changeRef.current;
+      el.classList.remove('text-rh-green', 'text-rh-red', 'text-rh-light-muted', 'dark:text-rh-muted');
+      const cls = changeColorClass(item.changePercent);
+      cls.split(' ').forEach(c => el.classList.add(c));
+    }
+  }, [item.price, item.changePercent]);
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1 shrink-0 cursor-pointer rounded px-1.5 py-0.5 transition-colors duration-100 ${
+        isSelected
+          ? 'bg-rh-green/15 ring-1 ring-rh-green/30'
+          : 'hover:bg-gray-200/50 dark:hover:bg-white/[0.06]'
+      }`}
+    >
+      <span className={`text-[11px] font-semibold whitespace-nowrap ${
+        isSelected ? 'text-rh-green' : 'text-rh-light-text dark:text-white/70'
+      }`}>
+        {item.label || item.ticker}
+      </span>
+      <span
+        ref={priceRef}
+        className="text-[11px] font-medium text-rh-light-muted dark:text-white/50 tabular-nums whitespace-nowrap"
+      >
+        {formatPrice(item.price)}
+      </span>
+      <span
+        ref={changeRef}
+        className={`text-[11px] font-semibold tabular-nums whitespace-nowrap ${changeColorClass(item.changePercent)}`}
+      >
+        {formatChange(item.changePercent)}
+      </span>
+      <span className="text-[9px] text-rh-light-muted/40 dark:text-white/15 ml-1.5 select-none" aria-hidden="true">
+        &bull;
+      </span>
+    </button>
+  );
+}
+
 export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps) {
   const isDesktop = useIsDesktop();
   const [paused, setPaused] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Build the tape: on desktop skip indices (already shown above), on mobile include them
-  const items = useMemo(() => {
+  // Build stable ticker list — only changes when tickers are added/removed, NOT on price updates
+  const tickerKeys = useMemo(() => {
     const seen = new Set<string>();
-    const result: TickerTapeItem[] = [];
-
+    const keys: string[] = [];
     if (!isDesktop) {
       for (const idx of indices) {
         const key = idx.ticker.toUpperCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          result.push(idx);
-        }
+        if (!seen.has(key)) { seen.add(key); keys.push(key); }
       }
     }
-
     for (const h of holdings) {
       const key = h.ticker.toUpperCase();
-      // On desktop, also skip index tickers from holdings
       if (isDesktop && INDEX_TICKERS.has(key)) continue;
-      if (!seen.has(key)) {
-        seen.add(key);
-        result.push(h);
-      }
+      if (!seen.has(key)) { seen.add(key); keys.push(key); }
     }
+    return keys;
+  }, [
+    // Only recompute when the SET of tickers changes, not prices
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    holdings.map(h => h.ticker).join(','),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    indices.map(i => i.ticker).join(','),
+    isDesktop,
+  ]);
 
-    return result;
-  }, [holdings, indices, isDesktop]);
+  // Live lookup map — updated every render but doesn't trigger list rebuild
+  const dataMap = useMemo(() => {
+    const map = new Map<string, TickerTapeItem>();
+    for (const idx of indices) map.set(idx.ticker.toUpperCase(), idx);
+    for (const h of holdings) map.set(h.ticker.toUpperCase(), h);
+    return map;
+  }, [holdings, indices]);
 
-  // Handle tap on mobile: first tap = select + pause, second tap = navigate
   const handleItemClick = useCallback((ticker: string) => {
     if (isDesktop) {
       onTickerClick(ticker);
       return;
     }
-    // Mobile: two-tap pattern
     if (selectedTicker === ticker) {
-      // Second tap — navigate to stock
       setSelectedTicker(null);
       setPaused(false);
       onTickerClick(ticker);
     } else {
-      // First tap — select and pause
       setSelectedTicker(ticker);
       setPaused(true);
     }
   }, [isDesktop, selectedTicker, onTickerClick]);
 
-  // Tap outside deselects and resumes scrolling
   useEffect(() => {
     if (!paused || isDesktop) return;
     const handler = (e: TouchEvent | MouseEvent) => {
@@ -103,45 +176,20 @@ export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps
     };
   }, [paused, isDesktop]);
 
-  if (items.length === 0) return null;
+  if (tickerKeys.length === 0) return null;
 
-  const duration = Math.min(Math.max(items.length * 3, 20), 60);
+  const duration = Math.min(Math.max(tickerKeys.length * 3, 20), 60);
 
-  const renderItem = (item: TickerTapeItem, idx: number) => {
-    const positive = item.changePercent >= 0;
-    const flat = isEffectivelyZero(item.changePercent);
-    const changeColor = flat
-      ? 'text-rh-light-muted dark:text-rh-muted'
-      : positive
-        ? 'text-rh-green'
-        : 'text-rh-red';
-    const isSelected = selectedTicker === item.ticker;
-
+  const renderItem = (ticker: string, idx: number) => {
+    const item = dataMap.get(ticker);
+    if (!item) return null;
     return (
-      <button
-        key={`${item.ticker}-${idx}`}
-        onClick={() => handleItemClick(item.ticker)}
-        className={`flex items-center gap-1 shrink-0 cursor-pointer rounded px-1.5 py-0.5 transition-colors duration-100 ${
-          isSelected
-            ? 'bg-rh-green/15 ring-1 ring-rh-green/30'
-            : 'hover:bg-gray-200/50 dark:hover:bg-white/[0.06]'
-        }`}
-      >
-        <span className={`text-[11px] font-semibold whitespace-nowrap ${
-          isSelected ? 'text-rh-green' : 'text-rh-light-text dark:text-white/70'
-        }`}>
-          {item.label || item.ticker}
-        </span>
-        <span className="text-[11px] font-medium text-rh-light-muted dark:text-white/50 tabular-nums whitespace-nowrap">
-          {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </span>
-        <span className={`text-[11px] font-semibold tabular-nums whitespace-nowrap ${changeColor}`}>
-          {flat ? '0.00' : (positive ? '+' : '') + item.changePercent.toFixed(2)}%
-        </span>
-        <span className="text-[9px] text-rh-light-muted/40 dark:text-white/15 ml-1.5 select-none" aria-hidden="true">
-          &bull;
-        </span>
-      </button>
+      <TickerItem
+        key={`${ticker}-${idx}`}
+        item={item}
+        isSelected={selectedTicker === ticker}
+        onClick={() => handleItemClick(ticker)}
+      />
     );
   };
 
@@ -160,8 +208,8 @@ export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps
           width: 'max-content',
         }}
       >
-        {items.map((item, idx) => renderItem(item, idx))}
-        {items.map((item, idx) => renderItem(item, idx + items.length))}
+        {tickerKeys.map((t, i) => renderItem(t, i))}
+        {tickerKeys.map((t, i) => renderItem(t, i + tickerKeys.length))}
       </div>
     </div>
   );
