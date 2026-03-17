@@ -352,6 +352,29 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     return () => { stale = true; };
   }, [userId, currentUserId]);
 
+  // Poll profile + portfolio data every 30s for non-owner viewers so privacy changes propagate in real time
+  useEffect(() => {
+    if (isOwner || !profile?.profilePublic) return;
+    const interval = setInterval(() => {
+      if (!document.hasFocus()) return;
+      getUserProfile(userId, currentUserId)
+        .then(p => setProfile(p))
+        .catch(() => {});
+      getUserPortfolio(userId)
+        .then((p) => {
+          const sorted = [...p.holdings].sort((a, b) => b.profitLossPercent - a.profitLossPercent).slice(0, 5);
+          const total = p.holdingsValue || sorted.reduce((s, h) => s + h.currentValue, 0);
+          setTopHoldings(sorted.map(h => ({
+            ticker: h.ticker,
+            weight: total > 0 ? (h.currentValue / total) * 100 : 0,
+            returnPct: h.profitLossPercent,
+          })));
+        })
+        .catch(() => {});
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [userId, currentUserId, isOwner, profile?.profilePublic]);
+
   const handleSocialTab = async (tab: 'followers' | 'following') => {
     if (socialTab === tab) { setSocialTab(null); return; }
     setSocialTab(tab);
@@ -437,7 +460,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const isCreatorProfile = profile?.creator?.status === 'active' && !isOwner;
   const viewerHasAccess = entitlement?.level === 'paid';
   const creatorVis = profile?.creator?.visibility;
-  const lockHoldings = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showHoldings;
+  const holdingsPrivate = !isOwner && profile?.holdingsVisibility !== 'all';
+  const lockHoldings = holdingsPrivate || (isCreatorProfile && !viewerHasAccess && !!creatorVis?.showHoldings);
   const lockSignal = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showRiskMetrics;
   const lockActivity = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showTradeHistory;
 
@@ -968,13 +992,27 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {/* ═══════════════════════════════════════════════════════════════
           2b. TOP HOLDINGS PREVIEW
           ═══════════════════════════════════════════════════════════════ */}
+      {profile.profilePublic && !isOwner && holdingsPrivate && topHoldings.length === 0 && (
+        <motion.div
+          variants={itemVariants}
+          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 text-center"
+        >
+          <div className="flex flex-col items-center gap-2 py-3">
+            <svg className="w-6 h-6 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            <p className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">Holdings are private</p>
+            <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/50">This user has chosen to keep their holdings private</p>
+          </div>
+        </motion.div>
+      )}
       {profile.profilePublic && topHoldings.length > 0 && (
         <motion.div
           variants={itemVariants}
           className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
         >
           <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
-          {lockHoldings && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
+          {lockHoldings && !holdingsPrivate && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
           <div className={lockHoldings ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="flex items-center gap-3 px-1.5 mb-1">
             <span className="w-16 shrink-0"></span>
