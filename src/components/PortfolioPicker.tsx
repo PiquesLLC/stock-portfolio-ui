@@ -177,7 +177,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
         </>
       )}
       {/* Delete confirmation modal — portaled to document.body for true centering */}
-      {confirmDelete && (() => {
+      {confirmDelete && typeof document !== 'undefined' && document.body && (() => {
         const p = displayPortfolios.find(x => x.id === confirmDelete);
         if (!p) return null;
         return createPortal(
