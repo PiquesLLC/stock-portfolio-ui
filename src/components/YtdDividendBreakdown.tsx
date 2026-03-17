@@ -109,14 +109,14 @@ export function YtdDividendBreakdown({ refreshTrigger, onTickerClick, portfolioI
 
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
+      <div className="mb-4">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">
           YTD Dividends Received
-        </h3>
-        <div className="text-right">
-          <span className="text-lg font-bold text-rh-green">{formatCurrency(data.netIncome)}</span>
+        </p>
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-rh-green">{formatCurrency(data.netIncome)}</span>
           {data.totalDismissed > 0 && (
-            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted ml-2">
+            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
               ({formatCurrency(data.totalDismissed)} dismissed)
             </span>
           )}

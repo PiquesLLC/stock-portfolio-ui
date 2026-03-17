@@ -695,17 +695,15 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
 
   return (
     <div className="space-y-6">
-      {/* Top Row: Health Score + Key Drivers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <IncomeHealthScore data={data.healthScore} />
-        <IncomeKeyDrivers drivers={data.keyDrivers} />
-      </div>
+      {/* Health Score */}
+      <IncomeHealthScore data={data.healthScore} />
 
-      {/* Signal Cards */}
-      <IncomeSignalCards signals={data.signals} cashInterest={cashInterest} annualSalary={annualSalary} />
-
-      {/* DRIP Income Projector */}
+      {/* DRIP Income Projector — hero position */}
       <DripProjector refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} portfolioId={portfolioId} />
+
+      {/* Key Drivers + Signal Cards */}
+      <IncomeKeyDrivers drivers={data.keyDrivers} />
+      <IncomeSignalCards signals={data.signals} cashInterest={cashInterest} annualSalary={annualSalary} />
 
       {/* YTD Dividend Breakdown */}
       <YtdDividendBreakdown refreshTrigger={refreshTrigger} onTickerClick={onTickerClick} portfolioId={portfolioId} onDismissChange={() => setDismissTrigger(n => n + 1)} />
