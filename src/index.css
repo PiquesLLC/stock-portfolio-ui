@@ -55,6 +55,15 @@ html {
   50%      { box-shadow: 0 0 18px 4px rgba(0, 200, 5, 0.15), inset 0 0 12px 0 rgba(0, 200, 5, 0.03); }
 }
 
+/* Ticker tape — continuous horizontal scroll */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-tape-track:hover {
+  animation-play-state: paused !important;
+}
+
 /* Energetic pulse animation for OPEN badge */
 @keyframes breathing {
   0%, 100% { opacity: 1; transform: scale(1); }

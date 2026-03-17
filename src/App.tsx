@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
-import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord } from './api';
+import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord, getFastQuote } from './api';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -31,6 +31,7 @@ import PortfolioPicker from './components/PortfolioPicker';
 
 import Starfield from './components/Starfield';
 import { MarketStrip } from './components/MarketStrip';
+import { TickerTape, TickerTapeItem } from './components/TickerTape';
 import { Term } from './components/Term';
 
 import { formatCurrency, formatPercent } from './utils/format';
@@ -282,6 +283,38 @@ export default function App() {
   });
 
   const jobAlerts = useJobAlerts(!!user?.isWaitlistAdmin);
+
+  // Ticker tape — index quotes for the scrolling tape
+  const [tickerIndices, setTickerIndices] = useState<TickerTapeItem[]>([]);
+  const tickerIndicesIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated || !portfolio?.holdings?.length) return;
+    const TAPE_INDICES = [
+      { ticker: 'SPY', label: 'S&P 500' },
+      { ticker: 'QQQ', label: 'Nasdaq' },
+      { ticker: 'DIA', label: 'Dow' },
+    ];
+    const fetchIndices = async () => {
+      try {
+        const results = await Promise.allSettled(
+          TAPE_INDICES.map(async ({ ticker, label }) => {
+            const q = await getFastQuote(ticker);
+            return { ticker, label, price: q.currentPrice, changePercent: q.changePercent };
+          })
+        );
+        const filled: TickerTapeItem[] = [];
+        for (const r of results) {
+          if (r.status === 'fulfilled') filled.push(r.value);
+        }
+        if (filled.length > 0) setTickerIndices(filled);
+      } catch { /* keep existing */ }
+    };
+    fetchIndices();
+    tickerIndicesIntervalRef.current = setInterval(fetchIndices, 30_000);
+    return () => {
+      if (tickerIndicesIntervalRef.current) clearInterval(tickerIndicesIntervalRef.current);
+    };
+  }, [isAuthenticated, !!portfolio?.holdings?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore admin view from URL hash AFTER auth confirms admin status.
   // Uses _initialAdminHash (captured at module load) because the nav sync effect
@@ -563,6 +596,18 @@ export default function App() {
   const portfolioTickers = useMemo(() => {
     if (!portfolio?.holdings) return new Set<string>();
     return new Set(portfolio.holdings.map(h => h.ticker.toUpperCase()));
+  }, [portfolio?.holdings]);
+
+  // Build ticker tape holdings from portfolio data
+  const tickerHoldings = useMemo<TickerTapeItem[]>(() => {
+    if (!portfolio?.holdings) return [];
+    return portfolio.holdings
+      .filter(h => h.currentPrice > 0)
+      .map(h => ({
+        ticker: h.ticker,
+        price: h.currentPrice,
+        changePercent: h.dayChangePercent,
+      }));
   }, [portfolio?.holdings]);
 
   if (authLoading) {
@@ -1288,6 +1333,15 @@ export default function App() {
       {/* Market indices strip — portfolio, discover, insights only */}
       {!viewingStock && !settingsView && !creatorView && !adminView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
         <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
+      )}
+
+      {/* Scrolling ticker tape — shown when logged in with holdings */}
+      {isAuthenticated && tickerHoldings.length > 0 && !viewingStock && !settingsView && !creatorView && !adminView && (
+        <TickerTape
+          holdings={tickerHoldings}
+          indices={tickerIndices}
+          onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+        />
       )}
 
       {/* Pull-to-refresh indicator */}
