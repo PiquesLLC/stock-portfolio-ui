@@ -242,13 +242,7 @@ export default function App() {
     try {
       const scopedKey = `nala:selectedPortfolioId:${currentUserId}`;
       const scopedValue = localStorage.getItem(scopedKey);
-      if (scopedValue) {
-        setSelectedPortfolioId(scopedValue);
-        return;
-      }
-
-      const legacyValue = localStorage.getItem('nala:selectedPortfolioId');
-      setSelectedPortfolioId(legacyValue || undefined);
+      setSelectedPortfolioId(scopedValue || undefined);
     } catch {
       setSelectedPortfolioId(undefined);
     }
