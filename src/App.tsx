@@ -310,7 +310,7 @@ export default function App() {
       } catch { /* keep existing */ }
     };
     fetchIndices();
-    tickerIndicesIntervalRef.current = setInterval(fetchIndices, 30_000);
+    tickerIndicesIntervalRef.current = setInterval(fetchIndices, 10_000);
     return () => {
       if (tickerIndicesIntervalRef.current) clearInterval(tickerIndicesIntervalRef.current);
     };
