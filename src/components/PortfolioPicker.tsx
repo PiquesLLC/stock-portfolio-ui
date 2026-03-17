@@ -116,10 +116,27 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
 
         if (isConfirmingDelete) {
           return (
-            <div key={p.id} className="flex items-center gap-2 px-2.5 py-1">
-              <span className="text-[11px] text-red-400">Delete?</span>
-              <button onClick={() => handleDelete(p.id)} className="text-[11px] text-red-400 font-semibold hover:text-red-300">Y</button>
-              <button onClick={() => setConfirmDelete(null)} className="text-[11px] text-white/40 hover:text-white/60">N</button>
+            <div key={p.id} className="px-2.5 py-2 space-y-2">
+              <p className="text-[11px] text-gray-700 dark:text-white/70">
+                Are you sure you want to delete <strong className="text-gray-900 dark:text-white">{p.name}</strong>?
+                {(p.holdingsCount ?? 0) > 0 && (
+                  <span className="text-red-400"> ({p.holdingsCount} holdings will be removed)</span>
+                )}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="flex-1 text-[11px] font-semibold py-1 rounded bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors"
+                >
+                  Yes, delete
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 text-[11px] font-medium py-1 rounded bg-gray-200/50 dark:bg-white/[0.06] text-gray-600 dark:text-white/50 hover:text-gray-800 dark:hover:text-white/70 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           );
         }
@@ -135,10 +152,10 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
               }`}
           >
             <span className="truncate">{p.name}</span>
-            {!p.isDefault && p.holdingsCount === 0 && (
+            {!p.isDefault && (
               <svg
                 onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
-                className="w-2.5 h-2.5 ml-auto shrink-0 text-transparent group-hover:text-white/20 hover:!text-red-400 cursor-pointer transition-colors"
+                className="w-3 h-3 ml-auto shrink-0 text-gray-300 dark:text-white/15 group-hover:text-gray-400 dark:group-hover:text-white/30 hover:!text-red-400 cursor-pointer transition-colors"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
