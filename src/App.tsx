@@ -1335,8 +1335,8 @@ export default function App() {
         <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
       )}
 
-      {/* Scrolling ticker tape — shown when logged in with holdings */}
-      {isAuthenticated && tickerHoldings.length > 0 && !viewingStock && !settingsView && !creatorView && !adminView && (
+      {/* Scrolling ticker tape — shown when logged in */}
+      {isAuthenticated && (tickerHoldings.length > 0 || tickerIndices.length > 0) && !viewingStock && !settingsView && !creatorView && !adminView && (
         <TickerTape
           holdings={tickerHoldings}
           indices={tickerIndices}
