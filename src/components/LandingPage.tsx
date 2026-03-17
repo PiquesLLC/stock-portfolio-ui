@@ -227,7 +227,7 @@ export function LandingPage() {
       } else if (authMode === 'forgot-password') {
         if (!resetEmail.trim() || !isValidEmail(resetEmail)) { setError('Please enter a valid email address'); return; }
         try {
-          console.log('[forgot-password] email:', resetEmail.trim(), 'url:', `${NATIVE_PUBLIC_API_URL}/auth/forgot-password`, 'nativeShell=', isNativeRecoveryShell());
+          console.log('[forgot-password] sending reset request', 'nativeShell=', isNativeRecoveryShell());
           await sendResetCodeDirect(resetEmail);
           console.log('[forgot-password] success');
           setAuthMode('reset-password'); setError('');
