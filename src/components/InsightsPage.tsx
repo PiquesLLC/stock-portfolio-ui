@@ -585,18 +585,16 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       {/* Sub-tabs */}
       <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
 
-      {/* Portfolio Intelligence (includes Attribution Pulse) */}
-      {intelligence ? (
-        <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} session={session} />
-      ) : (
+      {/* Show loader until intelligence is ready — everything reveals together */}
+      {!intelligence ? (
         <IntelligenceLoader />
+      ) : (
+        <>
+          <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} session={session} />
+          {healthScore && <HealthScore data={healthScore} />}
+          <PerformanceReportCard portfolioId={portfolioId} />
+        </>
       )}
-
-      {/* Health Score */}
-      {healthScore && <HealthScore data={healthScore} />}
-
-      {/* Performance Report (Elite) */}
-      <PerformanceReportCard portfolioId={portfolioId} />
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (
