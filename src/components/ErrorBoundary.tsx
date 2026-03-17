@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
       // Show error details to devs (localhost) and admins (check cached user)
       let isAdmin = this.props.isAdmin || false;
       try {
-        const cached = localStorage.getItem('nala_user');
+        const cached = localStorage.getItem('nala_auth_user');
         if (cached) isAdmin = JSON.parse(cached)?.isWaitlistAdmin === true;
       } catch { /* ignore */ }
       const showDetails = import.meta.env.DEV || isAdmin;
