@@ -11,7 +11,7 @@ import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
 import { EarningsTab } from './EarningsTab';
 import { EarningsPreview } from './EarningsPreview';
-import { SkeletonCard } from './SkeletonCard';
+
 import { PremiumOverlay } from './PremiumOverlay';
 import { ETFOverlap } from './ETFOverlap';
 import { TaxHarvest } from './TaxHarvest';
@@ -21,6 +21,82 @@ import { clearInsightsCache, INSIGHTS_CACHE_TTL_MS, insightsCache } from '../uti
 import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 type InsightsSubTab = 'intelligence' | 'income' | 'projections-goals' | 'ai-briefing' | 'ai-behavior' | 'allocation' | 'what-if' | 'earnings' | 'etf-overlap' | 'tax-harvest';
+
+const INTELLIGENCE_STEPS = [
+  'Scanning portfolio events',
+  'Analyzing earnings & dividends',
+  'Evaluating analyst activity',
+  'Building intelligence report',
+];
+
+function IntelligenceLoader() {
+  const [activeStep, setActiveStep] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const fullText = INTELLIGENCE_STEPS[activeStep] || '';
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep(prev => (prev < INTELLIGENCE_STEPS.length - 1 ? prev + 1 : prev));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setTypedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      if (i <= fullText.length) setTypedText(fullText.slice(0, i));
+      else clearInterval(interval);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [activeStep, fullText]);
+
+  return (
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 rounded-xl bg-rh-green/10 border border-rh-green/20 flex items-center justify-center shrink-0">
+          <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-rh-light-text dark:text-white">Gathering Intelligence</p>
+          <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25">Powered by NALA</p>
+        </div>
+      </div>
+      <div className="space-y-2.5">
+        {INTELLIGENCE_STEPS.map((step, i) => {
+          const isActive = i === activeStep;
+          const isDone = i < activeStep;
+          return (
+            <div key={i} className={`flex items-center gap-2.5 transition-all duration-500 ${isActive ? 'opacity-100' : isDone ? 'opacity-40' : 'opacity-15'}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-500 ${
+                isDone ? 'bg-rh-green/20 text-rh-green' : isActive ? 'bg-rh-green text-black' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-white/30'
+              }`}>
+                {isDone ? (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (i + 1)}
+              </div>
+              <span className={`text-[12px] transition-all duration-500 ${isActive ? 'text-rh-light-text dark:text-white font-medium' : isDone ? 'text-rh-light-muted dark:text-white/50' : 'text-rh-light-muted/50 dark:text-white/30'}`}>
+                {isActive ? typedText : step}
+                {isActive && <span className="inline-block w-[2px] h-[12px] bg-rh-green ml-0.5 align-middle animate-pulse" />}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 h-1 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-rh-green/60 to-rh-green rounded-full transition-all duration-[3000ms] ease-linear"
+          style={{ width: `${Math.min(95, ((activeStep + 1) / INTELLIGENCE_STEPS.length) * 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 const PRIMARY_COUNT_MOBILE = 3;
 
@@ -490,18 +566,13 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
     );
   }
 
-  // Show initial loading only if we have no cached data at all
+  // Show step loader for Intelligence tab until all data is ready
   if (!initialLoadComplete && !hasAnyData) {
     return (
       <div className="space-y-3">
         {portfolioPicker}
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
-        <SkeletonCard lines={4} height="180px" />
-        <SkeletonCard lines={5} height="220px" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SkeletonCard lines={3} height="160px" />
-          <SkeletonCard lines={3} height="160px" />
-        </div>
+        <IntelligenceLoader />
       </div>
     );
   }
@@ -518,7 +589,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       {intelligence ? (
         <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} session={session} />
       ) : (
-        <SkeletonCard lines={5} height="220px" />
+        <IntelligenceLoader />
       )}
 
       {/* Health Score */}
