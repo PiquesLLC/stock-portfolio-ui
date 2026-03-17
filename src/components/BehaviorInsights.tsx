@@ -3,6 +3,82 @@ import { getBehaviorInsights, BehaviorInsightsResponse, BehaviorInsight } from '
 import { timeAgo } from '../utils/format';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
 
+const BEHAVIOR_STEPS = [
+  'Reviewing your trade history',
+  'Detecting behavioral patterns',
+  'Evaluating risk habits',
+  'Writing coaching insights',
+];
+
+function BehaviorLoader() {
+  const [activeStep, setActiveStep] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const fullText = BEHAVIOR_STEPS[activeStep] || '';
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep(prev => (prev < BEHAVIOR_STEPS.length - 1 ? prev + 1 : prev));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setTypedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      if (i <= fullText.length) setTypedText(fullText.slice(0, i));
+      else clearInterval(interval);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [activeStep, fullText]);
+
+  return (
+    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+          <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-rh-light-text dark:text-white">Analyzing Behavior</p>
+          <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25">Powered by NALA AI</p>
+        </div>
+      </div>
+      <div className="space-y-2.5">
+        {BEHAVIOR_STEPS.map((step, i) => {
+          const isActive = i === activeStep;
+          const isDone = i < activeStep;
+          return (
+            <div key={i} className={`flex items-center gap-2.5 transition-all duration-500 ${isActive ? 'opacity-100' : isDone ? 'opacity-40' : 'opacity-15'}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-500 ${
+                isDone ? 'bg-purple-500/20 text-purple-400' : isActive ? 'bg-purple-500 text-white' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-white/30'
+              }`}>
+                {isDone ? (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (i + 1)}
+              </div>
+              <span className={`text-[12px] transition-all duration-500 ${isActive ? 'text-rh-light-text dark:text-white font-medium' : isDone ? 'text-rh-light-muted dark:text-white/50' : 'text-rh-light-muted/50 dark:text-white/30'}`}>
+                {isActive ? typedText : step}
+                {isActive && <span className="inline-block w-[2px] h-[12px] bg-purple-400 ml-0.5 align-middle animate-pulse" />}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 h-1 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-purple-500/60 to-purple-400 rounded-full transition-all duration-[3000ms] ease-linear"
+          style={{ width: `${Math.min(95, ((activeStep + 1) / BEHAVIOR_STEPS.length) * 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Severity styles ──────────────────────────────────────────────
 const SEVERITY_STYLES: Record<BehaviorInsight['severity'], { border: string; badge: string; badgeText: string; priorityBorder: string }> = {
   positive: {
@@ -171,25 +247,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
 
   // ── Loading state ──────────────────────────────────────────────
   if (loading && !data) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 animate-pulse">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100/60 dark:bg-white/[0.06]" />
-            <div className="flex-1">
-              <div className="h-4 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/3 mb-2" />
-              <div className="h-3 bg-gray-100/60 dark:bg-white/[0.06] rounded w-1/4" />
-            </div>
-          </div>
-          <div className="h-12 bg-gray-100/60 dark:bg-white/[0.06] rounded mb-4" />
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-12 bg-gray-100/60 dark:bg-white/[0.06] rounded" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <BehaviorLoader />;
   }
 
   // ── Error state ────────────────────────────────────────────────
