@@ -29,8 +29,8 @@ export function ConfirmModal({ title, message, confirmLabel = 'Confirm', cancelL
     };
   }, [onCancel]);
 
-  return createPortal(
-    <div className="fixed inset-0 z-[999] flex items-center justify-center" role="dialog" aria-modal="true" onClick={onCancel}>
+  const modal = (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" role="dialog" aria-modal="true" onClick={onCancel}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
         ref={trapRef}
@@ -59,7 +59,12 @@ export function ConfirmModal({ title, message, confirmLabel = 'Confirm', cancelL
           </button>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
+
+  if (typeof document === 'undefined') {
+    return modal;
+  }
+
+  return createPortal(modal, document.body);
 }

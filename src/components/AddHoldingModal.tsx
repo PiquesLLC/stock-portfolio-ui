@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Holding } from '../types';
 import { addHolding } from '../api';
 import { useToast } from '../context/ToastContext';
@@ -53,7 +54,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
     }
   };
 
-  return (
+  const modal = (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
@@ -130,4 +131,10 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return modal;
+  }
+
+  return createPortal(modal, document.body);
 }
