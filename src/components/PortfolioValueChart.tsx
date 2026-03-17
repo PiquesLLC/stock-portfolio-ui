@@ -78,7 +78,8 @@ const HERO_VALUE_ANIMATIONS = [
 ] as const;
 
 // Periods available on the free plan
-const FREE_PERIODS: Set<PortfolioChartPeriod> = new Set(['1D', '1W', 'YTD']);
+// All periods available to all users — no plan gating on chart periods
+const FREE_PERIODS: Set<PortfolioChartPeriod> = new Set(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', 'ALL']);
 
 export function PortfolioValueChart({
   currentValue,
