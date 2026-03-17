@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
 import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord } from './api';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
@@ -1364,6 +1365,15 @@ export default function App() {
           </Suspense>
         )}
 
+        <AnimatePresence mode="wait">
+        <motion.div
+          key={settingsView ? 'settings' : (creatorView || adminView || activeTab)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="space-y-6 sm:space-y-8"
+        >
         {!settingsView && !creatorView && !adminView && activeTab === 'portfolio' && !viewingStock && !compareStocks && (
           <>
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
@@ -1818,6 +1828,8 @@ export default function App() {
           )}
 
         </Suspense>
+        </motion.div>
+        </AnimatePresence>
       </main>
 
       <footer className="relative z-[3] border-t border-rh-light-border/30 dark:border-rh-border/30 mt-4 py-4">

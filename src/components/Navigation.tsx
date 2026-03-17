@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 
 export type TabType = 'portfolio' | 'nala' | 'insights' | 'watchlists' | 'discover' | 'macro' | 'leaderboard' | 'feed' | 'pricing' | 'profile';
 
@@ -151,8 +152,10 @@ export function Navigation({
         {/* Desktop: show all tabs in a row */}
         <div className="hidden sm:flex items-center gap-1">
           {allTabs.map((tab) => (
-            <button
+            <motion.button
               key={tab.id}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               onClick={() => onTabChange(tab.id)}
               className={`group flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-all duration-200 relative
                 ${activeTab === tab.id
@@ -170,7 +173,7 @@ export function Navigation({
               {activeTab !== tab.id && (
                 <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-current rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
               )}
-            </button>
+            </motion.button>
           ))}
         </div>
 
@@ -191,7 +194,9 @@ export function Navigation({
             const lit = isDragging ? isUnderFinger : isActive;
             return (
             <div key={tab.id} className="relative" ref={tab.id === 'portfolio' ? portfolioMenuRef : undefined}>
-              <button
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 data-tab-id={tab.id}
                 onClick={(e) => {
                   if (ignoreNextClick.current) {
@@ -220,7 +225,7 @@ export function Navigation({
                 <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
                   (lit || showPortfolioActive) ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
                 }`} />
-              </button>
+              </motion.button>
               {tab.id === 'portfolio' && portfolioMenuOpen && portfolioMenu && (
                 <div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#1c1c1f] shadow-[0_8px_32px_rgba(0,0,0,0.3)] py-1 px-0.5" data-no-tab-swipe>
                   {portfolioMenu}
@@ -232,7 +237,9 @@ export function Navigation({
 
           {/* More button + dropdown */}
           <div ref={moreRef} className="relative">
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               onClick={() => setMoreOpen(prev => !prev)}
               className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
                 ${isOverflowActive
@@ -247,7 +254,7 @@ export function Navigation({
               <span className={`absolute bottom-0 left-2 right-2 h-0.5 bg-rh-green rounded-full nav-underline ${
                 isOverflowActive ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
               }`} />
-            </button>
+            </motion.button>
 
             {moreOpen && (
               <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] py-1 rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1b]" data-no-tab-swipe>

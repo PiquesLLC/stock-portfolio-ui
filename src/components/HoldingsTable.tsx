@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Reorder } from 'framer-motion';
+import { Reorder, motion } from 'framer-motion';
+import { staggerContainer, staggerItem } from '../utils/animations';
 import { Holding } from '../types';
 import { useToast } from '../context/ToastContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -1110,8 +1111,12 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               <th className="w-0 px-4 py-3 font-medium"></th>
             </tr>
           </thead>
-          <tbody>
-            {sortedHoldings.map((holding) => {
+          <motion.tbody
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
+            {sortedHoldings.map((holding, _sIdx) => {
               const isUnavailable = holding.priceUnavailable;
               const isRepricing = holding.isRepricing || holding.priceIsStale;
               const hasValidPrice = !isUnavailable && holding.currentPrice > 0;
@@ -1119,7 +1124,8 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
               return (
                 <React.Fragment key={holding.id}>
-                <tr
+                <motion.tr
+                  variants={staggerItem}
                   data-search-match={isSearchMatch ? 'true' : 'false'}
                   className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''} ${hasActiveFilter ? (isSearchMatch ? 'bg-rh-green/10 ring-1 ring-inset ring-rh-green/20' : 'opacity-55') : ''}`}
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
@@ -1221,7 +1227,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                       </button>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
                 {viewMode === 'detailed' && hasValidPrice && (
                   <tr className="md:hidden border-b border-rh-light-border/10 dark:border-rh-border/10">
                     <td colSpan={99} className="px-4 py-1 pb-2">
@@ -1242,7 +1248,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                 </React.Fragment>
               );
             })}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 
