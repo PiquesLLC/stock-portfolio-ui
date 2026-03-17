@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { PortfolioRecord, listPortfolios, createPortfolio, deletePortfolio } from '../api';
 import { normalizePortfolioTabs } from '../utils/portfolioDisplay';
 
@@ -175,11 +176,11 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
           )}
         </>
       )}
-      {/* Delete confirmation modal */}
+      {/* Delete confirmation modal — portaled to document.body for true centering */}
       {confirmDelete && (() => {
         const p = displayPortfolios.find(x => x.id === confirmDelete);
         if (!p) return null;
-        return (
+        return createPortal(
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}>
             <div className="bg-white dark:bg-[#1a1a1e] rounded-2xl shadow-2xl p-6 w-[320px] mx-4 border border-gray-200/60 dark:border-white/[0.08]" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/10">
@@ -209,7 +210,8 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         );
       })()}
     </div>
