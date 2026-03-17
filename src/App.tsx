@@ -1601,7 +1601,11 @@ export default function App() {
                 ) : (
                   <>
                     {/* Left card: Benchmark + Day/Total P/L */}
-                    <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl shadow-sm shadow-black/[0.03] dark:shadow-none overflow-hidden">
+                    <div className={`bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl overflow-hidden ${
+                      portfolio.dayChange >= 0
+                        ? 'shadow-[0_0_25px_rgba(0,200,5,0.09)]'
+                        : 'shadow-sm shadow-black/[0.03] dark:shadow-none'
+                    }`}>
                       <BenchmarkWidget refreshTrigger={portfolioRefreshCount} window={chartPeriod} chartReturnPct={chartReturnPct} portfolioId={selectedPortfolioId} />
                       <div className="border-t border-rh-light-border/30 dark:border-white/[0.04]" />
                       <div className="px-5 py-4 space-y-2">
@@ -1638,8 +1642,12 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Right card: Assets/Equity + Dividends */}
-                    <div className="bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl shadow-sm shadow-black/[0.03] dark:shadow-none overflow-hidden">
+                    {/* Right card: Assets/Equity + Dividends — green glow matches left card on green days */}
+                    <div className={`bg-rh-light-card dark:bg-white/[0.015] border border-rh-light-border/40 dark:border-white/[0.04] rounded-xl overflow-hidden ${
+                      portfolio.dayChange >= 0
+                        ? 'shadow-[0_0_25px_rgba(0,200,5,0.09)]'
+                        : 'shadow-sm shadow-black/[0.03] dark:shadow-none'
+                    }`}>
                       <div className="px-5 py-4 space-y-2">
                         <div>
                           <span className="text-xs font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/55"><Term beginner="Total Value" advanced="Assets" /></span>

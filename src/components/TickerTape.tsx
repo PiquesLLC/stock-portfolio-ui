@@ -203,7 +203,10 @@ export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps
       <div
         className="flex items-center gap-3 ticker-tape-track"
         style={{
-          animation: `ticker-scroll ${duration}s linear infinite`,
+          animationName: 'ticker-scroll',
+          animationDuration: `${duration}s`,
+          animationTimingFunction: 'linear',
+          animationIterationCount: 'infinite',
           animationPlayState: paused ? 'paused' : 'running',
           width: 'max-content',
         }}
