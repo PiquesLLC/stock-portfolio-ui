@@ -112,34 +112,6 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     <div>
       {displayPortfolios.map(p => {
         const isActive = selectedPortfolioId === p.id;
-        const isConfirmingDelete = confirmDelete === p.id;
-
-        if (isConfirmingDelete) {
-          return (
-            <div key={p.id} className="px-2.5 py-2 space-y-2">
-              <p className="text-[11px] text-gray-700 dark:text-white/70">
-                Are you sure you want to delete <strong className="text-gray-900 dark:text-white">{p.name}</strong>?
-                {(p.holdingsCount ?? 0) > 0 && (
-                  <span className="text-red-400"> ({p.holdingsCount} holdings will be removed)</span>
-                )}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  className="flex-1 text-[11px] font-semibold py-1 rounded bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors"
-                >
-                  Yes, delete
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="flex-1 text-[11px] font-medium py-1 rounded bg-gray-200/50 dark:bg-white/[0.06] text-gray-600 dark:text-white/50 hover:text-gray-800 dark:hover:text-white/70 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          );
-        }
 
         return (
           <button
@@ -203,6 +175,43 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
           )}
         </>
       )}
+      {/* Delete confirmation modal */}
+      {confirmDelete && (() => {
+        const p = displayPortfolios.find(x => x.id === confirmDelete);
+        if (!p) return null;
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}>
+            <div className="bg-white dark:bg-[#1a1a1e] rounded-2xl shadow-2xl p-6 w-[320px] mx-4 border border-gray-200/60 dark:border-white/[0.08]" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/10">
+                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white text-center mb-1">Delete Portfolio</h3>
+              <p className="text-sm text-gray-500 dark:text-white/50 text-center mb-5">
+                Are you sure you want to delete <strong className="text-gray-800 dark:text-white/80">{p.name}</strong>?
+                {(p.holdingsCount ?? 0) > 0 && (
+                  <span className="block text-red-400 text-xs mt-1">{p.holdingsCount} holding{p.holdingsCount === 1 ? '' : 's'} will be permanently removed.</span>
+                )}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
