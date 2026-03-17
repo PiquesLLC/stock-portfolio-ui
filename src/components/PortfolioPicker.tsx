@@ -78,7 +78,9 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
     }
   };
 
+  const [deleting, setDeleting] = useState(false);
   const handleDelete = async (id: string) => {
+    setDeleting(true);
     try {
       await deletePortfolio(id);
       setPortfolios(prev => prev.filter(p => p.id !== id));
@@ -86,8 +88,11 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
       if (selectedPortfolioId === id) {
         onSelect(undefined);
       }
-    } catch {
+    } catch (err: any) {
+      console.error('Portfolio delete failed:', err);
       setConfirmDelete(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -204,9 +209,10 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
                 </button>
                 <button
                   onClick={() => handleDelete(p.id)}
-                  className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  disabled={deleting}
+                  className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
                 >
-                  Delete
+                  {deleting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>
