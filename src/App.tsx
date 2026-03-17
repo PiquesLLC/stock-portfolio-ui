@@ -230,17 +230,38 @@ export default function App() {
   useBiometricUnlock();
   const initialNav = savedInitialNav;
   const currentUserId = user?.id || '';
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(() => {
-    try { return localStorage.getItem('nala:selectedPortfolioId') || undefined; } catch { return undefined; }
-  });
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(undefined);
 
-  // Persist portfolio selection across refreshes
+  // Persist portfolio selection per-user so account switches can't inherit another user's portfolio tab.
   useEffect(() => {
+    if (!currentUserId) {
+      setSelectedPortfolioId(undefined);
+      return;
+    }
+
     try {
-      if (selectedPortfolioId) localStorage.setItem('nala:selectedPortfolioId', selectedPortfolioId);
-      else localStorage.removeItem('nala:selectedPortfolioId');
+      const scopedKey = `nala:selectedPortfolioId:${currentUserId}`;
+      const scopedValue = localStorage.getItem(scopedKey);
+      if (scopedValue) {
+        setSelectedPortfolioId(scopedValue);
+        return;
+      }
+
+      const legacyValue = localStorage.getItem('nala:selectedPortfolioId');
+      setSelectedPortfolioId(legacyValue || undefined);
+    } catch {
+      setSelectedPortfolioId(undefined);
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    try {
+      const scopedKey = `nala:selectedPortfolioId:${currentUserId}`;
+      if (selectedPortfolioId) localStorage.setItem(scopedKey, selectedPortfolioId);
+      else localStorage.removeItem(scopedKey);
     } catch { /* ignore */ }
-  }, [selectedPortfolioId]);
+  }, [currentUserId, selectedPortfolioId]);
 
   const [userPortfolios, setUserPortfolios] = useState<PortfolioRecord[]>([]);
   const holdingsActionsRef = useRef<HoldingsTableActions | null>(null);

@@ -475,7 +475,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       // then set marginDebt = newTotalAssets - oldNetEquity. This prevents the bug where
       // cost basis != market value caused phantom portfolio value changes.
       if (formData.fundingSource === 'margin' && !isEditing) {
-        const freshPortfolio = await getPortfolio(userId);
+        const freshPortfolio = await getPortfolio(undefined, portfolioId);
         const newMarginDebt = freshPortfolio.totalAssets - oldNetEquity;
         if (newMarginDebt > 0) {
           await updateSettings({ marginDebt: newMarginDebt });
