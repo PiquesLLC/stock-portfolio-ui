@@ -120,7 +120,8 @@ export function PortfolioValueChart({
   // quote glitches from spiking the chart.
   const confirmedValueRef = useRef(currentValue);
   const pendingValueRef = useRef<number | null>(null);
-  const liveValue = useMemo(() => {
+  const [liveValue, setLiveValue] = useState(currentValue);
+  useEffect(() => {
     const prev = confirmedValueRef.current;
     const jumpPct = prev > 0 ? Math.abs(currentValue - prev) / prev : 0;
     // During after-hours, require confirmation for jumps > 0.3% in a single poll
@@ -130,17 +131,20 @@ export function PortfolioValueChart({
         // Second consecutive poll confirms the move — accept it
         confirmedValueRef.current = currentValue;
         pendingValueRef.current = null;
-        return currentValue;
+        setLiveValue(currentValue);
+        return;
       }
       // First poll with big jump — hold the old value, mark as pending
       pendingValueRef.current = currentValue;
-      return prev;
+      setLiveValue(prev);
+      return;
     }
     // Normal move or regular hours — accept immediately
     confirmedValueRef.current = currentValue;
     pendingValueRef.current = null;
-    return currentValue;
+    setLiveValue(currentValue);
   }, [currentValue, session]);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -328,16 +332,20 @@ export function PortfolioValueChart({
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
-  // ── Click outside chart clears measurement ────────────────────
+  // ── Click/tap outside chart clears measurement ────────────────────
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (svgRef.current && !svgRef.current.contains(e.target as Node)) {
         setMeasureA(null);
         setMeasureB(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   // ── Clear stale measurement if points array shrinks (data refresh during gesture)
@@ -921,9 +929,9 @@ export function PortfolioValueChart({
   }, [measureA, measureB, points]);
 
   // Hover display
-  const hoverX = hoverIndex !== null ? toX(hoverIndex) : null;
-  const hoverY = hoverIndex !== null ? toY(points[hoverIndex].value) : null;
-  const hoverLabel = hoverIndex !== null ? (
+  const hoverX = hoverIndex !== null && points[hoverIndex] ? toX(hoverIndex) : null;
+  const hoverY = hoverIndex !== null && points[hoverIndex] ? toY(points[hoverIndex].value) : null;
+  const hoverLabel = hoverIndex !== null && points[hoverIndex] ? (
     selectedPeriod === '1D'
       ? new Date(points[hoverIndex].time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
       : new Date(points[hoverIndex].time).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -999,16 +1007,18 @@ export function PortfolioValueChart({
         rippleCooldownRef.current = true;
         setShowRipple(true);
         setRippleKey(k => k + 1);
-        setTimeout(() => setShowRipple(false), 3200);
-        setTimeout(() => { rippleCooldownRef.current = false; }, 2000);
+        rippleTimers.push(setTimeout(() => setShowRipple(false), 3200));
+        rippleTimers.push(setTimeout(() => { rippleCooldownRef.current = false; }, 2000));
       }
 
       idleRafRef.current = requestAnimationFrame(tick);
     };
 
+    const rippleTimers: ReturnType<typeof setTimeout>[] = [];
     idleRafRef.current = requestAnimationFrame(tick);
     return () => {
       if (idleRafRef.current) cancelAnimationFrame(idleRafRef.current);
+      rippleTimers.forEach(t => clearTimeout(t));
     };
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
@@ -1037,34 +1047,41 @@ export function PortfolioValueChart({
                 </span>
               </button>
               {portfolioBreakdown && (
-                <div className="relative group/info mt-2 sm:mt-3">
-                  <button className="w-4 h-4 rounded-full border border-rh-light-muted/20 dark:border-white/10 flex items-center justify-center text-[9px] font-medium text-rh-light-muted/30 dark:text-white/15 hover:border-rh-light-muted/40 dark:hover:border-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/35 transition-colors">
+                <div className="relative mt-2 sm:mt-3">
+                  <button
+                    onClick={() => setShowBreakdown(v => !v)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="w-4 h-4 rounded-full border border-rh-light-muted/20 dark:border-white/10 flex items-center justify-center text-[9px] font-medium text-rh-light-muted/30 dark:text-white/15 hover:border-rh-light-muted/40 dark:hover:border-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/35 transition-colors"
+                  >
                     i
                   </button>
-                  <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/[0.06] backdrop-blur-xl border border-gray-200/60 dark:border-white/[0.08] shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity duration-150 whitespace-nowrap z-20">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-6">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Assets</span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-6">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Equity</span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.netEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                      {portfolioBreakdown.cashBalance > 0 && (
+                  {showBreakdown && (
+                    <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/[0.06] backdrop-blur-xl border border-gray-200/60 dark:border-white/[0.08] shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] whitespace-nowrap z-20 animate-in fade-in duration-150">
+                      <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-6">
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-rh-green/60">Cash</span>
-                          <span className="text-xs font-bold text-rh-green">${portfolioBreakdown.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Assets</span>
+                          <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                      )}
-                      {portfolioBreakdown.marginDebt > 0 && (
                         <div className="flex items-center justify-between gap-6">
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-rh-red/60">Margin</span>
-                          <span className="text-xs font-bold text-rh-red">-${portfolioBreakdown.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Equity</span>
+                          <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.netEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                      )}
+                        {portfolioBreakdown.cashBalance > 0 && (
+                          <div className="flex items-center justify-between gap-6">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-rh-green/60">Cash</span>
+                            <span className="text-xs font-bold text-rh-green">${portfolioBreakdown.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                        {portfolioBreakdown.marginDebt > 0 && (
+                          <div className="flex items-center justify-between gap-6">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-rh-red/60">Margin</span>
+                            <span className="text-xs font-bold text-rh-red">-${portfolioBreakdown.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

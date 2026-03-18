@@ -1643,6 +1643,7 @@ export default function App() {
                   {chartMeasurement && (
                     <button
                       onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
                       onClick={() => setMeasureStatsView(v => v === 'measure' ? 'normal' : 'measure')}
                       className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium uppercase tracking-wider text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted/70 dark:hover:text-white/40 transition-colors"
                       title={showMeasure ? 'Show portfolio stats' : 'Show measurement'}
@@ -1693,7 +1694,7 @@ export default function App() {
                     <div className="flex items-baseline gap-1.5">
                       <span className={`text-base font-extrabold ${
                         showMeasure && chartMeasurement
-                          ? (chartMeasurement.outperformance !== null && chartMeasurement.outperformance >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow')
+                          ? (chartMeasurement.outperformance === null ? 'text-rh-light-text dark:text-rh-text' : chartMeasurement.outperformance >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow')
                           : (portfolio.totalPL === 0 ? 'text-rh-light-text dark:text-rh-text' : portfolio.totalPL > 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow')
                       }`}>
                         {showMeasure && chartMeasurement

@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartReturnPct, portfolioId, inline = false }: Props) {
-  const [window, setWindow] = useState<PerformanceWindow>(externalWindow || '1M');
+  const [perfWindow, setPerfWindow] = useState<PerformanceWindow>(externalWindow || '1M');
   const [benchmark, setBenchmark] = useState('SPY');
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
     const fetchPortfolioId = portfolioId; // capture at call time
     try {
       setLoading(true);
-      const result = await getPerformance(window, benchmark, portfolioId);
+      const result = await getPerformance(perfWindow, benchmark, portfolioId);
       if (fetchPortfolioId !== currentPortfolioIdRef.current) return; // stale, discard
       setData(result);
     } catch {
@@ -40,7 +40,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
     } finally {
       setLoading(false);
     }
-  }, [window, benchmark, portfolioId]);
+  }, [perfWindow, benchmark, portfolioId]);
 
   // Reset data when portfolioId changes to avoid showing stale data
   useEffect(() => {
@@ -50,11 +50,11 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
   // Sync window when portfolio chart period changes — clear stale data immediately
   // so the widget never shows data from a different period while refetching
   useEffect(() => {
-    if (externalWindow && externalWindow !== window) {
-      setWindow(externalWindow);
+    if (externalWindow && externalWindow !== perfWindow) {
+      setPerfWindow(externalWindow);
       setData(null);
     }
-  }, [externalWindow]);
+  }, [externalWindow, perfWindow]);
 
   useEffect(() => {
     fetchData();
@@ -65,7 +65,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
   // the API performance endpoint doesn't account for snapshot-only coverage.
   const youPct = chartReturnPct != null
     ? Math.round(chartReturnPct * 100) / 100
-    : (window === '1D' ? (data?.simpleReturnPct ?? data?.twrPct ?? null) : null);
+    : (perfWindow === '1D' ? (data?.simpleReturnPct ?? data?.twrPct ?? null) : null);
   const effectiveAlpha = (youPct !== null && data?.benchmarkReturnPct != null)
     ? Math.round((youPct - data.benchmarkReturnPct) * 100) / 100
     : null;
@@ -75,7 +75,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
     ? 'text-rh-light-muted dark:text-rh-muted'
     : beating ? 'text-rh-green' : 'text-rh-red';
 
-  const windowLabel = window === '1D' ? 'today' : window === '1W' ? 'this week' : window === '1M' ? 'this month' : window === 'YTD' ? 'YTD' : window === '1Y' ? 'this year' : window;
+  const windowLabel = perfWindow === '1D' ? 'today' : perfWindow === '1W' ? 'this week' : perfWindow === '1M' ? 'this month' : perfWindow === 'YTD' ? 'YTD' : perfWindow === '1Y' ? 'this year' : perfWindow;
 
   if (inline) {
     // Compact inline rendering — no card, no padding, no ambient glow

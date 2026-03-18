@@ -252,13 +252,7 @@ body {
    Recessed, supportive. Never competes with hero.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Chart line desaturation — reduce stroke presence */
-.chart-layer {
-  opacity: 1;
-}
-:root:not(.dark) .chart-layer {
-  opacity: 1;
-}
+/* Chart layer — full opacity (no dimming) */
 
 /* Benchmark ambient glow when outperforming */
 .benchmark-ambient-green {
