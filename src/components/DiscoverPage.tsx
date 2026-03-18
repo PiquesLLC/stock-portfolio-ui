@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
 import { SectorPerformanceChart } from './SectorPerformanceChart';
+import { CongressTradesSection } from './CongressTradesSection';
 import { SectorRotationGraph } from './SectorRotationGraph';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency } from '../utils/format';
@@ -967,7 +968,7 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'sectors' | 'top100' | 'screener' | 'creators';
+type DiscoverSubTab = 'sectors' | 'top100' | 'screener' | 'creators' | 'congress';
 type SectorInnerTab = 'heatmap' | 'performance' | 'movement';
 
 /* ─── Top 100 by Volume ─── */
@@ -1958,6 +1959,9 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <button onClick={() => setSubTab('creators')} className={tabClass(subTab === 'creators')}>
           Creators
         </button>
+        <button onClick={() => setSubTab('congress')} className={tabClass(subTab === 'congress')}>
+          Congress
+        </button>
       </div>
 
       {subTab === 'sectors' ? (
@@ -1987,6 +1991,8 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'screener' ? (
         <ScreenerView stocks={allStocks} onTickerClick={onTickerClick} />
+      ) : subTab === 'congress' ? (
+        <CongressTradesSection portfolio onTickerClick={onTickerClick} limit={30} />
       ) : (
         <Suspense fallback={<div className="flex items-center justify-center py-20"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
           <CreatorDiscoverSection onUserClick={onUserClick} />
