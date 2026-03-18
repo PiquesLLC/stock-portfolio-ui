@@ -100,7 +100,9 @@ function computeSectorDots(data: SectorPerformanceResponse): SectorDot[] {
       for (let i = 0; i < rs.length; i++) {
         rawMomentum.push(i < momWindow ? 0 : rs[i] - rs[i - momWindow]);
       }
-      const momentum = smooth(rawMomentum, smoothWindow);
+      // Smooth momentum more aggressively to tame y-axis noise
+      const momSmoothWindow = Math.max(5, Math.round(alignedRs.length * 0.05));
+      const momentum = smooth(rawMomentum, momSmoothWindow);
 
       // Sample trail points spread across the recent portion of the data
       const trailStep = getTrailStep(rs.length);
