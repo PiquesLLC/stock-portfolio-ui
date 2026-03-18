@@ -40,8 +40,16 @@ const SECTOR_META: Record<string, { color: string; name: string; group: SectorGr
   GLD: { color: '#eab308', name: 'Gold', group: 'sensitive' },
 };
 
-const TRAIL_LENGTH = 8;
-const MOMENTUM_WINDOW = 5;
+const TRAIL_POINTS = 8;
+// Momentum window and trail step scale with data length so they capture
+// meaningful multi-day/week trends, not hourly noise.
+function getMomentumWindow(len: number): number {
+  return Math.max(5, Math.round(len * 0.12));
+}
+function getTrailStep(len: number): number {
+  // Sample 8 points spread over ~25% of the data for meaningful trail movement
+  return Math.max(1, Math.floor(len * 0.25 / TRAIL_POINTS));
+}
 
 const QUADRANT_COLORS: Record<string, string> = {
   Leading: '#10b981',
@@ -81,19 +89,25 @@ function computeSectorDots(data: SectorPerformanceResponse): SectorDot[] {
         alignedRs.push(sector.sparkline[i] - spyVal);
       }
 
-      if (alignedRs.length < MOMENTUM_WINDOW + 2) return null;
+      const momWindow = getMomentumWindow(alignedRs.length);
+      if (alignedRs.length < momWindow + 2) return null;
 
-      const rs = smooth(alignedRs, 3);
+      const smoothWindow = Math.max(3, Math.round(alignedRs.length * 0.02));
+      const rs = smooth(alignedRs, smoothWindow);
       const rawMomentum: number[] = [];
       for (let i = 0; i < rs.length; i++) {
-        rawMomentum.push(i < MOMENTUM_WINDOW ? 0 : rs[i] - rs[i - MOMENTUM_WINDOW]);
+        rawMomentum.push(i < momWindow ? 0 : rs[i] - rs[i - momWindow]);
       }
-      const momentum = smooth(rawMomentum, 3);
+      const momentum = smooth(rawMomentum, smoothWindow);
 
-      const startIdx = Math.max(MOMENTUM_WINDOW, rs.length - TRAIL_LENGTH);
+      // Sample trail points spread across the recent portion of the data
+      const trailStep = getTrailStep(rs.length);
       const trail: TrailPoint[] = [];
-      for (let i = startIdx; i < rs.length; i++) {
-        trail.push({ x: rs[i], y: momentum[i] });
+      for (let t = TRAIL_POINTS - 1; t >= 0; t--) {
+        const idx = rs.length - 1 - t * trailStep;
+        if (idx >= momWindow && idx < rs.length) {
+          trail.push({ x: rs[idx], y: momentum[idx] });
+        }
       }
 
       if (trail.length === 0) return null;
