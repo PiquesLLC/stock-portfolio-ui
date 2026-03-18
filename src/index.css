@@ -254,10 +254,10 @@ body {
 
 /* Chart line desaturation — reduce stroke presence */
 .chart-layer {
-  opacity: 0.85;
+  opacity: 1;
 }
 :root:not(.dark) .chart-layer {
-  opacity: 0.95;
+  opacity: 1;
 }
 
 /* Benchmark ambient glow when outperforming */

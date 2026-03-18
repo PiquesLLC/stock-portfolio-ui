@@ -16,9 +16,10 @@ interface Props {
   window?: PerformanceWindow;
   chartReturnPct?: number | null; // from portfolio chart, overrides API return for consistency
   portfolioId?: string;
+  inline?: boolean;
 }
 
-export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartReturnPct, portfolioId }: Props) {
+export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartReturnPct, portfolioId, inline = false }: Props) {
   const [window, setWindow] = useState<PerformanceWindow>(externalWindow || '1M');
   const [benchmark, setBenchmark] = useState('SPY');
   const [data, setData] = useState<PerformanceData | null>(null);
@@ -76,10 +77,42 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
 
   const windowLabel = window === '1D' ? 'today' : window === '1W' ? 'this week' : window === '1M' ? 'this month' : window === 'YTD' ? 'YTD' : window === '1Y' ? 'this year' : window;
 
+  if (inline) {
+    // Compact inline rendering — no card, no padding, no ambient glow
+    return (
+      <div className="flex items-center gap-2 benchmark-fade-in">
+        {loading && !data ? (
+          <div className="animate-spin rounded-full h-3 w-3 border-2 border-rh-green border-t-transparent"></div>
+        ) : !data || (data.twrPct == null && data.simpleReturnPct == null) ? null : (
+          <>
+            <span className={`text-sm font-bold ${alphaColor}`}>
+              {fmt(effectiveAlpha)}
+            </span>
+            <div className="flex gap-1">
+              {BENCHMARKS.map(b => (
+                <button
+                  key={b}
+                  onClick={() => setBenchmark(b)}
+                  className={`text-[10px] px-1.5 py-0.5 rounded transition-all duration-150 ${
+                    benchmark === b
+                      ? 'bg-rh-green/15 text-rh-green font-semibold'
+                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
+                  }`}
+                >
+                  <Acronym label={b} />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className={`px-6 py-4 benchmark-fade-in ${beating ? 'benchmark-ambient-green' : ''}`}>
+    <div className="px-6 py-4 benchmark-fade-in">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-3 mb-3">
         <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">vs Benchmark</h3>
         {/* Benchmark selector */}
         <div className="flex gap-1">

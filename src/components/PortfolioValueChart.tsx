@@ -56,6 +56,13 @@ interface Props {
   mobileTopPadding?: 'tight' | 'normal';
   /** Optional element rendered above the hero value (e.g. portfolio selector) */
   headerLabel?: React.ReactNode;
+  /** Portfolio breakdown for info tooltip beside hero value */
+  portfolioBreakdown?: {
+    totalAssets: number;
+    netEquity: number;
+    cashBalance: number;
+    marginDebt: number;
+  };
 }
 
 export function shouldShowEstimatedBadge(
@@ -98,6 +105,7 @@ export function PortfolioValueChart({
   quotesStale,
   mobileTopPadding = 'normal',
   headerLabel,
+  portfolioBreakdown,
 }: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -1005,31 +1013,61 @@ export function PortfolioValueChart({
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-0 sm:pt-5' : 'pt-5'} pb-3 ${
-      isGain ? 'hero-ambient-green' : displayChange === 0 ? 'hero-ambient-neutral' : 'hero-ambient-red'
-    }`}>
+    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-0 sm:pt-5' : 'pt-5'} pb-3`}>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
       <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ minHeight: '150px' }}>
-        {/* Hero value display — FOREGROUND: highest visual weight */}
-        {!hasMeasurement && (
-          <div>
+        {/* Hero value display — always visible */}
+        <div>
             {headerLabel && <div className="mb-0.5">{headerLabel}</div>}
-            <button
-              type="button"
-              onClick={handleHeroValueClick}
-              className="text-left cursor-pointer group"
-              aria-label="Animate portfolio value"
-              title="Click to cycle value animation"
-            >
-              <span
-                key={`hero-value-${heroAnimationRunId}`}
-                className={`block text-[40px] sm:text-5xl md:text-6xl font-black tracking-tighter leading-none text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
-                  isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
-                } ${heroAnimationRunId > 0 ? HERO_VALUE_ANIMATIONS[heroAnimationIndex] : ''}`}
+            <div className="flex items-start gap-2">
+              <button
+                type="button"
+                onClick={handleHeroValueClick}
+                className="text-left cursor-pointer group"
+                aria-label="Animate portfolio value"
+                title="Click to cycle value animation"
               >
-                {formatCurrency(displayValue)}
-              </span>
-            </button>
+                <span
+                  key={`hero-value-${heroAnimationRunId}`}
+                  className={`block text-[40px] sm:text-5xl md:text-6xl font-black tracking-tighter leading-none text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
+                    isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
+                  } ${heroAnimationRunId > 0 ? HERO_VALUE_ANIMATIONS[heroAnimationIndex] : ''}`}
+                >
+                  {formatCurrency(displayValue)}
+                </span>
+              </button>
+              {portfolioBreakdown && (
+                <div className="relative group/info mt-2 sm:mt-3">
+                  <button className="w-4 h-4 rounded-full border border-rh-light-muted/20 dark:border-white/10 flex items-center justify-center text-[9px] font-medium text-rh-light-muted/30 dark:text-white/15 hover:border-rh-light-muted/40 dark:hover:border-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/35 transition-colors">
+                    i
+                  </button>
+                  <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/[0.06] backdrop-blur-xl border border-gray-200/60 dark:border-white/[0.08] shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity duration-150 whitespace-nowrap z-20">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-6">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Assets</span>
+                        <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-6">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Equity</span>
+                        <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.netEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      {portfolioBreakdown.cashBalance > 0 && (
+                        <div className="flex items-center justify-between gap-6">
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-rh-green/60">Cash</span>
+                          <span className="text-xs font-bold text-rh-green">${portfolioBreakdown.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {portfolioBreakdown.marginDebt > 0 && (
+                        <div className="flex items-center justify-between gap-6">
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-rh-red/60">Margin</span>
+                          <span className="text-xs font-bold text-rh-red">-${portfolioBreakdown.marginDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Session-aware change lines for 1D pre-market/after-hours */}
             {(() => {
               // Determine which session the hover is in (1D only)
@@ -1170,7 +1208,7 @@ export function PortfolioValueChart({
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
                   <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-                    {formatShortDate(points[measureA].time, is1D)} · {formatCurrency(points[measureA].value)}
+                    {formatShortDate(points[measureA].time, is1D)}
                   </span>
                   <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
                     — click another point to measure
@@ -1179,67 +1217,11 @@ export function PortfolioValueChart({
               </div>
             )}
           </div>
-        )}
 
-        {/* ── Measurement Card ─────────────────────────────────── */}
+        {/* Measurement hint — details shown in stats section below chart */}
         {hasMeasurement && measurement && (
-          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="inline-flex flex-col gap-0.5">
-              {/* Date range */}
-              <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
-                <span>{formatShortDate(measurement.startTime, is1D)}</span>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-                <span>{formatShortDate(measurement.endTime, is1D)}</span>
-                <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
-                  · {measurement.daysBetween}d
-                </span>
-              </div>
-
-              {/* Values */}
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-bold text-rh-light-text dark:text-rh-text">
-                  {formatCurrency(measurement.startValue)}
-                </span>
-                <svg className="w-3 h-3 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-                <span className="text-lg font-bold text-rh-light-text dark:text-rh-text">
-                  {formatCurrency(measurement.endValue)}
-                </span>
-              </div>
-
-              {/* Change stats */}
-              <div className="flex items-center gap-3">
-                <span className={`text-2xl font-bold ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {formatPct(measurement.percentChange)}
-                </span>
-                <span className={`text-sm font-medium ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {formatChange(measurement.dollarChange)}
-                </span>
-              </div>
-
-              {/* Benchmark comparison */}
-              {benchmarkResult && (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs mt-0.5">
-                  <span className="text-rh-light-muted dark:text-rh-muted">
-                    You: <span className={measureIsGain ? 'text-rh-green' : 'text-rh-red'}>{formatPct(measurement.percentChange)}</span>
-                  </span>
-                  <span className="text-rh-light-muted dark:text-rh-muted">
-                    SPY: <span className={benchmarkResult.spyReturn >= 0 ? 'text-rh-green' : 'text-rh-red'}>{formatPct(benchmarkResult.spyReturn)}</span>
-                  </span>
-                  <span className={`font-semibold ${benchmarkResult.outperformance >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                    {benchmarkResult.outperformance >= 0 ? 'Outperformance' : 'Underperformance'}: {formatPct(benchmarkResult.outperformance)}
-                  </span>
-                </div>
-              )}
-
-              {/* Clear hint */}
-              <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">
-                {'ontouchstart' in window ? 'Tap chart to remeasure · Tap outside to clear' : 'Click chart to remeasure · Click outside to clear'}
-              </div>
-            </div>
+          <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-1">
+            {'ontouchstart' in window ? 'Tap chart to remeasure · Tap outside to clear' : 'Click chart to remeasure · Click outside to clear'}
           </div>
         )}
       </div>
@@ -1336,8 +1318,8 @@ export function PortfolioValueChart({
             </radialGradient>
             {/* Area fill gradient under line — richer gradient for more visual weight */}
             <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.22 : 0.12} />
-              <stop offset="50%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.08 : 0.04} />
+              <stop offset="0%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.12 : 0.06} />
+              <stop offset="50%" stopColor={lineColor} stopOpacity={isMarketOpen ? 0.04 : 0.02} />
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
             {/* Measurement shading gradient */}
@@ -1398,12 +1380,12 @@ export function PortfolioValueChart({
                 return (
                   <>
                     {/* Pre-open — muted */}
-                    <path d={buildFill(0, sessionSplitIdx)} fill={lineColor} opacity="0.04" />
+                    <path d={buildFill(0, sessionSplitIdx)} fill={lineColor} opacity="0.02" />
                     {/* Market hours — stronger */}
-                    <path d={buildFill(sessionSplitIdx, closeIdx)} fill={lineColor} opacity="0.11" />
+                    <path d={buildFill(sessionSplitIdx, closeIdx)} fill={lineColor} opacity="0.06" />
                     {/* After hours — muted */}
                     {hasAH && (
-                      <path d={buildFill(closeIdx, points.length - 1)} fill={lineColor} opacity="0.04" />
+                      <path d={buildFill(closeIdx, points.length - 1)} fill={lineColor} opacity="0.02" />
                     )}
                   </>
                 );
