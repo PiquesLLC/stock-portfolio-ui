@@ -523,11 +523,11 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
               <rect x={centerX} y={pad.top} width={scaleX(bounds.maxX) - centerX} height={centerY - pad.top}
                 fill="#10b981" opacity={qOp} />
               <rect x={centerX} y={centerY} width={scaleX(bounds.maxX) - centerX} height={scaleY(bounds.minY) - centerY}
-                fill="#f59e0b" opacity={qOp} />
+                fill="#3b82f6" opacity={qOp} />
               <rect x={pad.left} y={centerY} width={centerX - pad.left} height={scaleY(bounds.minY) - centerY}
                 fill="#ef4444" opacity={qOp} />
               <rect x={pad.left} y={pad.top} width={centerX - pad.left} height={centerY - pad.top}
-                fill="#3b82f6" opacity={qOp} />
+                fill="#f59e0b" opacity={qOp} />
             </>);
           })()}
 
