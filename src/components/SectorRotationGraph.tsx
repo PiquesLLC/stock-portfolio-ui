@@ -307,7 +307,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
 
   // SVG layout
   const width = 1000;
-  const height = 470;
+  const height = 1000;
   const pad = { top: 12, right: 14, bottom: 25, left: 14 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
