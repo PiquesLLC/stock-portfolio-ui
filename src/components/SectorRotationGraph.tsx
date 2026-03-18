@@ -92,8 +92,10 @@ function computeSectorDots(data: SectorPerformanceResponse): SectorDot[] {
       const momWindow = getMomentumWindow(alignedRs.length);
       if (alignedRs.length < momWindow + 2) return null;
 
-      const smoothWindow = Math.max(3, Math.round(alignedRs.length * 0.02));
+      const smoothWindow = Math.max(3, Math.round(alignedRs.length * 0.01));
       const rs = smooth(alignedRs, smoothWindow);
+      // Pin last smoothed value to actual current RS so position is accurate
+      rs[rs.length - 1] = alignedRs[alignedRs.length - 1];
       const rawMomentum: number[] = [];
       for (let i = 0; i < rs.length; i++) {
         rawMomentum.push(i < momWindow ? 0 : rs[i] - rs[i - momWindow]);
