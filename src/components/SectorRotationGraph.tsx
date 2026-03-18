@@ -306,8 +306,14 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
   };
 
   // SVG layout
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const width = 1000;
-  const height = 1000;
+  const height = isMobile ? 1000 : 470;
   const pad = { top: 12, right: 14, bottom: 25, left: 14 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
