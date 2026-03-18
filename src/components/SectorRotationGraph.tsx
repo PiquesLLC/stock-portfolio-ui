@@ -830,34 +830,6 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
         </svg>
       </div>
 
-      {/* Legend — color key */}
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5 justify-center -mt-6">
-        {dots.map(dot => {
-          const isHov = hoveredSector === dot.ticker;
-          return (
-            <button
-              key={dot.ticker}
-              onClick={() => {
-                if (hoveredSector === dot.ticker) {
-                  onTickerClick?.(dot.ticker);
-                } else {
-                  setHoveredSector(dot.ticker);
-                }
-              }}
-              onMouseEnter={() => setHoveredSector(dot.ticker)}
-              onMouseLeave={() => setHoveredSector(null)}
-              onTouchStart={() => setHoveredSector(prev => prev === dot.ticker ? null : dot.ticker)}
-              className={`inline-flex items-center gap-1 px-1 py-0.5 rounded transition-opacity text-[10px] ${
-                isHov ? 'opacity-100' : hoveredSector ? 'opacity-25' : 'opacity-50'
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dot.color }} />
-              <span className="font-medium text-rh-light-text dark:text-rh-text">{dot.ticker}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Diagnostics panel — sector breakdown table */}
       <div className="mt-4 px-1">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
