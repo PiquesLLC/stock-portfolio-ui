@@ -164,8 +164,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         getUnreadMilestoneCount(),
         getAnomalies(100),
       ]);
-      const visibleUnreadAnomalyCount = anomalyEvents.filter((event: AnomalyEvent) => isVisibleAnomaly(event) && !event.read).length;
-      setUnreadCount(alertCount.count + priceAlertCount.count + analystCount.count + milestoneCount.count + visibleUnreadAnomalyCount);
+      const visibleUnreadAnomalyCount = (anomalyEvents || []).filter((event: AnomalyEvent) => isVisibleAnomaly(event) && !event.read).length;
+      setUnreadCount((alertCount?.count ?? 0) + (priceAlertCount?.count ?? 0) + (analystCount?.count ?? 0) + (milestoneCount?.count ?? 0) + visibleUnreadAnomalyCount);
     } catch { /* silent — background poll, 401s are expected when session expires */ }
   }, [userId, notificationsEnabled]);
 
@@ -180,8 +180,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         getAnomalies(50),
       ]);
 
-      // Convert alert events to unified format
-      const unifiedAlerts: UnifiedNotification[] = alertEvents.map((e: AlertEventType) => ({
+      // Convert alert events — filter orphaned events where parent Alert was deleted
+      const unifiedAlerts: UnifiedNotification[] = (alertEvents || []).filter((e: AlertEventType) => e?.alert).map((e: AlertEventType) => ({
         id: e.id,
         type: 'alert' as const,
         label: ALERT_TYPE_LABELS[e.alert.type] || e.alert.type,
@@ -190,8 +190,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         createdAt: e.createdAt,
       }));
 
-      // Convert price alert events to unified format
-      const unifiedPriceAlerts: UnifiedNotification[] = priceAlertEvents.map((e: PriceAlertEvent) => ({
+      // Convert price alert events — guard against orphaned/malformed events
+      const unifiedPriceAlerts: UnifiedNotification[] = (priceAlertEvents || []).filter((e: PriceAlertEvent) => e?.message).map((e: PriceAlertEvent) => ({
         id: e.id,
         type: 'price_alert' as const,
         label: 'Price Alert',
@@ -201,34 +201,34 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         ticker: e.priceAlert?.ticker,
       }));
 
-      // Convert analyst events to unified format
-      const unifiedAnalyst: UnifiedNotification[] = analystEvents.map((e: AnalystEvent) => ({
+      // Convert analyst events
+      const unifiedAnalyst: UnifiedNotification[] = (analystEvents || []).map((e: AnalystEvent) => ({
         id: e.id,
         type: 'analyst' as const,
         label: e.eventType === 'target_change' ? 'Price Target' : 'Rating Change',
-        message: e.message,
+        message: e.message ?? '',
         read: e.read,
         createdAt: e.createdAt,
         ticker: e.ticker,
       }));
 
-      // Convert milestone events to unified format
-      const unifiedMilestones: UnifiedNotification[] = milestoneEvents.map((e: MilestoneEvent) => ({
+      // Convert milestone events
+      const unifiedMilestones: UnifiedNotification[] = (milestoneEvents || []).map((e: MilestoneEvent) => ({
         id: e.id,
         type: 'milestone' as const,
         label: ALERT_TYPE_LABELS[e.eventType] || e.eventType,
-        message: e.message,
+        message: e.message ?? '',
         read: e.read,
         createdAt: e.createdAt,
         ticker: e.ticker,
       }));
 
-      // Convert anomaly events to unified format (exclude concentration — shown in Health Score instead)
-      const unifiedAnomalies: UnifiedNotification[] = anomalyEvents.filter(isVisibleAnomaly).map((e: AnomalyEvent) => ({
+      // Convert anomaly events (exclude concentration — shown in Health Score instead)
+      const unifiedAnomalies: UnifiedNotification[] = (anomalyEvents || []).filter(isVisibleAnomaly).map((e: AnomalyEvent) => ({
         id: e.id,
         type: 'anomaly' as const,
-        label: ALERT_TYPE_LABELS[e.type] || e.type.replace('_', ' '),
-        message: e.title + (e.analysis ? ` — ${e.analysis}` : ''),
+        label: ALERT_TYPE_LABELS[e.type] || (e.type ?? 'unknown').replace('_', ' '),
+        message: (e.title ?? '') + (e.analysis ? ` — ${e.analysis}` : ''),
         read: e.read,
         createdAt: e.createdAt,
         ticker: e.ticker,
@@ -260,12 +260,14 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
   // Track if we're in the process of marking as read
   const markingReadRef = useRef(false);
 
-  // Load events when dropdown opens, mark as read instantly
+  // Load events when dropdown opens, mark as read
   useEffect(() => {
     if (open) {
       fetchEvents().then((merged) => {
         const unreadVisibleCount = merged.filter(n => !n.read).length;
-        if (unreadVisibleCount > 0) {
+        // Always fire mark-all-read when opening if badge showed unread,
+        // even if the visible list is empty (handles orphaned/phantom events)
+        if (unreadVisibleCount > 0 || unreadCount > 0) {
           setUnreadCount(0);
           if (!markingReadRef.current) {
             markingReadRef.current = true;
@@ -334,8 +336,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       await markAllAlertsRead(userId);
 
       // Fetch current price alert events and mark them as read
-      const priceAlertEvents = await getPriceAlertEvents(userId, 50);
-      const unreadPriceAlerts = priceAlertEvents.filter(e => !e.read);
+      const priceAlertEvents = await getPriceAlertEvents(userId, 50).catch(() => [] as PriceAlertEvent[]);
+      const unreadPriceAlerts = (priceAlertEvents || []).filter(e => !e.read);
       await Promise.all(unreadPriceAlerts.map(e => markPriceAlertEventRead(e.id)));
 
       // Mark all analyst events as read
