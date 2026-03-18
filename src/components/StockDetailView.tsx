@@ -70,10 +70,9 @@ const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, a
 
 export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded, onTickerNavigate }: Props) {
   // Chart period — owned by component, shared between both hooks
-  const [chartPeriod, setChartPeriod] = useLocalStorage<ChartPeriod>('stockChartPeriod', '1D', {
-    serialize: v => v,
-    deserialize: v => v as ChartPeriod,
-  });
+  // Always start at 1D — persisting across sessions causes stale period bugs
+  // (share card wrong period, benchmark wrong window label)
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1D');
 
   // --- Data fetching hook ---
   const {

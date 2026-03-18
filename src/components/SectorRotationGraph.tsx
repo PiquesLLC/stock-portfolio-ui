@@ -241,7 +241,7 @@ interface Props {
 }
 
 export function SectorRotationGraph({ onTickerClick }: Props) {
-  const [viewMode, setViewMode] = useState<ViewMode>('1M');
+  const [viewMode, setViewMode] = useState<ViewMode>('1D');
   const [data, setData] = useState<SectorPerformanceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [hoveredSector, setHoveredSector] = useState<string | null>(null);
