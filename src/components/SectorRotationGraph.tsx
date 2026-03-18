@@ -40,15 +40,15 @@ const SECTOR_META: Record<string, { color: string; name: string; group: SectorGr
   GLD: { color: '#eab308', name: 'Gold', group: 'sensitive' },
 };
 
-const TRAIL_POINTS = 8;
+const TRAIL_POINTS = 6;
 // Momentum window and trail step scale with data length so they capture
 // meaningful multi-day/week trends, not hourly noise.
 function getMomentumWindow(len: number): number {
-  return Math.max(5, Math.round(len * 0.12));
+  return Math.max(5, Math.round(len * 0.2));
 }
 function getTrailStep(len: number): number {
-  // Sample 8 points spread over ~25% of the data for meaningful trail movement
-  return Math.max(1, Math.floor(len * 0.25 / TRAIL_POINTS));
+  // Sample points spread over ~40% of the data for meaningful trail movement
+  return Math.max(1, Math.floor(len * 0.4 / TRAIL_POINTS));
 }
 
 const QUADRANT_COLORS: Record<string, string> = {
@@ -100,8 +100,8 @@ function computeSectorDots(data: SectorPerformanceResponse): SectorDot[] {
       for (let i = 0; i < rs.length; i++) {
         rawMomentum.push(i < momWindow ? 0 : rs[i] - rs[i - momWindow]);
       }
-      // Smooth momentum more aggressively to tame y-axis noise
-      const momSmoothWindow = Math.max(5, Math.round(alignedRs.length * 0.05));
+      // Smooth momentum aggressively to tame y-axis noise
+      const momSmoothWindow = Math.max(5, Math.round(alignedRs.length * 0.10));
       const momentum = smooth(rawMomentum, momSmoothWindow);
 
       // Sample trail points spread across the recent portion of the data
