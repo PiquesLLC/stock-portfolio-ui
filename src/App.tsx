@@ -264,13 +264,7 @@ export default function App() {
     fetchData, handleUpdate,
   } = usePortfolioData({ currentUserId, authLoading, portfolioId: selectedPortfolioId });
 
-  const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>(() => {
-    try {
-      const saved = sessionStorage.getItem('nala:chartPeriod');
-      if (saved && ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', 'ALL'].includes(saved)) return saved as PortfolioChartPeriod;
-    } catch { /* ignore */ }
-    return '1D';
-  });
+  const [chartPeriod, setChartPeriod] = useState<PortfolioChartPeriod>('1D');
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
   const [chartMeasurement, setChartMeasurement] = useState<ChartMeasurement | null>(null);
   const [measureStatsView, setMeasureStatsView] = useState<'measure' | 'normal'>('measure');

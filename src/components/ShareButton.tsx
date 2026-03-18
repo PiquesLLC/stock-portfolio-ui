@@ -97,16 +97,20 @@ export function ShareButton(props: ShareButtonProps) {
     setTimeout(() => setToast(''), 2000);
   }, []);
 
-  // Close menu on click outside
+  // Close menu on click/tap outside
   useEffect(() => {
     if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent | TouchEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, [menuOpen]);
 
   const isMobile = isMobileDevice();
@@ -144,8 +148,11 @@ export function ShareButton(props: ShareButtonProps) {
           url: shareUrl,
         });
       }
-    } catch {
-      // User cancelled or share failed — silent
+    } catch (err: unknown) {
+      // User cancelled share — don't show error for AbortError (user dismissed share sheet)
+      if (err instanceof Error && err.name !== 'AbortError') {
+        showToast('Share failed');
+      }
     } finally {
       setLoading(false);
     }
