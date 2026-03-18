@@ -120,29 +120,25 @@ export function PortfolioValueChart({
   // quote glitches from spiking the chart.
   const confirmedValueRef = useRef(currentValue);
   const pendingValueRef = useRef<number | null>(null);
-  const [liveValue, setLiveValue] = useState(currentValue);
-  useEffect(() => {
+  // Synchronous computation — must stay in useMemo (not useEffect) so liveValue
+  // updates in the same render as currentValue. An async useEffect would cause
+  // a 1-frame delay where the hero shows the new value but the chart line hasn't caught up.
+  const liveValue = useMemo(() => {
     const prev = confirmedValueRef.current;
     const jumpPct = prev > 0 ? Math.abs(currentValue - prev) / prev : 0;
-    // During after-hours, require confirmation for jumps > 0.3% in a single poll
     const isAfterHours = session === 'POST' || session === 'PRE';
     if (isAfterHours && jumpPct > 0.003) {
       if (pendingValueRef.current !== null && Math.abs(currentValue - pendingValueRef.current) / currentValue < 0.001) {
-        // Second consecutive poll confirms the move — accept it
         confirmedValueRef.current = currentValue;
         pendingValueRef.current = null;
-        setLiveValue(currentValue);
-        return;
+        return currentValue;
       }
-      // First poll with big jump — hold the old value, mark as pending
       pendingValueRef.current = currentValue;
-      setLiveValue(prev);
-      return;
+      return prev;
     }
-    // Normal move or regular hours — accept immediately
     confirmedValueRef.current = currentValue;
     pendingValueRef.current = null;
-    setLiveValue(currentValue);
+    return currentValue;
   }, [currentValue, session]);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -585,11 +581,14 @@ export function PortfolioValueChart({
 
   const { paddedMin, paddedMax } = useMemo(() => {
     if (points.length < 2) return { paddedMin: 0, paddedMax: 1 };
-    const values = points.map(p => p.value);
+    // Filter out NaN/Infinity values that would corrupt the entire Y-axis
+    const values = points.map(p => p.value).filter(v => Number.isFinite(v));
+    if (values.length === 0) return { paddedMin: 0, paddedMax: 1 };
     // Y-axis bounds based on portfolio only — benchmark is clipped via SVG clipPath
     // so toggling SPY never shifts the portfolio chart
-    let minV = Math.min(...values, periodStartValue);
-    let maxV = Math.max(...values, periodStartValue);
+    const startVal = Number.isFinite(periodStartValue) ? periodStartValue : values[0];
+    let minV = Math.min(...values, startVal);
+    let maxV = Math.max(...values, startVal);
     if (maxV === minV) { maxV += 1; minV -= 1; }
     const range = maxV - minV;
     return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
@@ -615,7 +614,11 @@ export function PortfolioValueChart({
     }
     return PAD_LEFT + (points.length > 1 ? (i / (points.length - 1)) * plotW : plotW / 2);
   };
-  const toY = (value: number) => PAD_TOP + plotH - ((value - paddedMin) / (paddedMax - paddedMin)) * plotH;
+  const toY = (value: number) => {
+    if (!Number.isFinite(value)) return CHART_H - PAD_BOTTOM; // NaN/Infinity → bottom
+    const y = PAD_TOP + plotH - ((value - paddedMin) / (paddedMax - paddedMin)) * plotH;
+    return Math.max(PAD_TOP, Math.min(y, CHART_H - PAD_BOTTOM));
+  };
 
   const hasData = points.length >= 2;
 
