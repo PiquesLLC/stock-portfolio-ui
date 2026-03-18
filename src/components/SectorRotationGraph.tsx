@@ -52,33 +52,33 @@ const QUADRANT_COLORS: Record<string, string> = {
 
 /* ─── Helpers ─── */
 
-/** Normalize timestamp to minute precision to avoid drift mismatches */
-function normalizeTs(ts: string): string {
-  return ts.slice(0, 16);
+/** Interpolate value at fractional index in array */
+function lerpAt(arr: number[], idx: number): number {
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if (lo === hi || hi >= arr.length) return arr[Math.min(lo, arr.length - 1)];
+  const t = idx - lo;
+  return arr[lo] * (1 - t) + arr[hi] * t;
 }
 
 function computeSectorDots(data: SectorPerformanceResponse): SectorDot[] {
   if (!data?.benchmark) return [];
   const spySparkline = data.benchmark.sparkline;
-  const spyTimestamps = data.benchmark.timestamps;
-  if (!spySparkline?.length || !spyTimestamps?.length) return [];
-  if (spySparkline.length !== spyTimestamps.length) return [];
-
-  const spyIndexByTs = new Map<string, number>();
-  for (let i = 0; i < spyTimestamps.length; i++) {
-    spyIndexByTs.set(normalizeTs(spyTimestamps[i]), i);
-  }
+  if (!spySparkline?.length) return [];
 
   return (data.sectors || [])
-    .filter(s => SECTOR_META[s.ticker] && s.sparkline?.length && s.timestamps?.length
-      && s.sparkline.length === s.timestamps.length)
+    .filter(s => SECTOR_META[s.ticker] && s.sparkline?.length && s.sparkline.length >= 2)
     .map(sector => {
+      // Index-based alignment: both sparklines cover the same time period,
+      // so map each sector point to the proportional SPY point via interpolation.
+      // This avoids timestamp mismatches between Polygon/Yahoo data sources.
+      const sLen = sector.sparkline.length;
+      const bLen = spySparkline.length;
       const alignedRs: number[] = [];
-      for (let i = 0; i < sector.timestamps.length; i++) {
-        const spyIdx = spyIndexByTs.get(normalizeTs(sector.timestamps[i]));
-        if (spyIdx != null) {
-          alignedRs.push(sector.sparkline[i] - spySparkline[spyIdx]);
-        }
+      for (let i = 0; i < sLen; i++) {
+        const spyFractionalIdx = bLen > 1 ? i * (bLen - 1) / (sLen - 1) : 0;
+        const spyVal = lerpAt(spySparkline, spyFractionalIdx);
+        alignedRs.push(sector.sparkline[i] - spyVal);
       }
 
       if (alignedRs.length < MOMENTUM_WINDOW + 2) return null;
