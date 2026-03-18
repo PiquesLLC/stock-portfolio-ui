@@ -138,9 +138,9 @@ function getAxisBounds(dots: SectorDot[]): { minX: number; maxX: number; minY: n
 
 function getQuadrant(p: TrailPoint): string {
   if (p.x >= 0 && p.y >= 0) return 'Leading';
-  if (p.x >= 0 && p.y < 0) return 'Weakening';
-  if (p.x < 0 && p.y < 0) return 'Lagging';
-  return 'Improving';
+  if (p.x >= 0 && p.y < 0) return 'Improving';
+  if (p.x < 0 && p.y >= 0) return 'Weakening';
+  return 'Lagging';
 }
 
 function smooth(arr: number[], window = 3): number[] {
@@ -393,9 +393,9 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
           <div className="flex items-center justify-center gap-0 text-[10px] font-semibold tracking-wide mb-1">
             {[
               { label: 'LAGGING', color: '#ef4444', arrow: true },
+              { label: 'WEAKENING', color: '#f59e0b', arrow: true },
               { label: 'IMPROVING', color: '#3b82f6', arrow: true },
               { label: 'LEADING', color: '#10b981', arrow: true },
-              { label: 'WEAKENING', color: '#f59e0b', arrow: true },
               { label: 'LAGGING', color: '#ef4444', arrow: false },
             ].map((q, i) => (
               <div key={i} className="flex items-center">
@@ -534,9 +534,9 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
           {/* Quadrant labels with glow */}
           {[
             { label: 'LEADING', x: scaleX(bounds.maxX) - 14, y: pad.top + 28, anchor: 'end' as const, color: '#10b981' },
-            { label: 'WEAKENING', x: scaleX(bounds.maxX) - 14, y: scaleY(bounds.minY) - 14, anchor: 'end' as const, color: '#f59e0b' },
+            { label: 'IMPROVING', x: scaleX(bounds.maxX) - 14, y: scaleY(bounds.minY) - 14, anchor: 'end' as const, color: '#3b82f6' },
             { label: 'LAGGING', x: pad.left + 14, y: scaleY(bounds.minY) - 14, anchor: 'start' as const, color: '#ef4444' },
-            { label: 'IMPROVING', x: pad.left + 14, y: pad.top + 28, anchor: 'start' as const, color: '#3b82f6' },
+            { label: 'WEAKENING', x: pad.left + 14, y: pad.top + 28, anchor: 'start' as const, color: '#f59e0b' },
           ].map(q => (
             <g key={q.label}>
               {/* Soft glow behind text */}
