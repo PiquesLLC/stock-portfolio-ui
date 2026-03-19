@@ -62,6 +62,10 @@ import {
   FeedItem,
   SocialNotificationData,
   TrendingTicker,
+  BillionaireEntry,
+  BillionaireProfile,
+  BillionaireChartData,
+  BillionaireMovers,
 } from './types';
 
 // Typed API error codes — callers check .code instead of string matching on .message
@@ -3164,4 +3168,23 @@ export async function getTrendingTickers(): Promise<TrendingTicker[]> {
 
 export async function getCommunityTrades(): Promise<{ mostBought: TrendingTicker[]; mostSold: TrendingTicker[] }> {
   return fetchJson<{ mostBought: TrendingTicker[]; mostSold: TrendingTicker[] }>(`${API_BASE_URL}/posts/community-trades`);
+}
+
+// ── Billionaire API ───────────────────────────────────────
+
+export async function getBillionaireLeaderboard(): Promise<BillionaireEntry[]> {
+  const data = await fetchJson<{ billionaires: BillionaireEntry[] }>(`${API_BASE_URL}/billionaires`);
+  return data.billionaires ?? [];
+}
+
+export async function getBillionaireProfile(slug: string): Promise<BillionaireProfile> {
+  return fetchJson<BillionaireProfile>(`${API_BASE_URL}/billionaires/${slug}`);
+}
+
+export async function getBillionaireChart(slug: string, period: string = '1M'): Promise<BillionaireChartData> {
+  return fetchJson<BillionaireChartData>(`${API_BASE_URL}/billionaires/${slug}/chart?period=${period}`);
+}
+
+export async function getBillionaireMovers(): Promise<BillionaireMovers> {
+  return fetchJson<BillionaireMovers>(`${API_BASE_URL}/billionaires/movers`);
 }

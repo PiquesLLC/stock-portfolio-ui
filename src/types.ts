@@ -1664,3 +1664,42 @@ export interface AnomalyEvent {
   read: boolean;
   createdAt: string;
 }
+
+// ── Billionaire Net Worth Tracker ─────────────────────────
+
+export interface BillionaireEntry {
+  id: string;
+  name: string;
+  slug: string;
+  photoUrl: string | null;
+  company: string;
+  title: string | null;
+  country: string;
+  industry: string | null;
+  computedNetWorth: number | null;
+  dayChange: number | null;
+  dayChangePct: number | null;
+  rank: number | null;
+  previousRank: number | null;
+  computedAt: string | null;
+}
+
+export interface BillionaireProfile extends BillionaireEntry {
+  baseNetWorthUsd: number;
+  holdings: string; // JSON string
+  holdingsParsed: { ticker: string; shares: number; note?: string }[];
+  weekChange: number | null;
+  monthChange: number | null;
+  ytdChange: number | null;
+  source: string;
+}
+
+export interface BillionaireChartData {
+  points: { time: number; value: number }[];
+  periodStartValue: number;
+}
+
+export interface BillionaireMovers {
+  gainers: BillionaireEntry[];
+  losers: BillionaireEntry[];
+}

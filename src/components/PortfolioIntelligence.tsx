@@ -65,25 +65,26 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
           <span><span className="text-rh-green/80">{formatCurrency(totalGains)}</span></span>
           <span><span className="text-rh-red/80">{formatCurrency(-totalLosses)}</span></span>
         </div>
-        <div className="h-2 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.04]">
+        <div className="h-2 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.03]">
           <div className="h-full bg-rh-green/60 rounded-l-full transition-all duration-500" style={{ width: `${gainsWidth}%` }} />
           <div className="h-full bg-rh-red/50 rounded-r-full transition-all duration-500" style={{ width: `${100 - gainsWidth}%` }} />
         </div>
       </div>
 
-      <h4 className="text-xs font-medium uppercase tracking-wider text-blue-500/70 dark:text-blue-400/70 mb-3 border-l-2 border-blue-500/40 pl-3">
+      <h4 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text mb-3 flex items-center gap-2">
+        <div className="w-1 h-4 rounded-full bg-rh-green" />
         Portfolio Pulse
       </h4>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3">
+      <div className="grid grid-cols-3">
+        <div className="p-2 sm:p-3 border-r border-gray-200/10 dark:border-white/[0.04]">
           <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1" title="Percentage of holdings that moved up">Win Rate</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
             {totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0}%
           </div>
           <div className="text-[9px] sm:text-[10px] text-rh-light-muted/90 dark:text-white/50 mt-0.5">{winCount} up / {lossCount} down</div>
         </div>
-        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3">
+        <div className="p-2 sm:p-3 border-r border-gray-200/10 dark:border-white/[0.04]">
           <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1" title="The holding with the largest dollar impact on your portfolio">Biggest Mover</div>
           <button className={`text-base sm:text-lg font-bold hover:opacity-80 transition-opacity ${biggestMover.contributionDollar >= 0 ? 'text-rh-green' : 'text-rh-red'}`}
             onClick={() => onTickerClick?.(biggestMover.ticker)}>
@@ -93,7 +94,7 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
             {formatCurrency(biggestMover.contributionDollar)}
           </div>
         </div>
-        <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-2 sm:p-3 min-w-0">
+        <div className="p-2 sm:p-3 min-w-0">
           <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1 truncate" title="Top Concentration — how much of total movement comes from the single biggest mover">Top Conc.</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
           <div className="text-[9px] sm:text-[10px] text-rh-light-muted/90 dark:text-white/50 mt-0.5">of movement</div>
@@ -144,9 +145,9 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
 
   return (
     <div
-      className={`relative flex items-center gap-2 sm:gap-3 py-1.5 rounded-lg px-2 -mx-2 transition-all duration-200 ${
+      className={`relative flex items-center gap-2 sm:gap-3 py-3.5 px-2 -mx-2 transition-all duration-200 border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 ${
         isDimmed ? 'opacity-30' : 'opacity-100'
-      } ${!isDimmed ? 'hover:bg-gray-100/60 dark:hover:bg-white/[0.04]' : ''}`}
+      } ${!isDimmed ? 'hover:bg-gray-100/40 dark:hover:bg-white/[0.02]' : ''}`}
       onMouseEnter={() => { onHover(entry.ticker); setShowPopover(true); }}
       onMouseLeave={() => { onHover(null); setShowPopover(false); }}
     >
@@ -298,10 +299,10 @@ function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[];
             <div key={s.sector}>
               <button
                 onClick={() => toggle(s.sector)}
-                className={`flex items-center gap-2.5 w-full rounded-lg px-3 py-2 transition-all duration-200 border-l-[3px] ${c.border} ${
+                className={`flex items-center gap-2.5 w-full px-3 py-2 transition-all duration-200 border-l-[3px] ${c.border} ${
                   isActive
-                    ? 'bg-gray-100/80 dark:bg-white/[0.06] pb-1'
-                    : 'bg-gray-50/40 dark:bg-white/[0.02] hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                    ? 'bg-gray-100/40 dark:bg-white/[0.03] pb-1'
+                    : 'hover:bg-gray-100/40 dark:hover:bg-white/[0.02]'
                 }`}
               >
                 <div className="flex-1 min-w-0 text-left">
@@ -334,7 +335,7 @@ function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[];
                       </button>
                     ))}
                     {s.tickers.length > 5 && (
-                      <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[11px] font-medium text-rh-light-muted dark:text-rh-muted bg-gray-100/60 dark:bg-white/[0.04]">
+                      <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[11px] font-medium text-rh-light-muted dark:text-rh-muted bg-gray-100/40 dark:bg-white/[0.03]">
                         +{s.tickers.length - 5} more
                       </span>
                     )}
@@ -406,7 +407,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
   }
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-3 sm:p-5 shadow-sm dark:shadow-none space-y-4">
+    <div className="p-3 sm:p-5 space-y-4">
       {/* Header + net P&L + window selector */}
       <div className="space-y-2">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -500,8 +501,8 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
           {/* Movers — Contributors + Detractors grouped */}
           {(contributors.length > 0 || detractors.length > 0) && (
             <div>
-              <h4 className="text-xs font-medium uppercase tracking-wider text-blue-500/70 dark:text-blue-400/70 mb-3 border-l-2 border-blue-500/40 pl-3">Movers</h4>
-              <div className="bg-gray-50/30 dark:bg-white/[0.015] rounded-lg p-3 sm:p-4 -mx-1 sm:mx-0">
+              <h4 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text mb-3 flex items-center gap-2"><div className="w-1 h-4 rounded-full bg-rh-green" />Movers</h4>
+              <div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 {/* Contributors */}
                 {contributors.length > 0 && (
@@ -547,8 +548,8 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
           {/* Sector Exposure */}
           {sectorExposure.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-3 border-l-2 border-blue-500/40 pl-3">Sector Exposure</h4>
-              <div className="bg-gray-50/30 dark:bg-white/[0.015] rounded-lg p-3 sm:p-4 -mx-1 sm:mx-0">
+              <h4 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text mb-3 flex items-center gap-2"><div className="w-1 h-4 rounded-full bg-rh-green" />Sector Exposure</h4>
+              <div>
                 <SectorBar sectors={sectorExposure} onTickerClick={onTickerClick} />
               </div>
             </div>
@@ -557,8 +558,8 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
           {/* Beta Card */}
           {beta && (
             <div>
-              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2 border-l-2 border-blue-500/40 pl-3"><Acronym label="Beta" /> vs <Acronym label="SPY" /></h4>
-              <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3">
+              <h4 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text mb-2 flex items-center gap-2"><div className="w-1 h-4 rounded-full bg-rh-green" /><Acronym label="Beta" /> vs <Acronym label="SPY" /></h4>
+              <div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="How much your portfolio moves relative to the S&P 500. 1.0 = moves with the market">Portfolio <Acronym label="Beta" /></p>

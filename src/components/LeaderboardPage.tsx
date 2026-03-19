@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession } from '../types';
-import { getLeaderboard } from '../api';
+import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession, BillionaireEntry } from '../types';
+import { getLeaderboard, getBillionaireLeaderboard } from '../api';
 import { UserProfileView } from './UserProfileView';
 
 
@@ -62,6 +62,9 @@ interface LeaderboardPageProps {
 }
 
 export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange, onCompare }: LeaderboardPageProps) {
+  const [leaderboardType, setLeaderboardType] = useState<'nala' | 'global'>('nala');
+  const [billionaires, setBillionaires] = useState<BillionaireEntry[]>([]);
+  const [billLoading, setBillLoading] = useState(false);
   const [region, setRegion] = useState<LeaderboardRegion>('world');
   const [window, setWindow] = useState<LeaderboardWindow>('1M');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -113,6 +116,12 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchData, session]);
+
+  useEffect(() => {
+    if (leaderboardType !== 'global') return;
+    setBillLoading(true);
+    getBillionaireLeaderboard().then(setBillionaires).catch(() => {}).finally(() => setBillLoading(false));
+  }, [leaderboardType]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey !== key) {
@@ -187,175 +196,282 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   }
 
   return (
-    <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-4 pt-2 pb-6">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
+    <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 pt-2 pb-6">
+      {/* Header — title + toggle + period/region */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
-        </div>
-        <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
-          {WINDOWS.map((w) => (
+          <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
             <button
-              key={w.id}
-              onClick={() => setWindow(w.id)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
-                ${window === w.id
-                  ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                }`}
-            >
-              {w.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex gap-1 mb-3">
-        {REGIONS.map((r) => (
-          <button
-            key={r.id}
-            onClick={() => setRegion(r.id)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
-              ${region === r.id
-                ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+              onClick={() => setLeaderboardType('nala')}
+              className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
+                leaderboardType === 'nala' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
               }`}
-          >
-            {r.label}
-          </button>
-        ))}
+            >Nala</button>
+            <button
+              onClick={() => setLeaderboardType('global')}
+              className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
+                leaderboardType === 'global' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
+              }`}
+            >Global</button>
+          </div>
+        </div>
+
+        {/* Period buttons — only for Nala */}
+        {leaderboardType === 'nala' && (
+          <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
+            {WINDOWS.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => setWindow(w.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+                  ${window === w.id
+                    ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
+                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  }`}
+              >
+                {w.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {lastUpdated && (
-        <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">
-          Updated {formatRelativeTime(lastUpdated)}
-        </div>
-      )}
+      {leaderboardType === 'global' ? (
+        <div>
+          <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mb-4">
+            Real-time net worth computed from public stock holdings. Updated every 60 seconds during market hours.
+          </p>
 
-      <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mb-4">
-        Rankings based on time-weighted returns (TWR) since tracking began. TWR eliminates the effect of deposits/withdrawals for fair comparison.
-      </p>
-
-      {error && (
-        <div className="text-rh-red text-sm mb-4">{error}</div>
-      )}
-
-      {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 animate-pulse flex items-center gap-4">
-              <div className="w-6 h-4 bg-gray-200 dark:bg-rh-border rounded" />
-              <div className="flex-1">
-                <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4 mb-2" />
-                <div className="h-3 bg-gray-200 dark:bg-rh-border rounded w-1/6" />
-              </div>
-              <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
-              <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
+          {billLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 animate-pulse flex items-center gap-4">
+                  <div className="w-6 h-4 bg-gray-200 dark:bg-rh-border rounded" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4 mb-2" />
+                    <div className="h-3 bg-gray-200 dark:bg-rh-border rounded w-1/6" />
+                  </div>
+                  <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : entries.length === 0 ? (
-        <div className="text-rh-light-muted dark:text-rh-muted text-sm">
-          No verified users found. Run the seed script to add demo users.
+          ) : billionaires.length === 0 ? (
+            <div className="text-rh-light-muted dark:text-rh-muted text-sm">No billionaire data available.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full sm:min-w-[480px]">
+                <thead>
+                  <tr className="border-b border-gray-200/10 dark:border-white/[0.04] text-left">
+                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 w-8 sm:w-12">#</th>
+                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Name</th>
+                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 text-right">Net Worth</th>
+                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 text-right hidden sm:table-cell">Day Change</th>
+                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 text-right hidden sm:table-cell">Change %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {billionaires.map((b, index) => {
+                    const isUp = (b.dayChange ?? 0) >= 0;
+                    const changeColor = b.dayChange == null ? 'text-rh-light-muted dark:text-rh-muted' : isUp ? 'text-rh-green' : 'text-rh-red';
+                    const rankDiff = b.previousRank != null && b.rank != null ? b.previousRank - b.rank : 0;
+                    return (
+                      <tr
+                        key={b.id}
+                        className="border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
+                      >
+                        <td className="px-2 sm:px-4 py-3.5 text-sm text-rh-light-muted/40 dark:text-rh-muted/40 font-medium tabular-nums">
+                          {index + 1}
+                          {rankDiff !== 0 && (
+                            <span className={`ml-1 text-[9px] font-bold ${rankDiff > 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                              {rankDiff > 0 ? '▲' : '▼'}{Math.abs(rankDiff)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            {b.photoUrl ? (
+                              <img src={b.photoUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-rh-green/10 flex items-center justify-center text-xs font-bold text-rh-green flex-shrink-0">
+                                {b.name.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text truncate max-w-[120px] sm:max-w-none block">{b.name}</span>
+                              <span className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">{b.company}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-4 py-3.5 text-sm text-right font-bold text-rh-light-text dark:text-rh-text tabular-nums">
+                          ${b.computedNetWorth != null ? (b.computedNetWorth / 1e9).toFixed(1) + 'B' : '—'}
+                        </td>
+                        <td className={`px-2 sm:px-4 py-3.5 text-sm text-right hidden sm:table-cell font-medium tabular-nums ${changeColor}`}>
+                          {b.dayChange != null ? `${isUp ? '+' : ''}$${(Math.abs(b.dayChange) / 1e9).toFixed(2)}B` : '—'}
+                        </td>
+                        <td className={`px-2 sm:px-4 py-3.5 text-sm text-right hidden sm:table-cell font-bold tabular-nums ${changeColor}`}>
+                          {b.dayChangePct != null ? `${isUp ? '+' : ''}${b.dayChangePct.toFixed(2)}%` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-x-auto">
-          <table className="w-full sm:min-w-[480px]">
-            <thead>
-              <tr className="border-b border-gray-200/50 dark:border-white/[0.06] text-left">
-                <th className={`${getHeaderClass('rank')} w-8 sm:w-12 text-xs`} onClick={() => handleSort('rank')}>
-                  #{getSortIndicator('rank')}
-                </th>
-                <th className={`${getHeaderClass('user')} text-xs`} onClick={() => handleSort('user')}>
-                  User{getSortIndicator('user')}
-                </th>
-                <th className={`${getHeaderClass('twrPct', 'right')} text-xs`} onClick={() => handleSort('twrPct')}>
-                  {getSortIndicator('twrPct')}Return %
-                </th>
-                <th className={`${getHeaderClass('returnDollar', 'right')} text-xs hidden sm:table-cell`} onClick={() => handleSort('returnDollar')}>
-                  {getSortIndicator('returnDollar')}Return $
-                </th>
-                <th className={`${getHeaderClass('assets', 'right')} text-xs hidden sm:table-cell`} onClick={() => handleSort('assets')}>
-                  {getSortIndicator('assets')}Assets
-                </th>
-                <th className="px-2 sm:px-4 py-3 w-10 sm:w-16"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedEntries.map((entry, index) => {
-                const twrColor = entry.twrPct == null
-                  ? 'text-rh-light-muted dark:text-rh-muted'
-                  : entry.twrPct >= 0 ? 'text-rh-green' : 'text-rh-red';
-                return (
-                  <tr
-                    key={entry.userId}
-                    onClick={() => setSelectedUserId(entry.userId)}
-                    className="border-b border-gray-200/50 dark:border-white/[0.06] last:border-b-0 hover:bg-gray-100/60 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
-                  >
-                    <td className="px-2 sm:px-4 py-3 text-sm text-rh-light-muted dark:text-rh-muted font-medium">
-                      {index + 1}
-                    </td>
-                    <td className="px-2 sm:px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate max-w-[120px] sm:max-w-none">
-                          {entry.displayName}
-                        </span>
-                        {entry.isNew && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shrink-0">
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-rh-light-muted dark:text-rh-muted truncate max-w-[120px] sm:max-w-none">
-                        @{entry.username}
-                        {entry.sinceStart && (
-                          <span className="ml-2 opacity-60 hidden sm:inline">Since start</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className={`px-2 sm:px-4 py-3 text-xs sm:text-sm text-right font-bold ${twrColor}`}>
-                      {formatPercent(entry.twrPct)}
-                    </td>
-                    <td className={`px-2 sm:px-4 py-3 text-sm text-right hidden sm:table-cell ${twrColor}`}>
-                      {entry.returnDollar != null ? (
-                        <>
-                          {entry.returnDollar >= 0 ? '+' : ''}
-                          {formatCurrency(entry.returnDollar)}
-                        </>
-                      ) : '--'}
-                    </td>
-                    <td className="px-2 sm:px-4 py-3 text-sm text-right text-rh-light-text dark:text-rh-text hidden sm:table-cell">
-                      {formatCurrency(entry.currentAssets)}
-                    </td>
-                    <td className="px-2 sm:px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {entry.verified && (
-                          <svg className="w-4 h-4 text-rh-green" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                          </svg>
-                        )}
-                        {onCompare && currentUserId && currentUserId !== entry.userId && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onCompare(entry.userId, entry.displayName);
-                            }}
-                            className="p-1 rounded hover:bg-gray-100/60 dark:hover:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-green transition-colors"
-                            title="Compare portfolios"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </td>
+        <>
+          <div className="flex gap-1 mb-3">
+            {REGIONS.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setRegion(r.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+                  ${region === r.id
+                    ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
+                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          {lastUpdated && (
+            <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">
+              Updated {formatRelativeTime(lastUpdated)}
+            </div>
+          )}
+
+          <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mb-4">
+            Rankings based on time-weighted returns (TWR) since tracking began. TWR eliminates the effect of deposits/withdrawals for fair comparison.
+          </p>
+
+          {error && (
+            <div className="text-rh-red text-sm mb-4">{error}</div>
+          )}
+
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 animate-pulse flex items-center gap-4">
+                  <div className="w-6 h-4 bg-gray-200 dark:bg-rh-border rounded" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4 mb-2" />
+                    <div className="h-3 bg-gray-200 dark:bg-rh-border rounded w-1/6" />
+                  </div>
+                  <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
+                  <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
+                </div>
+              ))}
+            </div>
+          ) : entries.length === 0 ? (
+            <div className="text-rh-light-muted dark:text-rh-muted text-sm">
+              No verified users found. Run the seed script to add demo users.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full sm:min-w-[480px]">
+                <thead>
+                  <tr className="border-b border-gray-200/10 dark:border-white/[0.04] text-left">
+                    <th className={`${getHeaderClass('rank')} w-8 sm:w-12 text-[11px]`} onClick={() => handleSort('rank')}>
+                      #{getSortIndicator('rank')}
+                    </th>
+                    <th className={`${getHeaderClass('user')} text-[11px]`} onClick={() => handleSort('user')}>
+                      User{getSortIndicator('user')}
+                    </th>
+                    <th className={`${getHeaderClass('twrPct', 'right')} text-[11px]`} onClick={() => handleSort('twrPct')}>
+                      {getSortIndicator('twrPct')}Return %
+                    </th>
+                    <th className={`${getHeaderClass('returnDollar', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleSort('returnDollar')}>
+                      {getSortIndicator('returnDollar')}Return $
+                    </th>
+                    <th className={`${getHeaderClass('assets', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleSort('assets')}>
+                      {getSortIndicator('assets')}Assets
+                    </th>
+                    <th className="px-2 sm:px-4 py-3 w-10 sm:w-16"></th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {sortedEntries.map((entry, index) => {
+                    const twrColor = entry.twrPct == null
+                      ? 'text-rh-light-muted dark:text-rh-muted'
+                      : entry.twrPct >= 0 ? 'text-rh-green' : 'text-rh-red';
+                    return (
+                      <tr
+                        key={entry.userId}
+                        onClick={() => setSelectedUserId(entry.userId)}
+                        className="border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
+                      >
+                        <td className="px-2 sm:px-4 py-3.5 text-sm text-rh-light-muted/40 dark:text-rh-muted/40 font-medium tabular-nums">
+                          {index + 1}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text truncate max-w-[120px] sm:max-w-none">
+                              {entry.displayName}
+                            </span>
+                            {entry.isNew && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 shrink-0">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50 truncate max-w-[120px] sm:max-w-none">
+                            @{entry.username}
+                            {entry.sinceStart && (
+                              <span className="ml-2 opacity-60 hidden sm:inline">Since start</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className={`px-2 sm:px-4 py-3.5 text-xs sm:text-sm text-right font-bold tabular-nums ${twrColor}`}>
+                          {formatPercent(entry.twrPct)}
+                        </td>
+                        <td className={`px-2 sm:px-4 py-3.5 text-sm text-right hidden sm:table-cell tabular-nums ${twrColor}`}>
+                          {entry.returnDollar != null ? (
+                            <>
+                              {entry.returnDollar >= 0 ? '+' : ''}
+                              {formatCurrency(entry.returnDollar)}
+                            </>
+                          ) : '--'}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3.5 text-sm text-right text-rh-light-text dark:text-rh-text hidden sm:table-cell tabular-nums">
+                          {formatCurrency(entry.currentAssets)}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {entry.verified && (
+                              <svg className="w-4 h-4 text-rh-green" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                            )}
+                            {onCompare && currentUserId && currentUserId !== entry.userId && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onCompare(entry.userId, entry.displayName);
+                                }}
+                                className="p-1 rounded hover:bg-white/[0.04] text-rh-light-muted/30 dark:text-rh-muted/30 hover:text-rh-green transition-colors"
+                                title="Compare portfolios"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
+// force-hmr 1773904713
