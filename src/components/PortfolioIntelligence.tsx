@@ -157,7 +157,7 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
       >
         {entry.ticker}
       </button>
-      <div className="flex-1 h-5 bg-gray-50/40 dark:bg-white/[0.02] rounded relative">
+      <div className="flex-1 h-5 bg-gray-50/30 dark:bg-white/[0.015] rounded relative">
         <div className="absolute inset-0 rounded overflow-hidden">
           <div
             className={`h-full rounded transition-all duration-300 ${
@@ -560,27 +560,27 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
             <div>
               <h4 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text mb-2 flex items-center gap-2"><div className="w-1 h-4 rounded-full bg-rh-green" /><Acronym label="Beta" /> vs <Acronym label="SPY" /></h4>
               <div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
+              <div className="grid grid-cols-2 sm:grid-cols-4">
+                <div className="py-2 pr-3 border-r border-gray-200/10 dark:border-white/[0.04]">
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="How much your portfolio moves relative to the S&P 500. 1.0 = moves with the market">Portfolio <Acronym label="Beta" /></p>
                   <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                     {beta.portfolioBeta.toFixed(2)}
                   </p>
                 </div>
-                <div>
+                <div className="py-2 px-3 border-r border-gray-200/10 dark:border-white/[0.04]">
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="Annualized excess return above what market exposure alone would predict"><Acronym label="Alpha (ann.)" /></p>
                   <p className={`text-lg font-semibold ${beta.alphaPercent >= 0 ? 'text-rh-green' : 'text-red-400'}`}>
                     {formatPct(beta.alphaPercent)}
                   </p>
                 </div>
-                <div>
+                <div className="py-2 px-3 border-r border-gray-200/10 dark:border-white/[0.04]">
                   <p className="text-xs text-rh-light-muted dark:text-rh-muted"><Acronym label="SPY" /> Return</p>
                   <p className={`text-lg font-semibold ${beta.spyReturnPercent >= 0 ? 'text-rh-green' : 'text-red-400'}`}>
                     {formatPct(beta.spyReturnPercent)}
                   </p>
                 </div>
                 {beta.betaContributionPercent !== null && (
-                  <div>
+                  <div className="py-2 pl-3">
                     <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="How much of your portfolio return is explained by market movement alone">Market Contrib.</p>
                     <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                       {beta.betaContributionPercent.toFixed(1)}%
