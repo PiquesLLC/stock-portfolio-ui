@@ -530,6 +530,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   }
 
   if (!profile) {
+    // Auto-navigate back after a brief moment so stale lbuser params don't trap users
+    setTimeout(() => onBack?.(), 1500);
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
         <p className="text-rh-light-muted dark:text-rh-muted text-sm">User not found.</p>
