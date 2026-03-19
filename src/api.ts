@@ -3161,3 +3161,7 @@ export async function getTrendingTickers(): Promise<TrendingTicker[]> {
   const data = await fetchJson<{ tickers: TrendingTicker[] }>(`${API_BASE_URL}/posts/trending-tickers`);
   return data.tickers ?? [];
 }
+
+export async function getCommunityTrades(): Promise<{ mostBought: TrendingTicker[]; mostSold: TrendingTicker[] }> {
+  return fetchJson<{ mostBought: TrendingTicker[]; mostSold: TrendingTicker[] }>(`${API_BASE_URL}/posts/community-trades`);
+}

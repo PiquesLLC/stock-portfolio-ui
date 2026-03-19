@@ -80,7 +80,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   const isExpanded = focused || content.length > 0 || attachMode !== null;
 
   return (
-    <div ref={containerRef} className="px-5 py-3 border-b border-rh-light-border/15 dark:border-white/[0.05]"
+    <div ref={containerRef} className="px-5 py-3 border-b border-gray-200/20 dark:border-white/[0.06]"
       onBlur={(e) => {
         // Only collapse if focus left the entire composer container
         if (!containerRef.current?.contains(e.relatedTarget as Node) && !content.trim() && !attachMode) {
@@ -243,3 +243,4 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ActivityEvent, FeedItem } from '../types';
-import { getFeed, getEnhancedFeed, deletePost as deletePostApi, getTrendingTickers } from '../api';
+import { getFeed, getEnhancedFeed, deletePost as deletePostApi, getTrendingTickers, getCommunityTrades } from '../api';
 import { ActivityCard } from './ActivityCard';
 import { PostComposer } from './PostComposer';
 import { PostCard } from './PostCard';
@@ -216,20 +216,23 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
     {/* Main feed column */}
     <div className="flex-1 min-w-0">
       {/* Header with controls */}
-      <div className="px-4 pt-1 pb-4 border-b border-rh-light-border/30 dark:border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-rh-light-text dark:text-white">Activity</h1>
-          <div className="flex gap-2">
+      <div className="px-5 pt-3 pb-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 rounded-full bg-rh-green" />
+            <h1 className="text-lg font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Activity</h1>
+          </div>
+          <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
             <button
               onClick={() => setFeedMode('activity')}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
-                feedMode === 'activity' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/50 dark:text-white/30'
+              className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
+                feedMode === 'activity' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
               }`}
             >Trades</button>
             <button
               onClick={() => setFeedMode('social')}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
-                feedMode === 'social' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/50 dark:text-white/30'
+              className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
+                feedMode === 'social' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
               }`}
             >Social</button>
           </div>
@@ -313,16 +316,18 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
             )}
           </div>
 
-          {/* On/Off toggle pill */}
+          {/* On/Off toggle */}
           <button
             onClick={() => setFeedEnabled(!feedEnabled)}
-            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all
-              ${feedEnabled
-                ? 'bg-rh-green/15 text-rh-green border border-rh-green/20'
-                : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-white/30 border border-gray-200/60 dark:border-white/[0.06]'
-              }`}
+            className={`relative px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all ${
+              feedEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-white/25'
+            }`}
           >
-            {feedEnabled ? 'Live' : 'Off'}
+            <span className="flex items-center gap-1.5">
+              {feedEnabled && <span className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />}
+              {feedEnabled ? 'Live' : 'Off'}
+            </span>
+            {feedEnabled && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />}
           </button>
         </div>
       </div>
@@ -508,10 +513,13 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
 
 function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerClick?: (ticker: string) => void }) {
   const [tickers, setTickers] = useState<{ ticker: string; count: number }[]>([]);
+  const [mostBought, setMostBought] = useState<{ ticker: string; count: number }[]>([]);
+  const [mostSold, setMostSold] = useState<{ ticker: string; count: number }[]>([]);
 
   useEffect(() => {
     if (feedMode !== 'social') return;
     getTrendingTickers().then(setTickers).catch(() => {});
+    getCommunityTrades().then(d => { setMostBought(d.mostBought || []); setMostSold(d.mostSold || []); }).catch(() => {});
   }, [feedMode]);
 
   return (
@@ -519,31 +527,68 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
       <div className="sticky top-20 space-y-4">
         {/* Trending tickers */}
         {feedMode === 'social' && tickers.length > 0 && (
-          <div className="rounded-2xl border border-rh-light-border/15 dark:border-white/[0.06] overflow-hidden">
-            <div className="px-5 pt-5 pb-4 border-b border-rh-light-border/10 dark:border-white/[0.04]">
-              <h3 className="text-[15px] font-bold text-rh-light-text dark:text-white">Trending</h3>
-              <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">What the community is discussing</p>
+          <div className="border border-gray-200/20 dark:border-white/[0.06] overflow-hidden">
+            <div className="px-5 pt-4 pb-3 border-b border-gray-200/20 dark:border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-rh-green" />
+                <h3 className="text-[13px] font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Trending</h3>
+              </div>
+              <p className="text-[10px] text-rh-light-muted/40 dark:text-white/15 mt-1 ml-3">Most mentioned in the last 24h</p>
             </div>
             <div>
               {tickers.slice(0, 6).map((t, i) => (
+                <TrendingSidebarRow key={t.ticker} ticker={t.ticker} rank={i + 1} count={t.count} onClick={() => onTickerClick?.(t.ticker)} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Most Bought */}
+        {feedMode === 'social' && mostBought.length > 0 && (
+          <div className="border border-gray-200/20 dark:border-white/[0.06] overflow-hidden">
+            <div className="px-5 pt-4 pb-3 border-b border-gray-200/20 dark:border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-rh-green" />
+                <h3 className="text-[13px] font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Most Bought</h3>
+              </div>
+              <p className="text-[10px] text-rh-light-muted/40 dark:text-white/15 mt-1 ml-3">Community buys this week</p>
+            </div>
+            <div>
+              {mostBought.slice(0, 6).map((t, i) => (
                 <button
                   key={t.ticker}
                   onClick={() => onTickerClick?.(t.ticker)}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
+                  className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
                 >
                   <span className="text-[11px] font-bold text-rh-light-muted/20 dark:text-white/10 w-4 tabular-nums">{i + 1}</span>
-                  <div className="flex-1 text-left flex items-center gap-3">
-                    <span className="text-[14px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-green transition-colors">${t.ticker}</span>
-                    <div className="w-20 h-7 opacity-50 group-hover:opacity-80 transition-opacity">
-                      <MiniSparkline ticker={t.ticker} period="1D" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-rh-light-muted/50 dark:text-white/30 tabular-nums">{t.count}</span>
-                    <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15">
-                      {t.count === 1 ? 'post' : 'posts'}
-                    </span>
-                  </div>
+                  <span className="text-[13px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-green transition-colors flex-1 text-left">${t.ticker}</span>
+                  <span className="text-[11px] font-semibold text-rh-green tabular-nums">{t.count} {t.count === 1 ? 'buy' : 'buys'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Most Sold */}
+        {feedMode === 'social' && mostSold.length > 0 && (
+          <div className="border border-gray-200/20 dark:border-white/[0.06] overflow-hidden">
+            <div className="px-5 pt-4 pb-3 border-b border-gray-200/20 dark:border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-rh-red" />
+                <h3 className="text-[13px] font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Most Sold</h3>
+              </div>
+              <p className="text-[10px] text-rh-light-muted/40 dark:text-white/15 mt-1 ml-3">Community sells this week</p>
+            </div>
+            <div>
+              {mostSold.slice(0, 6).map((t, i) => (
+                <button
+                  key={t.ticker}
+                  onClick={() => onTickerClick?.(t.ticker)}
+                  className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
+                >
+                  <span className="text-[11px] font-bold text-rh-light-muted/20 dark:text-white/10 w-4 tabular-nums">{i + 1}</span>
+                  <span className="text-[13px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-red transition-colors flex-1 text-left">${t.ticker}</span>
+                  <span className="text-[11px] font-semibold text-rh-red tabular-nums">{t.count} {t.count === 1 ? 'sell' : 'sells'}</span>
                 </button>
               ))}
             </div>
@@ -560,8 +605,8 @@ function MobileTrendingPill({ ticker, onClick }: { ticker: string; count?: numbe
   const [positive, setPositive] = useState<boolean | null>(null);
 
   useEffect(() => {
-    import('../api').then(({ getIntradayCandles }) => {
-      getIntradayCandles(ticker).then(candles => {
+    import('../api').then(({ getHourlyCandles }) => {
+      getHourlyCandles(ticker, '1W').then(candles => {
         if (candles.length >= 2) {
           setPositive(candles[candles.length - 1].close >= candles[0].close);
         }
@@ -625,3 +670,46 @@ function MobileTrending({ onTickerClick }: { onTickerClick?: (ticker: string) =>
     </div>
   );
 }
+
+function TrendingSidebarRow({ ticker, rank, count, onClick }: { ticker: string; rank: number; count: number; onClick: () => void }) {
+  const [price, setPrice] = useState<number | null>(null);
+  const [changePct, setChangePct] = useState<number | null>(null);
+
+  useEffect(() => {
+    import('../api').then(({ getStockDetails }) => {
+      getStockDetails(ticker).then(d => {
+        if (d?.quote) {
+          setPrice(d.quote.currentPrice ?? null);
+          setChangePct(d.quote.changePercent ?? null);
+        }
+      }).catch(() => {});
+    });
+  }, [ticker]);
+
+  const isUp = changePct != null && changePct >= 0;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
+    >
+      <span className="text-[11px] font-bold text-rh-light-muted/20 dark:text-white/10 w-4 tabular-nums">{rank}</span>
+      <span className="text-[13px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-green transition-colors w-16">${ticker}</span>
+      <div className="w-14 h-5 opacity-50 group-hover:opacity-80 transition-opacity flex-shrink-0">
+        <MiniSparkline ticker={ticker} period="1W" />
+      </div>
+      <div className="flex-1 text-right tabular-nums">
+        {price != null && (
+          <span className="text-[12px] font-semibold text-rh-light-text dark:text-white block">${price.toFixed(2)}</span>
+        )}
+        {changePct != null && (
+          <span className={`text-[10px] font-semibold ${isUp ? 'text-rh-green' : 'text-rh-red'}`}>
+            {isUp ? '+' : ''}{changePct.toFixed(2)}%
+          </span>
+        )}
+      </div>
+      <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15 w-8 text-right tabular-nums">{count}</span>
+    </button>
+  );
+}
+

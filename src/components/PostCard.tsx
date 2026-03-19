@@ -94,7 +94,7 @@ export function PostCard({ post, onUserClick, onTickerClick, onDelete, currentUs
   const TYPE_LABELS: Record<string, string> = { thought: 'Thought', analysis: 'Analysis', trade_idea: 'Trade Idea' };
 
   return (
-    <div className="px-5 py-4 border-b border-rh-light-border/15 dark:border-white/[0.05]">
+    <div className="px-5 py-4 border-b border-gray-200/20 dark:border-white/[0.06]">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <button
@@ -418,3 +418,4 @@ function PostAttachment({ post, onTickerClick }: { post: PostData; onTickerClick
 
   return null;
 }
+
