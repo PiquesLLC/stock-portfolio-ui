@@ -4,7 +4,7 @@ import { PortfolioChartPeriod } from '../types';
 
 interface MiniSparklineProps {
   ticker: string;
-  positive: boolean;
+  positive?: boolean; // If omitted, auto-detects from data (last > first)
   period?: PortfolioChartPeriod;
 }
 
@@ -289,10 +289,9 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
   // No data or insufficient data
   if (!isPreMarketStale && (!points || points.length < 2)) return null;
 
-  // Use the parent's positive prop (based on dayChange vs previousClose) for color.
-  // This is the authoritative source — sparkline visual direction may differ from
-  // day change when stocks gap at open (e.g., gap down then recover intra-session).
-  const dataPositive = positive;
+  // Use parent's positive prop if provided, otherwise auto-detect from data
+  const autoPositive = points.length >= 2 ? points[points.length - 1] >= points[0] : true;
+  const dataPositive = positive ?? autoPositive;
   const strokeColor = dataPositive ? '#00c805' : '#ff5000';
   const gradientId = `sparkGrad-${ticker}-${period}`;
   const lastPt = coords[coords.length - 1];

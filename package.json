@@ -31,6 +31,7 @@
     "framer-motion": "^12.33.0",
     "hls.js": "^1.6.15",
     "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
     "http-proxy-middleware": "^3.0.5",
     "papaparse": "^5.5.3",
     "react": "^18.3.1",

@@ -34,13 +34,13 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'insights', label: 'Insights' },
   { id: 'discover', label: 'Discover' },
   { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'feed', label: 'Feed' },
 ];
 
 const OVERFLOW_TABS: { id: TabType; label: string }[] = [
   { id: 'nala', label: 'Nala AI' },
   { id: 'watchlists', label: 'Watchlists' },
   { id: 'macro', label: 'Macro' },
-  { id: 'feed', label: 'Feed' },
   { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];

@@ -57,6 +57,11 @@ import {
   UpdatePriceAlertInput,
   DailyReportResponse,
   HistoricalCAGR,
+  PostData,
+  CommentData,
+  FeedItem,
+  SocialNotificationData,
+  TrendingTicker,
 } from './types';
 
 // Typed API error codes — callers check .code instead of string matching on .message
@@ -3076,4 +3081,83 @@ export function getCongressTradesForTicker(ticker: string): Promise<{ trades: Co
 
 export function getCongressStats(): Promise<{ mostBought: { ticker: string; count: number }[]; mostSold: { ticker: string; count: number }[]; topTraders: { politician: string; count: number }[] }> {
   return fetchJson(`${API_BASE_URL}/signals/congress/stats`);
+}
+
+// ── Posts API ──────────────────────────────────────────────────
+
+export async function createPost(content: string, ticker?: string, type?: string, attachmentType?: string, attachmentData?: { ticker?: string; period?: string; action?: string; shares?: number; price?: number }): Promise<PostData> {
+  return fetchJson<PostData>(`${API_BASE_URL}/posts`, {
+    method: 'POST',
+    body: JSON.stringify({ content, ticker, type, attachmentType, attachmentData }),
+  });
+}
+
+export async function getEnhancedFeed(limit?: number, before?: string): Promise<FeedItem[]> {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  if (before) params.set('before', before);
+  const qs = params.toString();
+  const data = await fetchJson<{ items: FeedItem[] }>(`${API_BASE_URL}/posts/feed${qs ? `?${qs}` : ''}`);
+  return data.items ?? [];
+}
+
+export async function getUserPosts(userId: string, limit?: number, before?: string): Promise<PostData[]> {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  if (before) params.set('before', before);
+  const qs = params.toString();
+  const data = await fetchJson<{ posts: PostData[] }>(`${API_BASE_URL}/posts/user/${userId}${qs ? `?${qs}` : ''}`);
+  return data.posts ?? [];
+}
+
+export async function getPost(postId: string): Promise<PostData> {
+  return fetchJson<PostData>(`${API_BASE_URL}/posts/${postId}`);
+}
+
+export async function deletePost(postId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/posts/${postId}`, { method: 'DELETE' });
+}
+
+export async function createComment(postId: string, content: string): Promise<CommentData> {
+  return fetchJson<CommentData>(`${API_BASE_URL}/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+
+export async function getComments(postId: string, limit?: number): Promise<CommentData[]> {
+  const qs = limit ? `?limit=${limit}` : '';
+  const data = await fetchJson<{ comments: CommentData[] }>(`${API_BASE_URL}/posts/${postId}/comments${qs}`);
+  return data.comments ?? [];
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/posts/comments/${commentId}`, { method: 'DELETE' });
+}
+
+export async function toggleLike(postId: string): Promise<{ liked: boolean; likeCount: number }> {
+  return fetchJson<{ liked: boolean; likeCount: number }>(`${API_BASE_URL}/posts/${postId}/like`, { method: 'POST' });
+}
+
+export async function getSocialNotifications(limit?: number): Promise<SocialNotificationData[]> {
+  const qs = limit ? `?limit=${limit}` : '';
+  const data = await fetchJson<{ notifications: SocialNotificationData[] }>(`${API_BASE_URL}/posts/notifications${qs}`);
+  return data.notifications ?? [];
+}
+
+export async function getUnreadSocialNotifCount(): Promise<{ count: number }> {
+  return fetchJson<{ count: number }>(`${API_BASE_URL}/posts/notifications/unread`);
+}
+
+export async function markSocialNotifRead(id: string): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/posts/notifications/${id}/read`, { method: 'POST' });
+}
+
+export async function markAllSocialNotifsRead(): Promise<void> {
+  await fetchJson(`${API_BASE_URL}/posts/notifications/read-all`, { method: 'POST' });
+}
+
+export async function getTrendingTickers(): Promise<TrendingTicker[]> {
+  const data = await fetchJson<{ tickers: TrendingTicker[] }>(`${API_BASE_URL}/posts/trending-tickers`);
+  return data.tickers ?? [];
 }

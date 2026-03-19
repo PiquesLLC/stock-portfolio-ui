@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent } from '../types';
-import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, markAnomalyRead } from '../api';
+import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent, SocialNotificationData } from '../types';
+import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, markAnomalyRead, getSocialNotifications, getUnreadSocialNotifCount, markSocialNotifRead, markAllSocialNotifsRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
@@ -17,12 +17,13 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   price_spike: 'Price Spike',
   sector_divergence: 'Sector Move',
   dividend_change: 'Dividend Change',
+  congress_trade: 'Congress Trade',
 };
 
 // Unified notification type for display
 interface UnifiedNotification {
   id: string;
-  type: 'alert' | 'price_alert' | 'analyst' | 'milestone' | 'anomaly';
+  type: 'alert' | 'price_alert' | 'analyst' | 'milestone' | 'anomaly' | 'social';
   label: string;
   message: string;
   read: boolean;
@@ -157,27 +158,29 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
   const fetchCount = useCallback(async () => {
     if (!userId || !notificationsEnabled) return;
     try {
-      const [alertCount, priceAlertCount, analystCount, milestoneCount, anomalyEvents] = await Promise.all([
+      const [alertCount, priceAlertCount, analystCount, milestoneCount, anomalyEvents, socialCount] = await Promise.all([
         getUnreadAlertCount(userId),
         getUnreadPriceAlertCount(userId),
         getUnreadAnalystCount(),
         getUnreadMilestoneCount(),
         getAnomalies(100),
+        getUnreadSocialNotifCount().catch(() => ({ count: 0 })),
       ]);
       const visibleUnreadAnomalyCount = (anomalyEvents || []).filter((event: AnomalyEvent) => isVisibleAnomaly(event) && !event.read).length;
-      setUnreadCount((alertCount?.count ?? 0) + (priceAlertCount?.count ?? 0) + (analystCount?.count ?? 0) + (milestoneCount?.count ?? 0) + visibleUnreadAnomalyCount);
+      setUnreadCount((alertCount?.count ?? 0) + (priceAlertCount?.count ?? 0) + (analystCount?.count ?? 0) + (milestoneCount?.count ?? 0) + visibleUnreadAnomalyCount + (socialCount?.count ?? 0));
     } catch { /* silent — background poll, 401s are expected when session expires */ }
   }, [userId, notificationsEnabled]);
 
   const fetchEvents = useCallback(async (): Promise<UnifiedNotification[]> => {
     if (!userId) return [];
     try {
-      const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents, anomalyEvents] = await Promise.all([
+      const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents, anomalyEvents, socialEvents] = await Promise.all([
         getAlertEvents(userId),
         getPriceAlertEvents(userId, 50),
         getAnalystEvents(50),
         getMilestoneEvents(50),
         getAnomalies(50),
+        getSocialNotifications(50).catch(() => [] as SocialNotificationData[]),
       ]);
 
       // Convert alert events — filter orphaned events where parent Alert was deleted
@@ -234,8 +237,24 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         ticker: e.ticker,
       }));
 
+      // Convert social notifications
+      const SOCIAL_LABELS: Record<string, string> = {
+        new_follower: 'New Follower',
+        comment: 'Comment',
+        like: 'Like',
+        mention: 'Mention',
+      };
+      const unifiedSocial: UnifiedNotification[] = (socialEvents || []).map((e: SocialNotificationData) => ({
+        id: e.id,
+        type: 'social' as const,
+        label: SOCIAL_LABELS[e.type] || 'Social',
+        message: e.message ?? '',
+        read: e.read,
+        createdAt: e.createdAt,
+      }));
+
       // Merge and sort by date (newest first)
-      const merged = [...unifiedAlerts, ...unifiedPriceAlerts, ...unifiedAnalyst, ...unifiedMilestones, ...unifiedAnomalies].sort(
+      const merged = [...unifiedAlerts, ...unifiedPriceAlerts, ...unifiedAnalyst, ...unifiedMilestones, ...unifiedAnomalies, ...unifiedSocial].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
@@ -324,6 +343,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         await markMilestoneEventRead(notification.id);
       } else if (notification.type === 'anomaly') {
         await markAnomalyRead(notification.id);
+      } else if (notification.type === 'social') {
+        await markSocialNotifRead(notification.id);
       }
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
@@ -350,6 +371,9 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       const sourceNotifications = currentNotifications ?? notifications;
       const visibleUnreadAnomalies = sourceNotifications.filter(n => n.type === 'anomaly' && !n.read);
       await Promise.all(visibleUnreadAnomalies.map(n => markAnomalyRead(n.id)));
+
+      // Mark all social notifications as read
+      await markAllSocialNotifsRead().catch(() => {});
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
@@ -495,6 +519,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className={`text-[10px] font-medium uppercase tracking-wider ${
+                              notification.type === 'social' ? 'text-blue-500' :
                               notification.type === 'anomaly' ? 'text-orange-500' :
                               notification.type === 'price_alert' ? 'text-rh-green' :
                               notification.type === 'analyst' ? 'text-amber-500' :

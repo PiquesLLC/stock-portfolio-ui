@@ -63,6 +63,8 @@ interface Props {
     cashBalance: number;
     marginDebt: number;
   };
+  /** Optional toolbar rendered in the compare row (right side) */
+  chartToolbar?: React.ReactNode;
 }
 
 export function shouldShowEstimatedBadge(
@@ -106,6 +108,7 @@ export function PortfolioValueChart({
   mobileTopPadding = 'normal',
   headerLabel,
   portfolioBreakdown,
+  chartToolbar,
 }: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -566,7 +569,7 @@ export function PortfolioValueChart({
 
   const isGain = displayChange >= 0;
   // Chart line colors — muted. Full-bright reserved for hero number only.
-  const lineColor = isGain ? '#0A9E10' : '#B87872';
+  const lineColor = isGain ? '#0A9E10' : '#D4534B';
 
   // Market open status — refresh every 30s
   const [isMarketOpen, setIsMarketOpen] = useState(() => getMarketStatus().isOpen);
@@ -1026,9 +1029,16 @@ export function PortfolioValueChart({
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-0 sm:pt-5' : 'pt-5'} pb-3`}>
+    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-0 sm:pt-5' : 'pt-5'} pb-3`} data-capture-id="portfolio-chart">
+      {/* Nala branding — hidden normally, visible only in html2canvas captures */}
+      <img
+        src="/north-signal-logo-transparent.png"
+        alt=""
+        className="absolute bottom-3 right-3 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 opacity-0 z-10 pointer-events-none"
+        data-capture-brand="true"
+      />
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
-      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ minHeight: '150px' }}>
+      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ minHeight: '150px' }} data-capture-hero="true">
         {/* Hero value display — always visible */}
         <div>
             {headerLabel && <div className="mb-0.5">{headerLabel}</div>}
@@ -1042,7 +1052,7 @@ export function PortfolioValueChart({
               >
                 <span
                   key={`hero-value-${heroAnimationRunId}`}
-                  className={`block text-[40px] sm:text-5xl md:text-6xl font-black tracking-tighter leading-none text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
+                  className={`block text-[40px] sm:text-[clamp(48px,3.5vw,64px)] font-black tracking-tighter leading-none text-rh-light-text dark:text-rh-text transition-colors duration-150 ${
                     isGain ? 'hero-glow-green' : displayChange === 0 ? 'hero-glow-neutral' : 'hero-glow-red'
                   } ${heroAnimationRunId > 0 ? HERO_VALUE_ANIMATIONS[heroAnimationIndex] : ''}`}
                 >
@@ -1055,7 +1065,7 @@ export function PortfolioValueChart({
                     onClick={() => setShowBreakdown(v => !v)}
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="w-4 h-4 rounded-full border border-rh-light-muted/20 dark:border-white/10 flex items-center justify-center text-[9px] font-medium text-rh-light-muted/30 dark:text-white/15 hover:border-rh-light-muted/40 dark:hover:border-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/35 transition-colors"
+                    className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-medium text-transparent hover:border hover:border-rh-light-muted/40 dark:hover:border-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/35 transition-colors"
                   >
                     i
                   </button>
@@ -1108,7 +1118,7 @@ export function PortfolioValueChart({
                   const regChangePct = regularDayChangePercent ?? dayChangePercent;
                   return (
                     <>
-                      <p className={`text-base mt-2 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      <p className={`text-sm sm:text-base mt-1.5 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                         {formatChange(regChange)} ({formatPct(regChangePct)})
                         <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
                       </p>
@@ -1122,7 +1132,7 @@ export function PortfolioValueChart({
                 }
                 // Still in pre-market — single line
                 return (
-                  <p className={`text-base mt-2 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  <p className={`text-sm sm:text-base mt-1.5 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatChange(displayChange)} ({formatPct(displayChangePct)})
                     <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Pre-market</span>
                     {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
@@ -1139,7 +1149,7 @@ export function PortfolioValueChart({
                 const ahChangePct = regularCloseVal > 0 ? (ahChange / regularCloseVal) * 100 : 0;
                 return (
                   <>
-                    <p className={`text-base mt-2 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    <p className={`text-sm sm:text-base mt-1.5 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {formatChange(regChange)} ({formatPct(regChangePct)})
                       <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
                     </p>
@@ -1155,7 +1165,7 @@ export function PortfolioValueChart({
               // Not hovering + pre-market: single line labeled "Pre-market" (no regular session yet today)
               if (selectedPeriod === '1D' && hoverIndex === null && session === 'PRE') {
                 return (
-                  <p className={`text-base mt-2 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  <p className={`text-sm sm:text-base mt-1.5 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatChange(displayChange)} ({formatPct(displayChangePct)})
                     <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Pre-market</span>
                   </p>
@@ -1165,23 +1175,23 @@ export function PortfolioValueChart({
               // Not hovering + after hours: two-line "Today" + "After hours"
               if (selectedPeriod === '1D' && hoverIndex === null && afterHoursChange != null && Math.abs(afterHoursChange) > 0.005 && session === 'POST') {
                 return (
-                  <>
-                    <p className={`text-base mt-2 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  <div className="mb-1">
+                    <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
                     </p>
-                    <p className={`text-sm mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                    <p className={`text-xs mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                       {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
-                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">After hours</span>
+                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-[10px] ml-1.5">After hours</span>
                     </p>
-                  </>
+                  </div>
                 );
               }
 
               // Default: single line (regular hours hover, non-1D, etc.)
               return (
                 <>
-                  <p className={`text-base mt-2 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                  <p className={`text-sm sm:text-base mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatChange(displayChange)} ({formatPct(displayChangePct)})
                     {hoverIndex !== null && hoverLabel && (
                       <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-sm ml-2">{hoverLabel}</span>
@@ -1247,7 +1257,7 @@ export function PortfolioValueChart({
       </div>
 
       {/* Chart — MIDGROUND: recessed, context only */}
-      <div className="relative w-full chart-layer chart-fade-in" style={{ aspectRatio: `${CHART_W}/${CHART_H}` }}>
+      <div className="relative w-full chart-layer chart-fade-in" style={{ aspectRatio: `${CHART_W}/${CHART_H}`, maxHeight: 'min(50vh, 480px)' }}>
         {/* Fetch error state — shown when chart fails to load */}
         {!loading && fetchError && !hasData && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
@@ -1812,9 +1822,10 @@ export function PortfolioValueChart({
       </div>
 
       {/* Period selector — left-aligned, compact; -ml-3 offsets first button's px-3 so text aligns with $ heading */}
-      <div className="flex items-center gap-1 mt-2 px-3 sm:px-6 -ml-3">
+      <div className="flex items-center gap-0 mt-2 px-3 sm:px-6 -ml-1">
         {PERIODS.map(period => {
           const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
+          const isActive = selectedPeriod === period;
           return (
             <button
               key={period}
@@ -1826,15 +1837,18 @@ export function PortfolioValueChart({
                 }
                 handlePeriodChange(period);
               }}
-              className={`px-3 py-2.5 rounded-full text-sm font-semibold transition-all duration-150 flex items-center gap-1 ${
-                selectedPeriod === period
-                  ? `${isGain ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'}`
+              className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 flex items-center gap-1 ${
+                isActive
+                  ? `${isGain ? 'text-rh-green' : 'text-rh-red'}`
                   : isLocked
                     ? 'text-rh-light-muted/25 dark:text-rh-muted/25 cursor-default'
-                    : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted hover:bg-gray-100/50 dark:hover:bg-white/[0.02]'
+                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
               }`}
             >
               {period}
+              {isActive && (
+                <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full ${isGain ? 'bg-rh-green' : 'bg-rh-red'}`} />
+              )}
               {isLocked && (
                 <svg className="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -1845,7 +1859,7 @@ export function PortfolioValueChart({
         })}
       </div>
       {/* Compare + hint — subtle secondary row; -ml-2.5 offsets button's px-2.5 */}
-      <div className="flex items-center justify-between mt-1 px-3 sm:px-6 -ml-2.5">
+      <div className="flex items-center justify-between mt-1 px-3 sm:px-6 -ml-2.5" data-capture-skip="true">
         <button
           onClick={() => setShowBenchmark(prev => !prev)}
           className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
@@ -1856,11 +1870,14 @@ export function PortfolioValueChart({
         >
           <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
         </button>
-        {showHint && hasData && !isMeasuring && (
-          <span className="text-[10px] text-rh-light-muted/30 dark:text-rh-muted/30">
-            {'ontouchstart' in window ? 'Tap chart or use two fingers to measure gains' : 'Click chart to measure gains between two dates'}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {showHint && hasData && !isMeasuring && (
+            <span className="text-[10px] text-rh-light-muted/30 dark:text-rh-muted/30 hidden sm:inline">
+              Click chart to measure gains between two dates
+            </span>
+          )}
+          {chartToolbar}
+        </div>
       </div>
     </div>
   );

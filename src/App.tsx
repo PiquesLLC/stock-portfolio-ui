@@ -14,6 +14,7 @@ import { UserMenu } from './components/UserMenu';
 // AccountSettingsModal removed — replaced by full-page AccountSettingsPage
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
 import { ShareButton } from './components/ShareButton';
+import { PostToFeedButton } from './components/PostToFeedButton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { PremiumOverlay } from './components/PremiumOverlay';
@@ -124,13 +125,13 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
   { id: 'insights', label: 'Insights' },
   { id: 'discover', label: 'Discover' },
   { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'feed', label: 'Feed' },
   { id: 'watchlists', label: 'Watchlists' },
   { id: 'nala', label: 'Nala AI' },
 ];
 
 const MORE_TABS: { id: TabType; label: string }[] = [
   { id: 'macro', label: 'Macro' },
-  { id: 'feed', label: 'Feed' },
   { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];
@@ -1524,7 +1525,7 @@ export default function App() {
               <>
               <div className="-mx-3 sm:-mx-6 relative">
               {user && (
-                <div className="absolute top-2 right-3 sm:top-2 sm:right-6 z-20 flex flex-col items-end gap-1.5">
+                <div className="absolute top-2 right-3 sm:top-2 sm:right-6 z-20">
                   {userPortfolios.length > 1 && (
                     <div className="relative" ref={desktopPortfolioRef}>
                       <button
@@ -1547,7 +1548,6 @@ export default function App() {
                       )}
                     </div>
                   )}
-                  <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
                 </div>
               )}
               <PortfolioValueChart
@@ -1572,6 +1572,12 @@ export default function App() {
                   cashBalance: portfolio.cashBalance,
                   marginDebt: portfolio.marginDebt,
                 }}
+                chartToolbar={user && (
+                  <div className="flex items-center gap-1">
+                    <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
+                    <PostToFeedButton type="portfolio" userId={user.id} period={chartPeriod || '1M'} />
+                  </div>
+                )}
               />
               </div>
               </>

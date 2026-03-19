@@ -1564,6 +1564,88 @@ export interface CreatorSettingsUpdate {
   discoverable?: boolean;
 }
 
+// ── Social Platform Types (Phase 2+3) ─────────────────────────
+
+export interface TradeStats {
+  winRate: number | null;
+  totalTrades: number | null;
+  avgHoldDays: number | null;
+  profitFactor: number | null;
+}
+
+export interface PerformanceBadgeData {
+  id: string;
+  badge: string;
+  window: string;
+  earnedAt: string;
+  expiresAt: string | null;
+}
+
+export interface PostUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface PostAttachmentData {
+  ticker?: string;
+  period?: string;
+  action?: string;
+  shares?: number;
+  price?: number;
+}
+
+export interface PostData {
+  id: string;
+  userId: string;
+  content: string;
+  ticker: string | null;
+  type: string;
+  attachmentType: string | null;
+  attachmentData: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: PostUser;
+  likeCount: number;
+  commentCount: number;
+  viewerLiked?: boolean;
+}
+
+export interface CommentData {
+  id: string;
+  postId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  user: PostUser;
+}
+
+export interface FeedItem {
+  kind: 'post' | 'activity';
+  id: string;
+  createdAt: string;
+  post?: PostData;
+  activity?: ActivityEvent;
+}
+
+export interface SocialNotificationData {
+  id: string;
+  userId: string;
+  actorId: string;
+  type: string;
+  postId: string | null;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  actor: PostUser;
+}
+
+export interface TrendingTicker {
+  ticker: string;
+  count: number;
+}
+
 export type AnomalyType = 'volume_spike' | 'price_spike' | 'drawdown' | 'sector_divergence' | 'concentration' | 'dividend_change';
 export type AnomalySeverity = 'info' | 'warning' | 'critical';
 

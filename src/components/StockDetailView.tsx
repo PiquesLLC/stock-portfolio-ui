@@ -24,6 +24,7 @@ import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { NalaScore } from './NalaScore';
 import { ShareButton } from './ShareButton';
+import { PostToFeedButton } from './PostToFeedButton';
 import { CongressTradesSection } from './CongressTradesSection';
 
 /** Format a dollar delta without the $ sign, preserving +/- */
@@ -576,6 +577,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             </button>
           )}
           <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="shrink-0" />
+          <PostToFeedButton type="stock" ticker={ticker} period={chartPeriod} />
           <button
             onClick={toggleIntelFeed}
             onDoubleClick={() => setShowIntelFeed(false)}
@@ -803,6 +805,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             </button>
           )}
           <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="shrink-0" />
+          <PostToFeedButton type="stock" ticker={ticker} period={chartPeriod} />
           <button
             onClick={toggleIntelFeed}
             onDoubleClick={() => setShowIntelFeed(false)}

@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ActivityEvent } from '../types';
-import { getFeed } from '../api';
+import { ActivityEvent, FeedItem } from '../types';
+import { getFeed, getEnhancedFeed, deletePost as deletePostApi, getTrendingTickers } from '../api';
 import { ActivityCard } from './ActivityCard';
+import { PostComposer } from './PostComposer';
+import { PostCard } from './PostCard';
 import { ReportModal } from './ReportModal';
+import { MiniSparkline } from './MiniSparkline';
 import { useMutedUsers } from '../hooks/useMutedUsers';
 import { useDataEvents } from '../context/DataEventContext';
 
@@ -114,6 +117,9 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
   const settingsRef = useRef<HTMLDivElement>(null);
   const { isMuted, toggleMute, mutedList, unmute } = useMutedUsers();
   const [reportTarget, setReportTarget] = useState<{ userId: string; username: string } | null>(null);
+  const [feedMode, setFeedMode] = useState<'activity' | 'social'>('social');
+  const [socialItems, setSocialItems] = useState<FeedItem[]>([]);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -128,14 +134,44 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
   }, [currentUserId]);
 
   useEffect(() => {
-    if (!feedEnabled) return;
+    if (!feedEnabled || feedMode !== 'activity') return;
     fetchFeed();
     const interval = setInterval(fetchFeed, 30000);
     return () => clearInterval(interval);
-  }, [fetchFeed, feedEnabled]);
+  }, [fetchFeed, feedEnabled, feedMode]);
 
   // Re-fetch immediately when watchlist changes (e.g. stock added via modal overlay)
   useEffect(() => on('watchlist:changed', fetchFeed), [on, fetchFeed]);
+
+  // Social feed fetching
+  const fetchSocialFeed = useCallback(async () => {
+    if (!feedEnabled || feedMode !== 'social') return;
+    setSocialLoading(true);
+    try {
+      const data = await getEnhancedFeed(50);
+      setSocialItems(data);
+    } catch (err) {
+      console.error('Failed to load social feed:', err);
+    } finally {
+      setSocialLoading(false);
+    }
+  }, [feedEnabled, feedMode]);
+
+  useEffect(() => {
+    if (feedMode !== 'social' || !feedEnabled) return;
+    fetchSocialFeed();
+    const interval = setInterval(fetchSocialFeed, 30000);
+    return () => clearInterval(interval);
+  }, [fetchSocialFeed, feedMode, feedEnabled]);
+
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await deletePostApi(postId);
+      setSocialItems(prev => prev.filter(item => item.id !== postId));
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+    }
+  };
 
   // Close settings dropdown on outside click
   useEffect(() => {
@@ -148,11 +184,13 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showSettings]);
 
-  // Apply threshold + muted user filters
+  // Apply threshold + muted user filters + skip events with UUID tickers (bad data)
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
       if (isMuted(e.userId)) return false;
       if (threshold > 0 && getNotionalValue(e) < threshold) return false;
+      if (e.payload.ticker && UUID_RE.test(e.payload.ticker)) return false;
       return true;
     });
   }, [events, threshold, isMuted]);
@@ -174,10 +212,28 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
   const hasTodaySection = timeSections.length > 0 && timeSections[0].label === 'Today';
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="w-full lg:flex lg:gap-6">
+    {/* Main feed column */}
+    <div className="flex-1 min-w-0">
       {/* Header with controls */}
       <div className="px-4 pt-1 pb-4 border-b border-rh-light-border/30 dark:border-white/10 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-rh-light-text dark:text-white">Activity</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-rh-light-text dark:text-white">Activity</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFeedMode('activity')}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
+                feedMode === 'activity' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/50 dark:text-white/30'
+              }`}
+            >Trades</button>
+            <button
+              onClick={() => setFeedMode('social')}
+              className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
+                feedMode === 'social' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/50 dark:text-white/30'
+              }`}
+            >Social</button>
+          </div>
+        </div>
         <div className="flex items-center gap-2" ref={settingsRef}>
           {/* Threshold dropdown */}
           <div className="relative">
@@ -283,6 +339,66 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
             Tap "Off" to resume the feed.
           </p>
         </div>
+      ) : feedMode === 'social' ? (
+        <>
+          {/* Post composer */}
+          <PostComposer onPostCreated={fetchSocialFeed} />
+
+          {/* Mobile trending — horizontal scroll, hidden on desktop (sidebar handles it) */}
+          <MobileTrending onTickerClick={onTickerClick} />
+
+          {/* Social feed */}
+          {socialLoading && socialItems.length === 0 ? (
+            <div className="p-8 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
+            </div>
+          ) : socialItems.length === 0 ? (
+            <div className="p-8 text-center">
+              <div className="w-14 h-14 rounded-full bg-rh-light-bg dark:bg-white/5 mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-7 h-7 text-rh-light-muted/50 dark:text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <p className="text-rh-light-text dark:text-white font-medium mb-1">No posts yet</p>
+              <p className="text-rh-light-muted/70 dark:text-white/50 text-sm">
+                Share a thought or follow investors to see their posts.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {socialItems.filter(item =>
+                !(item.kind === 'activity' && item.activity?.payload?.ticker && UUID_RE.test(item.activity.payload.ticker))
+              ).map(item => {
+                if (item.kind === 'post' && item.post) {
+                  return (
+                    <PostCard
+                      key={item.id}
+                      post={item.post}
+                      onUserClick={onUserClick}
+                      onTickerClick={onTickerClick}
+                      onDelete={handleDeletePost}
+                      currentUserId={currentUserId}
+                    />
+                  );
+                }
+                if (item.kind === 'activity' && item.activity) {
+                  return (
+                    <ActivityCard
+                      key={item.id}
+                      events={[item.activity]}
+                      onUserClick={onUserClick}
+                      onTickerClick={onTickerClick}
+                      onMute={toggleMute}
+                      onReport={(userId, username) => setReportTarget({ userId, username })}
+                      currentUserId={currentUserId}
+                    />
+                  );
+                }
+                return null;
+              })}
+            </div>
+          )}
+        </>
       ) : (
         <>
           {/* Summary banner */}
@@ -382,6 +498,130 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
         targetUsername={reportTarget?.username ?? ''}
         context="activity feed"
       />
+    </div>
+
+    {/* Desktop sidebar */}
+    <FeedSidebar feedMode={feedMode} onTickerClick={onTickerClick} />
+    </div>
+  );
+}
+
+function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerClick?: (ticker: string) => void }) {
+  const [tickers, setTickers] = useState<{ ticker: string; count: number }[]>([]);
+
+  useEffect(() => {
+    if (feedMode !== 'social') return;
+    getTrendingTickers().then(setTickers).catch(() => {});
+  }, [feedMode]);
+
+  return (
+    <div className="hidden lg:block w-80 flex-shrink-0 pt-1">
+      <div className="sticky top-20 space-y-4">
+        {/* Trending tickers */}
+        {feedMode === 'social' && tickers.length > 0 && (
+          <div className="rounded-2xl border border-rh-light-border/15 dark:border-white/[0.06] overflow-hidden">
+            <div className="px-5 pt-5 pb-4 border-b border-rh-light-border/10 dark:border-white/[0.04]">
+              <h3 className="text-[15px] font-bold text-rh-light-text dark:text-white">Trending</h3>
+              <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">What the community is discussing</p>
+            </div>
+            <div>
+              {tickers.slice(0, 6).map((t, i) => (
+                <button
+                  key={t.ticker}
+                  onClick={() => onTickerClick?.(t.ticker)}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
+                >
+                  <span className="text-[11px] font-bold text-rh-light-muted/20 dark:text-white/10 w-4 tabular-nums">{i + 1}</span>
+                  <div className="flex-1 text-left flex items-center gap-3">
+                    <span className="text-[14px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-green transition-colors">${t.ticker}</span>
+                    <div className="w-20 h-7 opacity-50 group-hover:opacity-80 transition-opacity">
+                      <MiniSparkline ticker={t.ticker} period="1D" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-rh-light-muted/50 dark:text-white/30 tabular-nums">{t.count}</span>
+                    <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15">
+                      {t.count === 1 ? 'post' : 'posts'}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+function MobileTrendingPill({ ticker, onClick }: { ticker: string; count?: number; onClick: () => void }) {
+  // Use intraday candle to determine if positive or negative
+  const [positive, setPositive] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    import('../api').then(({ getIntradayCandles }) => {
+      getIntradayCandles(ticker).then(candles => {
+        if (candles.length >= 2) {
+          setPositive(candles[candles.length - 1].close >= candles[0].close);
+        }
+      }).catch(() => {});
+    });
+  }, [ticker]);
+
+  const isUp = positive === true;
+  const isDown = positive === false;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
+        isUp
+          ? 'bg-rh-green/[0.08] hover:bg-rh-green/[0.14]'
+          : isDown
+            ? 'bg-rh-red/[0.08] hover:bg-rh-red/[0.14]'
+            : 'bg-white/[0.04] hover:bg-white/[0.07]'
+      }`}
+    >
+      {positive !== null && (
+        <svg className={`w-3 h-3 ${isUp ? 'text-rh-green' : 'text-rh-red'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {isUp
+            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" />
+            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+          }
+        </svg>
+      )}
+      <span className={`text-[12px] font-bold ${
+        isUp ? 'text-rh-green' : isDown ? 'text-rh-red' : 'text-rh-light-text dark:text-white'
+      }`}>{ticker}</span>
+    </button>
+  );
+}
+
+function MobileTrending({ onTickerClick }: { onTickerClick?: (ticker: string) => void }) {
+  const [tickers, setTickers] = useState<{ ticker: string; count: number }[]>([]);
+
+  useEffect(() => {
+    getTrendingTickers().then(setTickers).catch(() => {});
+  }, []);
+
+  if (tickers.length === 0) return null;
+
+  // Already sorted descending by count from the API, but ensure it
+  const sorted = [...tickers].sort((a, b) => b.count - a.count);
+
+  return (
+    <div className="lg:hidden py-3 px-5">
+      <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none' }}>
+        {sorted.slice(0, 8).map(t => (
+          <MobileTrendingPill
+            key={t.ticker}
+            ticker={t.ticker}
+            count={t.count}
+            onClick={() => onTickerClick?.(t.ticker)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
