@@ -44,7 +44,7 @@ function BriefingStepLoader() {
   }, [activeStep, fullText]);
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+    <div className="p-6 border-b border-gray-200/10 dark:border-white/[0.04]">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-xl bg-rh-green/10 border border-rh-green/20 flex items-center justify-center shrink-0">
           <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
     const isPlanError = error.includes('upgrade_required') || error.includes('limit_reached');
     if (isPlanError) {
       return (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
+        <div className="p-6 text-center">
           <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/15 flex items-center justify-center">
             <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -196,7 +196,7 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
       );
     }
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
+      <div className="p-6">
         <p className="text-sm text-rh-red">{error}</p>
         <button onClick={() => fetchBriefing()} className="mt-2 text-xs text-rh-green hover:underline">Try again</button>
       </div>
@@ -205,7 +205,7 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
 
   if (!briefing || briefing.holdingCount === 0) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
+      <div className="p-6 text-center">
         <p className="text-sm text-rh-light-muted dark:text-rh-muted">
           Add holdings to your portfolio to receive an AI-powered briefing.
         </p>
@@ -215,7 +215,7 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
 
   if (briefing.sections.length === 0 && !briefing.headline) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
+      <div className="p-6 text-center">
         <p className="text-sm text-rh-light-muted dark:text-rh-muted">
           Briefing temporarily unavailable. Try again later.
         </p>
@@ -230,7 +230,7 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
   return (
     <div className="space-y-2.5">
       {/* Hero Card */}
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-5 relative overflow-hidden border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] hover:shadow-[0_0_30px_rgba(0,200,5,0.13)] transition-shadow">
+      <div className="p-5 relative overflow-hidden border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-all">
         <div className="absolute inset-0 bg-gradient-to-b from-rh-green/[0.03] to-transparent pointer-events-none" />
         <div className="relative">
           <div className="flex items-center justify-between mb-3">
@@ -262,13 +262,16 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
           <button
             key={p.id}
             onClick={() => setPeriod(p.id)}
-            className={`px-3 py-1 text-[12px] font-medium rounded-full transition-all ${
+            className={`relative px-3 py-1.5 text-[12px] font-medium transition-all ${
               period === p.id
-                ? 'bg-rh-green text-black'
+                ? 'text-rh-green'
                 : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white/70'
             }`}
           >
             {p.label}
+            {period === p.id && (
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+            )}
           </button>
         ))}
       </div>
@@ -290,8 +293,11 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {/* Portfolio composition heatmap — proper grid */}
-            <div className="md:col-span-2 bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] p-4">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35 mb-3">Portfolio Composition</h3>
+            <div className="md:col-span-2 border-b border-gray-200/10 dark:border-white/[0.04] p-4 pb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-rh-green" />
+                <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-white">Portfolio Composition</h3>
+              </div>
               <div className="flex flex-wrap gap-1">
                 {sorted.slice(0, 20).map(h => {
                   const weight = ((h.currentValue ?? 0) / totalValue);
@@ -318,16 +324,19 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
             </div>
 
             {/* Best performers */}
-            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] p-4">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-green/60 mb-3">Best Performers</h3>
+            <div className="border-b border-gray-200/10 dark:border-white/[0.04] p-4 pb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-rh-green" />
+                <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-white">Best Performers</h3>
+              </div>
               <div className="space-y-2">
-                {topGainers.map(h => {
+                {topGainers.map((h, idx) => {
                   const ret = getReturn(h);
                   const barW = (ret / maxAbsReturn) * 100;
                   return (
-                    <div key={h.ticker} className="flex items-center gap-2">
+                    <div key={h.ticker} className={`flex items-center gap-2 pb-2 ${idx < topGainers.length - 1 ? 'border-b border-gray-200/10 dark:border-white/[0.04]' : ''}`}>
                       <span className="text-[11px] font-semibold text-rh-light-text dark:text-white/70 w-12 shrink-0 cursor-pointer hover:text-rh-green transition-colors" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</span>
-                      <div className="flex-1 h-5 bg-gray-100/20 dark:bg-white/[0.03] rounded overflow-hidden">
+                      <div className="flex-1 h-5 rounded overflow-hidden">
                         <div className="h-full bg-rh-green/40 rounded" style={{ width: `${Math.max(barW, 4)}%` }} />
                       </div>
                       <span className="text-[11px] font-medium text-rh-green tabular-nums shrink-0 w-16 text-right">+{ret.toFixed(1)}%</span>
@@ -339,16 +348,19 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
             </div>
 
             {/* Worst performers */}
-            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] p-4">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-red/60 mb-3">Worst Performers</h3>
+            <div className="border-b border-gray-200/10 dark:border-white/[0.04] p-4 pb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-rh-green" />
+                <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-white">Worst Performers</h3>
+              </div>
               <div className="space-y-2">
-                {topLosers.map(h => {
+                {topLosers.map((h, idx) => {
                   const ret = getReturn(h);
                   const barW = (Math.abs(ret) / maxAbsReturn) * 100;
                   return (
-                    <div key={h.ticker} className="flex items-center gap-2">
+                    <div key={h.ticker} className={`flex items-center gap-2 pb-2 ${idx < topLosers.length - 1 ? 'border-b border-gray-200/10 dark:border-white/[0.04]' : ''}`}>
                       <span className="text-[11px] font-semibold text-rh-light-text dark:text-white/70 w-12 shrink-0 cursor-pointer hover:text-rh-red transition-colors" onClick={() => onTickerClick?.(h.ticker)}>{h.ticker}</span>
-                      <div className="flex-1 h-5 bg-gray-100/20 dark:bg-white/[0.03] rounded overflow-hidden">
+                      <div className="flex-1 h-5 rounded overflow-hidden">
                         <div className="h-full bg-rh-red/40 rounded" style={{ width: `${Math.max(barW, 4)}%` }} />
                       </div>
                       <span className="text-[11px] font-medium text-rh-red tabular-nums shrink-0 w-16 text-right">{ret.toFixed(1)}%</span>
@@ -370,11 +382,12 @@ export default function PortfolioBriefing({ portfolioId, onTickerClick, holdings
           return (
             <div
               key={i}
-              className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl overflow-hidden border border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.09)] hover:shadow-[0_0_30px_rgba(0,200,5,0.13)] transition-all p-4"
+              className="overflow-hidden border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-all p-4"
             >
               {/* Title + sentiment pill */}
               <div className="flex items-center gap-2 mb-1.5">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted/70 dark:text-white/35">
+                <div className="w-1 h-4 rounded-full bg-rh-green shrink-0" />
+                <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-white">
                   {section.title}
                 </h3>
                 <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${pill.cls}`}>
