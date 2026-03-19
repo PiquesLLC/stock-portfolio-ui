@@ -171,9 +171,9 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
           {/* Drivers */}
           {drivers.length > 0 && (
             <Section title="What's affecting your score">
-              <div className="space-y-3">
+              <div className="divide-y divide-gray-200/10 dark:divide-white/[0.04]">
                 {drivers.map((d, i) => (
-                  <div key={i} className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-4 py-3">
+                  <div key={i} className="px-0 py-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">{d.label}</span>
                       <span className="text-sm font-mono text-blue-400">{d.value}</span>
@@ -210,7 +210,10 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-2">{title}</h3>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-1 h-4 rounded-full bg-rh-green" />
+        <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">{title}</h3>
+      </div>
       {children}
     </div>
   );
@@ -273,7 +276,7 @@ function BreakdownRow({
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
       className="flex items-center gap-3 w-full text-left rounded-lg px-2 py-1.5 -mx-2
-        hover:bg-rh-light-bg dark:hover:bg-rh-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+        hover:bg-gray-100/40 dark:hover:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
         transition-colors cursor-pointer group"
       aria-label={`${label}: ${value}/${maxValue} — click for details`}
     >
@@ -300,8 +303,11 @@ export function HealthScore({ data }: HealthScoreProps) {
 
   if (partial) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-6 shadow-sm dark:shadow-none">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-4 flex items-center gap-2">Portfolio Health <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." /></h3>
+      <div className="p-5">
+        <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text mb-4 flex items-center gap-2">
+          <div className="w-1 h-4 rounded-full bg-rh-green" />
+          Portfolio Health <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." />
+        </h3>
         <p className="text-rh-light-muted dark:text-rh-muted">Add holdings to see your health score</p>
       </div>
     );
@@ -309,7 +315,7 @@ export function HealthScore({ data }: HealthScoreProps) {
 
   return (
     <>
-      <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none border border-gray-200/20 dark:border-white/[0.04]">
+      <div className="p-5">
         {/* Compact header: score circle + label + title on one row */}
         <div className="flex items-center gap-4 mb-4">
           <div className="relative w-16 h-16 shrink-0">
@@ -328,7 +334,8 @@ export function HealthScore({ data }: HealthScoreProps) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Portfolio Health</h3>
+              <div className="w-1 h-4 rounded-full bg-rh-green" />
+              <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Portfolio Health</h3>
               <InfoTooltip text="Score from 0-100 based on concentration (top holding weight), volatility (annualized std dev of daily returns), max drawdown (largest peak-to-trough decline), diversification (number of holdings and sectors), and margin usage penalty." />
             </div>
             <p className={`text-sm font-medium ${getScoreColor(overall)}`}>{getScoreLabel(overall)} — {overall}/100</p>
@@ -346,7 +353,7 @@ export function HealthScore({ data }: HealthScoreProps) {
               onClick={() => hasCategoryDetail('margin') && setSelectedCategory('margin')}
               onKeyDown={(e) => { if (hasCategoryDetail('margin') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelectedCategory('margin'); } }}
               className={`flex items-center gap-3 w-full text-left rounded-lg px-2 py-1.5 -mx-2
-                ${hasCategoryDetail('margin') ? 'hover:bg-rh-light-bg dark:hover:bg-rh-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer' : ''}
+                ${hasCategoryDetail('margin') ? 'hover:bg-gray-100/40 dark:hover:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer' : ''}
                 transition-colors`}
               aria-label={`Margin Penalty: -${breakdown.margin} points — click for details`}
               disabled={!hasCategoryDetail('margin')}
@@ -365,7 +372,10 @@ export function HealthScore({ data }: HealthScoreProps) {
         {/* Reasons — show top 2, expandable */}
         {reasons.length > 0 && (
           <div className="mb-4">
-            <h4 className="text-xs font-medium uppercase tracking-wider text-blue-500/60 dark:text-blue-400/60 mb-2">Key Drivers</h4>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1 h-4 rounded-full bg-rh-green" />
+              <h4 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Key Drivers</h4>
+            </div>
             <ul className="space-y-1">
               {visibleReasons.map((reason, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-rh-light-muted dark:text-rh-muted">
@@ -387,7 +397,7 @@ export function HealthScore({ data }: HealthScoreProps) {
 
         {/* Quick Fixes — collapsed into summary */}
         {quickFixes.length > 0 && (
-          <details className="pt-3 border-t border-gray-200/30 dark:border-white/[0.04]">
+          <details className="pt-3 border-t border-gray-200/10 dark:border-white/[0.04]">
             <summary className="text-xs font-medium text-rh-green cursor-pointer hover:text-rh-green/80 transition-colors flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
