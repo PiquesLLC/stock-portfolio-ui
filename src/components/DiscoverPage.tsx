@@ -1842,13 +1842,16 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
             <button
               key={p.id}
               onClick={() => setPeriod(p.id)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
+              className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150
                 ${period === p.id
-                  ? 'bg-rh-green text-black'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-white/5'
+                  ? 'text-rh-green'
+                  : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
                 }`}
             >
               {p.label}
+              {period === p.id && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+              )}
             </button>
           ))}
         </div>
