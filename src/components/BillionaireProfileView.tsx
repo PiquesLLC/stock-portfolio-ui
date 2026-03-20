@@ -99,6 +99,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
   // ── Fetch chart ────────────────────────────────────────────
   useEffect(() => {
     setChartLoading(true);
+    setHoverIndex(null); // Reset hover on period change
     getBillionaireChart(slug, chartPeriod)
       .then(setChartData)
       .catch(() => setChartData(null))
@@ -442,7 +443,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
       </div>
 
       {/* ── Chart ───────────────────────────────────────────── */}
-      <div ref={containerRef} className="mb-6" style={{ maxHeight: 'min(50vh, 480px)' }}>
+      <div ref={containerRef} className="mb-6 overflow-hidden" style={{ maxHeight: 'min(50vh, 480px)' }}>
         {/* Period selector */}
         <div className="flex items-center gap-0 -ml-1 mb-3">
           {PERIODS.map((p) => {
@@ -479,11 +480,12 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
             width={chartWidth}
             height={CHART_H}
             viewBox={`0 0 ${chartWidth} ${CHART_H}`}
-            className="cursor-crosshair select-none"
+            className="select-none overflow-hidden"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleMouseLeave}
+            style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
           >
             {/* Chart line */}
             <path
@@ -495,30 +497,37 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
               strokeLinecap="round"
             />
 
-            {/* Hover crosshair + dot */}
+            {/* Hover crosshair — only while actively hovering */}
             {hoverIndex != null && chartGeo.coords[hoverIndex] && (
               <>
-                {/* Vertical crosshair line */}
+                {/* Vertical reference line — muted white, matches portfolio chart */}
                 <line
                   x1={chartGeo.coords[hoverIndex].x}
-                  y1={PAD_TOP}
+                  y1={0}
                   x2={chartGeo.coords[hoverIndex].x}
-                  y2={CHART_H - PAD_BOTTOM}
-                  stroke={lineColor}
+                  y2={CHART_H}
+                  stroke="white"
                   strokeWidth={0.5}
-                  opacity={0.4}
+                  opacity={0.15}
                 />
                 {/* Dot on line */}
                 <circle
                   cx={chartGeo.coords[hoverIndex].x}
                   cy={chartGeo.coords[hoverIndex].y}
-                  r={4}
+                  r={3.5}
                   fill={lineColor}
-                  stroke="white"
-                  strokeWidth={1.5}
                 />
               </>
             )}
+
+            {/* Invisible hit area — full chart height for better hover detection */}
+            <rect
+              x={0}
+              y={0}
+              width={chartWidth}
+              height={CHART_H}
+              fill="transparent"
+            />
           </svg>
         ) : (
           <div
