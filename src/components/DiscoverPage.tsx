@@ -1852,13 +1852,13 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
   if (!data) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1 sm:space-y-2">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">
             {INDEXES.find(i => i.id === index)?.fullName ?? 'Market'} Heatmap
           </h2>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+          <p className="text-xs text-rh-light-muted dark:text-rh-muted hidden sm:block">
             {index === 'THEMES'
               ? `${allStocks.length} subthemes across ${data.sectors.length} themes — colored by ${PERIOD_LABELS[period]}`
               : `${allStocks.length} stocks across ${data.sectors.length} sectors — sized by market cap, colored by ${PERIOD_LABELS[period]}`
