@@ -308,7 +308,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
 
   if (sortedHoldings.length === 0) {
     return (
-      <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm dark:bg-white/[0.04] dark:backdrop-blur-sm dark:border-white/[0.06] dark:shadow-none p-6 text-center">
+      <div className="p-6 text-center">
         <p className="text-rh-light-muted dark:text-rh-muted text-sm">No holdings to display</p>
       </div>
     );
@@ -321,15 +321,16 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
   return (
     <div
       ref={containerRef}
-      className="relative bg-white border border-gray-200/60 rounded-2xl shadow-sm
-        dark:bg-white/[0.04] dark:backdrop-blur-sm dark:border-white/[0.06] dark:shadow-none
-        p-5"
+      className="relative p-5"
     >
       {/* Header + Concentration Summary */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-          {title}
-        </h3>
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-4 rounded-full bg-rh-green" />
+          <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+            {title}
+          </h3>
+        </div>
         {segments.length >= 3 && (
           <span className="text-[10px] text-gray-400 dark:text-gray-500">
             Top 3 = {segments.slice(0, 3).reduce((s, seg) => s + seg.percent, 0).toFixed(1)}% of portfolio
@@ -484,8 +485,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
         return (
           <div
             className={`${isMobile ? '' : 'absolute right-5 top-1/2 -translate-y-1/2'}
-              bg-white border border-gray-200/60 rounded-xl shadow-lg
-              dark:bg-[#1a1a1e]/95 dark:border-white/[0.08] dark:shadow-black/40
+              bg-white dark:bg-[#1a1a1e]/95 border border-gray-200/60 dark:border-white/[0.08] rounded-xl shadow-lg dark:shadow-black/40
               px-4 py-3 z-10`}
             style={{
               ...(!isMobile ? { minWidth: 160 } : {}),

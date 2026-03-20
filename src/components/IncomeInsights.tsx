@@ -245,12 +245,15 @@ function IncomeHealthScore({ data }: { data: IncomeInsightsResponse['healthScore
 
   return (
     <>
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
+      <div className="p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-1">
-              Income Health Score
-            </h3>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-1 h-4 rounded-full bg-rh-green" />
+              <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+                Income Health Score
+              </h3>
+            </div>
             <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${getGradeColor(grade)}`}>
               {getDisplayGrade(grade)}
             </span>
@@ -291,10 +294,13 @@ function IncomeKeyDrivers({ drivers }: { drivers: string[] }) {
   if (drivers.length === 0) return null;
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
-      <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
-        Key Income Drivers
-      </h3>
+    <div className="p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-1 h-4 rounded-full bg-rh-green" />
+        <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+          Key Income Drivers
+        </h3>
+      </div>
       <ul className="space-y-2">
         {drivers.slice(0, 4).map((driver, i) => (
           <li key={i} className="flex items-start gap-2 text-sm text-rh-light-text dark:text-rh-text">
@@ -338,7 +344,7 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
   return (
     <div className={`grid grid-cols-1 gap-4 ${annualSalary && annualSalary > 0 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
       {/* Cash Flow */}
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
+      <div className="py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
         <div className="flex items-center gap-2 mb-2">
           <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -364,7 +370,7 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
 
       {/* Salary Replacement — only shown when salary is set */}
       {annualSalary != null && annualSalary > 0 && (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
+        <div className="py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 mb-2">
             <svg className={`w-4 h-4 ${salaryColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -381,7 +387,7 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
       )}
 
       {/* Momentum */}
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
+      <div className="py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
         <div className="flex items-center gap-2 mb-2">
           <svg className={`w-4 h-4 ${trendColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -404,7 +410,7 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
       </div>
 
       {/* Reliability */}
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4">
+      <div className="py-3.5">
         <div className="flex items-center gap-2 mb-2">
           <svg className={`w-4 h-4 ${reliabilityColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -435,10 +441,13 @@ function IncomeContributors({
 }) {
   if (contributors.length === 0) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
-          Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Annual</span>
-        </h3>
+      <div className="p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-4 rounded-full bg-rh-green" />
+          <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+            Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50">Annual</span>
+          </h3>
+        </div>
         <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-4">
           No dividend income recorded yet.
         </p>
@@ -449,13 +458,16 @@ function IncomeContributors({
   const maxDividend = Math.max(...contributors.map(c => c.dividendDollar));
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
-      <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-4">
-        Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Annual</span>
-      </h3>
+    <div className="p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-1 h-4 rounded-full bg-rh-green" />
+        <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+          Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50">Annual</span>
+        </h3>
+      </div>
       <div className="space-y-3">
         {contributors.slice(0, 7).map((c) => (
-          <div key={c.ticker} className="flex items-center gap-3">
+          <div key={c.ticker} className="flex items-center gap-3 py-3.5 border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] -mx-2 px-2 rounded-sm transition-colors">
             <button
               onClick={() => onTickerClick?.(c.ticker)}
               className="w-14 text-xs font-mono font-semibold text-rh-green hover:underline text-left"
@@ -493,12 +505,13 @@ function IncomeConcentration({ data }: { data: IncomeInsightsResponse['concentra
   if (!data.top1Ticker) return null;
 
   return (
-    <div className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-5 ${
-      data.isConcentrated ? 'border-orange-400/50' : 'border-gray-200/30 dark:border-white/[0.04]'
+    <div className={`p-5 ${
+      data.isConcentrated ? 'border-l-2 border-orange-400/50' : ''
     }`}>
       <div className="flex items-center gap-2 mb-3">
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-          Income Concentration <span className="text-[10px] font-normal text-rh-light-muted dark:text-rh-muted">Annual</span>
+        <div className="w-1 h-4 rounded-full bg-rh-green" />
+        <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+          Income Concentration <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50">Annual</span>
         </h3>
         {data.isConcentrated && (
           <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-400/20 text-orange-400 rounded">
@@ -547,10 +560,13 @@ function IncomeDividendTimeline({
 }) {
   if (events.length === 0) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 flex-1">
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
-          Dividend Timeline
-        </h3>
+      <div className="p-5 flex-1">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-4 rounded-full bg-rh-green" />
+          <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+            Dividend Timeline
+          </h3>
+        </div>
         <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-4">
           No recent dividend payments.
         </p>
@@ -561,11 +577,14 @@ function IncomeDividendTimeline({
   const hasEstimatedDates = events.some(e => e.dateEstimated);
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 flex-1">
+    <div className="p-5 flex-1">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-          Dividend Timeline
-        </h3>
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-4 rounded-full bg-rh-green" />
+          <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
+            Dividend Timeline
+          </h3>
+        </div>
         <button
           onClick={() => downloadDividendCalendar(6)}
           className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-rh-green bg-rh-green/10 hover:bg-rh-green/20 rounded-full transition-colors"
@@ -668,11 +687,11 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
   if (loading && !data) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse bg-gray-100/60 dark:bg-white/[0.06] rounded-lg h-48" />
-        <div className="animate-pulse bg-gray-100/60 dark:bg-white/[0.06] rounded-lg h-24" />
+        <div className="animate-pulse bg-gray-100/60 dark:bg-white/[0.04] h-48" />
+        <div className="animate-pulse bg-gray-100/60 dark:bg-white/[0.04] h-24" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="animate-pulse bg-gray-100/60 dark:bg-white/[0.06] rounded-lg h-24" />
+            <div key={i} className="animate-pulse bg-gray-100/60 dark:bg-white/[0.04] h-24" />
           ))}
         </div>
       </div>
@@ -681,7 +700,7 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
 
   if (!data) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-12 text-center">
+      <div className="p-12 text-center">
         <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>

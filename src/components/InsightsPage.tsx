@@ -53,7 +53,7 @@ function IntelligenceLoader() {
   }, [activeStep, fullText]);
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+    <div className="p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-xl bg-rh-green/10 border border-rh-green/20 flex items-center justify-center shrink-0">
           <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,14 +125,14 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   const btnClass = useCallback((active: boolean) =>
     `px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
       active
-        ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+        ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm'
         : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
     }`, []);
 
   return (
     <>
       {/* Desktop: all tabs in one row */}
-      <div className="hidden md:flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 overflow-x-auto">
+      <div className="hidden md:flex gap-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5 overflow-x-auto">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => onTabChange(t.id)} className={btnClass(activeTab === t.id)}>
             {t.label}
@@ -141,7 +141,7 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
       </div>
 
       {/* Mobile: fewer primary tabs + More dropdown */}
-      <div className="flex md:hidden gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
+      <div className="flex md:hidden gap-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
         {mobilePrimary.map((t) => (
           <button key={t.id} onClick={() => { onTabChange(t.id); setMoreOpen(false); }} className={btnClass(activeTab === t.id)}>
             {t.label}
@@ -229,7 +229,7 @@ function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
       description="Download beautifully formatted performance reports with sparklines, sector allocation, and benchmark comparison."
       requiredPlan="elite"
     >
-      <div className="bg-gray-50/40 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.05] rounded-2xl p-4">
+      <div className="border-t border-gray-200/10 dark:border-white/[0.04] pt-4 pb-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
 
           <div className="flex items-center gap-2">
             {/* Period pills */}
-            <div className="flex gap-0.5 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
+            <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
               {REPORT_PERIODS.map((p) => (
                 <button
                   key={p.value}
@@ -598,7 +598,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
 
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-12 text-center">
+        <div className="p-12 text-center">
           <svg className="w-14 h-14 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>

@@ -18,8 +18,8 @@ export function CreatorSection({ userId, onCreatorNavigate }: CreatorSectionProp
   return (
     <div className="space-y-7">
       {/* Creator Status */}
-      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Creator Status</h3>
+      <div className="space-y-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Creator Status</h3>
         {creatorProfile?.status === 'active' ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -79,8 +79,8 @@ export function CreatorSection({ userId, onCreatorNavigate }: CreatorSectionProp
       </div>
 
       {/* My Creator Subscriptions */}
-      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05] mb-3">
+      <div className="space-y-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">
           Creator Subscriptions
         </h3>
         <CreatorSubscriptionManager />

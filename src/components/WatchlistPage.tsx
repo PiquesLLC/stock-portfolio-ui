@@ -330,7 +330,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           const ahChange = s.afterHoursChange ?? 0;
           const ahPct = s.afterHoursChangePercent ?? 0;
           return (
-            <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-2 px-4 py-3 rounded-xl bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.04]">
+            <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-2 py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Value</span>
                 <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">
@@ -401,7 +401,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
 
         {/* Add stock form */}
         {showAddStock && (
-          <div className="p-4 rounded-xl bg-gray-50/80 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] space-y-3">
+          <div className="py-4 border-b border-gray-200/10 dark:border-white/[0.04] space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Ticker</label>
@@ -575,7 +575,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
             <div className="hidden md:block overflow-x-auto pb-1 scrollbar-hide">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200/30 dark:border-white/[0.04]">
+                  <tr className="border-b border-gray-200/10 dark:border-white/[0.04]">
                     {([
                       ['ticker', 'Ticker', 'text-left'],
                     ] as [SortKey, string, string][]).map(([key, label, className]) => (
@@ -620,7 +620,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                     <tr
                       key={h.ticker}
                       onClick={() => onTickerClick(h.ticker)}
-                      className="border-b border-gray-200/20 dark:border-white/[0.03] hover:bg-gray-100/70 dark:hover:bg-white/[0.04] transition-colors group cursor-pointer"
+                      className="border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors group cursor-pointer"
                     >
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2">
@@ -837,12 +837,12 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 sm:gap-3">
           {watchlists.map((wl) => (
             <button
               key={wl.id}
               onClick={() => setSelectedId(wl.id)}
-              className="text-left p-4 rounded-xl bg-rh-light-card dark:bg-white/[0.03] border-l-[3px] border border-gray-200/30 dark:border-white/[0.04] hover:border-gray-300/50 dark:hover:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all group"
+              className="text-left py-3.5 pl-4 pr-3 border-l-[3px] border-b border-b-gray-200/10 dark:border-b-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-all group"
               style={{ borderLeftColor: wl.color }}
             >
               <div className="flex items-start justify-between gap-2">

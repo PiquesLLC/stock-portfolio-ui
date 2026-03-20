@@ -31,8 +31,8 @@ export function ProfileSection({
 }: ProfileSectionProps) {
   return (
     <div className="space-y-7">
-      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Account Info</h3>
+      <div className="space-y-5">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Account Info</h3>
 
         {/* Display Name */}
         <div>
@@ -66,7 +66,7 @@ export function ProfileSection({
 
         {/* Member Since */}
         {settings?.createdAt && (
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-sm pt-4 border-t border-gray-200/10 dark:border-white/[0.04]">
             <span className="text-rh-light-muted dark:text-rh-muted">Member since</span>
             <span className="text-rh-light-text dark:text-rh-text">
               {new Date(settings.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -81,8 +81,8 @@ export function ProfileSection({
       )}
 
       {/* Privacy */}
-      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Privacy</h3>
+      <div className="space-y-5">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Privacy</h3>
 
         {/* Profile Public */}
         <label className="flex items-center justify-between cursor-pointer">
@@ -171,7 +171,7 @@ function InviteCard({ username }: { username: string }) {
   }, [referralUrl]);
 
   return (
-    <div className="rounded-xl border border-rh-green/20 bg-rh-green/[0.04] p-6 space-y-3">
+    <div className="border-t border-gray-200/10 dark:border-white/[0.04] pt-6 space-y-3">
       <div className="flex items-center gap-2">
         <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />

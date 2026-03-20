@@ -872,17 +872,17 @@ function TopMovers({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-      <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
-        <h3 className="text-sm font-semibold text-rh-green mb-3 flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+      <div className="p-4">
+        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
+          <span className="w-0.5 h-3.5 bg-rh-green rounded-full" />
           Top Gainers
         </h3>
-        <div className="space-y-1.5">
+        <div className="space-y-0">
           {gainers.map((s) => (
             <button
               key={s.ticker}
               onClick={() => onTickerClick(s.ticker)}
-              className="w-full flex items-center justify-between py-1.5 px-2 min-h-[44px] rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between py-3.5 px-2 min-h-[44px] border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>
@@ -897,17 +897,17 @@ function TopMovers({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
-        <h3 className="text-sm font-semibold text-rh-red mb-3 flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+      <div className="p-4">
+        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
+          <span className="w-0.5 h-3.5 bg-rh-red rounded-full" />
           Top Losers
         </h3>
-        <div className="space-y-1.5">
+        <div className="space-y-0">
           {losers.map((s) => (
             <button
               key={s.ticker}
               onClick={() => onTickerClick(s.ticker)}
-              className="w-full flex items-center justify-between py-1.5 px-2 min-h-[44px] rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between py-3.5 px-2 min-h-[44px] border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>
@@ -1286,10 +1286,9 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                 if (heroTicker === stock.ticker) { onTickerClick(stock.ticker); }
                 else { setHeroTicker(stock.ticker); }
               }}
-              className="relative group rounded-xl px-3 py-[7px] cursor-pointer transition-all duration-200
+              className="relative group px-3 py-3.5 cursor-pointer transition-all duration-200
                 hover:scale-[1.005] active:scale-[0.998]
-                border border-transparent hover:border-gray-200/50 dark:hover:border-white/[0.06] hover:bg-gray-50/80 dark:hover:bg-white/[0.025]
-                hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20
+                border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02]
               "
             >
               {/* Left accent strip */}
@@ -1470,11 +1469,11 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
           <select
             value={sectorFilter}
             onChange={e => setSectorFilter(e.target.value)}
-            className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-[#1a1a1e] text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
+            className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-transparent text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E")` }}
           >
-            <option value="all" className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">All Sectors</option>
-            {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">{s}</option>)}
+            <option value="all" className="bg-white dark:bg-[#0a0a0d] text-gray-900 dark:text-white">All Sectors</option>
+            {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#0a0a0d] text-gray-900 dark:text-white">{s}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -1517,9 +1516,9 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f12]">
+      <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="sticky top-0 bg-gray-50 dark:bg-white/[0.03] z-10">
+          <thead className="sticky top-0 bg-rh-light-bg dark:bg-[#050505] z-10">
             <tr>
               <th className={`${thClass} pl-3 text-left`} onClick={() => handleSort('ticker')}>Ticker{sortIcon('ticker')}</th>
               <th className={`${thClass} text-left hidden md:table-cell`} onClick={() => handleSort('name')}>Name{sortIcon('name')}</th>
@@ -1540,7 +1539,7 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
                 <tr
                   key={stock.ticker}
                   onClick={() => onTickerClick(stock.ticker)}
-                  className="border-t border-gray-100 dark:border-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors"
+                  className="border-t border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
                 >
                   <td className="px-2 py-2 pl-3">
                     <div className="flex items-center gap-2">
@@ -1651,7 +1650,7 @@ function HeatmapLoader() {
 
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="w-full max-w-sm bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+      <div className="w-full max-w-sm p-6">
         {/* Header with sparkle icon */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 rounded-xl bg-rh-green/10 border border-rh-green/20 flex items-center justify-center shrink-0">
@@ -1821,7 +1820,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
       {/* Index + Period selectors */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         {/* Index selector */}
-        <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 p-0.5 overflow-x-auto no-scrollbar">
           {INDEXES.map((idx) => (
             <button
               key={idx.id}
@@ -1946,7 +1945,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
   return (
     <div className="space-y-3">
       {/* Top-level tab bar */}
-      <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 p-1 w-fit">
         <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
           Sectors
         </button>
@@ -1967,7 +1966,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       {subTab === 'sectors' ? (
         <div className="space-y-2">
           {/* Inner sector tabs */}
-          <div className="flex gap-0.5 bg-gray-100/50 dark:bg-white/[0.03] rounded-lg p-0.5 w-fit">
+          <div className="flex gap-0.5 p-0.5 w-fit">
             <button onClick={() => setSectorInner('heatmap')} className={innerTabClass(sectorInner === 'heatmap')}>
               Heatmap
             </button>

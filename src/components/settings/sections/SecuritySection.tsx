@@ -76,8 +76,8 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
 
   return (
     <div className="space-y-7">
-      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-4">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Authentication</h3>
+      <div className="space-y-4">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Authentication</h3>
 
         {!showPasswordChange ? (
           <button

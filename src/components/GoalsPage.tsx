@@ -285,10 +285,10 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
   }
 
   return (
-    <div className={`group bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border rounded-lg p-4 sm:p-6 ${
+    <div className={`group p-4 sm:p-6 ${
       isAchieved
-        ? 'border-rh-green shadow-[0_0_30px_rgba(0,200,5,0.25)]'
-        : 'border-gray-200/30 dark:border-white/[0.04] shadow-[0_0_25px_rgba(0,200,5,0.14)] hover:shadow-[0_0_30px_rgba(0,200,5,0.2)]'
+        ? 'border border-rh-green shadow-[0_0_30px_rgba(0,200,5,0.25)]'
+        : 'shadow-[0_0_25px_rgba(0,200,5,0.14)] hover:shadow-[0_0_30px_rgba(0,200,5,0.2)]'
     } transition-shadow`}>
       <div className="flex items-start justify-between mb-4 gap-2">
         <div className="min-w-0 flex-1">
@@ -614,7 +614,10 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg sm:text-xl font-semibold text-rh-light-text dark:text-rh-text">Financial Goals</h2>
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 rounded-full bg-rh-green" />
+            <h2 className="text-lg sm:text-xl font-semibold text-rh-light-text dark:text-rh-text">Financial Goals</h2>
+          </div>
           <p className="text-xs sm:text-sm text-rh-light-muted dark:text-rh-muted">
             Track your progress with optimistic, base, and pessimistic scenarios
           </p>
@@ -626,9 +629,10 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
       {/* Goals List */}
       {goals.length === 0 ? (
         !showForm ? (
-          <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5 shadow-sm dark:shadow-none">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Choose a Goal</h3>
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-4 rounded-full bg-rh-green" />
+              <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Choose a Goal</h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {GOAL_TEMPLATES.map(t => (
@@ -639,7 +643,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                       await handleCreateGoal({ name: t.name, targetValue: t.target, monthlyContribution: t.monthly, currentValue: 0 });
                     } catch {}
                   }}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-gray-200/30 dark:border-white/[0.06] bg-white/50 dark:bg-white/[0.02] hover:border-rh-green/40 hover:bg-rh-green/[0.04] shadow-[0_0_12px_rgba(0,200,5,0.08)] hover:shadow-[0_0_24px_rgba(0,200,5,0.2)] transition-all text-center"
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-gray-200/10 dark:border-white/[0.04] hover:border-rh-green/40 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] shadow-[0_0_12px_rgba(0,200,5,0.08)] hover:shadow-[0_0_24px_rgba(0,200,5,0.2)] transition-all text-center"
                 >
                   <span className="text-lg">{t.icon}</span>
                   <span className="text-[12px] font-medium text-rh-light-text dark:text-rh-text leading-tight">{t.name}</span>
@@ -682,9 +686,12 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
               <span className="text-xs text-rh-light-muted/60 dark:text-white/20 font-medium">Add Goal</span>
             </button>
           ) : !goalTemplate ? (
-            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border border-gray-200/30 dark:border-white/[0.06] rounded-lg p-4">
+            <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text">Choose a Goal</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 rounded-full bg-rh-green" />
+                  <span className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Choose a Goal</span>
+                </div>
                 <button onClick={() => setShowForm(false)} className="text-[10px] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">Cancel</button>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
@@ -696,7 +703,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                         await handleCreateGoal({ name: t.name, targetValue: t.target, monthlyContribution: t.monthly, currentValue: 0 });
                       } catch {}
                     }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-md border border-gray-200/20 dark:border-white/[0.05] hover:border-rh-green/30 hover:bg-rh-green/[0.04] shadow-[0_0_10px_rgba(0,200,5,0.08)] hover:shadow-[0_0_20px_rgba(0,200,5,0.2)] transition-all text-center"
+                    className="flex flex-col items-center gap-1 p-2 rounded-md border border-gray-200/10 dark:border-white/[0.04] hover:border-rh-green/30 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] shadow-[0_0_10px_rgba(0,200,5,0.08)] hover:shadow-[0_0_20px_rgba(0,200,5,0.2)] transition-all text-center"
                   >
                     <span className="text-sm">{t.icon}</span>
                     <span className="text-[10px] font-medium text-rh-light-text dark:text-rh-text leading-tight">{t.name}</span>
@@ -712,8 +719,11 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm border border-gray-200/30 dark:border-white/[0.06] rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">Custom Goal</h3>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-rh-green" />
+                <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Custom Goal</h3>
+              </div>
               <GoalForm
                 onSubmit={handleCreateGoal}
                 onCancel={() => { setShowForm(false); setGoalTemplate(null); }}

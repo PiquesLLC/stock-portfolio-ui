@@ -58,8 +58,8 @@ function PositionCard({ label, value, valueColor, sub }: {
   sub?: string;
 }) {
   return (
-    <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl px-4 py-3">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 mb-1">{label}</div>
+    <div className="px-4 py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">{label}</div>
       <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>{value}</div>
       {sub && (
         <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted/60 dark:text-rh-muted/60'}`}>{sub}</div>
@@ -610,7 +610,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             <span className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">{ticker}</span>
           )}
           {exchangeLabel && (
-            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 rounded-lg bg-gray-50/60 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.06] text-rh-light-muted/60 dark:text-white/25">
+            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 text-rh-light-muted/60 dark:text-white/25">
               {exchangeLabel}
             </span>
           )}
@@ -834,7 +834,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* Your Position */}
       {holding && (
         <div id="section-position" className="mb-8 scroll-mt-32">
-          <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Your Position</h2>
+          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Your Position</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <PositionCard label="Market Value" value={formatCurrency(holding.currentValue)} />
             <PositionCard label="Average Cost" value={formatCurrency(holding.averageCost)} />
@@ -866,7 +866,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {aiEvents?.events && aiEvents.events.length > 0 ? (
               <EventFeed events={aiEvents.events} ticker={ticker} />
             ) : (
-              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
+              <div className="py-3.5">
                 <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
@@ -886,7 +886,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {showNalaScore ? (
         <NalaScore ticker={ticker} />
       ) : (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6 animate-pulse">
+        <div className="mb-6 animate-pulse">
           <div className="h-4 w-24 bg-gray-200/50 dark:bg-white/[0.06] rounded mb-4" />
           <div className="h-40 bg-gray-200/30 dark:bg-white/[0.03] rounded-lg" />
         </div>
@@ -894,8 +894,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* About Section */}
       {(about?.description || profile?.name) && (
-        <div id="section-about" className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6 scroll-mt-32">
-          <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-3">About</h2>
+        <div id="section-about" className="mb-6 scroll-mt-32">
+          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />About</h2>
 
           {/* Description */}
           {about?.description && (
@@ -906,7 +906,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
           {/* Horizontal divider */}
           {about?.description && (about?.category || about?.numberOfHoldings || about?.inceptionDate || about?.fundFamily || profile?.industry || about?.headquarters) && (
-            <div className="border-t border-gray-200/20 dark:border-white/[0.03] mb-4" />
+            <div className="border-t border-gray-200/10 dark:border-white/[0.04] mb-4" />
           )}
 
           {/* Metadata grid */}
@@ -1000,8 +1000,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Key Statistics */}
       {!loading && (metrics || quote) && (
-        <div id="section-stats" className="scroll-mt-32 bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
-          <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white mb-4">Key Statistics</h2>
+        <div id="section-stats" className="scroll-mt-32 mb-6">
+          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Key Statistics</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-4">
             {profile && profile.marketCapM > 0 && (
               <StatItem label={<Term beginner="Company Size" advanced="Mkt Cap" />} value={formatLargeNumber(profile.marketCapM)} />
@@ -1073,9 +1073,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Price Alerts */}
       {priceAlerts.length > 0 && (
-        <div id="section-alerts" className="scroll-mt-32 bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
+        <div id="section-alerts" className="scroll-mt-32 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">Price Alerts</h2>
+            <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Price Alerts</h2>
             <button
               onClick={() => setShowAlertModal(true)}
               className="text-xs font-medium text-rh-green hover:text-rh-green/80 transition-colors"
@@ -1095,7 +1095,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {aiEvents?.events && aiEvents.events.length > 0 ? (
               <EventFeed events={aiEvents.events} ticker={ticker} />
             ) : (
-              <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5">
+              <div className="py-3.5">
                 <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />

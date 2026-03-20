@@ -162,7 +162,7 @@ export function PricingPage() {
                   ? 'bg-gradient-to-b from-[#1a2a1a] via-[#0d1a0d] to-[#0a0f0a] dark:from-[#1a2a1a] dark:via-[#0d1a0d] dark:to-[#0a0f0a] border border-rh-green/30 shadow-[0_0_60px_rgba(0,200,5,0.15)]'
                   : isElite
                     ? 'bg-gradient-to-b from-[#1a1a2e] via-[#0d0d1a] to-[#0a0a0f] dark:from-[#1a1a2e] dark:via-[#0d0d1a] dark:to-[#0a0a0f] border border-purple-500/30 shadow-[0_0_60px_rgba(139,92,246,0.12)]'
-                    : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
+                    : 'bg-gray-50/80 dark:bg-transparent border border-gray-200/20 dark:border-white/[0.06]'
               }`}>
 
                 {/* Decorative orb for center card */}
@@ -329,7 +329,7 @@ export function PricingPage() {
                     ? 'bg-gradient-to-b from-[#1a2a1a] via-[#0d1a0d] to-[#0a0f0a] border border-rh-green/30 shadow-[0_0_40px_rgba(0,200,5,0.12)]'
                     : isElite
                       ? 'bg-gradient-to-b from-[#1a1a2e] via-[#0d0d1a] to-[#0a0a0f] border border-purple-500/30 shadow-[0_0_40px_rgba(139,92,246,0.12)]'
-                      : 'bg-gray-50/80 dark:bg-[#111613] border border-gray-200/60 dark:border-white/[0.08] shadow-xl'
+                      : 'bg-gray-50/80 dark:bg-transparent border border-gray-200/20 dark:border-white/[0.06]'
                 } ${isActive ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-80'}`}>
 
                   {/* Decorative orb */}

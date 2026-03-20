@@ -75,8 +75,8 @@ export function PortfolioDataSection({
   return (
     <div className="space-y-7">
       {/* Import & Export — first */}
-      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-4">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Import & Export</h3>
+      <div className="space-y-4">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Import & Export</h3>
 
         {/* Import */}
         <button
@@ -128,8 +128,8 @@ export function PortfolioDataSection({
       </div>
 
       {/* Portfolio Settings */}
-      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-6 space-y-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pb-3 border-b border-gray-200/30 dark:border-white/[0.05]">Portfolio Settings</h3>
+      <div className="space-y-5">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Portfolio Settings</h3>
 
         {/* DRIP */}
         <label className="flex items-center justify-between cursor-pointer">
@@ -241,7 +241,7 @@ export function PortfolioDataSection({
       <AccountHistorySection />
 
       {/* Delete Account */}
-      <div className="rounded-xl border border-red-500/15 dark:border-red-500/10 bg-red-500/[0.02] dark:bg-red-500/[0.02] p-6">
+      <div className="border-t border-gray-200/10 dark:border-white/[0.04] pt-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">Delete Account</p>

@@ -34,7 +34,7 @@ function BehaviorLoader() {
   }, [activeStep, fullText]);
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+    <div className="p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
           <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,7 +255,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
     const isPlanError = error.includes('upgrade_required') || error.includes('limit_reached');
     if (isPlanError) {
       return (
-        <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
+        <div className="p-6 text-center">
           <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/15 flex items-center justify-center">
             <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -274,7 +274,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
       );
     }
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
+      <div className="p-6">
         <p className="text-sm text-rh-red">{error}</p>
         <button onClick={fetchData} className="mt-2 text-xs text-rh-green hover:underline">
           Try again
@@ -286,7 +286,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
   // ── Empty state ────────────────────────────────────────────────
   if (!data || data.holdingCount === 0) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 text-center">
+      <div className="p-6 text-center">
         <p className="text-sm text-rh-light-muted dark:text-rh-muted">
           Add holdings to your portfolio to receive behavior insights.
         </p>
@@ -305,7 +305,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
   return (
     <div className="space-y-3">
       {/* ── Score + Summary Header ─────────────────────────────── */}
-      <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6">
+      <div className="pb-4 border-b border-gray-200/10 dark:border-white/[0.04]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             {/* Circular score */}
@@ -348,7 +348,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
         </p>
 
         {/* Disclaimer */}
-        <div className="flex items-start gap-2 mb-4 px-3 py-2 rounded-lg bg-gray-50/40 dark:bg-white/[0.02] border border-gray-200/30 dark:border-white/[0.04]">
+        <div className="flex items-start gap-2 mb-4 px-3 py-2 rounded-lg border border-gray-200/10 dark:border-white/[0.04]">
           <svg className="w-3.5 h-3.5 text-rh-light-muted dark:text-rh-muted mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -391,7 +391,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
         return (
           <div
             key={i}
-            className={`bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl transition-all duration-200 ${
+            className={`transition-all duration-200 ${
               isTopPriority ? style.priorityBorder : style.border
             } ${isTopPriority ? 'ring-1 ring-yellow-500/20' : ''}`}
           >
@@ -413,7 +413,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
               </span>
 
               {/* Category icon + label */}
-              <span className="flex items-center gap-1 text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-gray-50/40 dark:bg-white/[0.02] text-rh-light-muted dark:text-rh-muted shrink-0">
+              <span className="flex items-center gap-1 text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted shrink-0">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={cat.path} />
                 </svg>
@@ -458,7 +458,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
                 )}
 
                 {/* Suggestion box */}
-                <div className="bg-gray-50/40 dark:bg-white/[0.02] rounded-lg px-3 py-2">
+                <div className="border border-gray-200/10 dark:border-white/[0.04] rounded-lg px-3 py-2">
                   <p className="text-xs text-rh-light-text dark:text-rh-text">
                     <span className="font-medium">Suggestion: </span>
                     {insight.suggestion}

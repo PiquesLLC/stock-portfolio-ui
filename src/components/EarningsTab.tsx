@@ -35,7 +35,7 @@ function EarningsLoader() {
   }, [activeStep, fullText]);
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
+    <div className="p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
           <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,7 +161,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
       {loading ? (
         <EarningsLoader />
       ) : next ? (
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent border border-amber-400/20 rounded-2xl p-6">
+        <div className="relative overflow-hidden border-b border-gray-200/10 dark:border-white/[0.04] pb-6">
           <div className="absolute top-3 right-4">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-500/50">Next Earnings</span>
           </div>
@@ -209,7 +209,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
           </div>
         </div>
       ) : (
-        <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-2xl p-6 text-center">
+        <div className="p-6 text-center">
           <p className="text-sm text-rh-light-muted dark:text-rh-muted">No upcoming earnings for your holdings</p>
         </div>
       )}
@@ -217,15 +217,18 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
       {/* This Week Row */}
       {thisWeek.length > 1 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 mb-3">
-            This Week
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 rounded-full bg-rh-green" />
+            <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-muted/50 dark:text-rh-muted/50">
+              This Week
+            </h3>
+          </div>
           <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
             {thisWeek.map((e) => (
               <button
                 key={e.ticker}
                 onClick={() => onTickerClick?.(e.ticker)}
-                className="shrink-0 bg-gray-50/40 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.05] rounded-xl px-4 py-3 hover:border-amber-400/30 transition-colors text-left min-w-[130px]"
+                className="shrink-0 border-b border-gray-200/10 dark:border-white/[0.04] px-4 py-3.5 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors text-left min-w-[130px]"
               >
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{e.ticker}</span>
@@ -247,9 +250,12 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
 
       {/* Full Calendar */}
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 mb-3">
-          All Events
-        </h3>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-4 rounded-full bg-rh-green" />
+          <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-muted/50 dark:text-rh-muted/50">
+            All Events
+          </h3>
+        </div>
         <EventsCalendar holdings={holdings} onTickerClick={onTickerClick} />
       </div>
     </div>
