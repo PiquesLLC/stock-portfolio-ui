@@ -359,7 +359,7 @@ function Treemap({
   }
 
   const GAP = dims.width < 640 ? GAP_MOBILE : GAP_DESKTOP;
-  const tileStroke = isDark ? '#2a2d3a' : '#999';
+  const tileStroke = isDark ? '#0a0a0c' : '#e5e5e5';
 
   // Get the sub-sector stocks for the popup
   const popupSubSector = hoveredSubSector
@@ -384,8 +384,8 @@ function Treemap({
           {drilldownTheme.theme}
         </button>
       )}
-      <div className="rounded-2xl overflow-hidden border border-gray-200/60 dark:border-white/[0.08] shadow-2xl shadow-black/40 relative z-0"
-        style={{ background: isDark ? '#0f0f12' : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.95)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
+      <div className="overflow-hidden relative z-0"
+        style={{ background: isDark ? '#0a0a0c' : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.95)') }}
       >
       <svg
         width={dims.width}
@@ -401,7 +401,7 @@ function Treemap({
               y={sr.y + 1}
               width={Math.max(0, sr.w - 2)}
               height={Math.max(0, sr.h - 2)}
-              fill={isDark ? '#1e2030' : '#c8c8c8'}
+              fill={isDark ? '#0a0a0c' : '#e0e0e0'}
               rx={1}
             />
             {/* Sector label bar — clicks through to sector ETF */}
@@ -496,7 +496,7 @@ function Treemap({
                       width={subR.w}
                       height={subR.h}
                       fill="none"
-                      stroke={isDark ? '#2a2c38' : '#bbb'}
+                      stroke={isDark ? '#0a0a0c' : '#ddd'}
                       strokeWidth={0.5}
                     />
                   )}
