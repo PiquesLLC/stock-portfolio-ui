@@ -250,16 +250,6 @@ const SECTOR_ETF: Record<string, string> = {
   'Real Estate': 'XLRE',
 };
 
-const MOBILE_SECTOR_PAGES = [
-  { label: 'Technology', sectors: ['Tech'] },
-  { label: 'Healthcare', sectors: ['Healthcare'] },
-  { label: 'Financials', sectors: ['Finance'] },
-  { label: 'Consumer', sectors: ['Consumer'] },
-  { label: 'Industrials', sectors: ['Industrial'] },
-  { label: 'Comm + Energy', sectors: ['Communication', 'Energy'] },
-  { label: 'Materials + Utilities + Real Estate', sectors: ['Materials', 'Utilities', 'Real Estate'] },
-];
-
 function Treemap({
   sectors,
   onTickerClick,
@@ -281,10 +271,6 @@ function Treemap({
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [tappedStock, setTappedStock] = useState<{ stock: HeatmapStock; sectorName: string } | null>(null);
   const isDark = useIsDark();
-
-  // Mobile swipe-per-sector state
-  const [mobileSectorPage, setMobileSectorPage] = useState(0);
-  const touchStartXRef = useRef<number | null>(null);
 
   // Themes drilldown: click subtheme → show individual tickers
   const [drilldownTheme, setDrilldownTheme] = useState<{ theme: string; subtheme: string } | null>(null);
@@ -351,44 +337,6 @@ function Treemap({
   // Use drilldown rects when drilling into a subtheme, otherwise normal layout
   const displayRects = drilldownRects || sectorRects;
 
-  // Mobile sector page: compute bounding box for the current page's sectors
-  const mobileSectorBBox = useMemo(() => {
-    if (!isMobile || isThemes) return null;
-    const page = MOBILE_SECTOR_PAGES[mobileSectorPage];
-    if (!page) return null;
-    const matching = displayRects.filter(sr => page.sectors.includes(sr.sector.name));
-    if (matching.length === 0) return null;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const sr of matching) {
-      minX = Math.min(minX, sr.x);
-      minY = Math.min(minY, sr.y);
-      maxX = Math.max(maxX, sr.x + sr.w);
-      maxY = Math.max(maxY, sr.y + sr.h);
-    }
-    // Add a small padding
-    const pad = 2;
-    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
-  }, [isMobile, isThemes, mobileSectorPage, displayRects]);
-
-  // Touch handlers for mobile swipe
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartXRef.current = e.touches[0].clientX;
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartXRef.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchStartXRef.current;
-    touchStartXRef.current = null;
-    if (Math.abs(dx) < 50) return;
-    if (dx < 0) {
-      // Swipe left → next page
-      setMobileSectorPage(p => Math.min(p + 1, MOBILE_SECTOR_PAGES.length - 1));
-    } else {
-      // Swipe right → prev page
-      setMobileSectorPage(p => Math.max(p - 1, 0));
-    }
-  }, []);
-
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (rect) {
@@ -437,16 +385,11 @@ function Treemap({
         </button>
       )}
       <div className="rounded-2xl overflow-hidden border border-gray-200/60 dark:border-white/[0.08] shadow-2xl shadow-black/40 relative z-0"
-        style={{ background: isDark ? '#0f0f12' : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.95)') }}
-        onTouchStart={isMobile && !isThemes ? handleTouchStart : undefined}
-        onTouchEnd={isMobile && !isThemes ? handleTouchEnd : undefined}
+        style={{ background: isDark ? '#0f0f12' : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.95)'), backdropFilter: dims.width < 640 ? undefined : 'blur(20px)' }}
       >
       <svg
         width={dims.width}
-        height={mobileSectorBBox ? dims.width * (mobileSectorBBox.h / mobileSectorBBox.w) : dims.height}
-        viewBox={mobileSectorBBox
-          ? `${mobileSectorBBox.x} ${mobileSectorBBox.y} ${mobileSectorBBox.w} ${mobileSectorBBox.h}`
-          : `0 0 ${dims.width} ${dims.height}`}
+        height={dims.height}
         className="block"
         style={{ background: 'transparent', touchAction: 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
       >
@@ -770,33 +713,6 @@ function Treemap({
       </svg>
       </div>
 
-      {/* Mobile sector page indicators */}
-      {isMobile && !isThemes && mobileSectorBBox && (
-        <div className="flex flex-col items-center gap-1.5 pt-2 pb-1">
-          <span className="text-[10px] font-medium tracking-wide text-gray-500 dark:text-white/40">
-            {MOBILE_SECTOR_PAGES[mobileSectorPage]?.label}
-          </span>
-          <div className="flex items-center gap-1.5">
-            {MOBILE_SECTOR_PAGES.map((page, i) => (
-              <button
-                key={page.label}
-                onClick={() => setMobileSectorPage(i)}
-                className="p-0.5"
-                aria-label={`Go to ${page.label}`}
-              >
-                <div
-                  className={`rounded-full transition-all duration-200 ${
-                    i === mobileSectorPage
-                      ? 'w-2 h-2 bg-rh-green'
-                      : 'w-1.5 h-1.5 bg-gray-400/40 dark:bg-white/20'
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Finviz-style sub-sector popup */}
       {hoveredStock && popupSubSector && (
         <div
@@ -956,17 +872,17 @@ function TopMovers({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-      <div className="p-4">
-        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
-          <span className="w-0.5 h-3.5 bg-rh-green rounded-full" />
+      <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
+        <h3 className="text-sm font-semibold text-rh-green mb-3 flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
           Top Gainers
         </h3>
-        <div className="space-y-0">
+        <div className="space-y-1.5">
           {gainers.map((s) => (
             <button
               key={s.ticker}
               onClick={() => onTickerClick(s.ticker)}
-              className="w-full flex items-center justify-between py-3.5 px-2 min-h-[44px] border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
+              className="w-full flex items-center justify-between py-1.5 px-2 min-h-[44px] rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>
@@ -981,17 +897,17 @@ function TopMovers({
         </div>
       </div>
 
-      <div className="p-4">
-        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
-          <span className="w-0.5 h-3.5 bg-rh-red rounded-full" />
+      <div className="rounded-2xl border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg shadow-black/20 p-4">
+        <h3 className="text-sm font-semibold text-rh-red mb-3 flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
           Top Losers
         </h3>
-        <div className="space-y-0">
+        <div className="space-y-1.5">
           {losers.map((s) => (
             <button
               key={s.ticker}
               onClick={() => onTickerClick(s.ticker)}
-              className="w-full flex items-center justify-between py-3.5 px-2 min-h-[44px] border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
+              className="w-full flex items-center justify-between py-1.5 px-2 min-h-[44px] rounded-lg hover:bg-rh-light-bg dark:hover:bg-white/5 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>
@@ -1370,9 +1286,10 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                 if (heroTicker === stock.ticker) { onTickerClick(stock.ticker); }
                 else { setHeroTicker(stock.ticker); }
               }}
-              className="relative group px-3 py-3.5 cursor-pointer transition-all duration-200
+              className="relative group rounded-xl px-3 py-[7px] cursor-pointer transition-all duration-200
                 hover:scale-[1.005] active:scale-[0.998]
-                border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02]
+                border border-transparent hover:border-gray-200/50 dark:hover:border-white/[0.06] hover:bg-gray-50/80 dark:hover:bg-white/[0.025]
+                hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20
               "
             >
               {/* Left accent strip */}
@@ -1553,11 +1470,11 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
           <select
             value={sectorFilter}
             onChange={e => setSectorFilter(e.target.value)}
-            className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-transparent text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
+            className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-[#1a1a1e] text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E")` }}
           >
-            <option value="all" className="bg-white dark:bg-[#0a0a0d] text-gray-900 dark:text-white">All Sectors</option>
-            {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#0a0a0d] text-gray-900 dark:text-white">{s}</option>)}
+            <option value="all" className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">All Sectors</option>
+            {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#1a1a1e] text-gray-900 dark:text-white">{s}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -1600,9 +1517,9 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f12]">
         <table className="w-full text-left">
-          <thead className="sticky top-0 bg-rh-light-bg dark:bg-[#050505] z-10">
+          <thead className="sticky top-0 bg-gray-50 dark:bg-white/[0.03] z-10">
             <tr>
               <th className={`${thClass} pl-3 text-left`} onClick={() => handleSort('ticker')}>Ticker{sortIcon('ticker')}</th>
               <th className={`${thClass} text-left hidden md:table-cell`} onClick={() => handleSort('name')}>Name{sortIcon('name')}</th>
@@ -1623,7 +1540,7 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
                 <tr
                   key={stock.ticker}
                   onClick={() => onTickerClick(stock.ticker)}
-                  className="border-t border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
+                  className="border-t border-gray-100 dark:border-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors"
                 >
                   <td className="px-2 py-2 pl-3">
                     <div className="flex items-center gap-2">
@@ -1734,7 +1651,7 @@ function HeatmapLoader() {
 
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="w-full max-w-sm p-6">
+      <div className="w-full max-w-sm bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-white/[0.04]">
         {/* Header with sparkle icon */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 rounded-xl bg-rh-green/10 border border-rh-green/20 flex items-center justify-center shrink-0">
@@ -1904,7 +1821,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
       {/* Index + Period selectors */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         {/* Index selector */}
-        <div className="flex items-center gap-1 p-0.5 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5 overflow-x-auto no-scrollbar">
           {INDEXES.map((idx) => (
             <button
               key={idx.id}
@@ -2029,7 +1946,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
   return (
     <div className="space-y-3">
       {/* Top-level tab bar */}
-      <div className="flex gap-1 p-1 w-fit">
+      <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 w-fit">
         <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
           Sectors
         </button>
@@ -2050,7 +1967,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       {subTab === 'sectors' ? (
         <div className="space-y-2">
           {/* Inner sector tabs */}
-          <div className="flex gap-0.5 p-0.5 w-fit">
+          <div className="flex gap-0.5 bg-gray-100/50 dark:bg-white/[0.03] rounded-lg p-0.5 w-fit">
             <button onClick={() => setSectorInner('heatmap')} className={innerTabClass(sectorInner === 'heatmap')}>
               Heatmap
             </button>
