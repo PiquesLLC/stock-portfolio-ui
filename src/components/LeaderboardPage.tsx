@@ -64,7 +64,10 @@ interface LeaderboardPageProps {
 
 export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange, onCompare }: LeaderboardPageProps) {
   const [showInfo, setShowInfo] = useState(false);
-  const [leaderboardType, setLeaderboardType] = useState<'nala' | 'global'>('nala');
+  const [leaderboardType, setLeaderboardType] = useState<'nala' | 'global'>(() => {
+    const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    return params.get('subtab') === 'global' ? 'global' : 'nala';
+  });
   const [billionaires, setBillionaires] = useState<BillionaireEntry[]>([]);
   const [billLoading, setBillLoading] = useState(false);
   const [selectedBillionaire, setSelectedBillionaire] = useState<string | null>(null);
@@ -267,13 +270,13 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
         </div>
         <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
           <button
-            onClick={() => setLeaderboardType('nala')}
+            onClick={() => { setLeaderboardType('nala'); const p = new URLSearchParams(location.hash.replace(/^#/, '')); p.delete('subtab'); location.hash = '#' + p.toString(); }}
             className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
               leaderboardType === 'nala' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
             }`}
           >Nala</button>
           <button
-            onClick={() => setLeaderboardType('global')}
+            onClick={() => { setLeaderboardType('global'); const p = new URLSearchParams(location.hash.replace(/^#/, '')); p.set('subtab', 'global'); location.hash = '#' + p.toString(); }}
             className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
               leaderboardType === 'global' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
             }`}
