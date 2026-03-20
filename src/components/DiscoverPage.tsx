@@ -272,6 +272,12 @@ function Treemap({
   const [tappedStock, setTappedStock] = useState<{ stock: HeatmapStock; sectorName: string } | null>(null);
   const isDark = useIsDark();
 
+  // Pinch-to-zoom state (mobile only)
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 }); // % origin
+  const pinchStartDist = useRef<number | null>(null);
+  const pinchStartScale = useRef(1);
+
   // Themes drilldown: click subtheme → show individual tickers
   const [drilldownTheme, setDrilldownTheme] = useState<{ theme: string; subtheme: string } | null>(null);
   const isThemesDefault = !!(isThemes && !drilldownTheme);
@@ -297,9 +303,11 @@ function Treemap({
     const computeHeight = (width: number) => {
       const isMobile = width < 640;
       // Match Finviz proportions: ~2:1 aspect ratio (width × 0.52)
-      const maxViewportH = Math.max(400, window.innerHeight - 180);
+      const maxViewportH = isMobile
+        ? Math.max(500, window.innerHeight - 120)  // use most of the screen on mobile
+        : Math.max(400, window.innerHeight - 180);
       const naturalH = isMobile
-        ? Math.max(320, Math.round(width * 0.85))
+        ? Math.max(500, Math.round(width * 1.4))
         : Math.max(500, Math.round(width * 0.52));
       return Math.min(naturalH, maxViewportH);
     };
@@ -354,11 +362,44 @@ function Treemap({
     setHoveredSubSector(null);
   }, []);
 
+  // Pinch-to-zoom handlers (mobile)
+  const handlePinchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchStartDist.current = Math.hypot(dx, dy);
+      pinchStartScale.current = zoomScale;
+      // Set origin to midpoint of the two fingers (as % of container)
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+        setZoomOrigin({ x: (midX / rect.width) * 100, y: (midY / rect.height) * 100 });
+      }
+    }
+  }, [zoomScale]);
+
+  const handlePinchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchStartDist.current != null) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const newScale = Math.min(4, Math.max(1, pinchStartScale.current * (dist / pinchStartDist.current)));
+      setZoomScale(newScale);
+    }
+  }, []);
+
+  const handlePinchEnd = useCallback(() => {
+    pinchStartDist.current = null;
+    // Snap back to 1x if close
+    setZoomScale(s => s < 1.15 ? 1 : s);
+  }, []);
+
   if (dims.width === 0) {
     return <div ref={containerRef} className="w-full min-h-[500px]" />;
   }
 
-  const GAP = dims.width < 640 ? GAP_MOBILE : GAP_DESKTOP;
+  const GAP = isMobile ? GAP_MOBILE : GAP_DESKTOP;
   const tileStroke = isDark ? '#0a0a0c' : '#e5e5e5';
 
   // Get the sub-sector stocks for the popup
@@ -368,8 +409,12 @@ function Treemap({
 
   return (
     <div ref={containerRef} className="w-full relative isolate" onMouseMove={handleMouseMove}
-      onClick={() => { if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); } }}
-      style={{ touchAction: 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
+      onClick={() => {
+        if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); }
+        // Double-tap to reset zoom
+        if (zoomScale > 1) { setZoomScale(1); }
+      }}
+      style={{ touchAction: zoomScale > 1 ? 'none' : 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
     >
       {/* Back button for themes drilldown */}
       {isThemesDrilldown && drilldownTheme && (
@@ -386,12 +431,22 @@ function Treemap({
       )}
       <div className="overflow-hidden relative z-0"
         style={{ background: isDark ? '#0a0a0c' : (dims.width < 640 ? '#f0f0f4' : 'rgba(240,240,244,0.95)') }}
+        onTouchStart={isMobile ? handlePinchStart : undefined}
+        onTouchMove={isMobile ? handlePinchMove : undefined}
+        onTouchEnd={isMobile ? handlePinchEnd : undefined}
       >
       <svg
         width={dims.width}
         height={dims.height}
         className="block"
-        style={{ background: 'transparent', touchAction: 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
+        style={{
+          background: 'transparent',
+          touchAction: zoomScale > 1 ? 'none' : 'pan-y',
+          WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none',
+          transform: zoomScale > 1 ? `scale(${zoomScale})` : undefined,
+          transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+          transition: pinchStartDist.current != null ? 'none' : 'transform 0.2s ease-out',
+        } as React.CSSProperties}
       >
         {displayRects.map((sr) => (
           <g key={sr.sector.name}>
