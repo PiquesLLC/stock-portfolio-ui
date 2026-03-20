@@ -477,10 +477,12 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
         ) : chartGeo && chartData && chartData.points.length >= 2 ? (
           <svg
             ref={svgRef}
-            width={chartWidth}
+            width="100%"
             height={CHART_H}
             viewBox={`0 0 ${chartWidth} ${CHART_H}`}
-            className="select-none overflow-hidden"
+            preserveAspectRatio="none"
+            overflow="hidden"
+            className="select-none block"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             onTouchMove={handleTouchMove}
