@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession, BillionaireEntry } from '../types';
 import { getLeaderboard, getBillionaireLeaderboard } from '../api';
 import { UserProfileView } from './UserProfileView';
+import { BillionaireProfileView } from './BillionaireProfileView';
 
 
 const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
@@ -66,6 +67,9 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   const [leaderboardType, setLeaderboardType] = useState<'nala' | 'global'>('nala');
   const [billionaires, setBillionaires] = useState<BillionaireEntry[]>([]);
   const [billLoading, setBillLoading] = useState(false);
+  const [selectedBillionaire, setSelectedBillionaire] = useState<string | null>(null);
+  const [billSortKey, setBillSortKey] = useState<'rank' | 'name' | 'netWorth' | 'dayChange' | 'dayChangePct'>('rank');
+  const [billSortDir, setBillSortDir] = useState<SortDir>('asc');
   const [region, setRegion] = useState<LeaderboardRegion>('world');
   const [window, setWindow] = useState<LeaderboardWindow>('1M');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -183,6 +187,40 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
     return `${base} ${alignClass} ${activeClass}`;
   };
 
+  const handleBillSort = (key: typeof billSortKey) => {
+    if (billSortKey !== key) { setBillSortKey(key); setBillSortDir(key === 'rank' ? 'asc' : 'desc'); }
+    else { setBillSortDir(d => d === 'desc' ? 'asc' : 'desc'); }
+  };
+
+  const sortedBillionaires = useMemo(() => {
+    if (billSortKey === 'rank') return billSortDir === 'asc' ? billionaires : [...billionaires].reverse();
+    return [...billionaires].sort((a, b) => {
+      let cmp = 0;
+      if (billSortKey === 'name') cmp = a.name.localeCompare(b.name);
+      else if (billSortKey === 'netWorth') cmp = (a.computedNetWorth ?? 0) - (b.computedNetWorth ?? 0);
+      else if (billSortKey === 'dayChange') cmp = (a.dayChange ?? 0) - (b.dayChange ?? 0);
+      else if (billSortKey === 'dayChangePct') cmp = (a.dayChangePct ?? 0) - (b.dayChangePct ?? 0);
+      return billSortDir === 'desc' ? -cmp : cmp;
+    });
+  }, [billionaires, billSortKey, billSortDir]);
+
+  const billSortIndicator = (key: typeof billSortKey) => billSortKey !== key ? null : <span className="ml-1 opacity-70">{billSortDir === 'desc' ? '▼' : '▲'}</span>;
+
+  const billHeaderClass = (key: typeof billSortKey, align: 'left' | 'right' = 'left') => {
+    const base = 'px-2 sm:px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors select-none whitespace-nowrap';
+    return `${base} ${align === 'right' ? 'text-right' : ''} ${billSortKey === key ? 'text-rh-light-text dark:text-white' : ''}`;
+  };
+
+  if (selectedBillionaire) {
+    return (
+      <BillionaireProfileView
+        slug={selectedBillionaire}
+        onBack={() => setSelectedBillionaire(null)}
+        onStockClick={onStockClick}
+      />
+    );
+  }
+
   if (selectedUserId) {
     return (
       <UserProfileView
@@ -269,21 +307,22 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
               <table className="w-full sm:min-w-[480px]">
                 <thead>
                   <tr className="border-b border-gray-200/10 dark:border-white/[0.04] text-left">
-                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 w-8 sm:w-12">#</th>
-                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Name</th>
-                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 text-right">Net Worth</th>
-                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 text-right hidden sm:table-cell">Day Change</th>
-                    <th className="px-2 sm:px-4 py-3 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 text-right hidden sm:table-cell">Change %</th>
+                    <th className={`${billHeaderClass('rank')} w-8 sm:w-12 text-[11px]`} onClick={() => handleBillSort('rank')}>#{billSortIndicator('rank')}</th>
+                    <th className={`${billHeaderClass('name')} text-[11px]`} onClick={() => handleBillSort('name')}>Name{billSortIndicator('name')}</th>
+                    <th className={`${billHeaderClass('netWorth', 'right')} text-[11px]`} onClick={() => handleBillSort('netWorth')}>{billSortIndicator('netWorth')}Net Worth</th>
+                    <th className={`${billHeaderClass('dayChange', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleBillSort('dayChange')}>{billSortIndicator('dayChange')}Day Change</th>
+                    <th className={`${billHeaderClass('dayChangePct', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleBillSort('dayChangePct')}>{billSortIndicator('dayChangePct')}Change %</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {billionaires.map((b, index) => {
+                  {sortedBillionaires.map((b, index) => {
                     const isUp = (b.dayChange ?? 0) >= 0;
                     const changeColor = b.dayChange == null ? 'text-rh-light-muted dark:text-rh-muted' : isUp ? 'text-rh-green' : 'text-rh-red';
                     const rankDiff = b.previousRank != null && b.rank != null ? b.previousRank - b.rank : 0;
                     return (
                       <tr
                         key={b.id}
+                        onClick={() => setSelectedBillionaire(b.slug)}
                         className="border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
                       >
                         <td className="px-2 sm:px-4 py-3.5 text-sm text-rh-light-muted/40 dark:text-rh-muted/40 font-medium tabular-nums">
