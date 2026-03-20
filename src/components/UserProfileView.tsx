@@ -67,11 +67,13 @@ const itemVariants = {
 };
 
 // ── Effective return helper ────────────────────────────────────────────
-// Prefer simpleReturnPct over twrPct — TWR can be misleading when selling
-// holdings creates auto-withdrawal transactions that inflate the return.
+// Use TWR for window-based returns. simpleReturnPct is cost-basis (total gain
+// since purchase) which doesn't correspond to any window and is misleading
+// on profile cards labeled "1M". chartReturnPct (real value change from chart
+// data) is preferred when available — it's the most accurate.
 function effectiveReturn(perf: PerformanceData | null): number | null {
   if (!perf) return null;
-  return perf.simpleReturnPct ?? perf.twrPct ?? null;
+  return perf.twrPct ?? null;
 }
 
 // ── Signal Rating Computation ─────────────────────────────────────────
@@ -496,7 +498,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       <UserPortfolioView
         userId={userId}
         displayName={profile.displayName}
-        returnPct={profile.performance?.simpleReturnPct ?? profile.performance?.twrPct ?? null}
+        returnPct={chartReturnPct ?? profile.performance?.twrPct ?? null}
         window="1M"
         session={session}
         currentUserId={currentUserId}
@@ -552,7 +554,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const perf = profile.performance;
   const hasPerformance = perf && perf.snapshotCount >= 2;
   const isNewAccount = profile.followerCount === 0 && profile.followingCount === 0;
-  const isPositive = (chartReturnPct ?? perf?.simpleReturnPct ?? perf?.twrPct ?? 0) >= 0;
+  const isPositive = (chartReturnPct ?? perf?.twrPct ?? 0) >= 0;
 
   return (
     <motion.div
@@ -735,7 +737,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             </div>
           <div className="flex items-center gap-0">
             <PerformanceStat
-              value={chartReturnPct ?? perf?.simpleReturnPct ?? perf?.twrPct ?? null}
+              value={chartReturnPct ?? perf?.twrPct ?? null}
               label="Return (1mo)"
               isPercent
               primary
