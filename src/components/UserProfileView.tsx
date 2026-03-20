@@ -397,13 +397,24 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     getUserPortfolio(userId)
       .then((p) => {
         if (stale) return;
-        const sorted = [...p.holdings].sort((a, b) => b.profitLossPercent - a.profitLossPercent).slice(0, 5);
-        const total = p.holdingsValue || sorted.reduce((s, h) => s + h.currentValue, 0);
-        setTopHoldings(sorted.map(h => ({
-          ticker: h.ticker,
-          weight: total > 0 ? (h.currentValue / total) * 100 : 0,
-          returnPct: h.profitLossPercent,
-        })));
+        if ((p as any).holdingsPaywalled && p.holdings.length > 0) {
+          // Paywalled: use real tickers with fake values for blur effect
+          const fakeWeights = [28, 22, 18, 17, 15];
+          const fakeReturns = [12.4, 8.7, -3.2, 5.1, -1.8];
+          setTopHoldings(p.holdings.slice(0, 5).map((h, i) => ({
+            ticker: h.ticker,
+            weight: fakeWeights[i] ?? 10,
+            returnPct: fakeReturns[i] ?? 0,
+          })));
+        } else {
+          const sorted = [...p.holdings].sort((a, b) => b.profitLossPercent - a.profitLossPercent).slice(0, 5);
+          const total = p.holdingsValue || sorted.reduce((s, h) => s + h.currentValue, 0);
+          setTopHoldings(sorted.map(h => ({
+            ticker: h.ticker,
+            weight: total > 0 ? (h.currentValue / total) * 100 : 0,
+            returnPct: h.profitLossPercent,
+          })));
+        }
       })
       .catch(e => { console.error('Top holdings fetch failed:', e); if (!stale) setTopHoldings([]); });
     return () => { stale = true; };
