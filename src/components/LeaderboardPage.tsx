@@ -62,6 +62,7 @@ interface LeaderboardPageProps {
 }
 
 export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange, onCompare }: LeaderboardPageProps) {
+  const [showInfo, setShowInfo] = useState(false);
   const [leaderboardType, setLeaderboardType] = useState<'nala' | 'global'>('nala');
   const [billionaires, setBillionaires] = useState<BillionaireEntry[]>([]);
   const [billLoading, setBillLoading] = useState(false);
@@ -197,9 +198,35 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
 
   return (
     <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 pt-2 pb-6">
-      {/* Header — title + toggle */}
+      {/* Header — title + info + toggle */}
       <div className="flex items-center gap-4 mb-4">
-        <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
+          <div className="relative">
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
+                <path strokeLinecap="round" strokeWidth={1.5} d="M12 16v-4m0-4h.01" />
+              </svg>
+            </button>
+            {showInfo && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowInfo(false)} />
+                <div className="absolute left-0 top-7 z-50 w-64 bg-white dark:bg-[#1a1a1e]/95 border border-gray-200/60 dark:border-white/[0.1] rounded-lg shadow-lg p-3">
+                  {lastUpdated && (
+                    <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mb-1.5">Updated {formatRelativeTime(lastUpdated)}</p>
+                  )}
+                  <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 leading-relaxed">
+                    Rankings based on time-weighted returns (TWR) since tracking began. TWR eliminates the effect of deposits/withdrawals for fair comparison.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
         <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
           <button
             onClick={() => setLeaderboardType('nala')}
@@ -341,15 +368,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
             ))}
           </div>
 
-          {lastUpdated && (
-            <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">
-              Updated {formatRelativeTime(lastUpdated)}
-            </div>
-          )}
-
-          <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mb-4">
-            Rankings based on time-weighted returns (TWR) since tracking began. TWR eliminates the effect of deposits/withdrawals for fair comparison.
-          </p>
 
           {error && (
             <div className="text-rh-red text-sm mb-4">{error}</div>
