@@ -197,44 +197,23 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
 
   return (
     <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 pt-2 pb-6">
-      {/* Header — title + toggle + period/region */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
-          <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
-            <button
-              onClick={() => setLeaderboardType('nala')}
-              className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
-                leaderboardType === 'nala' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
-              }`}
-            >Nala</button>
-            <button
-              onClick={() => setLeaderboardType('global')}
-              className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
-                leaderboardType === 'global' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
-              }`}
-            >Global</button>
-          </div>
+      {/* Header — title + toggle */}
+      <div className="flex items-center gap-4 mb-4">
+        <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Leaderboard</h1>
+        <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
+          <button
+            onClick={() => setLeaderboardType('nala')}
+            className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
+              leaderboardType === 'nala' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
+            }`}
+          >Nala</button>
+          <button
+            onClick={() => setLeaderboardType('global')}
+            className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
+              leaderboardType === 'global' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
+            }`}
+          >Global</button>
         </div>
-
-        {/* Period buttons — only for Nala */}
-        {leaderboardType === 'nala' && (
-          <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
-            {WINDOWS.map((w) => (
-              <button
-                key={w.id}
-                onClick={() => setWindow(w.id)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
-                  ${window === w.id
-                    ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                  }`}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {leaderboardType === 'global' ? (
@@ -322,20 +301,44 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
         </div>
       ) : (
         <>
-          <div className="flex gap-1 mb-3">
-            {REGIONS.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setRegion(r.id)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
-                  ${region === r.id
-                    ? 'bg-gray-100/60 dark:bg-white/[0.06] text-rh-green shadow-sm'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+          {/* Region + Period selectors — inline, underline style */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-0">
+              {REGIONS.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setRegion(r.id)}
+                  className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
+                    region === r.id
+                      ? 'text-rh-green'
+                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
                   }`}
-              >
-                {r.label}
-              </button>
-            ))}
+                >
+                  {r.label}
+                  {region === r.id && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-0">
+              {WINDOWS.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => setWindow(w.id)}
+                  className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
+                    window === w.id
+                      ? 'text-rh-green'
+                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                  }`}
+                >
+                  {w.label}
+                  {window === w.id && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {lastUpdated && (
