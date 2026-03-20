@@ -401,7 +401,7 @@ function Treemap({
               y={sr.y + 1}
               width={Math.max(0, sr.w - 2)}
               height={Math.max(0, sr.h - 2)}
-              fill={isDark ? '#1e2030' : '#c8c8c8'}
+              fill={isDark ? '#0a0a0c' : '#e0e0e0'}
               rx={1}
             />
             {/* Sector label bar — clicks through to sector ETF */}
