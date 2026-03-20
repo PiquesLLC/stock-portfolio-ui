@@ -301,44 +301,44 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
         </div>
       ) : (
         <>
-          {/* Region + Period selectors — inline, underline style */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-0">
-              {REGIONS.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => setRegion(r.id)}
-                  className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
-                    region === r.id
-                      ? 'text-rh-green'
-                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
-                  }`}
-                >
-                  {r.label}
-                  {region === r.id && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-0">
-              {WINDOWS.map((w) => (
-                <button
-                  key={w.id}
-                  onClick={() => setWindow(w.id)}
-                  className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
-                    window === w.id
-                      ? 'text-rh-green'
-                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
-                  }`}
-                >
-                  {w.label}
-                  {window === w.id && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
-                  )}
-                </button>
-              ))}
-            </div>
+          {/* Period selector — underline style, matches portfolio chart */}
+          <div className="flex items-center gap-0 -ml-1 mb-2">
+            {WINDOWS.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => setWindow(w.id)}
+                className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
+                  window === w.id
+                    ? 'text-rh-green'
+                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                }`}
+              >
+                {w.label}
+                {window === w.id && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Region selector */}
+          <div className="flex items-center gap-0 -ml-1 mb-3">
+            {REGIONS.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setRegion(r.id)}
+                className={`relative px-2.5 py-2 text-[12px] font-medium transition-all duration-150 ${
+                  region === r.id
+                    ? 'text-rh-light-text dark:text-white'
+                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                }`}
+              >
+                {r.label}
+                {region === r.id && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-white/30" />
+                )}
+              </button>
+            ))}
           </div>
 
           {lastUpdated && (
