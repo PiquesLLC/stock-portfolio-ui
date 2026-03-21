@@ -4,7 +4,7 @@ import { getSectorPerformance, SectorPerformanceResponse } from '../api';
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
 const CHART_W = 700;
-const CHART_H = 320;
+const CHART_H = 440;
 const PAD = { top: 12, right: 6, bottom: 24, left: 44 };
 const PLOT_W = CHART_W - PAD.left - PAD.right;
 const PLOT_H = CHART_H - PAD.top - PAD.bottom;
@@ -420,11 +420,11 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         ))}
       </div>
 
-      <div className="pb-1 relative min-h-[280px] sm:min-h-0" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}>
+      <div className="pb-1 relative" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}>
           <svg
             ref={svgRef}
             viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-            className="w-full h-[50vh] sm:h-auto max-h-[500px]"
+            className="w-full"
             preserveAspectRatio="xMidYMid meet"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
@@ -526,7 +526,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                     x={x} y={CHART_H - 5}
                     textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
-                    fontSize="7"
+                    fontSize="5.5"
                     fontFamily="system-ui"
                   >
                     {label}
@@ -552,7 +552,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                     x={x} y={CHART_H - 5}
                     textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
-                    fontSize="7"
+                    fontSize="5.5"
                     fontFamily="system-ui"
                   >
                     {label}
