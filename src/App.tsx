@@ -1346,7 +1346,7 @@ export default function App() {
       )}
 
       {/* Scrolling ticker tape — shown when logged in */}
-      {isAuthenticated && (tickerHoldings.length > 0 || tickerIndices.length > 0) && !viewingStock && !settingsView && !creatorView && !adminView && (
+      {isAuthenticated && (tickerHoldings.length > 0 || tickerIndices.length > 0) && !viewingStock && !settingsView && !creatorView && !adminView && activeTab !== 'discover' && (
         <TickerTape
           holdings={tickerHoldings}
           indices={tickerIndices}

@@ -97,16 +97,11 @@ export function MarketStrip({ onTickerClick }: MarketStripProps) {
               group-hover:text-rh-light-text dark:group-hover:text-white/70 transition-colors">
               {q.label}
             </span>
-            <span className="text-[11px] font-semibold text-rh-light-text dark:text-white/80 tabular-nums">
+            <span className={`text-[11px] font-semibold tabular-nums ${color}`}>
               {q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`text-[10px] font-semibold tabular-nums ${color} flex items-center gap-0.5`}>
-              <svg className="w-2 h-2 flex-shrink-0" viewBox="0 0 8 8" fill="currentColor">
-                {positive
-                  ? <path d="M4 1L7.5 6H0.5L4 1Z" />
-                  : <path d="M4 7L0.5 2H7.5L4 7Z" />}
-              </svg>
-              {Math.abs(q.changePercent).toFixed(2)}%
+            <span className={`text-[10px] font-semibold tabular-nums ${color}`}>
+              {positive ? '+' : ''}{q.changePercent.toFixed(2)}%
             </span>
           </button>
         );
