@@ -449,15 +449,6 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
               <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
                 Sector Rotation
               </h3>
-              <button
-                onClick={() => setShowGuide(g => !g)}
-                className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-medium transition-all shrink-0 border ${
-                  showGuide
-                    ? 'border-rh-green text-rh-green'
-                    : 'border-gray-300/40 dark:border-white/[0.08] text-rh-light-muted/30 dark:text-white/15 hover:text-rh-light-muted dark:hover:text-white/40'
-                }`}
-                title="How to read this chart"
-              >?</button>
             </div>
             {/* Sector group filter pills */}
             <div className="flex gap-1.5">
