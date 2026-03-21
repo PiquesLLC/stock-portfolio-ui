@@ -443,14 +443,30 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
       {/* Main graph */}
       <div className="relative">
         {/* Header: Title + Group filters */}
-        <div className="space-y-1.5 mb-1 px-[1.4%]">
+        <div className="space-y-1 mb-1 px-[1.4%]">
+          <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
+            Sector Rotation
+          </h3>
+          {/* Period selector + group pills on same row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
-                Sector Rotation
-              </h3>
+            <div className="flex items-center gap-0 -ml-1">
+              {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`relative px-1.5 py-2 text-[11px] font-semibold transition-all duration-150 ${
+                    viewMode === mode
+                      ? 'text-rh-green'
+                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                  }`}
+                >
+                  {mode}
+                  {viewMode === mode && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-[2px] rounded-full bg-rh-green" />
+                  )}
+                </button>
+              ))}
             </div>
-            {/* Sector group filter pills */}
             <div className="flex gap-1.5">
               {([
                 { group: 'cyclical' as const, label: 'Cyclical', color: '#f59e0b' },
@@ -474,25 +490,6 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                 );
               })}
             </div>
-          </div>
-          {/* Period selector — underline style */}
-          <div className="flex items-center gap-0 -ml-1">
-            {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
-                  viewMode === mode
-                    ? 'text-rh-green'
-                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
-                }`}
-              >
-                {mode}
-                {viewMode === mode && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
-                )}
-              </button>
-            ))}
           </div>
         </div>
         <svg
