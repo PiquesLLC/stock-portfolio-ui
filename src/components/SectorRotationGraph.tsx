@@ -451,57 +451,57 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
               </h3>
               <button
                 onClick={() => setShowGuide(g => !g)}
-                className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-medium transition-all shrink-0 border ${
+                className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-medium transition-all shrink-0 border ${
                   showGuide
                     ? 'border-rh-green text-rh-green'
-                    : 'border-gray-300/40 dark:border-white/[0.1] text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40'
+                    : 'border-gray-300/40 dark:border-white/[0.08] text-rh-light-muted/30 dark:text-white/15 hover:text-rh-light-muted dark:hover:text-white/40'
                 }`}
                 title="How to read this chart"
               >?</button>
             </div>
-            {/* Period selector — underline style */}
-            <div className="flex items-center gap-0">
-              {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`relative px-2 py-2 text-[12px] font-semibold transition-all duration-150 ${
-                    viewMode === mode
-                      ? 'text-rh-green'
-                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
-                  }`}
-                >
-                  {mode}
-                  {viewMode === mode && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-[2px] rounded-full bg-rh-green" />
-                  )}
-                </button>
-              ))}
+            {/* Sector group filter pills */}
+            <div className="flex gap-1.5">
+              {([
+                { group: 'cyclical' as const, label: 'Cyclical', color: '#f59e0b' },
+                { group: 'defensive' as const, label: 'Defensive', color: '#10b981' },
+                { group: 'sensitive' as const, label: 'Sensitive', color: '#3b82f6' },
+              ]).map(g => {
+                const active = activeGroups.has(g.group);
+                return (
+                  <button
+                    key={g.group}
+                    onClick={() => toggleGroup(g.group)}
+                    className={`px-2.5 py-0.5 text-[10px] font-medium rounded-full transition-all border ${
+                      active
+                        ? 'border-current'
+                        : 'border-transparent opacity-30 hover:opacity-50'
+                    }`}
+                    style={{ color: active ? g.color : isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}
+                  >
+                    {g.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          {/* Sector group filter pills */}
-          <div className="flex gap-1.5">
-            {([
-              { group: 'cyclical' as const, label: 'Cyclical', color: '#f59e0b' },
-              { group: 'defensive' as const, label: 'Defensive', color: '#10b981' },
-              { group: 'sensitive' as const, label: 'Sensitive', color: '#3b82f6' },
-            ]).map(g => {
-              const active = activeGroups.has(g.group);
-              return (
-                <button
-                  key={g.group}
-                  onClick={() => toggleGroup(g.group)}
-                  className={`px-2.5 py-0.5 text-[10px] font-medium rounded-full transition-all border ${
-                    active
-                      ? 'border-current'
-                      : 'border-transparent opacity-30 hover:opacity-50'
-                  }`}
-                  style={{ color: active ? g.color : isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}
-                >
-                  {g.label}
-                </button>
-              );
-            })}
+          {/* Period selector — underline style */}
+          <div className="flex items-center gap-0 -ml-1">
+            {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
+                  viewMode === mode
+                    ? 'text-rh-green'
+                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                }`}
+              >
+                {mode}
+                {viewMode === mode && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+                )}
+              </button>
+            ))}
           </div>
         </div>
         <svg
