@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createPost } from '../api';
 import { API_BASE_URL } from '../config';
-import html2canvas from 'html2canvas';
+import { toJpeg } from 'html-to-image';
 
 interface PostToFeedButtonProps {
   type: 'stock' | 'portfolio';
@@ -26,83 +26,6 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
     ? `${API_BASE_URL}/social/stock/${ticker}/share-card?period=${period}&${cacheBust}`
     : '';
 
-  /**
-   * Prepare the live chart DOM for html2canvas by pausing animations and
-   * hiding elements that cause the renderer to stall on mobile.
-   * Returns a restore() function that undoes every mutation.
-   */
-  const prepareForCapture = (el: HTMLElement): (() => void) => {
-    const restoreFns: (() => void)[] = [];
-
-    // 1. Pause SVG animations via the native SVG API (prevents reflow loops)
-    const svg = el.querySelector('svg');
-    if (svg) {
-      try {
-        (svg as unknown as SVGSVGElement).pauseAnimations();
-        restoreFns.push(() => {
-          try { (svg as unknown as SVGSVGElement).unpauseAnimations(); } catch { /* ok */ }
-        });
-      } catch { /* pauseAnimations not supported — continue */ }
-    }
-
-    // 2. Hide foreignObject elements (ripple CSS animations that choke html2canvas)
-    const foreignObjects = el.querySelectorAll('foreignObject');
-    foreignObjects.forEach(fo => {
-      const elem = fo as unknown as HTMLElement;
-      const orig = elem.style.display;
-      elem.style.display = 'none';
-      restoreFns.push(() => { elem.style.display = orig; });
-    });
-
-    // 3. Remove backdrop-blur classes (GPU→CPU fallback stalls on mobile)
-    const blurClasses = ['backdrop-blur-xl', 'backdrop-blur-sm', 'backdrop-blur-md', 'backdrop-blur-lg'];
-    el.querySelectorAll('*').forEach(child => {
-      const htmlChild = child as HTMLElement;
-      const removed: string[] = [];
-      blurClasses.forEach(cls => {
-        if (htmlChild.classList.contains(cls)) {
-          htmlChild.classList.remove(cls);
-          removed.push(cls);
-        }
-      });
-      if (removed.length > 0) {
-        restoreFns.push(() => removed.forEach(cls => htmlChild.classList.add(cls)));
-      }
-    });
-
-    // 4. Inject a style tag to freeze all CSS animations inside the capture target
-    const freezeStyle = document.createElement('style');
-    freezeStyle.textContent = '[data-capture-id="portfolio-chart"] *, [data-capture-id="portfolio-chart"] { animation-play-state: paused !important; transition: none !important; }';
-    document.head.appendChild(freezeStyle);
-    restoreFns.push(() => freezeStyle.remove());
-
-    // 5. Brand logo visible for capture
-    const brand = el.querySelector('[data-capture-brand]') as HTMLElement | null;
-    if (brand) {
-      brand.style.opacity = '0.4';
-      restoreFns.push(() => { brand.style.opacity = '0'; });
-    }
-
-    // 6. Hero spacing for cleaner screenshot
-    const hero = el.querySelector('[data-capture-hero]') as HTMLElement | null;
-    if (hero) {
-      const origPad = hero.style.padding;
-      const origMin = hero.style.minHeight;
-      hero.style.padding = '28px 24px 16px 24px';
-      hero.style.minHeight = '180px';
-      restoreFns.push(() => { hero.style.padding = origPad; hero.style.minHeight = origMin; });
-
-      const changeLine = hero.querySelector('p') as HTMLElement | null;
-      if (changeLine) {
-        const origMargin = changeLine.style.marginTop;
-        changeLine.style.marginTop = '16px';
-        restoreFns.push(() => { changeLine.style.marginTop = origMargin; });
-      }
-    }
-
-    return () => restoreFns.forEach(fn => fn());
-  };
-
   const handleOpen = async () => {
     if (type === 'portfolio') {
       const el = document.querySelector('[data-capture-id="portfolio-chart"]') as HTMLElement | null;
@@ -110,30 +33,52 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
         setCapturing(true);
         setOpen(true);
 
-        // Let the modal render first so the chart is visually hidden behind the overlay,
-        // then prepare + capture on the next frame
+        // Let the modal overlay render first so the chart is visually hidden
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-        const restore = prepareForCapture(el);
+        // Temporarily adjust styles for a cleaner capture
+        const restoreFns: (() => void)[] = [];
+
+        const brand = el.querySelector('[data-capture-brand]') as HTMLElement | null;
+        if (brand) {
+          brand.style.opacity = '0.4';
+          restoreFns.push(() => { brand.style.opacity = '0'; });
+        }
+
+        const hero = el.querySelector('[data-capture-hero]') as HTMLElement | null;
+        if (hero) {
+          const origPad = hero.style.padding;
+          const origMin = hero.style.minHeight;
+          hero.style.padding = '28px 24px 16px 24px';
+          hero.style.minHeight = '180px';
+          restoreFns.push(() => { hero.style.padding = origPad; hero.style.minHeight = origMin; });
+
+          const changeLine = hero.querySelector('p') as HTMLElement | null;
+          if (changeLine) {
+            const origMargin = changeLine.style.marginTop;
+            changeLine.style.marginTop = '16px';
+            restoreFns.push(() => { changeLine.style.marginTop = origMargin; });
+          }
+        }
+
         try {
-          const canvas = await html2canvas(el, {
+          // html-to-image uses SVG foreignObject serialization instead of canvas
+          // pixel rendering. It's non-blocking and works on mobile.
+          const dataUrl = await toJpeg(el, {
+            quality: 0.9,
             backgroundColor: '#000000',
-            scale: window.innerWidth < 768 ? 1.5 : 2,
-            width: el.scrollWidth,
-            height: el.scrollHeight,
-            useCORS: true,
-            logging: false,
-            ignoreElements: (node: Element) => {
-              if (node.classList?.contains('z-20')) return true;
-              if (node.getAttribute?.('data-capture-skip') === 'true') return true;
-              return false;
+            pixelRatio: window.innerWidth < 768 ? 1.5 : 2,
+            filter: (node: HTMLElement) => {
+              if (node.classList?.contains('z-20')) return false;
+              if (node.getAttribute?.('data-capture-skip') === 'true') return false;
+              return true;
             },
           });
-          setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
+          setCapturedImage(dataUrl);
         } catch (err) {
           console.error('Chart capture failed:', err);
         } finally {
-          restore();
+          restoreFns.forEach(fn => fn());
           setCapturing(false);
         }
       } else {
