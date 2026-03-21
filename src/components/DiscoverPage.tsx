@@ -303,13 +303,12 @@ function Treemap({
     const computeHeight = (width: number) => {
       const isMobile = width < 640;
       // Match Finviz proportions: ~2:1 aspect ratio (width × 0.52)
-      // On mobile, fill viewport: nav(56) + ticker(28) + tabs(36+36) + selectors(36+36) = ~228px
-      const maxViewportH = isMobile
-        ? Math.max(300, window.innerHeight - 230)
-        : Math.max(400, window.innerHeight - 180);
-      const naturalH = isMobile
-        ? Math.max(300, Math.round(width * 1.2))
-        : Math.max(500, Math.round(width * 0.52));
+      if (isMobile) {
+        // Mobile: use 1.6x width ratio — tall enough to fill screen and push content below fold
+        return Math.max(450, Math.round(width * 1.6));
+      }
+      const maxViewportH = Math.max(400, window.innerHeight - 180);
+      const naturalH = Math.max(500, Math.round(width * 0.52));
       return Math.min(naturalH, maxViewportH);
     };
     const ro = new ResizeObserver((entries) => {
