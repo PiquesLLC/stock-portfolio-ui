@@ -545,7 +545,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
 
           {/* Quadrant backgrounds */}
           {(() => {
-            const qOp = isDark ? 0.02 : 0.05;
+            const qOp = isDark ? 0.008 : 0.03;
             return (<>
               <rect x={centerX} y={pad.top} width={scaleX(bounds.maxX) - centerX} height={centerY - pad.top}
                 fill="#10b981" opacity={qOp} />
