@@ -587,18 +587,18 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
       {/* Horizontal bar chart */}
       <div className="pb-4 pt-3 border-t border-gray-200/10 dark:border-white/[0.04]">
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3 hidden">Sector Performance</h3>
-        <div className="space-y-2">
+        <div className="space-y-0">
           {allItems.map((item) => {
             const pct = item.changePercent;
             const maxAbsPct = Math.max(...allItems.map(it => Math.abs(it.changePercent)), 0.01);
-            const barWidth = (Math.abs(pct) / maxAbsPct) * 50;
+            const barWidth = (Math.abs(pct) / maxAbsPct) * 45;
             const isPositive = pct >= 0;
+            const isZero = Math.abs(pct) < 0.005;
             const isHovered = hoveredTicker === item.ticker;
             return (
               <div
                 key={item.ticker}
-                className={`flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 transition-all ${isHovered ? 'bg-gray-100 dark:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                className={`flex items-center gap-2 cursor-pointer py-2.5 border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 transition-colors ${isHovered ? 'bg-gray-100/40 dark:bg-white/[0.02]' : 'hover:bg-gray-100/40 dark:hover:bg-white/[0.02]'}`}
                 onMouseEnter={() => setHoveredTicker(item.ticker)}
                 onMouseLeave={() => setHoveredTicker(null)}
                 onTouchStart={() => {
@@ -609,34 +609,33 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 onClick={() => {
                   if (touchTriggeredRef.current) {
                     touchTriggeredRef.current = false;
-                    // Only navigate if this ticker was already highlighted before this tap
                     if (hoveredAtTouchStartRef.current === item.ticker) {
                       onTickerClick?.(item.ticker);
                     }
                     return;
                   }
-                  // Mouse click: navigate immediately
                   onTickerClick?.(item.ticker);
                 }}
               >
-                <span className={`text-xs w-20 sm:w-28 text-right shrink-0 font-medium transition-colors ${isHovered ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+                <span className={`text-[11px] w-16 sm:w-24 text-right shrink-0 font-medium tabular-nums transition-colors ${isHovered ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted/60 dark:text-rh-muted/60'}`}>
                   {item.name}
                 </span>
-                <div className="flex-1 flex items-center h-5">
+                <div className="flex-1 flex items-center h-3">
                   <div className="relative w-full h-full flex items-center">
-                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-rh-light-border/40 dark:bg-rh-border/40" />
-                    <div
-                      className="absolute h-4 rounded-sm transition-all duration-500"
-                      style={{
-                        left: isPositive ? '50%' : `${50 - barWidth}%`,
-                        width: `${barWidth}%`,
-                        background: isPositive ? '#00C805' : '#E8544E',
-                        opacity: 0.8,
-                      }}
-                    />
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200/20 dark:bg-white/[0.08]" />
+                    {!isZero && (
+                      <div
+                        className="absolute h-full rounded-[2px] transition-all duration-500"
+                        style={{
+                          left: isPositive ? '50%' : `${50 - barWidth}%`,
+                          width: `${Math.max(barWidth, 0.5)}%`,
+                          background: isPositive ? '#00C805' : '#E8544E',
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
-                <span className={`text-xs font-semibold min-w-[50px] text-right ${isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+                <span className={`text-[11px] font-bold min-w-[48px] text-right tabular-nums ${isZero ? 'text-rh-light-muted dark:text-rh-muted' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
                   {isPositive ? '+' : ''}{pct.toFixed(2)}%
                 </span>
               </div>
