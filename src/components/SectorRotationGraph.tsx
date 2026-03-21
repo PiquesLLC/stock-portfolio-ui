@@ -459,19 +459,22 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                 title="How to read this chart"
               >?</button>
             </div>
-            {/* Period selector */}
-            <div className="flex gap-0.5 bg-gray-100/60 dark:bg-white/[0.04] rounded-lg p-0.5">
+            {/* Period selector — underline style */}
+            <div className="flex items-center gap-0">
               {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
+                  className={`relative px-2 py-2 text-[12px] font-semibold transition-all duration-150 ${
                     viewMode === mode
-                      ? 'bg-white dark:bg-rh-card text-rh-green shadow-sm'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                      ? 'text-rh-green'
+                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
                   }`}
                 >
                   {mode}
+                  {viewMode === mode && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-[2px] rounded-full bg-rh-green" />
+                  )}
                 </button>
               ))}
             </div>
@@ -861,12 +864,11 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                     setHoveredSector(d.ticker);
                   }
                 }}
-                className={`flex items-center gap-2 p-2 rounded-lg transition-all text-left cursor-pointer ${
+                className={`flex items-center gap-2 py-2.5 px-2 transition-all text-left cursor-pointer border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 ${
                   isHov
-                    ? 'bg-gray-100 dark:bg-white/[0.06]'
-                    : 'bg-gray-50/50 dark:bg-white/[0.02] hover:bg-gray-100/80 dark:hover:bg-white/[0.04]'
+                    ? 'bg-gray-100/40 dark:bg-white/[0.02]'
+                    : 'hover:bg-gray-100/40 dark:hover:bg-white/[0.02]'
                 }`}
-                style={isHov ? { boxShadow: `inset 0 0 0 1px ${d.color}40` } : undefined}
               >
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
                 <div className="min-w-0 flex-1">
