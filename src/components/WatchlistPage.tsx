@@ -390,7 +390,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
         <div className="flex justify-end">
           <button
             onClick={() => setShowAddStock(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rh-green bg-rh-green/10 hover:bg-rh-green/20 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -485,7 +485,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 </svg>
               </button>
               {showDisplayMenu && (
-                <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
+                <div className="absolute left-0 top-full mt-1.5 z-50 w-52 rounded-xl overflow-hidden bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] shadow-2xl shadow-black/10 dark:shadow-black/50 py-1 animate-fade-in-up">
                   <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
                   {DISPLAY_METRICS.map((m) => (
                     <button
@@ -515,7 +515,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-rh-green border-t-transparent" />
           </div>
-        ) : detail && detail.holdings.length === 0 ? (
+        ) : detail && detail.holdings.length === 0 && !showAddStock ? (
           <div className="text-center py-16">
             <svg className="w-12 h-12 mx-auto mb-3 text-rh-light-muted/30 dark:text-rh-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -539,7 +539,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 return (
                   <div
                     key={h.ticker}
-                    className={`flex items-center px-3 py-3 ${idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''} cursor-pointer active:bg-gray-100 dark:active:bg-white/[0.03]`}
+                    className={`flex items-center px-3 py-3 ${idx > 0 ? 'border-t border-gray-200/10 dark:border-white/[0.04]' : ''} cursor-pointer hover:bg-gray-100/40 dark:hover:bg-white/[0.02] active:bg-gray-100/60 dark:active:bg-white/[0.03] transition-colors`}
                     onClick={() => onTickerClick(h.ticker)}
                   >
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -798,10 +798,13 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mt-2">
-        <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Watchlists</h1>
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-5 rounded-full bg-rh-green" />
+          <h1 className="text-lg font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Watchlists</h1>
+        </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rh-green bg-rh-green/10 hover:bg-rh-green/20 transition-colors"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -831,7 +834,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           </p>
           <button
             onClick={() => setShowCreate(true)}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-rh-green text-black hover:bg-green-600 transition-colors"
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-rh-green text-black hover:bg-rh-green/90 transition-colors"
           >
             Create Your First Watchlist
           </button>

@@ -110,7 +110,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
-                hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+                hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
               aria-label="Back"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +127,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
-              hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+              hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,12 +216,12 @@ function BreakdownRow({
     <button
       onClick={onClick}
       className="flex items-center gap-3 w-full text-left rounded-lg px-2 py-1.5 -mx-2
-        hover:bg-rh-light-bg dark:hover:bg-rh-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+        hover:bg-gray-100/40 dark:hover:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rh-green/40
         transition-colors cursor-pointer group"
       aria-label={`${label}: ${value}/${maxValue} — click for details`}
     >
       <span className="text-sm text-rh-light-muted dark:text-rh-muted w-28">{label}</span>
-      <div className="flex-1 h-2 bg-rh-light-border dark:bg-rh-border rounded-full overflow-hidden">
+      <div className="flex-1 h-2 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${getBarColorClass(value, maxValue)}`}
           style={{ width: `${pct}%` }}
@@ -475,7 +475,7 @@ function IncomeContributors({
               {c.ticker}
             </button>
             <div className="flex-1">
-              <div className="h-4 bg-rh-light-bg dark:bg-rh-dark rounded-full overflow-hidden">
+              <div className="h-4 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-rh-green/70 rounded-full transition-all duration-500"
                   style={{ width: `${(c.dividendDollar / maxDividend) * 100}%` }}

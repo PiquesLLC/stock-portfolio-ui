@@ -132,7 +132,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Retirement, House Down Payment"
-          className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+          className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
         />
       </div>
 
@@ -149,7 +149,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="1000000"
             min="1"
             step="any"
-            className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
           />
         </div>
 
@@ -165,7 +165,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="500"
             min="0"
             step="any"
-            className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
           />
         </div>
       </div>
@@ -200,7 +200,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
               placeholder="0"
               min="0"
               step="any"
-              className="w-full px-3 py-2 rounded-lg bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text placeholder-rh-light-muted dark:placeholder-rh-muted focus:outline-none focus:ring-2 focus:ring-rh-green"
+              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
             />
           </div>
         )}
@@ -210,7 +210,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
         <button
           type="submit"
           disabled={submitting}
-          className="flex-1 bg-rh-green hover:bg-green-600 disabled:bg-green-800 text-black font-semibold py-2 px-4 rounded-lg transition-colors"
+          className="flex-1 bg-rh-green hover:bg-rh-green/90 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold py-2 px-4 rounded-xl transition-colors"
         >
           {submitting ? 'Saving...' : isEditing ? 'Update Goal' : 'Add Goal'}
         </button>
@@ -218,7 +218,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-rh-light-text dark:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+            className="px-4 py-2 rounded-xl text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.04] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
           >
             Cancel
           </button>
@@ -285,11 +285,11 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
   }
 
   return (
-    <div className={`group p-4 sm:p-6 ${
+    <div className={`group p-4 sm:p-6 border-b transition-colors ${
       isAchieved
-        ? 'border border-rh-green shadow-[0_0_30px_rgba(0,200,5,0.25)]'
-        : 'shadow-[0_0_25px_rgba(0,200,5,0.14)] hover:shadow-[0_0_30px_rgba(0,200,5,0.2)]'
-    } transition-shadow`}>
+        ? 'border-rh-green/30 bg-rh-green/[0.02]'
+        : 'border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02]'
+    }`}>
       <div className="flex items-start justify-between mb-4 gap-2">
         <div className="min-w-0 flex-1">
           {editing ? (
@@ -363,7 +363,7 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
                   setEditTarget(goal.targetValue.toString());
                   setEditMonthly(goal.monthlyContribution.toString());
                 }}
-                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
                 title="Cancel"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,7 +375,7 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
             <>
               <button
                 onClick={() => setEditing(true)}
-                className="p-1.5 rounded-lg hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
                 title="Edit"
               >
                 <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,7 +429,7 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
       {/* Progress Bar */}
       <div className="mb-3">
         <div className="flex items-center gap-2 mb-1">
-          <div className="flex-1 h-2.5 bg-rh-light-border dark:bg-rh-border rounded-full overflow-hidden">
+          <div className="flex-1 h-2.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${isAchieved ? 'bg-rh-green' : 'bg-blue-500'}`}
               style={{ width: `${Math.max(1, Math.min(100, goal.currentProgress))}%` }}
@@ -596,12 +596,12 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
 
   if (error) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
-        <p className="text-rh-red font-medium mb-2">Error loading goals</p>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">{error}</p>
+      <div className="border-l-2 border-rh-red/40 pl-4 py-4">
+        <p className="text-sm text-rh-red font-medium mb-1">Error loading goals</p>
+        <p className="text-xs text-rh-light-muted dark:text-rh-muted">{error}</p>
         <button
           onClick={() => fetchGoals()}
-          className="mt-3 px-4 py-2 bg-rh-green text-black rounded-lg font-medium hover:bg-green-600 transition-colors"
+          className="mt-3 px-4 py-1.5 text-xs font-medium text-rh-green bg-rh-green/10 hover:bg-rh-green/20 rounded-lg transition-colors"
         >
           Retry
         </button>
@@ -643,7 +643,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                       await handleCreateGoal({ name: t.name, targetValue: t.target, monthlyContribution: t.monthly, currentValue: 0 });
                     } catch {}
                   }}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-gray-200/10 dark:border-white/[0.04] hover:border-rh-green/40 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] shadow-[0_0_12px_rgba(0,200,5,0.08)] hover:shadow-[0_0_24px_rgba(0,200,5,0.2)] transition-all text-center"
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-gray-200/10 dark:border-white/[0.04] hover:border-rh-green/40 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-all text-center"
                 >
                   <span className="text-lg">{t.icon}</span>
                   <span className="text-[12px] font-medium text-rh-light-text dark:text-rh-text leading-tight">{t.name}</span>
@@ -703,7 +703,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                         await handleCreateGoal({ name: t.name, targetValue: t.target, monthlyContribution: t.monthly, currentValue: 0 });
                       } catch {}
                     }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-md border border-gray-200/10 dark:border-white/[0.04] hover:border-rh-green/30 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] shadow-[0_0_10px_rgba(0,200,5,0.08)] hover:shadow-[0_0_20px_rgba(0,200,5,0.2)] transition-all text-center"
+                    className="flex flex-col items-center gap-1 p-2 rounded-md border border-gray-200/10 dark:border-white/[0.04] hover:border-rh-green/30 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-all text-center"
                   >
                     <span className="text-sm">{t.icon}</span>
                     <span className="text-[10px] font-medium text-rh-light-text dark:text-rh-text leading-tight">{t.name}</span>

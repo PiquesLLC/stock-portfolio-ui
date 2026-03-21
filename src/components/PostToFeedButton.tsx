@@ -19,11 +19,89 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
   const [done, setDone] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
   const cacheBust = `_t=${Date.now()}`;
   const stockCardUrl = type === 'stock' && ticker
     ? `${API_BASE_URL}/social/stock/${ticker}/share-card?period=${period}&${cacheBust}`
     : '';
+
+  /**
+   * Prepare the live chart DOM for html2canvas by pausing animations and
+   * hiding elements that cause the renderer to stall on mobile.
+   * Returns a restore() function that undoes every mutation.
+   */
+  const prepareForCapture = (el: HTMLElement): (() => void) => {
+    const restoreFns: (() => void)[] = [];
+
+    // 1. Pause SVG animations via the native SVG API (prevents reflow loops)
+    const svg = el.querySelector('svg');
+    if (svg) {
+      try {
+        (svg as unknown as SVGSVGElement).pauseAnimations();
+        restoreFns.push(() => {
+          try { (svg as unknown as SVGSVGElement).unpauseAnimations(); } catch { /* ok */ }
+        });
+      } catch { /* pauseAnimations not supported — continue */ }
+    }
+
+    // 2. Hide foreignObject elements (ripple CSS animations that choke html2canvas)
+    const foreignObjects = el.querySelectorAll('foreignObject');
+    foreignObjects.forEach(fo => {
+      const elem = fo as unknown as HTMLElement;
+      const orig = elem.style.display;
+      elem.style.display = 'none';
+      restoreFns.push(() => { elem.style.display = orig; });
+    });
+
+    // 3. Remove backdrop-blur classes (GPU→CPU fallback stalls on mobile)
+    const blurClasses = ['backdrop-blur-xl', 'backdrop-blur-sm', 'backdrop-blur-md', 'backdrop-blur-lg'];
+    el.querySelectorAll('*').forEach(child => {
+      const htmlChild = child as HTMLElement;
+      const removed: string[] = [];
+      blurClasses.forEach(cls => {
+        if (htmlChild.classList.contains(cls)) {
+          htmlChild.classList.remove(cls);
+          removed.push(cls);
+        }
+      });
+      if (removed.length > 0) {
+        restoreFns.push(() => removed.forEach(cls => htmlChild.classList.add(cls)));
+      }
+    });
+
+    // 4. Inject a style tag to freeze all CSS animations inside the capture target
+    const freezeStyle = document.createElement('style');
+    freezeStyle.textContent = '[data-capture-id="portfolio-chart"] *, [data-capture-id="portfolio-chart"] { animation-play-state: paused !important; transition: none !important; }';
+    document.head.appendChild(freezeStyle);
+    restoreFns.push(() => freezeStyle.remove());
+
+    // 5. Brand logo visible for capture
+    const brand = el.querySelector('[data-capture-brand]') as HTMLElement | null;
+    if (brand) {
+      brand.style.opacity = '0.4';
+      restoreFns.push(() => { brand.style.opacity = '0'; });
+    }
+
+    // 6. Hero spacing for cleaner screenshot
+    const hero = el.querySelector('[data-capture-hero]') as HTMLElement | null;
+    if (hero) {
+      const origPad = hero.style.padding;
+      const origMin = hero.style.minHeight;
+      hero.style.padding = '28px 24px 16px 24px';
+      hero.style.minHeight = '180px';
+      restoreFns.push(() => { hero.style.padding = origPad; hero.style.minHeight = origMin; });
+
+      const changeLine = hero.querySelector('p') as HTMLElement | null;
+      if (changeLine) {
+        const origMargin = changeLine.style.marginTop;
+        changeLine.style.marginTop = '16px';
+        restoreFns.push(() => { changeLine.style.marginTop = origMargin; });
+      }
+    }
+
+    return () => restoreFns.forEach(fn => fn());
+  };
 
   const handleOpen = async () => {
     if (type === 'portfolio') {
@@ -31,27 +109,16 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
       if (el) {
         setCapturing(true);
         setOpen(true);
+
+        // Let the modal render first so the chart is visually hidden behind the overlay,
+        // then prepare + capture on the next frame
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        const restore = prepareForCapture(el);
         try {
-          // Temporarily adjust styles for a cleaner capture
-          const brand = el.querySelector('[data-capture-brand]') as HTMLElement | null;
-          if (brand) brand.style.opacity = '0.4';
-
-          // Add extra padding to hero so the value/change text doesn't look cramped
-          const hero = el.querySelector('[data-capture-hero]') as HTMLElement | null;
-          const origPad = hero?.style.padding || '';
-          const origMin = hero?.style.minHeight || '';
-          if (hero) {
-            hero.style.padding = '28px 24px 16px 24px';
-            hero.style.minHeight = '180px';
-          }
-          // Add spacing between hero value and change text for capture
-          const changeLine = hero?.querySelector('p') as HTMLElement | null;
-          const origMargin = changeLine?.style.marginTop || '';
-          if (changeLine) changeLine.style.marginTop = '16px';
-
           const canvas = await html2canvas(el, {
             backgroundColor: '#000000',
-            scale: 2,
+            scale: window.innerWidth < 768 ? 1.5 : 2,
             width: el.scrollWidth,
             height: el.scrollHeight,
             useCORS: true,
@@ -62,20 +129,11 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
               return false;
             },
           });
-          // Restore styles
-          if (brand) brand.style.opacity = '0';
-          if (hero) { hero.style.padding = origPad; hero.style.minHeight = origMin; }
-          if (changeLine) changeLine.style.marginTop = origMargin;
-
           setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
         } catch (err) {
           console.error('Chart capture failed:', err);
-          // Ensure styles are restored even on error
-          const brand2 = el.querySelector('[data-capture-brand]') as HTMLElement | null;
-          if (brand2) brand2.style.opacity = '0';
-          const hero2 = el.querySelector('[data-capture-hero]') as HTMLElement | null;
-          if (hero2) hero2.style.padding = '';
         } finally {
+          restore();
           setCapturing(false);
         }
       } else {
@@ -91,11 +149,13 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
     setCapturedImage(null);
     setContent('');
     setDone(false);
+    setPostError(null);
   };
 
   const handlePost = async () => {
     if (submitting) return;
     setSubmitting(true);
+    setPostError(null);
     try {
       const attachmentType = type === 'stock' ? 'stock_chart' : 'portfolio_chart';
       const attachmentData: Record<string, unknown> = type === 'stock'
@@ -115,6 +175,7 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
       setTimeout(handleClose, 1200);
     } catch (err) {
       console.error('Failed to post:', err);
+      setPostError(err instanceof Error ? err.message : 'Failed to post. Try again.');
     } finally {
       setSubmitting(false);
     }
@@ -186,6 +247,9 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
                       resize-none outline-none mb-3"
                     autoFocus
                   />
+                  {postError && (
+                    <p className="text-xs text-rh-red mb-2">{postError}</p>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15">
                       {capturedImage ? 'Screenshot of your chart' : 'Chart will be shared with your post'}
