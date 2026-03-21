@@ -451,10 +451,10 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
               </h3>
               <button
                 onClick={() => setShowGuide(g => !g)}
-                className={`text-[13px] transition-all shrink-0 ${
+                className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-medium transition-all shrink-0 border ${
                   showGuide
-                    ? 'text-rh-green'
-                    : 'text-rh-light-muted/30 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40'
+                    ? 'border-rh-green text-rh-green'
+                    : 'border-gray-300/40 dark:border-white/[0.1] text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40'
                 }`}
                 title="How to read this chart"
               >?</button>
