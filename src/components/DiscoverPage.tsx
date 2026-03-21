@@ -1875,19 +1875,22 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
 
       {/* Index + Period selectors */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        {/* Index selector */}
-        <div className="flex items-center gap-1 p-0.5 overflow-x-auto no-scrollbar">
+        {/* Index selector — underline style */}
+        <div className="flex items-center gap-0 -ml-1 overflow-x-auto no-scrollbar">
           {INDEXES.map((idx) => (
             <button
               key={idx.id}
               onClick={() => { setIndex(idx.id); setHighlightedSector(null); }}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-shrink-0
+              className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 flex-shrink-0
                 ${index === idx.id
-                  ? 'bg-white dark:bg-white/[0.12] text-rh-light-text dark:text-rh-text shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  ? 'text-rh-light-text dark:text-white'
+                  : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
                 }`}
             >
               {idx.label}
+              {index === idx.id && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-light-text dark:bg-white" />
+              )}
             </button>
           ))}
         </div>
