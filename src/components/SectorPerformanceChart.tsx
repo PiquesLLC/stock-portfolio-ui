@@ -377,7 +377,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
   if (loading && !data) {
     return (
-      <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] p-4 animate-pulse h-[360px]" />
+      <div className="p-4 animate-pulse h-[360px]" />
     );
   }
 
@@ -399,30 +399,25 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const hoveredInfo = hoveredTicker ? hoverInfos.find(h => h.ticker === hoveredTicker) : null;
 
   return (
-    <div className="rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-white/90">Sector Performance</h3>
-          <span className="text-[10px] text-gray-400 dark:text-white/30 font-medium">
-            {period === '1D' ? 'Today' : period === '1W' ? 'Past Week' : period === '1M' ? 'Past Month' : period === '3M' ? 'Past 3 Months' : period === '6M' ? 'Past 6 Months' : period === 'YTD' ? 'Year to Date' : 'Past Year'}
-          </span>
-        </div>
-        <div className="flex gap-0.5 bg-gray-100/60 dark:bg-white/[0.04] rounded-md p-0.5">
-          {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as Period[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all ${
-                period === p
-                  ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
-                  : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+    <div className="overflow-hidden">
+      {/* Period selector — underline style */}
+      <div className="flex items-center gap-0 -ml-1 mb-1">
+        {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as Period[]).map(p => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
+              period === p
+                ? 'text-rh-green'
+                : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+            }`}
+          >
+            {p}
+            {period === p && (
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+            )}
+          </button>
+        ))}
       </div>
 
       <div className="px-2 pb-1 relative" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}>
@@ -590,9 +585,9 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
           )}
       </div>
 
-      {/* Horizontal bar chart — same data as leaderboard */}
-      <div className="px-4 pb-4 pt-2 border-t border-gray-200/30 dark:border-white/[0.06]">
-        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">Sector Performance</h3>
+      {/* Horizontal bar chart */}
+      <div className="pb-4 pt-3 border-t border-gray-200/10 dark:border-white/[0.04]">
+        <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3 hidden">Sector Performance</h3>
         <div className="space-y-2">
           {allItems.map((item) => {
             const pct = item.changePercent;
