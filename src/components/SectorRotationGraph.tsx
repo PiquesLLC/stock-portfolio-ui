@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getSectorPerformance, SectorPerformanceResponse } from '../api';
 
 
@@ -543,18 +543,32 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
             ))}
           </defs>
 
-          {/* Quadrant backgrounds */}
+          {/* Quadrant backgrounds — radial gradients that blend into canvas */}
           {(() => {
-            const qOp = isDark ? 0.008 : 0.03;
+            const qOp = isDark ? 0.04 : 0.06;
             return (<>
-              <rect x={centerX} y={pad.top} width={scaleX(bounds.maxX) - centerX} height={centerY - pad.top}
-                fill="#10b981" opacity={qOp} />
-              <rect x={centerX} y={centerY} width={scaleX(bounds.maxX) - centerX} height={scaleY(bounds.minY) - centerY}
-                fill="#3b82f6" opacity={qOp} />
-              <rect x={pad.left} y={centerY} width={centerX - pad.left} height={scaleY(bounds.minY) - centerY}
-                fill="#ef4444" opacity={qOp} />
-              <rect x={pad.left} y={pad.top} width={centerX - pad.left} height={centerY - pad.top}
-                fill="#f59e0b" opacity={qOp} />
+              <defs>
+                <radialGradient id="q-leading" cx="100%" cy="0%" r="90%">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={qOp} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </radialGradient>
+                <radialGradient id="q-improving" cx="100%" cy="100%" r="90%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={qOp} />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                </radialGradient>
+                <radialGradient id="q-lagging" cx="0%" cy="100%" r="90%">
+                  <stop offset="0%" stopColor="#ef4444" stopOpacity={qOp} />
+                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                </radialGradient>
+                <radialGradient id="q-weakening" cx="0%" cy="0%" r="90%">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={qOp} />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                </radialGradient>
+              </defs>
+              <rect x={centerX} y={pad.top} width={scaleX(bounds.maxX) - centerX} height={centerY - pad.top} fill="url(#q-leading)" />
+              <rect x={centerX} y={centerY} width={scaleX(bounds.maxX) - centerX} height={scaleY(bounds.minY) - centerY} fill="url(#q-improving)" />
+              <rect x={pad.left} y={centerY} width={centerX - pad.left} height={scaleY(bounds.minY) - centerY} fill="url(#q-lagging)" />
+              <rect x={pad.left} y={pad.top} width={centerX - pad.left} height={centerY - pad.top} fill="url(#q-weakening)" />
             </>);
           })()}
 
