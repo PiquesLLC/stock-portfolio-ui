@@ -1856,7 +1856,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
     <div className="space-y-1 sm:space-y-2">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">
+          <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text hidden sm:block">
             {INDEXES.find(i => i.id === index)?.fullName ?? 'Market'} Heatmap
           </h2>
           <p className="text-xs text-rh-light-muted dark:text-rh-muted hidden sm:block">
