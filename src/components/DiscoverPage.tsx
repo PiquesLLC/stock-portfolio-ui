@@ -303,11 +303,12 @@ function Treemap({
     const computeHeight = (width: number) => {
       const isMobile = width < 640;
       // Match Finviz proportions: ~2:1 aspect ratio (width × 0.52)
+      // On mobile, account for nav + ticker tape + tabs + title + selectors (~340px)
       const maxViewportH = isMobile
-        ? Math.max(500, window.innerHeight - 120)  // use most of the screen on mobile
+        ? Math.max(300, window.innerHeight - 340)
         : Math.max(400, window.innerHeight - 180);
       const naturalH = isMobile
-        ? Math.max(500, Math.round(width * 1.4))
+        ? Math.max(300, Math.round(width * 1.2))
         : Math.max(500, Math.round(width * 0.52));
       return Math.min(naturalH, maxViewportH);
     };
