@@ -2035,7 +2035,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
               Performance
             </button>
             <button onClick={() => setSectorInner('movement')} className={innerTabClass(sectorInner === 'movement')}>
-              Movement
+              Rotation
             </button>
           </div>
 

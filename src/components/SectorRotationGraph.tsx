@@ -444,9 +444,6 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
       <div className="relative">
         {/* Header: Title + Group filters */}
         <div className="space-y-1 mb-1 px-[1.4%]">
-          <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">
-            Sector Rotation
-          </h3>
           {/* Period selector + group pills on same row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-0 -ml-1">
