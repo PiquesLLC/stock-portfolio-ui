@@ -523,10 +523,10 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 return (
                   <text
                     key={label}
-                    x={x} y={CHART_H - 5}
+                    x={x} y={PAD.top + PLOT_H + 16}
                     textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
-                    fontSize="5.5"
+                    fontSize="7"
                     fontFamily="system-ui"
                   >
                     {label}
@@ -549,10 +549,10 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 return (
                   <text
                     key={idx}
-                    x={x} y={CHART_H - 5}
+                    x={x} y={PAD.top + PLOT_H + 16}
                     textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
-                    fontSize="5.5"
+                    fontSize="7"
                     fontFamily="system-ui"
                   >
                     {label}
