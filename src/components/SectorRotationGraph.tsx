@@ -545,7 +545,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
 
           {/* Quadrant backgrounds — radial gradients that blend into canvas */}
           {(() => {
-            const qOp = isDark ? 0.02 : 0.04;
+            const qOp = isDark ? 0.01 : 0.03;
             return (<>
               <defs>
                 <radialGradient id="q-leading" cx="100%" cy="0%" r="90%">
