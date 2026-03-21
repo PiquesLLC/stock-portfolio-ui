@@ -3,9 +3,9 @@ import { getSectorPerformance, SectorPerformanceResponse } from '../api';
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
-const CHART_W = 700;
+const CHART_W = 900;
 const CHART_H = 440;
-const PAD = { top: 12, right: 6, bottom: 24, left: 44 };
+const PAD = { top: 12, right: 8, bottom: 28, left: 48 };
 const PLOT_W = CHART_W - PAD.left - PAD.right;
 const PLOT_H = CHART_H - PAD.top - PAD.bottom;
 
