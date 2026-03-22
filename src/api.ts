@@ -96,6 +96,44 @@ export function setAuthExpiredHandler(handler: (() => void) | null) {
 
 const NATIVE_AUTH_STORAGE_KEY = 'nala_native_auth';
 
+// Capacitor Preferences (native persistent storage) — survives iOS WKWebView
+// localStorage purges that happen when the app is backgrounded under memory pressure.
+// We lazy-import to avoid blocking web startup.
+let _prefsModule: typeof import('@capacitor/preferences') | null = null;
+async function getPrefs() {
+  if (!isNativePlatform()) return null;
+  if (!_prefsModule) {
+    try { _prefsModule = await import('@capacitor/preferences'); } catch { return null; }
+  }
+  return _prefsModule.Preferences;
+}
+
+// Sync native storage to Capacitor Preferences (write-through)
+async function persistNativeAuth(session: NativeAuthSession | null): Promise<void> {
+  const Prefs = await getPrefs();
+  if (!Prefs) return;
+  try {
+    if (!session) {
+      await Prefs.remove({ key: NATIVE_AUTH_STORAGE_KEY });
+    } else {
+      await Prefs.set({ key: NATIVE_AUTH_STORAGE_KEY, value: JSON.stringify(session) });
+    }
+  } catch { /* ignore */ }
+}
+
+// Read from Capacitor Preferences (fallback when localStorage is wiped)
+async function readPersistedNativeAuth(): Promise<NativeAuthSession | null> {
+  const Prefs = await getPrefs();
+  if (!Prefs) return null;
+  try {
+    const { value } = await Prefs.get({ key: NATIVE_AUTH_STORAGE_KEY });
+    if (!value) return null;
+    const parsed = JSON.parse(value) as Partial<NativeAuthSession>;
+    if (!parsed.refreshToken) return null;
+    return { ...(parsed.accessToken ? { accessToken: parsed.accessToken } : {}), refreshToken: parsed.refreshToken };
+  } catch { return null; }
+}
+
 // Emit boot diagnostics immediately
 nativeLog('INIT', 'api.ts loaded', {
   isNative,
@@ -129,7 +167,16 @@ function readNativeAuthSession(): NativeAuthSession | null {
   if (!isNativePlatform() || typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(NATIVE_AUTH_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      // localStorage was wiped (iOS WKWebView background purge) — recover from Capacitor Preferences
+      readPersistedNativeAuth().then(session => {
+        if (session) {
+          // Restore to localStorage for fast synchronous reads
+          try { localStorage.setItem(NATIVE_AUTH_STORAGE_KEY, JSON.stringify(session)); } catch {}
+        }
+      });
+      return null; // First call returns null; next call will have it restored
+    }
     const parsed = JSON.parse(raw) as Partial<NativeAuthSession>;
     if (!parsed.refreshToken) return null;
     return {
@@ -146,12 +193,14 @@ function writeNativeAuthSession(session: NativeAuthSession | null): void {
   try {
     if (!session) {
       localStorage.removeItem(NATIVE_AUTH_STORAGE_KEY);
-      return;
+    } else {
+      localStorage.setItem(NATIVE_AUTH_STORAGE_KEY, JSON.stringify(session));
     }
-    localStorage.setItem(NATIVE_AUTH_STORAGE_KEY, JSON.stringify(session));
   } catch {
     // Ignore storage failures
   }
+  // Write-through to Capacitor Preferences (persists even if localStorage is wiped)
+  persistNativeAuth(session);
 }
 
 export function setNativeAuthSession(accessToken?: string | null, refreshToken?: string | null): void {
@@ -216,8 +265,20 @@ let authDead = false;
 
 async function tryRefreshToken(): Promise<boolean> {
   try {
-    const nativeSession = readNativeAuthSession();
+    let nativeSession = readNativeAuthSession();
     const nativeRuntime = isNativePlatform();
+
+    // If localStorage was wiped (iOS background purge), recover from Capacitor Preferences
+    if (!nativeSession && nativeRuntime) {
+      const persisted = await readPersistedNativeAuth();
+      if (persisted) {
+        nativeSession = persisted;
+        // Restore to localStorage for future synchronous reads
+        try { localStorage.setItem(NATIVE_AUTH_STORAGE_KEY, JSON.stringify(persisted)); } catch {}
+        nativeLog('REFRESH', 'Recovered auth from Capacitor Preferences');
+      }
+    }
+
     const refreshToken = nativeSession?.refreshToken ?? readStoredNativeRefreshToken();
     nativeLog('REFRESH', 'tryRefreshToken', {
       nativeRuntime,
