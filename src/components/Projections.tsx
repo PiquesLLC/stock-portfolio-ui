@@ -228,28 +228,30 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
               )}{' '}<span className="text-[13px] font-bold uppercase tracking-wide">Projections</span>
             </h2>
           </div>
-          <div className="flex gap-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5 shrink-0">
+          <div className="flex shrink-0">
           <button
             type="button"
             onClick={() => setMode('sp500')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            className={`relative px-2.5 py-2 text-[12px] font-medium transition-all ${
               mode === 'sp500'
-                ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                ? 'text-rh-light-text dark:text-white'
+                : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
           >
             S&P 500
+            {mode === 'sp500' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />}
           </button>
           <button
             type="button"
             onClick={() => setMode('pace')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            className={`relative px-2.5 py-2 text-[12px] font-medium transition-all ${
               mode === 'pace'
-                ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                ? 'text-rh-light-text dark:text-white'
+                : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
           >
             Current Pace
+            {mode === 'pace' && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />}
           </button>
         </div>
         </div>
