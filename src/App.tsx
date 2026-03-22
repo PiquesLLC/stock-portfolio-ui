@@ -48,7 +48,7 @@ import { useAnalytics } from './hooks/useAnalytics';
 // Lazy-loaded page components
 const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
 const DeepResearchPage = lazy(() => import('./components/DeepResearchPage'));
-const EconomicIndicators = lazy(() => import('./components/EconomicIndicators').then(m => ({ default: m.EconomicIndicators })));
+const PortfolioNews = lazy(() => import('./components/PortfolioNews').then(m => ({ default: m.PortfolioNews })));
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const FeedPage = lazy(() => import('./components/FeedPage').then(m => ({ default: m.FeedPage })));
 const WatchlistPage = lazy(() => import('./components/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
@@ -1800,7 +1800,7 @@ export default function App() {
 
           {!settingsView && !creatorView && !adminView && activeTab === 'macro' && !viewingStock && (
             <ErrorBoundary>
-              <EconomicIndicators />
+              <PortfolioNews onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
             </ErrorBoundary>
           )}
 

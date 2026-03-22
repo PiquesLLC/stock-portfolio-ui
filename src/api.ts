@@ -3188,3 +3188,30 @@ export async function getBillionaireChart(slug: string, period: string = '1M'): 
 export async function getBillionaireMovers(): Promise<BillionaireMovers> {
   return fetchJson<BillionaireMovers>(`${API_BASE_URL}/billionaires/movers`);
 }
+
+// ── Portfolio News API ───────────────────────────────────────
+
+export interface PortfolioNewsItem {
+  id: number;
+  headline: string;
+  source: string;
+  url: string;
+  summary: string;
+  image: string;
+  datetime: number;
+  category: string;
+  related: string;
+  matchedTickers: string[];
+  portfolioRelevance: number;
+}
+
+export interface PortfolioNewsResponse {
+  items: PortfolioNewsItem[];
+  holdingCount: number;
+  tickersFetched: string[];
+  generatedAt: string;
+}
+
+export async function getPortfolioNews(limit = 30): Promise<PortfolioNewsResponse> {
+  return fetchJson<PortfolioNewsResponse>(`${API_BASE_URL}/portfolio/news?limit=${limit}`);
+}
