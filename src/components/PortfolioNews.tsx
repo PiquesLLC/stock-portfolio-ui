@@ -98,19 +98,6 @@ function MacroSummaryCard({ summary, tickers, onTickerClick, onRefresh, refreshi
         <RichText text={summary.outlook} tickers={tickers} onTickerClick={onTickerClick} />
       </p>
 
-      {/* Theme pills */}
-      {summary.keyThemes.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {summary.keyThemes.map((theme, i) => (
-            <span
-              key={i}
-              className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted"
-            >
-              {theme}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -243,7 +230,6 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-4 rounded-full bg-rh-green" />
               <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">In The News</h3>
-              <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">{data.items.length} articles scanned</span>
             </div>
             <div className="space-y-2">
               {mentionCounts.map(({ ticker, count }) => (
