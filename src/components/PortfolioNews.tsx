@@ -158,7 +158,7 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
       </div>
 
       <div>
-        {data.items.map((item) => (
+        {[...data.items].sort((a, b) => b.datetime - a.datetime).slice(0, 10).map((item) => (
           <NewsRow key={item.id} item={item} onTickerClick={onTickerClick} />
         ))}
       </div>
