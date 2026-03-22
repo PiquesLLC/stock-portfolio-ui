@@ -98,7 +98,7 @@ function IntelligenceLoader() {
   );
 }
 
-const PRIMARY_COUNT_MOBILE = 3;
+const PRIMARY_COUNT_MOBILE = 4;
 
 function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   tabs: { id: InsightsSubTab; label: string }[];
