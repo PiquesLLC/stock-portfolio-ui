@@ -220,7 +220,7 @@ export function EarningsSection({ ticker }: { ticker: string }) {
 
   if (loading) {
     return (
-      <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6 animate-pulse">
+      <div className="pt-4 pb-5 mb-6 border-b border-gray-200/10 dark:border-white/[0.04] animate-pulse">
         <div className="flex items-center justify-between">
           <div className="h-4 bg-gray-200/50 dark:bg-white/[0.06] rounded w-16" />
           <div className="flex gap-1.5">
@@ -241,7 +241,7 @@ export function EarningsSection({ ticker }: { ticker: string }) {
   const tagline = getEarningsTagline(beats, total);
 
   return (
-    <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl mb-6 overflow-hidden">
+    <div className="pt-2 pb-2 mb-6 border-b border-gray-200/10 dark:border-white/[0.04] overflow-hidden">
       {/* Collapsed card */}
       <button
         onClick={() => setExpanded(!expanded)}

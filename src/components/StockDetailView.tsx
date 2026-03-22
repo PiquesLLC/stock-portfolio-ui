@@ -366,7 +366,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     <div className={className} data-stock-actions-menu>
       <button
         onClick={() => setActionsOpen(prev => !prev)}
-        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text"
+        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border text-rh-light-muted dark:text-rh-muted border-gray-200/60 dark:border-white/[0.08] hover:text-rh-light-text dark:hover:text-rh-text"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -665,7 +665,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         })()}
         {quote.session && quote.session !== 'REG' && (
           <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${
-            quote.session === 'CLOSED' ? 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-rh-border' :
+            quote.session === 'CLOSED' ? 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted border border-gray-200/60 dark:border-white/[0.08]' :
             quote.session === 'PRE' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20' :
             'bg-purple-400/10 text-purple-400 border border-purple-400/20'
           }`} title={getAcronymTitle(quote.session === 'PRE' ? 'PRE' : quote.session === 'POST' ? 'POST' : 'CLOSED') || ''}>
@@ -786,7 +786,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             ) : (
               <button
                 onClick={() => setShowCompareInput(true)}
-                className="px-2 py-0.5 rounded-md text-[11px] font-medium text-rh-light-muted dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text border border-rh-light-border/30 dark:border-white/[0.08] hover:border-rh-green/30 transition-all"
+                className="px-2 py-0.5 rounded-md text-[11px] font-medium text-rh-light-muted dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text border border-gray-200/30 dark:border-white/[0.08] hover:border-rh-green/30 transition-all"
                 title="Compare with another ticker"
               >
                 Compare

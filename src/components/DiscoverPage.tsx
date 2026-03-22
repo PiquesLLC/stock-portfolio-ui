@@ -1168,7 +1168,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
   return (
     <div className="space-y-3">
       {/* Header + segmented control — sticky below nav */}
-      <div className="space-y-0 sticky top-[90px] sm:top-[52px] z-20 pb-3 bg-rh-light-bg dark:bg-[#050505]">
+      <div className="space-y-0 sticky top-[90px] sm:top-[52px] z-20 pb-3 bg-rh-light-bg dark:bg-[#0a0a0a]">
       {/* Header row */}
       <div className="px-1 py-2 space-y-1">
         <div className="flex items-baseline justify-between gap-3">
@@ -1298,7 +1298,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
       </div>
 
       {/* Column header — matches row: rank(w-7) + gap-3 + logo(w-8) + gap-3 + flex-1 ... */}
-      <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06] bg-rh-light-bg dark:bg-[#050505]">
+      <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06] bg-rh-light-bg dark:bg-[#0a0a0a]">
         <div className="w-7 shrink-0" />
         <div className="w-8 shrink-0" />
         <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Symbol</div>
@@ -1573,7 +1573,7 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="sticky top-0 bg-rh-light-bg dark:bg-[#050505] z-10">
+          <thead className="sticky top-0 bg-rh-light-bg dark:bg-[#0a0a0a] z-10">
             <tr>
               <th className={`${thClass} pl-3 text-left`} onClick={() => handleSort('ticker')}>Ticker{sortIcon('ticker')}</th>
               <th className={`${thClass} text-left hidden md:table-cell`} onClick={() => handleSort('name')}>Name{sortIcon('name')}</th>
@@ -1992,14 +1992,14 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
   const tabClass = (active: boolean) =>
     `px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
       active
-        ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
+        ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
         : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
     }`;
 
   const innerTabClass = (active: boolean) =>
     `px-3 py-1 text-[11px] font-medium rounded-md transition-all ${
       active
-        ? 'bg-white dark:bg-rh-card text-rh-green shadow-sm'
+        ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
         : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
     }`;
 

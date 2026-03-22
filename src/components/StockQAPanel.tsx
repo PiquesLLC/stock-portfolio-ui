@@ -63,13 +63,10 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
   };
 
   return (
-    <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5">
+    <div className="pt-4 pb-5 border-b border-gray-200/10 dark:border-white/[0.04]">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-50" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-rh-green" />
-        </span>
+        <div className="w-1 h-4 rounded-full bg-rh-green" />
         <h3 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">
           Ask about {ticker}
         </h3>

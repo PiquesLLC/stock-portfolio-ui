@@ -196,7 +196,7 @@ function getSignalColors(grade: string) {
   if (grade.startsWith('A')) return { ring: 'ring-rh-green/40', bg: 'bg-rh-green/15', text: 'text-rh-green', badgeBg: 'bg-rh-green', badgeText: 'text-black', pulse: grade === 'A+' };
   if (grade.startsWith('B')) return { ring: 'ring-blue-500/40', bg: 'bg-blue-500/15', text: 'text-blue-400', badgeBg: 'bg-blue-500', badgeText: 'text-white', pulse: false };
   if (grade.startsWith('C')) return { ring: 'ring-yellow-500/40', bg: 'bg-yellow-500/15', text: 'text-yellow-400', badgeBg: 'bg-yellow-500', badgeText: 'text-black', pulse: false };
-  if (grade === '--') return { ring: 'ring-rh-border', bg: 'bg-rh-dark/50', text: 'text-rh-muted', badgeBg: 'bg-rh-border', badgeText: 'text-rh-muted', pulse: false };
+  if (grade === '--') return { ring: 'ring-white/[0.08]', bg: 'bg-white/[0.04]', text: 'text-rh-muted', badgeBg: 'bg-white/[0.08]', badgeText: 'text-rh-muted', pulse: false };
   return { ring: 'ring-rh-red/40', bg: 'bg-rh-red/15', text: 'text-rh-red', badgeBg: 'bg-rh-red', badgeText: 'text-white', pulse: false };
 }
 
@@ -514,26 +514,26 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     return (
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="animate-pulse space-y-3">
-          <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-6">
+          <div className="pb-5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1">
             <div className="flex items-center gap-3">
-              <div className="w-[52px] h-[52px] bg-gray-200/50 dark:bg-rh-dark/50 rounded-full" />
+              <div className="w-[52px] h-[52px] bg-gray-200/50 dark:bg-white/[0.04] rounded-full" />
               <div className="space-y-2 flex-1">
-                <div className="h-6 w-36 bg-gray-200/50 dark:bg-rh-dark/50 rounded" />
-                <div className="h-3 w-20 bg-gray-200/30 dark:bg-rh-dark/30 rounded" />
+                <div className="h-6 w-36 bg-gray-200/50 dark:bg-white/[0.04] rounded" />
+                <div className="h-3 w-20 bg-gray-200/30 dark:bg-white/[0.03] rounded" />
               </div>
             </div>
             <div className="flex gap-4 mt-5 pt-4 border-t border-gray-200/20 dark:border-white/[0.06]">
               {[1, 2, 3].map(i => (
                 <div key={i} className="flex-1 text-center space-y-1">
-                  <div className="h-6 w-16 mx-auto bg-gray-200/40 dark:bg-rh-dark/40 rounded" />
-                  <div className="h-2 w-10 mx-auto bg-gray-200/20 dark:bg-rh-dark/20 rounded" />
+                  <div className="h-6 w-16 mx-auto bg-gray-200/40 dark:bg-white/[0.04] rounded" />
+                  <div className="h-2 w-10 mx-auto bg-gray-200/20 dark:bg-white/[0.02] rounded" />
                 </div>
               ))}
             </div>
           </div>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-7 w-20 bg-gray-200/30 dark:bg-rh-dark/30 rounded-full" />
+              <div key={i} className="h-7 w-20 bg-gray-200/30 dark:bg-white/[0.03] rounded-full" />
             ))}
           </div>
           <div className="h-32 bg-white/80 dark:bg-white/[0.04] rounded-xl" />
@@ -580,7 +580,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           ═══════════════════════════════════════════════════════════════ */}
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-6 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+        className="relative overflow-hidden pb-5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1"
       >
         {/* Ambient glow */}
         {hasPerformance && (
@@ -602,14 +602,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 style={{ background: getAvatarGradient(signalRating.grade) }}
               />
               {/* Ring gap */}
-              <div className="absolute inset-[3px] rounded-full bg-white dark:bg-rh-card" />
+              <div className="absolute inset-[3px] rounded-full bg-white dark:bg-[#111114]" />
               {/* Avatar face */}
               <div className={`absolute inset-[4px] rounded-full flex items-center justify-center text-sm font-bold ${signalColors.bg} ${signalColors.text}`}>
                 {getInitials(profile.displayName)}
               </div>
             </div>
             {/* Signal grade badge overlay */}
-            <div className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white dark:border-rh-card ${signalColors.badgeBg} ${signalColors.badgeText} ${signalColors.pulse ? 'signal-pulse-green' : ''} hover:scale-110 transition-transform duration-200`}>
+            <div className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white dark:border-[#111114] ${signalColors.badgeBg} ${signalColors.badgeText} ${signalColors.pulse ? 'signal-pulse-green' : ''} hover:scale-110 transition-transform duration-200`}>
               {signalRating.grade}
             </div>
 
@@ -621,7 +621,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full mt-2 left-0 z-20 w-52 p-3 bg-white dark:bg-rh-dark border border-gray-200/60 dark:border-rh-border rounded-lg shadow-xl"
+                  className="absolute top-full mt-2 left-0 z-20 w-52 p-3 bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50"
                 >
                   <p className="text-[10px] text-rh-light-text/80 dark:text-rh-text/80 leading-relaxed mb-2">
                     Signal grade based on:
@@ -640,7 +640,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                       Market correlation
                     </li>
                   </ul>
-                  <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-2.5 pt-2 border-t border-gray-200/30 dark:border-rh-border/30">
+                  <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-2.5 pt-2 border-t border-gray-200/30 dark:border-white/[0.06]">
                     Stable signal (30d)
                   </p>
                 </motion.div>
@@ -655,7 +655,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 {profile.displayName}
               </h1>
               {profile.showRegion && profile.region && (
-                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-medium rounded bg-gray-100 dark:bg-rh-dark/50 text-rh-light-muted/60 dark:text-rh-muted/60">
+                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-medium rounded bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted/60 dark:text-rh-muted/60">
                   {regionShort(profile.region)}
                 </span>
               )}
@@ -909,11 +909,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
             className="overflow-hidden mb-2"
           >
-            <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]">
+            <div className="pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
-                  {socialTab === 'followers' ? 'Followers' : 'Following'}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 rounded-full bg-rh-green" />
+                  <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
+                    {socialTab === 'followers' ? 'Followers' : 'Following'}
+                  </h3>
+                </div>
                 <button
                   onClick={() => setSocialTab(null)}
                   className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
@@ -997,7 +1000,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {/* Creator pitch */}
       {isCreatorProfile && profile.creator?.pitch && (
         <motion.div variants={itemVariants}
-          className="px-3 py-2.5 rounded-xl mb-2 bg-white/80 dark:bg-white/[0.04] border border-gray-200/40 dark:border-white/[0.08]">
+          className="px-1 py-2.5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04]">
           <p className="text-xs text-rh-light-muted dark:text-rh-muted italic">&ldquo;{profile.creator.pitch}&rdquo;</p>
         </motion.div>
       )}
@@ -1008,7 +1011,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && !isOwner && holdingsPrivate && topHoldings.length === 0 && (
         <motion.div
           variants={itemVariants}
-          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 text-center"
+          className="pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 text-center"
         >
           <div className="flex flex-col items-center gap-2 py-3">
             <svg className="w-6 h-6 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1022,9 +1025,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && topHoldings.length > 0 && (
         <motion.div
           variants={itemVariants}
-          className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
+          className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 overflow-hidden"
         >
-          <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-2.5">Top Holdings</h3>
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="w-1 h-4 rounded-full bg-rh-green" />
+            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Top Holdings</h3>
+          </div>
           {lockHoldings && !holdingsPrivate && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
           <div className={lockHoldings ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="flex items-center gap-3 px-1.5 mb-1">
@@ -1064,13 +1070,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && hasPerformance && (
         <motion.div
           variants={itemVariants}
-          className={`relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] border-l-2 overflow-hidden ${
-            riskPosture.level === 'Low' ? 'border-l-rh-green/30' :
-            riskPosture.level === 'High' ? 'border-l-rh-red/30' :
-            'border-l-yellow-500/30'
-          }`}
+          className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 overflow-hidden"
         >
           <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-1 h-4 rounded-full bg-rh-green" />
             <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
             <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
           </div>
@@ -1144,11 +1147,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && profile.recentActivity && profile.recentActivity.length > 0 && (
         <motion.div
           variants={itemVariants}
-          className="relative bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)] overflow-hidden"
+          className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 overflow-hidden"
         >
-          <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">
-            Latest Moves
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 rounded-full bg-rh-green" />
+            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
+              Latest Moves
+            </h3>
+          </div>
           {lockActivity && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
           <div className={lockActivity ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="relative">
@@ -1251,9 +1257,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {isOwner && (
         <motion.div
           variants={itemVariants}
-          className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200/40 dark:border-white/[0.08] rounded-xl p-4 mb-2 opacity-80 hover:opacity-100 transition-opacity shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.3)]"
+          className="pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 opacity-80 hover:opacity-100 transition-opacity"
         >
-          <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider mb-3">Profile Settings</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 rounded-full bg-rh-green" />
+            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Profile Settings</h3>
+          </div>
 
           {/* Holdings visibility */}
           <div className="flex items-center justify-between mb-3">
@@ -1269,7 +1278,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             />
           </div>
 
-          <div className="border-t border-gray-200/20 dark:border-white/[0.06] mb-3" />
+          <div className="border-t border-gray-200/10 dark:border-white/[0.04] mb-3" />
 
           {/* Region */}
           <div className="flex items-center justify-between">
@@ -1286,7 +1295,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 try { await updateUserRegion(userId, newRegion, newShow); }
                 catch { setProfile((p) => p ? { ...p, region: prevRegion, showRegion: prevShow } : p); }
               }}
-              className="text-xs text-rh-light-text dark:text-rh-text bg-white dark:bg-rh-dark border border-gray-200/60 dark:border-rh-border rounded-lg px-3 py-1.5 focus:outline-none focus:border-rh-green/50 cursor-pointer hover:border-rh-light-muted dark:hover:border-rh-muted transition-colors"
+              className="text-xs text-rh-light-text dark:text-rh-text bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-lg px-3 py-1.5 focus:outline-none focus:border-rh-green/50 cursor-pointer hover:border-gray-300 dark:hover:border-white/[0.12] transition-colors"
             >
               <option value="|0">Not set</option>
               {REGION_OPTIONS.map((r) => (
@@ -1298,7 +1307,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             </select>
           </div>
 
-          <div className="border-t border-gray-200/20 dark:border-white/[0.06] mt-3 pt-3" />
+          <div className="border-t border-gray-200/10 dark:border-white/[0.04] mt-3 pt-3" />
 
           {/* Portfolio management */}
           <div className="flex items-center justify-between">
@@ -1324,7 +1333,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {/* Private Profile */}
       {!profile.profilePublic && (
         <motion.div variants={itemVariants} className="text-center py-12">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-rh-dark border border-gray-200/60 dark:border-rh-border flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] flex items-center justify-center">
             <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
@@ -1391,17 +1400,17 @@ function HoldingsVisibilityToggle({ value, onChange }: {
   ];
 
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
       {options.map((opt) => {
         const isActive = value === opt.val || (opt.val === 'top5' && value === 'sectors');
         return (
           <button
             key={opt.val}
             onClick={() => onChange(opt.val)}
-            className={`px-3 py-1 text-[10px] font-medium rounded-full transition-all ${
+            className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${
               isActive
-                ? 'bg-rh-green/10 text-rh-green border border-rh-green/40 shadow-[0_0_10px_-3px_rgba(0,200,5,0.3)]'
-                : 'bg-gray-50 dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted border border-gray-200/60 dark:border-rh-border hover:border-gray-300 dark:hover:border-rh-muted/50'
+                ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm'
+                : 'text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/60'
             }`}
           >
             {opt.label}

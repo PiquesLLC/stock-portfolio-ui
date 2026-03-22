@@ -393,7 +393,7 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
 
   if (loading) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5 mb-6 animate-pulse">
+      <div className="pt-4 pb-5 mb-6 border-b border-gray-200/10 dark:border-white/[0.04] animate-pulse">
         <div className="h-4 bg-gray-200/50 dark:bg-white/[0.06] rounded w-24 mb-4" />
         <div className="h-[160px] bg-gray-200/30 dark:bg-white/[0.03] rounded" />
       </div>
@@ -424,7 +424,7 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
     : `${tabs.filter(t => t.available).map(t => t.label).join(', ')} available`;
 
   return (
-    <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-5 mb-6">
+    <div className="pt-4 pb-5 mb-6 border-b border-gray-200/10 dark:border-white/[0.04]">
       {/* Header */}
       <div
         className="flex items-center justify-between cursor-pointer select-none"
