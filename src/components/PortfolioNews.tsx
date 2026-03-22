@@ -208,17 +208,6 @@ function NewsRow({ item, onTickerClick }: { item: PortfolioNewsItem; onTickerCli
             )}
           </div>
         </div>
-        {item.image && (
-          <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/[0.04]">
-            <img
-              src={item.image}
-              alt=""
-              className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          </div>
-        )}
       </div>
     </a>
   );
