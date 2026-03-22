@@ -1,14 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPortfolioNews, PortfolioNewsItem, PortfolioNewsResponse, MacroSummary } from '../api';
-
-function timeAgo(unix: number): string {
-  const diff = Math.floor((Date.now() / 1000) - unix);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(unix * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+import { getPortfolioNews, PortfolioNewsResponse, MacroSummary } from '../api';
 
 const SENTIMENT_STYLES: Record<string, { color: string; label: string }> = {
   bullish: { color: 'text-rh-green', label: 'Bullish' },
@@ -70,7 +61,7 @@ interface PortfolioNewsProps {
   onTickerClick?: (ticker: string) => void;
 }
 
-export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
+export function PortfolioNews({ onTickerClick: _onTickerClick }: PortfolioNewsProps) {
   const [data, setData] = useState<PortfolioNewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,72 +134,14 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
 
   return (
     <div>
-      {/* AI Macro Summary */}
-      {data.summary && <MacroSummaryCard summary={data.summary} />}
-
-      {/* News Articles */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-5 rounded-full bg-rh-green" />
-          <h2 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Latest News</h2>
+      {data.summary ? (
+        <MacroSummaryCard summary={data.summary} />
+      ) : (
+        <div className="py-12 text-center">
+          <p className="text-sm text-rh-light-muted dark:text-rh-muted">Generating your market analysis...</p>
+          <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/50 mt-1">This may take a few seconds</p>
         </div>
-        <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
-          {data.holdingCount} holdings
-        </span>
-      </div>
-
-      <div>
-        {[...data.items].sort((a, b) => b.datetime - a.datetime).slice(0, 10).map((item) => (
-          <NewsRow key={item.id} item={item} onTickerClick={onTickerClick} />
-        ))}
-      </div>
+      )}
     </div>
-  );
-}
-
-function NewsRow({ item, onTickerClick }: { item: PortfolioNewsItem; onTickerClick?: (ticker: string) => void }) {
-  return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block py-3.5 border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors -mx-2 px-2 rounded-sm"
-    >
-      <div className="flex gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text leading-snug line-clamp-2 mb-1">
-            {item.headline}
-          </h3>
-          {item.summary && (
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted line-clamp-2 mb-1.5">
-              {item.summary}
-            </p>
-          )}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
-              {item.source} · {timeAgo(item.datetime)}
-            </span>
-            {item.matchedTickers.length > 0 && (
-              <div className="flex items-center gap-1">
-                {item.matchedTickers.slice(0, 4).map(ticker => (
-                  <button
-                    key={ticker}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onTickerClick?.(ticker); }}
-                    className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-rh-green/[0.08] text-rh-green hover:bg-rh-green/15 transition-colors"
-                  >
-                    {ticker}
-                  </button>
-                ))}
-                {item.matchedTickers.length > 4 && (
-                  <span className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40">
-                    +{item.matchedTickers.length - 4}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </a>
   );
 }
