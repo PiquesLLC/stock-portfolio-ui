@@ -98,7 +98,7 @@ function IntelligenceLoader() {
   );
 }
 
-const PRIMARY_COUNT_MOBILE = 4;
+const PRIMARY_COUNT_MOBILE = 3;
 
 function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   tabs: { id: InsightsSubTab; label: string }[];
@@ -425,7 +425,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const subTabs = useMemo<{ id: InsightsSubTab; label: string }[]>(() => [
     // Primary
     { id: 'intelligence', label: 'Intelligence' },
-    { id: 'ai-briefing', label: 'AI Briefing' },
+    { id: 'ai-briefing', label: 'Briefing' },
     { id: 'earnings', label: 'Earnings' },
     { id: 'what-if', label: 'Scenarios' },
     { id: 'ai-behavior', label: 'Behavior' },
