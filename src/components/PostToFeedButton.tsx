@@ -64,10 +64,11 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
         try {
           // html-to-image uses SVG foreignObject serialization instead of canvas
           // pixel rendering. It's non-blocking and works on mobile.
+          const isMobile = window.innerWidth < 768;
           const dataUrl = await toJpeg(el, {
-            quality: 0.9,
+            quality: isMobile ? 0.75 : 0.9,
             backgroundColor: '#000000',
-            pixelRatio: window.innerWidth < 768 ? 1.5 : 2,
+            pixelRatio: isMobile ? 1 : 2,
             filter: (node: HTMLElement) => {
               if (node.classList?.contains('z-20')) return false;
               if (node.getAttribute?.('data-capture-skip') === 'true') return false;
