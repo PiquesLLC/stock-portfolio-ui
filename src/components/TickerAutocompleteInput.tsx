@@ -327,7 +327,7 @@ export function TickerAutocompleteInput({
             }
           }}
           disabled={disabled}
-          placeholder={compact ? 'Search stocks...' : placeholder}
+          placeholder={placeholder}
           autoFocus={autoFocus}
           inputMode="search"
           enterKeyHint="search"
