@@ -123,28 +123,34 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   }, [moreOpen]);
 
   const btnClass = useCallback((active: boolean) =>
-    `px-4 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+    `relative px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
       active
-        ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm'
-        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+        ? 'text-rh-light-text dark:text-white'
+        : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'
     }`, []);
 
   return (
     <>
       {/* Desktop: all tabs in one row */}
-      <div className="hidden md:flex gap-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5 overflow-x-auto">
+      <div className="hidden md:flex border-b border-gray-200/10 dark:border-white/[0.04] overflow-x-auto">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => onTabChange(t.id)} className={btnClass(activeTab === t.id)}>
             {t.label}
+            {activeTab === t.id && (
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+            )}
           </button>
         ))}
       </div>
 
       {/* Mobile: fewer primary tabs + More dropdown */}
-      <div className="flex md:hidden gap-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
+      <div className="flex md:hidden border-b border-gray-200/10 dark:border-white/[0.04]">
         {mobilePrimary.map((t) => (
           <button key={t.id} onClick={() => { onTabChange(t.id); setMoreOpen(false); }} className={btnClass(activeTab === t.id)}>
             {t.label}
+            {activeTab === t.id && (
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+            )}
           </button>
         ))}
         {mobileSecondary.length > 0 && (
@@ -157,9 +163,12 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
               <svg className="w-3 h-3 ml-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={moreOpen ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
               </svg>
+              {activeMobileSecondary && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+              )}
             </button>
             {moreOpen && (
-              <div className="absolute top-full right-0 mt-1 z-30 min-w-[120px] sm:min-w-[140px] rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1a] shadow-lg py-1">
+              <div className="absolute top-full right-0 mt-1.5 z-30 min-w-[120px] sm:min-w-[140px] rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl shadow-2xl shadow-black/10 dark:shadow-black/50 py-1">
                 {mobileSecondary.map((t) => (
                   <button
                     key={t.id}
