@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getPortfolioNews, PortfolioNewsResponse, MacroSummary } from '../api';
 
 const SENTIMENT_STYLES: Record<string, { color: string; label: string }> = {
@@ -8,7 +8,53 @@ const SENTIMENT_STYLES: Record<string, { color: string; label: string }> = {
   mixed: { color: 'text-amber-500', label: 'Mixed' },
 };
 
-function MacroSummaryCard({ summary, onRefresh, refreshing }: { summary: MacroSummary; onRefresh: () => void; refreshing: boolean }) {
+// Common words that look like tickers but aren't
+const TICKER_BLACKLIST = new Set([
+  'AI', 'US', 'UK', 'EU', 'ETF', 'CEO', 'CFO', 'IPO', 'GDP', 'CPI',
+  'FED', 'SEC', 'PE', 'YTD', 'ATH', 'EPS', 'ROI', 'ROE', 'AND', 'THE',
+  'FOR', 'NOT', 'BUT', 'ALL', 'HAS', 'HAD', 'ARE', 'WAS', 'CAN', 'MAY',
+  'NEW', 'OLD', 'BIG', 'LOW', 'TOP', 'ADD', 'SET', 'RUN', 'CUT', 'OWN',
+  'NET', 'TWO', 'DAY', 'KEY', 'MIX', 'VIA', 'PRE', 'PER', 'ITS', 'NOW',
+]);
+
+/**
+ * Parse text and make ticker symbols clickable.
+ * Uses the tickersFetched list from the API response as the source of valid tickers,
+ * so it works for ANY user regardless of what they hold.
+ */
+function RichText({ text, tickers, onTickerClick }: {
+  text: string;
+  tickers: Set<string>;
+  onTickerClick?: (ticker: string) => void;
+}) {
+  const parts = text.split(/\b([A-Z]{2,5})\b/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (tickers.has(part) && !TICKER_BLACKLIST.has(part)) {
+          return (
+            <button
+              key={i}
+              onClick={() => onTickerClick?.(part)}
+              className="font-semibold text-rh-green hover:text-rh-green/80 transition-colors"
+            >
+              {part}
+            </button>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+function MacroSummaryCard({ summary, tickers, onTickerClick, onRefresh, refreshing }: {
+  summary: MacroSummary;
+  tickers: Set<string>;
+  onTickerClick?: (ticker: string) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   const sentimentStyle = SENTIMENT_STYLES[summary.sentiment] || SENTIMENT_STYLES.neutral;
 
   return (
@@ -39,17 +85,17 @@ function MacroSummaryCard({ summary, onRefresh, refreshing }: { summary: MacroSu
 
       {/* Overview */}
       <p className="text-sm text-rh-light-text dark:text-rh-text leading-relaxed mb-3">
-        {summary.overview}
+        <RichText text={summary.overview} tickers={tickers} onTickerClick={onTickerClick} />
       </p>
 
       {/* Portfolio Impact */}
       <p className="text-xs text-rh-light-muted dark:text-rh-muted leading-relaxed mb-3">
-        {summary.portfolioImpact}
+        <RichText text={summary.portfolioImpact} tickers={tickers} onTickerClick={onTickerClick} />
       </p>
 
       {/* Outlook */}
       <p className="text-xs text-rh-light-muted/80 dark:text-rh-muted/70 leading-relaxed mb-4 italic">
-        {summary.outlook}
+        <RichText text={summary.outlook} tickers={tickers} onTickerClick={onTickerClick} />
       </p>
 
       {/* Theme pills */}
@@ -73,7 +119,7 @@ interface PortfolioNewsProps {
   onTickerClick?: (ticker: string) => void;
 }
 
-export function PortfolioNews({ onTickerClick: _onTickerClick }: PortfolioNewsProps) {
+export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
   const [data, setData] = useState<PortfolioNewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -98,6 +144,23 @@ export function PortfolioNews({ onTickerClick: _onTickerClick }: PortfolioNewsPr
     setRefreshing(true);
     fetchData();
   };
+
+  // Build ticker set from ALL matched tickers across news items + fetched tickers.
+  // This is the algorithm that makes it work for every user:
+  // 1. API fetches the user's holdings (whatever they are)
+  // 2. API fetches news for their top 10 holdings by value
+  // 3. API tags each article with which holdings it mentions
+  // 4. tickersFetched = the tickers we queried news for
+  // 5. matchedTickers on each item = which holdings appear in that article
+  // 6. We union all of these into a Set so RichText can highlight any of them
+  const tickerSet = useMemo(() => {
+    if (!data) return new Set<string>();
+    const set = new Set<string>(data.tickersFetched);
+    for (const item of data.items) {
+      for (const t of item.matchedTickers) set.add(t);
+    }
+    return set;
+  }, [data]);
 
   if (loading && !data) {
     return (
@@ -144,7 +207,13 @@ export function PortfolioNews({ onTickerClick: _onTickerClick }: PortfolioNewsPr
   return (
     <div>
       {data.summary ? (
-        <MacroSummaryCard summary={data.summary} onRefresh={handleRefresh} refreshing={refreshing} />
+        <MacroSummaryCard
+          summary={data.summary}
+          tickers={tickerSet}
+          onTickerClick={onTickerClick}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+        />
       ) : (
         <div className="py-12 text-center">
           <div className="w-5 h-5 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin mx-auto mb-3" />
