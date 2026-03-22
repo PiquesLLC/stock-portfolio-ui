@@ -1199,7 +1199,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                     {hasValidPrice ? formatPercent(holding.profitLossPercent) : '—'}
                   </td>
                   <td className="px-2 sm:px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    <div className="flex items-center justify-end gap-3 pl-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEdit(holding); }}
                         className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white text-sm transition-colors"
