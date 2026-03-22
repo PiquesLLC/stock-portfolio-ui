@@ -110,7 +110,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
   }
 
   return (
-    <div className="px-6 py-4 benchmark-fade-in">
+    <div className="py-4 benchmark-fade-in">
       {/* Header row */}
       <div className="flex items-center gap-3 mb-3">
         <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">vs Benchmark</h3>

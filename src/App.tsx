@@ -1594,7 +1594,7 @@ export default function App() {
                   </div>
                   {/* Measurement header — absolutely positioned over benchmark slot */}
                   {showMeasure && chartMeasurement && (
-                  <div className="absolute inset-0 px-6 py-4">
+                  <div className="absolute inset-0 py-4">
                     <div className="flex items-center gap-3">
                       <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
                         {new Date(chartMeasurement.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -1657,7 +1657,7 @@ export default function App() {
                 </div>
 
                 {/* Row 1 — Day or measurement dollar change */}
-                <div className="px-6 py-3 space-y-2">
+                <div className="py-3 space-y-2">
                   <div>
                     <span className="text-xs font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/50">
                       {showMeasure && chartMeasurement ? 'Change' : <Term beginner="Today" advanced="Day" />}
