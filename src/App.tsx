@@ -1638,7 +1638,7 @@ export default function App() {
                 </div>
 
                 {/* Divider + toggle */}
-                <div className="flex items-center gap-2 my-1">
+                <div className="flex items-center gap-2 -mt-1 mb-0">
                   <div className="section-divider flex-1" />
                   {chartMeasurement && (
                     <button
@@ -1657,7 +1657,7 @@ export default function App() {
                 </div>
 
                 {/* Row 1 — Day or measurement dollar change */}
-                <div className="py-3 space-y-2">
+                <div className="pt-1 pb-3 space-y-2">
                   <div>
                     <span className="text-xs font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/50">
                       {showMeasure && chartMeasurement ? 'Change' : <Term beginner="Today" advanced="Day" />}
