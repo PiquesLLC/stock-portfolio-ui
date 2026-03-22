@@ -554,7 +554,6 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const perf = profile.performance;
   const hasPerformance = perf && perf.snapshotCount >= 2;
   const isNewAccount = profile.followerCount === 0 && profile.followingCount === 0;
-  const isPositive = (chartReturnPct ?? perf?.twrPct ?? 0) >= 0;
 
   return (
     <motion.div

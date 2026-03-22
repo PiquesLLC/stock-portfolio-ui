@@ -142,33 +142,24 @@ export function HeroInsights({ data, window: win = '1d', onTickerClick }: Props)
 
   const streakLabel = activeStreak ? activeStreak.label : 'Need more snapshot history';
 
-  const sectorBorderColor = sectorMode === 'driver' ? 'border-rh-green/40' : 'border-rh-red/40';
-  const dragBorderColor = dragMode === 'drag' ? 'border-rh-red/40' : 'border-rh-green/40';
-  const streakBorderColor = streakMode === 'momentum' ? 'border-rh-green/40' : 'border-rh-red/40';
 
   return (
     <>
-      {/* Mobile: single compact card with rows */}
-      <div className="md:hidden bg-gray-50/40 dark:bg-white/[0.02] rounded-lg overflow-hidden">
-        <div className={`flex items-center justify-between px-3 py-2.5 border-l-2 border-r-2 ${sectorBorderColor}`}>
+      {/* Mobile: borderless rows */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between py-3 border-b border-gray-200/10 dark:border-white/[0.04]">
           <div className="min-w-0 flex-1">
             {sectorContent}
             <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{sectorLabel}</p>
           </div>
         </div>
-        <div className="border-t border-gray-200/30 dark:border-white/[0.04]" />
-        <div className={`flex items-center justify-between px-3 py-2.5 border-l-2 border-r-2 ${dragBorderColor} ${
-          dragMode === 'drag'
-            ? 'bg-red-50/20 dark:bg-red-500/[0.03]'
-            : 'bg-green-50/20 dark:bg-rh-green/[0.03]'
-        }`}>
+        <div className="flex items-center justify-between py-3 border-b border-gray-200/10 dark:border-white/[0.04]">
           <div className="min-w-0 flex-1">
             {dragContent}
             <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{dragLabel}</p>
           </div>
         </div>
-        <div className="border-t border-gray-200/30 dark:border-white/[0.04]" />
-        <div className={`flex items-center justify-between px-3 py-2.5 border-l-2 border-r-2 ${streakBorderColor}`}>
+        <div className="flex items-center justify-between py-3">
           <div className="min-w-0 flex-1">
             {streakContent}
             <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{streakLabel}</p>
@@ -176,21 +167,17 @@ export function HeroInsights({ data, window: win = '1d', onTickerClick }: Props)
         </div>
       </div>
 
-      {/* Desktop: 3-column grid — center card (drag/driver) is promoted */}
+      {/* Desktop: 3-column grid — borderless with subtle bottom borders */}
       <div className="hidden md:grid grid-cols-3 gap-3">
-        <div className={`bg-gray-50/30 dark:bg-white/[0.015] rounded-lg px-4 py-2.5 flex flex-col gap-1 min-h-[68px] border-l-2 ${sectorBorderColor}`}>
+        <div className="pb-3 border-b border-gray-200/10 dark:border-white/[0.04] flex flex-col gap-1">
           {sectorContent}
           <span className="text-[11px] text-rh-light-muted/80 dark:text-rh-muted/80">{sectorLabel}</span>
         </div>
-        <div className={`rounded-lg px-4 py-3 flex flex-col gap-1 min-h-[72px] border-l-2 border-r-2 ${dragBorderColor} ring-1 ring-gray-200/30 dark:ring-white/[0.06] ${
-          dragMode === 'drag'
-            ? 'bg-red-50/30 dark:bg-red-500/[0.04]'
-            : 'bg-green-50/30 dark:bg-rh-green/[0.04]'
-        }`}>
+        <div className="pb-3 border-b border-gray-200/10 dark:border-white/[0.04] flex flex-col gap-1">
           {dragContent}
           <span className="text-xs text-rh-light-muted dark:text-rh-muted">{dragLabel}</span>
         </div>
-        <div className={`bg-gray-50/30 dark:bg-white/[0.015] rounded-lg px-4 py-2.5 flex flex-col gap-1 min-h-[68px] border-r-2 ${streakBorderColor}`}>
+        <div className="pb-3 border-b border-gray-200/10 dark:border-white/[0.04] flex flex-col gap-1">
           {streakContent}
           <span className="text-[11px] text-rh-light-muted/80 dark:text-rh-muted/80">{streakLabel}</span>
         </div>
