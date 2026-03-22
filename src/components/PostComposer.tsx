@@ -186,7 +186,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
         </div>
       )}
 
-      {isExpanded && <div className="flex items-center justify-between mt-2">
+      {isExpanded && <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
         <div className="flex items-center gap-1.5">
           {/* Attachment buttons */}
           <button onClick={() => setAttachMode(attachMode === 'stock_chart' ? null : 'stock_chart')}
@@ -207,7 +207,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
 
           <div className="w-px h-4 bg-rh-light-border/20 dark:bg-white/[0.06] mx-0.5" />
 
-          <div className="w-24">
+          <div className="w-20 sm:w-24">
             <TickerAutocompleteInput
               value={ticker}
               onChange={setTicker}
@@ -221,7 +221,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
             value={type}
             onChange={e => setType(e.target.value as 'thought' | 'analysis' | 'trade_idea')}
             className="text-xs bg-white dark:bg-[#1a1a1e] text-rh-light-muted dark:text-white/50
-              border border-rh-light-border/20 dark:border-white/[0.06] rounded-lg px-2 py-1 outline-none appearance-none"
+              border border-rh-light-border/20 dark:border-white/[0.06] rounded-lg px-2 py-1 outline-none appearance-none hidden sm:block"
           >
             <option value="thought" className="bg-white dark:bg-[#1a1a1e]">Thought</option>
             <option value="analysis" className="bg-white dark:bg-[#1a1a1e]">Analysis</option>
