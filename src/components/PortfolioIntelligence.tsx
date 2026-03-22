@@ -61,9 +61,9 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
   return (
     <div>
       <div className="mb-3">
-        <div className="flex items-center justify-between text-[9px] text-rh-light-muted/80 dark:text-rh-muted/80 mb-1">
-          <span><span className="text-rh-green/80">{formatCurrency(totalGains)}</span></span>
-          <span><span className="text-rh-red/80">{formatCurrency(-totalLosses)}</span></span>
+        <div className="flex items-center justify-between text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">
+          <span className="text-rh-green/60">{formatCurrency(totalGains)}</span>
+          <span className="text-rh-red/60">{formatCurrency(-totalLosses)}</span>
         </div>
         <div className="h-2 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.03]">
           <div className="h-full bg-rh-green/60 rounded-l-full transition-all duration-500" style={{ width: `${gainsWidth}%` }} />
@@ -76,16 +76,16 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
         Portfolio Pulse
       </h4>
 
-      <div className="grid grid-cols-3">
-        <div className="p-2 sm:p-3 border-r border-gray-200/10 dark:border-white/[0.04]">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1" title="Percentage of holdings that moved up">Win Rate</div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="py-2">
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1" title="Percentage of holdings that moved up">Win Rate</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
             {totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0}%
           </div>
-          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/90 dark:text-white/50 mt-0.5">{winCount} up / {lossCount} down</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">{winCount} up / {lossCount} down</div>
         </div>
-        <div className="p-2 sm:p-3 border-r border-gray-200/10 dark:border-white/[0.04]">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1" title="The holding with the largest dollar impact on your portfolio">Biggest Mover</div>
+        <div className="py-2">
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1" title="The holding with the largest dollar impact on your portfolio">Biggest Mover</div>
           <button className={`text-base sm:text-lg font-bold hover:opacity-80 transition-opacity ${biggestMover.contributionDollar >= 0 ? 'text-rh-green' : 'text-rh-red'}`}
             onClick={() => onTickerClick?.(biggestMover.ticker)}>
             {biggestMover.ticker}
@@ -94,10 +94,10 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
             {formatCurrency(biggestMover.contributionDollar)}
           </div>
         </div>
-        <div className="p-2 sm:p-3 min-w-0">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/90 dark:text-white/50 mb-1 truncate" title="Top Concentration — how much of total movement comes from the single biggest mover">Top Conc.</div>
+        <div className="py-2 min-w-0">
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1 truncate" title="Top Concentration — how much of total movement comes from the single biggest mover">Top Conc.</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
-          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/90 dark:text-white/50 mt-0.5">of movement</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">of movement</div>
         </div>
       </div>
 
