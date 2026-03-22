@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPortfolioNews, PortfolioNewsItem, PortfolioNewsResponse } from '../api';
+import { getPortfolioNews, PortfolioNewsItem, PortfolioNewsResponse, MacroSummary } from '../api';
 
 function timeAgo(unix: number): string {
   const diff = Math.floor((Date.now() / 1000) - unix);
@@ -8,6 +8,62 @@ function timeAgo(unix: number): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
   return new Date(unix * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+const SENTIMENT_STYLES: Record<string, { color: string; label: string }> = {
+  bullish: { color: 'text-rh-green', label: 'Bullish' },
+  bearish: { color: 'text-rh-red', label: 'Bearish' },
+  neutral: { color: 'text-rh-light-muted dark:text-rh-muted', label: 'Neutral' },
+  mixed: { color: 'text-amber-500', label: 'Mixed' },
+};
+
+function MacroSummaryCard({ summary }: { summary: MacroSummary }) {
+  const sentimentStyle = SENTIMENT_STYLES[summary.sentiment] || SENTIMENT_STYLES.neutral;
+
+  return (
+    <div className="mb-6 pb-5 border-b border-gray-200/10 dark:border-white/[0.04]">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-5 rounded-full bg-rh-green" />
+          <h2 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Market Analysis</h2>
+          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">Powered by AI</span>
+        </div>
+        <span className={`text-[11px] font-semibold ${sentimentStyle.color}`}>
+          {sentimentStyle.label}
+        </span>
+      </div>
+
+      {/* Overview */}
+      <p className="text-sm text-rh-light-text dark:text-rh-text leading-relaxed mb-3">
+        {summary.overview}
+      </p>
+
+      {/* Portfolio Impact */}
+      <p className="text-xs text-rh-light-muted dark:text-rh-muted leading-relaxed mb-3">
+        {summary.portfolioImpact}
+      </p>
+
+      {/* Outlook */}
+      <p className="text-xs text-rh-light-muted/80 dark:text-rh-muted/70 leading-relaxed mb-4 italic">
+        {summary.outlook}
+      </p>
+
+      {/* Theme pills */}
+      {summary.keyThemes.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {summary.keyThemes.map((theme, i) => (
+            <span
+              key={i}
+              className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted"
+            >
+              {theme}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface PortfolioNewsProps {
@@ -33,11 +89,27 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
   if (loading) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-1 h-5 rounded-full bg-rh-green" />
-          <h2 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Portfolio News</h2>
+        {/* Summary skeleton */}
+        <div className="mb-6 pb-5 border-b border-gray-200/10 dark:border-white/[0.04] animate-pulse">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-5 rounded-full bg-rh-green" />
+            <div className="h-3 bg-gray-200/50 dark:bg-white/[0.04] rounded w-28" />
+          </div>
+          <div className="h-4 bg-gray-200/40 dark:bg-white/[0.04] rounded w-full mb-2" />
+          <div className="h-4 bg-gray-200/30 dark:bg-white/[0.03] rounded w-5/6 mb-3" />
+          <div className="h-3 bg-gray-200/20 dark:bg-white/[0.02] rounded w-2/3 mb-3" />
+          <div className="flex gap-1.5">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-5 bg-gray-200/20 dark:bg-white/[0.03] rounded-full w-20" />
+            ))}
+          </div>
         </div>
-        {[1, 2, 3, 4, 5].map(i => (
+        {/* News skeletons */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-5 rounded-full bg-rh-green" />
+          <div className="h-3 bg-gray-200/50 dark:bg-white/[0.04] rounded w-24" />
+        </div>
+        {[1, 2, 3, 4].map(i => (
           <div key={i} className="py-4 border-b border-gray-200/10 dark:border-white/[0.04] animate-pulse">
             <div className="h-4 bg-gray-200/50 dark:bg-white/[0.04] rounded w-3/4 mb-2" />
             <div className="h-3 bg-gray-200/30 dark:bg-white/[0.03] rounded w-1/2 mb-2" />
@@ -71,13 +143,17 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      {/* AI Macro Summary */}
+      {data.summary && <MacroSummaryCard summary={data.summary} />}
+
+      {/* News Articles */}
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-1 h-5 rounded-full bg-rh-green" />
-          <h2 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Portfolio News</h2>
+          <h2 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Latest News</h2>
         </div>
         <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
-          {data.holdingCount} holdings · {data.tickersFetched.length} tracked
+          {data.holdingCount} holdings
         </span>
       </div>
 
@@ -99,7 +175,6 @@ function NewsRow({ item, onTickerClick }: { item: PortfolioNewsItem; onTickerCli
       className="block py-3.5 border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors -mx-2 px-2 rounded-sm"
     >
       <div className="flex gap-3">
-        {/* Text content */}
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text leading-snug line-clamp-2 mb-1">
             {item.headline}
@@ -133,8 +208,6 @@ function NewsRow({ item, onTickerClick }: { item: PortfolioNewsItem; onTickerCli
             )}
           </div>
         </div>
-
-        {/* Thumbnail */}
         {item.image && (
           <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/[0.04]">
             <img

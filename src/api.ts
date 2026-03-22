@@ -3205,8 +3205,20 @@ export interface PortfolioNewsItem {
   portfolioRelevance: number;
 }
 
+export interface MacroSummary {
+  overview: string;
+  portfolioImpact: string;
+  outlook: string;
+  keyThemes: string[];
+  sentiment: 'bullish' | 'bearish' | 'neutral' | 'mixed';
+  citations: string[];
+  generatedAt: string;
+  cached: boolean;
+}
+
 export interface PortfolioNewsResponse {
   items: PortfolioNewsItem[];
+  summary?: MacroSummary;
   holdingCount: number;
   tickersFetched: string[];
   generatedAt: string;
