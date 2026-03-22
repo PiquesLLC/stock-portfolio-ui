@@ -1526,28 +1526,10 @@ export default function App() {
               <div className="-mx-3 sm:-mx-6 relative">
               {user && (
                 <div className="absolute top-2 right-3 sm:top-2 sm:right-6 z-20">
-                  {userPortfolios.length > 1 && (
-                    <div className="relative" ref={desktopPortfolioRef}>
-                      <button
-                        onClick={() => setDesktopPortfolioOpen(prev => !prev)}
-                        className="flex items-center gap-1 text-[11px] font-medium text-rh-light-muted/70 dark:text-white/35 hover:text-rh-light-text dark:hover:text-white/60 transition-colors"
-                      >
-                        {userPortfolios.find(p => p.id === selectedPortfolioId)?.name || 'Portfolio 1'}
-                        <svg className={`w-2.5 h-2.5 transition-transform duration-150 ${desktopPortfolioOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {desktopPortfolioOpen && (
-                        <div className="absolute right-0 top-full mt-1 z-50 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#1c1c1f] shadow-[0_8px_32px_rgba(0,0,0,0.3)] py-1 px-0.5">
-                          <PortfolioPicker
-                            selectedPortfolioId={selectedPortfolioId}
-                            onSelect={(id) => { setSelectedPortfolioId(id); setDesktopPortfolioOpen(false); }}
-                            userPlan={user.plan || 'free'}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
+                    <PostToFeedButton type="portfolio" userId={user.id} period={chartPeriod || '1M'} />
+                  </div>
                 </div>
               )}
               <PortfolioValueChart
@@ -1572,12 +1554,28 @@ export default function App() {
                   cashBalance: portfolio.cashBalance,
                   marginDebt: portfolio.marginDebt,
                 }}
-                chartToolbar={user && (
-                  <div className="flex items-center gap-1">
-                    <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
-                    <PostToFeedButton type="portfolio" userId={user.id} period={chartPeriod || '1M'} />
+                chartToolbar={user && userPortfolios.length > 1 ? (
+                  <div className="relative" ref={desktopPortfolioRef}>
+                    <button
+                      onClick={() => setDesktopPortfolioOpen(prev => !prev)}
+                      className="flex items-center gap-1 text-[11px] font-medium text-rh-light-muted/70 dark:text-white/35 hover:text-rh-light-text dark:hover:text-white/60 transition-colors"
+                    >
+                      {userPortfolios.find(p => p.id === selectedPortfolioId)?.name || 'Portfolio 1'}
+                      <svg className={`w-2.5 h-2.5 transition-transform duration-150 ${desktopPortfolioOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {desktopPortfolioOpen && (
+                      <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl shadow-2xl shadow-black/10 dark:shadow-black/50 py-1 px-0.5">
+                        <PortfolioPicker
+                          selectedPortfolioId={selectedPortfolioId}
+                          onSelect={(id) => { setSelectedPortfolioId(id); setDesktopPortfolioOpen(false); }}
+                          userPlan={user.plan || 'free'}
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
+                ) : undefined}
               />
               </div>
               </>
