@@ -57,7 +57,7 @@ export function Navigation({
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   const portfolioMenuRef = useRef<HTMLDivElement>(null);
-  const isPaid = userPlan === 'pro' || userPlan === 'premium';
+  const isPaid = userPlan === 'pro' || userPlan === 'premium' || userPlan === 'elite';
   const visibleOverflow = useMemo(() =>
     isPaid ? OVERFLOW_TABS.filter(t => t.id !== 'pricing') : OVERFLOW_TABS,
     [isPaid]
