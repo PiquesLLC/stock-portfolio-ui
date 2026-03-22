@@ -582,10 +582,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         variants={itemVariants}
         className="relative overflow-hidden pb-5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1"
       >
-        {/* Ambient glow */}
-        {hasPerformance && (
-          <div className={`absolute inset-0 rounded-xl pointer-events-none ${isPositive ? 'profile-hero-glow-green' : 'profile-hero-glow-red'}`} />
-        )}
+        {/* Ambient glow removed — clashes with borderless glass design */}
 
         {/* Profile identity row */}
         <div className="relative flex items-start gap-3.5">
