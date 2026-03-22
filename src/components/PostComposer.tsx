@@ -207,12 +207,12 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
 
           <div className="w-px h-4 bg-rh-light-border/20 dark:bg-white/[0.06] mx-0.5" />
 
-          <div className="w-20 sm:w-24">
+          <div className="w-16 sm:w-24">
             <TickerAutocompleteInput
               value={ticker}
               onChange={setTicker}
               onSelect={(r: SymbolSearchResult) => setTicker(r.symbol)}
-              placeholder="$TICKER"
+              placeholder="Ticker"
               compact
               className="!text-xs !py-1 !px-2 !rounded-lg !border-rh-light-border/20 dark:!border-white/[0.06] !bg-transparent"
             />
