@@ -60,14 +60,14 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
 
   return (
     <div>
-      <div className="mb-3">
-        <div className="flex items-center justify-between text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">
-          <span className="text-rh-green/60">{formatCurrency(totalGains)}</span>
-          <span className="text-rh-red/60">{formatCurrency(-totalLosses)}</span>
-        </div>
-        <div className="h-2 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.03]">
+      <div className="mb-4">
+        <div className="h-1.5 rounded-full overflow-hidden flex bg-gray-100 dark:bg-white/[0.03]">
           <div className="h-full bg-rh-green/60 rounded-l-full transition-all duration-500" style={{ width: `${gainsWidth}%` }} />
           <div className="h-full bg-rh-red/50 rounded-r-full transition-all duration-500" style={{ width: `${100 - gainsWidth}%` }} />
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-[9px] text-rh-green/50 tabular-nums">{formatCurrency(totalGains)}</span>
+          <span className="text-[9px] text-rh-red/50 tabular-nums">{formatCurrency(-totalLosses)}</span>
         </div>
       </div>
 
@@ -412,33 +412,40 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
       <div className="space-y-2">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Portfolio Intelligence <InfoTooltip text="A breakdown of what's driving your portfolio today — top winners, losers, and sector allocation." /></h3>
+            <h3 className="flex items-center gap-2 text-rh-light-text dark:text-rh-text">
+              <div className="w-1 h-5 rounded-full bg-rh-green" />
+              <span className="text-[13px] font-bold uppercase tracking-wide">Portfolio Intelligence</span>
+              <InfoTooltip text="A breakdown of what's driving your portfolio today — top winners, losers, and sector allocation." />
+            </h3>
             {session && (
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
+              <span className={`inline-flex items-center gap-1 text-[10px] font-medium shrink-0 ${
                 session === 'REG'
-                  ? 'bg-rh-green/10 text-rh-green border border-rh-green/20'
+                  ? 'text-rh-green'
                   : session === 'PRE' || session === 'POST'
-                    ? 'bg-amber-400/10 text-amber-500 dark:text-amber-400 border border-amber-400/20'
-                    : 'bg-gray-200/40 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted border border-gray-200/40 dark:border-white/[0.06]'
+                    ? 'text-amber-500 dark:text-amber-400'
+                    : 'text-rh-light-muted/50 dark:text-rh-muted/50'
               }`}>
                 {session === 'REG' && <span className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />}
                 {session === 'REG' ? 'Live' : session === 'PRE' ? 'Pre-Market' : session === 'POST' ? 'After Hours' : 'Closed'}
               </span>
             )}
           </div>
-          <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1 shrink-0">
+          <div className="flex shrink-0">
             {(Object.keys(WINDOW_LABELS) as IntelligenceWindow[]).map((w) => (
               <button
                 key={w}
                 onClick={() => handleWindowChange(w)}
                 disabled={loading}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`relative px-2.5 py-2 text-[12px] font-medium transition-all disabled:opacity-50 ${
                   selectedWindow === w
-                    ? 'bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text shadow-sm'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
-                } disabled:opacity-50`}
+                    ? 'text-rh-light-text dark:text-white'
+                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
+                }`}
               >
                 {WINDOW_LABELS[w]}
+                {selectedWindow === w && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+                )}
               </button>
             ))}
           </div>
