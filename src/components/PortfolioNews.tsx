@@ -236,28 +236,36 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
       )}
 
       {/* In The News Tracker */}
-      {mentionCounts.length > 0 && (
-        <div className="mt-6 pt-5 border-t border-gray-200/10 dark:border-white/[0.04]">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1 h-4 rounded-full bg-rh-green" />
-            <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">In The News</h3>
+      {mentionCounts.length > 0 && (() => {
+        const maxCount = mentionCounts[0]?.count ?? 1;
+        return (
+          <div className="mt-6 pt-5 border-t border-gray-200/10 dark:border-white/[0.04]">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-4 rounded-full bg-rh-green" />
+              <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">In The News</h3>
+              <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">{data.items.length} articles scanned</span>
+            </div>
+            <div className="space-y-2">
+              {mentionCounts.map(({ ticker, count }) => (
+                <button
+                  key={ticker}
+                  onClick={() => onTickerClick?.(ticker)}
+                  className="w-full flex items-center gap-3 group"
+                >
+                  <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors w-14 text-left tabular-nums">{ticker}</span>
+                  <div className="flex-1 h-4 bg-gray-100/50 dark:bg-white/[0.03] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-rh-green/40 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max((count / maxCount) * 100, 4)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-medium tabular-nums text-rh-light-muted dark:text-rh-muted w-6 text-right">{count}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {mentionCounts.map(({ ticker, count }) => (
-              <button
-                key={ticker}
-                onClick={() => onTickerClick?.(ticker)}
-                className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors group"
-              >
-                <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors">{ticker}</span>
-                <span className="text-[9px] font-medium tabular-nums px-1.5 py-0.5 rounded-full bg-rh-green/[0.08] text-rh-green">
-                  {count}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
