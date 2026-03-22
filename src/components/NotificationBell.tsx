@@ -405,9 +405,9 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       </button>
 
       {open && (
-        <div className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-14 sm:top-full sm:mt-2 w-auto sm:w-80 max-h-[70vh] sm:max-h-96 overflow-y-auto
-          bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border
-          rounded-xl shadow-xl z-50 scrollbar-minimal"
+        <div className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-14 sm:top-full sm:mt-2 w-auto sm:w-80 max-h-[50vh] sm:max-h-96 overflow-y-auto
+          bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08]
+          rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-50 scrollbar-minimal"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
