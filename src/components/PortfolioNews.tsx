@@ -162,6 +162,20 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
     return set;
   }, [data]);
 
+  // Count how many articles mention each ticker
+  const mentionCounts = useMemo(() => {
+    if (!data) return [];
+    const counts = new Map<string, number>();
+    for (const item of data.items) {
+      for (const t of item.matchedTickers) {
+        counts.set(t, (counts.get(t) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([ticker, count]) => ({ ticker, count }));
+  }, [data]);
+
   if (loading && !data) {
     return (
       <div className="animate-pulse">
@@ -218,6 +232,30 @@ export function PortfolioNews({ onTickerClick }: PortfolioNewsProps) {
         <div className="py-12 text-center">
           <div className="w-5 h-5 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm text-rh-light-muted dark:text-rh-muted">Generating your market analysis...</p>
+        </div>
+      )}
+
+      {/* In The News Tracker */}
+      {mentionCounts.length > 0 && (
+        <div className="mt-6 pt-5 border-t border-gray-200/10 dark:border-white/[0.04]">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 rounded-full bg-rh-green" />
+            <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">In The News</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {mentionCounts.map(({ ticker, count }) => (
+              <button
+                key={ticker}
+                onClick={() => onTickerClick?.(ticker)}
+                className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors group"
+              >
+                <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors">{ticker}</span>
+                <span className="text-[9px] font-medium tabular-nums px-1.5 py-0.5 rounded-full bg-rh-green/[0.08] text-rh-green">
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
