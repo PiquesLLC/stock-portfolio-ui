@@ -27,6 +27,8 @@ function RichText({ text, tickers, onTickerClick }: {
   tickers: Set<string>;
   onTickerClick?: (ticker: string) => void;
 }) {
+  // Skip ticker parsing for very long text to prevent ReDoS
+  if (text.length > 5000) return <>{text}</>;
   const parts = text.split(/\b([A-Z]{2,5})\b/g);
   return (
     <>
