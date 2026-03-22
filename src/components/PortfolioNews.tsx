@@ -27,7 +27,7 @@ function MacroSummaryCard({ summary }: { summary: MacroSummary }) {
         <div className="flex items-center gap-2">
           <div className="w-1 h-5 rounded-full bg-rh-green" />
           <h2 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Market Analysis</h2>
-          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">Powered by AI</span>
+          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">Powered by NALA AI</span>
         </div>
         <span className={`text-[11px] font-semibold ${sentimentStyle.color}`}>
           {sentimentStyle.label}
