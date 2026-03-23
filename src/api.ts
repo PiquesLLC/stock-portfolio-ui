@@ -263,17 +263,6 @@ let refreshPromise: Promise<boolean> | null = null;
 // Once refresh fails, stop retrying until next successful login
 let authDead = false;
 
-/** Native HTTP via CapacitorHttp.request() — the most reliable path on iOS */
-async function nativeRequest(url: string, method: string, headers: Record<string, string>, body?: unknown): Promise<{ status: number; data: any }> {
-  const response = await CapacitorHttp.request({
-    url,
-    method,
-    headers,
-    data: body,
-    responseType: 'json',
-  });
-  return { status: response.status, data: response.data };
-}
 
 async function tryRefreshToken(): Promise<boolean> {
   try {

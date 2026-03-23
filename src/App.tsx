@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
 import { API_BASE_URL } from './config';
+import { isNative } from './utils/platform';
 import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord, getFastQuote } from './api';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
@@ -883,7 +884,7 @@ export default function App() {
         </Suspense>
       )}
       <div className="sticky z-30" style={{ top: 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
-      <header className="relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
+      <header className={`relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg ${isNative ? 'dark:bg-black/90' : 'dark:bg-black/95 backdrop-blur-xl'}`}>
         <div className="px-3 py-2 flex sm:hidden items-center gap-2">
           {/* Mobile: logo + controls inline */}
           <div
