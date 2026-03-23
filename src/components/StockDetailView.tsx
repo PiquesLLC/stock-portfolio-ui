@@ -133,6 +133,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[]>([]);
   const [showNalaScore, setShowNalaScore] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setShowNalaScore(false);
@@ -416,15 +418,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             </button>
             {holding && onHoldingDeleted && (
               <button
-                onClick={async () => {
-                  setActionsOpen(false);
-                  if (!confirm(`Remove ${ticker} from your portfolio?`)) return;
-                  try {
-                    await deleteHolding(ticker);
-                    onHoldingDeleted();
-                    onBack();
-                  } catch { /* toast handled by fetchJson */ }
-                }}
+                onClick={() => { setActionsOpen(false); setConfirmDelete(true); }}
                 className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-red-500 hover:bg-red-500/10"
               >
                 Remove
@@ -1168,6 +1162,37 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             setShowWatchlistModal(true);
           }}
         />
+      )}
+
+      {/* Delete Holding Confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setConfirmDelete(false)}>
+          <div className="bg-white dark:bg-[#1a1a1e] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-2">Remove {ticker}?</h3>
+            <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-5">This will remove {ticker} from your portfolio. This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDelete(false)} className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.1] text-rh-light-text dark:text-rh-text">
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await deleteHolding(ticker);
+                    setConfirmDelete(false);
+                    onHoldingDeleted?.();
+                    onBack();
+                  } catch { /* error toast from fetchJson */ }
+                  finally { setDeleting(false); }
+                }}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white disabled:opacity-50"
+              >
+                {deleting ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

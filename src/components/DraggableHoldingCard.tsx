@@ -67,10 +67,12 @@ export function DraggableHoldingCard({
   const [swipeX, setSwipeX] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const didSwipeRef = useRef(false);
   const swipeThreshold = 80;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isDragActive) return;
+    didSwipeRef.current = false;
     const touch = e.touches[0];
     touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
   };
@@ -82,7 +84,8 @@ export function DraggableHoldingCard({
     const dy = Math.abs(touch.clientY - touchStartRef.current.y);
     // Only track horizontal swipes (ignore vertical scroll)
     if (dy > 30) { touchStartRef.current = null; setSwipeX(0); return; }
-    // Only allow left swipe
+    // Only allow left swipe — mark as swiping if moved more than 10px
+    if (dx < -10) didSwipeRef.current = true;
     if (dx < 0) setSwipeX(dx);
   };
 
@@ -97,6 +100,8 @@ export function DraggableHoldingCard({
 
   const handleClick = () => {
     if (shouldSuppressClick()) return;
+    // Suppress click after a swipe gesture to prevent accidental navigation
+    if (didSwipeRef.current) { didSwipeRef.current = false; return; }
     if (showDeleteConfirm) { setShowDeleteConfirm(false); return; }
     if (onTickerClick && !isUnavailable) {
       onTickerClick(holding.ticker, holding);
