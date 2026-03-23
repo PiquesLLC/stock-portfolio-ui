@@ -5,6 +5,7 @@ import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
 import { timeAgo } from '../utils/format';
+import { isNative } from '../utils/platform';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
@@ -406,9 +407,14 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
-          bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
+          bg-white dark:bg-[#1a1a1e] border-2 border-red-500
           rounded-xl shadow-2xl z-50 scrollbar-minimal"
         >
+          {/* DEBUG: visible diagnostics — remove after fix */}
+          <div className="bg-red-800 text-white text-[9px] font-mono p-2 break-all">
+            DROPDOWN RENDERED | z:50 | pos:absolute | blur:none | sticky:{String(!isNative)} | overflow:visible
+            <br />close btn: <button onClick={() => setOpen(false)} className="underline text-yellow-300">[X CLOSE]</button>
+          </div>
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
             <div className="flex items-center gap-2">
