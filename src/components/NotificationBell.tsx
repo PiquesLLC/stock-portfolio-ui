@@ -405,13 +405,12 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         </span>
       </button>
 
-      {/* DEBUG: always-visible panel at top of screen — shows state even during black screen */}
-      {isNative && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999999, background: '#ff0000', color: '#fff', fontSize: '10px', fontFamily: 'monospace', padding: '28px 8px 6px', pointerEvents: 'auto' }}>
-          <div>open={String(open)} | notifs={notifications.length} | settings={String(showSettings)}</div>
-          <div>sticky={String(!isNative)} | blur=none | overflow=visible</div>
-          {open && <div style={{ color: '#ffff00', fontWeight: 'bold' }}>DROPDOWN IS OPEN — if screen is black, dropdown is hidden behind something</div>}
-          <button onClick={() => setOpen(false)} style={{ background: '#ffff00', color: '#000', padding: '4px 12px', marginTop: '4px', fontWeight: 'bold', borderRadius: '4px' }}>FORCE CLOSE</button>
+      {/* DEBUG: panel at bottom-center — visible even during black screen, doesn't block header */}
+      {isNative && open && (
+        <div style={{ position: 'fixed', bottom: 80, left: 16, right: 16, zIndex: 999999, background: '#ff0000', color: '#fff', fontSize: '11px', fontFamily: 'monospace', padding: '8px', borderRadius: '8px', pointerEvents: 'none' }}>
+          <div>BELL OPEN | notifs={notifications.length} | settings={String(showSettings)}</div>
+          <div>If black: dropdown hidden behind stacking context</div>
+          <button onClick={() => setOpen(false)} style={{ background: '#ffff00', color: '#000', padding: '6px 16px', marginTop: '6px', fontWeight: 'bold', borderRadius: '4px', pointerEvents: 'auto' }}>FORCE CLOSE</button>
         </div>
       )}
 
