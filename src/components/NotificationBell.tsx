@@ -405,16 +405,21 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         </span>
       </button>
 
+      {/* DEBUG: always-visible panel at top of screen — shows state even during black screen */}
+      {isNative && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999999, background: '#ff0000', color: '#fff', fontSize: '10px', fontFamily: 'monospace', padding: '28px 8px 6px', pointerEvents: 'auto' }}>
+          <div>open={String(open)} | notifs={notifications.length} | settings={String(showSettings)}</div>
+          <div>sticky={String(!isNative)} | blur=none | overflow=visible</div>
+          {open && <div style={{ color: '#ffff00', fontWeight: 'bold' }}>DROPDOWN IS OPEN — if screen is black, dropdown is hidden behind something</div>}
+          <button onClick={() => setOpen(false)} style={{ background: '#ffff00', color: '#000', padding: '4px 12px', marginTop: '4px', fontWeight: 'bold', borderRadius: '4px' }}>FORCE CLOSE</button>
+        </div>
+      )}
+
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
           bg-white dark:bg-[#1a1a1e] border-2 border-red-500
           rounded-xl shadow-2xl z-50 scrollbar-minimal"
         >
-          {/* DEBUG: visible diagnostics — remove after fix */}
-          <div className="bg-red-800 text-white text-[9px] font-mono p-2 break-all">
-            DROPDOWN RENDERED | z:50 | pos:absolute | blur:none | sticky:{String(!isNative)} | overflow:visible
-            <br />close btn: <button onClick={() => setOpen(false)} className="underline text-yellow-300">[X CLOSE]</button>
-          </div>
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
             <div className="flex items-center gap-2">
