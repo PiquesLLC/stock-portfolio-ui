@@ -1,14 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TabType } from '../components/Navigation';
 
-const PRIMARY_TABS: { id: TabType }[] = [
-  { id: 'portfolio' },
-  { id: 'insights' },
-  { id: 'discover' },
-  { id: 'leaderboard' },
-  { id: 'watchlists' },
-  { id: 'nala' },
-];
+// Tab-swipe navigation removed — it conflicts with swipe-to-delete and other horizontal gestures
 
 interface SwipeGuards {
   viewingStock: unknown;
@@ -23,7 +16,7 @@ interface SwipeGuards {
 
 interface UsePullToRefreshParams {
   activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
+  setActiveTab?: (tab: TabType) => void;
   resetNavigation: () => void;
   fetchData: () => void | Promise<void>;
   onRefreshTriggered: () => void;
@@ -32,7 +25,6 @@ interface UsePullToRefreshParams {
 
 export function usePullToRefresh({
   activeTab,
-  setActiveTab,
   resetNavigation,
   fetchData,
   onRefreshTriggered,
@@ -133,32 +125,11 @@ export function usePullToRefresh({
     if (dy > dx) swipeActive.current = false;
   }, [onPullMove]);
 
-  const onTouchEndCombined = useCallback((e: React.TouchEvent) => {
-    const g = swipeGuardRef.current;
-    const pullFired = pullActive.current && g.pullY > 50;
+  const onTouchEndCombined = useCallback((_e: React.TouchEvent) => {
     onPullEndRef.current();
-    if (!swipeActive.current) return;
+    // Tab-swipe navigation disabled — it conflicts with swipe-to-delete and other horizontal gestures
     swipeActive.current = false;
-    if (pullFired || g.viewingStock || g.settingsView || g.creatorView || g.adminView || g.compareStocks || g.refreshing || g.showOnboardingTour || g.showDailyReport || g.showPrivacyModal) return;
-    if (!e.changedTouches.length) return;
-    const dx = e.changedTouches[0].clientX - swipeTouchX.current;
-    if (Math.abs(dx) < 50) return;
-    const idx = PRIMARY_TABS.findIndex(t => t.id === activeTabRef.current);
-    if (idx === -1) return;
-    const len = PRIMARY_TABS.length;
-    const next = dx < 0 ? (idx + 1) % len : (idx - 1 + len) % len;
-    const newTab = PRIMARY_TABS[next].id;
-    const offset = dx < 0 ? 30 : -30;
-    mainRef.current?.animate(
-      [
-        { transform: `translateX(${offset}px)`, opacity: 0.6 },
-        { transform: 'translateX(0)', opacity: 1 },
-      ],
-      { duration: 180, easing: 'ease-out', fill: 'none' }
-    );
-    resetNavRef.current();
-    setActiveTab(newTab);
-  }, [setActiveTab]);
+  }, []);
 
   return {
     pullY,
