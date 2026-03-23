@@ -405,7 +405,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
+        <div className="absolute -right-12 top-full mt-2 w-72 max-h-96 overflow-y-auto
           bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
           rounded-xl shadow-2xl z-50 scrollbar-minimal"
         >
