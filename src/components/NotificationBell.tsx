@@ -412,8 +412,8 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       </button>
 
       {open && renderAsModal && (
-        <div className="fixed inset-0 z-[9998] bg-black/80" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <div className="flex flex-col h-full bg-white dark:bg-[#1a1a1e]">
+        <div className="fixed inset-0 z-[9998]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="flex flex-col h-full bg-white dark:bg-[#111113]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
               <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
               <button onClick={() => setOpen(false)} className="p-2 -mr-2 text-rh-light-muted dark:text-rh-muted">
