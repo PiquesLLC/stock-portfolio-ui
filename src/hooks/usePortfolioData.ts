@@ -76,15 +76,11 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
         lastValidPortfolio.current = portfolioData;
       }
     } catch (err) {
-      const apiErr = err as any;
-      const code = apiErr?.code || 'UNKNOWN';
-      const status = apiErr?.status || 'N/A';
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
-      const debugMsg = `${message} [code=${code} status=${status}]`;
       if (hasPortfolioRef.current) {
         setIsStale(true);
       } else {
-        setError(debugMsg);
+        setError(message);
       }
     } finally {
       setLoading(false);
