@@ -883,8 +883,8 @@ export default function App() {
           />
         </Suspense>
       )}
-      <div className={isNative ? 'z-30' : 'sticky z-30'} style={{ top: isNative ? undefined : 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden' }}>
-      <header className={`relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg ${isNative ? 'dark:bg-black' : 'dark:bg-black/95 backdrop-blur-xl'}`}>
+      <div className={isNative ? 'z-30' : 'sticky z-30'} style={{ top: isNative ? undefined : 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden', ...(isNative ? { overflow: 'visible' } : {}) }}>
+      <header className={`relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg ${isNative ? 'dark:bg-black' : 'dark:bg-black/95 backdrop-blur-xl'}`} style={isNative ? { overflow: 'visible' } : undefined}>
         <div className="px-3 py-2 flex sm:hidden items-center gap-2">
           {/* Mobile: logo + controls inline */}
           <div
