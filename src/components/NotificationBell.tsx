@@ -5,7 +5,6 @@ import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
 import { timeAgo } from '../utils/format';
-import { isNative, platform } from '../utils/platform';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
@@ -81,7 +80,6 @@ interface Props {
 
 export function NotificationBell({ userId, onTickerClick }: Props) {
   const { showToast } = useToast();
-  const isNativeIos = isNative && platform === 'ios';
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
@@ -384,11 +382,6 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     }
   };
 
-  // On native iOS, render as a full-screen modal to avoid all WKWebView
-  // compositing issues (fixed positioning + backdrop-blur = black screen).
-  const renderAsModal = isNativeIos;
-
-
   return (
     <div className="relative" ref={ref}>
       <button
@@ -411,99 +404,10 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         </span>
       </button>
 
-      {open && renderAsModal && (
-        <div className="fixed inset-0 z-[9998]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <div className="flex flex-col h-full bg-white dark:bg-[#111113]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
-              <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
-              <button onClick={() => setOpen(false)} className="p-2 -mr-2 text-rh-light-muted dark:text-rh-muted">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {/* Toggles + mark all read */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-rh-light-border dark:border-rh-border bg-rh-light-bg/50 dark:bg-rh-dark/50">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-                  Notifications {notificationsEnabled ? 'on' : 'off'}
-                </span>
-                <div className="flex items-center gap-3">
-                  {unreadCount > 0 && (
-                    <button onClick={() => { void handleMarkAllRead(); }} className="text-xs text-rh-green hover:underline">Mark all read</button>
-                  )}
-                  <button
-                    onClick={toggleNotifications}
-                    className={`relative w-10 h-5 rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
-                      notificationsEnabled ? 'bg-rh-green' : 'bg-gray-600'
-                    }`}
-                  >
-                    <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200" style={{ left: notificationsEnabled ? '22px' : '2px' }} />
-                  </button>
-                </div>
-              </div>
-
-              {notifications.length === 0 ? (
-                <div className="px-4 py-10 text-center">
-                  <p className="text-sm text-rh-light-muted dark:text-rh-muted">All caught up</p>
-                  <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">No new notifications</p>
-                </div>
-              ) : (
-                <div>
-                  {groupByDay(notifications.slice(0, 30)).map(group => (
-                    <div key={group.label}>
-                      <div className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 bg-rh-light-card dark:bg-rh-card sticky top-0 z-10">
-                        {group.label}
-                      </div>
-                      {group.items.map(notification => (
-                        <div
-                          key={`${notification.type}-${notification.id}`}
-                          onClick={() => {
-                            if (!notification.read) handleMarkRead(notification);
-                            if (notification.ticker && onTickerClick) {
-                              onTickerClick(notification.ticker);
-                              setOpen(false);
-                            }
-                          }}
-                          className={`px-4 py-3 border-b border-rh-light-border/50 dark:border-rh-border/50 last:border-b-0
-                            ${!notification.read ? 'bg-blue-500/5' : ''}`}
-                        >
-                          <div className="flex items-start gap-2">
-                            {!notification.read && <span className="mt-1.5 w-2 h-2 rounded-full bg-rh-green flex-shrink-0" />}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-medium uppercase tracking-wider ${
-                                  notification.type === 'social' ? 'text-blue-500' :
-                                  notification.type === 'anomaly' ? 'text-orange-500' :
-                                  notification.type === 'price_alert' ? 'text-rh-green' :
-                                  notification.type === 'analyst' ? 'text-amber-500' :
-                                  notification.label === '52W High' || notification.label === 'All-Time High' ? 'text-emerald-500' :
-                                  notification.label === '52W Low' || notification.label === 'All-Time Low' ? 'text-rose-500' :
-                                  'text-rh-light-muted dark:text-rh-muted'
-                                }`}>{notification.label}</span>
-                                {notification.ticker && <span className="text-[10px] font-semibold text-rh-green">{notification.ticker}</span>}
-                                <span className="ml-auto text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 flex-shrink-0">{timeAgo(notification.createdAt)}</span>
-                              </div>
-                              <p className="text-xs text-rh-light-text dark:text-rh-text mt-0.5 leading-relaxed line-clamp-2">
-                                {notification.message.replace(/\*\*/g, '')}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {open && !renderAsModal && (
-        <div className="fixed sm:absolute right-2 sm:right-0 top-14 sm:top-full sm:mt-2 w-72 sm:w-80 max-h-[50vh] sm:max-h-96 overflow-y-auto
-          bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08]
-          rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-50 scrollbar-minimal"
+      {open && (
+        <div className={`absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
+          bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
+          rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-50 scrollbar-minimal`}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
