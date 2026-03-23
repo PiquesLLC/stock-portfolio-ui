@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
+import { API_BASE_URL } from './config';
 import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord, getFastQuote } from './api';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
@@ -832,6 +833,14 @@ export default function App() {
           <div className="text-rh-red text-6xl mb-4">!</div>
           <h1 className="text-xl font-semibold text-rh-light-text dark:text-rh-text mb-2">Connection Error</h1>
           <p className="text-rh-light-muted dark:text-rh-muted mb-4">{error}</p>
+          {/* DEBUG: remove after TestFlight fix confirmed */}
+          <div className="text-left text-[10px] font-mono text-rh-light-muted dark:text-rh-muted/60 bg-black/20 rounded p-3 mb-4 break-all">
+            <p>API: {API_BASE_URL}</p>
+            <p>user: {currentUserId || 'null'}</p>
+            <p>authLoading: {String(authLoading)}</p>
+            <p>origin: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</p>
+            <p>protocol: {typeof window !== 'undefined' ? window.location.protocol : 'N/A'}</p>
+          </div>
           <button
             onClick={fetchData}
             className="bg-rh-green hover:bg-green-600 text-black font-semibold px-6 py-2 rounded-lg transition-colors"
