@@ -263,22 +263,16 @@ let refreshPromise: Promise<boolean> | null = null;
 // Once refresh fails, stop retrying until next successful login
 let authDead = false;
 
-/** Native-safe XHR refresh — bypasses CapacitorHttp/WebKit fetch quirks (same pattern as LoginPage) */
-function xhrRefresh(url: string, body: Record<string, unknown>, headers: Record<string, string>): Promise<{ status: number; data: Record<string, unknown> }> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
-    xhr.onload = () => {
-      let data: Record<string, unknown> = {};
-      try { data = JSON.parse(xhr.responseText); } catch { /* empty */ }
-      resolve({ status: xhr.status, data });
-    };
-    xhr.onerror = () => reject(new Error('Network error'));
-    xhr.ontimeout = () => reject(new Error('Request timed out'));
-    xhr.timeout = 15000;
-    xhr.send(JSON.stringify(body));
+/** Native HTTP via CapacitorHttp.request() — the most reliable path on iOS */
+async function nativeRequest(url: string, method: string, headers: Record<string, string>, body?: unknown): Promise<{ status: number; data: any }> {
+  const response = await CapacitorHttp.request({
+    url,
+    method,
+    headers,
+    data: body,
+    responseType: 'json',
   });
+  return { status: response.status, data: response.data };
 }
 
 async function tryRefreshToken(): Promise<boolean> {
@@ -315,11 +309,11 @@ async function tryRefreshToken(): Promise<boolean> {
     let data: Record<string, unknown>;
 
     if (nativeRuntime) {
-      // Use XMLHttpRequest on native — CapacitorHttp/WebKit fetch is unreliable for POST
-      const result = await xhrRefresh(url, body, headers);
+      // Use CapacitorHttp.request() on native — most reliable path
+      const result = await nativeRequest(url, 'POST', headers, body);
       status = result.status;
-      data = result.data;
-      nativeLog('REFRESH', `← ${status} (xhr)`);
+      data = result.data ?? {};
+      nativeLog('REFRESH', `← ${status} (native)`);
     } else {
       const res = await fetch(url, {
         method: 'POST',
@@ -379,27 +373,33 @@ export function resetAuthState(): void {
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const shortUrl = url.replace(API_BASE_URL, '');
-  const doFetch = () => {
+  const doFetch = async () => {
     const nativeSession = readNativeAuthSession();
     const nativeRuntime = isNativePlatform();
     const refreshToken = nativeSession?.refreshToken ?? readStoredNativeRefreshToken();
     const hasBearer = !!nativeSession?.accessToken;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+      ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
+      ...(nativeSession?.accessToken ? { Authorization: `Bearer ${nativeSession.accessToken}` } : {}),
+      ...(options?.headers as Record<string, string> || {}),
+    };
     nativeLog('FETCH', `→ ${options?.method || 'GET'} ${shortUrl}`, {
       nativeRuntime,
       hasBearer,
       hasNativeSession: !!refreshToken,
       authDead,
     });
+    if (nativeRuntime) {
+      // Use CapacitorHttp.request() on native — bypass WebKit fetch quirks
+      const result = await nativeRequest(url, options?.method || 'GET', headers, options?.body ? JSON.parse(options.body as string) : undefined);
+      return new Response(JSON.stringify(result.data), { status: result.status, headers: { 'Content-Type': 'application/json' } });
+    }
     return fetch(url, {
       ...options,
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'Bypass-Tunnel-Reminder': 'true',
-        ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
-        ...(nativeSession?.accessToken ? { Authorization: `Bearer ${nativeSession.accessToken}` } : {}),
-        ...options?.headers,
-      },
+      headers,
     });
   };
 
