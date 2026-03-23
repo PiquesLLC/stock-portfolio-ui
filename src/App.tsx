@@ -841,12 +841,20 @@ export default function App() {
             <p>origin: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}</p>
             <p>protocol: {typeof window !== 'undefined' ? window.location.protocol : 'N/A'}</p>
           </div>
-          <button
-            onClick={fetchData}
-            className="bg-rh-green hover:bg-green-600 text-black font-semibold px-6 py-2 rounded-lg transition-colors"
-          >
-            Retry
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={fetchData}
+              className="bg-rh-green hover:bg-green-600 text-black font-semibold px-6 py-2 rounded-lg transition-colors"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => { logout(); window.location.reload(); }}
+              className="bg-white/10 hover:bg-white/20 text-rh-light-text dark:text-rh-text font-semibold px-6 py-2 rounded-lg transition-colors"
+            >
+              Log Out
+            </button>
+          </div>
         </div>
       </div>
     );
