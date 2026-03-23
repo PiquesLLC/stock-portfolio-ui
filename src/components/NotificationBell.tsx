@@ -386,13 +386,22 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
   // On native iOS, render as a full-screen modal to avoid all WKWebView
   // compositing issues (fixed positioning + backdrop-blur = black screen).
-  // This is the nuclear fix after 4 attempts with dropdowns.
   const renderAsModal = isNativeIos;
+
+  // DEBUG: visible on-screen diagnostics for TestFlight
+  const [debugTaps, setDebugTaps] = useState(0);
+  const debugInfo = `isNative=${isNative} platform=${platform} isNativeIos=${isNativeIos} renderAsModal=${renderAsModal} open=${open} showSettings=${showSettings} notifCount=${notifications.length} taps=${debugTaps}`;
 
   return (
     <div className="relative" ref={ref}>
+      {/* DEBUG: visible diagnostics — remove after TestFlight fix confirmed */}
+      {isNative && (
+        <div className="fixed bottom-0 left-0 right-0 z-[99999] bg-red-900 text-white text-[9px] px-2 py-1 font-mono pointer-events-none" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          BELL DEBUG: {debugInfo}
+        </div>
+      )}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { setDebugTaps(t => t + 1); setOpen(!open); }}
         className="group relative p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted
           hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
         aria-label="Notifications"
