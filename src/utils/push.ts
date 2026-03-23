@@ -6,8 +6,8 @@ import { registerNativePush, unregisterNativePush } from './push-native';
  * Check if Web Push is supported in this browser.
  */
 export function isPushSupported(): boolean {
-  if (isNative) return true; // Native always supports push
-  return 'serviceWorker' in navigator && 'PushManager' in window;
+  if (isNative) return true; // Native uses APNs/FCM, not Web Push
+  return 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification !== 'undefined';
 }
 
 /**
@@ -175,5 +175,6 @@ export async function isPushSubscribed(): Promise<boolean> {
  */
 export function getPushPermission(): NotificationPermission | 'unsupported' {
   if (!isPushSupported()) return 'unsupported';
+  if (typeof Notification === 'undefined') return 'unsupported';
   return Notification.permission;
 }
