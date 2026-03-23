@@ -5,6 +5,7 @@ import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
 import { timeAgo } from '../utils/format';
+import { isNative, platform } from '../utils/platform';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
@@ -80,6 +81,7 @@ interface Props {
 
 export function NotificationBell({ userId, onTickerClick }: Props) {
   const { showToast } = useToast();
+  const isNativeIos = isNative && platform === 'ios';
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
@@ -382,6 +384,14 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     }
   };
 
+  const dropdownClassName = isNativeIos
+    ? `absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1rem)] max-h-[50vh] overflow-y-auto
+        bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
+        rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-40 scrollbar-minimal`
+    : `fixed sm:absolute right-2 sm:right-0 top-14 sm:top-full sm:mt-2 w-72 sm:w-80 max-h-[50vh] sm:max-h-96 overflow-y-auto
+        bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08]
+        rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-50 scrollbar-minimal`;
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -405,10 +415,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       </button>
 
       {open && (
-        <div className="fixed sm:absolute right-2 sm:right-0 top-14 sm:top-full sm:mt-2 w-72 sm:w-80 max-h-[50vh] sm:max-h-96 overflow-y-auto
-          bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08]
-          rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-50 scrollbar-minimal"
-        >
+        <div className={dropdownClassName}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
             <div className="flex items-center gap-2">
