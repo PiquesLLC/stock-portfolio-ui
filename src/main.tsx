@@ -26,6 +26,15 @@ if ('serviceWorker' in navigator) {
 import { registerPushSW } from './utils/push';
 registerPushSW();
 
+// DEBUG: Global error catcher — renders error on screen even when React crashes
+// Remove after TestFlight notification bug is fixed
+window.onerror = (msg, src, line, col, err) => {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999999;background:#900;color:#fff;font:12px monospace;padding:40px 16px 16px;overflow:auto;pointer-events:auto';
+  el.innerHTML = `<b>JS CRASH</b><br>${msg}<br>at ${src}:${line}:${col}<br><pre>${err?.stack || 'no stack'}</pre><br><button onclick="location.reload()" style="background:#ff0;color:#000;padding:8px 20px;font-weight:bold;border-radius:4px;margin-top:8px">RELOAD APP</button>`;
+  document.body.appendChild(el);
+};
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
