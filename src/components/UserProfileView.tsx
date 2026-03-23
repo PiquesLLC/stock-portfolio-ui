@@ -785,7 +785,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
 
         {/* ── Social strip ────────────────────────────────────────── */}
-        <div className="flex items-center gap-4 mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
           {isNewAccount ? (
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
