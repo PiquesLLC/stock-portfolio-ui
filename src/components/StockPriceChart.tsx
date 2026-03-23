@@ -95,13 +95,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const overlayCount = enabledMAs.size + (volumeEnabled ? 1 : 0) + (signalsEnabled ? 1 : 0) + (eventsEnabled ? 1 : 0);
   useEffect(() => {
     if (!overlaysOpen) return;
-    const handleClick = (e: MouseEvent) => {
+    const handleClick = (e: PointerEvent) => {
       if (overlaysDropdownRef.current && !overlaysDropdownRef.current.contains(e.target as Node)) {
         setOverlaysOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('pointerdown', handleClick);
+    return () => document.removeEventListener('pointerdown', handleClick);
   }, [overlaysOpen]);
   // Load persisted measurements from localStorage
   const loadMeasurements = useCallback(() => {

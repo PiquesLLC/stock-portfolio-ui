@@ -169,10 +169,10 @@ export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps
       }
     };
     document.addEventListener('touchstart', handler, { passive: true });
-    document.addEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
     return () => {
       document.removeEventListener('touchstart', handler);
-      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('pointerdown', handler);
     };
   }, [paused, isDesktop]);
 

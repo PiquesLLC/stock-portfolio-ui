@@ -350,7 +350,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         const topTicker = data.contributors?.[0]?.ticker ?? null;
         setIntelligence({ topContributor, largestDrag, topHoldingWeight: topWeight, topHoldingTicker: topTicker });
       })
-      .catch(e => console.error('Intelligence fetch failed:', e));
+      .catch(() => {}); // 404 expected for private profiles / creators with trade delays
     return () => { stale = true; };
   }, [userId, currentUserId]);
 

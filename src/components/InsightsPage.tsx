@@ -115,11 +115,11 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   // Close dropdown on outside click
   useEffect(() => {
     if (!moreOpen) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, [moreOpen]);
 
   const btnClass = useCallback((active: boolean) =>

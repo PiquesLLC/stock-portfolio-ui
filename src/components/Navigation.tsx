@@ -71,24 +71,24 @@ export function Navigation({
         setMoreOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
     document.addEventListener('touchstart', handler);
     return () => {
-      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('pointerdown', handler);
       document.removeEventListener('touchstart', handler);
     };
   }, [moreOpen]);
 
   useEffect(() => {
     if (!portfolioMenuOpen || !onPortfolioMenuClose) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (portfolioMenuRef.current && !portfolioMenuRef.current.contains(e.target as Node)) {
         onPortfolioMenuClose();
       }
     };
-    document.addEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
     return () => {
-      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('pointerdown', handler);
     };
   }, [portfolioMenuOpen, onPortfolioMenuClose]);
 

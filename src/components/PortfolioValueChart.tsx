@@ -339,10 +339,10 @@ export function PortfolioValueChart({
         setMeasureB(null);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);

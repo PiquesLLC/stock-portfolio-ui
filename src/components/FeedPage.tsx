@@ -175,13 +175,13 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
 
   // Close settings dropdown on outside click
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleClick(e: PointerEvent) {
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setShowSettings(false);
       }
     }
-    if (showSettings) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    if (showSettings) document.addEventListener('pointerdown', handleClick);
+    return () => document.removeEventListener('pointerdown', handleClick);
   }, [showSettings]);
 
   // Apply threshold + muted user filters + skip events with UUID tickers (bad data)

@@ -90,14 +90,14 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   }, []);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (tickerDropdownRef.current && !tickerDropdownRef.current.contains(e.target as Node)) {
         setTickerEditRow(null);
         setTickerResults([]);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, []);
 
   // Current wizard step key

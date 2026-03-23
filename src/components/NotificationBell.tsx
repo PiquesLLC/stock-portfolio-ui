@@ -316,16 +316,16 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     prevUnreadRef.current = unreadCount;
   }, [unreadCount, soundEnabled, notificationsEnabled, open]);
 
-  // Close on outside click
+  // Close on outside click (pointerdown works for both mouse and touch on iOS)
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, [open]);
 
   const handleMarkRead = async (notification: UnifiedNotification) => {

@@ -105,10 +105,10 @@ export function ShareButton(props: ShareButtonProps) {
         setMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
     document.addEventListener('touchstart', handler);
     return () => {
-      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('pointerdown', handler);
       document.removeEventListener('touchstart', handler);
     };
   }, [menuOpen]);

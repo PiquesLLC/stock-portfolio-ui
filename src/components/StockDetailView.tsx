@@ -151,15 +151,15 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
   useEffect(() => {
     if (!actionsOpen) return;
-    const handleClick = (event: MouseEvent) => {
+    const handleClick = (event: PointerEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target?.closest('[data-stock-actions-menu]')) {
         setActionsOpen(false);
         setShowCompareInput(false);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('pointerdown', handleClick);
+    return () => document.removeEventListener('pointerdown', handleClick);
   }, [actionsOpen]);
 
   // Fetch comparison data whenever compareTickers or chartPeriod changes

@@ -143,13 +143,13 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute, onRep
   // Close popup on outside click
   useEffect(() => {
     if (!showMuteConfirm) return;
-    function handleClick(e: MouseEvent) {
+    function handleClick(e: PointerEvent) {
       if (mutePopupRef.current && !mutePopupRef.current.contains(e.target as Node)) {
         setShowMuteConfirm(false);
       }
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('pointerdown', handleClick);
+    return () => document.removeEventListener('pointerdown', handleClick);
   }, [showMuteConfirm]);
 
   if (events.length === 0) return null;

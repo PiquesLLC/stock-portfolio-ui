@@ -415,37 +415,37 @@ export default function App() {
   // Close "More" dropdown on outside click
   useEffect(() => {
     if (!moreDropdownOpen) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (moreDropdownRef.current && !moreDropdownRef.current.contains(e.target as Node)) {
         setMoreDropdownOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, [moreDropdownOpen]);
 
   // Close desktop portfolio dropdown on outside click
   useEffect(() => {
     if (!desktopPortfolioOpen) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (desktopPortfolioRef.current && !desktopPortfolioRef.current.contains(e.target as Node)) {
         setDesktopPortfolioOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, [desktopPortfolioOpen]);
 
   // Close utils overflow menu on outside click
   useEffect(() => {
     if (!utilsMenuOpen) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (utilsMenuRef.current && !utilsMenuRef.current.contains(e.target as Node)) {
         setUtilsMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, [utilsMenuOpen]);
 
   // --- Handle Stripe checkout redirect ---
