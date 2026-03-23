@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent, SocialNotificationData } from '../types';
 import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, markAnomalyRead, getSocialNotifications, getUnreadSocialNotifCount, markSocialNotifRead, markAllSocialNotifsRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
@@ -405,19 +404,10 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         </span>
       </button>
 
-      {open && createPortal(
-        <div
-          ref={el => {
-            // Position relative to the bell button
-            if (el && ref.current) {
-              const rect = ref.current.getBoundingClientRect();
-              el.style.top = `${rect.bottom + 8}px`;
-              el.style.right = `${window.innerWidth - rect.right}px`;
-            }
-          }}
-          className="fixed w-80 max-h-96 overflow-y-auto
-            bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
-            rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-[9999] scrollbar-minimal"
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
+          bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
+          rounded-xl shadow-2xl z-50 scrollbar-minimal"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Notifications</h3>
@@ -559,8 +549,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
               ))}
             </div>
           )}
-        </div>,
-        document.body
+        </div>
       )}
       {showSettings && (
         <AlertsPanel userId={userId} onClose={() => setShowSettings(false)} />
