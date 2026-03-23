@@ -308,23 +308,15 @@ async function tryRefreshToken(): Promise<boolean> {
     let status: number;
     let data: Record<string, unknown>;
 
-    if (nativeRuntime) {
-      // Use CapacitorHttp.request() on native — most reliable path
-      const result = await nativeRequest(url, 'POST', headers, body);
-      status = result.status;
-      data = result.data ?? {};
-      nativeLog('REFRESH', `← ${status} (native)`);
-    } else {
-      const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        headers,
-        ...(refreshToken ? { body: JSON.stringify(body) } : {}),
-      });
-      nativeLog('REFRESH', `← ${res.status}`);
-      status = res.status;
-      data = await res.json().catch(() => ({} as Record<string, unknown>));
-    }
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+      ...(refreshToken ? { body: JSON.stringify(body) } : {}),
+    });
+    nativeLog('REFRESH', `← ${res.status}`);
+    status = res.status;
+    data = await res.json().catch(() => ({} as Record<string, unknown>));
 
     if (status >= 200 && status < 300) {
       if (nativeRuntime) {
@@ -391,11 +383,6 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       hasNativeSession: !!refreshToken,
       authDead,
     });
-    if (nativeRuntime) {
-      // Use CapacitorHttp.request() on native — bypass WebKit fetch quirks
-      const result = await nativeRequest(url, options?.method || 'GET', headers, options?.body ? JSON.parse(options.body as string) : undefined);
-      return new Response(JSON.stringify(result.data), { status: result.status, headers: { 'Content-Type': 'application/json' } });
-    }
     return fetch(url, {
       ...options,
       credentials: 'include',
