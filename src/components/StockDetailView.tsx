@@ -4,7 +4,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useStockData } from '../hooks/useStockData';
 import { useStockChart } from '../hooks/useStockChart';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getIntradayCandles, getHourlyCandles, followStock, unfollowStock } from '../api';
+import { getStockDetails, getIntradayCandles, getHourlyCandles, followStock, unfollowStock, deleteHolding } from '../api';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
 import { ETFDetailsPanel } from './ETFDetailsPanel';
@@ -39,6 +39,7 @@ interface Props {
   portfolioTotal: number;
   onBack: () => void;
   onHoldingAdded?: () => void;
+  onHoldingDeleted?: () => void;
   onTickerNavigate?: (ticker: string) => void;
 }
 
@@ -70,7 +71,7 @@ function PositionCard({ label, value, valueColor, sub }: {
 
 const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, amber, pink, cyan
 
-export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded, onTickerNavigate }: Props) {
+export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded, onHoldingDeleted, onTickerNavigate }: Props) {
   // Chart period — owned by component, shared between both hooks
   // Always start at 1D — persisting across sessions causes stale period bugs
   // (share card wrong period, benchmark wrong window label)
@@ -413,6 +414,22 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             <button onClick={() => { toggleIntelFeed(); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-blue-400 hover:bg-gray-50 dark:hover:bg-white/[0.04]">
               Intel
             </button>
+            {holding && onHoldingDeleted && (
+              <button
+                onClick={async () => {
+                  setActionsOpen(false);
+                  if (!confirm(`Remove ${ticker} from your portfolio?`)) return;
+                  try {
+                    await deleteHolding(ticker);
+                    onHoldingDeleted();
+                    onBack();
+                  } catch { /* toast handled by fetchJson */ }
+                }}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-red-500 hover:bg-red-500/10"
+              >
+                Remove
+              </button>
+            )}
           </div>
           {showCompareInput && (
             <div className="px-2 pt-1 pb-2 border-t border-gray-100 dark:border-white/[0.06]">

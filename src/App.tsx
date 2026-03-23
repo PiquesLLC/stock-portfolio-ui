@@ -1443,6 +1443,7 @@ export default function App() {
                 const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
                 setViewingStock(prev => prev ? { ...prev, holding: held } : null);
               }}
+              onHoldingDeleted={() => handleUpdate()}
             />
           </Suspense>
         )}

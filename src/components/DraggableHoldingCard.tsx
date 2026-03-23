@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Reorder, useDragControls } from 'framer-motion';
 import { Holding } from '../types';
 import { useLongPressDrag } from '../hooks/useLongPressDrag';
@@ -25,6 +25,7 @@ interface DraggableHoldingCardProps {
   chartPeriod: import('../types').PortfolioChartPeriod;
   earningsBadge?: EarningsBadge;
   onTickerClick?: (ticker: string, holding: Holding) => void;
+  onDelete?: (ticker: string) => void;
   getMetricDisplay: (h: Holding, metric: DisplayMetric) => MetricDisplay;
   formatCurrency: (value: number) => string;
   dragActiveId: string | null;
@@ -40,6 +41,7 @@ export function DraggableHoldingCard({
   chartPeriod,
   earningsBadge,
   onTickerClick,
+  onDelete,
   getMetricDisplay: getMetric,
   formatCurrency,
   dragActiveId,
@@ -61,8 +63,41 @@ export function DraggableHoldingCard({
 
   const isAnotherDragging = dragActiveId != null && dragActiveId !== holding.id;
 
+  // Swipe-to-delete state
+  const [swipeX, setSwipeX] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const swipeThreshold = 80;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isDragActive) return;
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || isDragActive) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = Math.abs(touch.clientY - touchStartRef.current.y);
+    // Only track horizontal swipes (ignore vertical scroll)
+    if (dy > 30) { touchStartRef.current = null; setSwipeX(0); return; }
+    // Only allow left swipe
+    if (dx < 0) setSwipeX(dx);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartRef.current) return;
+    if (swipeX < -swipeThreshold) {
+      setShowDeleteConfirm(true);
+    }
+    setSwipeX(0);
+    touchStartRef.current = null;
+  };
+
   const handleClick = () => {
     if (shouldSuppressClick()) return;
+    if (showDeleteConfirm) { setShowDeleteConfirm(false); return; }
     if (onTickerClick && !isUnavailable) {
       onTickerClick(holding.ticker, holding);
     }
@@ -90,8 +125,12 @@ export function DraggableHoldingCard({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onClick={handleClick}
-        className={`flex items-center px-3 py-3 transition-all duration-150 ${
+        style={swipeX < 0 ? { transform: `translateX(${swipeX}px)`, transition: 'none' } : { transition: 'transform 0.2s ease' }}
+        className={`flex items-center px-3 py-3 transition-all duration-150 relative ${
           idx > 0 ? 'border-t border-rh-light-border/15 dark:border-rh-border/15' : ''
         } ${
           onTickerClick && !isDragActive ? 'cursor-pointer active:bg-gray-100 dark:active:bg-white/[0.03]' : ''
@@ -159,6 +198,25 @@ export function DraggableHoldingCard({
             <span className="text-xs text-rh-light-muted dark:text-rh-muted">—</span>
           )}
         </div>
+
+        {/* Swipe-to-delete confirmation */}
+        {showDeleteConfirm && onDelete && (
+          <div className="absolute inset-0 flex items-center justify-end bg-red-600/95 rounded-xl px-4 gap-3">
+            <span className="text-white text-sm font-medium mr-auto">Remove {holding.ticker}?</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false); }}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-white/20"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(holding.ticker); setShowDeleteConfirm(false); }}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-white/30"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </Reorder.Item>
   );
