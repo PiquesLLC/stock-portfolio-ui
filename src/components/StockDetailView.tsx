@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Holding, ChartPeriod } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useStockData } from '../hooks/useStockData';
@@ -1164,9 +1165,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         />
       )}
 
-      {/* Delete Holding Confirmation */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setConfirmDelete(false)}>
+      {/* Delete Holding Confirmation — portal to body so fixed positioning works regardless of scroll */}
+      {confirmDelete && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={() => setConfirmDelete(false)}>
           <div className="bg-white dark:bg-[#1a1a1e] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-2">Remove {ticker}?</h3>
             <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-5">This will remove {ticker} from your portfolio. This action cannot be undone.</p>
@@ -1192,7 +1193,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
