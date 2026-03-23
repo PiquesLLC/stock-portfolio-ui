@@ -263,6 +263,24 @@ let refreshPromise: Promise<boolean> | null = null;
 // Once refresh fails, stop retrying until next successful login
 let authDead = false;
 
+/** Native-safe XHR refresh — bypasses CapacitorHttp/WebKit fetch quirks (same pattern as LoginPage) */
+function xhrRefresh(url: string, body: Record<string, unknown>, headers: Record<string, string>): Promise<{ status: number; data: Record<string, unknown> }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+    xhr.onload = () => {
+      let data: Record<string, unknown> = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* empty */ }
+      resolve({ status: xhr.status, data });
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.ontimeout = () => reject(new Error('Request timed out'));
+    xhr.timeout = 15000;
+    xhr.send(JSON.stringify(body));
+  });
+}
+
 async function tryRefreshToken(): Promise<boolean> {
   try {
     let nativeSession = readNativeAuthSession();
@@ -285,27 +303,45 @@ async function tryRefreshToken(): Promise<boolean> {
       hasRefreshToken: !!refreshToken,
       refreshTokenLen: refreshToken?.length ?? 0,
     });
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
-      },
-      ...(refreshToken ? { body: JSON.stringify({ refreshToken }) } : {}),
-    });
-    nativeLog('REFRESH', `← ${res.status}`);
-    if (res.ok) {
+
+    const url = `${API_BASE_URL}/auth/refresh`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
+    };
+    const body = refreshToken ? { refreshToken } : {};
+
+    let status: number;
+    let data: Record<string, unknown>;
+
+    if (nativeRuntime) {
+      // Use XMLHttpRequest on native — CapacitorHttp/WebKit fetch is unreliable for POST
+      const result = await xhrRefresh(url, body, headers);
+      status = result.status;
+      data = result.data;
+      nativeLog('REFRESH', `← ${status} (xhr)`);
+    } else {
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        ...(refreshToken ? { body: JSON.stringify(body) } : {}),
+      });
+      nativeLog('REFRESH', `← ${res.status}`);
+      status = res.status;
+      data = await res.json().catch(() => ({} as Record<string, unknown>));
+    }
+
+    if (status >= 200 && status < 300) {
       if (nativeRuntime) {
-        const data = await res.json().catch(() => ({} as Record<string, unknown>));
         const accessToken =
           typeof data.accessToken === 'string'
             ? data.accessToken
             : (typeof data.token === 'string' ? data.token : null);
-        const refreshToken = typeof data.refreshToken === 'string' ? data.refreshToken : null;
-        nativeLog('REFRESH', 'tokens in response', { hasAccess: !!accessToken, hasRefresh: !!refreshToken });
-        if (accessToken && refreshToken) {
-          setNativeAuthSession(accessToken, refreshToken);
+        const newRefresh = typeof data.refreshToken === 'string' ? data.refreshToken : null;
+        nativeLog('REFRESH', 'tokens in response', { hasAccess: !!accessToken, hasRefresh: !!newRefresh });
+        if (accessToken && newRefresh) {
+          setNativeAuthSession(accessToken, newRefresh);
         }
       }
       authDead = false;
@@ -313,10 +349,9 @@ async function tryRefreshToken(): Promise<boolean> {
     }
     // Only mark auth dead on 401 (definitive token failure).
     // Other 4xx (e.g. 429 rate-limit, 400 validation) are NOT terminal auth failures.
-    if (res.status === 401) {
+    if (status === 401) {
       nativeLog('REFRESH', 'FAILED 401 — marking authDead');
-      const body = await res.json().catch(() => ({}));
-      nativeLog('REFRESH', 'error body', body);
+      nativeLog('REFRESH', 'error body', data);
       authDead = true;
     }
     return false;
