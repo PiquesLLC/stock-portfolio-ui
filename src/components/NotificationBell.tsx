@@ -5,7 +5,6 @@ import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
 import { timeAgo } from '../utils/format';
-import { isNative } from '../utils/platform';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   drawdown: 'Drawdown',
@@ -405,18 +404,9 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
         </span>
       </button>
 
-      {/* DEBUG: panel at bottom-center — visible even during black screen, doesn't block header */}
-      {isNative && open && (
-        <div style={{ position: 'fixed', bottom: 80, left: 16, right: 16, zIndex: 999999, background: '#ff0000', color: '#fff', fontSize: '11px', fontFamily: 'monospace', padding: '8px', borderRadius: '8px', pointerEvents: 'none' }}>
-          <div>BELL OPEN | notifs={notifications.length} | settings={String(showSettings)}</div>
-          <div>If black: dropdown hidden behind stacking context</div>
-          <button onClick={() => setOpen(false)} style={{ background: '#ffff00', color: '#000', padding: '6px 16px', marginTop: '6px', fontWeight: 'bold', borderRadius: '4px', pointerEvents: 'auto' }}>FORCE CLOSE</button>
-        </div>
-      )}
-
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto
-          bg-white dark:bg-[#1a1a1e] border-2 border-red-500
+          bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
           rounded-xl shadow-2xl z-50 scrollbar-minimal"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-rh-light-border dark:border-rh-border">
