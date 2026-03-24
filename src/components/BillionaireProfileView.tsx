@@ -84,7 +84,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
   const containerRef = useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = useState(800);
 
-  const [activeChangePeriod, setActiveChangePeriod] = useState<'day' | 'week' | 'month' | 'ytd'>('day');
+  const [activeChangePeriod] = useState<'day' | 'week' | 'month' | 'ytd'>('day');
 
   // ── Fetch profile ──────────────────────────────────────────
   useEffect(() => {
@@ -301,34 +301,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
     );
   }
 
-  // ── Change period data ─────────────────────────────────────
-  const changePeriods: { id: 'day' | 'week' | 'month' | 'ytd'; label: string; dollar: number | null; pct: number | null }[] = [
-    { id: 'day', label: 'Day', dollar: profile.dayChange, pct: profile.dayChangePct },
-    {
-      id: 'week',
-      label: 'Week',
-      dollar: profile.weekChange,
-      pct: profile.weekChange != null && netWorth != null && netWorth !== profile.weekChange
-        ? (profile.weekChange / (netWorth - profile.weekChange)) * 100
-        : null,
-    },
-    {
-      id: 'month',
-      label: 'Month',
-      dollar: profile.monthChange,
-      pct: profile.monthChange != null && netWorth != null && netWorth !== profile.monthChange
-        ? (profile.monthChange / (netWorth - profile.monthChange)) * 100
-        : null,
-    },
-    {
-      id: 'ytd',
-      label: 'YTD',
-      dollar: profile.ytdChange,
-      pct: profile.ytdChange != null && netWorth != null && netWorth !== profile.ytdChange
-        ? (profile.ytdChange / (netWorth - profile.ytdChange)) * 100
-        : null,
-    },
-  ];
+  // Change period data removed — using chart period selector only
 
   const isActiveUp = (activeChange.dollar ?? 0) >= 0;
   const changeColor = activeChange.dollar == null ? 'text-rh-light-muted dark:text-rh-muted' : isActiveUp ? 'text-rh-green' : 'text-rh-red';
@@ -414,36 +387,10 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
         </div>
       </div>
 
-      {/* ── Change period pills ─────────────────────────────── */}
-      <div className="flex items-center gap-0 -ml-1 mb-4">
-        {changePeriods.map((cp) => {
-          const isActive = activeChangePeriod === cp.id;
-          const cpIsUp = (cp.dollar ?? 0) >= 0;
-          const cpColor = cp.dollar == null ? 'text-rh-light-muted/40 dark:text-rh-muted/40' : cpIsUp ? 'text-rh-green' : 'text-rh-red';
-          return (
-            <button
-              key={cp.id}
-              onClick={() => setActiveChangePeriod(cp.id)}
-              className={`relative px-2.5 py-2 text-[12px] font-medium transition-all duration-150 ${
-                isActive ? cpColor : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
-              }`}
-            >
-              {cp.label}
-              {cp.dollar != null && (
-                <span className={`ml-1 text-[11px] ${isActive ? '' : 'opacity-60'}`}>
-                  {fmtPct(cp.pct)}
-                </span>
-              )}
-              {isActive && (
-                <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full ${cp.dollar == null ? 'bg-white/30' : cpIsUp ? 'bg-rh-green' : 'bg-rh-red'}`} />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Change period pills removed — bottom chart period selector handles this */}
 
       {/* ── Chart ───────────────────────────────────────────── */}
-      <div ref={containerRef} className="mb-6 overflow-hidden" style={{ maxHeight: 'min(50vh, 480px)' }}>
+      <div ref={containerRef} className="mt-2 mb-6 overflow-hidden" style={{ maxHeight: 'min(50vh, 480px)' }}>
         {/* Period selector */}
         <div className="flex items-center gap-0 -ml-1 mb-3">
           {PERIODS.map((p) => {

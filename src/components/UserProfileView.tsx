@@ -254,13 +254,6 @@ function groupByDate(events: ActivityEvent[]): { date: string; events: ActivityE
   return Array.from(groups.entries()).map(([date, evts]) => ({ date, events: evts }));
 }
 
-function getAvatarGradient(grade: string): string {
-  if (grade.startsWith('A')) return 'conic-gradient(from 0deg, #00C805, rgba(0,200,5,0.1), #00C805)';
-  if (grade.startsWith('B')) return 'conic-gradient(from 0deg, #3B82F6, rgba(59,130,246,0.1), #3B82F6)';
-  if (grade.startsWith('C')) return 'conic-gradient(from 0deg, #EAB308, rgba(234,179,8,0.1), #EAB308)';
-  if (grade === '--') return 'conic-gradient(from 0deg, #6B7280, rgba(107,114,128,0.1), #6B7280)';
-  return 'conic-gradient(from 0deg, #E8544E, rgba(232,84,78,0.1), #E8544E)';
-}
 
 /** Lock overlay — minimal text + icon floating over blurred content */
 function LockedOverlay({ onClick }: { onClick?: () => void }) {
@@ -299,7 +292,6 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const [showImport, setShowImport] = useState(false);
   const [rankPercentile, setRankPercentile] = useState<number | null>(null);
   const [rankPosition, setRankPosition] = useState<number | null>(null);
-  const [showSignalTooltip, setShowSignalTooltip] = useState(false);
   const [intelligence, setIntelligence] = useState<{
     topContributor: { ticker: string; pct: number } | null;
     largestDrag: { ticker: string; pct: number } | null;
@@ -512,7 +504,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   // ── Loading Skeleton ────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 py-6">
         <div className="animate-pulse space-y-3">
           <div className="pb-5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1">
             <div className="flex items-center gap-3">
@@ -544,7 +536,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
   if (!profile) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+      <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 py-8 text-center">
         <p className="text-rh-light-muted dark:text-rh-muted text-sm">User not found.</p>
         <button onClick={onBack} className="mt-2 text-rh-green text-sm hover:underline">Go back</button>
       </div>
@@ -560,7 +552,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-4xl mx-auto px-4 pt-2 pb-6"
+      className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 pt-2 pb-6"
     >
       {/* Back button */}
       <motion.button
@@ -579,75 +571,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           ═══════════════════════════════════════════════════════════════ */}
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden pb-5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1"
+        className="relative overflow-hidden pb-6 mb-8"
       >
         {/* Ambient glow removed — clashes with borderless glass design */}
 
-        {/* Profile identity row */}
-        <div className="relative flex items-start gap-3.5">
-          {/* Avatar with signal badge */}
-          <div
-            className="relative shrink-0 cursor-help"
-            onMouseEnter={() => setShowSignalTooltip(true)}
-            onMouseLeave={() => setShowSignalTooltip(false)}
-          >
-            <div className="relative w-[52px] h-[52px]">
-              {/* Animated gradient ring */}
-              <div
-                className="absolute inset-0 rounded-full avatar-ring-spin"
-                style={{ background: getAvatarGradient(signalRating.grade) }}
-              />
-              {/* Ring gap */}
-              <div className="absolute inset-[3px] rounded-full bg-white dark:bg-[#111114]" />
-              {/* Avatar face */}
-              <div className={`absolute inset-[4px] rounded-full flex items-center justify-center text-sm font-bold ${signalColors.bg} ${signalColors.text}`}>
-                {getInitials(profile.displayName)}
-              </div>
-            </div>
-            {/* Signal grade badge overlay */}
-            <div className={`absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white dark:border-[#111114] ${signalColors.badgeBg} ${signalColors.badgeText} ${signalColors.pulse ? 'signal-pulse-green' : ''} hover:scale-110 transition-transform duration-200`}>
-              {signalRating.grade}
-            </div>
-
-            {/* Signal tooltip */}
-            <AnimatePresence>
-              {showSignalTooltip && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full mt-2 left-0 z-20 w-52 p-3 bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-2xl shadow-black/10 dark:shadow-black/50"
-                >
-                  <p className="text-[10px] text-rh-light-text/80 dark:text-rh-text/80 leading-relaxed mb-2">
-                    Signal grade based on:
-                  </p>
-                  <ul className="space-y-1.5 text-[10px] text-rh-light-muted/70 dark:text-rh-muted/70">
-                    <li className="flex items-start gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-rh-light-muted/40 dark:bg-rh-muted/40 mt-1.5 shrink-0" />
-                      Risk-adjusted return
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-rh-light-muted/40 dark:bg-rh-muted/40 mt-1.5 shrink-0" />
-                      Drawdown control
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-rh-light-muted/40 dark:bg-rh-muted/40 mt-1.5 shrink-0" />
-                      Market correlation
-                    </li>
-                  </ul>
-                  <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-2.5 pt-2 border-t border-gray-200/30 dark:border-white/[0.06]">
-                    Stable signal (30d)
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Name + username + tagline */}
-          <div className="flex-1 min-w-0">
+        {/* Profile identity */}
+        <div className="relative">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-rh-light-text dark:text-rh-text truncate">
+              <h1 className="text-2xl font-bold text-rh-light-text dark:text-rh-text truncate" style={{ textShadow: '0 0 20px rgba(255,255,255,0.08)' }}>
                 {profile.displayName}
               </h1>
               {profile.showRegion && profile.region && (
@@ -696,7 +627,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               </div>
             ) : (
               <p
-                className={`text-xs text-rh-light-muted/80 dark:text-rh-muted/80 mt-2 font-medium tracking-wide italic ${isOwner ? 'cursor-pointer hover:text-rh-green/60 transition-colors' : ''}`}
+                className={`text-sm text-rh-light-muted/80 dark:text-rh-muted/80 mt-2.5 font-medium tracking-wide italic ${isOwner ? 'cursor-pointer hover:text-rh-green/60 transition-colors' : ''}`}
                 onClick={() => isOwner && setEditingBio(true)}
                 title={isOwner ? 'Click to edit bio' : undefined}
               >
@@ -704,33 +635,34 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               </p>
             )}
 
-            {/* Achievement badges */}
-            {badges.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2.5">
-                {badges.map((badge) => (
-                  <span key={badge.label} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-medium rounded-full border ${badge.color}`}>
-                    <span className="text-[10px]">{badge.icon}</span>
-                    {badge.label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
+
+        {/* Achievement badges — flush left */}
+        {badges.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {badges.map((badge) => (
+              <span key={badge.label} className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium rounded-full border ${badge.color}`}>
+                <span className="text-[10px]">{badge.icon}</span>
+                {badge.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* ── Performance identity row ────────────────────────────── */}
         {profile.profilePublic && hasPerformance && (
-          <div className="relative mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider text-center">Performance</h3>
-              {rankPosition !== null && rankPosition <= 20 && (
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-rh-green/20">
-                  <span className="text-[9px] text-rh-green/60">#</span>
-                  <span className="text-[10px] font-bold text-rh-green tabular-nums">{rankPosition}</span>
-                  <span className="text-[8px] text-rh-green/50 uppercase">this month</span>
+          <div className="relative mt-8">
+            {rankPosition !== null && rankPosition <= 20 && (
+              <div className="flex items-center justify-center mb-5">
+                <div className="flex items-center gap-3 px-5 py-3">
+                  <span className="text-4xl font-black text-rh-green tabular-nums profit-glow">#{rankPosition}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-rh-green uppercase tracking-wide">This Month</span>
+                    <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">Leaderboard</span>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           <div className="flex items-center gap-0">
             <PerformanceStat
               value={chartReturnPct ?? perf?.twrPct ?? null}
@@ -785,7 +717,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
 
         {/* ── Social strip ────────────────────────────────────────── */}
-        <div className="mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06] space-y-3">
+        <div className="mt-8 space-y-3">
           {/* Stats row */}
           <div className="flex items-center gap-4">
           {isNewAccount ? (
@@ -801,19 +733,19 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 onClick={() => handleSocialTab('followers')}
                 className={`group flex items-baseline gap-1.5 transition-opacity ${socialTab === 'followers' ? 'opacity-100' : 'hover:opacity-80'}`}
               >
-                <span className={`text-sm font-bold transition-colors ${socialTab === 'followers' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
+                <span className={`text-base font-bold transition-colors ${socialTab === 'followers' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
                   {profile.followerCount}
                 </span>
-                <span className={`text-xs transition-colors ${socialTab === 'followers' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Followers</span>
+                <span className={`text-sm transition-colors ${socialTab === 'followers' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Followers</span>
               </button>
               <button
                 onClick={() => handleSocialTab('following')}
                 className={`group flex items-baseline gap-1.5 transition-opacity ${socialTab === 'following' ? 'opacity-100' : 'hover:opacity-80'}`}
               >
-                <span className={`text-sm font-bold transition-colors ${socialTab === 'following' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
+                <span className={`text-base font-bold transition-colors ${socialTab === 'following' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
                   {profile.followingCount}
                 </span>
-                <span className={`text-xs transition-colors ${socialTab === 'following' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Following</span>
+                <span className={`text-sm transition-colors ${socialTab === 'following' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Following</span>
               </button>
             </>
           )}
@@ -1024,7 +956,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && topHoldings.length > 0 && (
         <motion.div
           variants={itemVariants}
-          className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-3 overflow-hidden"
+          className="relative pb-6 mb-8 px-3 overflow-hidden"
         >
           <div className="flex items-center gap-2 mb-2.5">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
@@ -1032,28 +964,22 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           </div>
           {lockHoldings && !holdingsPrivate && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
           <div className={lockHoldings ? 'blur-[8px] select-none pointer-events-none' : ''}>
-          <div className="flex items-center gap-3 px-1.5 mb-1">
-            <span className="w-16 shrink-0"></span>
-            <div className="flex-1"></div>
-            <span className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider w-11 text-right shrink-0">Weight</span>
-            <span className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider w-12 text-right shrink-0">Return</span>
-          </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {topHoldings.map((h) => (
               <button
                 key={h.ticker}
                 onClick={() => onStockClick?.(h.ticker)}
-                className="w-full flex items-center gap-3 py-1.5 px-1.5 -mx-1.5 hover:bg-gray-100/50 dark:hover:bg-white/[0.04] rounded-lg transition-colors text-left group"
+                className="w-full flex items-center gap-3 py-2 px-2 -mx-2 hover:bg-gray-100/50 dark:hover:bg-white/[0.03] rounded-lg transition-colors text-left group"
               >
-                <span className="text-sm font-bold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors w-16 shrink-0 tabular-nums">{h.ticker}</span>
-                <div className="flex-1 h-2 bg-gray-200/40 dark:bg-white/[0.08] rounded-full overflow-hidden">
+                <span className="text-[13px] font-bold text-rh-light-text dark:text-rh-text group-hover:text-rh-green transition-colors w-16 shrink-0 tabular-nums">{h.ticker}</span>
+                <div className="flex-1 h-3.5 bg-gray-200/30 dark:bg-white/[0.06] rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${h.returnPct >= 0 ? 'bg-rh-green/70' : 'bg-rh-red/60'}`}
+                    className={`h-full rounded-full transition-all ${h.returnPct >= 0 ? 'bg-gradient-to-r from-rh-green/50 to-rh-green/80' : 'bg-gradient-to-r from-rh-red/40 to-rh-red/70'}`}
                     style={{ width: `${Math.max(Math.min(Math.abs(h.returnPct) / Math.max(...topHoldings.map(t => Math.abs(t.returnPct)), 1) * 100, 100), 2)}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted tabular-nums w-11 text-right shrink-0">{h.weight.toFixed(1)}%</span>
-                <span className={`text-[10px] tabular-nums w-12 text-right font-medium shrink-0 ${h.returnPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                <span className="text-[10px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums w-11 text-right shrink-0">{h.weight.toFixed(1)}%</span>
+                <span className={`text-[11px] tabular-nums w-14 text-right font-bold shrink-0 ${h.returnPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {h.returnPct >= 0 ? '+' : ''}{h.returnPct.toFixed(1)}%
                 </span>
               </button>
@@ -1377,10 +1303,10 @@ function PerformanceStat({ value, label, isPercent, primary, formatFn }: {
 
   return (
     <div className="flex-1 text-center">
-      <p className={`${primary ? 'text-2xl' : 'text-lg'} font-bold tabular-nums ${color} ${primary && value !== null && value >= 0 ? 'profit-glow' : ''}`}>
+      <p className={`${primary ? 'text-3xl' : 'text-xl'} font-bold tabular-nums ${color} ${primary && value !== null && value >= 0 ? 'profit-glow' : ''}`}>
         {displayValue}
       </p>
-      <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-0.5">{label}</p>
+      <p className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-1">{label}</p>
     </div>
   );
 }
