@@ -466,7 +466,8 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const viewerHasAccess = entitlement?.level === 'paid';
   const creatorVis = profile?.creator?.visibility;
   const holdingsPrivate = !isOwner && profile?.holdingsVisibility !== 'all';
-  const lockHoldings = holdingsPrivate || (isCreatorProfile && !viewerHasAccess && !!creatorVis?.showHoldings);
+  // Paid subscribers bypass both privacy and paywall locks
+  const lockHoldings = viewerHasAccess ? false : holdingsPrivate || (isCreatorProfile && !!creatorVis?.showHoldings);
   const lockSignal = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showRiskMetrics;
   const lockActivity = isCreatorProfile && !viewerHasAccess && !!creatorVis?.showTradeHistory;
 
