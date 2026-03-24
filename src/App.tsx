@@ -472,6 +472,21 @@ export default function App() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // --- Handle creator subscription checkout redirect ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('creator_subscribe');
+    if (!status) return;
+    const creatorId = params.get('creator');
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    if (status === 'success') {
+      showToast('Subscribed! You now have full access to this creator\'s insights.', 'success');
+      if (creatorId) setViewingProfileId(creatorId);
+    } else if (status === 'cancel') {
+      showToast('Subscription cancelled.', 'info');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // --- Handle Stripe Connect onboarding return redirect ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
