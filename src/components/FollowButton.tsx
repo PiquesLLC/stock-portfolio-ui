@@ -39,10 +39,10 @@ export function FollowButton({ targetUserId, currentUserId, initialFollowing, on
     <button
       onClick={handleClick}
       disabled={loading}
-      className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+      className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors border ${
         following
-          ? 'bg-rh-light-border dark:bg-rh-border text-rh-light-text dark:text-rh-text hover:bg-red-500/20 hover:text-rh-red'
-          : 'bg-rh-green text-black hover:bg-green-600'
+          ? 'border-white/[0.12] text-rh-light-text dark:text-rh-text hover:border-red-500/30 hover:text-rh-red'
+          : 'bg-rh-green border-rh-green text-black hover:bg-green-600'
       } disabled:opacity-50`}
     >
       {loading ? '...' : following ? 'Following' : 'Follow'}

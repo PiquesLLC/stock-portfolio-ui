@@ -219,7 +219,7 @@ function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: s
 
   // Developer badge — exclusive to the app creator
   if (profileUserId === DEVELOPER_USER_ID) {
-    badges.push({ label: 'Developer', icon: '\u{1F6E0}\u{FE0F}', color: 'text-fuchsia-400 border-fuchsia-400/30 bg-fuchsia-400/[0.08]' });
+    badges.push({ label: 'Developer', icon: '\u{1F6E0}\u{FE0F}', color: 'text-fuchsia-400 border-fuchsia-400/20' });
   }
 
   // Premium tenure badge
@@ -228,17 +228,17 @@ function computeBadges(perf: PerformanceData | null, createdAt: string, plan?: s
 
   if (!perf || perf.snapshotCount < 5) return badges;
 
-  if ((perf.alphaPct ?? 0) > 5) badges.push({ label: 'Alpha Hunter', icon: '\u{1F3AF}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
-  else if ((perf.alphaPct ?? 0) > 0) badges.push({ label: 'Benchmark Beater', icon: '\u{1F4C8}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
+  if ((perf.alphaPct ?? 0) > 5) badges.push({ label: 'Alpha Hunter', icon: '\u{1F3AF}', color: 'text-rh-green border-rh-green/20' });
+  else if ((perf.alphaPct ?? 0) > 0) badges.push({ label: 'Benchmark Beater', icon: '\u{1F4C8}', color: 'text-rh-green border-rh-green/20' });
 
-  if ((perf.volatilityPct ?? 100) < 12) badges.push({ label: 'Steady Hand', icon: '\u{1F9CA}', color: 'text-blue-400 border-blue-400/20 bg-blue-400/[0.06]' });
+  if ((perf.volatilityPct ?? 100) < 12) badges.push({ label: 'Steady Hand', icon: '\u{1F9CA}', color: 'text-blue-400 border-blue-400/20' });
 
-  if ((perf.maxDrawdownPct ?? 0) > 15 && (effectiveReturn(perf) ?? 0) > 0) badges.push({ label: 'Diamond Hands', icon: '\u{1F48E}', color: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/[0.06]' });
+  if ((perf.maxDrawdownPct ?? 0) > 15 && (effectiveReturn(perf) ?? 0) > 0) badges.push({ label: 'Diamond Hands', icon: '\u{1F48E}', color: 'text-cyan-400 border-cyan-400/20' });
 
-  if ((perf.beta ?? 1) < 0.7 && (effectiveReturn(perf) ?? 0) > 0) badges.push({ label: 'Uncorrelated', icon: '\u{1F30A}', color: 'text-purple-400 border-purple-400/20 bg-purple-400/[0.06]' });
+  if ((perf.beta ?? 1) < 0.7 && (effectiveReturn(perf) ?? 0) > 0) badges.push({ label: 'Uncorrelated', icon: '\u{1F30A}', color: 'text-purple-400 border-purple-400/20' });
 
   const joinDate = new Date(createdAt);
-  if (joinDate < new Date('2026-03-01')) badges.push({ label: 'Early Adopter', icon: '\u{1F680}', color: 'text-amber-400 border-amber-400/20 bg-amber-400/[0.06]' });
+  if (joinDate < new Date('2026-03-01')) badges.push({ label: 'Early Adopter', icon: '\u{1F680}', color: 'text-amber-400 border-amber-400/20' });
 
   return badges.slice(0, 6);
 }
@@ -452,7 +452,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     if (!profile) return [];
     const b = computeBadges(profile.performance, profile.createdAt, profile.plan, profile.planStartedAt, userId);
     if (profile.creator?.status === 'active') {
-      b.unshift({ label: 'Creator', icon: '\u{2728}', color: 'text-rh-green border-rh-green/20 bg-rh-green/[0.06]' });
+      b.unshift({ label: 'Creator', icon: '\u{2728}', color: 'text-rh-green border-rh-green/20' });
     }
     return b;
   }, [profile, userId]);
@@ -519,7 +519,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               <div className="w-[52px] h-[52px] bg-gray-200/50 dark:bg-white/[0.04] rounded-full" />
               <div className="space-y-2 flex-1">
                 <div className="h-6 w-36 bg-gray-200/50 dark:bg-white/[0.04] rounded" />
-                <div className="h-3 w-20 bg-gray-200/30 dark:bg-white/[0.03] rounded" />
+                <div className="h-3 w-20 bg-gray-200/30 dark:bg-white/[0.04] rounded" />
               </div>
             </div>
             <div className="flex gap-4 mt-5 pt-4 border-t border-gray-200/20 dark:border-white/[0.06]">
@@ -533,7 +533,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           </div>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-7 w-20 bg-gray-200/30 dark:bg-white/[0.03] rounded-full" />
+              <div key={i} className="h-7 w-20 bg-gray-200/30 dark:bg-white/[0.04] rounded-full" />
             ))}
           </div>
           <div className="h-32 bg-white/80 dark:bg-white/[0.04] rounded-xl" />
@@ -724,7 +724,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             <div className="flex items-center justify-center gap-2 mb-3">
               <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider text-center">Performance</h3>
               {rankPosition !== null && rankPosition <= 20 && (
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rh-green/[0.08] border border-rh-green/20">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-rh-green/20">
                   <span className="text-[9px] text-rh-green/60">#</span>
                   <span className="text-[10px] font-bold text-rh-green tabular-nums">{rankPosition}</span>
                   <span className="text-[8px] text-rh-green/50 uppercase">this month</span>
@@ -785,7 +785,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
 
         {/* ── Social strip ────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06]">
+        <div className="mt-5 pt-4 border-t border-gray-200/30 dark:border-white/[0.06] space-y-3">
+          {/* Stats row */}
+          <div className="flex items-center gap-4">
           {isNewAccount ? (
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
@@ -821,10 +823,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               <span className="text-xs text-rh-light-muted dark:text-rh-muted">Subscribers</span>
             </div>
           )}
+          </div>
 
-          {/* Action buttons - pushed to right */}
+          {/* Action buttons row */}
           {currentUserId && !isOwner && (
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-2">
               {profile.creator?.status === 'active' && entitlement?.level !== 'paid' && (
                 <CreatorSubscribeButton
                   creator={profile.creator}
@@ -983,7 +986,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.creator?.status === 'active' && !isOwner && entitlement?.level === 'paid' && (
         <motion.div variants={itemVariants}
           className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2
-            bg-rh-green/[0.06] border border-rh-green/20">
+            bg-rh-green/[0.04] border border-rh-green/20">
           <svg className="w-4 h-4 text-rh-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -1021,7 +1024,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {profile.profilePublic && topHoldings.length > 0 && (
         <motion.div
           variants={itemVariants}
-          className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 overflow-hidden"
+          className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-3 overflow-hidden"
         >
           <div className="flex items-center gap-2 mb-2.5">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
@@ -1071,7 +1074,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           <div className="flex items-center gap-2.5 mb-3">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
             <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
-            <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded bg-gray-100/60 dark:bg-white/[0.06]">1M</span>
+            <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded border border-gray-200/30 dark:border-white/[0.08]">1M</span>
           </div>
           {lockSignal && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
           <div className={lockSignal ? 'blur-[8px] select-none pointer-events-none' : ''}>
@@ -1127,7 +1130,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           {signalRating.reasons.length > 0 && signalRating.grade !== '--' && (
             <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-200/20 dark:border-white/[0.06]">
               {signalRating.reasons.map((reason) => (
-                <span key={reason} className="px-2 py-0.5 text-[9px] font-medium rounded-full bg-rh-green/[0.08] text-rh-green/70 border border-rh-green/15">
+                <span key={reason} className="px-2 py-0.5 text-[9px] font-medium rounded-full text-rh-green/80 border border-rh-green/15">
                   {reason}
                 </span>
               ))}
