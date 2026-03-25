@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, getEconomicCalendar, EarningsSummaryItem, MarketSentiment, EconomicCalendarEvent } from '../api';
+import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, getEconomicCalendar, getPortfolioNews, EarningsSummaryItem, MarketSentiment, EconomicCalendarEvent } from '../api';
 import { DailyReportResponse, Portfolio, HeatmapSector, DividendEvent } from '../types';
 import { timeAgo } from '../utils/format';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -507,6 +507,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [heatmapSectors, setHeatmapSectors] = useState<SectorBarItem[]>(cachedSectors);
   const [earnings, setEarnings] = useState<EarningsSummaryItem[]>([]);
   const [economicEvents, setEconomicEvents] = useState<EconomicCalendarEvent[]>([]);
+  const [holdingNews, setHoldingNews] = useState<{ ticker: string; count: number; headlines: string[] }[]>([]);
   const [dividends, setDividends] = useState<DividendEvent[]>([]);
   const [sentiment, setSentiment] = useState<MarketSentiment | null>(cachedSentiment);
   const [livePortfolio, setLivePortfolio] = useState<Portfolio | null>(null);
@@ -600,6 +601,24 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
     }).catch(() => {});
     // Economic calendar — upcoming high/medium impact events
     getEconomicCalendar().then(r => setEconomicEvents(r.events || [])).catch(() => {});
+    // Portfolio news — which holdings are in the news
+    getPortfolioNews(30).then(r => {
+      const counts = new Map<string, { count: number; headlines: string[] }>();
+      for (const item of r.items) {
+        for (const t of item.matchedTickers) {
+          const existing = counts.get(t) || { count: 0, headlines: [] };
+          existing.count++;
+          if (existing.headlines.length < 2) existing.headlines.push(item.headline);
+          counts.set(t, existing);
+        }
+      }
+      setHoldingNews(
+        [...counts.entries()]
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 8)
+          .map(([ticker, data]) => ({ ticker, ...data }))
+      );
+    }).catch(() => {});
   }, [hidden]);
 
   // Live quotes — index quotes + portfolio refresh every 30s
@@ -976,6 +995,28 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                 ))}
               </div>
             </Section>
+
+            {/* Your Holdings In The News */}
+            {holdingNews.length > 0 && (
+              <Section title="Your Holdings In The News">
+                <div className="space-y-2.5">
+                  {holdingNews.map(({ ticker, count, headlines }) => (
+                    <button
+                      key={ticker}
+                      onClick={() => onTickerClick?.(ticker)}
+                      className="w-full text-left flex items-start gap-3 py-2 px-1 hover:bg-white/[0.03] rounded-lg transition-colors"
+                    >
+                      <span className="text-sm font-bold text-rh-green w-14 flex-shrink-0">{ticker}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-white/60 line-clamp-1">{headlines[0]}</p>
+                        {headlines[1] && <p className="text-xs text-white/30 line-clamp-1 mt-0.5">{headlines[1]}</p>}
+                      </div>
+                      <span className="text-[10px] text-white/20 flex-shrink-0">{count} article{count !== 1 ? 's' : ''}</span>
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            )}
 
             {/* Earnings This Week — only if there are upcoming earnings */}
             {earnings.length > 0 && (
