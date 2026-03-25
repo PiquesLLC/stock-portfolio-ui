@@ -16,7 +16,7 @@ export function SupportPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-rh-green mb-3">Support</p>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">Need help with Nala?</h1>
           <p className="text-sm sm:text-base text-white/50 max-w-2xl leading-7">
-            For account access, billing, portfolio imports, watchlists, alerts, or TestFlight issues,
+            For account access, billing, portfolio imports, watchlists, alerts, or app issues,
             contact support and include as much detail as possible so we can respond quickly.
           </p>
         </div>
@@ -27,7 +27,7 @@ export function SupportPage() {
             support@nalaai.com
           </a>
           <p className="text-sm text-white/40 mt-3 leading-6">
-            Use this for general support, account issues, TestFlight feedback, bug reports, billing questions,
+            Use this for general support, account issues, bug reports, billing questions,
             and privacy or account-deletion requests.
           </p>
         </div>

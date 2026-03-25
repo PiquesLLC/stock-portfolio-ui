@@ -165,7 +165,7 @@ function SectorDrawerList({ sectors }: { sectors: Array<{ sector: string; weight
   );
 }
 
-// Sector Visualization Component - Interactive expanding sectors like Robinhood
+// Sector Visualization Component - Interactive expanding sectors
 interface SectorVisualizationProps {
   sectors: Array<{ sector: string; weight: number }>;
 }

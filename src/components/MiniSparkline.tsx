@@ -230,7 +230,7 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
       // Time-based x positioning for 1D.
       // Always use the full trading day window (4 AM – 8 PM ET) so that
       // pre-market data fills only a proportional slice of the sparkline,
-      // matching Robinhood's behavior.
+      // matching standard fintech chart behavior.
       const now = Date.now();
       const todayET = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(now));
       const noonUtc = new Date(`${todayET}T12:00:00Z`);

@@ -396,7 +396,7 @@ export function PortfolioValueChart({
     // For ALL non-1D periods: filter to active trading sessions only.
     // The API returns 24h hourly data including dead overnight periods and weekends
     // that create flat horizontal lines on the chart.
-    // Robinhood-style: only show weekday 4 AM–8 PM ET data, index-based positioning.
+    // Only show weekday 4 AM–8 PM ET data, index-based positioning.
     // IMPORTANT: This must cover ALL periods (1W, 1M, 3M, YTD, 1Y, ALL) — not just some.
     // Previously only 1W/1M/YTD were filtered, leaving 3M/1Y/ALL with ugly flat lines.
     {
@@ -747,7 +747,7 @@ export function PortfolioValueChart({
 
   const handleMouseLeave = useCallback(() => setHoverIndex(null), []);
 
-  // ── Touch hover (Robinhood-style press-drag crosshair) ────────
+  // ── Touch hover (press-drag crosshair) ────────
   const isTouchHoveringRef = useRef(false);
   const wasTouchRef = useRef(false);
   const isTwoFingerRef = useRef(false);

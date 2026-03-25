@@ -201,7 +201,7 @@ export function buildPoints(
   }
 
   // Use hourly candles for 1W/1M — index-based x-axis eliminates overnight gaps
-  // giving smooth, dynamic charts like Robinhood's
+  // giving smooth, dynamic charts
   if ((period === '1W' || period === '1M') && hourlyCandles && hourlyCandles.length > 0) {
     const now = new Date();
 

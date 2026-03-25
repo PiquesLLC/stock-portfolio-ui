@@ -682,8 +682,8 @@ export default function App() {
               <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-4">
                 Your account needs a verified email to continue. Please contact support or log out and try again.
               </p>
-              <a href="mailto:support@piques.com" className="block text-sm text-rh-green hover:text-rh-green/80 transition-colors mb-3">
-                support@piques.com
+              <a href="mailto:support@nalaai.com" className="block text-sm text-rh-green hover:text-rh-green/80 transition-colors mb-3">
+                support@nalaai.com
               </a>
               <button onClick={() => logout()} className="text-sm text-rh-light-muted dark:text-rh-muted hover:text-red-400 transition-colors">
                 Log out

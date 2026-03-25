@@ -163,7 +163,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Touch pinch/pan state
   const touchStartRef = useRef<{ distance: number; startMs: number; endMs: number; centerRatio: number } | null>(null);
   const singleTouchRef = useRef<{ x: number; startMs: number; endMs: number } | null>(null);
-  // Touch hover state (Robinhood-style press-and-drag crosshair)
+  // Touch hover state (press-and-drag crosshair)
   const isTouchHoveringRef = useRef(false);
   const wasTouchRef = useRef(false); // suppress click-to-measure after touch
   const isTwoFingerRef = useRef(false);
@@ -518,7 +518,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
   }, [animateZoomTo, goBackZoom]);
 
-  // ── Touch: pinch-to-zoom, pan, and Robinhood-style press-drag hover ──
+  // ── Touch: pinch-to-zoom, pan, and press-drag hover ──
 
   // Convert a touch clientX to hoverIndex + fire onHoverPrice
   const updateHoverFromClientX = useCallback((clientX: number) => {
@@ -568,7 +568,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         singleTouchRef.current = { x: e.touches[0].clientX, startMs: zoom.startMs, endMs: zoom.endMs };
         touchStartRef.current = null;
       } else if (pts.length >= 2) {
-        // Press-and-drag hover crosshair (Robinhood style)
+        // Press-and-drag hover crosshair
         isTouchHoveringRef.current = true;
         touchStartRef.current = null;
         singleTouchRef.current = null;
@@ -628,7 +628,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
-    // Two-finger measurement: clear when fingers lift (Robinhood-style)
+    // Two-finger measurement: clear when fingers lift
     if (isTwoFingerRef.current) {
       e.preventDefault();
       if (e.touches.length === 0) {
@@ -770,7 +770,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
     if (selectedPeriod === '1D') {
       // Short MAs (5, 10): compute on intraday candles for a flowing line
-      // Long MAs (50, 100, 200): use daily history → flat horizontal line (like Robinhood)
+      // Long MAs (50, 100, 200): use daily history → flat horizontal line
       const hasIntraday = intradayCandles && intradayCandles.length > 0;
       const hasDaily = candles && candles.closes.length > 0;
 
@@ -844,14 +844,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
 
     // Never include MAs in Y range — scale chart to price action only.
-    // MAs that are far from price will clip at the plot boundary (Robinhood-style).
+    // MAs that are far from price will clip at the plot boundary.
 
     if (maxP === minP) { maxP += 1; minP -= 1; }
 
     if (selectedPeriod === '1D' && !zoomRange) {
       // Include all data (pre-market, regular, after-hours) in the y-axis range,
-      // plus previousClose as reference. This matches Robinhood's approach: the chart
-      // shows a smooth curve from pre-market through regular session with no clipping.
+      // plus previousClose as reference. The chart shows a smooth curve from
+      // pre-market through regular session with no clipping.
       minP = Math.min(minP, referencePrice);
       maxP = Math.max(maxP, referencePrice);
       // Minimum 0.5% range to prevent flat-line appearance, but tight enough for dramatic moves

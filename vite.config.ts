@@ -5,7 +5,7 @@ import pkg from './package.json'
 // Re-enable after stabilizing by uncommenting VitePWA below.
 // import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     react(),
   ],
@@ -39,6 +39,9 @@ export default defineConfig({
       },
     },
   },
+  esbuild: {
+    drop: command === 'build' ? ['console', 'debugger'] : [],
+  },
   build: {
     chunkSizeWarningLimit: 550,
     rollupOptions: {
@@ -50,4 +53,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

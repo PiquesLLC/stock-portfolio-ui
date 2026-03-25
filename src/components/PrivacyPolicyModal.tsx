@@ -130,7 +130,7 @@ export function PrivacyPolicyContent() {
       </P>
       <P>
         <strong>Piques LLC</strong><br />
-        Email: privacy@piques.io
+        Email: privacy@nalaai.com
       </P>
     </div>
   );
@@ -231,7 +231,7 @@ export function TermsOfServiceContent() {
       </P>
       <P>
         <strong>Piques LLC</strong><br />
-        Email: legal@piques.io
+        Email: legal@nalaai.com
       </P>
     </div>
   );

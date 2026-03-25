@@ -8,7 +8,8 @@ const config: CapacitorConfig = {
     // For development with live reload, uncomment and set your LAN IP:
     // url: 'http://192.168.1.191:5173',
     // cleartext: true,
-    allowNavigation: ['*.localhost', '127.0.0.1'],
+    // Production: no localhost navigation needed
+    // allowNavigation: ['*.localhost', '127.0.0.1'],
   },
   plugins: {
     CapacitorHttp: {

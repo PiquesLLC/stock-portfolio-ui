@@ -16,6 +16,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   const [type, setType] = useState<'thought' | 'analysis' | 'trade_idea'>('thought');
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [tickerSearchOpen, setTickerSearchOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -207,16 +208,31 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
 
           <div className="w-px h-4 bg-rh-light-border/20 dark:bg-white/[0.06] mx-0.5" />
 
-          <div className="w-16 sm:w-24">
-            <TickerAutocompleteInput
-              value={ticker}
-              onChange={setTicker}
-              onSelect={(r: SymbolSearchResult) => setTicker(r.symbol)}
-              placeholder="Ticker"
-              compact
-              className="!text-xs !py-1 !px-2 !rounded-lg !border-rh-light-border/20 dark:!border-white/[0.06] !bg-transparent"
-            />
-          </div>
+          {ticker && !tickerSearchOpen ? (
+            <button onClick={() => { setTicker(''); setTickerSearchOpen(false); }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rh-green/10 text-rh-green text-xs font-bold hover:bg-rh-green/20 transition-colors">
+              {ticker}
+              <span className="text-[10px] opacity-60">&times;</span>
+            </button>
+          ) : tickerSearchOpen ? (
+            <div className="w-28 sm:w-32">
+              <TickerAutocompleteInput
+                value={ticker}
+                onChange={setTicker}
+                onSelect={(r: SymbolSearchResult) => { setTicker(r.symbol); setTickerSearchOpen(false); }}
+                placeholder="Ticker..."
+                compact
+                autoFocus
+                className="!text-xs !py-1 !px-2 !rounded-lg !border-rh-light-border/20 dark:!border-white/[0.06] !bg-transparent"
+              />
+            </div>
+          ) : (
+            <button onClick={() => setTickerSearchOpen(true)}
+              title="Tag a ticker"
+              className="p-1.5 rounded-lg transition-colors text-rh-light-muted/40 dark:text-white/20 hover:text-rh-green hover:bg-rh-green/5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </button>
+          )}
           <select
             value={type}
             onChange={e => setType(e.target.value as 'thought' | 'analysis' | 'trade_idea')}

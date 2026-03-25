@@ -215,6 +215,15 @@ export function NativePaywall() {
           unless cancelled at least 24 hours before the end of the current period.
           Manage subscriptions in your device Settings.
         </p>
+        <div className="flex items-center justify-center gap-3 text-[11px]">
+          <button onClick={() => { window.location.hash = '#privacy'; }} className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white underline">
+            Privacy Policy
+          </button>
+          <span className="text-rh-light-muted/30 dark:text-rh-muted/30">·</span>
+          <button onClick={() => { window.location.hash = '#terms'; }} className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white underline">
+            Terms of Service
+          </button>
+        </div>
       </div>
     </div>
   );
