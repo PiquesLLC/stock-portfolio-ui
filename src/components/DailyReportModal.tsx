@@ -255,15 +255,15 @@ function BriefingLoader({ retryAttempt }: { retryAttempt: number }) {
 function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mb-8">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 w-full text-left group mb-4">
-        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">
+    <div className="mb-10">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-2.5 w-full text-left group mb-5">
+        <div className="w-1 h-4 rounded-full bg-rh-green flex-shrink-0" />
+        <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
           {title}
         </h3>
-        <svg className={`w-3 h-3 text-white/30 transition-transform ${open ? 'rotate-0' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-3 h-3 text-white/20 transition-transform ${open ? 'rotate-0' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-        <div className="flex-1 border-t border-white/[0.06]" />
       </button>
       {open && children}
     </div>
@@ -715,7 +715,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
       style={{ display: hidden ? 'none' : undefined, WebkitOverflowScrolling: 'touch' }}
     >
       {/* Sticky top bar — safe-area padding lives here so content never leaks above */}
-      <div className="sticky z-20 flex items-center justify-between px-6 py-3 bg-black border-b border-white/[0.06]" style={{ top: 0, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
+      <div className="sticky z-20 flex items-center justify-between px-6 py-3 bg-black" style={{ top: 0, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
         <button onClick={onClose} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back
@@ -736,7 +736,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
         </div>
       </div>
 
-      <div ref={contentRef} className="max-w-3xl mx-auto px-6 pt-10 pb-10">
+      <div ref={contentRef} className="max-w-[clamp(800px,60vw,1200px)] mx-auto px-6 pt-10 pb-10">
         {/* Loading state */}
         {loading && <BriefingLoader retryAttempt={retryAttempt} />}
 
@@ -974,7 +974,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                         )}
                       </div>
                     </div>
-                    {i < data.topStories.length - 1 && <div className="border-t border-white/[0.04] mt-5" />}
+                    {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
                   </div>
                 ))}
               </div>
@@ -1036,7 +1036,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                 <div className="space-y-2">
                   {earnings.map(e => (
                     <button key={e.ticker} onClick={() => onTickerClick?.(e.ticker)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg hover:bg-white/[0.04] transition-colors">
+                      className="w-full flex items-center justify-between py-3 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                         <span className="text-sm font-medium text-white">{e.ticker}</span>
@@ -1061,7 +1061,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                 <div className="space-y-2">
                   {dividends.map(d => (
                     <button key={d.id} onClick={() => onTickerClick?.(d.ticker)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg hover:bg-white/[0.04] transition-colors">
+                      className="w-full flex items-center justify-between py-3 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-1.5 rounded-full bg-rh-green" />
                         <span className="text-sm font-medium text-white">{d.ticker}</span>
