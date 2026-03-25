@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, getEconomicCalendar, getPortfolioNews, EarningsSummaryItem, MarketSentiment, EconomicCalendarEvent } from '../api';
+import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, getEconomicCalendar, getPortfolioNews, EarningsSummaryItem, MarketSentiment, EconomicCalendarEvent, PortfolioNewsResponse } from '../api';
 import { DailyReportResponse, Portfolio, HeatmapSector, DividendEvent } from '../types';
 import { timeAgo } from '../utils/format';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -507,7 +507,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [heatmapSectors, setHeatmapSectors] = useState<SectorBarItem[]>(cachedSectors);
   const [earnings, setEarnings] = useState<EarningsSummaryItem[]>([]);
   const [economicEvents, setEconomicEvents] = useState<EconomicCalendarEvent[]>([]);
-  const [holdingNews, setHoldingNews] = useState<{ ticker: string; count: number; headlines: string[] }[]>([]);
+  const [portfolioNewsData, setPortfolioNewsData] = useState<PortfolioNewsResponse | null>(null);
   const [dividends, setDividends] = useState<DividendEvent[]>([]);
   const [sentiment, setSentiment] = useState<MarketSentiment | null>(cachedSentiment);
   const [livePortfolio, setLivePortfolio] = useState<Portfolio | null>(null);
@@ -601,24 +601,8 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
     }).catch(() => {});
     // Economic calendar — upcoming high/medium impact events
     getEconomicCalendar().then(r => setEconomicEvents(r.events || [])).catch(() => {});
-    // Portfolio news — which holdings are in the news
-    getPortfolioNews(30).then(r => {
-      const counts = new Map<string, { count: number; headlines: string[] }>();
-      for (const item of r.items) {
-        for (const t of item.matchedTickers) {
-          const existing = counts.get(t) || { count: 0, headlines: [] };
-          existing.count++;
-          if (existing.headlines.length < 2) existing.headlines.push(item.headline);
-          counts.set(t, existing);
-        }
-      }
-      setHoldingNews(
-        [...counts.entries()]
-          .sort((a, b) => b[1].count - a[1].count)
-          .slice(0, 8)
-          .map(([ticker, data]) => ({ ticker, ...data }))
-      );
-    }).catch(() => {});
+    // Portfolio news — macro summary + news tracker (same data as old Macro tab)
+    getPortfolioNews(40).then(setPortfolioNewsData).catch(() => {});
   }, [hidden]);
 
   // Live quotes — index quotes + portfolio refresh every 30s
@@ -996,27 +980,55 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               </div>
             </Section>
 
-            {/* Your Holdings In The News */}
-            {holdingNews.length > 0 && (
-              <Section title="Your Holdings In The News">
-                <div className="space-y-2.5">
-                  {holdingNews.map(({ ticker, count, headlines }) => (
-                    <button
-                      key={ticker}
-                      onClick={() => onTickerClick?.(ticker)}
-                      className="w-full text-left flex items-start gap-3 py-2 px-1 hover:bg-white/[0.03] rounded-lg transition-colors"
-                    >
-                      <span className="text-sm font-bold text-rh-green w-14 flex-shrink-0">{ticker}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white/60 line-clamp-1">{headlines[0]}</p>
-                        {headlines[1] && <p className="text-xs text-white/30 line-clamp-1 mt-0.5">{headlines[1]}</p>}
-                      </div>
-                      <span className="text-[10px] text-white/20 flex-shrink-0">{count} article{count !== 1 ? 's' : ''}</span>
-                    </button>
-                  ))}
+            {/* Macro — same content as the old Macro tab */}
+            {portfolioNewsData?.summary && (
+              <Section title="Market Analysis">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`text-[11px] font-semibold ${
+                      portfolioNewsData.summary.sentiment === 'bullish' ? 'text-rh-green' :
+                      portfolioNewsData.summary.sentiment === 'bearish' ? 'text-rh-red' :
+                      portfolioNewsData.summary.sentiment === 'mixed' ? 'text-amber-500' :
+                      'text-white/50'
+                    }`}>
+                      {portfolioNewsData.summary.sentiment === 'bullish' ? 'Bullish' :
+                       portfolioNewsData.summary.sentiment === 'bearish' ? 'Bearish' :
+                       portfolioNewsData.summary.sentiment === 'mixed' ? 'Mixed' : 'Neutral'}
+                    </span>
+                    <span className="text-[10px] text-white/20">Powered by NALA AI</span>
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed mb-3">{portfolioNewsData.summary.overview}</p>
+                  <p className="text-xs text-white/50 leading-relaxed mb-3">{portfolioNewsData.summary.portfolioImpact}</p>
+                  <p className="text-xs text-white/40 leading-relaxed italic">{portfolioNewsData.summary.outlook}</p>
                 </div>
               </Section>
             )}
+
+            {/* In The News — same tracker as old Macro tab */}
+            {portfolioNewsData && portfolioNewsData.items.length > 0 && (() => {
+              const counts = new Map<string, number>();
+              for (const item of portfolioNewsData.items) {
+                for (const t of item.matchedTickers) counts.set(t, (counts.get(t) ?? 0) + 1);
+              }
+              const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+              if (sorted.length === 0) return null;
+              const maxCount = sorted[0][1];
+              return (
+                <Section title="In The News">
+                  <div className="space-y-2">
+                    {sorted.map(([ticker, count]) => (
+                      <button key={ticker} onClick={() => onTickerClick?.(ticker)} className="w-full flex items-center gap-3 group">
+                        <span className="text-xs font-semibold text-white group-hover:text-rh-green transition-colors w-14 text-left tabular-nums">{ticker}</span>
+                        <div className="flex-1 h-4 bg-white/[0.03] rounded-full overflow-hidden">
+                          <div className="h-full bg-rh-green/40 rounded-full transition-all duration-500" style={{ width: `${Math.max((count / maxCount) * 100, 4)}%` }} />
+                        </div>
+                        <span className="text-[10px] font-medium tabular-nums text-white/30 w-6 text-right">{count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </Section>
+              );
+            })()}
 
             {/* Earnings This Week — only if there are upcoming earnings */}
             {earnings.length > 0 && (
