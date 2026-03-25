@@ -3123,6 +3123,26 @@ export function getAnalyticsDashboard(period = '7d'): Promise<AnalyticsDashboard
   return fetchJson<AnalyticsDashboardResponse>(`${API_BASE_URL}/admin/analytics/dashboard?period=${encodeURIComponent(period)}`);
 }
 
+// ── API Usage Dashboard ────────────────────────────────────────
+
+export interface ApiUsageFeatureData {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
+}
+
+export interface ApiUsageResponse {
+  period: { days: number; since: string };
+  totals: { calls: number; inputTokens: number; outputTokens: number; costUsd: number };
+  byFeature: Record<string, ApiUsageFeatureData>;
+  byDay: Record<string, ApiUsageFeatureData>;
+}
+
+export function getApiUsage(days = 7): Promise<ApiUsageResponse> {
+  return fetchJson<ApiUsageResponse>(`${API_BASE_URL}/health/api-usage?days=${days}`);
+}
+
 // ── Congressional Trades (NALA Signals) ────────────────────────
 
 export interface CongressTrade {

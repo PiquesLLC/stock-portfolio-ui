@@ -35,7 +35,7 @@ interface NavigationState {
   viewingProfileId: string | null;
   settingsView: boolean;
   creatorView: 'dashboard' | 'settings' | null;
-  adminView: 'waitlist' | 'jobs' | 'analytics' | null;
+  adminView: 'waitlist' | 'jobs' | 'analytics' | 'api-usage' | null;
   showDailyReport: boolean;
   comparingUser: { userId: string } | null;
 }

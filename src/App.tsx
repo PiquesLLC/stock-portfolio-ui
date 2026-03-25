@@ -66,6 +66,7 @@ const GettingStartedChecklist = lazy(() => import('./components/GettingStartedCh
 const WaitlistAdminPage = lazy(() => import('./components/WaitlistAdminPage').then(m => ({ default: m.WaitlistAdminPage })));
 const JobsDashboard = lazy(() => import('./components/JobsDashboard').then(m => ({ default: m.JobsDashboard })));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
+const ApiUsageDashboard = lazy(() => import('./components/ApiUsageDashboard').then(m => ({ default: m.ApiUsageDashboard })));
 const AccountSettingsPageComp2 = lazy(() => import('./components/settings/AccountSettingsPage'));
 const PublicProfilePage = lazy(() => import('./components/PublicProfilePage'));
 
@@ -1184,6 +1185,15 @@ export default function App() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </button>
+                  <button
+                    onClick={() => { setAdminView('api-usage'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-api-usage'; }}
+                    className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                    title="Admin — API Usage"
+                  >
+                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
                 </>
               )}
               {currentUserId && (
@@ -1285,6 +1295,15 @@ export default function App() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                         Admin — Analytics
+                      </button>
+                      <button
+                        onClick={() => { setAdminView('api-usage'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-api-usage'; }}
+                        className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
+                      >
+                        <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Admin — API Usage
                       </button>
                     </>
                   )}
@@ -1916,6 +1935,12 @@ export default function App() {
           {adminView === 'analytics' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
             <ErrorBoundary>
               <AnalyticsDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
+            </ErrorBoundary>
+          )}
+
+          {adminView === 'api-usage' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
+            <ErrorBoundary>
+              <ApiUsageDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
             </ErrorBoundary>
           )}
 

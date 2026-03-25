@@ -46,7 +46,7 @@ interface UseNavigationStateParams {
   currentUserId: string;
   isAuthenticated: boolean;
   initialSettingsView: boolean;
-  initialAdminView: 'waitlist' | 'jobs' | 'analytics' | null;
+  initialAdminView: 'waitlist' | 'jobs' | 'analytics' | 'api-usage' | null;
 }
 
 export function useNavigationState({
@@ -68,7 +68,7 @@ export function useNavigationState({
   const [compareStocks, setCompareStocks] = useState<string[] | null>(initialNav.compareStocks ?? null);
   const [settingsView, setSettingsView] = useState(initialSettingsView);
   const [creatorView, setCreatorView] = useState<'dashboard' | 'settings' | null>(null);
-  const [adminView, setAdminView] = useState<'waitlist' | 'jobs' | 'analytics' | null>(initialAdminView);
+  const [adminView, setAdminView] = useState<'waitlist' | 'jobs' | 'analytics' | 'api-usage' | null>(initialAdminView);
 
   /** Reset all sub-view navigation state — call before switching tabs */
   const resetNavigation = useCallback(() => {
@@ -109,6 +109,10 @@ export function useNavigationState({
     }
     if (adminView === 'analytics') {
       setLocationHash('tab=admin-analytics');
+      return;
+    }
+    if (adminView === 'api-usage') {
+      setLocationHash('tab=admin-api-usage');
       return;
     }
     if (compareStocks && compareStocks.length >= 2) {
@@ -175,6 +179,17 @@ export function useNavigationState({
         setCreatorView(null);
         setSettingsView(false);
         setAdminView('analytics');
+        return;
+      }
+      if (rawTab === 'admin-api-usage') {
+        setViewingProfileId(null);
+        setViewingStock(null);
+        setLeaderboardUserId(null);
+        setComparingUser(null);
+        setCompareStocks(null);
+        setCreatorView(null);
+        setSettingsView(false);
+        setAdminView('api-usage');
         return;
       }
       setAdminView(null);
