@@ -97,14 +97,20 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
     fetchData();
     const getInterval = () => {
       const s = sessionRef.current;
-      if (s === 'CLOSED') return 5 * 60_000; // 5 minutes when market closed
+      if (s === 'CLOSED') return 0; // Don't poll when market is closed
       if (s === 'PRE' || s === 'POST') return 30_000; // 30s during extended hours
       return REFRESH_INTERVAL; // 5s during market hours
     };
-    // Use dynamic interval via chained setTimeout instead of fixed setInterval
+    // Use dynamic interval via chained setTimeout — stops entirely when market closed
     let timer: ReturnType<typeof setTimeout>;
-    const tick = () => { fetchData(); timer = setTimeout(tick, getInterval()); };
-    timer = setTimeout(tick, getInterval());
+    const tick = () => {
+      const interval = getInterval();
+      if (interval === 0) return; // Market closed — stop polling
+      fetchData();
+      timer = setTimeout(tick, interval);
+    };
+    const firstInterval = getInterval();
+    if (firstInterval > 0) timer = setTimeout(tick, firstInterval);
     return () => clearTimeout(timer);
   }, [fetchData, currentUserId, authLoading]);
 
