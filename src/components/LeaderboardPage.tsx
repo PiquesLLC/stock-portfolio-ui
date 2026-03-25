@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession, BillionaireEntry } from '../types';
-import { getLeaderboard, getBillionaireLeaderboard } from '../api';
+import { LeaderboardEntry, LeaderboardWindow, LeaderboardRegion, MarketSession } from '../types';
+import { getLeaderboard } from '../api';
 import { UserProfileView } from './UserProfileView';
-import { BillionaireProfileView } from './BillionaireProfileView';
 
 
 const WINDOWS: { id: LeaderboardWindow; label: string }[] = [
@@ -64,15 +63,6 @@ interface LeaderboardPageProps {
 
 export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange, onCompare }: LeaderboardPageProps) {
   const [showInfo, setShowInfo] = useState(false);
-  const [leaderboardType, setLeaderboardType] = useState<'nala' | 'global'>(() => {
-    const params = new URLSearchParams(location.hash.replace(/^#/, ''));
-    return params.get('subtab') === 'global' ? 'global' : 'nala';
-  });
-  const [billionaires, setBillionaires] = useState<BillionaireEntry[]>([]);
-  const [billLoading, setBillLoading] = useState(false);
-  const [selectedBillionaire, setSelectedBillionaire] = useState<string | null>(null);
-  const [billSortKey, setBillSortKey] = useState<'rank' | 'name' | 'netWorth' | 'dayChange' | 'dayChangePct'>('rank');
-  const [billSortDir, setBillSortDir] = useState<SortDir>('asc');
   const [region, setRegion] = useState<LeaderboardRegion>('world');
   const [window, setWindow] = useState<LeaderboardWindow>('1M');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -124,12 +114,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchData, session]);
-
-  useEffect(() => {
-    if (leaderboardType !== 'global') return;
-    setBillLoading(true);
-    getBillionaireLeaderboard().then(setBillionaires).catch(() => {}).finally(() => setBillLoading(false));
-  }, [leaderboardType]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey !== key) {
@@ -190,40 +174,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
     return `${base} ${alignClass} ${activeClass}`;
   };
 
-  const handleBillSort = (key: typeof billSortKey) => {
-    if (billSortKey !== key) { setBillSortKey(key); setBillSortDir(key === 'rank' ? 'asc' : 'desc'); }
-    else { setBillSortDir(d => d === 'desc' ? 'asc' : 'desc'); }
-  };
-
-  const sortedBillionaires = useMemo(() => {
-    if (billSortKey === 'rank') return billSortDir === 'asc' ? billionaires : [...billionaires].reverse();
-    return [...billionaires].sort((a, b) => {
-      let cmp = 0;
-      if (billSortKey === 'name') cmp = a.name.localeCompare(b.name);
-      else if (billSortKey === 'netWorth') cmp = (a.computedNetWorth ?? 0) - (b.computedNetWorth ?? 0);
-      else if (billSortKey === 'dayChange') cmp = (a.dayChange ?? 0) - (b.dayChange ?? 0);
-      else if (billSortKey === 'dayChangePct') cmp = (a.dayChangePct ?? 0) - (b.dayChangePct ?? 0);
-      return billSortDir === 'desc' ? -cmp : cmp;
-    });
-  }, [billionaires, billSortKey, billSortDir]);
-
-  const billSortIndicator = (key: typeof billSortKey) => billSortKey !== key ? null : <span className="ml-1 opacity-70">{billSortDir === 'desc' ? '▼' : '▲'}</span>;
-
-  const billHeaderClass = (key: typeof billSortKey, align: 'left' | 'right' = 'left') => {
-    const base = 'px-2 sm:px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100/60 dark:hover:bg-white/[0.04] transition-colors select-none whitespace-nowrap';
-    return `${base} ${align === 'right' ? 'text-right' : ''} ${billSortKey === key ? 'text-rh-light-text dark:text-white' : ''}`;
-  };
-
-  if (selectedBillionaire) {
-    return (
-      <BillionaireProfileView
-        slug={selectedBillionaire}
-        onBack={() => setSelectedBillionaire(null)}
-        onStockClick={onStockClick}
-      />
-    );
-  }
-
   if (selectedUserId) {
     return (
       <UserProfileView
@@ -268,108 +218,8 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
             )}
           </div>
         </div>
-        <div className="flex gap-0.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">
-          <button
-            onClick={() => { setLeaderboardType('nala'); const p = new URLSearchParams(location.hash.replace(/^#/, '')); p.delete('subtab'); location.hash = '#' + p.toString(); }}
-            className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
-              leaderboardType === 'nala' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
-            }`}
-          >Nala</button>
-          <button
-            onClick={() => { setLeaderboardType('global'); const p = new URLSearchParams(location.hash.replace(/^#/, '')); p.set('subtab', 'global'); location.hash = '#' + p.toString(); }}
-            className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
-              leaderboardType === 'global' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
-            }`}
-          >Global</button>
-        </div>
       </div>
 
-      {leaderboardType === 'global' ? (
-        <div>
-          <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 mb-4">
-            Real-time net worth computed from public stock holdings. Updated every 60 seconds during market hours.
-          </p>
-
-          {billLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 animate-pulse flex items-center gap-4">
-                  <div className="w-6 h-4 bg-gray-200 dark:bg-rh-border rounded" />
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4 mb-2" />
-                    <div className="h-3 bg-gray-200 dark:bg-rh-border rounded w-1/6" />
-                  </div>
-                  <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-16" />
-                </div>
-              ))}
-            </div>
-          ) : billionaires.length === 0 ? (
-            <div className="text-rh-light-muted dark:text-rh-muted text-sm">No billionaire data available.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full sm:min-w-[480px]">
-                <thead>
-                  <tr className="border-b border-gray-200/10 dark:border-white/[0.04] text-left">
-                    <th className={`${billHeaderClass('rank')} w-8 sm:w-12 text-[11px]`} onClick={() => handleBillSort('rank')}>#{billSortIndicator('rank')}</th>
-                    <th className={`${billHeaderClass('name')} text-[11px]`} onClick={() => handleBillSort('name')}>Name{billSortIndicator('name')}</th>
-                    <th className={`${billHeaderClass('netWorth', 'right')} text-[11px]`} onClick={() => handleBillSort('netWorth')}>{billSortIndicator('netWorth')}Net Worth</th>
-                    <th className={`${billHeaderClass('dayChange', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleBillSort('dayChange')}>{billSortIndicator('dayChange')}Day Change</th>
-                    <th className={`${billHeaderClass('dayChangePct', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleBillSort('dayChangePct')}>{billSortIndicator('dayChangePct')}Change %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedBillionaires.map((b, index) => {
-                    const isUp = (b.dayChange ?? 0) >= 0;
-                    const changeColor = b.dayChange == null ? 'text-rh-light-muted dark:text-rh-muted' : isUp ? 'text-rh-green' : 'text-rh-red';
-                    const rankDiff = b.previousRank != null && b.rank != null ? b.previousRank - b.rank : 0;
-                    return (
-                      <tr
-                        key={b.id}
-                        onClick={() => setSelectedBillionaire(b.slug)}
-                        className="border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
-                      >
-                        <td className="px-2 sm:px-4 py-3.5 text-sm text-rh-light-muted/40 dark:text-rh-muted/40 font-medium tabular-nums">
-                          {index + 1}
-                          {rankDiff !== 0 && (
-                            <span className={`ml-1 text-[9px] font-bold ${rankDiff > 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                              {rankDiff > 0 ? '▲' : '▼'}{Math.abs(rankDiff)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 sm:px-4 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            {b.photoUrl ? (
-                              <img src={b.photoUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-rh-green/10 flex items-center justify-center text-xs font-bold text-rh-green flex-shrink-0">
-                                {b.name.charAt(0)}
-                              </div>
-                            )}
-                            <div>
-                              <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text truncate max-w-[120px] sm:max-w-none block">{b.name}</span>
-                              <span className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">{b.company}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-2 sm:px-4 py-3.5 text-sm text-right font-bold text-rh-light-text dark:text-rh-text tabular-nums">
-                          ${b.computedNetWorth != null ? (b.computedNetWorth / 1e9).toFixed(1) + 'B' : '—'}
-                        </td>
-                        <td className={`px-2 sm:px-4 py-3.5 text-sm text-right hidden sm:table-cell font-medium tabular-nums ${changeColor}`}>
-                          {b.dayChange != null ? `${isUp ? '+' : ''}$${(Math.abs(b.dayChange) / 1e9).toFixed(2)}B` : '—'}
-                        </td>
-                        <td className={`px-2 sm:px-4 py-3.5 text-sm text-right hidden sm:table-cell font-bold tabular-nums ${changeColor}`}>
-                          {b.dayChangePct != null ? `${isUp ? '+' : ''}${b.dayChangePct.toFixed(2)}%` : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
           {/* Region selector */}
           <div className="flex items-center gap-0 -ml-1 mb-2">
             {REGIONS.map((r) => (
@@ -532,8 +382,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
               </table>
             </div>
           )}
-        </>
-      )}
     </div>
   );
 }
