@@ -948,38 +948,6 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               </Section>
             )}
 
-            {/* Top Stories */}
-            <Section title="Top Stories">
-              <div className="space-y-5">
-                {data.topStories.map((story, i) => (
-                  <div key={i}>
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                        story.sentiment === 'positive' ? 'bg-rh-green'
-                          : story.sentiment === 'negative' ? 'bg-rh-red' : 'bg-white/20'
-                      }`} />
-                      <div className="flex-1">
-                        <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
-                          {renderWithPills(story.headline, onTickerClick, liveQuotes)}
-                        </h4>
-                        <p className="text-sm text-white/50 leading-relaxed">
-                          {renderWithPills(story.body, onTickerClick, liveQuotes)}
-                        </p>
-                        {story.relatedTickers.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {story.relatedTickers.map(ticker => (
-                              <TickerPill key={ticker} ticker={ticker} quote={liveQuotes[ticker]} onClick={onTickerClick} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
-                  </div>
-                ))}
-              </div>
-            </Section>
-
             {/* Macro — same content as the old Macro tab */}
             {portfolioNewsData?.summary && (
               <Section title="Market Analysis">
@@ -1085,6 +1053,37 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               </div>
             </Section>
 
+            {/* Top Stories — after Watch Today */}
+            <Section title="Top Stories">
+              <div className="space-y-5">
+                {data.topStories.map((story, i) => (
+                  <div key={i}>
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                        story.sentiment === 'positive' ? 'bg-rh-green'
+                          : story.sentiment === 'negative' ? 'bg-rh-red' : 'bg-white/20'
+                      }`} />
+                      <div className="flex-1">
+                        <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
+                          {renderWithPills(story.headline, onTickerClick, liveQuotes)}
+                        </h4>
+                        <p className="text-sm text-white/50 leading-relaxed">
+                          {renderWithPills(story.body, onTickerClick, liveQuotes)}
+                        </p>
+                        {story.relatedTickers.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {story.relatedTickers.map(ticker => (
+                              <TickerPill key={ticker} ticker={ticker} quote={liveQuotes[ticker]} onClick={onTickerClick} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
+                  </div>
+                ))}
+              </div>
+            </Section>
 
             {/* Dismiss */}
             <div className="text-center pt-4 pb-10">
