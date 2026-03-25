@@ -3299,3 +3299,19 @@ export interface PortfolioNewsResponse {
 export async function getPortfolioNews(limit = 30): Promise<PortfolioNewsResponse> {
   return fetchJson<PortfolioNewsResponse>(`${API_BASE_URL}/portfolio/news?limit=${limit}`);
 }
+
+// Economic Calendar
+export interface EconomicCalendarEvent {
+  event: string;
+  date: string;
+  time: string;
+  country: string;
+  impact: 'high' | 'medium' | 'low';
+  actual?: number;
+  estimate?: number;
+  previous?: number;
+}
+
+export async function getEconomicCalendar(): Promise<{ events: EconomicCalendarEvent[] }> {
+  return fetchJsonPublic<{ events: EconomicCalendarEvent[] }>(`${API_BASE_URL}/market/economic-calendar`);
+}

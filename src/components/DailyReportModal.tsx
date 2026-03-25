@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, EarningsSummaryItem, MarketSentiment } from '../api';
+import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, getEconomicCalendar, EarningsSummaryItem, MarketSentiment, EconomicCalendarEvent } from '../api';
 import { DailyReportResponse, Portfolio, HeatmapSector, DividendEvent } from '../types';
 import { timeAgo } from '../utils/format';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -506,6 +506,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
   const [cachedSentiment, setCachedSentiment] = useLocalStorage<MarketSentiment | null>('dailyReportSentiment', null);
   const [heatmapSectors, setHeatmapSectors] = useState<SectorBarItem[]>(cachedSectors);
   const [earnings, setEarnings] = useState<EarningsSummaryItem[]>([]);
+  const [economicEvents, setEconomicEvents] = useState<EconomicCalendarEvent[]>([]);
   const [dividends, setDividends] = useState<DividendEvent[]>([]);
   const [sentiment, setSentiment] = useState<MarketSentiment | null>(cachedSentiment);
   const [livePortfolio, setLivePortfolio] = useState<Portfolio | null>(null);
@@ -597,6 +598,8 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
       const today = new Date().toDateString();
       setDividends(divs.filter(d => new Date(d.exDate).toDateString() === today));
     }).catch(() => {});
+    // Economic calendar — upcoming high/medium impact events
+    getEconomicCalendar().then(r => setEconomicEvents(r.events || [])).catch(() => {});
   }, [hidden]);
 
   // Live quotes — index quotes + portfolio refresh every 30s
@@ -899,6 +902,46 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
             {heatmapSectors.length > 0 && (
               <Section title="S&P 500 Sectors">
                 <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
+              </Section>
+            )}
+
+            {/* Economic Calendar */}
+            {economicEvents.length > 0 && (
+              <Section title="Economic Calendar">
+                <div className="space-y-1">
+                  {(() => {
+                    // Group by date
+                    const groups = new Map<string, EconomicCalendarEvent[]>();
+                    for (const ev of economicEvents) {
+                      const existing = groups.get(ev.date) || [];
+                      existing.push(ev);
+                      groups.set(ev.date, existing);
+                    }
+                    const today = new Date().toISOString().split('T')[0];
+                    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+                    return Array.from(groups.entries()).map(([date, events]) => {
+                      const label = date === today ? 'Today' : date === tomorrow ? 'Tomorrow' : new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                      return (
+                        <div key={date} className="mb-3">
+                          <div className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5">{label}</div>
+                          {events.map((ev, i) => (
+                            <div key={i} className="flex items-center gap-3 py-1.5 px-1">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ev.impact === 'high' ? 'bg-rh-red' : 'bg-amber-500/60'}`} />
+                              <span className="text-[11px] text-white/40 w-16 flex-shrink-0">{ev.time || '--:--'}</span>
+                              <span className="text-sm text-white/80 flex-1">{ev.event}</span>
+                              {ev.estimate != null && (
+                                <span className="text-[10px] text-white/30 flex-shrink-0">est: {ev.estimate}</span>
+                              )}
+                              {ev.previous != null && (
+                                <span className="text-[10px] text-white/20 flex-shrink-0">prev: {ev.previous}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </Section>
             )}
 
