@@ -207,7 +207,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       visEndIdx: endIdx,
       visiblePoints: points.slice(startIdx, endIdx + 1),
     };
-  }, [zoomRange, points]);
+  }, [zoomRange, points, selectedPeriod]);
 
   // Request higher-resolution data when zoomed into small time range
   useEffect(() => {
