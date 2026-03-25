@@ -258,11 +258,10 @@ function groupByDate(events: ActivityEvent[]): { date: string; events: ActivityE
 
 /** Lock overlay — minimal text + icon floating over blurred content */
 function LockedOverlay({ onClick }: { onClick?: () => void }) {
-  const native = isNativePlatform();
   return (
     <div
       className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer"
-      onClick={native ? undefined : onClick}
+      onClick={onClick}
     >
       <div className="flex items-center gap-1.5 transition-opacity hover:opacity-70">
         <svg className="w-4 h-4 text-yellow-500 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +269,7 @@ function LockedOverlay({ onClick }: { onClick?: () => void }) {
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
         <span className="text-sm font-semibold text-rh-light-muted dark:text-white/40">
-          {native ? 'Subscribe at nalaai.com to unlock' : 'Subscribe to unlock'}
+          Subscribe to unlock
         </span>
       </div>
     </div>
@@ -477,6 +476,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const [subscribeError, setSubscribeError] = useState<string | null>(null);
 
   const handleSubscribe = async () => {
+    // On native iOS, open the creator profile on nalaai.com in Safari for Stripe checkout
+    // (US App Store allows external purchase links per April 2025 court ruling)
+    if (isNativePlatform()) {
+      window.open(`https://nalaai.com/#profile=${userId}`, '_blank');
+      return;
+    }
     setSubscribing(true);
     setSubscribeError(null);
     try {
