@@ -133,7 +133,6 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
 ];
 
 const MORE_TABS: { id: TabType; label: string }[] = [
-  { id: 'macro', label: 'Macro' },
   { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];
