@@ -416,19 +416,43 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   }, [userId, profile?.profilePublic]);
 
   const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
+  const [chartReturnLabel, setChartReturnLabel] = useState('Return (1mo)');
 
   useEffect(() => {
     if (!profile?.profilePublic) return;
     let stale = false;
-    getUserChart(userId, '1M')
-      .then((data) => {
-        if (stale) return;
-        if (data.points.length >= 2 && data.periodStartValue > 0) {
-          const lastVal = data.points[data.points.length - 1].value;
-          setChartReturnPct(Math.round(((lastVal - data.periodStartValue) / data.periodStartValue) * 10000) / 100);
-        }
-      })
-      .catch(e => console.error('User chart fetch failed:', e));
+
+    // Try periods in order: 1M → 1W → 1D. Use the first one with sufficient data span.
+    const periods: { period: string; minDays: number; label: string }[] = [
+      { period: '1M', minDays: 20, label: 'Return (1mo)' },
+      { period: '1W', minDays: 4, label: 'Return (1wk)' },
+      { period: '1D', minDays: 0, label: 'Return (1d)' },
+    ];
+
+    (async () => {
+      for (const { period, minDays, label } of periods) {
+        try {
+          const data = await getUserChart(userId, period as any);
+          if (stale) return;
+          if (data.points.length >= 2 && data.periodStartValue > 0) {
+            const spanDays = (data.points[data.points.length - 1].time - data.points[0].time) / 86400000;
+            if (spanDays >= minDays || period === '1D') {
+              const lastVal = data.points[data.points.length - 1].value;
+              const pct = Math.round(((lastVal - data.periodStartValue) / data.periodStartValue) * 10000) / 100;
+              setChartReturnPct(pct);
+              // If data doesn't span the full period, show actual span
+              if (period === '1M' && spanDays < 20) {
+                setChartReturnLabel(`Return (${Math.round(spanDays)}d)`);
+              } else {
+                setChartReturnLabel(label);
+              }
+              return;
+            }
+          }
+        } catch { /* try next period */ }
+      }
+    })();
+
     return () => { stale = true; };
   }, [userId, profile?.profilePublic]);
 
@@ -674,7 +698,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           <div className="flex items-center gap-0">
             <PerformanceStat
               value={chartReturnPct ?? perf?.twrPct ?? null}
-              label="Return (1mo)"
+              label={chartReturnLabel}
               isPercent
               primary
             />
