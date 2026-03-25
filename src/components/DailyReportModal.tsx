@@ -791,8 +791,8 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               {!data.sample && <p className="text-[11px] text-white/30">{estimateReadingTime(data)} min read</p>}
             </div>
 
-            {/* Key Market Metrics */}
-            <div className="grid grid-cols-3 gap-3 mb-8">
+            {/* Key Market Metrics — glass: no borders, no background */}
+            <div className="grid grid-cols-3 gap-6 mb-10">
               {[
                 { label: 'S&P 500', ticker: 'SPY' },
                 { label: 'Nasdaq', ticker: 'QQQ' },
@@ -800,13 +800,13 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               ].map(({ label, ticker }) => {
                 const q = indexQuotes[ticker];
                 return (
-                  <div key={ticker} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 cursor-pointer hover:bg-white/[0.06] transition-colors"
+                  <div key={ticker} className="cursor-pointer hover:bg-white/[0.02] transition-colors py-2 -mx-2 px-2 rounded-lg"
                     onClick={() => onTickerClick?.(ticker)}>
-                    <p className="text-[11px] text-white/40 mb-1">{label}</p>
+                    <p className="text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mb-1">{label}</p>
                     {q ? (
                       <>
-                        <p className="text-lg font-semibold text-white font-mono">${q.price.toFixed(2)}</p>
-                        <p className={`text-sm font-mono ${q.changePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                        <p className="text-xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">${q.price.toFixed(2)}</p>
+                        <p className={`text-sm font-semibold tabular-nums ${q.changePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                           {q.changePct >= 0 ? '+' : ''}{q.changePct.toFixed(2)}%
                         </p>
                       </>
@@ -819,59 +819,61 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
             </div>
 
 
-            {/* Portfolio Snapshot Card */}
+            {/* Portfolio Snapshot — glass: no card, content floats */}
             {livePortfolio && (
-              <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4 mb-8">
+              <div className="mb-10">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Your Portfolio</p>
-                    <p className="text-2xl font-bold text-white font-mono">{formatCurrency(livePortfolio.netEquity ?? livePortfolio.totalValue)}</p>
+                    <p className="text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mb-1">Your Portfolio</p>
+                    <p className="text-3xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">{formatCurrency(livePortfolio.netEquity ?? livePortfolio.totalValue)}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-lg font-semibold font-mono ${livePortfolio.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    <p className={`text-lg font-extrabold tabular-nums ${livePortfolio.dayChange >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'}`}>
                       {livePortfolio.dayChange >= 0 ? '+' : ''}{formatCurrency(livePortfolio.dayChange)}
                     </p>
-                    <p className={`text-sm font-mono ${livePortfolio.dayChangePercent >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
+                    <p className={`text-sm tabular-nums ${livePortfolio.dayChangePercent >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                       {formatPct(livePortfolio.dayChangePercent)}
                     </p>
                   </div>
                 </div>
-                {/* Total return line */}
-                <div className="mt-2 pt-2 border-t border-white/[0.06] flex justify-between text-[12px]">
-                  <span className="text-white/30">Total Return</span>
-                  <span className={`font-mono ${livePortfolio.totalPLPercent >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
+                <div className="mt-3 flex justify-between text-[12px]">
+                  <span className="text-rh-light-muted/40 dark:text-rh-muted/40">Total Return</span>
+                  <span className={`tabular-nums ${livePortfolio.totalPLPercent >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
                     {formatPct(livePortfolio.totalPLPercent)} ({livePortfolio.totalPL >= 0 ? '+' : ''}{formatCurrency(livePortfolio.totalPL)})
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Top Movers */}
+            {/* Top Movers — glass: no card backgrounds */}
             {(movers.gainers.length > 0 || movers.losers.length > 0) && (
-              <div className="mb-8">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-3">Top Movers</h3>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="mb-10">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-1 h-4 rounded-full bg-rh-green flex-shrink-0" />
+                  <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Top Movers</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
                   {/* Gainers */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-0">
                     {movers.gainers.map(h => (
                       <button key={h.ticker} onClick={() => onTickerClick?.(h.ticker)}
-                        className="w-full flex items-center justify-between px-3 py-2 bg-rh-green/[0.06] border border-rh-green/10 rounded-lg hover:bg-rh-green/10 transition-colors">
-                        <span className="text-sm font-medium text-white">{h.ticker}</span>
-                        <span className="text-sm font-mono text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+                        className="w-full flex items-center justify-between py-2.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
+                        <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{h.ticker}</span>
+                        <span className="text-sm font-bold tabular-nums text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
                       </button>
                     ))}
-                    {movers.gainers.length === 0 && <p className="text-[12px] text-white/20 px-3 py-2">No gainers</p>}
+                    {movers.gainers.length === 0 && <p className="text-[12px] text-rh-light-muted/40 dark:text-rh-muted/40 py-2">No gainers</p>}
                   </div>
                   {/* Losers */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-0">
                     {movers.losers.map(h => (
                       <button key={h.ticker} onClick={() => onTickerClick?.(h.ticker)}
-                        className="w-full flex items-center justify-between px-3 py-2 bg-rh-red/[0.06] border border-rh-red/10 rounded-lg hover:bg-rh-red/10 transition-colors">
-                        <span className="text-sm font-medium text-white">{h.ticker}</span>
-                        <span className="text-sm font-mono text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+                        className="w-full flex items-center justify-between py-2.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
+                        <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{h.ticker}</span>
+                        <span className="text-sm font-bold tabular-nums text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
                       </button>
                     ))}
-                    {movers.losers.length === 0 && <p className="text-[12px] text-white/20 px-3 py-2">No losers</p>}
+                    {movers.losers.length === 0 && <p className="text-[12px] text-rh-light-muted/40 dark:text-rh-muted/40 py-2">No losers</p>}
                   </div>
                 </div>
               </div>
@@ -879,8 +881,6 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
 
             {/* Market Sentiment Gauge */}
             {sentiment && <SentimentGauge sentiment={sentiment} />}
-
-            <div className="border-t border-white/[0.08] mb-8" />
 
             {/* Greeting / AI headline */}
             <div className="mb-8">
