@@ -49,7 +49,7 @@ import { useAnalytics } from './hooks/useAnalytics';
 // Lazy-loaded page components
 const InsightsPage = lazy(() => import('./components/InsightsPage').then(m => ({ default: m.InsightsPage })));
 const DeepResearchPage = lazy(() => import('./components/DeepResearchPage'));
-const PortfolioNews = lazy(() => import('./components/PortfolioNews').then(m => ({ default: m.PortfolioNews })));
+
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const FeedPage = lazy(() => import('./components/FeedPage').then(m => ({ default: m.FeedPage })));
 const WatchlistPage = lazy(() => import('./components/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
@@ -118,7 +118,7 @@ interface NavState {
   subtab: string | null;
 }
 
-const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'macro', 'leaderboard', 'feed', 'pricing', 'profile']);
+const VALID_TABS = new Set<TabType>(['portfolio', 'nala', 'insights', 'watchlists', 'discover', 'leaderboard', 'feed', 'pricing', 'profile']);
 
 // Desktop-only tab list for the consolidated header bar
 const PRIMARY_TABS: { id: TabType; label: string }[] = [
@@ -1826,11 +1826,6 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {!settingsView && !creatorView && !adminView && activeTab === 'macro' && !viewingStock && (
-            <ErrorBoundary>
-              <PortfolioNews onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
-            </ErrorBoundary>
-          )}
 
           {!settingsView && !creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
             <ErrorBoundary>

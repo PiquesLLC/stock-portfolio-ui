@@ -40,7 +40,6 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
 const OVERFLOW_TABS: { id: TabType; label: string }[] = [
   { id: 'nala', label: 'Nala AI' },
   { id: 'watchlists', label: 'Watchlists' },
-  { id: 'macro', label: 'Market' },
   { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];
