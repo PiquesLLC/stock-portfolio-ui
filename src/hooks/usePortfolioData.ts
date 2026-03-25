@@ -97,7 +97,9 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
     fetchData();
     const getInterval = () => {
       const s = sessionRef.current;
-      return (s === 'PRE' || s === 'POST' || s === 'CLOSED') ? 15_000 : REFRESH_INTERVAL;
+      if (s === 'CLOSED') return 5 * 60_000; // 5 minutes when market closed
+      if (s === 'PRE' || s === 'POST') return 30_000; // 30s during extended hours
+      return REFRESH_INTERVAL; // 5s during market hours
     };
     // Use dynamic interval via chained setTimeout instead of fixed setInterval
     let timer: ReturnType<typeof setTimeout>;
