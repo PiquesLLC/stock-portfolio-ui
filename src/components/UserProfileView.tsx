@@ -270,7 +270,7 @@ function LockedOverlay({ onClick }: { onClick?: () => void }) {
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
         <span className="text-sm font-semibold text-rh-light-muted dark:text-white/40">
-          {native ? 'Subscriber-only content' : 'Subscribe to unlock'}
+          {native ? 'Subscribe at nalaai.com to unlock' : 'Subscribe to unlock'}
         </span>
       </div>
     </div>
