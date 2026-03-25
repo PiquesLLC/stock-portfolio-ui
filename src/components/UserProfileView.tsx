@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, CreatorEntitlement } from '../types';
 import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings, getCreatorEntitlement, subscribeToCreator, deleteActivityEvent } from '../api';
 import { CreatorSubscribeButton, CreatorSubscribeModal } from './CreatorPaywallCard';
+import { isNativePlatform } from '../utils/platform';
 import { createPortal } from 'react-dom';
 import { FollowButton } from './FollowButton';
 import { UserPortfolioView } from './UserPortfolioView';
@@ -257,10 +258,11 @@ function groupByDate(events: ActivityEvent[]): { date: string; events: ActivityE
 
 /** Lock overlay — minimal text + icon floating over blurred content */
 function LockedOverlay({ onClick }: { onClick?: () => void }) {
+  const native = isNativePlatform();
   return (
     <div
       className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer"
-      onClick={onClick}
+      onClick={native ? undefined : onClick}
     >
       <div className="flex items-center gap-1.5 transition-opacity hover:opacity-70">
         <svg className="w-4 h-4 text-yellow-500 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +270,7 @@ function LockedOverlay({ onClick }: { onClick?: () => void }) {
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
         <span className="text-sm font-semibold text-rh-light-muted dark:text-white/40">
-          Subscribe to unlock
+          {native ? 'Subscriber-only content' : 'Subscribe to unlock'}
         </span>
       </div>
     </div>

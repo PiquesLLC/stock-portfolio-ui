@@ -3,6 +3,7 @@ import { useAuth, PlanTier } from '../context/AuthContext';
 import { getBillingStatus, createPortalSession, BillingStatus } from '../api';
 import { useToast } from '../context/ToastContext';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
+import { isNativePlatform, platform } from '../utils/platform';
 
 const PLAN_LABELS: Record<PlanTier, { name: string; color: string; bg: string }> = {
   free: { name: 'Free', color: 'text-rh-light-muted dark:text-rh-muted', bg: 'bg-gray-200/50 dark:bg-white/[0.06]' },
@@ -31,6 +32,11 @@ export function BillingSection() {
   const label = PLAN_LABELS[plan];
 
   const handleManage = async () => {
+    // On iOS native, open the system subscription management page
+    if (isNativePlatform() && platform === 'ios') {
+      window.open('https://apps.apple.com/account/subscriptions', '_blank');
+      return;
+    }
     setPortalLoading(true);
     try {
       const { url } = await createPortalSession();

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CreatorProfile, PerformanceData } from '../types';
+import { isNativePlatform } from '../utils/platform';
 
 interface CreatorSubscribeButtonProps {
   creator: CreatorProfile;
@@ -34,6 +35,9 @@ function trackAge(createdAt: string): string {
 export function CreatorSubscribeButton({ creator, performance, onSubscribe, loading }: CreatorSubscribeButtonProps) {
   const [open, setOpen] = useState(false);
   const price = formatPrice(creator.pricingCents);
+
+  // Creator subscriptions use Stripe Connect — not available on iOS native (Apple requires IAP)
+  if (isNativePlatform()) return null;
 
   return (
     <>
