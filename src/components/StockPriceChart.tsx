@@ -191,7 +191,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       if (points[mid].time < zoomRange.startMs) lo = mid + 1;
       else hi = mid;
     }
-    const startIdx = Math.max(0, lo - 1); // include one before for line continuity
+    // Include one point before for line continuity — but not for YTD
+    // (Dec 31 is last year's data, not part of year-to-date)
+    const startIdx = selectedPeriod === 'YTD' ? lo : Math.max(0, lo - 1);
     // Binary search for last point <= zoomRange.endMs
     lo = startIdx; hi = points.length - 1;
     while (lo < hi) {
