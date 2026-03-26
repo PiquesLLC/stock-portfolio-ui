@@ -1024,7 +1024,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {/* ═══════════════════════════════════════════════════════════════
           3. SIGNAL PANEL — 2-col grid + reason chips
           ═══════════════════════════════════════════════════════════════ */}
-      {profile.profilePublic && hasPerformance && (
+      {profile.profilePublic && hasPerformance && !lockHoldings && (
         <motion.div
           variants={itemVariants}
           className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 overflow-hidden"
@@ -1101,7 +1101,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {/* ═══════════════════════════════════════════════════════════════
           4. ACTIVITY TIMELINE — latest moves with spine + dots
           ═══════════════════════════════════════════════════════════════ */}
-      {profile.profilePublic && profile.recentActivity && profile.recentActivity.length > 0 && (
+      {profile.profilePublic && !lockHoldings && profile.recentActivity && profile.recentActivity.length > 0 && (
         <motion.div
           variants={itemVariants}
           className="relative pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 overflow-hidden"

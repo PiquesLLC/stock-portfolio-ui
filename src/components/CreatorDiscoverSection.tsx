@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { discoverCreators, subscribeToCreator, DiscoverCreatorEntry } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useIsDark } from '../hooks/useIsDark';
 
 type SortOption = 'popular' | 'newest' | 'price_low' | 'price_high' | 'performance';
 
@@ -24,6 +25,7 @@ interface CreatorDiscoverSectionProps {
 
 export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionProps) {
   const { isAuthenticated } = useAuth();
+  const isDark = useIsDark();
   const [creators, setCreators] = useState<DiscoverCreatorEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -151,7 +153,7 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
+            <SkeletonCard key={i} isDark={isDark} />
           ))}
         </div>
       </div>
@@ -243,6 +245,7 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
             onView={() => handleViewCreator(creator)}
             onSubscribe={() => handleSubscribe(creator)}
             subscribing={subscribingId === creator.userId}
+            isDark={isDark}
           />
         ))}
       </div>
@@ -253,7 +256,7 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
           <button
             onClick={handleLoadMore}
             disabled={loadingMore}
-            className="px-6 py-2.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg text-sm font-medium text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
+            className="px-6 py-2.5 bg-transparent border border-rh-light-border/20 dark:border-rh-border/20 rounded-lg text-sm font-medium text-rh-light-text dark:text-rh-text hover:bg-gray-50/80 dark:hover:bg-white/[0.04] transition-colors disabled:opacity-50"
           >
             {loadingMore ? 'Loading...' : 'Load More'}
           </button>
@@ -299,13 +302,13 @@ function FilterBar({
   }, [sortOpen]);
 
   return (
-    <div className="sticky top-[90px] sm:top-[52px] z-20 py-2 -my-2 bg-rh-light-bg dark:bg-[#050505]">
+    <div className="sticky top-[90px] sm:top-[52px] z-20 py-2 -my-2 bg-rh-light-bg dark:bg-[#050505]/95 backdrop-blur-xl">
     <div className="flex flex-wrap items-center gap-2">
       {/* Sort dropdown */}
       <div className="relative" ref={sortRef}>
         <button
           onClick={() => setSortOpen(!sortOpen)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg text-xs font-medium text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-rh-light-border/20 dark:border-rh-border/20 rounded-lg text-xs font-medium text-rh-light-text dark:text-rh-text hover:bg-gray-50/80 dark:hover:bg-white/[0.04] transition-colors"
         >
           Sort: {SORT_LABELS[sort]}
           <svg className={`w-3 h-3 transition-transform ${sortOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,7 +316,7 @@ function FilterBar({
           </svg>
         </button>
         {sortOpen && (
-          <div className="absolute top-full left-0 mt-1 bg-white dark:bg-[#1a1a1e]/95 border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-2xl py-1 min-w-[180px] z-30">
+          <div className="absolute top-full left-0 mt-1 bg-white dark:bg-[#1a1a1e]/90 border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-2xl py-1 min-w-[180px] z-30 backdrop-blur-xl">
             {SORT_ORDER.map(key => (
               <button
                 key={key}
@@ -342,7 +345,7 @@ function FilterBar({
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Search creators..."
           maxLength={100}
-          className="w-full pl-8 pr-3 py-1.5 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg text-xs text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted dark:placeholder:text-rh-muted focus:outline-none focus:ring-1 focus:ring-rh-green/40 focus:border-rh-green/40"
+          className="w-full pl-8 pr-3 py-1.5 bg-transparent border border-rh-light-border/20 dark:border-rh-border/20 rounded-lg text-xs text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted dark:placeholder:text-rh-muted focus:outline-none focus:ring-1 focus:ring-rh-green/40 focus:border-rh-green/40"
         />
       </div>
 
@@ -395,13 +398,13 @@ function getStreakState(creator: DiscoverCreatorEntry): StreakState {
 
 function StreakChip({ state }: { state: StreakState }) {
   if (state.kind === 'hidden') {
-    return <span className="rounded-md border border-gray-200/60 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-1 text-[11px] text-gray-300 dark:text-zinc-600">&nbsp;</span>;
+    return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-300 dark:text-zinc-600">&nbsp;</span>;
   }
   if (state.kind === 'new') {
-    return <span className="rounded-md border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-1 text-[11px] text-gray-400 dark:text-zinc-400">New</span>;
+    return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-400 dark:text-zinc-400">New</span>;
   }
   if (state.kind === 'stale') {
-    return <span className="rounded-md border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-1 text-[11px] text-gray-400 dark:text-zinc-400">Awaiting update</span>;
+    return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-400 dark:text-zinc-400">Awaiting update</span>;
   }
   if (state.kind === 'hot') {
     return <span className="rounded-md border border-rh-green/30 bg-rh-green/10 px-2 py-1 text-[11px] text-rh-green font-medium">Hot streak &middot; {state.days}d</span>;
@@ -410,7 +413,7 @@ function StreakChip({ state }: { state: StreakState }) {
     return <span className="rounded-md border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-500 dark:text-rose-400 font-medium">Cold streak &middot; {state.days}d</span>;
   }
   // flat
-  return <span className="rounded-md border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-1 text-[11px] text-gray-500 dark:text-zinc-300">Flat this week</span>;
+  return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-500 dark:text-zinc-300">Flat this week</span>;
 }
 
 /* ─── Section Summary ─── */
@@ -437,11 +440,13 @@ function CreatorCard({
   onView,
   onSubscribe,
   subscribing,
+  isDark: _isDark,
 }: {
   creator: DiscoverCreatorEntry;
   onView: () => void;
   onSubscribe: () => void;
   subscribing: boolean;
+  isDark: boolean;
 }) {
   const ret = creator.returnPct ?? null;
   const retUp = (ret ?? 0) >= 0;
@@ -463,13 +468,7 @@ function CreatorCard({
   const sections = sectionSummary(creator.sectionsUnlocked);
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-gray-200/60 dark:border-white/10 bg-white dark:bg-zinc-950/80 p-5 dark:backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-rh-green/40 flex flex-col">
-      {/* Glow effects (dark mode only) */}
-      <div className="pointer-events-none absolute inset-0 opacity-0 dark:opacity-70">
-        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-rh-green/10 blur-3xl transition group-hover:bg-rh-green/20" />
-      </div>
-      {/* Top gradient strip */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rh-green/0 via-rh-green/20 dark:via-rh-green/60 to-rh-green/0" />
+    <article className="group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-0.5 flex flex-col border-b border-rh-light-border/20 dark:border-rh-border/20 sm:border sm:border-rh-light-border/10 sm:dark:border-rh-border/10 sm:rounded-xl hover:bg-gray-50/80 dark:hover:bg-white/[0.03]">
 
       <div className="relative flex flex-col flex-1">
         {/* Row 1: Name/handle + performance */}
@@ -505,7 +504,7 @@ function CreatorCard({
               {creator.pitch}
             </p>
           ) : (
-            <span className="inline-block rounded-lg bg-gray-100 dark:bg-white/[0.04] px-3 py-2 text-xs text-gray-400 dark:text-zinc-500 italic">
+            <span className="inline-block rounded-lg px-3 py-2 text-xs text-gray-400 dark:text-white/30 italic">
               New creator — no pitch yet
             </span>
           )}
@@ -524,13 +523,13 @@ function CreatorCard({
               Free
             </span>
           ) : (
-            <span className="rounded-md border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-1 text-[11px] text-gray-600 dark:text-zinc-300">
+            <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-600 dark:text-zinc-300">
               {pricingChip.label}
             </span>
           )}
 
           {/* Chip 2: Subscribers / Status */}
-          <span className="rounded-md border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-2 py-1 text-[11px] text-gray-600 dark:text-zinc-300">
+          <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-600 dark:text-zinc-300">
             {statusChip}
           </span>
 
@@ -542,7 +541,7 @@ function CreatorCard({
         <div className="flex gap-2 mt-auto">
           <button
             onClick={onView}
-            className="flex-1 rounded-lg border border-gray-200 dark:border-white/15 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm font-medium text-rh-light-text dark:text-white transition hover:bg-gray-100 dark:hover:bg-white/10"
+            className="flex-1 rounded-lg border border-rh-light-border/20 dark:border-rh-border/20 px-3 py-2 text-sm font-medium text-rh-light-text dark:text-white transition hover:bg-gray-50/80 dark:hover:bg-white/[0.04]"
           >
             See strategy
           </button>
@@ -563,11 +562,9 @@ function CreatorCard({
 
 /* ─── Skeleton Card ─── */
 
-function SkeletonCard() {
+function SkeletonCard({ isDark: _isDark }: { isDark: boolean }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-gray-200/60 dark:border-white/10 bg-white dark:bg-zinc-950/80 p-5 animate-pulse">
-      {/* Gradient strip skeleton */}
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent" />
+    <div className="relative overflow-hidden p-5 animate-pulse border-b border-rh-light-border/20 dark:border-rh-border/20 sm:border sm:border-rh-light-border/10 sm:dark:border-rh-border/10 sm:rounded-xl">
 
       {/* Row 1: name + metric */}
       <div className="mb-4 flex items-start justify-between gap-3">

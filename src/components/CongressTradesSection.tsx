@@ -74,17 +74,17 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-5 space-y-4">
+      <div className="space-y-4">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Congressional Trading</h3>
-        <div className="space-y-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 py-3 animate-pulse">
-              <div className="w-9 h-9 rounded-full bg-gray-200/30 dark:bg-white/[0.04]" />
+        <div className="space-y-0">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 py-3.5 border-b border-rh-light-border/20 dark:border-rh-border/20 animate-pulse">
+              <div className="w-9 h-9 rounded-full bg-gray-200/20 dark:bg-white/[0.04]" />
               <div className="flex-1 space-y-1.5">
-                <div className="h-3.5 bg-gray-200/30 dark:bg-white/[0.04] rounded w-2/5" />
-                <div className="h-2.5 bg-gray-200/20 dark:bg-white/[0.02] rounded w-1/4" />
+                <div className="h-3.5 bg-gray-200/20 dark:bg-white/[0.04] rounded w-2/5" />
+                <div className="h-2.5 bg-gray-200/10 dark:bg-white/[0.02] rounded w-1/4" />
               </div>
-              <div className="h-3 bg-gray-200/20 dark:bg-white/[0.03] rounded w-12" />
+              <div className="h-3 bg-gray-200/10 dark:bg-white/[0.03] rounded w-12" />
             </div>
           ))}
         </div>
@@ -94,25 +94,23 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
 
   if (error || trades.length === 0) {
     return (
-      <div className="p-3 sm:p-5 space-y-4">
+      <div className="space-y-4">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Congressional Trading</h3>
         <p className="text-sm text-rh-light-muted dark:text-rh-muted py-8 text-center">
-          {error ? 'Failed to load trades' : 'No congressional trades found for your holdings'}
+          {error ? 'Failed to load congressional trades — try again later.' : 'No congressional trades found.'}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="p-3 sm:p-5 space-y-3">
-      {/* Title + total */}
+    <div className="space-y-2">
+      {/* Title + stats */}
       <div className="space-y-1">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Congressional Trading</h3>
           <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40">{stats.total} trades</span>
         </div>
-
-        {/* Hero stat — buys vs sells */}
         <div className="flex items-baseline gap-1.5">
           <span className="text-2xl font-bold text-rh-green tabular-nums">{stats.buys}</span>
           <span className="text-sm text-rh-light-muted dark:text-rh-muted">buys</span>
@@ -125,8 +123,8 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
         </div>
       </div>
 
-      {/* Filter tabs — underline style */}
-      <div className="flex items-center gap-0 -ml-1 border-b border-gray-200/10 dark:border-white/[0.04]">
+      {/* Filter tabs */}
+      <div className="flex items-center gap-0 border-b border-rh-light-border/20 dark:border-rh-border/20">
         {([
           ['all', 'All'],
           ['buy', 'Buys'],
@@ -151,14 +149,14 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
         ))}
       </div>
 
-      {/* Trade rows — flat list, no card wrapper */}
+      {/* Trade rows — no wrapper, just rows with thin separators */}
       <div>
         {filtered.map((trade) => {
           const isBuy = trade.transactionType === 'Purchase';
           return (
             <div
               key={trade.id}
-              className="flex items-center gap-3 py-3 border-b border-gray-100/10 dark:border-white/[0.03] last:border-0"
+              className="flex items-center gap-3 py-3.5 border-b border-rh-light-border/20 dark:border-rh-border/20 hover:bg-gray-50/80 dark:hover:bg-white/[0.03] transition-colors"
             >
               {/* Buy/Sell indicator */}
               <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${

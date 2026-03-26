@@ -1047,19 +1047,21 @@ const RANK_COLORS: Record<number, string> = {
   3: '#FFB74D',
 };
 
-type VolumeFilter = 'top100' | 'gainers' | 'losers' | 'unusual' | 'mostFollowed';
-const VOLUME_FILTERS: { id: VolumeFilter; label: string; dot?: string }[] = [
+type VolumeFilter = 'top100' | 'unusual' | 'mostFollowed';
+const VOLUME_FILTERS: { id: VolumeFilter; label: string }[] = [
   { id: 'top100', label: 'Top 100' },
-  { id: 'gainers', label: 'Gainers', dot: '#16c784' },
-  { id: 'losers', label: 'Losers', dot: '#ea3943' },
-  { id: 'unusual', label: 'Unusual', dot: '#f5a524' },
-  { id: 'mostFollowed', label: 'Followed', dot: '#a855f7' },
+  { id: 'unusual', label: 'Unusual' },
+  { id: 'mostFollowed', label: 'Followed' },
 ];
+
+type Top100SortKey = 'price' | 'day' | '7d' | 'volume' | 'mktcap';
 
 function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void; portfolioTickers?: Set<string> }) {
   const [filter, setFilter] = useState<VolumeFilter>('top100');
   const [visibleCount, setVisibleCount] = useState(10);
   const [heroTicker, setHeroTicker] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<Top100SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [heroSparkline, setHeroSparkline] = useState<string>('');
   const [heroLoading, setHeroLoading] = useState(false);
   const sparklineCacheRef = useRef<Map<string, string>>(new Map());
@@ -1116,10 +1118,6 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
   const filtered = useMemo(() => {
     const byVol = [...withVolume].sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
     switch (filter) {
-      case 'gainers':
-        return byVol.filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, 100);
-      case 'losers':
-        return byVol.filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, 100);
       case 'unusual':
         return byVol.filter(s => {
           if ((s.avgVolume ?? 0) <= 0) return false;
@@ -1135,21 +1133,32 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
     }
   }, [withVolume, filter, mostFollowedMap]);
 
+  const handleSort = (key: Top100SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (sortKey) {
+        case 'price': return (a.price - b.price) * dir;
+        case 'day': return (a.changePercent - b.changePercent) * dir;
+        case '7d': return ((a.weekChangePercent ?? 0) - (b.weekChangePercent ?? 0)) * dir;
+        case 'volume': return ((a.volume ?? 0) - (b.volume ?? 0)) * dir;
+        case 'mktcap': return ((a.marketCapB ?? 0) - (b.marketCapB ?? 0)) * dir;
+        default: return 0;
+      }
+    });
+  }, [filtered, sortKey, sortDir]);
+
   const maxVol = filtered.length > 0 ? Math.max(...filtered.map(s => s.volume ?? 0)) : 1;
 
-  // Stats for the hero banner
-  const top100ForStats = useMemo(() => {
-    return [...withVolume].sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0)).slice(0, 100);
-  }, [withVolume]);
-  const totalVol = useMemo(() => top100ForStats.reduce((s, st) => s + (st.volume ?? 0), 0), [top100ForStats]);
-  const avgChange = useMemo(() => {
-    if (top100ForStats.length === 0) return 0;
-    return top100ForStats.reduce((s, st) => s + st.changePercent, 0) / top100ForStats.length;
-  }, [top100ForStats]);
-  const highVolCount = useMemo(() => withVolume.filter(s => {
-    if ((s.avgVolume ?? 0) <= 0) return false;
-    return ((s.volume ?? 0) / (s.avgVolume ?? 1)) >= 1.5;
-  }).length, [withVolume]);
 
   if (withVolume.length === 0) {
     return (
@@ -1168,145 +1177,85 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
   return (
     <div className="space-y-3">
       {/* Header + segmented control — sticky below nav */}
-      <div className="space-y-0 sticky top-[90px] sm:top-[52px] z-20 pb-3 bg-rh-light-bg dark:bg-[#0a0a0a]">
+      <div className="space-y-0 sticky top-[90px] sm:top-[52px] z-20 pb-0">
       {/* Header row */}
       <div className="px-1 py-2 space-y-1">
-        <div className="flex items-baseline justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text shrink-0">
-            Top 100 <span className={`text-sm font-medium ${filter === 'losers' ? 'text-rh-red' : filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-light-muted dark:text-rh-muted'}`}>
-              {filter === 'mostFollowed' ? 'by Following' : filter === 'gainers' || filter === 'losers' ? 'by Percentage' : 'by Volume'}
+            Top 100 <span className={`text-sm font-medium ${filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+              {filter === 'mostFollowed' ? 'by Following' : filter === 'unusual' ? 'Unusual Volume' : 'by Volume'}
             </span>
           </h2>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-rh-light-muted dark:text-rh-muted">
-              Vol <span className="text-rh-light-text dark:text-rh-text font-bold">{formatVolume(totalVol)}</span>
-            </span>
-            <span className={`text-[10px] uppercase tracking-wider font-semibold ${avgChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-              Avg {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
-            </span>
-            {highVolCount > 0 && (
-              <span className="text-[10px] font-bold text-rh-green">
-                🔥 {highVolCount} unusual
-              </span>
+          {/* Sparkline preview — right-aligned */}
+          <div className="flex items-center gap-2 shrink-0">
+            {heroStock && heroSparkline ? (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-rh-light-text dark:text-rh-text">{heroStock.ticker}</span>
+                  <span className={`text-[11px] font-bold tabular-nums ${isEffectivelyZero(heroStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
+                  </span>
+                </div>
+                <svg className="opacity-70 w-[80px] h-[24px]" viewBox="0 0 140 32" preserveAspectRatio="none">
+                  <path d={heroSparkline} fill="none" stroke={isEffectivelyZero(heroStock.changePercent) ? '#888' : heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </>
+            ) : heroLoading ? (
+              <div className="w-[80px] h-[24px] rounded animate-pulse bg-gray-200/60 dark:bg-white/[0.04]" />
+            ) : (
+              <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Click a stock to preview</span>
             )}
           </div>
         </div>
-        {/* Per-stock sparkline preview */}
-        <div className="flex items-center gap-2">
-          {heroStock && heroSparkline ? (
-            <>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-rh-light-text dark:text-rh-text">{heroStock.ticker}</span>
-                <span className={`text-[11px] font-bold tabular-nums ${isEffectivelyZero(heroStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
-                </span>
-              </div>
-              <svg className="opacity-70 w-[80px] h-[24px]" viewBox="0 0 140 32" preserveAspectRatio="none">
-                <path d={heroSparkline} fill="none" stroke={isEffectivelyZero(heroStock.changePercent) ? '#888' : heroStock.changePercent >= 0 ? '#00c805' : '#ea3943'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </>
-          ) : heroLoading ? (
-            <div className="w-[80px] h-[24px] rounded animate-pulse bg-gray-200/60 dark:bg-white/[0.04]" />
-          ) : (
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Click a stock to preview</span>
-          )}
-        </div>
       </div>
 
-      {/* Segmented control — docked tight to hero (-4px overlap) */}
-      <div className="pt-1.5">
-      {/* Segmented control */}
-      <div
-        className="flex items-center w-full overflow-x-auto no-scrollbar"
-        style={{
-          height: 32,
-          padding: 4,
-          gap: 4,
-          borderRadius: 10,
-          background: isDark
-            ? 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%)'
-            : 'linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.01) 50%, rgba(0,0,0,0.03) 100%)',
-          border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.08)',
-          backdropFilter: 'blur(16px) saturate(1.3)',
-          WebkitBackdropFilter: 'blur(16px) saturate(1.3)',
-          boxShadow: isDark
-            ? '0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)'
-            : '0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)',
-        }}
-      >
+      {/* Filter tabs — underline style, no container */}
+      <div className="flex items-center gap-0 border-b border-rh-light-border/20 dark:border-rh-border/20 overflow-x-auto no-scrollbar">
         {VOLUME_FILTERS.map((f) => {
           const isActive = filter === f.id;
           return (
             <button
               key={f.id}
-              data-active={isActive || undefined}
               onClick={() => { setFilter(f.id); setVisibleCount(10); }}
-              className="flex items-center justify-center whitespace-nowrap"
-              style={{
-                flex: '1 1 0',
-                minWidth: 0,
-                gap: 4,
-                padding: '0 8px',
-                height: 24,
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                fontVariantNumeric: 'tabular-nums',
-                cursor: 'pointer',
-                transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
-                outline: 'none',
-                color: isActive
-                  ? (isDark ? '#f5f7fa' : '#111')
-                  : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.40)'),
-                background: isActive
-                  ? (isDark
-                    ? 'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 100%)'
-                    : 'rgba(255,255,255,0.85)')
-                  : 'transparent',
-                border: isActive
-                  ? (isDark ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(0,0,0,0.12)')
-                  : '1px solid transparent',
-                boxShadow: isActive
-                  ? (isDark
-                    ? '0 2px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08)'
-                    : '0 1px 6px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04)')
-                  : 'none',
-                backdropFilter: isActive ? 'blur(16px) saturate(1.3)' : 'none',
-                WebkitBackdropFilter: isActive ? 'blur(16px) saturate(1.3)' : 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
-                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.70)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.40)';
-                }
-              }}
-              onFocus={(e) => { e.currentTarget.style.outline = '2px solid rgba(34,197,94,0.45)'; e.currentTarget.style.outlineOffset = '1px'; }}
-              onBlur={(e) => { e.currentTarget.style.outline = 'none'; }}
+              className={`relative flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold whitespace-nowrap transition-all duration-150 ${
+                isActive
+                  ? 'text-rh-light-text dark:text-rh-text'
+                  : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+              }`}
             >
-              {f.dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: f.dot, flexShrink: 0 }} />}
               {f.label}
+              {isActive && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+              )}
             </button>
           );
         })}
       </div>
-      </div>
 
-      {/* Column header — matches row: rank(w-7) + gap-3 + logo(w-8) + gap-3 + flex-1 ... */}
-      <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-gray-200/60 dark:border-white/[0.06] bg-rh-light-bg dark:bg-[#0a0a0a]">
-        <div className="w-7 shrink-0" />
-        <div className="w-8 shrink-0" />
-        <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Symbol</div>
-        <div className="text-right shrink-0 w-[72px] text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Price</div>
-        <div className="text-center shrink-0 w-[68px] text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Day</div>
-        <div className="text-center shrink-0 w-[68px] hidden sm:block text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>7D</div>
-        <div className="text-right shrink-0 w-[88px] hidden md:block text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>{filter === 'mostFollowed' ? 'Followers' : 'Volume'}</div>
-        <div className="text-right shrink-0 w-[64px] hidden lg:block text-[10px] font-bold uppercase text-gray-400 dark:text-white/30" style={{ letterSpacing: '0.08em' }}>Mkt Cap</div>
+      {/* Column header — sortable */}
+      <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-rh-light-border/20 dark:border-rh-border/20">
+        <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-400 dark:text-white/30 select-none pl-[30px]" style={{ letterSpacing: '0.08em' }}>Ticker</div>
+        {([
+          { key: 'price' as Top100SortKey, label: 'Price', w: 'w-[52px] sm:w-[72px]', align: 'justify-end', hide: '' },
+          { key: 'day' as Top100SortKey, label: 'Day', w: 'w-[52px] sm:w-[68px]', align: 'justify-center', hide: '' },
+          { key: '7d' as Top100SortKey, label: '7D', w: 'w-[52px] sm:w-[68px]', align: 'justify-center', hide: '' },
+          { key: 'volume' as Top100SortKey, label: filter === 'mostFollowed' ? 'Followers' : 'Volume', w: 'w-[48px] sm:w-[88px]', align: 'justify-end', hide: 'hidden md:flex' },
+          { key: 'mktcap' as Top100SortKey, label: 'Mkt Cap', w: 'w-[44px] sm:w-[64px]', align: 'justify-end', hide: 'hidden lg:flex' },
+        ]).map(col => (
+          <button
+            key={col.key}
+            onClick={() => handleSort(col.key)}
+            className={`shrink-0 ${col.w} ${col.hide || 'flex'} items-center ${col.align} gap-0.5 text-[10px] font-bold uppercase select-none cursor-pointer transition-colors ${
+              sortKey === col.key ? 'text-rh-green' : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50'
+            }`}
+            style={{ letterSpacing: '0.08em' }}
+          >
+            {col.label}
+            {sortKey === col.key && (
+              <span className="text-[8px]">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>
+            )}
+          </button>
+        ))}
       </div>
       </div>
 
@@ -1322,8 +1271,8 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
           <p className="text-sm text-rh-light-muted dark:text-white/40">No followed stocks yet. Follow stocks to see them here.</p>
         </div>
       )}
-      <div className="space-y-0.5">
-        {filtered.slice(0, visibleCount).map((stock, i) => {
+      <div className="space-y-0">
+        {sorted.slice(0, visibleCount).map((stock, i) => {
           const rank = i + 1;
           const rankColor = RANK_COLORS[rank];
           const volPct = ((stock.volume ?? 0) / maxVol) * 100;
@@ -1342,8 +1291,8 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                 else { setHeroTicker(stock.ticker); }
               }}
               className="relative group px-3 py-3.5 cursor-pointer transition-all duration-200
-                hover:scale-[1.005] active:scale-[0.998]
-                border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02]
+                hover:scale-[1.003] active:scale-[0.998]
+                border-b border-rh-light-border/20 dark:border-rh-border/20 hover:bg-gray-50/80 dark:hover:bg-white/[0.03]
               "
             >
               {/* Left accent strip */}
@@ -1365,10 +1314,10 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                 }}
               />
 
-              {/* Content */}
+              {/* Content — main row */}
               <div className="relative flex items-center gap-3">
                 {/* Rank */}
-                <div className="w-7 text-center shrink-0">
+                <div className="w-5 sm:w-7 text-center shrink-0">
                   {rankColor ? (
                     <span className="text-sm font-extrabold tabular-nums" style={{ color: rankColor }}>{rank}</span>
                   ) : rank <= 10 ? (
@@ -1393,23 +1342,23 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                     )}
                     {isHighVol && (
                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rh-green/10 dark:bg-rh-green/[0.06] text-rh-green">
-                        🔥 {volRatio!.toFixed(1)}x
+                        {volRatio!.toFixed(1)}x
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] text-gray-600 dark:text-gray-400 truncate block">{stock.name}</span>
+                  <span className="text-[11px] text-gray-600 dark:text-gray-400 truncate block hidden sm:block">{stock.name}</span>
                 </div>
 
                 {/* Price */}
-                <div className="text-right shrink-0 w-[72px]">
-                  <div className="text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
+                <div className="text-right shrink-0 w-[52px] sm:w-[72px]">
+                  <div className="text-[11px] sm:text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
                     ${stock.price.toFixed(2)}
                   </div>
                 </div>
 
-                {/* Change pill */}
-                <div className="shrink-0 w-[68px] flex justify-center">
-                  <div className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
+                {/* Day change pill */}
+                <div className="shrink-0 w-[52px] sm:w-[68px] flex justify-center">
+                  <div className={`inline-flex px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tabular-nums ${
                     isZeroChange
                       ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted'
                       : isUp
@@ -1421,13 +1370,13 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                 </div>
 
                 {/* 7D Change */}
-                <div className="shrink-0 w-[68px] hidden sm:flex justify-center">
+                <div className="shrink-0 w-[52px] sm:w-[68px] flex justify-center">
                   {(() => {
                     const wk = stock.weekChangePercent ?? 0;
                     const wkZero = isEffectivelyZero(wk);
                     const wkUp = wk >= 0;
                     return (
-                      <div className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
+                      <div className={`inline-flex px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tabular-nums ${
                         wkZero
                           ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted'
                           : wkUp
@@ -1440,33 +1389,22 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                   })()}
                 </div>
 
-                {/* Volume / Followers cell */}
-                <div className="shrink-0 w-[88px] hidden md:flex flex-col items-end gap-0.5">
+                {/* Volume */}
+                <div className="shrink-0 w-[48px] sm:w-[88px] hidden xs:flex md:flex flex-col items-end gap-0.5">
                   {filter === 'mostFollowed' ? (
-                    <>
-                      <div className="text-sm font-bold text-purple-500 dark:text-purple-400 tabular-nums">
-                        {(mostFollowedMap.get(stock.ticker) ?? 0).toLocaleString()}
-                      </div>
-                      <div className="text-[10px] text-rh-light-muted/50 dark:text-white/30">followers</div>
-                    </>
+                    <div className="text-[10px] sm:text-sm font-bold text-purple-500 dark:text-purple-400 tabular-nums">
+                      {(mostFollowedMap.get(stock.ticker) ?? 0).toLocaleString()}
+                    </div>
                   ) : (
-                    <>
-                      <div className="text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
-                        {formatVolume(stock.volume ?? 0)}
-                      </div>
-                      <div className="w-full h-1 rounded-full bg-gray-200/80 dark:bg-white/[0.06] overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700 bg-rh-green/40 group-hover:bg-rh-green/60"
-                          style={{ width: `${volPct}%` }}
-                        />
-                      </div>
-                    </>
+                    <div className="text-[10px] sm:text-sm font-bold text-rh-light-text dark:text-rh-text tabular-nums">
+                      {formatVolume(stock.volume ?? 0)}
+                    </div>
                   )}
                 </div>
 
                 {/* Mkt Cap */}
-                <div className="text-right shrink-0 w-[64px] hidden lg:block">
-                  <div className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+                <div className="text-right shrink-0 w-[44px] sm:w-[64px] hidden lg:block">
+                  <div className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
                     {formatMktCap(stock.marketCapB)}
                   </div>
                 </div>
@@ -1475,9 +1413,9 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
           );
         })}
       </div>
-      {visibleCount < filtered.length && (
+      {visibleCount < sorted.length && (
         <button
-          onClick={() => setVisibleCount(prev => Math.min(prev + 10, filtered.length))}
+          onClick={() => setVisibleCount(prev => Math.min(prev + 10, sorted.length))}
           className="w-full py-2 mt-1 text-sm font-semibold text-rh-green hover:text-rh-green/80 transition-colors"
         >
           More
@@ -2052,7 +1990,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       ) : subTab === 'screener' ? (
         <ScreenerView stocks={allStocks} onTickerClick={onTickerClick} />
       ) : subTab === 'congress' ? (
-        <CongressTradesSection portfolio onTickerClick={onTickerClick} limit={30} />
+        <CongressTradesSection onTickerClick={onTickerClick} limit={50} />
       ) : (
         <Suspense fallback={<div className="flex items-center justify-center py-20"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
           <CreatorDiscoverSection onUserClick={onUserClick} />
