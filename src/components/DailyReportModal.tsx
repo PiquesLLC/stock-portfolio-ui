@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, getEconomicCalendar, getPortfolioNews, EarningsSummaryItem, MarketSentiment, EconomicCalendarEvent, PortfolioNewsResponse } from '../api';
 import { DailyReportResponse, Portfolio, HeatmapSector, DividendEvent } from '../types';
-import { timeAgo } from '../utils/format';
+import { timeAgo, isEffectivelyZero } from '../utils/format';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { toPng } from 'html-to-image';
 
@@ -270,9 +270,6 @@ function Section({ title, defaultOpen = true, children }: { title: string; defau
   );
 }
 
-function isEffectivelyZero(pct: number): boolean {
-  return Math.abs(pct) < 0.005;
-}
 
 // Sector → ETF ticker mapping
 const SECTOR_ETF_MAP: Record<string, string> = {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { discoverCreators, subscribeToCreator, DiscoverCreatorEntry } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { useIsDark } from '../hooks/useIsDark';
 
 type SortOption = 'popular' | 'newest' | 'price_low' | 'price_high' | 'performance';
 
@@ -15,9 +14,6 @@ const SORT_LABELS: Record<SortOption, string> = {
   price_high: 'Price: High \u2192 Low',
 };
 
-function trackEvent(name: string, props?: Record<string, unknown>) {
-  console.log('[Analytics]', name, props);
-}
 
 interface CreatorDiscoverSectionProps {
   onUserClick?: (userId: string) => void;
@@ -25,7 +21,6 @@ interface CreatorDiscoverSectionProps {
 
 export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionProps) {
   const { isAuthenticated } = useAuth();
-  const isDark = useIsDark();
   const [creators, setCreators] = useState<DiscoverCreatorEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -90,18 +85,6 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
     return () => { mountedRef.current = false; };
   }, [fetchCreators]);
 
-  // Analytics: page view
-  useEffect(() => {
-    trackEvent('discovery_page_view');
-  }, []);
-
-  // Analytics: filter change
-  useEffect(() => {
-    if (!loading) {
-      trackEvent('discovery_filter_change', { sort, search: debouncedSearch });
-    }
-  }, [sort, debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleLoadMore = () => {
     if (nextCursor && !loadingMore) {
       fetchCreators(nextCursor);
@@ -116,7 +99,6 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
       return;
     }
 
-    trackEvent('discovery_subscribe_click', { userId: creator.userId, pricingCents: creator.pricingCents });
     setSubscribingId(creator.userId);
     try {
       const { url } = await subscribeToCreator(creator.userId);
@@ -127,7 +109,6 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
   };
 
   const handleViewCreator = (creator: DiscoverCreatorEntry) => {
-    trackEvent('discovery_card_click', { userId: creator.userId });
     onUserClick?.(creator.userId);
   };
 
@@ -153,7 +134,7 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} isDark={isDark} />
+            <SkeletonCard key={i} />
           ))}
         </div>
       </div>
@@ -245,7 +226,6 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
             onView={() => handleViewCreator(creator)}
             onSubscribe={() => handleSubscribe(creator)}
             subscribing={subscribingId === creator.userId}
-            isDark={isDark}
           />
         ))}
       </div>
@@ -440,13 +420,11 @@ function CreatorCard({
   onView,
   onSubscribe,
   subscribing,
-  isDark: _isDark,
 }: {
   creator: DiscoverCreatorEntry;
   onView: () => void;
   onSubscribe: () => void;
   subscribing: boolean;
-  isDark: boolean;
 }) {
   const ret = creator.returnPct ?? null;
   const retUp = (ret ?? 0) >= 0;
@@ -562,7 +540,7 @@ function CreatorCard({
 
 /* ─── Skeleton Card ─── */
 
-function SkeletonCard({ isDark: _isDark }: { isDark: boolean }) {
+function SkeletonCard() {
   return (
     <div className="relative overflow-hidden p-5 animate-pulse border-b border-rh-light-border/20 dark:border-rh-border/20 sm:border sm:border-rh-light-border/10 sm:dark:border-rh-border/10 sm:rounded-xl">
 

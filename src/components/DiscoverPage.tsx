@@ -4,7 +4,8 @@ import { SectorPerformanceChart } from './SectorPerformanceChart';
 import { CongressTradesSection } from './CongressTradesSection';
 import { SectorRotationGraph } from './SectorRotationGraph';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, isEffectivelyZero, getHeatColor } from '../utils/format';
+import { formatVolume } from '../utils/stock-chart';
 import { StockLogo } from './StockLogo';
 import { useIsDark } from '../hooks/useIsDark';
 import { useTreemapLayout } from '../hooks/useTreemapLayout';
@@ -17,10 +18,6 @@ import {
 
 const CreatorDiscoverSection = lazy(() => import('./CreatorDiscoverSection').then(m => ({ default: m.CreatorDiscoverSection })));
 
-/** Returns true when a percent change is effectively zero (rounds to +0.00% or -0.00%) */
-function isEffectivelyZero(pct: number): boolean {
-  return Math.abs(pct) < 0.005;
-}
 
 interface DiscoverPageProps {
   onTickerClick: (ticker: string) => void;
@@ -151,53 +148,6 @@ function doLayout<T>(
 }
 
 // --- Finviz-matched color palette ---
-// Finviz uses a visible slate gray at 0% and bright saturated colors.
-// Even small moves (±0.5%) have a clear tint — nothing looks near-black.
-
-function getHeatColor(pct: number): string {
-  const c = Math.max(-5, Math.min(5, pct));
-
-  // Finviz-style palette: power curve so even ±0.3% shows visible color
-  const bR = 62, bG = 66, bB = 78;
-
-  if (c > 0) {
-    const t = Math.pow(Math.min(c / 2.5, 1), 0.55);
-    // Dark base → rich green (rgb(18,170,36))
-    const r = Math.round(bR + (18 - bR) * t);
-    const g = Math.round(bG + (170 - bG) * t);
-    const b = Math.round(bB + (36 - bB) * t);
-    return `rgb(${r},${g},${b})`;
-  } else if (c < 0) {
-    const t = Math.pow(Math.min(Math.abs(c) / 2.5, 1), 0.55);
-    // Dark base → deep red (rgb(200,58,50))
-    const r = Math.round(bR + (200 - bR) * t);
-    const g = Math.round(bG + (58 - bG) * t);
-    const b = Math.round(bB + (50 - bB) * t);
-    return `rgb(${r},${g},${b})`;
-  }
-  return `rgb(${bR},${bG},${bB})`;
-}
-
-function getHeatColorLight(pct: number): string {
-  const c = Math.max(-5, Math.min(5, pct));
-  // Power curve so even ±0.2% shows clear color — less grey overall
-  const bR = 200, bG = 202, bB = 206;
-
-  if (c > 0) {
-    const t = Math.pow(Math.min(c / 2.5, 1), 0.55);
-    const r = Math.round(bR + (30 - bR) * t);
-    const g = Math.round(bG + (175 - bG) * t);
-    const b = Math.round(bB + (45 - bB) * t);
-    return `rgb(${r},${g},${b})`;
-  } else if (c < 0) {
-    const t = Math.pow(Math.min(Math.abs(c) / 2.5, 1), 0.55);
-    const r = Math.round(bR + (215 - bR) * t);
-    const g = Math.round(bG + (55 - bG) * t);
-    const b = Math.round(bB + (50 - bB) * t);
-    return `rgb(${r},${g},${b})`;
-  }
-  return `rgb(${bR},${bG},${bB})`;
-}
 
 // Dampen market cap so mega-caps don't eat the whole map.
 // Uses a floor ratio to guarantee every stock gets at least minRatio of the
@@ -652,7 +602,7 @@ function Treemap({
                         >
                           <rect
                             x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
-                            fill={isDark ? getHeatColor(r.stock.changePercent) : getHeatColorLight(r.stock.changePercent)}
+                            fill={getHeatColor(r.stock.changePercent, isDark)}
                             stroke={isHovered ? '#fff' : tileStroke}
                             strokeWidth={isHovered ? 1.5 : 0.5}
                             opacity={opacity}
@@ -724,7 +674,7 @@ function Treemap({
                       >
                         <rect
                           x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
-                          fill={isDark ? getHeatColor(r.stock.changePercent) : getHeatColorLight(r.stock.changePercent)}
+                          fill={getHeatColor(r.stock.changePercent, isDark)}
                           stroke={isHovered ? '#fff' : tileStroke}
                           strokeWidth={isHovered ? 1.5 : 0.5}
                           opacity={opacity}
@@ -885,7 +835,7 @@ function ColorLegend() {
           <div
             className="w-10 h-3.5"
             style={{
-              background: isDark ? getHeatColor(pct) : getHeatColorLight(pct),
+              background: getHeatColor(pct, isDark),
               borderRadius: pct === -3 ? '3px 0 0 3px' : pct === 3 ? '0 3px 3px 0' : 0,
             }}
           />
@@ -1028,12 +978,6 @@ type SectorInnerTab = 'heatmap' | 'performance' | 'movement';
 
 /* ─── Top 100 by Volume ─── */
 
-function formatVolume(vol: number): string {
-  if (vol >= 1_000_000_000) return `${(vol / 1_000_000_000).toFixed(1)}B`;
-  if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
-  if (vol >= 1_000) return `${(vol / 1_000).toFixed(0)}K`;
-  return vol.toLocaleString();
-}
 
 function formatMktCap(b: number): string {
   if (b >= 1000) return `$${(b / 1000).toFixed(1)}T`;
@@ -1157,7 +1101,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
     });
   }, [filtered, sortKey, sortDir]);
 
-  const maxVol = filtered.length > 0 ? Math.max(...filtered.map(s => s.volume ?? 0)) : 1;
+  const maxVol = useMemo(() => filtered.length > 0 ? Math.max(...filtered.map(s => s.volume ?? 0)) : 1, [filtered]);
 
 
   if (withVolume.length === 0) {

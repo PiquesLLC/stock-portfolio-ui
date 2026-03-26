@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { isEffectivelyZero, changeColorClass } from '../utils/format';
 
 export interface TickerTapeItem {
   ticker: string;
@@ -11,10 +12,6 @@ interface TickerTapeProps {
   holdings: TickerTapeItem[];
   indices: TickerTapeItem[];
   onTickerClick: (ticker: string) => void;
-}
-
-function isEffectivelyZero(pct: number): boolean {
-  return Math.abs(pct) < 0.005;
 }
 
 function useIsDesktop(): boolean {
@@ -39,11 +36,6 @@ function formatPrice(price: number): string {
 function formatChange(pct: number): string {
   if (isEffectivelyZero(pct)) return '0.00%';
   return (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
-}
-
-function changeColorClass(pct: number): string {
-  if (isEffectivelyZero(pct)) return 'text-rh-light-muted dark:text-rh-muted';
-  return pct >= 0 ? 'text-rh-green' : 'text-rh-red';
 }
 
 /**

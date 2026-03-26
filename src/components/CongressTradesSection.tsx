@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CongressTrade, getCongressTrades, getCongressTradesForPortfolio, getCongressTradesForTicker } from '../api';
+import { formatShortDate } from '../utils/format';
 
 function formatAmount(low: number, high: number): string {
   const fmt = (n: number) => {
@@ -11,9 +12,6 @@ function formatAmount(low: number, high: number): string {
   return `${fmt(low)} – ${fmt(high)}`;
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
 
 type Filter = 'all' | 'buy' | 'sell' | 'senate' | 'house';
 
@@ -72,10 +70,12 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
     return { buys, sells, senators, reps, total: trades.length };
   }, [trades]);
 
+  const title = <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Congressional Trading</h3>;
+
   if (loading) {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Congressional Trading</h3>
+        {title}
         <div className="space-y-0">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 py-3.5 border-b border-rh-light-border/20 dark:border-rh-border/20 animate-pulse">
@@ -95,7 +95,7 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
   if (error || trades.length === 0) {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Congressional Trading</h3>
+        {title}
         <p className="text-sm text-rh-light-muted dark:text-rh-muted py-8 text-center">
           {error ? 'Failed to load congressional trades — try again later.' : 'No congressional trades found.'}
         </p>
@@ -108,7 +108,7 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
       {/* Title + stats */}
       <div className="space-y-1">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Congressional Trading</h3>
+          {title}
           <span className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40">{stats.total} trades</span>
         </div>
         <div className="flex items-baseline gap-1.5">
@@ -205,7 +205,7 @@ export function CongressTradesSection({ ticker, portfolio, onTickerClick, limit 
 
               {/* Date */}
               <span className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/40 shrink-0">
-                {formatDate(trade.tradeDate)}
+                {formatShortDate(trade.tradeDate)}
               </span>
             </div>
           );
