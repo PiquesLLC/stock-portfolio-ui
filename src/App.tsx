@@ -22,6 +22,7 @@ import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { DailyReportModal } from './components/DailyReportModal';
+import { HomeBriefingCard } from './components/HomeBriefingCard';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { SupportPage } from './components/SupportPage';
@@ -1513,6 +1514,16 @@ export default function App() {
                   onOpenAddStock={() => holdingsActionsRef.current?.openAdd()}
                 />
               </Suspense>
+            )}
+
+            {/* Daily briefing card — personalized greeting */}
+            {portfolio && portfolio.holdings.length > 0 && (
+              <HomeBriefingCard
+                portfolioId={selectedPortfolioId || undefined}
+                displayName={user?.displayName || user?.username}
+                onReadMore={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
+                onTickerClick={(ticker) => { setViewingStock({ ticker, holding: findHolding(ticker) }); }}
+              />
             )}
 
             {/* Portfolio picker is now in the desktop nav tab dropdown */}
