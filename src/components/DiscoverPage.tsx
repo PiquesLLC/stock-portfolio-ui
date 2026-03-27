@@ -17,6 +17,7 @@ import {
 } from '../hooks/useScreenerFilters';
 
 const CreatorDiscoverSection = lazy(() => import('./CreatorDiscoverSection').then(m => ({ default: m.CreatorDiscoverSection })));
+import { ValueRadar } from './ValueRadar';
 
 
 interface DiscoverPageProps {
@@ -32,6 +33,7 @@ function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; sectorInner
   if (!raw) return { subTab: 'sectors', sectorInner: 'heatmap' };
   if (raw === 'top100') return { subTab: 'top100' };
   if (raw === 'screener') return { subTab: 'screener' };
+  if (raw === 'value-radar') return { subTab: 'value-radar' };
   if (raw === 'creators') return { subTab: 'creators' };
   // Backward compat: old 'heatmap' and 'movement' map into sectors inner tabs
   if (raw === 'heatmap') return { subTab: 'sectors', sectorInner: 'heatmap' };
@@ -973,7 +975,7 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'sectors' | 'top100' | 'screener' | 'creators' | 'congress';
+type DiscoverSubTab = 'sectors' | 'top100' | 'value-radar' | 'screener' | 'creators' | 'congress';
 type SectorInnerTab = 'heatmap' | 'performance' | 'movement';
 
 /* ─── Top 100 by Volume ─── */
@@ -1895,6 +1897,9 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <button onClick={() => setSubTab('top100')} className={tabClass(subTab === 'top100')}>
           Top 100
         </button>
+        <button onClick={() => setSubTab('value-radar')} className={tabClass(subTab === 'value-radar')}>
+          Value Radar
+        </button>
         <button onClick={() => setSubTab('screener')} className={tabClass(subTab === 'screener')}>
           Screener
         </button>
@@ -1931,6 +1936,8 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         </div>
       ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
+      ) : subTab === 'value-radar' ? (
+        <ValueRadar onTickerClick={onTickerClick} />
       ) : subTab === 'screener' ? (
         <ScreenerView stocks={allStocks} onTickerClick={onTickerClick} />
       ) : subTab === 'congress' ? (

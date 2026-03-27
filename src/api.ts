@@ -2153,6 +2153,33 @@ export async function getMarketSentiment(): Promise<MarketSentiment> {
   return fetchJson<MarketSentiment>(`${API_BASE_URL}/market/sentiment`);
 }
 
+// Value Radar
+export interface ValueRadarStock {
+  ticker: string;
+  name: string;
+  sector: string;
+  subSector: string;
+  price: number;
+  marketCapB: number;
+  currentPE: number;
+  avgPE: number;
+  discountPct: number;
+  tier: 'deep_value' | 'attractive' | 'fair' | 'expensive';
+  peHistory: { year: number; pe: number }[];
+  yearsOfData: number;
+}
+
+export interface ValueRadarResponse {
+  stocks: ValueRadarStock[];
+  totalStocks: number;
+  generatedAt: string;
+  cached: boolean;
+}
+
+export async function getValueRadar(): Promise<ValueRadarResponse> {
+  return fetchJson<ValueRadarResponse>(`${API_BASE_URL}/market/value-radar`);
+}
+
 // Cash Interest
 export interface CashInterestAccrual {
   cashBalance: number;
