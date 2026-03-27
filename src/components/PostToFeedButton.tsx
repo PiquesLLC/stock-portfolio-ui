@@ -41,7 +41,7 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
 
         const brand = el.querySelector('[data-capture-brand]') as HTMLElement | null;
         if (brand) {
-          brand.style.opacity = '0.4';
+          brand.style.opacity = '1';
           restoreFns.push(() => { brand.style.opacity = '0'; });
         }
 

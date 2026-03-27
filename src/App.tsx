@@ -426,13 +426,16 @@ export default function App() {
     return () => document.removeEventListener('pointerdown', handler);
   }, [moreDropdownOpen]);
 
-  // Close desktop portfolio dropdown on outside click
+  // Close desktop portfolio dropdown on outside click (but not when interacting with portaled modals)
   useEffect(() => {
     if (!desktopPortfolioOpen) return;
     const handler = (e: PointerEvent) => {
-      if (desktopPortfolioRef.current && !desktopPortfolioRef.current.contains(e.target as Node)) {
-        setDesktopPortfolioOpen(false);
-      }
+      const target = e.target as HTMLElement;
+      // Don't close if clicking inside the dropdown ref
+      if (desktopPortfolioRef.current && desktopPortfolioRef.current.contains(target)) return;
+      // Don't close if clicking inside a portaled modal (delete confirmation, etc.)
+      if (target.closest('[role="dialog"]') || target.closest('.fixed.inset-0')) return;
+      setDesktopPortfolioOpen(false);
     };
     document.addEventListener('pointerdown', handler);
     return () => document.removeEventListener('pointerdown', handler);

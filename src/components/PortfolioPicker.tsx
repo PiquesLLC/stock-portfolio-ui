@@ -79,8 +79,10 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
   };
 
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const handleDelete = async (id: string) => {
     setDeleting(true);
+    setDeleteError(null);
     try {
       await deletePortfolio(id);
       setPortfolios(prev => prev.filter(p => p.id !== id));
@@ -88,9 +90,10 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
       if (selectedPortfolioId === id) {
         onSelect(undefined);
       }
-    } catch (err: any) {
-      console.error('Portfolio delete failed:', err);
-      setConfirmDelete(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Portfolio delete failed:', msg);
+      setDeleteError(msg);
     } finally {
       setDeleting(false);
     }
@@ -186,8 +189,8 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
         const p = displayPortfolios.find(x => x.id === confirmDelete);
         if (!p) return null;
         return createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}>
-            <div className="bg-white dark:bg-[#1a1a1e] rounded-2xl shadow-2xl p-6 w-[320px] mx-4 border border-gray-200/60 dark:border-white/[0.08]" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onPointerDown={(e) => { if (e.target === e.currentTarget) setConfirmDelete(null); }}>
+            <div className="bg-white dark:bg-[#1a1a1e] rounded-2xl shadow-2xl p-6 w-[320px] mx-4 border border-gray-200/60 dark:border-white/[0.08]">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-500/10">
                 <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -200,15 +203,18 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
                   <span className="block text-red-400 text-xs mt-1">{p.holdingsCount} holding{p.holdingsCount === 1 ? '' : 's'} will be permanently removed.</span>
                 )}
               </p>
+              {deleteError && (
+                <p className="text-xs text-red-400 text-center mb-3">{deleteError}</p>
+              )}
               <div className="flex gap-3">
                 <button
-                  onClick={() => setConfirmDelete(null)}
+                  onClick={() => { setConfirmDelete(null); setDeleteError(null); }}
                   className="flex-1 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleDelete(p.id)}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.log('DELETE CLICKED', p.id); handleDelete(p.id); }}
                   disabled={deleting}
                   className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
                 >

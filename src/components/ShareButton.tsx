@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { toJpeg } from 'html-to-image';
 import { API_BASE_URL } from '../config';
 
 type ShareCardType = 'stock' | 'performance';
@@ -127,6 +128,66 @@ export function ShareButton(props: ShareButtonProps) {
 
   const isMobile = isMobileDevice();
 
+  /** Capture the portfolio chart DOM as a Blob, matching PostToFeedButton's approach */
+  const captureChartBlob = useCallback(async (): Promise<Blob | null> => {
+    const el = document.querySelector('[data-capture-id="portfolio-chart"]') as HTMLElement | null;
+    console.log('[ShareButton] capture element:', el ? 'found' : 'NOT FOUND');
+    if (!el) return null;
+
+    const restoreFns: (() => void)[] = [];
+    const brand = el.querySelector('[data-capture-brand]') as HTMLElement | null;
+    if (brand) { brand.style.opacity = '1'; restoreFns.push(() => { brand.style.opacity = '0'; }); }
+
+    const hero = el.querySelector('[data-capture-hero]') as HTMLElement | null;
+    if (hero) {
+      const origPad = hero.style.padding;
+      const origMin = hero.style.minHeight;
+      hero.style.padding = '28px 24px 16px 24px';
+      hero.style.minHeight = '180px';
+      restoreFns.push(() => { hero.style.padding = origPad; hero.style.minHeight = origMin; });
+    }
+
+    try {
+      console.log('[ShareButton] starting toJpeg capture...');
+      const dataUrl = await toJpeg(el, {
+        quality: isMobile ? 0.75 : 0.9,
+        backgroundColor: '#000000',
+        pixelRatio: isMobile ? 1 : 2,
+        filter: (node: HTMLElement) => {
+          if (node.classList?.contains('z-20')) return false;
+          if (node.getAttribute?.('data-capture-skip') === 'true') return false;
+          return true;
+        },
+      });
+      // Convert data URL to blob without fetch (avoids CSP connect-src issues)
+      const parts = dataUrl.split(',');
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const raw = atob(parts[1]);
+      const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    } catch (err) {
+      console.error('Chart capture failed:', err);
+      return null;
+    } finally {
+      restoreFns.forEach(fn => fn());
+    }
+  }, [isMobile]);
+
+  /** Get the image blob — capture from DOM for portfolio, fetch from server for stock */
+  const getShareBlob = useCallback(async (): Promise<Blob | null> => {
+    console.log('[ShareButton] getShareBlob called, type:', type);
+    if (type === 'performance') {
+      const captured = await captureChartBlob();
+      console.log('[ShareButton] capture result:', captured ? `${captured.size} bytes` : 'null — falling back to server');
+      if (captured) return captured;
+    }
+    // Fallback to server-generated card
+    const res = await fetch(getCardUrl(type, props), { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.blob();
+  }, [type, props, captureChartBlob]);
+
   const handleClick = useCallback(() => {
     // On mobile with native share, go directly to native share
     if (isMobile && typeof navigator.share === 'function') {
@@ -141,10 +202,9 @@ export function ShareButton(props: ShareButtonProps) {
     setMenuOpen(false);
     setLoading(true);
     try {
-      const res = await fetch(getCardUrl(type, props), { cache: 'no-store' });
-      if (!res.ok) throw new Error('fetch failed');
-      const blob = await res.blob();
-      const file = new File([blob], getFileName(type, props), { type: 'image/png' });
+      const blob = await getShareBlob();
+      if (!blob) throw new Error('capture failed');
+      const file = new File([blob], getFileName(type, props), { type: blob.type || 'image/png' });
       const shareUrl = getShareUrl(type, props);
 
       if (navigator.canShare?.({ files: [file] })) {
@@ -168,7 +228,7 @@ export function ShareButton(props: ShareButtonProps) {
     } finally {
       setLoading(false);
     }
-  }, [type, props]);
+  }, [type, props, getShareBlob, showToast]);
 
   const handleCopyLink = useCallback(async () => {
     setMenuOpen(false);
@@ -197,10 +257,9 @@ export function ShareButton(props: ShareButtonProps) {
 
     const download = async () => {
       try {
-        const res = await fetch(getCardUrl(type, props), { cache: 'no-store' });
-        if (!res.ok) throw new Error('fetch failed');
+        const blob = await getShareBlob();
+        if (!blob) throw new Error('capture failed');
 
-        const blob = await res.blob();
         const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objectUrl;
@@ -216,38 +275,99 @@ export function ShareButton(props: ShareButtonProps) {
     };
 
     void download();
-  }, [type, props, showToast]);
+  }, [type, props, showToast, getShareBlob]);
+
+  /** Compose a 1080x1920 vertical story image from the chart capture */
+  const buildStoryImage = useCallback(async (chartBlob: Blob): Promise<Blob> => {
+    const W = 1080, H = 1920;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+
+    // Black background
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, W, H);
+
+    // Load chart image
+    const chartImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(chartBlob);
+    });
+
+    // Scale chart to fit width, center vertically
+    const scale = W / chartImg.width;
+    const chartH = chartImg.height * scale;
+    const chartY = (H - chartH) / 2 - 40;
+    ctx.drawImage(chartImg, 0, chartY, W, chartH);
+    URL.revokeObjectURL(chartImg.src);
+
+    // Load logo
+    try {
+      const logoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = '/north-signal-logo-transparent.png';
+      });
+      const logoSize = 64;
+      const logoX = (W - logoSize) / 2;
+      const logoY = chartY + chartH + 60;
+      ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+
+      // "NalaAI.com" text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('NalaAI.com', W / 2, logoY + logoSize + 36);
+
+      // Subtitle
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('Portfolio Intelligence Platform', W / 2, logoY + logoSize + 62);
+    } catch { /* logo failed, skip branding */ }
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((b) => b ? resolve(b) : reject(new Error('canvas toBlob returned null')), 'image/png');
+    });
+  }, []);
 
   const handleShareInstagram = useCallback(() => {
     setMenuOpen(false);
-    // Instagram doesn't have a direct web share URL for Stories.
-    // Best approach: download the image, then prompt user to share via Stories.
-    // On mobile, the native share sheet includes Instagram if installed.
-    if (isMobile && typeof navigator.share === 'function') {
-      handleNativeShare();
-      return;
-    }
-    // Desktop fallback: download the image and show instructions
-    const download = async () => {
+
+    const share = async () => {
       try {
-        const res = await fetch(getCardUrl(type, props), { cache: 'no-store' });
-        if (!res.ok) throw new Error('fetch failed');
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
+        const chartBlob = await getShareBlob();
+        if (!chartBlob) throw new Error('capture failed');
+
+        const storyBlob = await buildStoryImage(chartBlob);
+        const storyFile = new File([storyBlob], 'nala-story.png', { type: 'image/png' });
+
+        // On mobile with native share, use share sheet (includes Instagram)
+        if (isMobile && typeof navigator.share === 'function' && navigator.canShare?.({ files: [storyFile] })) {
+          await navigator.share({ files: [storyFile], title: 'My portfolio on Nala' });
+          return;
+        }
+
+        // Desktop: download the story image
+        const objectUrl = URL.createObjectURL(storyBlob);
         const a = document.createElement('a');
         a.href = objectUrl;
-        a.download = getFileName(type, props);
+        a.download = 'nala-story.png';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(objectUrl);
-        showToast('Image saved — share to Instagram Stories');
-      } catch {
+        showToast('Story image saved');
+      } catch (err) {
+        console.error('[ShareButton] Instagram story failed:', err);
         showToast('Failed');
       }
     };
-    void download();
-  }, [type, props, isMobile, handleNativeShare, showToast]);
+    void share();
+  }, [isMobile, getShareBlob, buildStoryImage, showToast]);
 
   const handleShareMore = useCallback(async () => {
     setMenuOpen(false);

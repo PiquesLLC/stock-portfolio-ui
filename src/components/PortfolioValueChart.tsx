@@ -1030,13 +1030,17 @@ export function PortfolioValueChart({
 
   return (
     <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-0 sm:pt-5' : 'pt-5'} pb-3`} data-capture-id="portfolio-chart">
-      {/* Nala branding — hidden normally, visible only in html2canvas captures */}
-      <img
-        src="/north-signal-logo-transparent.png"
-        alt=""
-        className="absolute bottom-3 right-3 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 opacity-0 z-10 pointer-events-none"
+      {/* Nala branding — hidden normally, visible only during share captures */}
+      <div
+        className="absolute bottom-12 right-3 sm:right-6 z-10 pointer-events-none flex items-center gap-2 opacity-0"
         data-capture-brand="true"
-      />
+      >
+        <img src="/north-signal-logo-transparent.png" alt="" className="w-12 h-12" />
+        <div>
+          <div className="text-white text-sm font-bold leading-tight">NalaAI.com</div>
+          <div className="text-white/40 text-[9px] leading-tight">Portfolio Intelligence Platform</div>
+        </div>
+      </div>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
       <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ minHeight: '150px' }} data-capture-hero="true">
         {/* Hero value display — always visible */}

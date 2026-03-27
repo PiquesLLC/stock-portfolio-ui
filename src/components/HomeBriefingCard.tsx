@@ -42,10 +42,13 @@ function highlightTickers(text: string, onTickerClick?: (ticker: string) => void
   });
 }
 
-export function HomeBriefingCard({ portfolioId, displayName, userId, username, onReadMore, onTickerClick, briefingOpened }: HomeBriefingCardProps) {
+export function HomeBriefingCard({ portfolioId, displayName, onReadMore, onTickerClick, briefingOpened }: HomeBriefingCardProps) {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return localStorage.getItem('nala_briefing_dismissed') === today;
+  });
 
   useEffect(() => {
     getPortfolioBriefing(portfolioId, 'daily')
@@ -81,7 +84,7 @@ export function HomeBriefingCard({ portfolioId, displayName, userId, username, o
     <div className="relative bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-4 group">
       {/* Dismiss */}
       <button
-        onClick={() => setDismissed(true)}
+        onClick={() => { setDismissed(true); localStorage.setItem('nala_briefing_dismissed', new Date().toISOString().split('T')[0]); }}
         className="absolute top-3 right-3 text-rh-light-muted/40 dark:text-rh-muted/30 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
         aria-label="Dismiss"
       >
