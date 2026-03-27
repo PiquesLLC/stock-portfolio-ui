@@ -1521,6 +1521,8 @@ export default function App() {
               <HomeBriefingCard
                 portfolioId={selectedPortfolioId || undefined}
                 displayName={user?.displayName || user?.username}
+                userId={user?.id}
+                username={user?.username}
                 onReadMore={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
                 onTickerClick={(ticker) => { setViewingStock({ ticker, holding: findHolding(ticker) }); }}
               />

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { getPortfolioBriefing, PortfolioBriefingResponse } from '../api';
+import { ShareButton } from './ShareButton';
 
 interface HomeBriefingCardProps {
   portfolioId?: string;
   displayName?: string;
+  userId?: string;
+  username?: string;
   onReadMore: () => void;
   onTickerClick?: (ticker: string) => void;
 }
@@ -37,7 +40,7 @@ function highlightTickers(text: string, onTickerClick?: (ticker: string) => void
   });
 }
 
-export function HomeBriefingCard({ portfolioId, displayName, onReadMore, onTickerClick }: HomeBriefingCardProps) {
+export function HomeBriefingCard({ portfolioId, displayName, userId, username, onReadMore, onTickerClick }: HomeBriefingCardProps) {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
@@ -103,12 +106,17 @@ export function HomeBriefingCard({ portfolioId, displayName, onReadMore, onTicke
             </p>
           )}
 
-          <button
-            onClick={onReadMore}
-            className="mt-2 text-[11px] font-medium text-rh-green hover:text-rh-green/80 transition-colors"
-          >
-            Read full briefing →
-          </button>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              onClick={onReadMore}
+              className="text-[11px] font-medium text-rh-green hover:text-rh-green/80 transition-colors"
+            >
+              Read full briefing →
+            </button>
+            {userId && (
+              <ShareButton type="performance" userId={userId} username={username} period="1D" size="sm" />
+            )}
+          </div>
         </div>
       </div>
     </div>
