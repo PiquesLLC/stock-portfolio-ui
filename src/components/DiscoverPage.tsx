@@ -1874,7 +1874,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
   }, []);
 
   const tabClass = (active: boolean) =>
-    `px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+    `px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
       active
         ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
         : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
@@ -1890,7 +1890,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
   return (
     <div className="space-y-3">
       {/* Top-level tab bar */}
-      <div className="flex gap-1 p-1 w-fit">
+      <div className="flex gap-1 p-1 w-full overflow-x-auto no-scrollbar">
         <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
           Sectors
         </button>
@@ -1937,7 +1937,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'value-radar' ? (
-        <ValueRadar onTickerClick={onTickerClick} />
+        <ValueRadar onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'screener' ? (
         <ScreenerView stocks={allStocks} onTickerClick={onTickerClick} />
       ) : subTab === 'congress' ? (

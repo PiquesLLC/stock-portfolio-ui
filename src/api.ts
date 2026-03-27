@@ -2167,6 +2167,16 @@ export interface ValueRadarStock {
   tier: 'deep_value' | 'attractive' | 'fair' | 'expensive';
   peHistory: { year: number; pe: number }[];
   yearsOfData: number;
+  dividendYield: number | null;
+  forwardPE: number | null;
+  beta: number | null;
+  week52High: number | null;
+  week52Low: number | null;
+  week52Pos: number | null;
+  returnOnEquity: number | null;
+  profitMargin: number | null;
+  analystTargetPrice: number | null;
+  upsideToTarget: number | null;
 }
 
 export interface ValueRadarResponse {

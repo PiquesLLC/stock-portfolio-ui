@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { API_BASE_URL } from '../config';
 
 type ShareCardType = 'stock' | 'performance';
@@ -40,11 +41,12 @@ function isMobileDevice(): boolean {
 
 function getCardUrl(type: ShareCardType, props: ShareButtonProps): string {
   const cacheBust = `&_t=${Date.now()}`;
+  const tz = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
   switch (type) {
     case 'stock':
-      return `${API_BASE_URL}/social/stock/${props.ticker}/share-card?period=${props.period || '1W'}${cacheBust}`;
+      return `${API_BASE_URL}/social/stock/${props.ticker}/share-card?period=${props.period || '1W'}&tz=${tz}${cacheBust}`;
     case 'performance':
-      return `${API_BASE_URL}/social/${props.userId}/performance-card?period=${props.period || '1M'}${cacheBust}`;
+      return `${API_BASE_URL}/social/${props.userId}/performance-card?period=${props.period || '1M'}&tz=${tz}${cacheBust}`;
   }
 }
 
@@ -91,19 +93,29 @@ export function ShareButton(props: ShareButtonProps) {
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<React.CSSProperties>({});
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 2000);
   }, []);
 
+  // Position dropdown relative to button when menu opens
+  useEffect(() => {
+    if (!menuOpen || !menuRef.current) return;
+    const rect = menuRef.current.getBoundingClientRect();
+    setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+  }, [menuOpen]);
+
   // Close menu on click/tap outside
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent | TouchEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      const target = e.target as Node;
+      if (menuRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setMenuOpen(false);
     };
     document.addEventListener('pointerdown', handler);
     document.addEventListener('touchstart', handler);
@@ -274,9 +286,13 @@ export function ShareButton(props: ShareButtonProps) {
         </span>
       )}
 
-      {/* Dropdown menu */}
-      {menuOpen && (
-        <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] py-1 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1e]/95 shadow-xl backdrop-blur-sm">
+      {/* Dropdown menu — portaled to body to escape parent backdrop-blur */}
+      {menuOpen && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed z-[9999] min-w-[160px] py-1 rounded-lg border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#111113] shadow-2xl"
+          style={dropdownPos}
+        >
           {/* Copy Link */}
           <button
             onClick={handleCopyLink}
@@ -336,7 +352,8 @@ export function ShareButton(props: ShareButtonProps) {
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

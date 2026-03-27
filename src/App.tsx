@@ -1523,6 +1523,7 @@ export default function App() {
                 displayName={user?.displayName || user?.username}
                 userId={user?.id}
                 username={user?.username}
+                briefingOpened={showDailyReport}
                 onReadMore={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
                 onTickerClick={(ticker) => { setViewingStock({ ticker, holding: findHolding(ticker) }); }}
               />

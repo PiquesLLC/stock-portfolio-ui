@@ -54,6 +54,7 @@ const TICKER_BLACKLIST = new Set([
   'YTD', 'QTD', 'MTD', 'ATH', 'ATL', 'EPS', 'ROE', 'ROA', 'ROI', 'NAV', 'AUM',
   'DCF', 'FCF', 'EBIT', 'WACC', 'CAGR', 'GAAP', 'IFRS',
   'SK', 'AI', 'EV', 'IV', 'PE', 'PB', 'PS',
+  'VIX', 'DXY', 'TNX', 'TLT', 'USD', 'EUR', 'GBP', 'JPY', 'CNY',
 ]);
 
 function formatDate(dateStr: string): string {

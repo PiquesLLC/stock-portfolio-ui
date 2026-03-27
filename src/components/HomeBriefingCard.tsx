@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getPortfolioBriefing, PortfolioBriefingResponse } from '../api';
-import { ShareButton } from './ShareButton';
+
 
 interface HomeBriefingCardProps {
   portfolioId?: string;
@@ -9,6 +9,8 @@ interface HomeBriefingCardProps {
   username?: string;
   onReadMore: () => void;
   onTickerClick?: (ticker: string) => void;
+  /** Hide the card if the daily report modal was already opened */
+  briefingOpened?: boolean;
 }
 
 function getGreeting(): string {
@@ -40,7 +42,7 @@ function highlightTickers(text: string, onTickerClick?: (ticker: string) => void
   });
 }
 
-export function HomeBriefingCard({ portfolioId, displayName, userId, username, onReadMore, onTickerClick }: HomeBriefingCardProps) {
+export function HomeBriefingCard({ portfolioId, displayName, userId, username, onReadMore, onTickerClick, briefingOpened }: HomeBriefingCardProps) {
   const [briefing, setBriefing] = useState<PortfolioBriefingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
@@ -54,7 +56,7 @@ export function HomeBriefingCard({ portfolioId, displayName, userId, username, o
       .finally(() => setLoading(false));
   }, [portfolioId]);
 
-  if (dismissed || (!loading && !briefing)) return null;
+  if (dismissed || briefingOpened || (!loading && !briefing)) return null;
 
   const greeting = getGreeting();
   const firstName = displayName?.split(' ')[0] || displayName;
@@ -80,7 +82,7 @@ export function HomeBriefingCard({ portfolioId, displayName, userId, username, o
       {/* Dismiss */}
       <button
         onClick={() => setDismissed(true)}
-        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-rh-light-muted/40 dark:text-rh-muted/30 hover:text-rh-light-muted dark:hover:text-rh-muted"
+        className="absolute top-3 right-3 text-rh-light-muted/40 dark:text-rh-muted/30 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
         aria-label="Dismiss"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -113,9 +115,6 @@ export function HomeBriefingCard({ portfolioId, displayName, userId, username, o
             >
               Read full briefing →
             </button>
-            {userId && (
-              <ShareButton type="performance" userId={userId} username={username} period="1D" size="sm" />
-            )}
           </div>
         </div>
       </div>
