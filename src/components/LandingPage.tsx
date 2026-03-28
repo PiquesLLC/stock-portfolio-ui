@@ -14,10 +14,12 @@ const GOOGLE_CLIENT_ID = getGoogleClientId();
 const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = isAppleOAuthEnabled();
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
-const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
-const DIRECT_SIGNUP_ENABLED = !WAITLIST_ENABLED || isNative;
+// Keep the waitlist form available, but never gate account creation in the UI.
+// The API remains the source of truth for approval.
+const DIRECT_SIGNUP_ENABLED = true;
 const EMAIL_INPUT_TYPE = isNative ? 'text' : 'email';
 const NATIVE_PUBLIC_API_URL = 'https://stock-portfolio-api-production.up.railway.app';
+const PENDING_AUTH_MODE_KEY = 'nala:pending-auth-mode';
 
 function isNativeRecoveryShell(): boolean {
   if (typeof window === 'undefined') return false;
@@ -48,7 +50,7 @@ function xhrPost(url: string, body: Record<string, string>): Promise<void> {
 
 /** Map raw API error codes to user-friendly messages */
 function friendlyError(msg: string): string {
-  if (msg === 'WAITLIST_NOT_APPROVED') return 'Login failed — your waitlist application has not been approved yet. For support, email support@nalaai.com';
+  if (msg === 'WAITLIST_NOT_APPROVED') return 'This email is not approved for account creation yet. Use the approved email address or contact support@nalaai.com.';
   return msg;
 }
 
@@ -102,8 +104,8 @@ export function LandingPage() {
   const openAuth = (mode: 'login' | 'signup' | 'waitlist') => { setAuthMode(mode); setAuthOpen(true); };
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
-  const ctaMode = DIRECT_SIGNUP_ENABLED ? 'signup' as const : 'waitlist' as const;
-  const ctaLabel = DIRECT_SIGNUP_ENABLED ? 'Open Account' : 'Join the Waitlist Now';
+  const ctaMode = 'signup' as const;
+  const ctaLabel = 'Open Account';
   const [resetEmail, setResetEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -129,13 +131,25 @@ export function LandingPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
+    let pendingAuthMode: string | null = null;
+    try {
+      pendingAuthMode = sessionStorage.getItem(PENDING_AUTH_MODE_KEY);
+      if (pendingAuthMode) sessionStorage.removeItem(PENDING_AUTH_MODE_KEY);
+    } catch {
+      pendingAuthMode = null;
+    }
     if (ref) {
       setReferralCode(ref);
       setAuthOpen(true);
-      setAuthMode(DIRECT_SIGNUP_ENABLED ? 'signup' : 'waitlist');
+      setAuthMode('signup');
     }
     const path = window.location.pathname.replace(/\/+$/, '');
-    if (path === '/invite' || params.get('approved') === '1' || window.location.hash === '#signup') {
+    if (
+      path === '/invite' ||
+      params.get('approved') === '1' ||
+      window.location.hash === '#signup' ||
+      pendingAuthMode === 'signup'
+    ) {
       setAuthOpen(true);
       setAuthMode('signup');
     }

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nala Invite</title>
+  </head>
+  <body>
+    <script>
+      try {
+        sessionStorage.setItem('nala:pending-auth-mode', 'signup');
+      } catch {}
+      window.location.replace('/');
+    </script>
+    <noscript>
+      <meta http-equiv="refresh" content="0; url=/" />
+      <p>Redirecting to Nala...</p>
+    </noscript>
+  </body>
+  </html>
