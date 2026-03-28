@@ -81,7 +81,12 @@ export function usePullToRefresh({
       setRefreshing(true);
       setPullY(50);
       onRefreshTriggered();
-      Promise.resolve(fetchDataRef.current()).finally(() => { setRefreshing(false); setPullY(0); });
+      Promise.resolve(fetchDataRef.current())
+        .catch(() => {})
+        .finally(() => {
+          setRefreshing(false);
+          setPullY(0);
+        });
     } else {
       setPullY(0);
     }

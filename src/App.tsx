@@ -549,7 +549,7 @@ export default function App() {
     setActiveTab,
     resetNavigation,
     fetchData: handleUpdate,
-    onRefreshTriggered: () => {},
+    onRefreshTriggered: handleUpdate,
     guards: { viewingStock, settingsView, creatorView, adminView, compareStocks, showOnboardingTour, showDailyReport, showPrivacyModal },
   });
 
