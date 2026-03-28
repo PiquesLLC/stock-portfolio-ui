@@ -123,6 +123,11 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
   useEffect(() => {
     mountedRef.current = true;
 
+    // Safety net: force loading=false after 20s no matter what
+    const safetyTimeout = setTimeout(() => {
+      if (mountedRef.current) setLoading(false);
+    }, 20_000);
+
     async function fetchUpcoming() {
       const fetchPortfolioId = portfolioId; // capture at call time
       // Use cache if fresh (keyed by portfolioId)
@@ -135,7 +140,10 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
 
       setLoading(true);
       try {
-        const { results } = await getEarningsSummary(portfolioId);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Earnings fetch timeout')), 15_000)
+        );
+        const { results } = await Promise.race([getEarningsSummary(portfolioId), timeoutPromise]);
         if (!mountedRef.current || fetchPortfolioId !== currentPortfolioIdRef.current) return;
 
         const mapped = results.map(toUpcomingEarning);
@@ -143,13 +151,17 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
         earningsUpcomingCache.set(portfolioId, { data: mapped, timestamp: Date.now() });
         setUpcoming(mapped);
       } catch {
-        // Fall through with empty
+        // Fall through with empty (includes timeout)
+      } finally {
+        if (mountedRef.current) setLoading(false);
       }
-      if (mountedRef.current) setLoading(false);
     }
 
     fetchUpcoming();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(safetyTimeout);
+    };
   }, [holdings, portfolioId]);
 
   const thisWeek = upcoming.filter(e => e.daysUntil <= 7);

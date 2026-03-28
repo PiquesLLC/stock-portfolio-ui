@@ -2184,6 +2184,7 @@ export interface ValueRadarResponse {
   totalStocks: number;
   generatedAt: string;
   cached: boolean;
+  preliminary: boolean;
 }
 
 export async function getValueRadar(): Promise<ValueRadarResponse> {

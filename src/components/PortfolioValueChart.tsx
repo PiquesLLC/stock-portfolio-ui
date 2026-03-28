@@ -13,6 +13,8 @@ import {
 import { computeChartGroups } from '../utils/chart-groups';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { ShareButton } from './ShareButton';
+import { PostToFeedButton } from './PostToFeedButton';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 /** Compute the ET date string and UTC→ET offset for a given date using the "noon trick". */
@@ -1826,7 +1828,7 @@ export function PortfolioValueChart({
       </div>
 
       {/* Period selector — left-aligned, compact; -ml-3 offsets first button's px-3 so text aligns with $ heading */}
-      <div className="flex items-center gap-0 mt-2 px-3 sm:px-6 -ml-1">
+      <div className="flex items-center gap-0 mt-2 px-3 sm:px-6 -ml-1" data-capture-skip="true">
         {PERIODS.map(period => {
           const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
           const isActive = selectedPeriod === period;
@@ -1861,6 +1863,13 @@ export function PortfolioValueChart({
             </button>
           );
         })}
+        {/* Share + Post — right-aligned on period row */}
+        {user && (
+          <div className="flex items-center gap-1 ml-auto">
+            <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={selectedPeriod} />
+            <PostToFeedButton type="portfolio" userId={user.id} period={selectedPeriod} />
+          </div>
+        )}
       </div>
       {/* Compare + hint — subtle secondary row; -ml-2.5 offsets button's px-2.5 */}
       <div className="flex items-center justify-between mt-1 px-3 sm:px-6 -ml-2.5" data-capture-skip="true">

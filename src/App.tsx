@@ -14,15 +14,12 @@ import { NotificationBell } from './components/NotificationBell';
 import { UserMenu } from './components/UserMenu';
 // AccountSettingsModal removed — replaced by full-page AccountSettingsPage
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
-import { ShareButton } from './components/ShareButton';
-import { PostToFeedButton } from './components/PostToFeedButton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { DailyReportModal } from './components/DailyReportModal';
-import { HomeBriefingCard } from './components/HomeBriefingCard';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { SupportPage } from './components/SupportPage';
@@ -1519,18 +1516,6 @@ export default function App() {
               </Suspense>
             )}
 
-            {/* Daily briefing card — personalized greeting */}
-            {portfolio && portfolio.holdings.length > 0 && (
-              <HomeBriefingCard
-                portfolioId={selectedPortfolioId || undefined}
-                displayName={user?.displayName || user?.username}
-                userId={user?.id}
-                username={user?.username}
-                briefingOpened={showDailyReport}
-                onReadMore={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
-                onTickerClick={(ticker) => { setViewingStock({ ticker, holding: findHolding(ticker) }); }}
-              />
-            )}
 
             {/* Portfolio picker is now in the desktop nav tab dropdown */}
 
@@ -1609,13 +1594,6 @@ export default function App() {
                       )}
                     </div>
                   )}
-                  {/* Share + Post — top-right */}
-                  <div className="absolute top-2 right-3 sm:top-2 sm:right-6 z-20">
-                    <div className="flex items-center gap-1">
-                      <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={chartPeriod || '1M'} />
-                      <PostToFeedButton type="portfolio" userId={user.id} period={chartPeriod || '1M'} />
-                    </div>
-                  </div>
                 </>
               )}
               <PortfolioValueChart
