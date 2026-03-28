@@ -208,7 +208,7 @@ const _RESERVED_PATHS = new Set([
   // UI tab names / routes
   'profile', 'discover', 'feed', 'pricing', 'macro', 'nala',
   // Common reserved words
-  'api', 'www', 'app', 'help', 'support', 'about', 'login', 'signup', 'register',
+  'api', 'www', 'app', 'help', 'support', 'about', 'login', 'signup', 'register', 'invite',
   'account', 'dashboard', 'home', 'index', 'privacy', 'terms', 'tos',
   'admin', 'system', 'favicon', 'robots', 'sitemap',
 ]);
