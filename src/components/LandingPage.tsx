@@ -100,6 +100,7 @@ export function LandingPage() {
 
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'waitlist' | 'forgot-password' | 'forgot-username' | 'reset-password'>('signup');
+  const closeAuth = () => { setAuthOpen(false); try { sessionStorage.removeItem(PENDING_AUTH_MODE_KEY); } catch {} };
   const openAuth = (mode: 'login' | 'signup' | 'waitlist') => { setAuthMode(mode); setAuthOpen(true); };
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
@@ -133,7 +134,6 @@ export function LandingPage() {
     let pendingAuthMode: string | null = null;
     try {
       pendingAuthMode = sessionStorage.getItem(PENDING_AUTH_MODE_KEY);
-      if (pendingAuthMode) sessionStorage.removeItem(PENDING_AUTH_MODE_KEY);
     } catch {
       pendingAuthMode = null;
     }
@@ -188,7 +188,7 @@ export function LandingPage() {
     return () => window.removeEventListener('hashchange', syncHashRoute);
   }, []);
 
-  useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthOpen(false); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
+  useEffect(() => { if (!authOpen) return; const h = (e: KeyboardEvent) => { if (e.key === 'Escape') closeAuth(); }; document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [authOpen]);
   useEffect(() => { setError(''); setPasswordValue(''); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); if (authMode === 'login') { setDisplayName(''); setLandingEmail(''); setAcceptedTerms(false); } if (authMode !== 'forgot-password' && authMode !== 'forgot-username' && authMode !== 'reset-password') { setResetEmail(''); setResetCode(''); setNewPassword(''); setNewPasswordConfirm(''); } if (authMode === 'waitlist') { setWaitlistSuccess(false); } setResetCooldown(0); }, [authOpen, authMode]);
   const resetCooldownActive = resetCooldown > 0;
   useEffect(() => { if (!resetCooldownActive) return; const t = setInterval(() => setResetCooldown(p => p <= 1 ? (clearInterval(t), 0) : p - 1), 1000); return () => clearInterval(t); }, [resetCooldownActive]);
@@ -709,9 +709,9 @@ export function LandingPage() {
       {/* ═══ AUTH MODAL ═══ */}
       {authOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !isLoading && setAuthOpen(false)} />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !isLoading && closeAuth()} />
           <div className="relative w-full max-w-sm bg-[#0e0e0e] rounded-2xl p-6 shadow-2xl border border-white/[0.06]">
-            <button onClick={() => setAuthOpen(false)} className="absolute top-3 right-3 p-1.5 text-white/20 hover:text-white/50 transition-colors" aria-label="Close"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onClick={() => closeAuth()} className="absolute top-3 right-3 p-1.5 text-white/20 hover:text-white/50 transition-colors" aria-label="Close"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             <div className="text-center mb-6"><div className="inline-flex items-center gap-2"><img src="/north-signal-logo.png" alt="" className="h-7 w-7" /><span className="text-lg font-bold text-white tracking-tight">Nala</span></div></div>
             {mfaChallenge ? <MfaVerifyStep challenge={mfaChallenge} /> : (
               <>
@@ -723,7 +723,7 @@ export function LandingPage() {
                       <div className="w-12 h-12 rounded-full bg-rh-green/15 flex items-center justify-center mx-auto mb-4"><svg className="w-6 h-6 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div>
                       <p className="text-white/80 text-sm font-medium mb-2">You're on the list.</p>
                       <p className="text-white/30 text-[12px] leading-relaxed">We'll email you when access opens.</p>
-                      <div className="mt-5"><button type="button" onClick={() => setAuthOpen(false)} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Close</button></div>
+                      <div className="mt-5"><button type="button" onClick={() => closeAuth()} className="text-[12px] text-white/30 hover:text-white/60 transition-colors">Close</button></div>
                     </div>
                   ) : (<>
                     <p className="text-[12px] text-white/30 leading-relaxed">Enter your email to join the waitlist. We'll notify you when your spot opens.</p>
