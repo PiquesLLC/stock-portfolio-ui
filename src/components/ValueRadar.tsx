@@ -205,7 +205,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
 
   // Top 8 most undervalued for hero section
   const heroStocks = useMemo(() =>
-    stocks.filter(s => s.tier === 'deep_value' || s.tier === 'attractive').slice(0, 10),
+    stocks.filter(s => s.tier === 'deep_value' || s.tier === 'attractive').slice(0, 8),
     [stocks],
   );
 
@@ -227,7 +227,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
         <div>
           <div className="h-3 w-24 bg-gray-200 dark:bg-white/[0.04] rounded animate-pulse mb-3" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {Array.from({ length: 10 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="bg-gray-200/60 dark:bg-white/[0.04] rounded-xl h-[120px] animate-pulse" />
             ))}
           </div>

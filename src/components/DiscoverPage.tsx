@@ -987,10 +987,15 @@ function formatMktCap(b: number): string {
   return `$${(b * 1000).toFixed(0)}M`;
 }
 
-const RANK_COLORS: Record<number, string> = {
+const RANK_COLORS_DARK: Record<number, string> = {
   1: '#FFF176',
   2: '#F5F5F5',
   3: '#FFB74D',
+};
+const RANK_COLORS_LIGHT: Record<number, string> = {
+  1: '#B8860B',
+  2: '#6B7280',
+  3: '#CD7F32',
 };
 
 type VolumeFilter = 'top100' | 'unusual' | 'mostFollowed';
@@ -1220,7 +1225,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
       <div className="space-y-0">
         {sorted.slice(0, visibleCount).map((stock, i) => {
           const rank = i + 1;
-          const rankColor = RANK_COLORS[rank];
+          const rankColor = (isDark ? RANK_COLORS_DARK : RANK_COLORS_LIGHT)[rank];
           const volPct = ((stock.volume ?? 0) / maxVol) * 100;
           const volRatio = (stock.avgVolume ?? 0) > 0
             ? ((stock.volume ?? 0) / (stock.avgVolume ?? 1))
@@ -1507,7 +1512,7 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
                   </td>
                   <td className="px-2 py-2 text-right hidden lg:table-cell">
                     <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">
-                      {stock.dividendYield != null ? `${(stock.dividendYield * 100).toFixed(2)}%` : '--'}
+                      {stock.dividendYield != null ? `${stock.dividendYield.toFixed(2)}%` : '--'}
                     </span>
                   </td>
                   <td className="px-2 py-2 text-right hidden xl:table-cell">

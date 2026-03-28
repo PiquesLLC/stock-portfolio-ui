@@ -160,6 +160,7 @@ export function useStockChart({
 
     let lastCrossDate: string | null = null;
     let lastMa100 = 0, lastMa200 = 0;
+    let deathCrossAfter = false;
     for (let i = scanStart; i < n; i++) {
       let s100 = 0, s100prev = 0, s200 = 0, s200prev = 0;
       for (let j = i - 100; j < i; j++) s100 += closes[j];
@@ -171,14 +172,20 @@ export function useStockChart({
       const ma200 = s200 / 200;
       const ma200prev = s200prev / 200;
 
+      // Golden cross: MA100 crosses above MA200
       if ((ma100prev - ma200prev) <= 0 && (ma100 - ma200) > 0 && dates[i] >= cutoffStr) {
         lastCrossDate = dates[i];
         lastMa100 = ma100;
         lastMa200 = ma200;
+        deathCrossAfter = false;
+      }
+      // Death cross: MA100 crosses below MA200 — invalidates any prior golden cross
+      if ((ma100prev - ma200prev) >= 0 && (ma100 - ma200) < 0 && lastCrossDate) {
+        deathCrossAfter = true;
       }
     }
 
-    if (lastCrossDate) {
+    if (lastCrossDate && !deathCrossAfter) {
       const d = new Date(lastCrossDate + 'T00:00:00');
       const dateFormatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       return { active: true, date: lastCrossDate, dateFormatted, ma100: lastMa100, ma200: lastMa200 };
