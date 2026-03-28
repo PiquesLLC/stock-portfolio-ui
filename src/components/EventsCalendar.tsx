@@ -257,7 +257,7 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
   // ── Error ──
   if (error) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-8 text-center">
+      <div className="bg-gray-50/80 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-8 text-center">
         <svg className="w-10 h-10 mx-auto mb-3 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
@@ -269,7 +269,7 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
   // ── Empty ──
   if (events.length === 0) {
     return (
-      <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-12 text-center">
+      <div className="bg-gray-50/80 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-12 text-center">
         <svg className="w-12 h-12 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
@@ -286,17 +286,17 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
     <div className="space-y-6">
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-rh-green/20 rounded-xl px-3 sm:px-4 py-2">
+        <div className="bg-gray-50/80 dark:bg-transparent border border-rh-green/20 rounded-xl px-3 sm:px-4 py-2">
           <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Total Events</span>
           <p className="text-base sm:text-lg font-semibold text-rh-green tabular-nums">{events.length}</p>
         </div>
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-amber-400/20 rounded-xl px-3 sm:px-4 py-2">
+        <div className="bg-gray-50/80 dark:bg-transparent border border-amber-400/20 rounded-xl px-3 sm:px-4 py-2">
           <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Earnings</span>
           <p className="text-base sm:text-lg font-semibold text-amber-500 dark:text-amber-400 tabular-nums">
             {events.filter(e => e.type === 'earnings').length}
           </p>
         </div>
-        <div className="bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-blue-400/20 rounded-xl px-3 sm:px-4 py-2">
+        <div className="bg-gray-50/80 dark:bg-transparent border border-blue-400/20 rounded-xl px-3 sm:px-4 py-2">
           <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Dividends</span>
           <p className="text-base sm:text-lg font-semibold text-blue-500 dark:text-blue-400 tabular-nums">
             {events.filter(e => e.type === 'dividend').length}
@@ -356,7 +356,7 @@ function DayGroupCard({ date, events, onTickerClick }: { date: string; events: C
       {/* Collapsed summary row */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm p-4 flex items-center gap-4 hover:bg-gray-100/60 dark:hover:bg-white/[0.05] transition-colors"
+        className="w-full bg-gray-50/80 dark:bg-transparent p-4 flex items-center gap-4 hover:bg-gray-100/60 dark:hover:bg-white/[0.05] transition-colors"
       >
         {/* Date */}
         <div className="text-center min-w-[52px]">
@@ -436,7 +436,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
       : 'bg-gray-100/60 dark:bg-white/[0.02] border-gray-200/40 dark:border-white/[0.06]';
 
   return (
-    <div className={noBorder ? 'py-3 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4'}>
+    <div className={noBorder ? 'py-3 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4' : 'bg-gray-50/80 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4'}>
       {/* Top row: date + ticker + badges + EPS */}
       <div className="flex items-center gap-2.5 sm:gap-4 w-full sm:w-auto">
         {/* Date column — hidden when nested */}
@@ -499,7 +499,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
 
 function DividendCard({ event, onTickerClick, noBorder }: { event: DividendCalendarEvent; onTickerClick?: (ticker: string) => void; noBorder?: boolean }) {
   return (
-    <div className={noBorder ? 'py-3 flex items-center gap-2.5 sm:gap-4' : 'bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3.5 sm:p-4 flex items-center gap-2.5 sm:gap-4'}>
+    <div className={noBorder ? 'py-3 flex items-center gap-2.5 sm:gap-4' : 'bg-gray-50/80 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-3.5 sm:p-4 flex items-center gap-2.5 sm:gap-4'}>
       {/* Date column — hidden when nested */}
       {!noBorder && (
         <>

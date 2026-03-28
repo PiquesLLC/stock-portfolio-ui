@@ -247,11 +247,7 @@ function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewP
   }
 
   if (items.length === 0) {
-    return (
-      <div className="bg-gray-50/40 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.05] rounded-2xl p-6 text-center">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">No earnings previews in the next 14 days</p>
-      </div>
-    );
+    return null;
   }
 
   return (
