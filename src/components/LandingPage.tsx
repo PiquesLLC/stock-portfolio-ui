@@ -125,7 +125,7 @@ export function LandingPage() {
   const [referralCode, setReferralCode] = useState('');
 
   // Capture referral code from URL (?ref=username) and auto-open signup
-  // Also detect #signup hash (used in waitlist approval emails) to bypass waitlist gate
+  // Detect ?approved=1 (waitlist approval emails) or legacy #signup hash to bypass waitlist gate
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
@@ -134,7 +134,7 @@ export function LandingPage() {
       setAuthOpen(true);
       setAuthMode(DIRECT_SIGNUP_ENABLED ? 'signup' : 'waitlist');
     }
-    if (window.location.hash === '#signup') {
+    if (params.get('approved') === '1' || window.location.hash === '#signup') {
       setAuthOpen(true);
       setAuthMode('signup');
     }
