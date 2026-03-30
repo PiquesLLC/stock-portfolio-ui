@@ -240,8 +240,9 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
       const etOffsetMs = (noonEtH - 12) * 3600000;
       const dayStartMs = new Date(`${todayET}T04:00:00Z`).getTime() - etOffsetMs; // 4 AM ET
       const dayEndMs = new Date(`${todayET}T20:00:00Z`).getTime() - etOffsetMs;   // 8 PM ET
-      const windowEnd = Math.min(Math.max(now, sampled[sampled.length - 1].time), dayEndMs);
-      const dayRange = Math.max(windowEnd - dayStartMs, 1);
+      // Use the full trading day window (4 AM – 8 PM ET) so sparklines show
+      // proportional progress through the day, with empty space on the right
+      const dayRange = Math.max(dayEndMs - dayStartMs, 1);
 
       // Anchor at left edge (4 AM ET) with first candle's price, then position
       // real data by time. This fills the left side with a flat line, matching
