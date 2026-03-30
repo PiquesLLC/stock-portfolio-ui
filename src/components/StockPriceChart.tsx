@@ -2085,7 +2085,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 )}
               </g>
             );
-          })() : hasData && chartGroups.length > 1 ? (
+          })() : chartMode === 'line' && hasData && chartGroups.length > 1 ? (
             /* Multi-group: single continuous area fill */
             <g clipPath="url(#plot-clip)">
               <path d={areaD} fill={`url(#grad-${selectedPeriod})`} style={{ transition: 'opacity 0.2s ease-out' }} />
@@ -2169,7 +2169,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 )}
               </g>
             );
-          })() : hasData && chartGroups.length > 1 ? (
+          })() : chartMode === 'line' && hasData && chartGroups.length > 1 ? (
             /* Multi-group: single continuous stroke with hover segment highlight */
             <g clipPath="url(#plot-clip)">
               <path d={pathD} fill="none" stroke={lineColor}
