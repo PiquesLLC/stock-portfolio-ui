@@ -675,7 +675,8 @@ async function hydrateNativeAuthTokens<T extends { accessToken?: string; refresh
 export async function login(username: string, password: string): Promise<LoginResult> {
   // Login sets httpOnly cookie automatically - no token in response body
   // May return MFA challenge instead if user has MFA enabled
-  const response = await fetchJson<LoginResult>(`${API_BASE_URL}/auth/login`, {
+  // Uses fetchJsonPublic to avoid WebKit "string did not match" on native iOS
+  const response = await fetchJsonPublic<LoginResult>(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     body: JSON.stringify({ username, password }),
   });
@@ -694,7 +695,7 @@ export interface OAuthLoginResponse {
 export type OAuthLoginResult = OAuthLoginResponse | MfaChallengeResponse;
 
 export async function oauthGoogleLogin(accessToken: string): Promise<OAuthLoginResult> {
-  const response = await fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/google/callback`, {
+  const response = await fetchJsonPublic<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/google/callback`, {
     method: 'POST',
     body: JSON.stringify({ access_token: accessToken }),
   });
@@ -706,7 +707,7 @@ export async function oauthAppleLogin(
   user?: { firstName?: string; lastName?: string },
   nonce?: string,
 ): Promise<OAuthLoginResult> {
-  const response = await fetchJson<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/apple/callback`, {
+  const response = await fetchJsonPublic<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/apple/callback`, {
     method: 'POST',
     body: JSON.stringify({ id_token: idToken, user, ...(nonce ? { nonce } : {}) }),
   });
@@ -816,7 +817,7 @@ export async function setPassword(username: string, password: string): Promise<{
 }
 
 export async function checkHasPassword(username: string): Promise<{ hasPassword: boolean }> {
-  return fetchJson(`${API_BASE_URL}/auth/has-password/${encodeURIComponent(username)}`);
+  return fetchJsonPublic(`${API_BASE_URL}/auth/has-password/${encodeURIComponent(username)}`);
 }
 
 export interface SignupResponse extends LoginResponse {
@@ -831,7 +832,7 @@ export async function signup(
   consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean },
   referralCode?: string
 ): Promise<SignupResponse> {
-  const response = await fetchJson<SignupResponse>(`${API_BASE_URL}/auth/signup`, {
+  const response = await fetchJsonPublic<SignupResponse>(`${API_BASE_URL}/auth/signup`, {
     method: 'POST',
     body: JSON.stringify({
       username,
