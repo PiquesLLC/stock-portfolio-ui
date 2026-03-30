@@ -1206,11 +1206,20 @@ export interface DailyReportResponse {
   greeting: string;
   marketOverview: string;
   portfolioSummary: string;
+  positionMoves?: {
+    ticker: string;
+    changePercent: number;
+    reason: string;
+  }[];
   topStories: {
     headline: string;
     body: string;
     sentiment: 'positive' | 'negative' | 'neutral';
     relatedTickers: string[];
+  }[];
+  questionsOfTheDay?: {
+    question: string;
+    answer: string;
   }[];
   watchToday: string[];
   cached: boolean;

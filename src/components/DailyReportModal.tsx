@@ -84,6 +84,9 @@ function extractAllTickers(data: DailyReportResponse): string[] {
     data.marketOverview, data.portfolioSummary,
     ...data.topStories.map(s => s.headline + ' ' + s.body),
     ...data.topStories.flatMap(s => s.relatedTickers),
+    ...(data.positionMoves || []).map(m => m.ticker),
+    ...(data.positionMoves || []).map(m => m.reason),
+    ...(data.questionsOfTheDay || []).map(q => q.answer),
     ...data.watchToday,
   ];
   return [...new Set(texts.flatMap(t => extractTickers(t)))];
@@ -1051,6 +1054,34 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               </div>
             </Section>
 
+            {/* Why Your Positions Moved */}
+            {data.positionMoves && data.positionMoves.length > 0 && (
+              <Section title="Why Your Positions Moved">
+                <div>
+                  {data.positionMoves.map((move, i) => (
+                    <div key={i} className="flex items-center gap-3 py-3" style={{ borderBottom: i < data.positionMoves!.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                      <button
+                        onClick={() => onTickerClick?.(move.ticker)}
+                        className="text-[14px] font-bold text-white min-w-[50px] hover:text-rh-green transition-colors"
+                      >
+                        {move.ticker}
+                      </button>
+                      <span className={`text-[13px] font-bold px-2 py-0.5 rounded min-w-[58px] text-center ${
+                        move.changePercent >= 0
+                          ? 'bg-rh-green/12 text-rh-green'
+                          : 'bg-rh-red/12 text-rh-red'
+                      }`}>
+                        {move.changePercent >= 0 ? '+' : ''}{move.changePercent.toFixed(2)}%
+                      </span>
+                      <span className="text-[13px] text-white/50 leading-snug flex-1">
+                        {renderWithPills(move.reason, onTickerClick, liveQuotes)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
+
             {/* Top Stories — after Watch Today */}
             <Section title="Top Stories">
               <div className="space-y-5">
@@ -1082,6 +1113,20 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                 ))}
               </div>
             </Section>
+
+            {/* Questions of the Day */}
+            {data.questionsOfTheDay && data.questionsOfTheDay.length > 0 && (
+              <Section title="Questions of the Day">
+                <div className="space-y-6">
+                  {data.questionsOfTheDay.map((q, i) => (
+                    <div key={i}>
+                      <h4 className="text-[15px] font-semibold text-white mb-2 leading-snug">{q.question}</h4>
+                      <p className="text-sm text-white/50 leading-relaxed">{renderWithPills(q.answer, onTickerClick, liveQuotes)}</p>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
 
             {/* Dismiss */}
             <div className="text-center pt-4 pb-10">
