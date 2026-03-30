@@ -2350,7 +2350,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   toX={(_i: number, origIdx?: number) => candleToX(origIdx ?? (_i + cStart))}
                   toY={toY}
                   plotW={plotW}
-                  visibleCount={cCount}
+                  visibleCount={is1D && dayRangeMs > 0 && !candleZoom
+                    ? Math.round(dayRangeMs / ({ '1m': 60000, '5m': 300000, '15m': 900000, '1h': 3600000, '1D': 86400000, '1W': 604800000, '1M': 2592000000 }[candleInterval] || 300000))
+                    : cCount}
                   hoverIndex={hoverIndex !== null && hoverIndex >= cStart && hoverIndex <= cEnd ? hoverIndex - cStart : null}
                 />
               </g>
