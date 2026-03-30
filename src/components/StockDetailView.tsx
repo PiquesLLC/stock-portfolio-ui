@@ -5,7 +5,8 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useStockData } from '../hooks/useStockData';
 import { useStockChart } from '../hooks/useStockChart';
 import { Acronym, getAcronymTitle } from './Acronym';
-import { getStockDetails, getIntradayCandles, getHourlyCandles, followStock, unfollowStock, deleteHolding } from '../api';
+import { getStockDetails, getIntradayCandles, getHourlyCandles, getCandleData, followStock, unfollowStock, deleteHolding } from '../api';
+import type { CandleInterval } from '../api';
 import { StockPriceChart } from './StockPriceChart';
 import { WarningPanel } from './WarningPanel';
 import { ETFDetailsPanel } from './ETFDetailsPanel';
@@ -131,7 +132,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [compareTickers, setCompareTickers] = useState<string[]>([]);
   const [compareInput, setCompareInput] = useState('');
   const [showCompareInput, setShowCompareInput] = useState(false);
-  const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[]>([]);
+  const [compareData, setCompareData] = useState<{ ticker: string; color: string; points: { time: number; price: number; rawPrice: number; open?: number; high?: number; low?: number; close?: number }[] }[]>([]);
+  // Read chart mode from localStorage for comparison candle support
+  const [chartMode] = useLocalStorage<'line' | 'candle'>('stockChartMode', 'line');
+  const [candleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
   const [showNalaScore, setShowNalaScore] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -172,6 +176,35 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     let stale = false;
 
     const fetchComps = async () => {
+      // Candle mode: fetch OHLCV for comparison tickers and include normalized OHLC
+      if (chartMode === 'candle') {
+        const config = { '1D': '5m', '1W': '15m', '1M': '1h', '3M': '1D', '6M': '1D', 'YTD': '1D', '1Y': '1D', 'MAX': '1W' } as const;
+        const effectiveInterval = candleInterval && (config as Record<string, string>)[chartPeriod] ? candleInterval as CandleInterval : (config as Record<string, string>)[chartPeriod] as CandleInterval ?? '5m';
+        const results: typeof compareData = [];
+        for (let ci = 0; ci < compareTickers.length; ci++) {
+          try {
+            const candles = await getCandleData(compareTickers[ci], chartPeriod, effectiveInterval);
+            if (candles.length >= 2) {
+              results.push({
+                ticker: compareTickers[ci],
+                color: COMPARE_COLORS[ci % COMPARE_COLORS.length],
+                points: candles.map(c => ({
+                  time: new Date(c.time).getTime(),
+                  price: c.close, // raw price for candle rendering
+                  rawPrice: c.close,
+                  open: c.open,
+                  high: c.high,
+                  low: c.low,
+                  close: c.close,
+                })),
+              });
+            }
+          } catch { /* skip */ }
+        }
+        if (!stale) setCompareData(results);
+        return;
+      }
+
       // Determine main ticker's reference price for normalization
       // For daily-candle periods (3M/YTD/1Y), use the price at the period start, not first candle ever
       let mainRefPrice = data?.quote?.currentPrice ?? 0;
@@ -266,7 +299,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
     fetchComps();
     return () => { stale = true; };
-  }, [compareTickers, chartPeriod, data?.candles, data?.quote?.currentPrice, intradayCandles, hourlyCandles]);
+  }, [compareTickers, chartPeriod, data?.candles, data?.quote?.currentPrice, intradayCandles, hourlyCandles, chartMode, candleInterval]);
 
   const addCompareTicker = (t: string) => {
     const upper = t.trim().toUpperCase();

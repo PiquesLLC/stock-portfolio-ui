@@ -60,8 +60,8 @@ interface Props {
   aiEvents?: AIEvent[];
   onRequestResolution?: (level: 'daily' | 'hourly' | 'intraday', rangeStart: number, rangeEnd: number) => void;
   zoomData?: { time: number; label: string; price: number; volume?: number }[];
-  // Comparison overlay — normalized % return lines from other tickers
-  comparisons?: { ticker: string; color: string; points: { time: number; price: number; rawPrice: number }[] }[];
+  // Comparison overlay — normalized % return lines from other tickers, with optional OHLC for candle mode
+  comparisons?: { ticker: string; color: string; points: { time: number; price: number; rawPrice: number; open?: number; high?: number; low?: number; close?: number }[] }[];
   overrideLineColor?: string; // Force main line to a specific color (used by Compare page)
 }
 
@@ -99,6 +99,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Candle zoom: visible window [startIdx, endIdx] within candleData
   const [candleZoom, setCandleZoom] = useState<{ start: number; end: number } | null>(null);
   const candlePanRef = useRef<{ startX: number; startIdx: number; endIdx: number } | null>(null);
+  const candlePinchRef = useRef<{ dist: number; zoom: { start: number; end: number } } | null>(null);
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
@@ -594,7 +595,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       e.preventDefault();
       isTwoFingerRef.current = true;
       const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      (svgRef.current as any).__candlePinchStart = { dist, zoom: candleZoom ? { ...candleZoom } : { start: 0, end: candleData.length - 1 } };
+      candlePinchRef.current = { dist, zoom: candleZoom ? { ...candleZoom } : { start: 0, end: candleData.length - 1 } };
       return;
     }
     if (chartMode === 'candle' && e.touches.length === 1 && candleZoom) {
@@ -651,7 +652,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     // Candle mode: pinch zoom
     if (chartMode === 'candle' && e.touches.length === 2 && isTwoFingerRef.current && svgRef.current) {
       e.preventDefault();
-      const pinchStart = (svgRef.current as any).__candlePinchStart;
+      const pinchStart = candlePinchRef.current;
       if (!pinchStart) return;
       const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       const scale = pinchStart.dist / dist; // >1 = pinch in = zoom in, <1 = pinch out = zoom out
@@ -730,6 +731,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    // Candle mode: end pinch/pan
+    if (chartMode === 'candle' && isTwoFingerRef.current) {
+      e.preventDefault();
+      if (e.touches.length === 0) {
+        isTwoFingerRef.current = false;
+        candlePinchRef.current = null;
+        candlePanRef.current = null;
+      }
+      return;
+    }
+    if (chartMode === 'candle' && e.touches.length === 0) {
+      candlePanRef.current = null;
+    }
     // Two-finger measurement: clear when fingers lift
     if (isTwoFingerRef.current) {
       e.preventDefault();
@@ -1763,14 +1777,20 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setCardDragPos(null);
       setIsDraggingCard(false);
       return;
-    } else if (measureA === null) {
-      setMeasureA({ time: points[idx].time, price: points[idx].price });
-    } else if (measureB === null) {
-      setMeasureB({ time: points[idx].time, price: points[idx].price });
     } else {
-      setMeasureC({ time: points[idx].time, price: points[idx].price });
+      const cStart = candleZoom?.start ?? 0;
+      const getMeasurePoint = (i: number) => {
+        if (chartMode === 'candle' && candleData.length > 0) {
+          const ci = Math.min(i + cStart, candleData.length - 1);
+          return { time: candleData[ci].time, price: candleData[ci].close };
+        }
+        return { time: points[i].time, price: points[i].price };
+      };
+      if (measureA === null) { setMeasureA(getMeasurePoint(idx)); }
+      else if (measureB === null) { setMeasureB(getMeasurePoint(idx)); }
+      else { setMeasureC(getMeasurePoint(idx)); }
     }
-  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning]);
+  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, candleData, candleZoom]);
 
   // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
@@ -2086,15 +2106,29 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             if (pinnedEventIdx !== null) { setPinnedEventIdx(null); return; }
             // Skip measurement on touch — touch uses press-drag hover instead
             if (wasTouchRef.current) { wasTouchRef.current = false; return; }
-            if (!svgRef.current || points.length < 2) return;
+            const useCandle = chartMode === 'candle' && candleData.length > 0;
+            if (!svgRef.current || (!useCandle && points.length < 2)) return;
             const rect = svgRef.current.getBoundingClientRect();
             const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
-            const idx = findNearestIndex(svgX);
             setShowMeasureHint(false);
             if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
-            else if (measureA === null) { setMeasureA({ time: points[idx].time, price: points[idx].price }); }
-            else if (measureB === null) { setMeasureB({ time: points[idx].time, price: points[idx].price }); }
-            else { setMeasureC({ time: points[idx].time, price: points[idx].price }); }
+            else {
+              let pt: { time: number; price: number };
+              if (useCandle) {
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? candleData.length - 1;
+                const cCount = cEnd - cStart + 1;
+                const ratio = Math.max(0, Math.min(1, (svgX - PAD_LEFT) / plotW));
+                const ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
+                pt = { time: candleData[ci].time, price: candleData[ci].close };
+              } else {
+                const idx = findNearestIndex(svgX);
+                pt = { time: points[idx].time, price: points[idx].price };
+              }
+              if (measureA === null) { setMeasureA(pt); }
+              else if (measureB === null) { setMeasureB(pt); }
+              else { setMeasureC(pt); }
+            }
           }}
         >
           <defs>
@@ -2117,8 +2151,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.5" />
           )}
 
-          {/* Session veils at market open/close for 1D */}
-          {hasData && is1D && [stockOpenIdx, stockCloseIdx].map((idx, i) => idx !== null && (() => {
+          {/* Session veils at market open/close for 1D (line mode only) */}
+          {chartMode === 'line' && hasData && is1D && [stockOpenIdx, stockCloseIdx].map((idx, i) => idx !== null && (() => {
             const veilX = toX(idx);
             const veilW = 3;
             const priceY = toY(points[idx].price);
@@ -2153,6 +2187,36 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             const candleToX = (i: number) => PAD_LEFT + (cCount > 1 ? ((i - cStart) / (cCount - 1)) * plotW : plotW / 2);
             return (
               <g clipPath="url(#plot-clip)">
+                {/* Comparison candles (behind main candles) */}
+                {comparisons && comparisons.length > 0 && comparisons.map(comp => {
+                  if (!comp.points[0]?.open) return null; // no OHLC = line mode data
+                  const compCandles: CandleDataPoint[] = comp.points.map(p => ({
+                    time: p.time, label: '', open: p.open!, high: p.high!, low: p.low!, close: p.close!, volume: 0,
+                  }));
+                  // Compute separate Y scale for comparison ticker
+                  const compLows = compCandles.map(c => c.low);
+                  const compHighs = compCandles.map(c => c.high);
+                  const compMin = Math.min(...compLows);
+                  const compMax = Math.max(...compHighs);
+                  const compRange = compMax === compMin ? 2 : compMax - compMin;
+                  const compPaddedMin = compMin - compRange * 0.08;
+                  const compPaddedMax = compMax + compRange * 0.08;
+                  const compToY = (price: number) => PAD_TOP + plotH - ((price - compPaddedMin) / (compPaddedMax - compPaddedMin)) * plotH;
+                  const compToX = (i: number) => PAD_LEFT + (compCandles.length > 1 ? (i / (compCandles.length - 1)) * plotW : plotW / 2);
+                  return (
+                    <g key={comp.ticker} opacity={0.45}>
+                      <CandlestickRenderer
+                        candles={compCandles}
+                        toX={compToX}
+                        toY={compToY}
+                        plotW={plotW}
+                        visibleCount={compCandles.length}
+                        hoverIndex={null}
+                      />
+                    </g>
+                  );
+                })}
+                {/* Main candles */}
                 <CandlestickRenderer
                   candles={candleData.slice(cStart, cEnd + 1)}
                   toX={(_i: number, origIdx?: number) => candleToX(origIdx ?? (_i + cStart))}
@@ -2315,8 +2379,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             ))}
           </g>
 
-          {/* Comparison overlay lines — normalized % return from other tickers */}
-          {comparisons && comparisons.length > 0 && hasData && (
+          {/* Comparison overlay lines — normalized % return from other tickers (line mode only) */}
+          {chartMode === 'line' && comparisons && comparisons.length > 0 && hasData && (
             <g clipPath="url(#plot-clip)">
               {comparisons.map(comp => {
                 if (comp.points.length < 2) return null;
@@ -2749,7 +2813,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           </g>
 
           {/* Current price dot with pulse */}
-          {hasData && selectedPeriod === '1D' && hoverIndex === null && !isMeasuring && (
+          {chartMode === 'line' && hasData && selectedPeriod === '1D' && hoverIndex === null && !isMeasuring && (
             <>
               <circle cx={lastX} cy={lastY} r="6" fill={lineColor} opacity="0.2">
                 <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" />
