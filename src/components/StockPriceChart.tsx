@@ -2681,85 +2681,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             ) : null;
           })()}
 
-          {/* RSI inline overlay — rendered in bottom 18% of chart */}
-          {rsiEnabled && rsiData && (() => {
-            const rsiTop = CHART_H - PAD_BOTTOM - plotH * 0.22;
-            const rsiH = plotH * 0.18;
-            const rsiToY = (v: number) => rsiTop + rsiH - (v / 100) * rsiH;
-            const getIX = (i: number) => {
-              if (chartMode === 'candle' && candleData.length > 0) {
-                const tzS = candleTimeZoom?.startMs ?? dayStartMs;
-                const tzE = candleTimeZoom?.endMs ?? dayEndMs;
-                if (is1D && (tzE - tzS) > 0 && candleData[i]) return PAD_LEFT + Math.max(0, Math.min(1, (candleData[i].time - tzS) / (tzE - tzS))) * plotW;
-                const cS = candleZoom?.start ?? 0;
-                const cE = candleZoom?.end ?? candleData.length - 1;
-                return PAD_LEFT + ((i - cS) / Math.max(1, cE - cS)) * plotW;
-              }
-              return toX(i);
-            };
-            const pts: string[] = [];
-            rsiData.forEach((v, i) => { if (v !== null) pts.push(`${pts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${rsiToY(v).toFixed(1)}`); });
-            return (
-              <g clipPath="url(#plot-clip)" opacity={0.7}>
-                <rect x={PAD_LEFT} y={rsiTop} width={plotW} height={rsiH} fill="#000" opacity={0.3} rx={2} />
-                <line x1={PAD_LEFT} y1={rsiToY(70)} x2={PAD_LEFT + plotW} y2={rsiToY(70)} stroke={RSI_COLOR} strokeWidth={0.5} strokeDasharray="3,3" opacity={0.3} />
-                <line x1={PAD_LEFT} y1={rsiToY(30)} x2={PAD_LEFT + plotW} y2={rsiToY(30)} stroke={RSI_COLOR} strokeWidth={0.5} strokeDasharray="3,3" opacity={0.3} />
-                <path d={pts.join(' ')} fill="none" stroke={RSI_COLOR} strokeWidth={1.2} strokeLinecap="round" />
-                <text x={PAD_LEFT + 3} y={rsiTop + 9} fill={RSI_COLOR} fontSize={8} opacity={0.6}>RSI</text>
-                <text x={PAD_LEFT + plotW - 2} y={rsiToY(70) - 2} textAnchor="end" fill={RSI_COLOR} fontSize={7} opacity={0.35}>70</text>
-                <text x={PAD_LEFT + plotW - 2} y={rsiToY(30) + 7} textAnchor="end" fill={RSI_COLOR} fontSize={7} opacity={0.35}>30</text>
-              </g>
-            );
-          })()}
-
-          {/* MACD inline overlay — rendered in bottom 18% of chart */}
-          {macdEnabled && macdData && (() => {
-            const macdBottom = CHART_H - PAD_BOTTOM;
-            const macdH = plotH * 0.18;
-            const macdTop = macdBottom - macdH;
-            // Auto-scale MACD values
-            let mn = Infinity, mx = -Infinity;
-            macdData.macd.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
-            macdData.signal.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
-            macdData.histogram.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
-            if (!Number.isFinite(mn)) { mn = -1; mx = 1; }
-            const range = mx - mn || 2;
-            const macdToY = (v: number) => macdTop + macdH - ((v - mn + range * 0.1) / (range * 1.2)) * macdH;
-            const getIX = (i: number) => {
-              if (chartMode === 'candle' && candleData.length > 0) {
-                const tzS = candleTimeZoom?.startMs ?? dayStartMs;
-                const tzE = candleTimeZoom?.endMs ?? dayEndMs;
-                if (is1D && (tzE - tzS) > 0 && candleData[i]) return PAD_LEFT + Math.max(0, Math.min(1, (candleData[i].time - tzS) / (tzE - tzS))) * plotW;
-                const cS = candleZoom?.start ?? 0;
-                const cE = candleZoom?.end ?? candleData.length - 1;
-                return PAD_LEFT + ((i - cS) / Math.max(1, cE - cS)) * plotW;
-              }
-              return toX(i);
-            };
-            const visCount = chartMode === 'candle' ? candleData.length : points.length;
-            const barW = Math.max(0.5, Math.min(4, plotW / Math.max(1, visCount) * 0.4));
-            const macdPts: string[] = [];
-            const sigPts: string[] = [];
-            macdData.macd.forEach((v, i) => { if (v !== null) macdPts.push(`${macdPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${macdToY(v).toFixed(1)}`); });
-            macdData.signal.forEach((v, i) => { if (v !== null) sigPts.push(`${sigPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${macdToY(v).toFixed(1)}`); });
-            const zeroY = macdToY(0);
-            return (
-              <g clipPath="url(#plot-clip)" opacity={0.7}>
-                <rect x={PAD_LEFT} y={macdTop} width={plotW} height={macdH} fill="#000" opacity={0.3} rx={2} />
-                <line x1={PAD_LEFT} y1={zeroY} x2={PAD_LEFT + plotW} y2={zeroY} stroke="#666" strokeWidth={0.5} strokeDasharray="2,3" opacity={0.2} />
-                {macdData.histogram.map((v, i) => {
-                  if (v === null) return null;
-                  const x = getIX(i);
-                  const h = Math.abs(macdToY(v) - zeroY);
-                  return <rect key={i} x={x - barW / 2} y={v >= 0 ? macdToY(v) : zeroY} width={barW} height={Math.max(0.5, h)} fill={v >= 0 ? MACD_COLORS.histUp : MACD_COLORS.histDown} opacity={0.5} />;
-                })}
-                <path d={macdPts.join(' ')} fill="none" stroke={MACD_COLORS.macd} strokeWidth={1} strokeLinecap="round" />
-                <path d={sigPts.join(' ')} fill="none" stroke={MACD_COLORS.signal} strokeWidth={1} strokeLinecap="round" />
-                <text x={PAD_LEFT + 3} y={macdTop + 9} fill={MACD_COLORS.macd} fontSize={8} opacity={0.6}>MACD</text>
-              </g>
-            );
-          })()}
-
           {/* Comparison overlay lines — normalized % return from other tickers (line mode only) */}
           {chartMode === 'line' && comparisons && comparisons.length > 0 && hasData && (
             <g clipPath="url(#plot-clip)">
@@ -3722,6 +3643,95 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       })()}
 
     </div>{/* end overflowX:clip wrapper */}
+
+      {/* RSI sub-panel — clean, tight, directly below chart */}
+      {rsiEnabled && rsiData && (() => {
+        const PH = 50;
+        const PT = 2, PB = 2;
+        const pH = PH - PT - PB;
+        const rsiToY = (v: number) => PT + pH - (v / 100) * pH;
+        const getIX = (i: number) => {
+          if (chartMode === 'candle' && candleData.length > 0) {
+            const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+            const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+            if (is1D && (tzE - tzS) > 0 && candleData[i]) return Math.max(0, Math.min(1, (candleData[i].time - tzS) / (tzE - tzS))) * CHART_W;
+            const cS = candleZoom?.start ?? 0;
+            const cE = candleZoom?.end ?? candleData.length - 1;
+            return ((i - cS) / Math.max(1, cE - cS)) * CHART_W;
+          }
+          return toX(i);
+        };
+        const pts: string[] = [];
+        rsiData.forEach((v, i) => { if (v !== null) pts.push(`${pts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${rsiToY(v).toFixed(1)}`); });
+        return (
+          <div className="border-t border-white/[0.06]" style={{ marginTop: -1 }}>
+            <div className="flex items-center gap-2 px-1 py-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: RSI_COLOR }}>RSI</span>
+              <span className="text-[8px] text-rh-muted/40">70 / 30</span>
+            </div>
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block">
+              <rect x={0} y={rsiToY(70)} width={CHART_W} height={rsiToY(30) - rsiToY(70)} fill={RSI_COLOR} opacity={0.04} />
+              <line x1={0} y1={rsiToY(70)} x2={CHART_W} y2={rsiToY(70)} stroke={RSI_COLOR} strokeWidth={0.5} strokeDasharray="4,4" opacity={0.2} />
+              <line x1={0} y1={rsiToY(30)} x2={CHART_W} y2={rsiToY(30)} stroke={RSI_COLOR} strokeWidth={0.5} strokeDasharray="4,4" opacity={0.2} />
+              <path d={pts.join(' ')} fill="none" stroke={RSI_COLOR} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        );
+      })()}
+
+      {/* MACD sub-panel — clean, tight, directly below RSI/chart */}
+      {macdEnabled && macdData && (() => {
+        const PH = 50;
+        const PT = 2, PB = 2;
+        const pH = PH - PT - PB;
+        let mn = Infinity, mx = -Infinity;
+        macdData.macd.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
+        macdData.signal.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
+        macdData.histogram.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
+        if (!Number.isFinite(mn)) { mn = -1; mx = 1; }
+        const range = mx - mn || 2;
+        const mToY = (v: number) => PT + pH - ((v - mn + range * 0.1) / (range * 1.2)) * pH;
+        const getIX = (i: number) => {
+          if (chartMode === 'candle' && candleData.length > 0) {
+            const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+            const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+            if (is1D && (tzE - tzS) > 0 && candleData[i]) return Math.max(0, Math.min(1, (candleData[i].time - tzS) / (tzE - tzS))) * CHART_W;
+            const cS = candleZoom?.start ?? 0;
+            const cE = candleZoom?.end ?? candleData.length - 1;
+            return ((i - cS) / Math.max(1, cE - cS)) * CHART_W;
+          }
+          return toX(i);
+        };
+        const visCount = chartMode === 'candle' ? candleData.length : points.length;
+        const barW = Math.max(0.5, Math.min(5, CHART_W / Math.max(1, visCount) * 0.45));
+        const macdPts: string[] = [];
+        const sigPts: string[] = [];
+        macdData.macd.forEach((v, i) => { if (v !== null) macdPts.push(`${macdPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${mToY(v).toFixed(1)}`); });
+        macdData.signal.forEach((v, i) => { if (v !== null) sigPts.push(`${sigPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${mToY(v).toFixed(1)}`); });
+        const zeroY = mToY(0);
+        return (
+          <div className="border-t border-white/[0.06]" style={{ marginTop: -1 }}>
+            <div className="flex items-center gap-2 px-1 py-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: MACD_COLORS.macd }}>MACD</span>
+              <span className="flex items-center gap-1.5 text-[8px] text-rh-muted/40">
+                <span className="inline-block w-2.5 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.macd }} />Signal
+                <span className="inline-block w-2.5 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.signal }} />Hist
+              </span>
+            </div>
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block">
+              <line x1={0} y1={zeroY} x2={CHART_W} y2={zeroY} stroke="#555" strokeWidth={0.5} strokeDasharray="3,4" opacity={0.25} />
+              {macdData.histogram.map((v, i) => {
+                if (v === null) return null;
+                const x = getIX(i);
+                const h = Math.abs(mToY(v) - zeroY);
+                return <rect key={i} x={x - barW / 2} y={v >= 0 ? mToY(v) : zeroY} width={barW} height={Math.max(0.5, h)} fill={v >= 0 ? MACD_COLORS.histUp : MACD_COLORS.histDown} opacity={0.45} />;
+              })}
+              <path d={macdPts.join(' ')} fill="none" stroke={MACD_COLORS.macd} strokeWidth={1.2} strokeLinecap="round" />
+              <path d={sigPts.join(' ')} fill="none" stroke={MACD_COLORS.signal} strokeWidth={1.2} strokeLinecap="round" />
+            </svg>
+          </div>
+        );
+      })()}
 
       {/* Period selector + Overlays dropdown */}
       <div className="flex items-center justify-between gap-2 mt-3">
