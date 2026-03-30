@@ -1655,11 +1655,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     } else {
       const maxLabels = 5;
       const step = Math.max(1, Math.floor(cCount / maxLabels));
+      const isDailyOrLonger = candleInterval === '1D' || candleInterval === '1W' || candleInterval === '1M';
       for (let j = 0; j < cCount; j += step) {
         const ci = cStart + j;
         const x = PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
         const d = new Date(candleData[ci].time);
-        const label = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const label = isDailyOrLonger
+          ? d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+          : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1].label !== label) {
           timeLabels.push({ label, x });
         }
@@ -3665,7 +3668,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         rsiData.forEach((v, i) => { if (v !== null) pts.push(`${pts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${rsiToY(v).toFixed(1)}`); });
         const lastRsi = rsiData.filter(v => v !== null).pop();
         return (
-          <div className="border-t border-white/[0.12]">
+          <div className="border-t-2 border-white/[0.08] mt-1">
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
               <span className="text-[11px] font-bold text-white/60">RSI (14)</span>
               {lastRsi != null && <span className="text-[11px] font-semibold text-white/90">{lastRsi.toFixed(2)}</span>}
@@ -3712,7 +3715,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           return toX(i);
         };
         const visCount = chartMode === 'candle' ? candleData.length : points.length;
-        const barW = Math.max(1, Math.min(8, CHART_W / Math.max(1, visCount) * 0.55));
+        const barW = Math.max(1.5, Math.min(12, CHART_W / Math.max(1, visCount) * 0.65));
         const macdPts: string[] = [];
         const sigPts: string[] = [];
         macdData.macd.forEach((v, i) => { if (v !== null) macdPts.push(`${macdPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${mToY(v).toFixed(1)}`); });
