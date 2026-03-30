@@ -2735,23 +2735,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                       </text>
                       {/* Hover tooltip */}
                       {isHovered && (
-                        <foreignObject x={Math.min(midX - 110, CHART_W - 225)} y={midY - 85} width={220} height={80}>
-                          <div style={{ background: 'rgba(20,20,25,0.95)', border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: '#e5e5e5', backdropFilter: 'blur(8px)' }}>
-                            <div style={{ fontWeight: 700, color, marginBottom: 4 }}>
-                              {d.type === 'bullish' ? '▲ Bullish Divergence' : '▼ Bearish Divergence'}
-                              {d.confirmed && <span style={{ color: '#22D3EE', marginLeft: 6 }}>MACD Confirmed</span>}
+                        <foreignObject x={Math.min(midX - 95, CHART_W - 195)} y={midY - 62} width={190} height={56}>
+                          <div style={{ background: d.type === 'bullish' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '6px 10px', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
+                              {d.type === 'bullish' ? 'Bullish Divergence' : 'Bearish Divergence'}
+                              {d.confirmed && <span style={{ fontSize: 9, color: '#22D3EE', marginLeft: 4, fontWeight: 600 }}>✓ Confirmed</span>}
                             </div>
-                            <div style={{ display: 'flex', gap: 16, fontSize: 10, opacity: 0.8 }}>
-                              <div>
-                                <div style={{ color: '#999', marginBottom: 1 }}>Price</div>
-                                <div>${d.priceStart.toFixed(2)} → ${d.priceEnd.toFixed(2)}</div>
-                                <div style={{ color }}>{d.type === 'bullish' ? 'Lower low ↓' : 'Higher high ↑'}</div>
-                              </div>
-                              <div>
-                                <div style={{ color: '#999', marginBottom: 1 }}>RSI</div>
-                                <div>{d.rsiStart.toFixed(1)} → {d.rsiEnd.toFixed(1)}</div>
-                                <div style={{ color }}>{d.type === 'bullish' ? 'Higher low ↑' : 'Lower high ↓'}</div>
-                              </div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.4 }}>
+                              Price {d.type === 'bullish' ? '↓' : '↑'} <span style={{ color: 'rgba(255,255,255,0.8)' }}>${d.priceStart.toFixed(0)}→${d.priceEnd.toFixed(0)}</span>
+                              {' · '}RSI {d.type === 'bullish' ? '↑' : '↓'} <span style={{ color: 'rgba(255,255,255,0.8)' }}>{d.rsiStart.toFixed(0)}→{d.rsiEnd.toFixed(0)}</span>
                             </div>
                           </div>
                         </foreignObject>
