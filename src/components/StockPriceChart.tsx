@@ -580,13 +580,26 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // Convert a touch clientX to hoverIndex + fire onHoverPrice
   const updateHoverFromClientX = useCallback((clientX: number) => {
-    if (!svgRef.current || points.length < 2) return;
+    if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
     const svgX = ((clientX - rect.left) / rect.width) * CHART_W;
+    // Candle mode: resolve from candleData
+    if (chartModeRef.current === 'candle' && candleData.length > 0) {
+      const cStart = candleZoom?.start ?? 0;
+      const cEnd = candleZoom?.end ?? candleData.length - 1;
+      const cCount = cEnd - cStart + 1;
+      const pw = CHART_W - PAD_LEFT - PAD_RIGHT;
+      const ratio = Math.max(0, Math.min(1, (svgX - PAD_LEFT) / pw));
+      const ci = Math.min(cEnd, cStart + Math.round(ratio * (cCount - 1)));
+      setHoverIndex(ci - cStart);
+      onHoverPrice?.(candleData[ci].close, candleData[ci].label, referencePriceRef.current);
+      return;
+    }
+    if (points.length < 2) return;
     const idx = findNearestIndexRef.current(svgX);
     setHoverIndex(idx);
     onHoverPrice?.(points[idx].price, points[idx].label, referencePriceRef.current);
-  }, [points, onHoverPrice]);
+  }, [points, onHoverPrice, candleData, candleZoom]);
 
 
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
@@ -1648,6 +1661,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Hover handler — find nearest data point to mouse X position
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (isPanning) return; // suppress hover during pan drag
+    // Candle mode: resolve hover from candleData
+    if (chartMode === 'candle' && candleData.length > 0 && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      const mouseX = ((e.clientX - rect.left) / rect.width) * CHART_W;
+      const cStart = candleZoom?.start ?? 0;
+      const cEnd = candleZoom?.end ?? candleData.length - 1;
+      const cCount = cEnd - cStart + 1;
+      const ratio = Math.max(0, Math.min(1, (mouseX - PAD_LEFT) / plotW));
+      const ci = Math.min(cEnd, cStart + Math.round(ratio * (cCount - 1)));
+      setHoverIndex(ci - cStart);
+      onHoverPrice?.(candleData[ci].close, candleData[ci].label, referencePriceRef.current);
+      return;
+    }
     if (!svgRef.current || points.length < 2) return;
     const rect = svgRef.current.getBoundingClientRect();
     const mouseX = ((e.clientX - rect.left) / rect.width) * CHART_W;
@@ -1879,9 +1905,22 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // Hover crosshair data — guard against stale hoverIndex after period switch
   const safeHoverIndex = hoverIndex !== null && hoverIndex >= 0 && hoverIndex < points.length ? hoverIndex : null;
-  const hoverX = safeHoverIndex !== null ? toX(safeHoverIndex) : null;
-  const hoverY = safeHoverIndex !== null ? Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(points[safeHoverIndex].price))) : null;
-  const hoverLabel = safeHoverIndex !== null ? points[safeHoverIndex].label : null;
+  // In candle mode, compute hover position from candleData
+  const candleHover = useMemo(() => {
+    if (chartMode !== 'candle' || candleData.length === 0 || hoverIndex === null) return null;
+    const cStart = candleZoom?.start ?? 0;
+    const cEnd = candleZoom?.end ?? candleData.length - 1;
+    const cCount = cEnd - cStart + 1;
+    // Map mouse position to candle index
+    const ci = Math.max(cStart, Math.min(cEnd, hoverIndex + cStart));
+    if (ci < 0 || ci >= candleData.length) return null;
+    const x = PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+    const y = Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(candleData[ci].close)));
+    return { x, y, label: candleData[ci].label, price: candleData[ci].close };
+  }, [chartMode, candleData, candleZoom, hoverIndex, toY, plotW]);
+  const hoverX = candleHover ? candleHover.x : (safeHoverIndex !== null ? toX(safeHoverIndex) : null);
+  const hoverY = candleHover ? candleHover.y : (safeHoverIndex !== null ? Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(points[safeHoverIndex].price))) : null);
+  const hoverLabel = candleHover ? candleHover.label : (safeHoverIndex !== null ? points[safeHoverIndex].label : null);
 
   // MA values at hovered point
   const hoverMaValues = useMemo(() => {
