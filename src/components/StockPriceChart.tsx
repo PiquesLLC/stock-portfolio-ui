@@ -3644,10 +3644,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
     </div>{/* end overflowX:clip wrapper */}
 
-      {/* RSI sub-panel — clean, tight, directly below chart */}
+      {/* RSI sub-panel — Robinhood style */}
       {rsiEnabled && rsiData && (() => {
-        const PH = 50;
-        const PT = 2, PB = 2;
+        const PH = 90;
+        const PT = 6, PB = 4;
         const pH = PH - PT - PB;
         const rsiToY = (v: number) => PT + pH - (v / 100) * pH;
         const getIX = (i: number) => {
@@ -3663,26 +3663,36 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         };
         const pts: string[] = [];
         rsiData.forEach((v, i) => { if (v !== null) pts.push(`${pts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${rsiToY(v).toFixed(1)}`); });
+        // Current RSI value
+        const lastRsi = rsiData.filter(v => v !== null).pop();
+        const rsiColor = lastRsi !== undefined && lastRsi !== null ? (lastRsi > 70 ? '#E8544E' : lastRsi < 30 ? '#00C805' : RSI_COLOR) : RSI_COLOR;
         return (
-          <div className="border-t border-white/[0.06]" style={{ marginTop: -1 }}>
-            <div className="flex items-center gap-2 px-1 py-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: RSI_COLOR }}>RSI</span>
-              <span className="text-[8px] text-rh-muted/40">70 / 30</span>
+          <div className="border-t border-white/[0.08]">
+            <div className="flex items-center gap-2 px-2 pt-1.5 pb-0.5">
+              <span className="text-[10px] font-bold" style={{ color: rsiColor }}>RSI (14)</span>
+              {lastRsi !== undefined && lastRsi !== null && <span className="text-[10px] font-semibold text-rh-light-text dark:text-rh-text">{lastRsi.toFixed(1)}</span>}
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block">
-              <rect x={0} y={rsiToY(70)} width={CHART_W} height={rsiToY(30) - rsiToY(70)} fill={RSI_COLOR} opacity={0.04} />
-              <line x1={0} y1={rsiToY(70)} x2={CHART_W} y2={rsiToY(70)} stroke={RSI_COLOR} strokeWidth={0.5} strokeDasharray="4,4" opacity={0.2} />
-              <line x1={0} y1={rsiToY(30)} x2={CHART_W} y2={rsiToY(30)} stroke={RSI_COLOR} strokeWidth={0.5} strokeDasharray="4,4" opacity={0.2} />
-              <path d={pts.join(' ')} fill="none" stroke={RSI_COLOR} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block rounded-b-lg" style={{ background: 'rgba(59,130,246,0.03)' }}>
+              {/* Overbought/oversold zone fill */}
+              <rect x={0} y={rsiToY(70)} width={CHART_W} height={rsiToY(30) - rsiToY(70)} fill="#3B82F6" opacity={0.06} />
+              {/* Grid lines */}
+              <line x1={0} y1={rsiToY(70)} x2={CHART_W} y2={rsiToY(70)} stroke="#3B82F6" strokeWidth={0.5} strokeDasharray="6,4" opacity={0.15} />
+              <line x1={0} y1={rsiToY(50)} x2={CHART_W} y2={rsiToY(50)} stroke="#666" strokeWidth={0.3} strokeDasharray="3,6" opacity={0.12} />
+              <line x1={0} y1={rsiToY(30)} x2={CHART_W} y2={rsiToY(30)} stroke="#3B82F6" strokeWidth={0.5} strokeDasharray="6,4" opacity={0.15} />
+              {/* RSI line — prominent white */}
+              <path d={pts.join(' ')} fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+              {/* Y-axis labels */}
+              <text x={CHART_W - 4} y={rsiToY(70) + 10} textAnchor="end" fill="rgba(255,255,255,0.25)" fontSize={9}>70</text>
+              <text x={CHART_W - 4} y={rsiToY(30) - 4} textAnchor="end" fill="rgba(255,255,255,0.25)" fontSize={9}>30</text>
             </svg>
           </div>
         );
       })()}
 
-      {/* MACD sub-panel — clean, tight, directly below RSI/chart */}
+      {/* MACD sub-panel — Robinhood style */}
       {macdEnabled && macdData && (() => {
-        const PH = 50;
-        const PT = 2, PB = 2;
+        const PH = 90;
+        const PT = 6, PB = 4;
         const pH = PH - PT - PB;
         let mn = Infinity, mx = -Infinity;
         macdData.macd.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
@@ -3703,31 +3713,36 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           return toX(i);
         };
         const visCount = chartMode === 'candle' ? candleData.length : points.length;
-        const barW = Math.max(0.5, Math.min(5, CHART_W / Math.max(1, visCount) * 0.45));
+        const barW = Math.max(0.5, Math.min(6, CHART_W / Math.max(1, visCount) * 0.5));
         const macdPts: string[] = [];
         const sigPts: string[] = [];
         macdData.macd.forEach((v, i) => { if (v !== null) macdPts.push(`${macdPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${mToY(v).toFixed(1)}`); });
         macdData.signal.forEach((v, i) => { if (v !== null) sigPts.push(`${sigPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${mToY(v).toFixed(1)}`); });
         const zeroY = mToY(0);
+        const lastMacd = macdData.macd.filter(v => v !== null).pop();
         return (
-          <div className="border-t border-white/[0.06]" style={{ marginTop: -1 }}>
-            <div className="flex items-center gap-2 px-1 py-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: MACD_COLORS.macd }}>MACD</span>
-              <span className="flex items-center gap-1.5 text-[8px] text-rh-muted/40">
-                <span className="inline-block w-2.5 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.macd }} />Signal
-                <span className="inline-block w-2.5 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.signal }} />Hist
+          <div className="border-t border-white/[0.08]">
+            <div className="flex items-center gap-2 px-2 pt-1.5 pb-0.5">
+              <span className="text-[10px] font-bold" style={{ color: MACD_COLORS.macd }}>MACD</span>
+              {lastMacd !== undefined && lastMacd !== null && <span className="text-[10px] font-semibold text-rh-light-text dark:text-rh-text">{lastMacd.toFixed(2)}</span>}
+              <span className="flex items-center gap-1.5 text-[8px] text-rh-muted/30 ml-1">
+                <span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.macd }} />
+                <span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.signal }} />
               </span>
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block">
-              <line x1={0} y1={zeroY} x2={CHART_W} y2={zeroY} stroke="#555" strokeWidth={0.5} strokeDasharray="3,4" opacity={0.25} />
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block rounded-b-lg" style={{ background: 'rgba(59,130,246,0.02)' }}>
+              {/* Zero line */}
+              <line x1={0} y1={zeroY} x2={CHART_W} y2={zeroY} stroke="#666" strokeWidth={0.5} strokeDasharray="6,4" opacity={0.2} />
+              {/* Histogram bars */}
               {macdData.histogram.map((v, i) => {
                 if (v === null) return null;
                 const x = getIX(i);
                 const h = Math.abs(mToY(v) - zeroY);
-                return <rect key={i} x={x - barW / 2} y={v >= 0 ? mToY(v) : zeroY} width={barW} height={Math.max(0.5, h)} fill={v >= 0 ? MACD_COLORS.histUp : MACD_COLORS.histDown} opacity={0.45} />;
+                return <rect key={i} x={x - barW / 2} y={v >= 0 ? mToY(v) : zeroY} width={barW} height={Math.max(0.5, h)} fill={v >= 0 ? MACD_COLORS.histUp : MACD_COLORS.histDown} opacity={0.4} rx={0.5} />;
               })}
-              <path d={macdPts.join(' ')} fill="none" stroke={MACD_COLORS.macd} strokeWidth={1.2} strokeLinecap="round" />
-              <path d={sigPts.join(' ')} fill="none" stroke={MACD_COLORS.signal} strokeWidth={1.2} strokeLinecap="round" />
+              {/* MACD + Signal lines */}
+              <path d={macdPts.join(' ')} fill="none" stroke={MACD_COLORS.macd} strokeWidth={1.3} strokeLinecap="round" />
+              <path d={sigPts.join(' ')} fill="none" stroke={MACD_COLORS.signal} strokeWidth={1.3} strokeLinecap="round" />
             </svg>
           </div>
         );
