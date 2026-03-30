@@ -3812,20 +3812,20 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 </button>
               </div>
               {/* Indicators section */}
-              <div className="px-2 pb-1.5 pt-1 mb-1 border-t border-gray-100 dark:border-white/[0.06] mt-1">
+              <div className="px-2 pb-1 pt-1 mb-0.5 border-t border-gray-100 dark:border-white/[0.06] mt-1">
                 <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Indicators</span>
               </div>
-              <div className="space-y-0.5 px-1 mb-1">
+              <div className="grid grid-cols-2 gap-0.5 px-1 mb-1">
                 {([
-                  { label: 'Bollinger Bands', enabled: bbEnabled, toggle: toggleBB, color: BB_COLORS.band },
+                  { label: 'BB', enabled: bbEnabled, toggle: toggleBB, color: BB_COLORS.band },
                   { label: 'VWAP', enabled: vwapEnabled, toggle: toggleVWAP, color: VWAP_COLOR },
-                  { label: 'RSI (14)', enabled: rsiEnabled, toggle: toggleRSI, color: RSI_COLOR },
+                  { label: 'RSI', enabled: rsiEnabled, toggle: toggleRSI, color: RSI_COLOR },
                   { label: 'MACD', enabled: macdEnabled, toggle: toggleMACD, color: MACD_COLORS.macd },
                 ] as const).map(({ label, enabled, toggle, color }) => (
                   <button
                     key={label}
                     onClick={toggle}
-                    className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
                       enabled ? 'text-white' : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                     }`}
                   >
