@@ -322,6 +322,7 @@ export function calcSMA(prices: number[], period: number): (number | null)[] {
 
 // Indicator colors
 export const RSI_COLOR = '#E8B344';
+export const DIV_COLORS = { bullish: '#22C55E', bearish: '#EF4444' };
 export const MACD_COLORS = { macd: '#3B82F6', signal: '#EF4444', histUp: '#00C805', histDown: '#E8544E' };
 export const BB_COLORS = { band: '#8B5CF6', fill: '#8B5CF6' };
 export const VWAP_COLOR = '#F97316';
@@ -413,6 +414,134 @@ export function calcVWAP(candles: CandleDataPoint[]): (number | null)[] {
     cumVol += c.volume;
     return cumVol > 0 ? cumTPV / cumVol : null;
   });
+}
+
+// ── Divergence Detection ──────────────────────────────────────────
+
+export interface Divergence {
+  type: 'bullish' | 'bearish';
+  startIdx: number;
+  endIdx: number;
+  priceStart: number;
+  priceEnd: number;
+  rsiStart: number;
+  rsiEnd: number;
+  confirmed: boolean; // true if MACD also diverges in the same direction
+}
+
+/** Find local swing lows — points lower than all neighbors within ±window */
+function findSwingLows(data: (number | null)[], window: number = 5): { index: number; value: number }[] {
+  const swings: { index: number; value: number }[] = [];
+  for (let i = window; i < data.length - window; i++) {
+    const v = data[i];
+    if (v === null) continue;
+    let isLow = true;
+    for (let j = i - window; j <= i + window; j++) {
+      if (j === i) continue;
+      const nv = data[j];
+      if (nv !== null && nv <= v) { isLow = false; break; }
+    }
+    if (isLow) swings.push({ index: i, value: v });
+  }
+  return swings;
+}
+
+/** Find local swing highs — points higher than all neighbors within ±window */
+function findSwingHighs(data: (number | null)[], window: number = 5): { index: number; value: number }[] {
+  const swings: { index: number; value: number }[] = [];
+  for (let i = window; i < data.length - window; i++) {
+    const v = data[i];
+    if (v === null) continue;
+    let isHigh = true;
+    for (let j = i - window; j <= i + window; j++) {
+      if (j === i) continue;
+      const nv = data[j];
+      if (nv !== null && nv >= v) { isHigh = false; break; }
+    }
+    if (isHigh) swings.push({ index: i, value: v });
+  }
+  return swings;
+}
+
+/** Detect bullish and bearish divergences between price and RSI (optionally confirmed by MACD) */
+export function detectDivergences(
+  closes: number[],
+  rsiData: (number | null)[],
+  macdData?: { macd: (number | null)[] },
+): Divergence[] {
+  if (closes.length < 10 || rsiData.length !== closes.length) return [];
+
+  // Adaptive window: smaller for fewer data points, larger for more
+  const window = Math.max(3, Math.min(8, Math.round(closes.length * 0.03)));
+  const divergences: Divergence[] = [];
+
+  // Bullish divergence: price makes lower lows, RSI makes higher lows
+  const priceLows = findSwingLows(closes.map(c => c as number | null), window);
+  for (let i = 1; i < priceLows.length; i++) {
+    const prev = priceLows[i - 1];
+    const curr = priceLows[i];
+    // Price: lower low
+    if (curr.value >= prev.value) continue;
+    // RSI: higher low (diverging)
+    const rsiPrev = rsiData[prev.index];
+    const rsiCurr = rsiData[curr.index];
+    if (rsiPrev === null || rsiCurr === null) continue;
+    if (rsiCurr <= rsiPrev) continue;
+    // Minimum separation: at least 5 bars apart
+    if (curr.index - prev.index < 5) continue;
+    // MACD confirmation: MACD also making higher lows
+    let confirmed = false;
+    if (macdData) {
+      const macdPrev = macdData.macd[prev.index];
+      const macdCurr = macdData.macd[curr.index];
+      if (macdPrev !== null && macdCurr !== null && macdCurr > macdPrev) confirmed = true;
+    }
+    divergences.push({
+      type: 'bullish',
+      startIdx: prev.index,
+      endIdx: curr.index,
+      priceStart: prev.value,
+      priceEnd: curr.value,
+      rsiStart: rsiPrev,
+      rsiEnd: rsiCurr,
+      confirmed,
+    });
+  }
+
+  // Bearish divergence: price makes higher highs, RSI makes lower highs
+  const priceHighs = findSwingHighs(closes.map(c => c as number | null), window);
+  for (let i = 1; i < priceHighs.length; i++) {
+    const prev = priceHighs[i - 1];
+    const curr = priceHighs[i];
+    // Price: higher high
+    if (curr.value <= prev.value) continue;
+    // RSI: lower high (diverging)
+    const rsiPrev = rsiData[prev.index];
+    const rsiCurr = rsiData[curr.index];
+    if (rsiPrev === null || rsiCurr === null) continue;
+    if (rsiCurr >= rsiPrev) continue;
+    // Minimum separation
+    if (curr.index - prev.index < 5) continue;
+    // MACD confirmation
+    let confirmed = false;
+    if (macdData) {
+      const macdPrev = macdData.macd[prev.index];
+      const macdCurr = macdData.macd[curr.index];
+      if (macdPrev !== null && macdCurr !== null && macdCurr < macdPrev) confirmed = true;
+    }
+    divergences.push({
+      type: 'bearish',
+      startIdx: prev.index,
+      endIdx: curr.index,
+      priceStart: prev.value,
+      priceEnd: curr.value,
+      rsiStart: rsiPrev,
+      rsiEnd: rsiCurr,
+      confirmed,
+    });
+  }
+
+  return divergences.sort((a, b) => a.startIdx - b.startIdx);
 }
 
 // ── MA Breach Signal Detection ────────────────────────────────────

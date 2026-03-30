@@ -36,10 +36,13 @@ import {
   calcMACD,
   calcBollingerBands,
   calcVWAP,
+  detectDivergences,
+  type Divergence,
   RSI_COLOR,
   MACD_COLORS,
   BB_COLORS,
   VWAP_COLOR,
+  DIV_COLORS,
 } from '../utils/stock-chart';
 import { CandlestickRenderer } from './CandlestickRenderer';
 // RSI and MACD render inline in the main SVG (no external panels)
@@ -108,6 +111,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const toggleRSI = useCallback(() => setRsiEnabled(prev => !prev), [setRsiEnabled]);
   const [macdEnabled, setMacdEnabled] = useLocalStorage('stockChartMACD', false);
   const toggleMACD = useCallback(() => setMacdEnabled(prev => !prev), [setMacdEnabled]);
+  const [divEnabled, setDivEnabled] = useLocalStorage('stockChartDivergence', false);
+  const toggleDiv = useCallback(() => setDivEnabled(prev => !prev), [setDivEnabled]);
   // Candlestick mode
   const [chartMode, setChartMode] = useLocalStorage<'line' | 'candle'>('stockChartMode', 'line');
   const [candleInterval, setCandleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
@@ -129,7 +134,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Overlays dropdown
   const [overlaysOpen, setOverlaysOpen] = useState(false);
   const overlaysDropdownRef = useRef<HTMLDivElement>(null);
-  const overlayCount = enabledMAs.size + (volumeEnabled ? 1 : 0) + (signalsEnabled ? 1 : 0) + (eventsEnabled ? 1 : 0) + (bbEnabled ? 1 : 0) + (vwapEnabled ? 1 : 0) + (rsiEnabled ? 1 : 0) + (macdEnabled ? 1 : 0);
+  const overlayCount = enabledMAs.size + (volumeEnabled ? 1 : 0) + (signalsEnabled ? 1 : 0) + (eventsEnabled ? 1 : 0) + (bbEnabled ? 1 : 0) + (vwapEnabled ? 1 : 0) + (rsiEnabled ? 1 : 0) + (macdEnabled ? 1 : 0) + (divEnabled ? 1 : 0);
   useEffect(() => {
     if (!overlaysOpen) return;
     const handleClick = (e: PointerEvent) => {
@@ -1349,6 +1354,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (!macdEnabled || indicatorSource.length < 3) return null;
     return calcMACD(indicatorSource);
   }, [macdEnabled, indicatorSource]);
+
+  const divergenceData = useMemo<Divergence[]>(() => {
+    if (!divEnabled || indicatorSource.length < 10) return [];
+    const rsi = calcRSI(indicatorSource);
+    const macd = macdData ?? undefined;
+    return detectDivergences(indicatorSource, rsi, macd);
+  }, [divEnabled, indicatorSource, macdData]);
 
   // ── Breach signal events ──────────────────────────────────────────
   const breachClusters = useMemo<BreachCluster[]>(() => {
@@ -2684,6 +2696,41 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             ) : null;
           })()}
 
+          {/* Divergence lines on price chart */}
+          {divEnabled && divergenceData.length > 0 && (() => {
+            const getIX = (i: number) => {
+              if (chartMode === 'candle' && candleData.length > 0) {
+                const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+                const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+                if (is1D && (tzE - tzS) > 0 && candleData[i]) return PAD_LEFT + Math.max(0, Math.min(1, (candleData[i].time - tzS) / (tzE - tzS))) * plotW;
+                const cS = candleZoom?.start ?? 0;
+                const cE = candleZoom?.end ?? candleData.length - 1;
+                return PAD_LEFT + ((i - cS) / Math.max(1, cE - cS)) * plotW;
+              }
+              return toX(i);
+            };
+            return (
+              <g clipPath="url(#plot-clip)">
+                {divergenceData.map((d, di) => {
+                  const color = d.type === 'bullish' ? DIV_COLORS.bullish : DIV_COLORS.bearish;
+                  const x1 = getIX(d.startIdx), y1 = toY(d.priceStart);
+                  const x2 = getIX(d.endIdx), y2 = toY(d.priceEnd);
+                  const midX = (x1 + x2) / 2, midY = Math.min(y1, y2) - 12;
+                  return (
+                    <g key={`div-${di}`}>
+                      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={1.5} strokeDasharray="6,3" opacity={d.confirmed ? 0.9 : 0.6} />
+                      <circle cx={x1} cy={y1} r={3} fill={color} opacity={0.7} />
+                      <circle cx={x2} cy={y2} r={3} fill={color} opacity={0.7} />
+                      <text x={midX} y={midY} textAnchor="middle" fill={color} fontSize={9} fontWeight="bold" opacity={0.8}>
+                        {d.type === 'bullish' ? '▲ Bull' : '▼ Bear'}{d.confirmed ? ' ✓' : ''}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })()}
+
           {/* Comparison overlay lines — normalized % return from other tickers (line mode only) */}
           {chartMode === 'line' && comparisons && comparisons.length > 0 && hasData && (
             <g clipPath="url(#plot-clip)">
@@ -3683,6 +3730,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               <line x1={0} y1={rsiToY(30)} x2={CHART_W} y2={rsiToY(30)} stroke="#3B82F6" strokeWidth={0.8} strokeDasharray="6,3" opacity={0.35} />
               {/* RSI line */}
               <path d={pts.join(' ')} fill="none" stroke={RSI_COLOR} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
+              {/* Divergence lines on RSI panel */}
+              {divEnabled && divergenceData.map((d, di) => {
+                const color = d.type === 'bullish' ? DIV_COLORS.bullish : DIV_COLORS.bearish;
+                const x1 = getIX(d.startIdx), y1 = rsiToY(d.rsiStart);
+                const x2 = getIX(d.endIdx), y2 = rsiToY(d.rsiEnd);
+                return (
+                  <g key={`rsi-div-${di}`}>
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={1.5} strokeDasharray="4,2" opacity={d.confirmed ? 0.9 : 0.6} />
+                    <circle cx={x1} cy={y1} r={2.5} fill={color} opacity={0.7} />
+                    <circle cx={x2} cy={y2} r={2.5} fill={color} opacity={0.7} />
+                  </g>
+                );
+              })}
               {/* Y-axis labels */}
               <text x={CHART_W - 6} y={rsiToY(70) + 12} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>70</text>
               <text x={CHART_W - 6} y={rsiToY(30) - 5} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>30</text>
@@ -3874,6 +3934,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   { label: 'VWAP', enabled: vwapEnabled, toggle: toggleVWAP, color: VWAP_COLOR },
                   { label: 'RSI', enabled: rsiEnabled, toggle: toggleRSI, color: RSI_COLOR },
                   { label: 'MACD', enabled: macdEnabled, toggle: toggleMACD, color: MACD_COLORS.macd },
+                  { label: 'Diverg.', enabled: divEnabled, toggle: toggleDiv, color: DIV_COLORS.bullish },
                 ] as const).map(({ label, enabled, toggle, color }) => (
                   <button
                     key={label}
