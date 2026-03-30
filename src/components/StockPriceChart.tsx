@@ -1852,7 +1852,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const handleChartClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (isPanning) return; // suppress measurement during pan drag
     if (wasTouchRef.current) { wasTouchRef.current = false; return; } // suppress on touch
-    if (!chartContainerRef.current || points.length < 2) return;
+    const isCandle = chartMode === 'candle' && candleData.length > 0;
+    if (!chartContainerRef.current || (!isCandle && points.length < 2)) return;
     const rect = chartContainerRef.current.getBoundingClientRect();
     const relX = e.clientX - rect.left;
     const relXRatio = relX / rect.width;
@@ -1863,7 +1864,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (relXRatio < leftRatio - 0.02 || relXRatio > rightRatio + 0.02) return;
 
     const svgX = relXRatio * CHART_W;
-    const idx = findNearestIndex(svgX);
 
     setShowMeasureHint(false);
 
@@ -1875,19 +1875,36 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setIsDraggingCard(false);
       return;
     } else {
-      const cStart = candleZoom?.start ?? 0;
-      const getMeasurePoint = (i: number) => {
-        if (chartMode === 'candle' && candleData.length > 0) {
-          const ci = Math.min(i + cStart, candleData.length - 1);
-          return { time: candleData[ci].time, price: candleData[ci].close };
+      let pt: { time: number; price: number };
+      if (isCandle) {
+        const cStart = candleZoom?.start ?? 0;
+        const cEnd = candleZoom?.end ?? candleData.length - 1;
+        const ratio = Math.max(0, Math.min(1, (svgX - PAD_LEFT) / plotW));
+        const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
+        const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
+        let ci: number;
+        if (is1D && (tz1DEnd - tz1DStart) > 0) {
+          const mouseTime = tz1DStart + ratio * (tz1DEnd - tz1DStart);
+          ci = cStart;
+          let bestDist = Infinity;
+          for (let i = cStart; i <= cEnd; i++) {
+            const dist = Math.abs(candleData[i].time - mouseTime);
+            if (dist < bestDist) { bestDist = dist; ci = i; }
+          }
+        } else {
+          const cCount = cEnd - cStart + 1;
+          ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
         }
-        return { time: points[i].time, price: points[i].price };
-      };
-      if (measureA === null) { setMeasureA(getMeasurePoint(idx)); }
-      else if (measureB === null) { setMeasureB(getMeasurePoint(idx)); }
-      else { setMeasureC(getMeasurePoint(idx)); }
+        pt = { time: candleData[ci].time, price: candleData[ci].close };
+      } else {
+        const idx = findNearestIndex(svgX);
+        pt = { time: points[idx].time, price: points[idx].price };
+      }
+      if (measureA === null) { setMeasureA(pt); }
+      else if (measureB === null) { setMeasureB(pt); }
+      else { setMeasureC(pt); }
     }
-  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, candleData, candleZoom]);
+  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, candleData, candleZoom, candleTimeZoom, plotW, is1D, dayStartMs, dayEndMs]);
 
   // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
@@ -2278,7 +2295,21 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const cEnd = candleZoom?.end ?? candleData.length - 1;
                 const cCount = cEnd - cStart + 1;
                 const ratio = Math.max(0, Math.min(1, (svgX - PAD_LEFT) / plotW));
-                const ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
+                let ci: number;
+                // 1D: time-based lookup (matches candle rendering)
+                const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
+                const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
+                if (is1D && (tz1DEnd - tz1DStart) > 0) {
+                  const mouseTime = tz1DStart + ratio * (tz1DEnd - tz1DStart);
+                  ci = cStart;
+                  let bestDist = Infinity;
+                  for (let i = cStart; i <= cEnd; i++) {
+                    const dist = Math.abs(candleData[i].time - mouseTime);
+                    if (dist < bestDist) { bestDist = dist; ci = i; }
+                  }
+                } else {
+                  ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
+                }
                 pt = { time: candleData[ci].time, price: candleData[ci].close };
               } else {
                 const idx = findNearestIndex(svgX);
