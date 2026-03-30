@@ -1583,7 +1583,23 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // Time labels
   const timeLabels: { label: string; x: number }[] = [];
-  if (points.length > 1) {
+  // Candle mode: generate labels from candleData
+  if (chartMode === 'candle' && candleData.length > 1) {
+    const cStart = candleZoom?.start ?? 0;
+    const cEnd = candleZoom?.end ?? candleData.length - 1;
+    const cCount = cEnd - cStart + 1;
+    const maxLabels = 5;
+    const step = Math.max(1, Math.floor(cCount / maxLabels));
+    for (let j = 0; j < cCount; j += step) {
+      const ci = cStart + j;
+      const x = PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+      const d = new Date(candleData[ci].time);
+      const label = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
+      if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1].label !== label) {
+        timeLabels.push({ label, x });
+      }
+    }
+  } else if (points.length > 1) {
     if (zoomRange) {
       // Zoomed: generate labels from visible points only, skip duplicates
       const maxTimeLabels = 5;
