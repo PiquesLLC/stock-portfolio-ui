@@ -3768,48 +3768,27 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 })}
               </div>
               <div className="border-t border-gray-100 dark:border-white/[0.06] mt-1 pt-1 px-1">
-                <button
-                  onClick={toggleVolume}
-                  className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
-                    volumeEnabled
-                      ? 'text-white'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
-                  }`}
-                >
-                  <span
-                    className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${volumeEnabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
-                    style={volumeEnabled ? { backgroundColor: '#6B7280', borderColor: '#6B7280' } : undefined}
-                  />
-                  Volume
-                </button>
-                <button
-                  onClick={toggleSignals}
-                  className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
-                    signalsEnabled
-                      ? 'text-white'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
-                  }`}
-                >
-                  <span
-                    className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${signalsEnabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
-                    style={signalsEnabled ? { backgroundColor: '#F59E0B', borderColor: '#F59E0B' } : undefined}
-                  />
-                  Signals
-                </button>
-                <button
-                  onClick={toggleEvents}
-                  className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
-                    eventsEnabled
-                      ? 'text-white'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
-                  }`}
-                >
-                  <span
-                    className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${eventsEnabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
-                    style={eventsEnabled ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' } : undefined}
-                  />
-                  Events
-                </button>
+                <div className="grid grid-cols-2 gap-0.5">
+                  {([
+                    { label: 'Volume', enabled: volumeEnabled, toggle: toggleVolume, color: '#6B7280' },
+                    { label: 'Signals', enabled: signalsEnabled, toggle: toggleSignals, color: '#F59E0B' },
+                    { label: 'Events', enabled: eventsEnabled, toggle: toggleEvents, color: '#3B82F6' },
+                  ] as const).map(({ label, enabled, toggle, color }) => (
+                    <button
+                      key={label}
+                      onClick={toggle}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                        enabled ? 'text-white' : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      <span
+                        className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${enabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
+                        style={enabled ? { backgroundColor: color, borderColor: color } : undefined}
+                      />
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               {/* Indicators section */}
               <div className="px-2 pb-1 pt-1 mb-0.5 border-t border-gray-100 dark:border-white/[0.06] mt-1">
