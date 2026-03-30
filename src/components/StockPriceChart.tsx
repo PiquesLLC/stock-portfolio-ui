@@ -132,6 +132,21 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       .then(candles => { if (seq === candleFetchSeq.current) { setCandleData(buildCandlePoints(candles)); setCandleZoom(null); setCandleLoading(false); } })
       .catch(() => { if (seq === candleFetchSeq.current) { setCandleData([]); setCandleLoading(false); } });
   }, [chartMode, ticker, selectedPeriod, candleInterval]);
+  // Auto-refresh candle data during market hours (every 15s for intraday, 60s for daily+)
+  useEffect(() => {
+    if (chartMode !== 'candle' || !ticker || !session || session === 'CLOSED') return;
+    const isIntraday = candleInterval === '1m' || candleInterval === '5m' || candleInterval === '15m' || candleInterval === '1h';
+    const refreshMs = isIntraday ? 15000 : 60000;
+    const config = CANDLE_INTERVALS[selectedPeriod];
+    const effectiveInterval = config.options.includes(candleInterval) ? candleInterval : config.default;
+    const interval = setInterval(() => {
+      const seq = ++candleFetchSeq.current;
+      getCandleData(ticker, selectedPeriod, effectiveInterval)
+        .then(candles => { if (seq === candleFetchSeq.current) setCandleData(buildCandlePoints(candles)); })
+        .catch(() => {});
+    }, refreshMs);
+    return () => clearInterval(interval);
+  }, [chartMode, ticker, selectedPeriod, candleInterval, session]);
   // Auto-adjust interval when period changes in candle mode
   useEffect(() => {
     if (chartMode !== 'candle') return;
