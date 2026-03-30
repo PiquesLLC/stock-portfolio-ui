@@ -3646,8 +3646,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
       {/* RSI sub-panel — Robinhood style */}
       {rsiEnabled && rsiData && (() => {
-        const PH = 140;
-        const PT = 8, PB = 6;
+        const PH = 100;
+        const PT = 6, PB = 4;
         const pH = PH - PT - PB;
         const rsiToY = (v: number) => PT + pH - (v / 100) * pH;
         const getIX = (i: number) => {
@@ -3670,16 +3670,16 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               <span className="text-[11px] font-bold text-white/60">RSI (14)</span>
               {lastRsi != null && <span className="text-[11px] font-semibold text-white/90">{lastRsi.toFixed(2)}</span>}
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: '#0c1929' }}>
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)' }}>
               {/* Full panel background zone tint */}
-              <rect x={0} y={0} width={CHART_W} height={PH} fill="#0c1929" />
-              {/* Overbought/oversold zone — prominent blue band */}
-              <rect x={0} y={rsiToY(70)} width={CHART_W} height={rsiToY(30) - rsiToY(70)} fill="#1e3a5f" opacity={0.7} />
+              {/* background handled by parent style */}
+              {/* Overbought/oversold zone */}
+              <rect x={0} y={rsiToY(70)} width={CHART_W} height={rsiToY(30) - rsiToY(70)} fill="rgba(255,255,255,0.03)" />
               {/* Dashed zone boundaries */}
               <line x1={0} y1={rsiToY(70)} x2={CHART_W} y2={rsiToY(70)} stroke="#3B82F6" strokeWidth={0.8} strokeDasharray="6,3" opacity={0.35} />
               <line x1={0} y1={rsiToY(30)} x2={CHART_W} y2={rsiToY(30)} stroke="#3B82F6" strokeWidth={0.8} strokeDasharray="6,3" opacity={0.35} />
-              {/* RSI line — thick, bright white/cyan */}
-              <path d={pts.join(' ')} fill="none" stroke="rgba(200,230,255,0.9)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+              {/* RSI line */}
+              <path d={pts.join(' ')} fill="none" stroke={RSI_COLOR} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
               {/* Y-axis labels */}
               <text x={CHART_W - 6} y={rsiToY(70) + 12} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>70</text>
               <text x={CHART_W - 6} y={rsiToY(30) - 5} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>30</text>
@@ -3690,8 +3690,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
       {/* MACD sub-panel — Robinhood style */}
       {macdEnabled && macdData && (() => {
-        const PH = 120;
-        const PT = 8, PB = 6;
+        const PH = 100;
+        const PT = 6, PB = 4;
         const pH = PH - PT - PB;
         let mn = Infinity, mx = -Infinity;
         macdData.macd.forEach(v => { if (v !== null) { mn = Math.min(mn, v); mx = Math.max(mx, v); } });
@@ -3729,8 +3729,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 <span className="flex items-center gap-1"><span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.signal }} />Signal</span>
               </span>
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: '#0c1929' }}>
-              <rect x={0} y={0} width={CHART_W} height={PH} fill="#0c1929" />
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)' }}>
+              {/* background handled by parent style */}
               {/* Zero line */}
               <line x1={0} y1={zeroY} x2={CHART_W} y2={zeroY} stroke="#3B82F6" strokeWidth={0.6} strokeDasharray="6,3" opacity={0.25} />
               {/* Histogram bars */}
