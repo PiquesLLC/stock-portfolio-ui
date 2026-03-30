@@ -1484,7 +1484,7 @@ export default function App() {
         >
         {!settingsView && !creatorView && !adminView && activeTab === 'portfolio' && !viewingStock && !compareStocks && (
           <>
-            {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (
+            {portfolio && (portfolio.quotesUnavailableCount ?? 0) > 0 && (portfolio.quotesUnavailableCount ?? 0) < portfolio.holdings.length * 0.5 && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
                 <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -1496,6 +1496,14 @@ export default function App() {
                     Totals may be incomplete.
                   </p>
                 </div>
+              </div>
+            )}
+            {/* Critical: hide portfolio when most quotes failed — show loading instead of wrong values */}
+            {portfolio && (portfolio.quotesUnavailableCount ?? 0) >= portfolio.holdings.length * 0.5 && portfolio.holdings.length > 0 && (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="w-8 h-8 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
+                <p className="text-rh-light-muted dark:text-rh-muted text-sm">Loading market data...</p>
+                <p className="text-rh-light-muted/50 dark:text-rh-muted/50 text-xs">Fetching quotes for your holdings. This may take a moment.</p>
               </div>
             )}
 
@@ -1596,7 +1604,8 @@ export default function App() {
                   )}
                 </>
               )}
-              <PortfolioValueChart
+              {/* Hide chart when most quotes are unavailable to prevent showing wrong values */}
+              {(portfolio.quotesUnavailableCount ?? 0) < portfolio.holdings.length * 0.5 && <PortfolioValueChart
                 currentValue={portfolio.netEquity}
                 dayChange={portfolio.dayChange}
                 dayChangePercent={portfolio.dayChangePercent}
@@ -1619,7 +1628,7 @@ export default function App() {
                   marginDebt: portfolio.marginDebt,
                 }}
                 chartToolbar={undefined}
-              />
+              />}
               </div>
               </>
             )}
