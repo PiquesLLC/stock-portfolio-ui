@@ -373,6 +373,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // ── Drag-to-pan when zoomed ──────────────────────────────────────────
   const handlePanStart = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (chartMode === 'candle') return; // candle mode uses interval selector instead of zoom
     if (!zoomRange || e.button !== 0) return; // only left button, only when zoomed
     panStartRef.current = { x: e.clientX, rangeStart: zoomRange.startMs, rangeEnd: zoomRange.endMs };
   }, [zoomRange]);
@@ -562,6 +563,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     wasTouchRef.current = true; // default: suppress click handler (overridden on tap in touchEnd)
+
+    if (chartMode === 'candle') return; // candle mode uses interval selector instead of zoom
 
     if (e.touches.length === 2 && svgRef.current) {
       const pts = pointsRef.current;
