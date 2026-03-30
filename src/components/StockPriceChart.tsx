@@ -100,6 +100,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const [candleZoom, setCandleZoom] = useState<{ start: number; end: number } | null>(null);
   const candlePanRef = useRef<{ startX: number; startIdx: number; endIdx: number } | null>(null);
   const candlePinchRef = useRef<{ dist: number; zoom: { start: number; end: number } } | null>(null);
+  const chartModeRef = useRef(chartMode);
+  chartModeRef.current = chartMode;
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
@@ -787,6 +789,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (!svg) return;
 
     const handler = (e: WheelEvent) => {
+      // Candle mode: handled by React onWheel instead
+      if (chartModeRef.current === 'candle') return;
       e.preventDefault();
 
       // Don't zoom if user is focused on an input or modal
@@ -1833,13 +1837,32 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const measureColor = measureIsGain ? '#00C805' : '#E8544E';
 
 
-  // SVG coordinates for measurement markers (using resolved indices)
-  const mAx = measureAIdx !== null && measureAIdx < points.length ? toX(measureAIdx) : null;
-  const mAy = measureAIdx !== null && points[measureAIdx] ? toY(points[measureAIdx].price) : null;
-  const mBx = measureBIdx !== null && measureBIdx < points.length ? toX(measureBIdx) : null;
-  const mBy = measureBIdx !== null && points[measureBIdx] ? toY(points[measureBIdx].price) : null;
-  const mCx = measureCIdx !== null && measureCIdx < points.length ? toX(measureCIdx) : null;
-  const mCy = measureCIdx !== null && points[measureCIdx] ? toY(points[measureCIdx].price) : null;
+  // SVG coordinates for measurement markers
+  // In candle mode, resolve from candleData; in line mode, from points
+  const candleMeasureCoords = useMemo(() => {
+    if (chartMode !== 'candle' || candleData.length === 0) return null;
+    const cStart = candleZoom?.start ?? 0;
+    const cEnd = candleZoom?.end ?? candleData.length - 1;
+    const cCount = cEnd - cStart + 1;
+    const candleToX = (ci: number) => PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+    const resolve = (m: { time: number; price: number } | null) => {
+      if (!m) return null;
+      let best = 0, bestDist = Infinity;
+      for (let i = cStart; i <= cEnd; i++) {
+        const dist = Math.abs(candleData[i].time - m.time);
+        if (dist < bestDist) { best = i; bestDist = dist; }
+      }
+      return { x: candleToX(best), y: toY(m.price) };
+    };
+    return { a: resolve(measureA), b: resolve(measureB), c: resolve(measureC) };
+  }, [chartMode, candleData, candleZoom, measureA, measureB, measureC, toY, plotW]);
+
+  const mAx = candleMeasureCoords ? (candleMeasureCoords.a?.x ?? null) : (measureAIdx !== null && measureAIdx < points.length ? toX(measureAIdx) : null);
+  const mAy = candleMeasureCoords ? (candleMeasureCoords.a?.y ?? null) : (measureAIdx !== null && points[measureAIdx] ? toY(points[measureAIdx].price) : null);
+  const mBx = candleMeasureCoords ? (candleMeasureCoords.b?.x ?? null) : (measureBIdx !== null && measureBIdx < points.length ? toX(measureBIdx) : null);
+  const mBy = candleMeasureCoords ? (candleMeasureCoords.b?.y ?? null) : (measureBIdx !== null && points[measureBIdx] ? toY(points[measureBIdx].price) : null);
+  const mCx = candleMeasureCoords ? (candleMeasureCoords.c?.x ?? null) : (measureCIdx !== null && measureCIdx < points.length ? toX(measureCIdx) : null);
+  const mCy = candleMeasureCoords ? (candleMeasureCoords.c?.y ?? null) : (measureCIdx !== null && points[measureCIdx] ? toY(points[measureCIdx].price) : null);
 
 
   // Snap-to-event: when chart crosshair is near an event, highlight it

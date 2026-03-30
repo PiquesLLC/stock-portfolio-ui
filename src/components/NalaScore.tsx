@@ -308,7 +308,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
   const { composite, grade, dimensions, keyInsights, availableDimensions, isETF, dataAge, lastUpdated } = data;
 
   return (
-    <div className="bg-gray-50/40 dark:bg-white/[0.02] backdrop-blur-md border border-gray-200/40 dark:border-white/[0.05] rounded-xl p-5 mb-6">
+    <div className="rounded-xl p-5 mb-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
