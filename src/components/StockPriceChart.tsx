@@ -113,6 +113,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const toggleMACD = useCallback(() => setMacdEnabled(prev => !prev), [setMacdEnabled]);
   const [divEnabled, setDivEnabled] = useLocalStorage('stockChartDivergence', false);
   const toggleDiv = useCallback(() => setDivEnabled(prev => !prev), [setDivEnabled]);
+  const [hoveredDivIdx, setHoveredDivIdx] = useState<number | null>(null);
   // Candlestick mode
   const [chartMode, setChartMode] = useLocalStorage<'line' | 'candle'>('stockChartMode', 'line');
   const [candleInterval, setCandleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
@@ -2716,14 +2717,45 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const x1 = getIX(d.startIdx), y1 = toY(d.priceStart);
                   const x2 = getIX(d.endIdx), y2 = toY(d.priceEnd);
                   const midX = (x1 + x2) / 2, midY = Math.min(y1, y2) - 12;
+                  const isHovered = hoveredDivIdx === di;
                   return (
-                    <g key={`div-${di}`}>
-                      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={1.5} strokeDasharray="6,3" opacity={d.confirmed ? 0.9 : 0.6} />
-                      <circle cx={x1} cy={y1} r={3} fill={color} opacity={0.7} />
-                      <circle cx={x2} cy={y2} r={3} fill={color} opacity={0.7} />
+                    <g key={`div-${di}`}
+                      onMouseEnter={() => setHoveredDivIdx(di)}
+                      onMouseLeave={() => setHoveredDivIdx(null)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {/* Invisible wider hit area for easier hover */}
+                      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={12} />
+                      {/* Visible dashed line */}
+                      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={isHovered ? 2.5 : 1.5} strokeDasharray="6,3" opacity={isHovered ? 1 : d.confirmed ? 0.9 : 0.6} />
+                      <circle cx={x1} cy={y1} r={isHovered ? 4 : 3} fill={color} opacity={isHovered ? 1 : 0.7} />
+                      <circle cx={x2} cy={y2} r={isHovered ? 4 : 3} fill={color} opacity={isHovered ? 1 : 0.7} />
                       <text x={midX} y={midY} textAnchor="middle" fill={color} fontSize={9} fontWeight="bold" opacity={0.8}>
                         {d.type === 'bullish' ? '▲ Bull' : '▼ Bear'}{d.confirmed ? ' ✓' : ''}
                       </text>
+                      {/* Hover tooltip */}
+                      {isHovered && (
+                        <foreignObject x={Math.min(midX - 110, CHART_W - 225)} y={midY - 85} width={220} height={80}>
+                          <div style={{ background: 'rgba(20,20,25,0.95)', border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: '#e5e5e5', backdropFilter: 'blur(8px)' }}>
+                            <div style={{ fontWeight: 700, color, marginBottom: 4 }}>
+                              {d.type === 'bullish' ? '▲ Bullish Divergence' : '▼ Bearish Divergence'}
+                              {d.confirmed && <span style={{ color: '#22D3EE', marginLeft: 6 }}>MACD Confirmed</span>}
+                            </div>
+                            <div style={{ display: 'flex', gap: 16, fontSize: 10, opacity: 0.8 }}>
+                              <div>
+                                <div style={{ color: '#999', marginBottom: 1 }}>Price</div>
+                                <div>${d.priceStart.toFixed(2)} → ${d.priceEnd.toFixed(2)}</div>
+                                <div style={{ color }}>{d.type === 'bullish' ? 'Lower low ↓' : 'Higher high ↑'}</div>
+                              </div>
+                              <div>
+                                <div style={{ color: '#999', marginBottom: 1 }}>RSI</div>
+                                <div>{d.rsiStart.toFixed(1)} → {d.rsiEnd.toFixed(1)}</div>
+                                <div style={{ color }}>{d.type === 'bullish' ? 'Higher low ↑' : 'Lower high ↓'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </foreignObject>
+                      )}
                     </g>
                   );
                 })}
