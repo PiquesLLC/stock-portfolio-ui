@@ -2722,6 +2722,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                     <g key={`div-${di}`}
                       onMouseEnter={() => setHoveredDivIdx(di)}
                       onMouseLeave={() => setHoveredDivIdx(null)}
+                      onClick={(e) => { e.stopPropagation(); setHoveredDivIdx(hoveredDivIdx === di ? null : di); }}
+                      onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setHoveredDivIdx(hoveredDivIdx === di ? null : di); }}
                       style={{ cursor: 'pointer' }}
                     >
                       {/* Invisible wider hit area for easier hover */}
