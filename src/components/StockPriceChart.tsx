@@ -1588,15 +1588,28 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const cStart = candleZoom?.start ?? 0;
     const cEnd = candleZoom?.end ?? candleData.length - 1;
     const cCount = cEnd - cStart + 1;
-    const maxLabels = 5;
-    const step = Math.max(1, Math.floor(cCount / maxLabels));
-    for (let j = 0; j < cCount; j += step) {
-      const ci = cStart + j;
-      const x = PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
-      const d = new Date(candleData[ci].time);
-      const label = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
-      if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1].label !== label) {
+    const use1DTime = is1D && dayRangeMs > 0 && !candleZoom;
+    // For 1D: generate evenly spaced labels across the full 4AM-8PM window
+    if (use1DTime) {
+      const numLabels = 5;
+      for (let j = 0; j <= numLabels; j++) {
+        const ratio = j / numLabels;
+        const ms = dayStartMs + ratio * dayRangeMs;
+        const x = PAD_LEFT + ratio * plotW;
+        const label = new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         timeLabels.push({ label, x });
+      }
+    } else {
+      const maxLabels = 5;
+      const step = Math.max(1, Math.floor(cCount / maxLabels));
+      for (let j = 0; j < cCount; j += step) {
+        const ci = cStart + j;
+        const x = PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+        const d = new Date(candleData[ci].time);
+        const label = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1].label !== label) {
+          timeLabels.push({ label, x });
+        }
       }
     }
   } else if (points.length > 1) {
@@ -1700,7 +1713,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       const cEnd = candleZoom?.end ?? candleData.length - 1;
       const cCount = cEnd - cStart + 1;
       const ratio = Math.max(0, Math.min(1, (mouseX - PAD_LEFT) / plotW));
-      const ci = Math.min(cEnd, cStart + Math.round(ratio * (cCount - 1)));
+      let ci: number;
+      if (is1D && dayRangeMs > 0 && !candleZoom) {
+        // 1D time-based: mouse position → timestamp → nearest candle
+        const mouseTime = dayStartMs + ratio * dayRangeMs;
+        ci = cStart;
+        let bestDist = Infinity;
+        for (let i = cStart; i <= cEnd; i++) {
+          const dist = Math.abs(candleData[i].time - mouseTime);
+          if (dist < bestDist) { bestDist = dist; ci = i; }
+        }
+      } else {
+        ci = Math.min(cEnd, cStart + Math.round(ratio * (cCount - 1)));
+      }
       setHoverIndex(ci - cStart);
       onHoverPrice?.(candleData[ci].close, candleData[ci].label, referencePriceRef.current);
       return;
@@ -1945,10 +1970,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     // Map mouse position to candle index
     const ci = Math.max(cStart, Math.min(cEnd, hoverIndex + cStart));
     if (ci < 0 || ci >= candleData.length) return null;
-    const x = PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+    const use1DTime = is1D && dayRangeMs > 0 && !candleZoom;
+    const x = use1DTime
+      ? PAD_LEFT + Math.max(0, Math.min(1, (candleData[ci].time - dayStartMs) / dayRangeMs)) * plotW
+      : PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
     const y = Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(candleData[ci].close)));
     return { x, y, label: candleData[ci].label, price: candleData[ci].close };
-  }, [chartMode, candleData, candleZoom, hoverIndex, toY, plotW]);
+  }, [chartMode, candleData, candleZoom, hoverIndex, toY, plotW, is1D, dayRangeMs, dayStartMs]);
   const hoverX = candleHover ? candleHover.x : (safeHoverIndex !== null ? toX(safeHoverIndex) : null);
   const hoverY = candleHover ? candleHover.y : (safeHoverIndex !== null ? Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(points[safeHoverIndex].price))) : null);
   const hoverLabel = candleHover ? candleHover.label : (safeHoverIndex !== null ? points[safeHoverIndex].label : null);
@@ -2277,7 +2305,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             const cStart = candleZoom?.start ?? 0;
             const cEnd = candleZoom?.end ?? candleData.length - 1;
             const cCount = cEnd - cStart + 1;
-            const candleToX = (i: number) => PAD_LEFT + (cCount > 1 ? ((i - cStart) / (cCount - 1)) * plotW : plotW / 2);
+            // 1D: time-based positioning within 4AM-8PM window (matches line chart)
+            // Other periods: index-based positioning
+            const candleToX = is1D && dayRangeMs > 0 && !candleZoom
+              ? (i: number) => {
+                  const t = candleData[Math.max(0, Math.min(i, candleData.length - 1))].time;
+                  return PAD_LEFT + Math.max(0, Math.min(1, (t - dayStartMs) / dayRangeMs)) * plotW;
+                }
+              : (i: number) => PAD_LEFT + (cCount > 1 ? ((i - cStart) / (cCount - 1)) * plotW : plotW / 2);
             return (
               <g clipPath="url(#plot-clip)">
                 {/* Comparison candles (behind main candles) */}
