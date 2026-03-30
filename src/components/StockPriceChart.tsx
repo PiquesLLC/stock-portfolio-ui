@@ -789,9 +789,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (!svg) return;
 
     const handler = (e: WheelEvent) => {
-      // Candle mode: handled by React onWheel instead
+      e.preventDefault(); // Always prevent page scroll when mouse is over chart
+      // Candle mode: zoom handled by React onWheel
       if (chartModeRef.current === 'candle') return;
-      e.preventDefault();
 
       // Don't zoom if user is focused on an input or modal
       const active = document.activeElement;
