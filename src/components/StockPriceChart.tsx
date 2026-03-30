@@ -2726,6 +2726,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                       onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setHoveredDivIdx(hoveredDivIdx === di ? null : di); }}
                       style={{ cursor: 'pointer' }}
                     >
+                      {/* Subtle gradient fill between divergence line and price */}
+                      <polygon
+                        points={`${x1},${y1} ${x2},${y2} ${x2},${toY(d.priceEnd)} ${x1},${toY(d.priceStart)}`}
+                        fill={color} opacity={isHovered ? 0.08 : 0.04}
+                      />
                       {/* Invisible wider hit area for easier hover */}
                       <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={12} />
                       {/* Visible dashed line */}
@@ -3249,19 +3254,47 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           const x1 = getIX2(d.startIdx), x2 = getIX2(d.endIdx);
           const midX = (x1 + x2) / 2;
           const midY = Math.min(toY(d.priceStart), toY(d.priceEnd)) - 12;
+          // Get dates from data source
+          const src = chartMode === 'candle' && candleData.length > 0 ? candleData : null;
+          const dateFmt = (idx: number) => {
+            const t = src ? (src[idx]?.time ?? 0) : (points[idx]?.time ?? 0);
+            return t ? new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
+          };
+          const dateStart = dateFmt(d.startIdx);
+          const dateEnd = dateFmt(d.endIdx);
+          const hasOutcome = d.outcomePercent != null && d.outcomeBars != null && d.outcomeBars > 0;
+          const outcomeColor = hasOutcome ? ((d.type === 'bullish' && d.outcomePercent! > 0) || (d.type === 'bearish' && d.outcomePercent! < 0) ? DIV_COLORS.bullish : DIV_COLORS.bearish) : '#999';
+          const tooltipH = hasOutcome ? 82 : 62;
+          // Caret position
+          const tooltipX = Math.max(5, Math.min(midX - 105, CHART_W - 215));
+          const tooltipY = Math.max(PAD_TOP, midY - tooltipH - 6);
+          const caretX = midX - tooltipX;
           return (
-            <foreignObject x={Math.min(midX - 95, CHART_W - 195)} y={Math.max(PAD_TOP, midY - 62)} width={190} height={56}>
-              <div style={{ background: d.type === 'bullish' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '6px 10px', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
-                  {d.type === 'bullish' ? 'Bullish Divergence' : 'Bearish Divergence'}
-                  {d.confirmed && <span style={{ fontSize: 9, color: '#22D3EE', marginLeft: 4, fontWeight: 600 }}>✓ Confirmed</span>}
+            <>
+            <foreignObject x={tooltipX} y={tooltipY} width={210} height={tooltipH}>
+              <div style={{ background: d.type === 'bullish' ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)', borderLeft: `3px solid ${color}`, borderRadius: 8, padding: '7px 10px', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
+                    {d.type === 'bullish' ? 'Bullish Divergence' : 'Bearish Divergence'}
+                  </span>
+                  {d.confirmed && <span style={{ fontSize: 8, color: '#22D3EE', fontWeight: 700, background: 'rgba(34,211,238,0.1)', padding: '1px 5px', borderRadius: 3 }}>CONFIRMED</span>}
                 </div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{dateStart} → {dateEnd}</div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.4 }}>
                   Price {d.type === 'bullish' ? '↓' : '↑'} <span style={{ color: 'rgba(255,255,255,0.85)' }}>${d.priceStart.toFixed(0)}→${d.priceEnd.toFixed(0)}</span>
                   {' · '}RSI {d.type === 'bullish' ? '↑' : '↓'} <span style={{ color: 'rgba(255,255,255,0.85)' }}>{d.rsiStart.toFixed(0)}→{d.rsiEnd.toFixed(0)}</span>
                 </div>
+                {hasOutcome && (
+                  <div style={{ fontSize: 10, marginTop: 4, color: outcomeColor, fontWeight: 600 }}>
+                    After: {d.outcomePercent! > 0 ? '+' : ''}{d.outcomePercent!.toFixed(1)}% in {d.outcomeBars} bars
+                    {((d.type === 'bullish' && d.outcomePercent! > 2) || (d.type === 'bearish' && d.outcomePercent! < -2)) && ' ✓ Signal worked'}
+                  </div>
+                )}
               </div>
             </foreignObject>
+            {/* Caret arrow pointing down to the divergence */}
+            <polygon points={`${tooltipX + caretX - 5},${tooltipY + tooltipH} ${tooltipX + caretX + 5},${tooltipY + tooltipH} ${tooltipX + caretX},${tooltipY + tooltipH + 6}`} fill={d.type === 'bullish' ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)'} />
+            </>
           );
         })()}
         </svg>

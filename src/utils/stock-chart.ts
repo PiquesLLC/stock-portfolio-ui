@@ -426,7 +426,10 @@ export interface Divergence {
   priceEnd: number;
   rsiStart: number;
   rsiEnd: number;
-  confirmed: boolean; // true if MACD also diverges in the same direction
+  confirmed: boolean;
+  // Outcome: what happened after the divergence signal
+  outcomePercent?: number; // price change % after endIdx (positive = went up)
+  outcomeBars?: number;    // how many bars after endIdx we measured
 }
 
 /** Find local swing lows — points lower than all neighbors within ±window */
@@ -539,6 +542,23 @@ export function detectDivergences(
       rsiEnd: rsiCurr,
       confirmed,
     });
+  }
+
+  // Compute outcome: what happened after each divergence
+  for (const d of divergences) {
+    // Look ahead up to 20 bars (or end of data) for the peak/trough after the signal
+    const lookAhead = Math.min(20, closes.length - 1 - d.endIdx);
+    if (lookAhead >= 3) {
+      const signalPrice = d.priceEnd;
+      let extremePrice = signalPrice;
+      let extremeIdx = d.endIdx;
+      for (let i = d.endIdx + 1; i <= d.endIdx + lookAhead; i++) {
+        if (d.type === 'bullish' && closes[i] > extremePrice) { extremePrice = closes[i]; extremeIdx = i; }
+        if (d.type === 'bearish' && closes[i] < extremePrice) { extremePrice = closes[i]; extremeIdx = i; }
+      }
+      d.outcomePercent = ((extremePrice - signalPrice) / signalPrice) * 100;
+      d.outcomeBars = extremeIdx - d.endIdx;
+    }
   }
 
   return divergences.sort((a, b) => a.startIdx - b.startIdx);
