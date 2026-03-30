@@ -2198,7 +2198,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             const cEnd = candleZoom?.end ?? total - 1;
             const visCount = cEnd - cStart + 1;
             const zoomDir = e.deltaY > 0 ? 1 : -1; // scroll down = zoom out, up = zoom in
-            const step = Math.max(1, Math.round(visCount * 0.15));
+            const step = Math.max(1, Math.round(visCount * 0.05));
             const MIN_VISIBLE = 10;
             if (zoomDir > 0) {
               // Zoom out
