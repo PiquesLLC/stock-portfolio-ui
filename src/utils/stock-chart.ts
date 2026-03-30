@@ -318,6 +318,112 @@ export function calcSMA(prices: number[], period: number): (number | null)[] {
   return result;
 }
 
+// ── Technical Indicators ─────────────────────────────────────────
+
+// Indicator colors
+export const RSI_COLOR = '#E8B344';
+export const MACD_COLORS = { macd: '#3B82F6', signal: '#EF4444', histUp: '#00C805', histDown: '#E8544E' };
+export const BB_COLORS = { band: '#8B5CF6', fill: '#8B5CF6' };
+export const VWAP_COLOR = '#F97316';
+
+/** Exponential Moving Average */
+export function calcEMA(prices: number[], period: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  const k = 2 / (period + 1);
+  let ema: number | null = null;
+  for (let i = 0; i < prices.length; i++) {
+    if (i < period - 1) { result.push(null); continue; }
+    if (ema === null) {
+      // Seed with SMA of first `period` values
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) sum += prices[j];
+      ema = sum / period;
+    } else {
+      ema = prices[i] * k + ema * (1 - k);
+    }
+    result.push(ema);
+  }
+  return result;
+}
+
+/** Relative Strength Index (Wilder's smoothing) */
+export function calcRSI(closes: number[], period: number = 14): (number | null)[] {
+  const result: (number | null)[] = [];
+  if (closes.length < period + 1) return closes.map(() => null);
+  let avgGain = 0, avgLoss = 0;
+  // Initial average from first `period` changes
+  for (let i = 1; i <= period; i++) {
+    const change = closes[i] - closes[i - 1];
+    if (change > 0) avgGain += change; else avgLoss += Math.abs(change);
+  }
+  avgGain /= period;
+  avgLoss /= period;
+  // Fill nulls for first period values
+  for (let i = 0; i <= period; i++) result.push(i === period ? (avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss)) : null);
+  // Wilder's smoothing for remaining values
+  for (let i = period + 1; i < closes.length; i++) {
+    const change = closes[i] - closes[i - 1];
+    avgGain = (avgGain * (period - 1) + Math.max(0, change)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(0, -change)) / period;
+    result.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
+  }
+  return result;
+}
+
+/** MACD (Moving Average Convergence Divergence) */
+export function calcMACD(closes: number[], fast = 12, slow = 26, signalPeriod = 9): {
+  macd: (number | null)[]; signal: (number | null)[]; histogram: (number | null)[];
+} {
+  const fastEMA = calcEMA(closes, fast);
+  const slowEMA = calcEMA(closes, slow);
+  const macdLine: (number | null)[] = closes.map((_, i) =>
+    fastEMA[i] !== null && slowEMA[i] !== null ? fastEMA[i]! - slowEMA[i]! : null
+  );
+  // Signal line = EMA of MACD values (skip nulls)
+  const macdValues = macdLine.filter((v): v is number => v !== null);
+  const signalRaw = calcEMA(macdValues, signalPeriod);
+  // Map signal back to full-length array
+  const signal: (number | null)[] = new Array(closes.length).fill(null);
+  let si = 0;
+  for (let i = 0; i < closes.length; i++) {
+    if (macdLine[i] !== null) { signal[i] = signalRaw[si++] ?? null; }
+  }
+  const histogram: (number | null)[] = closes.map((_, i) =>
+    macdLine[i] !== null && signal[i] !== null ? macdLine[i]! - signal[i]! : null
+  );
+  return { macd: macdLine, signal, histogram };
+}
+
+/** Bollinger Bands (SMA + standard deviation bands) */
+export function calcBollingerBands(closes: number[], period = 20, stdDev = 2): {
+  upper: (number | null)[]; middle: (number | null)[]; lower: (number | null)[];
+} {
+  const middle = calcSMA(closes, period);
+  const upper: (number | null)[] = [];
+  const lower: (number | null)[] = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (middle[i] === null || i < period - 1) { upper.push(null); lower.push(null); continue; }
+    let sumSq = 0;
+    for (let j = i - period + 1; j <= i; j++) sumSq += (closes[j] - middle[i]!) ** 2;
+    const sd = Math.sqrt(sumSq / period);
+    upper.push(middle[i]! + stdDev * sd);
+    lower.push(middle[i]! - stdDev * sd);
+  }
+  return { upper, middle, lower };
+}
+
+/** Volume Weighted Average Price (resets per session) */
+export function calcVWAP(candles: CandleDataPoint[]): (number | null)[] {
+  if (candles.length === 0) return [];
+  let cumTPV = 0, cumVol = 0;
+  return candles.map(c => {
+    const tp = (c.high + c.low + c.close) / 3;
+    cumTPV += tp * c.volume;
+    cumVol += c.volume;
+    return cumVol > 0 ? cumTPV / cumVol : null;
+  });
+}
+
 // ── MA Breach Signal Detection ────────────────────────────────────
 
 export interface BreachEvent {

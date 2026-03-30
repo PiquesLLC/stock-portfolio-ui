@@ -32,8 +32,18 @@ import {
   type CandleDataPoint,
   CANDLE_INTERVALS,
   buildCandlePoints,
+  calcRSI,
+  calcMACD,
+  calcBollingerBands,
+  calcVWAP,
+  RSI_COLOR,
+  MACD_COLORS,
+  BB_COLORS,
+  VWAP_COLOR,
 } from '../utils/stock-chart';
 import { CandlestickRenderer } from './CandlestickRenderer';
+import { RSIPanel } from './RSIPanel';
+import { MACDPanel } from './MACDPanel';
 import { computeChartGroups } from '../utils/chart-groups';
 
 interface Props {
@@ -90,6 +100,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const toggleEvents = useCallback(() => setEventsEnabled(prev => !prev), [setEventsEnabled]);
   const [volumeEnabled, setVolumeEnabled] = useLocalStorage('stockChartVolume', false);
   const toggleVolume = useCallback(() => setVolumeEnabled(prev => !prev), [setVolumeEnabled]);
+  // Technical indicators
+  const [bbEnabled, setBbEnabled] = useLocalStorage('stockChartBB', false);
+  const toggleBB = useCallback(() => setBbEnabled(prev => !prev), [setBbEnabled]);
+  const [vwapEnabled, setVwapEnabled] = useLocalStorage('stockChartVWAP', false);
+  const toggleVWAP = useCallback(() => setVwapEnabled(prev => !prev), [setVwapEnabled]);
+  const [rsiEnabled, setRsiEnabled] = useLocalStorage('stockChartRSI', false);
+  const toggleRSI = useCallback(() => setRsiEnabled(prev => !prev), [setRsiEnabled]);
+  const [macdEnabled, setMacdEnabled] = useLocalStorage('stockChartMACD', false);
+  const toggleMACD = useCallback(() => setMacdEnabled(prev => !prev), [setMacdEnabled]);
   // Candlestick mode
   const [chartMode, setChartMode] = useLocalStorage<'line' | 'candle'>('stockChartMode', 'line');
   const [candleInterval, setCandleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
@@ -111,7 +130,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Overlays dropdown
   const [overlaysOpen, setOverlaysOpen] = useState(false);
   const overlaysDropdownRef = useRef<HTMLDivElement>(null);
-  const overlayCount = enabledMAs.size + (volumeEnabled ? 1 : 0) + (signalsEnabled ? 1 : 0) + (eventsEnabled ? 1 : 0);
+  const overlayCount = enabledMAs.size + (volumeEnabled ? 1 : 0) + (signalsEnabled ? 1 : 0) + (eventsEnabled ? 1 : 0) + (bbEnabled ? 1 : 0) + (vwapEnabled ? 1 : 0) + (rsiEnabled ? 1 : 0) + (macdEnabled ? 1 : 0);
   useEffect(() => {
     if (!overlaysOpen) return;
     const handleClick = (e: PointerEvent) => {
@@ -1305,6 +1324,32 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // toX/toY are inline functions — paddedMin/paddedMax added for toY; remaining toX deps are covered or constant
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleMaData, interpolatedMaData, enabledMAs, points, selectedPeriod, useHourly, zoomRange, visStartIdx, visEndIdx, paddedMin, paddedMax]);
+
+  // ── Technical Indicator Computations ─────────────────────────────
+  const indicatorSource = useMemo(() => {
+    if (chartMode === 'candle' && candleData.length > 0) return candleData.map(c => c.close);
+    return points.map(p => p.price);
+  }, [chartMode, candleData, points]);
+
+  const bbData = useMemo(() => {
+    if (!bbEnabled || indicatorSource.length < 20) return null;
+    return calcBollingerBands(indicatorSource);
+  }, [bbEnabled, indicatorSource]);
+
+  const vwapData = useMemo(() => {
+    if (!vwapEnabled || chartMode !== 'candle' || candleData.length < 2) return null;
+    return calcVWAP(candleData);
+  }, [vwapEnabled, chartMode, candleData]);
+
+  const rsiData = useMemo(() => {
+    if (!rsiEnabled || indicatorSource.length < 15) return null;
+    return calcRSI(indicatorSource);
+  }, [rsiEnabled, indicatorSource]);
+
+  const macdData = useMemo(() => {
+    if (!macdEnabled || indicatorSource.length < 27) return null;
+    return calcMACD(indicatorSource);
+  }, [macdEnabled, indicatorSource]);
 
   // ── Breach signal events ──────────────────────────────────────────
   const breachClusters = useMemo<BreachCluster[]>(() => {
@@ -2581,6 +2626,62 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             ))}
           </g>
 
+          {/* Bollinger Bands overlay */}
+          {bbEnabled && bbData && (() => {
+            const getX = (i: number) => {
+              if (chartMode === 'candle' && candleData.length > 0) {
+                const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
+                const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
+                if (is1D && (tz1DEnd - tz1DStart) > 0) {
+                  return PAD_LEFT + Math.max(0, Math.min(1, (candleData[i].time - tz1DStart) / (tz1DEnd - tz1DStart))) * plotW;
+                }
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? candleData.length - 1;
+                return PAD_LEFT + ((i - cStart) / Math.max(1, cEnd - cStart)) * plotW;
+              }
+              return toX(i);
+            };
+            const buildPath = (values: (number | null)[]) => {
+              const pts: string[] = [];
+              values.forEach((v, i) => { if (v !== null) pts.push(`${pts.length === 0 ? 'M' : 'L'}${getX(i).toFixed(1)},${toY(v).toFixed(1)}`); });
+              return pts.join(' ');
+            };
+            const upperPath = buildPath(bbData.upper);
+            const lowerPath = buildPath(bbData.lower);
+            // Fill area between bands
+            const upperPts: string[] = [];
+            const lowerPts: string[] = [];
+            bbData.upper.forEach((v, i) => { if (v !== null && bbData.lower[i] !== null) { upperPts.push(`${getX(i).toFixed(1)},${toY(v).toFixed(1)}`); lowerPts.push(`${getX(i).toFixed(1)},${toY(bbData.lower[i]!).toFixed(1)}`); } });
+            const fillPath = upperPts.length > 0 ? `M${upperPts.join(' L')} L${lowerPts.reverse().join(' L')} Z` : '';
+            return (
+              <g clipPath="url(#plot-clip)">
+                {fillPath && <path d={fillPath} fill={BB_COLORS.fill} opacity={0.06} />}
+                <path d={upperPath} fill="none" stroke={BB_COLORS.band} strokeWidth="1" strokeDasharray="3,3" opacity={0.5} />
+                <path d={lowerPath} fill="none" stroke={BB_COLORS.band} strokeWidth="1" strokeDasharray="3,3" opacity={0.5} />
+                <path d={buildPath(bbData.middle)} fill="none" stroke={BB_COLORS.band} strokeWidth="1" opacity={0.35} />
+              </g>
+            );
+          })()}
+
+          {/* VWAP overlay (candle mode, 1D only) */}
+          {vwapEnabled && vwapData && chartMode === 'candle' && candleData.length > 0 && (() => {
+            const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
+            const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
+            const pts: string[] = [];
+            vwapData.forEach((v, i) => {
+              if (v === null) return;
+              const x = is1D && (tz1DEnd - tz1DStart) > 0
+                ? PAD_LEFT + Math.max(0, Math.min(1, (candleData[i].time - tz1DStart) / (tz1DEnd - tz1DStart))) * plotW
+                : PAD_LEFT + (i / Math.max(1, candleData.length - 1)) * plotW;
+              pts.push(`${pts.length === 0 ? 'M' : 'L'}${x.toFixed(1)},${toY(v).toFixed(1)}`);
+            });
+            return pts.length > 1 ? (
+              <g clipPath="url(#plot-clip)">
+                <path d={pts.join(' ')} fill="none" stroke={VWAP_COLOR} strokeWidth="1.5" strokeLinecap="round" opacity={0.7} />
+              </g>
+            ) : null;
+          })()}
+
           {/* Comparison overlay lines — normalized % return from other tickers (line mode only) */}
           {chartMode === 'line' && comparisons && comparisons.length > 0 && hasData && (
             <g clipPath="url(#plot-clip)">
@@ -3543,6 +3644,39 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       })()}
 
     </div>{/* end overflowX:clip wrapper */}
+
+      {/* RSI sub-panel */}
+      {rsiEnabled && rsiData && (() => {
+        const getIndicatorToX = (i: number) => {
+          if (chartMode === 'candle' && candleData.length > 0) {
+            const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
+            const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
+            if (is1D && (tz1DEnd - tz1DStart) > 0) return (candleData[i]?.time ? Math.max(0, Math.min(1, (candleData[i].time - tz1DStart) / (tz1DEnd - tz1DStart))) * CHART_W : 0);
+            const cStart = candleZoom?.start ?? 0;
+            const cEnd = candleZoom?.end ?? candleData.length - 1;
+            return ((i - cStart) / Math.max(1, cEnd - cStart)) * CHART_W;
+          }
+          return toX(i);
+        };
+        return <RSIPanel data={rsiData} toX={getIndicatorToX} width={CHART_W} />;
+      })()}
+
+      {/* MACD sub-panel */}
+      {macdEnabled && macdData && (() => {
+        const getIndicatorToX = (i: number) => {
+          if (chartMode === 'candle' && candleData.length > 0) {
+            const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
+            const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
+            if (is1D && (tz1DEnd - tz1DStart) > 0) return (candleData[i]?.time ? Math.max(0, Math.min(1, (candleData[i].time - tz1DStart) / (tz1DEnd - tz1DStart))) * CHART_W : 0);
+            const cStart = candleZoom?.start ?? 0;
+            const cEnd = candleZoom?.end ?? candleData.length - 1;
+            return ((i - cStart) / Math.max(1, cEnd - cStart)) * CHART_W;
+          }
+          return toX(i);
+        };
+        return <MACDPanel data={macdData} toX={getIndicatorToX} width={CHART_W} visibleCount={chartMode === 'candle' ? candleData.length : points.length} />;
+      })()}
+
       {/* Period selector + Overlays dropdown */}
       <div className="flex items-center justify-between gap-2 mt-3">
         <div className="flex gap-1">
@@ -3676,6 +3810,32 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   />
                   Events
                 </button>
+              </div>
+              {/* Indicators section */}
+              <div className="px-2 pb-1.5 pt-1 mb-1 border-t border-gray-100 dark:border-white/[0.06] mt-1">
+                <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Indicators</span>
+              </div>
+              <div className="space-y-0.5 px-1 mb-1">
+                {([
+                  { label: 'Bollinger Bands', enabled: bbEnabled, toggle: toggleBB, color: BB_COLORS.band },
+                  { label: 'VWAP', enabled: vwapEnabled, toggle: toggleVWAP, color: VWAP_COLOR },
+                  { label: 'RSI (14)', enabled: rsiEnabled, toggle: toggleRSI, color: RSI_COLOR },
+                  { label: 'MACD', enabled: macdEnabled, toggle: toggleMACD, color: MACD_COLORS.macd },
+                ] as const).map(({ label, enabled, toggle, color }) => (
+                  <button
+                    key={label}
+                    onClick={toggle}
+                    className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                      enabled ? 'text-white' : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <span
+                      className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${enabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
+                      style={enabled ? { backgroundColor: color, borderColor: color } : undefined}
+                    />
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
