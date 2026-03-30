@@ -1718,7 +1718,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setHoverIndex(clamped);
       onHoverPrice?.(points[clamped].price, points[clamped].label, referencePriceRef.current);
     }
-  }, [points, plotW, onHoverPrice, is1D, dayStartMs, dayRangeMs, zoomRange, visStartIdx, visEndIdx, isPanning]);
+  }, [points, plotW, onHoverPrice, is1D, dayStartMs, dayRangeMs, zoomRange, visStartIdx, visEndIdx, isPanning, chartMode, candleData, candleZoom]);
 
   const handleMouseLeave = useCallback(() => {
     setHoverIndex(null);
