@@ -2735,21 +2735,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                       <text x={midX} y={midY} textAnchor="middle" fill={color} fontSize={9} fontWeight="bold" opacity={0.8}>
                         {d.type === 'bullish' ? '▲ Bull' : '▼ Bear'}{d.confirmed ? ' ✓' : ''}
                       </text>
-                      {/* Hover tooltip */}
-                      {isHovered && (
-                        <foreignObject x={Math.min(midX - 95, CHART_W - 195)} y={midY - 62} width={190} height={56}>
-                          <div style={{ background: d.type === 'bullish' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '6px 10px', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
-                              {d.type === 'bullish' ? 'Bullish Divergence' : 'Bearish Divergence'}
-                              {d.confirmed && <span style={{ fontSize: 9, color: '#22D3EE', marginLeft: 4, fontWeight: 600 }}>✓ Confirmed</span>}
-                            </div>
-                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.4 }}>
-                              Price {d.type === 'bullish' ? '↓' : '↑'} <span style={{ color: 'rgba(255,255,255,0.8)' }}>${d.priceStart.toFixed(0)}→${d.priceEnd.toFixed(0)}</span>
-                              {' · '}RSI {d.type === 'bullish' ? '↑' : '↓'} <span style={{ color: 'rgba(255,255,255,0.8)' }}>{d.rsiStart.toFixed(0)}→{d.rsiEnd.toFixed(0)}</span>
-                            </div>
-                          </div>
-                        </foreignObject>
-                      )}
+                      {/* Tooltip rendered separately at end of SVG for z-order */}
                     </g>
                   );
                 })}
@@ -3245,6 +3231,39 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               </text>
             );
           })}
+        {/* Divergence tooltip — rendered last for z-order (above all chart elements) */}
+        {divEnabled && hoveredDivIdx !== null && divergenceData[hoveredDivIdx] && (() => {
+          const d = divergenceData[hoveredDivIdx];
+          const color = d.type === 'bullish' ? DIV_COLORS.bullish : DIV_COLORS.bearish;
+          const getIX2 = (i: number) => {
+            if (chartMode === 'candle' && candleData.length > 0) {
+              const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+              const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+              if (is1D && (tzE - tzS) > 0 && candleData[i]) return PAD_LEFT + Math.max(0, Math.min(1, (candleData[i].time - tzS) / (tzE - tzS))) * plotW;
+              const cS = candleZoom?.start ?? 0;
+              const cE = candleZoom?.end ?? candleData.length - 1;
+              return PAD_LEFT + ((i - cS) / Math.max(1, cE - cS)) * plotW;
+            }
+            return toX(i);
+          };
+          const x1 = getIX2(d.startIdx), x2 = getIX2(d.endIdx);
+          const midX = (x1 + x2) / 2;
+          const midY = Math.min(toY(d.priceStart), toY(d.priceEnd)) - 12;
+          return (
+            <foreignObject x={Math.min(midX - 95, CHART_W - 195)} y={Math.max(PAD_TOP, midY - 62)} width={190} height={56}>
+              <div style={{ background: d.type === 'bullish' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '6px 10px', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
+                  {d.type === 'bullish' ? 'Bullish Divergence' : 'Bearish Divergence'}
+                  {d.confirmed && <span style={{ fontSize: 9, color: '#22D3EE', marginLeft: 4, fontWeight: 600 }}>✓ Confirmed</span>}
+                </div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 3, lineHeight: 1.4 }}>
+                  Price {d.type === 'bullish' ? '↓' : '↑'} <span style={{ color: 'rgba(255,255,255,0.85)' }}>${d.priceStart.toFixed(0)}→${d.priceEnd.toFixed(0)}</span>
+                  {' · '}RSI {d.type === 'bullish' ? '↑' : '↓'} <span style={{ color: 'rgba(255,255,255,0.85)' }}>{d.rsiStart.toFixed(0)}→{d.rsiEnd.toFixed(0)}</span>
+                </div>
+              </div>
+            </foreignObject>
+          );
+        })()}
         </svg>
 
         {/* Event popup card — rich card like reference design */}
