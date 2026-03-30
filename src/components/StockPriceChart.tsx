@@ -114,6 +114,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const [divEnabled, setDivEnabled] = useLocalStorage('stockChartDivergence', false);
   const toggleDiv = useCallback(() => setDivEnabled(prev => !prev), [setDivEnabled]);
   const [hoveredDivIdx, setHoveredDivIdx] = useState<number | null>(null);
+  const [pinnedDivIdx, setPinnedDivIdx] = useState<number | null>(null);
   // Candlestick mode
   const [chartMode, setChartMode] = useLocalStorage<'line' | 'candle'>('stockChartMode', 'line');
   const [candleInterval, setCandleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
@@ -2717,13 +2718,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const x1 = getIX(d.startIdx), y1 = toY(d.priceStart);
                   const x2 = getIX(d.endIdx), y2 = toY(d.priceEnd);
                   const midX = (x1 + x2) / 2, midY = Math.min(y1, y2) - 12;
-                  const isHovered = hoveredDivIdx === di;
+                  const isHovered = hoveredDivIdx === di || pinnedDivIdx === di;
                   return (
                     <g key={`div-${di}`}
-                      onMouseEnter={() => setHoveredDivIdx(di)}
-                      onMouseLeave={() => setHoveredDivIdx(null)}
-                      onClick={(e) => { e.stopPropagation(); setHoveredDivIdx(hoveredDivIdx === di ? null : di); }}
-                      onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setHoveredDivIdx(hoveredDivIdx === di ? null : di); }}
+                      onMouseEnter={() => { if (pinnedDivIdx === null) setHoveredDivIdx(di); }}
+                      onMouseLeave={() => { if (pinnedDivIdx === null) setHoveredDivIdx(null); }}
+                      onClick={(e) => { e.stopPropagation(); setPinnedDivIdx(pinnedDivIdx === di ? null : di); setHoveredDivIdx(pinnedDivIdx === di ? null : di); }}
+                      onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setPinnedDivIdx(pinnedDivIdx === di ? null : di); setHoveredDivIdx(pinnedDivIdx === di ? null : di); }}
                       style={{ cursor: 'pointer' }}
                     >
                       {/* Subtle gradient fill between divergence line and price */}
@@ -3237,8 +3238,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             );
           })}
         {/* Divergence tooltip — rendered last for z-order (above all chart elements) */}
-        {divEnabled && hoveredDivIdx !== null && divergenceData[hoveredDivIdx] && (() => {
-          const d = divergenceData[hoveredDivIdx];
+        {divEnabled && (pinnedDivIdx ?? hoveredDivIdx) !== null && divergenceData[(pinnedDivIdx ?? hoveredDivIdx)!] && (() => {
+          const d = divergenceData[(pinnedDivIdx ?? hoveredDivIdx)!];
           const color = d.type === 'bullish' ? DIV_COLORS.bullish : DIV_COLORS.bearish;
           const getIX2 = (i: number) => {
             if (chartMode === 'candle' && candleData.length > 0) {
@@ -3272,8 +3273,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           return (
             <>
             <foreignObject x={tooltipX} y={tooltipY} width={210} height={tooltipH}
-              onMouseEnter={() => setHoveredDivIdx(hoveredDivIdx)}
-              onMouseLeave={() => setHoveredDivIdx(null)}>
+              onMouseEnter={() => { if (pinnedDivIdx === null) setHoveredDivIdx((pinnedDivIdx ?? hoveredDivIdx)); }}
+              onMouseLeave={() => { if (pinnedDivIdx === null) setHoveredDivIdx(null); }}>
               <div style={{ background: d.type === 'bullish' ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)', borderLeft: `3px solid ${color}`, borderRadius: 8, padding: '7px 10px', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
