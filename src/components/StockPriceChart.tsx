@@ -1331,7 +1331,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   }, [chartMode, candleData, points]);
 
   const bbData = useMemo(() => {
-    if (!bbEnabled || indicatorSource.length < 20) return null;
+    if (!bbEnabled || indicatorSource.length < 5) return null;
     return calcBollingerBands(indicatorSource);
   }, [bbEnabled, indicatorSource]);
 
@@ -1341,12 +1341,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   }, [vwapEnabled, chartMode, candleData]);
 
   const rsiData = useMemo(() => {
-    if (!rsiEnabled || indicatorSource.length < 15) return null;
+    if (!rsiEnabled || indicatorSource.length < 3) return null;
     return calcRSI(indicatorSource);
   }, [rsiEnabled, indicatorSource]);
 
   const macdData = useMemo(() => {
-    if (!macdEnabled || indicatorSource.length < 27) return null;
+    if (!macdEnabled || indicatorSource.length < 3) return null;
     return calcMACD(indicatorSource);
   }, [macdEnabled, indicatorSource]);
 

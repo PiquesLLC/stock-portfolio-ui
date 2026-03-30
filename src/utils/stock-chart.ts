@@ -326,45 +326,36 @@ export const MACD_COLORS = { macd: '#3B82F6', signal: '#EF4444', histUp: '#00C80
 export const BB_COLORS = { band: '#8B5CF6', fill: '#8B5CF6' };
 export const VWAP_COLOR = '#F97316';
 
-/** Exponential Moving Average */
+/** Exponential Moving Average (progressive — produces values from index 0) */
 export function calcEMA(prices: number[], period: number): (number | null)[] {
+  if (prices.length === 0) return [];
   const result: (number | null)[] = [];
   const k = 2 / (period + 1);
-  let ema: number | null = null;
-  for (let i = 0; i < prices.length; i++) {
-    if (i < period - 1) { result.push(null); continue; }
-    if (ema === null) {
-      // Seed with SMA of first `period` values
-      let sum = 0;
-      for (let j = i - period + 1; j <= i; j++) sum += prices[j];
-      ema = sum / period;
-    } else {
-      ema = prices[i] * k + ema * (1 - k);
-    }
+  let ema = prices[0];
+  result.push(ema);
+  for (let i = 1; i < prices.length; i++) {
+    ema = prices[i] * k + ema * (1 - k);
     result.push(ema);
   }
   return result;
 }
 
-/** Relative Strength Index (Wilder's smoothing) */
+/** Relative Strength Index (Wilder's smoothing, progressive warm-up) */
 export function calcRSI(closes: number[], period: number = 14): (number | null)[] {
-  const result: (number | null)[] = [];
-  if (closes.length < period + 1) return closes.map(() => null);
+  const result: (number | null)[] = [null]; // first point has no change
+  if (closes.length < 2) return closes.map(() => null);
   let avgGain = 0, avgLoss = 0;
-  // Initial average from first `period` changes
-  for (let i = 1; i <= period; i++) {
+  for (let i = 1; i < closes.length; i++) {
     const change = closes[i] - closes[i - 1];
-    if (change > 0) avgGain += change; else avgLoss += Math.abs(change);
-  }
-  avgGain /= period;
-  avgLoss /= period;
-  // Fill nulls for first period values
-  for (let i = 0; i <= period; i++) result.push(i === period ? (avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss)) : null);
-  // Wilder's smoothing for remaining values
-  for (let i = period + 1; i < closes.length; i++) {
-    const change = closes[i] - closes[i - 1];
-    avgGain = (avgGain * (period - 1) + Math.max(0, change)) / period;
-    avgLoss = (avgLoss * (period - 1) + Math.max(0, -change)) / period;
+    if (i <= period) {
+      // Warm-up: simple running average, produce values progressively
+      avgGain = (avgGain * (i - 1) + Math.max(0, change)) / i;
+      avgLoss = (avgLoss * (i - 1) + Math.max(0, -change)) / i;
+    } else {
+      // Wilder's smoothing after full period
+      avgGain = (avgGain * (period - 1) + Math.max(0, change)) / period;
+      avgLoss = (avgLoss * (period - 1) + Math.max(0, -change)) / period;
+    }
     result.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
   }
   return result;
