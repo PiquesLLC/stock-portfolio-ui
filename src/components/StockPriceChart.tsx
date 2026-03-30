@@ -96,6 +96,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const [candleData, setCandleData] = useState<CandleDataPoint[]>([]);
   const [candleLoading, setCandleLoading] = useState(false);
   const candleFetchSeq = useRef(0);
+  // Candle zoom: visible window [startIdx, endIdx] within candleData
+  const [candleZoom, setCandleZoom] = useState<{ start: number; end: number } | null>(null);
+  const candlePanRef = useRef<{ startX: number; startIdx: number; endIdx: number } | null>(null);
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
@@ -123,7 +126,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const seq = ++candleFetchSeq.current;
     setCandleLoading(true);
     getCandleData(ticker, selectedPeriod, effectiveInterval)
-      .then(candles => { if (seq === candleFetchSeq.current) { setCandleData(buildCandlePoints(candles)); setCandleLoading(false); } })
+      .then(candles => { if (seq === candleFetchSeq.current) { setCandleData(buildCandlePoints(candles)); setCandleZoom(null); setCandleLoading(false); } })
       .catch(() => { if (seq === candleFetchSeq.current) { setCandleData([]); setCandleLoading(false); } });
   }, [chartMode, ticker, selectedPeriod, candleInterval]);
   // Auto-adjust interval when period changes in candle mode
@@ -373,13 +376,34 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // ── Drag-to-pan when zoomed ──────────────────────────────────────────
   const handlePanStart = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (chartMode === 'candle') return; // candle mode uses interval selector instead of zoom
+    // Candle mode: drag to pan through candles
+    if (chartMode === 'candle' && candleZoom && e.button === 0) {
+      candlePanRef.current = { startX: e.clientX, startIdx: candleZoom.start, endIdx: candleZoom.end };
+      return;
+    }
     if (!zoomRange || e.button !== 0) return; // only left button, only when zoomed
     panStartRef.current = { x: e.clientX, rangeStart: zoomRange.startMs, rangeEnd: zoomRange.endMs };
   }, [zoomRange]);
 
   useEffect(() => {
     const moveHandler = (e: MouseEvent) => {
+      // Candle pan
+      const cp = candlePanRef.current;
+      if (cp && svgRef.current) {
+        const dx = e.clientX - cp.startX;
+        if (Math.abs(dx) < 3 && !isPanning) return;
+        setIsPanning(true);
+        const rect = svgRef.current.getBoundingClientRect();
+        const visCount = cp.endIdx - cp.startIdx + 1;
+        const pxPerCandle = rect.width / visCount;
+        const shift = Math.round(-dx / pxPerCandle);
+        const maxIdx = candleData.length - 1;
+        let newStart = Math.max(0, Math.min(maxIdx - visCount + 1, cp.startIdx + shift));
+        let newEnd = newStart + visCount - 1;
+        if (newEnd > maxIdx) { newEnd = maxIdx; newStart = Math.max(0, newEnd - visCount + 1); }
+        setCandleZoom({ start: newStart, end: newEnd });
+        return;
+      }
       const start = panStartRef.current;
       if (!start || !svgRef.current) return;
       const dx = e.clientX - start.x;
@@ -405,6 +429,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     };
     const upHandler = () => {
       panStartRef.current = null;
+      candlePanRef.current = null;
       setTimeout(() => setIsPanning(false), 0);
     };
     window.addEventListener('mousemove', moveHandler);
@@ -564,7 +589,18 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     wasTouchRef.current = true; // default: suppress click handler (overridden on tap in touchEnd)
 
-    if (chartMode === 'candle') return; // candle mode uses interval selector instead of zoom
+    // Candle mode: two-finger pinch zoom on mobile
+    if (chartMode === 'candle' && e.touches.length === 2 && svgRef.current && candleData.length > 0) {
+      e.preventDefault();
+      isTwoFingerRef.current = true;
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      (svgRef.current as any).__candlePinchStart = { dist, zoom: candleZoom ? { ...candleZoom } : { start: 0, end: candleData.length - 1 } };
+      return;
+    }
+    if (chartMode === 'candle' && e.touches.length === 1 && candleZoom) {
+      candlePanRef.current = { startX: e.touches[0].clientX, startIdx: candleZoom.start, endIdx: candleZoom.end };
+      return;
+    }
 
     if (e.touches.length === 2 && svgRef.current) {
       const pts = pointsRef.current;
@@ -612,6 +648,40 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Attached via useEffect with { passive: false } so preventDefault() works on touch
   const handleTouchMoveRef = useRef((_e: TouchEvent) => {});
   handleTouchMoveRef.current = (e: TouchEvent) => {
+    // Candle mode: pinch zoom
+    if (chartMode === 'candle' && e.touches.length === 2 && isTwoFingerRef.current && svgRef.current) {
+      e.preventDefault();
+      const pinchStart = (svgRef.current as any).__candlePinchStart;
+      if (!pinchStart) return;
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const scale = pinchStart.dist / dist; // >1 = pinch in = zoom in, <1 = pinch out = zoom out
+      const origCount = pinchStart.zoom.end - pinchStart.zoom.start + 1;
+      const newCount = Math.max(10, Math.min(candleData.length, Math.round(origCount * scale)));
+      const center = Math.round((pinchStart.zoom.start + pinchStart.zoom.end) / 2);
+      let newStart = Math.max(0, center - Math.floor(newCount / 2));
+      let newEnd = newStart + newCount - 1;
+      if (newEnd >= candleData.length) { newEnd = candleData.length - 1; newStart = Math.max(0, newEnd - newCount + 1); }
+      if (newStart === 0 && newEnd === candleData.length - 1) setCandleZoom(null);
+      else setCandleZoom({ start: newStart, end: newEnd });
+      return;
+    }
+    // Candle mode: single-finger pan
+    if (chartMode === 'candle' && e.touches.length === 1 && candlePanRef.current) {
+      e.preventDefault();
+      const cp = candlePanRef.current;
+      const dx = e.touches[0].clientX - cp.startX;
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const visCount = cp.endIdx - cp.startIdx + 1;
+      const pxPerCandle = rect.width / visCount;
+      const shift = Math.round(-dx / pxPerCandle);
+      const maxIdx = candleData.length - 1;
+      let newStart = Math.max(0, Math.min(maxIdx - visCount + 1, cp.startIdx + shift));
+      let newEnd = newStart + visCount - 1;
+      if (newEnd > maxIdx) { newEnd = maxIdx; newStart = Math.max(0, newEnd - visCount + 1); }
+      setCandleZoom({ start: newStart, end: newEnd });
+      return;
+    }
     // Two-finger measurement: update both points in real-time
     if (e.touches.length === 2 && isTwoFingerRef.current && svgRef.current) {
       e.preventDefault();
@@ -853,10 +923,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // Compute stable Y-axis range (includes enabled MA values + comparison overlays)
   const { paddedMin, paddedMax } = useMemo(() => {
-    // Candle mode: Y-axis based on high/low
+    // Candle mode: Y-axis based on high/low of visible candles
     if (chartMode === 'candle' && candleData.length > 0) {
-      const minP = Math.min(...candleData.map(c => c.low));
-      const maxP = Math.max(...candleData.map(c => c.high));
+      const visStart = candleZoom?.start ?? 0;
+      const visEnd = candleZoom?.end ?? candleData.length - 1;
+      const visible = candleData.slice(visStart, visEnd + 1);
+      const minP = Math.min(...visible.map(c => c.low));
+      const maxP = Math.max(...visible.map(c => c.high));
       const range = maxP === minP ? 2 : maxP - minP;
       return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
     }
@@ -906,7 +979,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
     const range = maxP - minP;
     return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
-  }, [points, referencePrice, selectedPeriod, zoomRange, visiblePoints, comparisons, chartMode, candleData]);
+  }, [points, referencePrice, selectedPeriod, zoomRange, visiblePoints, comparisons, chartMode, candleData, candleZoom]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
   const plotH = CHART_H - PAD_TOP - PAD_BOTTOM;
@@ -1974,10 +2047,38 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           onMouseDown={handlePanStart}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          onDoubleClick={handleDoubleClick}
+          onDoubleClick={() => { if (chartMode === 'candle') { setCandleZoom(null); return; } handleDoubleClick(); }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          style={{ cursor: isPanning ? 'grabbing' : zoomRange ? 'grab' : undefined, touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+          onWheel={chartMode === 'candle' && candleData.length > 0 ? (e) => {
+            e.preventDefault();
+            const total = candleData.length;
+            const cStart = candleZoom?.start ?? 0;
+            const cEnd = candleZoom?.end ?? total - 1;
+            const visCount = cEnd - cStart + 1;
+            const zoomDir = e.deltaY > 0 ? 1 : -1; // scroll down = zoom out, up = zoom in
+            const step = Math.max(1, Math.round(visCount * 0.15));
+            const MIN_VISIBLE = 10;
+            if (zoomDir > 0) {
+              // Zoom out
+              const newStart = Math.max(0, cStart - step);
+              const newEnd = Math.min(total - 1, cEnd + step);
+              if (newStart === 0 && newEnd === total - 1) { setCandleZoom(null); }
+              else { setCandleZoom({ start: newStart, end: newEnd }); }
+            } else {
+              // Zoom in
+              if (visCount <= MIN_VISIBLE) return;
+              // Zoom toward mouse position
+              const rect = svgRef.current?.getBoundingClientRect();
+              const mouseRatio = rect ? (e.clientX - rect.left) / rect.width : 0.5;
+              const shrinkLeft = Math.round(step * mouseRatio);
+              const shrinkRight = step - shrinkLeft;
+              const newStart = Math.min(cEnd - MIN_VISIBLE + 1, cStart + shrinkLeft);
+              const newEnd = Math.max(newStart + MIN_VISIBLE - 1, cEnd - shrinkRight);
+              setCandleZoom({ start: newStart, end: newEnd });
+            }
+          } : undefined}
+          style={{ cursor: isPanning ? 'grabbing' : (zoomRange || candleZoom) ? 'grab' : undefined, touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
           onClick={(e) => {
             if (isPanning) return;
             e.stopPropagation();
@@ -2045,18 +2146,24 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             <text x={CHART_W / 2} y={CHART_H / 2} textAnchor="middle" fill="#666" fontSize="12">Loading candles...</text>
           )}
           {/* Candlestick rendering */}
-          {chartMode === 'candle' && candleData.length > 0 && (
-            <g clipPath="url(#plot-clip)">
-              <CandlestickRenderer
-                candles={candleData}
-                toX={(i: number) => PAD_LEFT + (candleData.length > 1 ? (i / (candleData.length - 1)) * plotW : plotW / 2)}
-                toY={toY}
-                plotW={plotW}
-                visibleCount={candleData.length}
-                hoverIndex={hoverIndex}
-              />
-            </g>
-          )}
+          {chartMode === 'candle' && candleData.length > 0 && (() => {
+            const cStart = candleZoom?.start ?? 0;
+            const cEnd = candleZoom?.end ?? candleData.length - 1;
+            const cCount = cEnd - cStart + 1;
+            const candleToX = (i: number) => PAD_LEFT + (cCount > 1 ? ((i - cStart) / (cCount - 1)) * plotW : plotW / 2);
+            return (
+              <g clipPath="url(#plot-clip)">
+                <CandlestickRenderer
+                  candles={candleData.slice(cStart, cEnd + 1)}
+                  toX={(_i: number, origIdx?: number) => candleToX(origIdx ?? (_i + cStart))}
+                  toY={toY}
+                  plotW={plotW}
+                  visibleCount={cCount}
+                  hoverIndex={hoverIndex !== null && hoverIndex >= cStart && hoverIndex <= cEnd ? hoverIndex - cStart : null}
+                />
+              </g>
+            );
+          })()}
 
           {/* Area fill — segmented for 1D to highlight market hours (matches portfolio chart) */}
           {chartMode === 'line' && hasData && stockOpenIdx !== null ? (() => {

@@ -119,7 +119,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
   // Fetch AI-powered events (Perplexity) — period-aware
   useEffect(() => {
     const periodDays: Record<string, number> = {
-      '1D': 0, '1W': 14, '1M': 45, '3M': 100, 'YTD': 365, '1Y': 730, 'MAX': 7300,
+      '1D': 0, '1W': 14, '1M': 45, '3M': 100, '6M': 200, 'YTD': 365, '1Y': 730, 'MAX': 7300,
     };
     const days = periodDays[chartPeriod] || 90;
     setAiEvents(null);
