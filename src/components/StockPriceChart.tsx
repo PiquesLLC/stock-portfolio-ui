@@ -86,7 +86,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   });
   const [signalsEnabled, setSignalsEnabled] = useLocalStorage('stockChartSignals', false);
   const toggleSignals = useCallback(() => setSignalsEnabled(prev => !prev), [setSignalsEnabled]);
-  const [eventsEnabled, setEventsEnabled] = useLocalStorage('stockChartEvents', false);
+  const [eventsEnabled, setEventsEnabled] = useLocalStorage('stockChartEventsV2', false);
   const toggleEvents = useCallback(() => setEventsEnabled(prev => !prev), [setEventsEnabled]);
   const [volumeEnabled, setVolumeEnabled] = useLocalStorage('stockChartVolume', false);
   const toggleVolume = useCallback(() => setVolumeEnabled(prev => !prev), [setVolumeEnabled]);
