@@ -2278,7 +2278,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onWheel={chartMode === 'candle' && candleData.length > 0 ? (e) => {
-            e.preventDefault();
+            // preventDefault handled by native wheel handler (passive listeners can't call it)
             const zoomDir = e.deltaY > 0 ? 1 : -1;
             const rect = svgRef.current?.getBoundingClientRect();
             const mouseRatio = rect ? Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) : 0.5;
