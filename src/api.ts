@@ -372,6 +372,22 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       hasNativeSession: !!refreshToken,
       authDead,
     });
+    if (nativeRuntime) {
+      // Use CapacitorHttp.request() on native — bypass WebKit fetch quirks
+      // fetch() on WKWebView throws "string did not match expected pattern"
+      let data: unknown = undefined;
+      if (options?.body && typeof options.body === 'string') {
+        try { data = JSON.parse(options.body); } catch { data = options.body; }
+      }
+      const result = await CapacitorHttp.request({
+        url,
+        method: options?.method || 'GET',
+        headers,
+        data,
+        responseType: 'json',
+      });
+      return new Response(JSON.stringify(result.data), { status: result.status, headers: { 'Content-Type': 'application/json' } });
+    }
     return fetch(url, {
       ...options,
       credentials: 'include',
