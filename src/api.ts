@@ -1601,6 +1601,19 @@ export async function getDailyCandles(ticker: string, period: '3M' | 'YTD' | '1Y
   return resp.candles;
 }
 
+export type CandleInterval = '1m' | '5m' | '15m' | '1h' | '1D' | '1W' | '1M';
+
+export async function getCandleData(
+  ticker: string,
+  period: string,
+  interval: CandleInterval,
+): Promise<IntradayCandle[]> {
+  const resp = await fetchJson<{ ticker: string; period: string; interval: string; candles: IntradayCandle[] }>(
+    `${API_BASE_URL}/market/stock/${ticker}/candles?period=${period}&interval=${interval}`,
+  );
+  return resp.candles;
+}
+
 export interface BenchmarkCandle {
   date: string;
   time: number;

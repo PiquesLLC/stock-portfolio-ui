@@ -1,7 +1,8 @@
 import { useMemo, useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { ChartPeriod, StockCandles, ParsedQuarterlyEarning, DividendEvent, DividendCredit, ActivityEvent, AnalystEvent } from '../types';
-import { AIEvent } from '../api';
+import { AIEvent, getCandleData } from '../api';
 import { IntradayCandle } from '../api';
+import type { CandleInterval } from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
   snapToCleanBoundary,
@@ -28,7 +29,11 @@ import {
   PAD_LEFT,
   PAD_RIGHT,
   PERIODS,
+  type CandleDataPoint,
+  CANDLE_INTERVALS,
+  buildCandlePoints,
 } from '../utils/stock-chart';
+import { CandlestickRenderer } from './CandlestickRenderer';
 import { computeChartGroups } from '../utils/chart-groups';
 
 interface Props {
@@ -85,6 +90,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const toggleEvents = useCallback(() => setEventsEnabled(prev => !prev), [setEventsEnabled]);
   const [volumeEnabled, setVolumeEnabled] = useLocalStorage('stockChartVolume', false);
   const toggleVolume = useCallback(() => setVolumeEnabled(prev => !prev), [setVolumeEnabled]);
+  // Candlestick mode
+  const [chartMode, setChartMode] = useLocalStorage<'line' | 'candle'>('stockChartMode', 'line');
+  const [candleInterval, setCandleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
+  const [candleData, setCandleData] = useState<CandleDataPoint[]>([]);
+  const [candleLoading, setCandleLoading] = useState(false);
+  const candleFetchSeq = useRef(0);
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
   const [pinnedEventIdx, setPinnedEventIdx] = useState<number | null>(null);
   const [hoveredBreachIndex, setHoveredBreachIndex] = useState<number | null>(null);
@@ -103,6 +114,24 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     document.addEventListener('pointerdown', handleClick);
     return () => document.removeEventListener('pointerdown', handleClick);
   }, [overlaysOpen]);
+  // Fetch candle data when in candle mode
+  useEffect(() => {
+    if (chartMode !== 'candle' || !ticker) { setCandleData([]); return; }
+    const config = CANDLE_INTERVALS[selectedPeriod];
+    const effectiveInterval = config.options.includes(candleInterval) ? candleInterval : config.default;
+    if (effectiveInterval !== candleInterval) setCandleInterval(effectiveInterval);
+    const seq = ++candleFetchSeq.current;
+    setCandleLoading(true);
+    getCandleData(ticker, selectedPeriod, effectiveInterval)
+      .then(candles => { if (seq === candleFetchSeq.current) { setCandleData(buildCandlePoints(candles)); setCandleLoading(false); } })
+      .catch(() => { if (seq === candleFetchSeq.current) { setCandleData([]); setCandleLoading(false); } });
+  }, [chartMode, ticker, selectedPeriod, candleInterval]);
+  // Auto-adjust interval when period changes in candle mode
+  useEffect(() => {
+    if (chartMode !== 'candle') return;
+    const config = CANDLE_INTERVALS[selectedPeriod];
+    if (!config.options.includes(candleInterval)) setCandleInterval(config.default);
+  }, [selectedPeriod, chartMode]);
   // Load persisted measurements from localStorage
   const loadMeasurements = useCallback(() => {
     if (!ticker) return { a: null, b: null, c: null };
@@ -821,6 +850,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // Compute stable Y-axis range (includes enabled MA values + comparison overlays)
   const { paddedMin, paddedMax } = useMemo(() => {
+    // Candle mode: Y-axis based on high/low
+    if (chartMode === 'candle' && candleData.length > 0) {
+      const minP = Math.min(...candleData.map(c => c.low));
+      const maxP = Math.max(...candleData.map(c => c.high));
+      const range = maxP === minP ? 2 : maxP - minP;
+      return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
+    }
     // When zoomed, rescale Y to visible points only for better detail
     const targetPts = zoomRange ? visiblePoints : points;
     if (targetPts.length === 0) return { paddedMin: referencePrice - 1, paddedMax: referencePrice + 1 };
@@ -867,7 +903,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
     const range = maxP - minP;
     return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
-  }, [points, referencePrice, selectedPeriod, zoomRange, visiblePoints, comparisons]);
+  }, [points, referencePrice, selectedPeriod, zoomRange, visiblePoints, comparisons, chartMode, candleData]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
   const plotH = CHART_H - PAD_TOP - PAD_BOTTOM;
@@ -2001,8 +2037,26 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           })())}
 
 
+          {/* Candlestick loading text */}
+          {chartMode === 'candle' && candleLoading && candleData.length === 0 && (
+            <text x={CHART_W / 2} y={CHART_H / 2} textAnchor="middle" fill="#666" fontSize="12">Loading candles...</text>
+          )}
+          {/* Candlestick rendering */}
+          {chartMode === 'candle' && candleData.length > 0 && (
+            <g clipPath="url(#plot-clip)">
+              <CandlestickRenderer
+                candles={candleData}
+                toX={(i: number) => PAD_LEFT + (candleData.length > 1 ? (i / (candleData.length - 1)) * plotW : plotW / 2)}
+                toY={toY}
+                plotW={plotW}
+                visibleCount={candleData.length}
+                hoverIndex={hoverIndex}
+              />
+            </g>
+          )}
+
           {/* Area fill — segmented for 1D to highlight market hours (matches portfolio chart) */}
-          {hasData && stockOpenIdx !== null ? (() => {
+          {chartMode === 'line' && hasData && stockOpenIdx !== null ? (() => {
             const closeIdx = stockCloseIdx ?? points.length - 1;
             const hasAH = stockCloseIdx !== null && stockCloseIdx < points.length - 1;
             const bottomY = CHART_H - PAD_BOTTOM;
@@ -2033,7 +2087,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             <g clipPath="url(#plot-clip)">
               <path d={areaD} fill={`url(#grad-${selectedPeriod})`} style={{ transition: 'opacity 0.2s ease-out' }} />
             </g>
-          ) : hasData && (
+          ) : chartMode === 'line' && hasData && (
             <g clipPath="url(#plot-clip)">
               <path d={areaD} fill={`url(#grad-${selectedPeriod})`} style={{ transition: 'opacity 0.2s ease-out' }} />
             </g>
@@ -2069,7 +2123,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           )}
 
           {/* Price line — segmented with hover highlighting on 1D (matches portfolio) */}
-          {hasData && stockOpenIdx !== null ? (() => {
+          {chartMode === 'line' && hasData && stockOpenIdx !== null ? (() => {
             const closeIdx = stockCloseIdx ?? points.length - 1;
             const hasAH = stockCloseIdx !== null && stockCloseIdx < points.length - 1;
 
@@ -2134,7 +2188,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 );
               })()}
             </g>
-          ) : hasData && (
+          ) : chartMode === 'line' && hasData && (
             <g clipPath="url(#plot-clip)">
               <path d={pathD} fill="none" stroke={lineColor} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"
                 style={{ transition: 'opacity 0.2s ease-out' }} />
@@ -3137,21 +3191,45 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           })}
         </div>
 
-        {/* Overlays dropdown */}
-        <div className="relative" ref={overlaysDropdownRef}>
-          <button
-            onClick={() => setOverlaysOpen(prev => !prev)}
-            className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border ${
-              overlayCount > 0
-                ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
-                : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
-            }`}
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-            {overlayCount > 0 ? overlayCount : <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>}
-          </button>
+        <div className="flex items-center gap-1.5">
+          {/* Line/Candle toggle */}
+          <div className="flex rounded-md border border-gray-200/40 dark:border-white/[0.08] overflow-hidden">
+            <button
+              onClick={() => setChartMode('line')}
+              className={`px-1.5 py-1 transition-all ${chartMode === 'line' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
+              title="Line chart"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4,18 9,12 14,15 20,6" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setChartMode('candle')}
+              className={`px-1.5 py-1 border-l border-gray-200/40 dark:border-white/[0.08] transition-all ${chartMode === 'candle' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
+              title="Candlestick chart"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+                <line x1="8" y1="3" x2="8" y2="8" /><rect x="5.5" y="8" width="5" height="7" rx="0.5" fill="currentColor" opacity="0.3" /><line x1="8" y1="15" x2="8" y2="21" />
+                <line x1="16" y1="5" x2="16" y2="9" /><rect x="13.5" y="9" width="5" height="6" rx="0.5" fill="currentColor" opacity="0.3" /><line x1="16" y1="15" x2="16" y2="19" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Overlays dropdown */}
+          <div className="relative" ref={overlaysDropdownRef}>
+            <button
+              onClick={() => setOverlaysOpen(prev => !prev)}
+              className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border ${
+                overlayCount > 0
+                  ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
+                  : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
+              }`}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              {overlayCount > 0 ? overlayCount : <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>}
+            </button>
           {overlaysOpen && (
             <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-lg border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-md shadow-xl py-2 px-1">
               <div className="px-2 pb-1.5 mb-1 border-b border-gray-100 dark:border-white/[0.06]">
@@ -3225,8 +3303,29 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
+
+      {/* Interval selector — candle mode only */}
+      {chartMode === 'candle' && (
+        <div className="flex items-center gap-1.5 mt-2 px-0.5">
+          <span className="text-[9px] font-semibold text-gray-400/50 dark:text-rh-muted/50 uppercase tracking-wider mr-1">Interval</span>
+          {CANDLE_INTERVALS[selectedPeriod].options.map(iv => (
+            <button
+              key={iv}
+              onClick={() => setCandleInterval(iv)}
+              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                candleInterval === iv
+                  ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
+                  : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'
+              }`}
+            >
+              {iv}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Micro legend + measure hint */}
       <div className="flex items-center justify-between mt-1.5">

@@ -1,5 +1,5 @@
 import { ChartPeriod, StockCandles } from '../types';
-import { IntradayCandle } from '../api';
+import { IntradayCandle, CandleInterval } from '../api';
 
 // ── Chart Constants ──────────────────────────────────────────────
 export const CHART_W = 800;
@@ -17,6 +17,40 @@ export interface DataPoint {
   label: string;
   price: number;
   volume?: number;
+}
+
+export interface CandleDataPoint {
+  time: number;
+  label: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export const CANDLE_INTERVALS: Record<ChartPeriod, { options: CandleInterval[]; default: CandleInterval }> = {
+  '1D':  { options: ['1m', '5m', '15m'],   default: '5m'  },
+  '1W':  { options: ['5m', '15m', '1h'],   default: '15m' },
+  '1M':  { options: ['15m', '1h', '1D'],   default: '1h'  },
+  '3M':  { options: ['1h', '1D'],           default: '1D'  },
+  '6M':  { options: ['1D'],                 default: '1D'  },
+  'YTD': { options: ['1D'],                 default: '1D'  },
+  '1Y':  { options: ['1D', '1W'],           default: '1D'  },
+  'MAX': { options: ['1D', '1W', '1M'],     default: '1W'  },
+};
+
+export function buildCandlePoints(candles: IntradayCandle[]): CandleDataPoint[] {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  return candles.map(c => {
+    const d = new Date(c.time);
+    const label = d.getFullYear() !== thisYear
+      ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+      : d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+        + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return { time: d.getTime(), label, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume };
+  });
 }
 
 // ── Utility Functions ────────────────────────────────────────────
