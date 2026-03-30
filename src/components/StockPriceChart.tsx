@@ -3271,7 +3271,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           const caretX = midX - tooltipX;
           return (
             <>
-            <foreignObject x={tooltipX} y={tooltipY} width={210} height={tooltipH}>
+            <foreignObject x={tooltipX} y={tooltipY} width={210} height={tooltipH}
+              onMouseEnter={() => setHoveredDivIdx(hoveredDivIdx)}
+              onMouseLeave={() => setHoveredDivIdx(null)}>
               <div style={{ background: d.type === 'bullish' ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)', borderLeft: `3px solid ${color}`, borderRadius: 8, padding: '7px 10px', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
