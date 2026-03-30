@@ -187,7 +187,7 @@ const CACHE_TTL = 5 * 60 * 1000;
 export function EarningsSection({ ticker }: { ticker: string }) {
   const [data, setData] = useState<EarningsResponse | null>(earningsCache.get(ticker)?.data ?? null);
   const [loading, setLoading] = useState(!earningsCache.has(ticker));
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [hoveredTableIdx, setHoveredTableIdx] = useState<number | null>(null);
   const requestIdRef = useRef(0);
 
@@ -216,7 +216,7 @@ export function EarningsSection({ ticker }: { ticker: string }) {
       });
   }, [ticker]);
 
-  useEffect(() => { setExpanded(false); }, [ticker]);
+  useEffect(() => { setExpanded(true); }, [ticker]);
 
   if (loading) {
     return (
