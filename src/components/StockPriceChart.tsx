@@ -1937,7 +1937,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const cStart = candleZoom?.start ?? 0;
     const cEnd = candleZoom?.end ?? candleData.length - 1;
     const cCount = cEnd - cStart + 1;
-    const candleToX = (ci: number) => PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+    // Match the same positioning mode as the candle renderer
+    const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
+    const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
+    const tz1DRange = tz1DEnd - tz1DStart;
+    const use1DTime = is1D && tz1DRange > 0;
+    const candleToX = use1DTime
+      ? (time: number) => PAD_LEFT + Math.max(0, Math.min(1, (time - tz1DStart) / tz1DRange)) * plotW
+      : (ci: number) => PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
     const resolve = (m: { time: number; price: number } | null) => {
       if (!m) return null;
       let best = 0, bestDist = Infinity;
@@ -1945,10 +1952,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         const dist = Math.abs(candleData[i].time - m.time);
         if (dist < bestDist) { best = i; bestDist = dist; }
       }
-      return { x: candleToX(best), y: toY(m.price) };
+      const x = use1DTime ? candleToX(candleData[best].time) : candleToX(best);
+      return { x, y: toY(m.price) };
     };
     return { a: resolve(measureA), b: resolve(measureB), c: resolve(measureC) };
-  }, [chartMode, candleData, candleZoom, measureA, measureB, measureC, toY, plotW]);
+  }, [chartMode, candleData, candleZoom, candleTimeZoom, measureA, measureB, measureC, toY, plotW, is1D, dayStartMs, dayEndMs]);
 
   const mAx = candleMeasureCoords ? (candleMeasureCoords.a?.x ?? null) : (measureAIdx !== null && measureAIdx < points.length ? toX(measureAIdx) : null);
   const mAy = candleMeasureCoords ? (candleMeasureCoords.a?.y ?? null) : (measureAIdx !== null && points[measureAIdx] ? toY(points[measureAIdx].price) : null);
