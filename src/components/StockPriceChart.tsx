@@ -3859,7 +3859,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               {/* Crosshair + value dot */}
               {hoverRsi != null && hoverRsiX != null && (
                 <>
-                  <line x1={hoverRsiX} y1={PT} x2={hoverRsiX} y2={PH - PB} stroke="rgba(255,255,255,0.3)" strokeWidth={0.8} />
+                  <line x1={hoverRsiX} y1={PT} x2={hoverRsiX} y2={PH - PB} stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
                   <circle cx={hoverRsiX} cy={rsiToY(hoverRsi)} r={3.5} fill={RSI_COLOR} stroke="#000" strokeWidth={1.5} />
                 </>
               )}
@@ -3964,7 +3964,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               {/* Crosshair + value dot */}
               {hoverMacdVal != null && hoverMacdX != null && (
                 <>
-                  <line x1={hoverMacdX} y1={PT} x2={hoverMacdX} y2={PH - PB} stroke="rgba(255,255,255,0.3)" strokeWidth={0.8} />
+                  <line x1={hoverMacdX} y1={PT} x2={hoverMacdX} y2={PH - PB} stroke="rgba(255,255,255,0.6)" strokeWidth={1} />
                   <circle cx={hoverMacdX} cy={mToY(hoverMacdVal)} r={3} fill={MACD_COLORS.macd} stroke="#000" strokeWidth={1.5} />
                   {hoverSigVal != null && <circle cx={hoverMacdX} cy={mToY(hoverSigVal)} r={2.5} fill={MACD_COLORS.signal} stroke="#000" strokeWidth={1} />}
                 </>
