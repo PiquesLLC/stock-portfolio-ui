@@ -30,7 +30,7 @@ export interface CandleDataPoint {
 }
 
 export const CANDLE_INTERVALS: Record<ChartPeriod, { options: CandleInterval[]; default: CandleInterval }> = {
-  '1D':  { options: ['1m', '5m', '15m'],   default: '5m'  },
+  '1D':  { options: ['1m', '5m', '15m'],   default: '15m' },
   '1W':  { options: ['5m', '15m', '1h'],   default: '15m' },
   '1M':  { options: ['15m', '1h', '1D'],   default: '1h'  },
   '3M':  { options: ['1h', '1D'],           default: '1D'  },
