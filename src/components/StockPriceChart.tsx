@@ -3863,6 +3863,44 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   <circle cx={hoverRsiX} cy={rsiToY(hoverRsi)} r={3.5} fill={RSI_COLOR} stroke="#000" strokeWidth={1.5} />
                 </>
               )}
+              {/* Measurement points mirrored from main chart */}
+              {(() => {
+                const resolveRsiMeasure = (m: { time: number } | null) => {
+                  if (!m) return null;
+                  const src = chartMode === 'candle' && candleData.length > 0 ? candleData : null;
+                  const dataLen = rsiData.length;
+                  let bestIdx = 0, bestDist = Infinity;
+                  if (src) {
+                    for (let i = 0; i < Math.min(src.length, dataLen); i++) {
+                      const dist = Math.abs(src[i].time - m.time);
+                      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+                    }
+                  } else {
+                    for (let i = 0; i < Math.min(points.length, dataLen); i++) {
+                      const dist = Math.abs(points[i].time - m.time);
+                      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+                    }
+                  }
+                  const val = rsiData[bestIdx];
+                  if (val == null) return null;
+                  return { x: getIX(bestIdx), y: rsiToY(val), val };
+                };
+                const rA = resolveRsiMeasure(measureA);
+                const rB = resolveRsiMeasure(measureB);
+                const mc = isGain ? '#00C805' : '#E8544E';
+                return (
+                  <>
+                    {rA && rB && <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={mc} strokeWidth={1} strokeDasharray="4,3" opacity={0.6} />}
+                    {rA && <circle cx={rA.x} cy={rA.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
+                    {rB && <circle cx={rB.x} cy={rB.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
+                    {rA && rB && (
+                      <text x={(rA.x + rB.x) / 2} y={Math.min(rA.y, rB.y) - 6} textAnchor="middle" fill={mc} fontSize={9} fontWeight="bold" opacity={0.8}>
+                        {rA.val.toFixed(0)} → {rB.val.toFixed(0)}
+                      </text>
+                    )}
+                  </>
+                );
+              })()}
               <text x={CHART_W - 6} y={rsiToY(70) + 12} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>70</text>
               <text x={CHART_W - 6} y={rsiToY(30) - 5} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>30</text>
             </svg>
@@ -3969,6 +4007,44 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   {hoverSigVal != null && <circle cx={hoverMacdX} cy={mToY(hoverSigVal)} r={2.5} fill={MACD_COLORS.signal} stroke="#000" strokeWidth={1} />}
                 </>
               )}
+              {/* Measurement points mirrored from main chart */}
+              {(() => {
+                const resolveMacdMeasure = (m: { time: number } | null) => {
+                  if (!m || !macdData) return null;
+                  const src = chartMode === 'candle' && candleData.length > 0 ? candleData : null;
+                  const dataLen = macdData.macd.length;
+                  let bestIdx = 0, bestDist = Infinity;
+                  if (src) {
+                    for (let i = 0; i < Math.min(src.length, dataLen); i++) {
+                      const dist = Math.abs(src[i].time - m.time);
+                      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+                    }
+                  } else {
+                    for (let i = 0; i < Math.min(points.length, dataLen); i++) {
+                      const dist = Math.abs(points[i].time - m.time);
+                      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+                    }
+                  }
+                  const val = macdData.macd[bestIdx];
+                  if (val == null) return null;
+                  return { x: getIX(bestIdx), y: mToY(val), val };
+                };
+                const mA = resolveMacdMeasure(measureA);
+                const mB = resolveMacdMeasure(measureB);
+                const mc = isGain ? '#00C805' : '#E8544E';
+                return (
+                  <>
+                    {mA && mB && <line x1={mA.x} y1={mA.y} x2={mB.x} y2={mB.y} stroke={mc} strokeWidth={1} strokeDasharray="4,3" opacity={0.6} />}
+                    {mA && <circle cx={mA.x} cy={mA.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
+                    {mB && <circle cx={mB.x} cy={mB.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
+                    {mA && mB && (
+                      <text x={(mA.x + mB.x) / 2} y={Math.min(mA.y, mB.y) - 6} textAnchor="middle" fill={mc} fontSize={9} fontWeight="bold" opacity={0.8}>
+                        {mA.val.toFixed(2)} → {mB.val.toFixed(2)}
+                      </text>
+                    )}
+                  </>
+                );
+              })()}
             </svg>
           </div>
         );
