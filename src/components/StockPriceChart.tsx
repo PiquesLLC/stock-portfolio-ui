@@ -3775,7 +3775,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
     </div>{/* end overflowX:clip wrapper */}
 
-      {/* RSI sub-panel — Robinhood style */}
+      {/* RSI sub-panel — interactive with hover/touch crosshair */}
       {rsiEnabled && rsiData && (() => {
         const PH = 100;
         const PT = 6, PB = 4;
@@ -3794,24 +3794,56 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         };
         const pts: string[] = [];
         rsiData.forEach((v, i) => { if (v !== null) pts.push(`${pts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${rsiToY(v).toFixed(1)}`); });
+        // Hover: use main chart's hoverIndex to find RSI value
+        const hIdx = chartMode === 'candle' && candleData.length > 0
+          ? (hoverIndex !== null ? Math.min(hoverIndex + (candleZoom?.start ?? 0), rsiData.length - 1) : null)
+          : hoverIndex;
+        const hoverRsi = hIdx !== null && hIdx >= 0 && hIdx < rsiData.length ? rsiData[hIdx] : null;
+        const hoverRsiX = hIdx !== null ? getIX(hIdx) : null;
         const lastRsi = rsiData.filter(v => v !== null).pop();
+        const displayRsi = hoverRsi ?? lastRsi;
         return (
           <div className="border-t-2 border-white/[0.08] mt-1">
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
               <span className="text-[11px] font-bold text-white/60">RSI (14)</span>
-              {lastRsi != null && <span className="text-[11px] font-semibold text-white/90">{lastRsi.toFixed(2)}</span>}
+              {displayRsi != null && <span className={`text-[11px] font-semibold ${hoverRsi != null ? 'text-white' : 'text-white/90'}`}>{displayRsi.toFixed(2)}</span>}
+              {hoverRsi != null && <span className={`text-[10px] font-semibold ${hoverRsi > 70 ? 'text-rh-red' : hoverRsi < 30 ? 'text-rh-green' : 'text-white/40'}`}>
+                {hoverRsi > 70 ? 'Overbought' : hoverRsi < 30 ? 'Oversold' : 'Neutral'}
+              </span>}
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)' }}>
-              {/* Full panel background zone tint */}
-              {/* background handled by parent style */}
-              {/* Overbought/oversold zone */}
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)', touchAction: 'none' }}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.clientX - rect.left) / rect.width;
+                const src = chartMode === 'candle' && candleData.length > 0 ? candleData : points;
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? src.length - 1;
+                if (is1D && dayRangeMs > 0 && chartMode === 'candle') {
+                  const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+                  const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+                  const mouseTime = tzS + ratio * (tzE - tzS);
+                  let best = cStart;
+                  for (let i = cStart; i <= cEnd; i++) if (Math.abs(candleData[i].time - mouseTime) < Math.abs(candleData[best].time - mouseTime)) best = i;
+                  setHoverIndex(best - cStart);
+                } else {
+                  setHoverIndex(Math.round(cStart + ratio * (cEnd - cStart)) - cStart);
+                }
+              }}
+              onMouseLeave={() => setHoverIndex(null)}
+              onTouchMove={(e) => {
+                e.preventDefault();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.touches[0].clientX - rect.left) / rect.width;
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? (chartMode === 'candle' ? candleData.length - 1 : points.length - 1);
+                setHoverIndex(Math.max(0, Math.round(ratio * (cEnd - cStart))));
+              }}
+              onTouchEnd={() => setHoverIndex(null)}
+            >
               <rect x={0} y={rsiToY(70)} width={CHART_W} height={rsiToY(30) - rsiToY(70)} fill="rgba(255,255,255,0.03)" />
-              {/* Dashed zone boundaries */}
               <line x1={0} y1={rsiToY(70)} x2={CHART_W} y2={rsiToY(70)} stroke="#3B82F6" strokeWidth={0.8} strokeDasharray="6,3" opacity={0.35} />
               <line x1={0} y1={rsiToY(30)} x2={CHART_W} y2={rsiToY(30)} stroke="#3B82F6" strokeWidth={0.8} strokeDasharray="6,3" opacity={0.35} />
-              {/* RSI line */}
               <path d={pts.join(' ')} fill="none" stroke={RSI_COLOR} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
-              {/* Divergence lines on RSI panel */}
               {divEnabled && divergenceData.map((d, di) => {
                 const color = d.type === 'bullish' ? DIV_COLORS.bullish : DIV_COLORS.bearish;
                 const x1 = getIX(d.startIdx), y1 = rsiToY(d.rsiStart);
@@ -3824,7 +3856,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   </g>
                 );
               })}
-              {/* Y-axis labels */}
+              {/* Crosshair + value dot */}
+              {hoverRsi != null && hoverRsiX != null && (
+                <>
+                  <line x1={hoverRsiX} y1={PT} x2={hoverRsiX} y2={PH - PB} stroke="rgba(255,255,255,0.3)" strokeWidth={0.8} />
+                  <circle cx={hoverRsiX} cy={rsiToY(hoverRsi)} r={3.5} fill={RSI_COLOR} stroke="#000" strokeWidth={1.5} />
+                </>
+              )}
               <text x={CHART_W - 6} y={rsiToY(70) + 12} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>70</text>
               <text x={CHART_W - 6} y={rsiToY(30) - 5} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={10}>30</text>
             </svg>
@@ -3832,7 +3870,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         );
       })()}
 
-      {/* MACD sub-panel — Robinhood style */}
+      {/* MACD sub-panel — interactive with hover/touch crosshair */}
       {macdEnabled && macdData && (() => {
         const PH = 100;
         const PT = 6, PB = 4;
@@ -3862,31 +3900,75 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         macdData.macd.forEach((v, i) => { if (v !== null) macdPts.push(`${macdPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${mToY(v).toFixed(1)}`); });
         macdData.signal.forEach((v, i) => { if (v !== null) sigPts.push(`${sigPts.length === 0 ? 'M' : 'L'}${getIX(i).toFixed(1)},${mToY(v).toFixed(1)}`); });
         const zeroY = mToY(0);
+        // Hover values
+        const hIdx = chartMode === 'candle' && candleData.length > 0
+          ? (hoverIndex !== null ? Math.min(hoverIndex + (candleZoom?.start ?? 0), macdData.macd.length - 1) : null)
+          : hoverIndex;
+        const hoverMacdVal = hIdx !== null && hIdx >= 0 ? macdData.macd[hIdx] : null;
+        const hoverSigVal = hIdx !== null && hIdx >= 0 ? macdData.signal[hIdx] : null;
+        const hoverHistVal = hIdx !== null && hIdx >= 0 ? macdData.histogram[hIdx] : null;
+        const hoverMacdX = hIdx !== null ? getIX(hIdx) : null;
         const lastMacd = macdData.macd.filter(v => v !== null).pop();
+        const displayMacd = hoverMacdVal ?? lastMacd;
         return (
           <div className="border-t border-white/[0.12]">
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
               <span className="text-[11px] font-bold text-white/60">MACD</span>
-              {lastMacd != null && <span className="text-[11px] font-semibold text-white/90">{lastMacd.toFixed(2)}</span>}
-              <span className="flex items-center gap-2 text-[9px] text-white/30 ml-1">
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.macd }} />MACD</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.signal }} />Signal</span>
-              </span>
+              {displayMacd != null && <span className={`text-[11px] font-semibold ${hoverMacdVal != null ? 'text-white' : 'text-white/90'}`}>{displayMacd.toFixed(2)}</span>}
+              {hoverSigVal != null && <span className="text-[10px] text-rh-red/70">S: {hoverSigVal.toFixed(2)}</span>}
+              {hoverHistVal != null && <span className={`text-[10px] ${hoverHistVal >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>H: {hoverHistVal >= 0 ? '+' : ''}{hoverHistVal.toFixed(2)}</span>}
+              {hoverMacdVal == null && (
+                <span className="flex items-center gap-2 text-[9px] text-white/30 ml-1">
+                  <span className="flex items-center gap-1"><span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.macd }} />MACD</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.signal }} />Signal</span>
+                </span>
+              )}
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)' }}>
-              {/* background handled by parent style */}
-              {/* Zero line */}
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)', touchAction: 'none' }}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.clientX - rect.left) / rect.width;
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? (chartMode === 'candle' ? candleData.length - 1 : points.length - 1);
+                if (is1D && dayRangeMs > 0 && chartMode === 'candle') {
+                  const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+                  const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+                  const mouseTime = tzS + ratio * (tzE - tzS);
+                  let best = cStart;
+                  for (let i = cStart; i <= cEnd; i++) if (Math.abs(candleData[i].time - mouseTime) < Math.abs(candleData[best].time - mouseTime)) best = i;
+                  setHoverIndex(best - cStart);
+                } else {
+                  setHoverIndex(Math.round(cStart + ratio * (cEnd - cStart)) - cStart);
+                }
+              }}
+              onMouseLeave={() => setHoverIndex(null)}
+              onTouchMove={(e) => {
+                e.preventDefault();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.touches[0].clientX - rect.left) / rect.width;
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? (chartMode === 'candle' ? candleData.length - 1 : points.length - 1);
+                setHoverIndex(Math.max(0, Math.round(ratio * (cEnd - cStart))));
+              }}
+              onTouchEnd={() => setHoverIndex(null)}
+            >
               <line x1={0} y1={zeroY} x2={CHART_W} y2={zeroY} stroke="#3B82F6" strokeWidth={0.6} strokeDasharray="6,3" opacity={0.25} />
-              {/* Histogram bars */}
               {macdData.histogram.map((v, i) => {
                 if (v === null) return null;
                 const x = getIX(i);
                 const h = Math.abs(mToY(v) - zeroY);
                 return <rect key={i} x={x - barW / 2} y={v >= 0 ? mToY(v) : zeroY} width={barW} height={Math.max(0.5, h)} fill={v >= 0 ? MACD_COLORS.histUp : MACD_COLORS.histDown} opacity={0.5} rx={0.5} />;
               })}
-              {/* MACD + Signal lines — bright */}
               <path d={macdPts.join(' ')} fill="none" stroke={MACD_COLORS.macd} strokeWidth={1.5} strokeLinecap="round" />
               <path d={sigPts.join(' ')} fill="none" stroke={MACD_COLORS.signal} strokeWidth={1.5} strokeLinecap="round" />
+              {/* Crosshair + value dot */}
+              {hoverMacdVal != null && hoverMacdX != null && (
+                <>
+                  <line x1={hoverMacdX} y1={PT} x2={hoverMacdX} y2={PH - PB} stroke="rgba(255,255,255,0.3)" strokeWidth={0.8} />
+                  <circle cx={hoverMacdX} cy={mToY(hoverMacdVal)} r={3} fill={MACD_COLORS.macd} stroke="#000" strokeWidth={1.5} />
+                  {hoverSigVal != null && <circle cx={hoverMacdX} cy={mToY(hoverSigVal)} r={2.5} fill={MACD_COLORS.signal} stroke="#000" strokeWidth={1} />}
+                </>
+              )}
             </svg>
           </div>
         );
