@@ -3831,6 +3831,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               }}
               onMouseLeave={() => setHoverIndex(null)}
               onClick={(e) => {
+                e.stopPropagation();
                 const rect = e.currentTarget.getBoundingClientRect();
                 const ratio = (e.clientX - rect.left) / rect.width;
                 const src = chartMode === 'candle' && candleData.length > 0 ? candleData : null;
@@ -3849,7 +3850,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const pt = src
                   ? { time: src[ci].time, price: src[ci].close }
                   : { time: points[ci].time, price: points[ci].price };
-                if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); }
+                setShowMeasureHint(false);
+                if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); }
                 else if (!measureA) setMeasureA(pt);
                 else if (!measureB) setMeasureB(pt);
                 else setMeasureC(pt);
@@ -4011,6 +4013,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               }}
               onMouseLeave={() => setHoverIndex(null)}
               onClick={(e) => {
+                e.stopPropagation();
                 const rect = e.currentTarget.getBoundingClientRect();
                 const ratio = (e.clientX - rect.left) / rect.width;
                 const src = chartMode === 'candle' && candleData.length > 0 ? candleData : null;
@@ -4029,7 +4032,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const pt = src
                   ? { time: src[ci].time, price: src[ci].close }
                   : { time: points[ci].time, price: points[ci].price };
-                if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); }
+                setShowMeasureHint(false);
+                if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); }
                 else if (!measureA) setMeasureA(pt);
                 else if (!measureB) setMeasureB(pt);
                 else setMeasureC(pt);
