@@ -3830,6 +3830,30 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 }
               }}
               onMouseLeave={() => setHoverIndex(null)}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.clientX - rect.left) / rect.width;
+                const src = chartMode === 'candle' && candleData.length > 0 ? candleData : null;
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? (src ? src.length - 1 : points.length - 1);
+                let ci: number;
+                if (is1D && dayRangeMs > 0 && src) {
+                  const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+                  const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+                  const mouseTime = tzS + ratio * (tzE - tzS);
+                  ci = cStart;
+                  for (let i = cStart; i <= cEnd; i++) if (Math.abs(src[i].time - mouseTime) < Math.abs(src[ci].time - mouseTime)) ci = i;
+                } else {
+                  ci = Math.min(cEnd, cStart + Math.round(ratio * (cEnd - cStart)));
+                }
+                const pt = src
+                  ? { time: src[ci].time, price: src[ci].close }
+                  : { time: points[ci].time, price: points[ci].price };
+                if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); }
+                else if (!measureA) setMeasureA(pt);
+                else if (!measureB) setMeasureB(pt);
+                else setMeasureC(pt);
+              }}
               onTouchMove={(e) => {
                 e.preventDefault();
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -3893,11 +3917,17 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                     {rA && rB && <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
                     {rA && <circle cx={rA.x} cy={rA.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {rB && <circle cx={rB.x} cy={rB.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
-                    {rA && rB && (
-                      <text x={(rA.x + rB.x) / 2} y={Math.min(rA.y, rB.y) - 6} textAnchor="middle" fill={mc} fontSize={9} fontWeight="bold" opacity={0.8}>
-                        {rA.val.toFixed(0)} → {rB.val.toFixed(0)}
-                      </text>
-                    )}
+                    {rA && rB && (() => {
+                      const lx = (rA.x + rB.x) / 2, ly = Math.min(rA.y, rB.y) - 10;
+                      const label = `${rA.val.toFixed(0)} → ${rB.val.toFixed(0)}`;
+                      const tw = label.length * 5.5 + 12;
+                      return (
+                        <>
+                          <rect x={lx - tw / 2} y={ly - 8} width={tw} height={16} rx={4} fill="rgba(0,0,0,0.8)" stroke={mc} strokeWidth={0.5} />
+                          <text x={lx} y={ly + 3} textAnchor="middle" fill="#fff" fontSize={10} fontWeight="bold">{label}</text>
+                        </>
+                      );
+                    })()}
                   </>
                 );
               })()}
@@ -3980,6 +4010,30 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 }
               }}
               onMouseLeave={() => setHoverIndex(null)}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.clientX - rect.left) / rect.width;
+                const src = chartMode === 'candle' && candleData.length > 0 ? candleData : null;
+                const cStart = candleZoom?.start ?? 0;
+                const cEnd = candleZoom?.end ?? (src ? src.length - 1 : points.length - 1);
+                let ci: number;
+                if (is1D && dayRangeMs > 0 && src) {
+                  const tzS = candleTimeZoom?.startMs ?? dayStartMs;
+                  const tzE = candleTimeZoom?.endMs ?? dayEndMs;
+                  const mouseTime = tzS + ratio * (tzE - tzS);
+                  ci = cStart;
+                  for (let i = cStart; i <= cEnd; i++) if (Math.abs(src[i].time - mouseTime) < Math.abs(src[ci].time - mouseTime)) ci = i;
+                } else {
+                  ci = Math.min(cEnd, cStart + Math.round(ratio * (cEnd - cStart)));
+                }
+                const pt = src
+                  ? { time: src[ci].time, price: src[ci].close }
+                  : { time: points[ci].time, price: points[ci].price };
+                if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); }
+                else if (!measureA) setMeasureA(pt);
+                else if (!measureB) setMeasureB(pt);
+                else setMeasureC(pt);
+              }}
               onTouchMove={(e) => {
                 e.preventDefault();
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -4037,11 +4091,17 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                     {mA && mB && <line x1={mA.x} y1={mA.y} x2={mB.x} y2={mB.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
                     {mA && <circle cx={mA.x} cy={mA.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {mB && <circle cx={mB.x} cy={mB.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
-                    {mA && mB && (
-                      <text x={(mA.x + mB.x) / 2} y={Math.min(mA.y, mB.y) - 6} textAnchor="middle" fill={mc} fontSize={9} fontWeight="bold" opacity={0.8}>
-                        {mA.val.toFixed(2)} → {mB.val.toFixed(2)}
-                      </text>
-                    )}
+                    {mA && mB && (() => {
+                      const lx = (mA.x + mB.x) / 2, ly = Math.min(mA.y, mB.y) - 10;
+                      const label = `${mA.val.toFixed(2)} → ${mB.val.toFixed(2)}`;
+                      const tw = label.length * 5.5 + 12;
+                      return (
+                        <>
+                          <rect x={lx - tw / 2} y={ly - 8} width={tw} height={16} rx={4} fill="rgba(0,0,0,0.8)" stroke={mc} strokeWidth={0.5} />
+                          <text x={lx} y={ly + 3} textAnchor="middle" fill="#fff" fontSize={10} fontWeight="bold">{label}</text>
+                        </>
+                      );
+                    })()}
                   </>
                 );
               })()}
