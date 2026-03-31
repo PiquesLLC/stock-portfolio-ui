@@ -3803,7 +3803,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         const lastRsi = rsiData.filter(v => v !== null).pop();
         const displayRsi = hoverRsi ?? lastRsi;
         return (
-          <div className="border-t-2 border-white/[0.08] mt-1">
+          <div className="border-t-2 border-white/[0.08] mt-1" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
               <span className="text-[11px] font-bold text-white/60">RSI (14)</span>
               {displayRsi != null && <span className={`text-[11px] font-semibold ${hoverRsi != null ? 'text-white' : 'text-white/90'}`}>{displayRsi.toFixed(2)}</span>}
@@ -3811,7 +3811,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 {hoverRsi > 70 ? 'Overbought' : hoverRsi < 30 ? 'Oversold' : 'Neutral'}
               </span>}
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)', touchAction: 'none' }}
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', cursor: 'crosshair' }}
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const ratio = (e.clientX - rect.left) / rect.width;
@@ -3979,7 +3979,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         const lastMacd = macdData.macd.filter(v => v !== null).pop();
         const displayMacd = hoverMacdVal ?? lastMacd;
         return (
-          <div className="border-t border-white/[0.12]">
+          <div className="border-t border-white/[0.12]" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
               <span className="text-[11px] font-bold text-white/60">MACD</span>
               {displayMacd != null && <span className={`text-[11px] font-semibold ${hoverMacdVal != null ? 'text-white' : 'text-white/90'}`}>{displayMacd.toFixed(2)}</span>}
@@ -3992,7 +3992,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 </span>
               )}
             </div>
-            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)', touchAction: 'none' }}
+            <svg width="100%" height={PH} viewBox={`0 0 ${CHART_W} ${PH}`} preserveAspectRatio="none" className="block" style={{ background: 'rgba(255,255,255,0.02)', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', cursor: 'crosshair' }}
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const ratio = (e.clientX - rect.left) / rect.width;
