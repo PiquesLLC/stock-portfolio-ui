@@ -3917,8 +3917,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const mc = isGain ? '#00C805' : '#E8544E';
                 return (
                   <>
-                    {rA && rB && <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
-                    {rB && rC && <line x1={rB.x} y1={rB.y} x2={rC.x} y2={rC.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
+                    {rA && rB && <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={mc} strokeWidth={2} strokeDasharray="6,3" opacity={1} />}
+                    {rB && rC && <line x1={rB.x} y1={rB.y} x2={rC.x} y2={rC.y} stroke={mc} strokeWidth={2} strokeDasharray="6,3" opacity={1} />}
                     {rA && <circle cx={rA.x} cy={rA.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {rB && <circle cx={rB.x} cy={rB.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {rC && <circle cx={rC.x} cy={rC.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
@@ -4096,8 +4096,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const mc = isGain ? '#00C805' : '#E8544E';
                 return (
                   <>
-                    {mA && mB && <line x1={mA.x} y1={mA.y} x2={mB.x} y2={mB.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
-                    {mB && mC && <line x1={mB.x} y1={mB.y} x2={mC.x} y2={mC.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
+                    {mA && mB && <line x1={mA.x} y1={mA.y} x2={mB.x} y2={mB.y} stroke={mc} strokeWidth={2} strokeDasharray="6,3" opacity={1} />}
+                    {mB && mC && <line x1={mB.x} y1={mB.y} x2={mC.x} y2={mC.y} stroke={mc} strokeWidth={2} strokeDasharray="6,3" opacity={1} />}
                     {mA && <circle cx={mA.x} cy={mA.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {mB && <circle cx={mB.x} cy={mB.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {mC && <circle cx={mC.x} cy={mC.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
