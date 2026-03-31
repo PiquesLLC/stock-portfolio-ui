@@ -3914,7 +3914,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const rA = resolveRsiMeasure(measureA);
                 const rB = resolveRsiMeasure(measureB);
                 const rC = resolveRsiMeasure(measureC);
-                const mc = isGain ? '#00C805' : '#E8544E';
+                const mc = '#fff';
                 return (
                   <>
                     {rA && rB && <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={mc} strokeWidth={2} strokeDasharray="6,3" opacity={1} />}
@@ -4093,7 +4093,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const mA = resolveMacdMeasure(measureA);
                 const mB = resolveMacdMeasure(measureB);
                 const mC = resolveMacdMeasure(measureC);
-                const mc = isGain ? '#00C805' : '#E8544E';
+                const mc = '#fff';
                 return (
                   <>
                     {mA && mB && <line x1={mA.x} y1={mA.y} x2={mB.x} y2={mB.y} stroke={mc} strokeWidth={2} strokeDasharray="6,3" opacity={1} />}
