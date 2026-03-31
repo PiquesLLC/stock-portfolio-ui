@@ -3890,9 +3890,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const mc = isGain ? '#00C805' : '#E8544E';
                 return (
                   <>
-                    {rA && rB && <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={mc} strokeWidth={1} strokeDasharray="4,3" opacity={0.6} />}
-                    {rA && <circle cx={rA.x} cy={rA.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
-                    {rB && <circle cx={rB.x} cy={rB.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
+                    {rA && rB && <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
+                    {rA && <circle cx={rA.x} cy={rA.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
+                    {rB && <circle cx={rB.x} cy={rB.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {rA && rB && (
                       <text x={(rA.x + rB.x) / 2} y={Math.min(rA.y, rB.y) - 6} textAnchor="middle" fill={mc} fontSize={9} fontWeight="bold" opacity={0.8}>
                         {rA.val.toFixed(0)} → {rB.val.toFixed(0)}
@@ -4034,9 +4034,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 const mc = isGain ? '#00C805' : '#E8544E';
                 return (
                   <>
-                    {mA && mB && <line x1={mA.x} y1={mA.y} x2={mB.x} y2={mB.y} stroke={mc} strokeWidth={1} strokeDasharray="4,3" opacity={0.6} />}
-                    {mA && <circle cx={mA.x} cy={mA.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
-                    {mB && <circle cx={mB.x} cy={mB.y} r={3} fill={mc} stroke="#000" strokeWidth={1} />}
+                    {mA && mB && <line x1={mA.x} y1={mA.y} x2={mB.x} y2={mB.y} stroke={mc} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.85} />}
+                    {mA && <circle cx={mA.x} cy={mA.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
+                    {mB && <circle cx={mB.x} cy={mB.y} r={3.5} fill={mc} stroke="#000" strokeWidth={1.5} />}
                     {mA && mB && (
                       <text x={(mA.x + mB.x) / 2} y={Math.min(mA.y, mB.y) - 6} textAnchor="middle" fill={mc} fontSize={9} fontWeight="bold" opacity={0.8}>
                         {mA.val.toFixed(2)} → {mB.val.toFixed(2)}
