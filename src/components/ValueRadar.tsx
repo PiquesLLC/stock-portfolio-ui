@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { getValueRadar, ValueRadarStock } from '../api';
 import { StockLogo } from './StockLogo';
 import { AddToWatchlistModal } from './AddToWatchlistModal';
@@ -12,7 +13,7 @@ interface ValueRadarProps {
 
 type SectorFilter = string;
 type TierFilter = 'all' | 'deep_value' | 'attractive' | 'fair' | 'expensive';
-type ValueRadarSortKey = 'currentPE' | 'avgPE' | 'discountPct' | 'price';
+type ValueRadarSortKey = 'currentPE' | 'avgPE' | 'discountPct' | 'price' | 'qualityScore';
 
 const TIER_LABELS: Record<string, { label: string; short: string; color: string }> = {
   deep_value: {
@@ -49,6 +50,7 @@ function TierBadge({ tier }: { tier: string }) {
 
 /** Semicircular gauge showing current P/E position relative to average. */
 function PEGauge({ currentPE, avgPE, size = 64 }: { currentPE: number; avgPE: number; size?: number }) {
+  const isDark = useIsDark();
   const ratio = Math.max(0, Math.min(2, currentPE / avgPE));
   // Map ratio 0..2 to angle 0..180 (left = cheap, right = expensive)
   const angle = ratio * 90; // 0 = 0deg, 1 = 90deg (fair), 2 = 180deg
@@ -61,27 +63,29 @@ function PEGauge({ currentPE, avgPE, size = 64 }: { currentPE: number; avgPE: nu
   const nx = cx + r * 0.75 * Math.cos(rad);
   const ny = cy - r * 0.75 * Math.sin(rad);
 
+  const arcOpacity = isDark ? 0.4 : 0.5;
+
   return (
     <svg width={size} height={size / 2 + 8} viewBox={`0 0 ${size} ${size / 2 + 8}`} className="mx-auto">
       {/* Background arc segments: green -> yellow -> red */}
       <path
         d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy - r}`}
         fill="none"
-        stroke="rgba(0, 200, 5, 0.4)"
+        stroke={`rgba(0, 200, 5, ${arcOpacity})`}
         strokeWidth={6}
         strokeLinecap="round"
       />
       <path
         d={`M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx + r * 0.5} ${cy - r * 0.866}`}
         fill="none"
-        stroke="rgba(234, 179, 8, 0.4)"
+        stroke={`rgba(234, 179, 8, ${arcOpacity})`}
         strokeWidth={6}
         strokeLinecap="round"
       />
       <path
         d={`M ${cx + r * 0.5} ${cy - r * 0.866} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
         fill="none"
-        stroke="rgba(239, 68, 68, 0.4)"
+        stroke={`rgba(239, 68, 68, ${arcOpacity})`}
         strokeWidth={6}
         strokeLinecap="round"
       />
@@ -95,7 +99,7 @@ function PEGauge({ currentPE, avgPE, size = 64 }: { currentPE: number; avgPE: nu
         strokeWidth={2}
         strokeLinecap="round"
       />
-      <circle cx={cx} cy={cy} r={3} fill="white" fillOpacity={0.5} />
+      <circle cx={cx} cy={cy} r={3} fill={isDark ? 'white' : '#666'} fillOpacity={0.5} />
     </svg>
   );
 }
@@ -162,6 +166,69 @@ function DiscountBar({ discountPct }: { discountPct: number }) {
   );
 }
 
+/** Quality score badge with color coding */
+function QualityScoreBadge({ score }: { score: number | null }) {
+  if (score == null) return <span className="text-[10px] text-gray-400 dark:text-white/20">--</span>;
+  const color = score >= 70 ? 'text-emerald-600 dark:text-emerald-400'
+    : score >= 45 ? 'text-yellow-600 dark:text-yellow-400'
+    : 'text-red-500 dark:text-red-400';
+  return <span className={`text-xs font-bold tabular-nums ${color}`}>{score}</span>;
+}
+
+/** Info popover explaining quality score methodology */
+function QualityScoreInfo({ show, onClose }: { show: boolean; onClose: () => void }) {
+  if (!show) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="relative bg-white dark:bg-[#1a1a1e] border border-gray-200/60 dark:border-white/[0.1] rounded-xl shadow-xl max-w-sm w-full p-5 space-y-3"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Quality Score</h3>
+          <button onClick={onClose} className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text text-lg leading-none">&times;</button>
+        </div>
+        <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
+          A 0–100 score measuring business quality, independent of valuation. Higher is better.
+        </p>
+        <div className="space-y-2">
+          {[
+            { label: 'Return on Equity', weight: '25%', desc: '30%+ ROE = full marks' },
+            { label: 'Profit Margin', weight: '20%', desc: '25%+ margin = full marks' },
+            { label: 'Earnings Trajectory', weight: '20%', desc: 'Forward P/E improving vs current' },
+            { label: '52-Week Position', weight: '20%', desc: 'Near 52-week low = higher score' },
+            { label: 'Dividend Yield', weight: '10%', desc: '6%+ yield = full marks' },
+            { label: 'Analyst Upside', weight: '5%', desc: '30%+ upside = full marks' },
+          ].map(f => (
+            <div key={f.label} className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-rh-green w-10 text-right shrink-0 tabular-nums">{f.weight}</span>
+              <div className="min-w-0">
+                <div className="text-[11px] font-medium text-rh-light-text dark:text-rh-text">{f.label}</div>
+                <div className="text-[10px] text-rh-light-muted dark:text-rh-muted leading-tight">{f.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="pt-2 border-t border-gray-200/30 dark:border-white/[0.06] space-y-1">
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">70+</span>
+            <span className="text-rh-light-muted dark:text-rh-muted">Strong business</span>
+            <span className="font-bold text-yellow-600 dark:text-yellow-400 ml-2">45–69</span>
+            <span className="text-rh-light-muted dark:text-rh-muted">Average</span>
+            <span className="font-bold text-red-500 dark:text-red-400 ml-2">&lt;45</span>
+            <span className="text-rh-light-muted dark:text-rh-muted">Weak</span>
+          </div>
+          <p className="text-[9px] text-rh-light-muted/60 dark:text-rh-muted/40">
+            Score requires 60%+ data coverage. Missing metrics are redistributed proportionally.
+          </p>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -182,6 +249,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
   const [sortKey, setSortKey] = useState<ValueRadarSortKey | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [watchlistTicker, setWatchlistTicker] = useState<string | null>(null);
+  const [showScoreInfo, setShowScoreInfo] = useState(false);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -220,6 +288,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
         case 'avgPE': return (a.avgPE - b.avgPE) * dir;
         case 'discountPct': return (a.discountPct - b.discountPct) * dir;
         case 'price': return (a.price - b.price) * dir;
+        case 'qualityScore': return ((a.qualityScore ?? (dir > 0 ? Infinity : -Infinity)) - (b.qualityScore ?? (dir > 0 ? Infinity : -Infinity))) * dir;
         default: return 0;
       }
     });
@@ -306,7 +375,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                   <div className={`text-[11px] font-bold tabular-nums ${stock.discountPct < 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {stock.discountPct > 0 ? '+' : ''}{stock.discountPct.toFixed(0)}% vs avg
                   </div>
-                  {stock.dividendYield != null && stock.dividendYield > 0.05 && (
+                  {stock.dividendYield != null && stock.dividendYield > 0.1 && (
                     <div className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted">
                       Div {stock.dividendYield.toFixed(1)}%
                     </div>
@@ -315,6 +384,11 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                     <span className="inline-block text-[8px] bg-emerald-500/[0.08] dark:bg-emerald-500/[0.10] border border-emerald-400/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded mt-1">
                       +{stock.upsideToTarget.toFixed(0)}% target
                     </span>
+                  )}
+                  {stock.qualityScore != null && (
+                    <div className="text-[9px] text-rh-light-muted dark:text-rh-muted mt-0.5">
+                      Q-Score: <QualityScoreBadge score={stock.qualityScore} />
+                    </div>
                   )}
                 </div>
               </button>
@@ -384,25 +458,44 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
         {/* Header row */}
         <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 border-b border-gray-200/30 dark:border-white/[0.05] text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/40">
           <span className="w-[90px] sm:w-auto sm:flex-1 sm:min-w-0">Stock</span>
-          <button onClick={() => handleSort('discountPct')} className={`flex-1 min-w-[60px] text-left cursor-pointer transition-colors ${sortKey === 'discountPct' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
-            Discount{sortIndicator('discountPct')}
+          <button onClick={() => handleSort('discountPct')} className={`w-[120px] sm:flex-1 sm:min-w-[60px] shrink-0 text-center cursor-pointer transition-colors ${sortKey === 'discountPct' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            vs Avg{sortIndicator('discountPct')}
           </button>
-          <button onClick={() => handleSort('currentPE')} className={`w-12 text-right cursor-pointer transition-colors ${sortKey === 'currentPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
-            P/E{sortIndicator('currentPE')}
-          </button>
-          <button onClick={() => handleSort('avgPE')} className={`hidden md:flex w-16 text-right cursor-pointer transition-colors ${sortKey === 'avgPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
-            10Y Avg{sortIndicator('avgPE')}
-          </button>
+          <div className="w-12 flex justify-end">
+            <button onClick={() => handleSort('currentPE')} className={`cursor-pointer transition-colors ${sortKey === 'currentPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              P/E{sortIndicator('currentPE')}
+            </button>
+          </div>
+          <div className="hidden md:flex w-16 justify-end pr-[10px]">
+            <button onClick={() => handleSort('avgPE')} className={`cursor-pointer transition-colors ${sortKey === 'avgPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              10Y Avg{sortIndicator('avgPE')}
+            </button>
+          </div>
           <span className="hidden lg:flex w-20 justify-center">Trend</span>
-          <button onClick={() => handleSort('price')} className={`hidden sm:flex w-16 text-right cursor-pointer transition-colors ${sortKey === 'price' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
-            Price{sortIndicator('price')}
-          </button>
-          <span className="hidden sm:flex w-14 text-right">Today</span>
-          <span className="hidden lg:flex w-12 text-right">Yield</span>
+          <div className="hidden sm:flex w-16 justify-end">
+            <button onClick={() => handleSort('price')} className={`cursor-pointer transition-colors ${sortKey === 'price' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              Price{sortIndicator('price')}
+            </button>
+          </div>
+          <span className="hidden sm:flex w-14 justify-end">Today</span>
+          <span className="hidden lg:flex w-12 justify-end">Yield</span>
           <span className="hidden lg:flex w-20 justify-center">52W Range</span>
-          <span className="hidden xl:flex w-10 text-right">Beta</span>
-          <span className="w-[56px] sm:w-[80px] text-right">Signal</span>
-          <span className="w-7" />
+          <span className="hidden xl:flex w-10 justify-end">Beta</span>
+          <span className="w-[40px] sm:w-[80px] flex justify-end">Signal</span>
+          <div className="flex w-10 sm:w-14 justify-center items-center pl-[10px] sm:pl-[15px]">
+            <button onClick={() => handleSort('qualityScore')} className={`cursor-pointer transition-colors ${sortKey === 'qualityScore' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              Score
+              {sortIndicator('qualityScore')}
+            </button>
+            <span
+              onClick={(e) => { e.stopPropagation(); setShowScoreInfo(true); }}
+              className="ml-0.5 hidden sm:inline-flex items-center justify-center w-3 h-3 rounded-full border border-gray-300 dark:border-white/20 text-[7px] font-bold text-gray-400 dark:text-white/30 hover:text-rh-green hover:border-rh-green transition-colors cursor-pointer shrink-0"
+              title="How is this calculated?"
+            >
+              i
+            </span>
+          </div>
+          <span className="hidden sm:block w-7" />
         </div>
 
         {/* Rows */}
@@ -428,7 +521,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               </div>
 
               {/* Discount bar */}
-              <div className="flex-1 min-w-[60px]">
+              <div className="w-[120px] sm:flex-1 sm:min-w-[60px] shrink-0">
                 <DiscountBar discountPct={stock.discountPct} />
               </div>
 
@@ -438,7 +531,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               </div>
 
               {/* 10Y Avg — hidden on small */}
-              <div className="hidden md:flex w-16 text-right text-xs text-rh-light-muted dark:text-rh-muted tabular-nums justify-end">
+              <div className="hidden md:flex w-16 text-right text-xs text-rh-light-muted dark:text-rh-muted tabular-nums justify-end pr-[15px]">
                 {stock.avgPE.toFixed(1)}
               </div>
 
@@ -486,12 +579,17 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               </div>
 
               {/* Tier badge */}
-              <div className="w-[56px] sm:w-[80px] flex justify-end">
+              <div className="w-[40px] sm:w-[80px] flex justify-end">
                 <TierBadge tier={stock.tier} />
               </div>
 
+              {/* Quality score */}
+              <div className="flex w-10 sm:w-14 justify-center pl-[10px] sm:pl-[10px]">
+                <QualityScoreBadge score={stock.qualityScore} />
+              </div>
+
               {/* Watchlist action */}
-              <div className="w-7 flex justify-center">
+              <div className="hidden sm:flex w-7 justify-center">
                 <button
                   onClick={(e) => { e.stopPropagation(); setWatchlistTicker(stock.ticker); }}
                   className="opacity-0 group-hover:opacity-100 sm:opacity-40 sm:hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-green"
@@ -521,6 +619,8 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
           onCreateNew={() => setWatchlistTicker(null)}
         />
       )}
+
+      <QualityScoreInfo show={showScoreInfo} onClose={() => setShowScoreInfo(false)} />
     </div>
   );
 }
