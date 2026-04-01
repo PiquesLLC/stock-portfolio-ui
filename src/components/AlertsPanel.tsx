@@ -39,6 +39,16 @@ const ALERT_LABELS: Record<string, { name: string; description: string; unit: st
     description: 'Triggers when any holding hits an all-time low',
     unit: '',
   },
+  'congress_trade': {
+    name: 'Congress Trades',
+    description: 'Alerts when congress members trade your holdings',
+    unit: '',
+  },
+  'value_radar': {
+    name: 'Value Radar',
+    description: 'Alerts when your holdings or watchlist stocks enter Deep Value',
+    unit: '',
+  },
 };
 
 const PRICE_SPIKE_PRESETS = [

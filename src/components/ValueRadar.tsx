@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getValueRadar, ValueRadarStock } from '../api';
 import { StockLogo } from './StockLogo';
 import { AddToWatchlistModal } from './AddToWatchlistModal';
 import { useIsDark } from '../hooks/useIsDark';
+import { StepLoader } from './StepLoader';
 
 interface ValueRadarProps {
   onTickerClick: (ticker: string) => void;
@@ -161,21 +162,42 @@ function DiscountBar({ discountPct }: { discountPct: number }) {
   );
 }
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps) {
   const [stocks, setStocks] = useState<ValueRadarStock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState<string>('');
   const [sectorFilter, setSectorFilter] = useState<SectorFilter>('all');
   const [tierFilter, setTierFilter] = useState<TierFilter>('all');
   const [sortKey, setSortKey] = useState<ValueRadarSortKey | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [watchlistTicker, setWatchlistTicker] = useState<string | null>(null);
 
-  useEffect(() => {
-    getValueRadar()
-      .then(resp => setStocks(resp.stocks))
-      .catch(err => console.error('[Value Radar] fetch failed:', err))
-      .finally(() => setLoading(false));
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    try {
+      const resp = await getValueRadar();
+      setStocks(resp.stocks);
+      setGeneratedAt(resp.generatedAt);
+    } catch (err) {
+      console.error('[Value Radar] fetch failed:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const sectors = useMemo(() => {
     const set = new Set(stocks.map(s => s.sector));
@@ -222,36 +244,9 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
   // A5: Loading skeleton
   if (loading) {
     return (
-      <div className="space-y-4">
-        {/* Hero skeleton */}
-        <div>
-          <div className="h-3 w-24 bg-gray-200 dark:bg-white/[0.04] rounded animate-pulse mb-3" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-gray-200/60 dark:bg-white/[0.04] rounded-xl h-[120px] animate-pulse" />
-            ))}
-          </div>
-        </div>
-        {/* Filter skeleton */}
-        <div className="flex gap-2">
-          <div className="h-7 w-24 bg-gray-200 dark:bg-white/[0.04] rounded-lg animate-pulse" />
-          <div className="h-7 w-16 bg-gray-200 dark:bg-white/[0.04] rounded-lg animate-pulse" />
-          <div className="h-7 w-16 bg-gray-200 dark:bg-white/[0.04] rounded-lg animate-pulse" />
-          <div className="h-7 w-16 bg-gray-200 dark:bg-white/[0.04] rounded-lg animate-pulse" />
-        </div>
-        {/* Table skeleton */}
-        <div className="bg-white/60 dark:bg-transparent rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-3 py-3 border-b border-gray-200/10 dark:border-white/[0.04] last:border-0">
-              <div className="w-6 h-6 rounded-md bg-gray-200 dark:bg-white/[0.06] animate-pulse" />
-              <div className="flex-1 space-y-1">
-                <div className="h-3 w-16 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse" />
-                <div className="h-2 w-24 bg-gray-200/60 dark:bg-white/[0.04] rounded animate-pulse" />
-              </div>
-              <div className="h-3 w-8 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse" />
-              <div className="h-4 w-12 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse" />
-            </div>
-          ))}
+      <div className="flex items-center justify-center py-16">
+        <div className="w-full max-w-sm">
+          <StepLoader title="Scanning Value Opportunities" steps={['Fetching valuations', 'Calculating metrics', 'Identifying opportunities', 'Building radar']} interval={3000} />
         </div>
       </div>
     );
@@ -301,6 +296,9 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                 <div className="text-center mt-1 space-y-0.5">
                   <div className="text-[11px] font-medium text-rh-light-text dark:text-rh-text tabular-nums">
                     P/E {stock.currentPE.toFixed(1)}
+                    <span className={`ml-1 text-[9px] font-normal ${stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(1)}%
+                    </span>
                   </div>
                   <div className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted tabular-nums">
                     10Y Avg {stock.avgPE.toFixed(1)}
@@ -324,6 +322,29 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
           </div>
         </div>
       )}
+
+      {/* ─── Freshness + Refresh ─── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40">
+          {generatedAt && (
+            <>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />
+              <span>Updated {timeAgo(generatedAt)}</span>
+            </>
+          )}
+        </div>
+        <button
+          onClick={() => fetchData(true)}
+          disabled={refreshing}
+          className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md text-rh-light-muted dark:text-rh-muted hover:text-rh-green hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors disabled:opacity-40"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
 
       {/* ─── Filters ─── */}
       <div className="flex flex-wrap items-center gap-2">
@@ -373,9 +394,10 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
             10Y Avg{sortIndicator('avgPE')}
           </button>
           <span className="hidden lg:flex w-20 justify-center">Trend</span>
-          <button onClick={() => handleSort('price')} className={`hidden lg:flex w-16 text-right cursor-pointer transition-colors ${sortKey === 'price' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+          <button onClick={() => handleSort('price')} className={`hidden sm:flex w-16 text-right cursor-pointer transition-colors ${sortKey === 'price' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
             Price{sortIndicator('price')}
           </button>
+          <span className="hidden sm:flex w-14 text-right">Today</span>
           <span className="hidden lg:flex w-12 text-right">Yield</span>
           <span className="hidden lg:flex w-20 justify-center">52W Range</span>
           <span className="hidden xl:flex w-10 text-right">Beta</span>
@@ -425,9 +447,14 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                 <PESparkline history={stock.peHistory} avgPE={stock.avgPE} />
               </div>
 
-              {/* Price — hidden on small/medium */}
-              <div className="hidden lg:flex w-16 text-right text-xs text-rh-light-muted dark:text-rh-muted tabular-nums justify-end">
+              {/* Price — visible from sm */}
+              <div className="hidden sm:flex w-16 text-right text-xs text-rh-light-muted dark:text-rh-muted tabular-nums justify-end">
                 ${stock.price.toFixed(2)}
+              </div>
+
+              {/* Daily Change — visible from sm */}
+              <div className={`hidden sm:flex w-14 text-right text-[11px] font-medium tabular-nums justify-end ${stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
               </div>
 
               {/* Dividend Yield — hidden on small/medium */}

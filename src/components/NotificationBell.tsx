@@ -18,6 +18,7 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   sector_divergence: 'Sector Move',
   dividend_change: 'Dividend Change',
   congress_trade: 'Congress Trade',
+  value_radar: 'Value Radar',
 };
 
 // Unified notification type for display
@@ -184,14 +185,23 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       ]);
 
       // Convert alert events — filter orphaned events where parent Alert was deleted
-      const unifiedAlerts: UnifiedNotification[] = (alertEvents || []).filter((e: AlertEventType) => e?.alert).map((e: AlertEventType) => ({
-        id: e.id,
-        type: 'alert' as const,
-        label: ALERT_TYPE_LABELS[e.alert.type] || e.alert.type,
-        message: e.message,
-        read: e.read,
-        createdAt: e.createdAt,
-      }));
+      const unifiedAlerts: UnifiedNotification[] = (alertEvents || []).filter((e: AlertEventType) => e?.alert).map((e: AlertEventType) => {
+        let ticker: string | undefined;
+        try {
+          const parsed = e.data ? JSON.parse(e.data) : null;
+          if (parsed?.tickers?.[0]) ticker = parsed.tickers[0];
+          else if (parsed?.ticker) ticker = parsed.ticker;
+        } catch { /* skip */ }
+        return {
+          id: e.id,
+          type: 'alert' as const,
+          label: ALERT_TYPE_LABELS[e.alert.type] || e.alert.type,
+          message: e.message,
+          read: e.read,
+          createdAt: e.createdAt,
+          ticker,
+        };
+      });
 
       // Convert price alert events — guard against orphaned/malformed events
       const unifiedPriceAlerts: UnifiedNotification[] = (priceAlertEvents || []).filter((e: PriceAlertEvent) => e?.message).map((e: PriceAlertEvent) => ({

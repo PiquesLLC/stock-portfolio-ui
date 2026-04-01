@@ -2207,6 +2207,8 @@ export interface ValueRadarStock {
   profitMargin: number | null;
   analystTargetPrice: number | null;
   upsideToTarget: number | null;
+  changePercent: number;
+  changeDollar: number;
 }
 
 export interface ValueRadarResponse {
