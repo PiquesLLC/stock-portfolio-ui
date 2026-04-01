@@ -909,46 +909,6 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
               </Section>
             )}
 
-            {/* Economic Calendar */}
-            {economicEvents.length > 0 && (
-              <Section title="Economic Calendar">
-                <div className="space-y-1">
-                  {(() => {
-                    // Group by date
-                    const groups = new Map<string, EconomicCalendarEvent[]>();
-                    for (const ev of economicEvents) {
-                      const existing = groups.get(ev.date) || [];
-                      existing.push(ev);
-                      groups.set(ev.date, existing);
-                    }
-                    const today = new Date().toISOString().split('T')[0];
-                    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-                    return Array.from(groups.entries()).map(([date, events]) => {
-                      const label = date === today ? 'Today' : date === tomorrow ? 'Tomorrow' : new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                      return (
-                        <div key={date} className="mb-3">
-                          <div className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5">{label}</div>
-                          {events.map((ev, i) => (
-                            <div key={i} className="flex items-center gap-3 py-1.5 px-1">
-                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ev.impact === 'high' ? 'bg-rh-red' : 'bg-amber-500/60'}`} />
-                              <span className="text-[11px] text-white/40 w-16 flex-shrink-0">{ev.time || '--:--'}</span>
-                              <span className="text-sm text-white/80 flex-1">{ev.event}</span>
-                              {ev.estimate != null && (
-                                <span className="text-[10px] text-white/30 flex-shrink-0">est: {ev.estimate}</span>
-                              )}
-                              {ev.previous != null && (
-                                <span className="text-[10px] text-white/20 flex-shrink-0">prev: {ev.previous}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </Section>
-            )}
-
             {/* Macro — same content as the old Macro tab */}
             {portfolioNewsData?.summary && (
               <Section title="Market Analysis">
@@ -972,32 +932,6 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                 </div>
               </Section>
             )}
-
-            {/* In The News — same tracker as old Macro tab */}
-            {portfolioNewsData && portfolioNewsData.items.length > 0 && (() => {
-              const counts = new Map<string, number>();
-              for (const item of portfolioNewsData.items) {
-                for (const t of item.matchedTickers) counts.set(t, (counts.get(t) ?? 0) + 1);
-              }
-              const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-              if (sorted.length === 0) return null;
-              const maxCount = sorted[0][1];
-              return (
-                <Section title="In The News">
-                  <div className="space-y-2">
-                    {sorted.map(([ticker, count]) => (
-                      <button key={ticker} onClick={() => onTickerClick?.(ticker)} className="w-full flex items-center gap-3 group">
-                        <span className="text-xs font-semibold text-white group-hover:text-rh-green transition-colors w-14 text-left tabular-nums">{ticker}</span>
-                        <div className="flex-1 h-4 bg-white/[0.03] rounded-full overflow-hidden">
-                          <div className="h-full bg-rh-green/40 rounded-full transition-all duration-500" style={{ width: `${Math.max((count / maxCount) * 100, 4)}%` }} />
-                        </div>
-                        <span className="text-[10px] font-medium tabular-nums text-white/30 w-6 text-right">{count}</span>
-                      </button>
-                    ))}
-                  </div>
-                </Section>
-              );
-            })()}
 
             {/* Earnings This Week — only if there are upcoming earnings */}
             {earnings.length > 0 && (
@@ -1127,6 +1061,47 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                 </div>
               </Section>
             )}
+
+            {/* Economic Calendar — remaining days this week only */}
+            {economicEvents.length > 0 && (() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+              const futureEvents = economicEvents.filter(ev => ev.date >= todayStr);
+              if (futureEvents.length === 0) return null;
+              const groups = new Map<string, EconomicCalendarEvent[]>();
+              for (const ev of futureEvents) {
+                const existing = groups.get(ev.date) || [];
+                existing.push(ev);
+                groups.set(ev.date, existing);
+              }
+              return (
+                <Section title="Economic Calendar">
+                  <div className="space-y-1">
+                    {Array.from(groups.entries()).map(([date, events]) => {
+                      const label = date === todayStr ? 'Today' : date === tomorrowStr ? 'Tomorrow' : new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                      return (
+                        <div key={date} className="mb-3">
+                          <div className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5">{label}</div>
+                          {events.map((ev, i) => (
+                            <div key={i} className="flex items-center gap-3 py-1.5 px-1">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ev.impact === 'high' ? 'bg-rh-red' : 'bg-amber-500/60'}`} />
+                              <span className="text-[11px] text-white/40 w-16 flex-shrink-0">{ev.time || '--:--'}</span>
+                              <span className="text-sm text-white/80 flex-1">{ev.event}</span>
+                              {ev.estimate != null && (
+                                <span className="text-[10px] text-white/30 flex-shrink-0">est: {ev.estimate}</span>
+                              )}
+                              {ev.previous != null && (
+                                <span className="text-[10px] text-white/20 flex-shrink-0">prev: {ev.previous}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Section>
+              );
+            })()}
 
             {/* Dismiss */}
             <div className="text-center pt-4 pb-10">
