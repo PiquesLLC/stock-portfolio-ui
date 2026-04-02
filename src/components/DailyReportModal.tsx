@@ -334,6 +334,7 @@ type IndexQuote = { price: number; changePct: number; change: number };
 // Sentiment gauge — Fear & Greed speedometer
 // Top semicircle: score 0 (fear/left) to 100 (greed/right).
 // SVG negative angles: -180° (left) through -90° (top) to 0° (right).
+// @ts-ignore — kept for potential v1 revert
 function SentimentGauge({ sentiment }: { sentiment: MarketSentiment }) {
   const { score, label } = sentiment;
 
@@ -786,276 +787,292 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
             )}
 
             {/* Title + reading time */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <h1 className="text-3xl font-bold text-white tracking-tight mb-1">Today's Brief</h1>
               <p className="text-sm text-rh-green mb-1">{formatDate(data.generatedAt)}</p>
               {!data.sample && <p className="text-[11px] text-white/30">{estimateReadingTime(data)} min read</p>}
             </div>
 
-            {/* Key Market Metrics — glass: no borders, no background */}
-            <div className="grid grid-cols-3 gap-6 mb-10">
-              {[
-                { label: 'S&P 500', ticker: 'SPY' },
-                { label: 'Nasdaq', ticker: 'QQQ' },
-                { label: 'Dow', ticker: 'DIA' },
-              ].map(({ label, ticker }) => {
-                const q = indexQuotes[ticker];
-                return (
-                  <div key={ticker} className="cursor-pointer hover:bg-white/[0.02] transition-colors py-2 -mx-2 px-2 rounded-lg"
-                    onClick={() => onTickerClick?.(ticker)}>
-                    <p className="text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mb-1">{label}</p>
-                    {q ? (
-                      <>
-                        <p className="text-xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">${q.price.toFixed(2)}</p>
-                        <p className={`text-sm font-semibold tabular-nums ${q.changePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                          {q.changePct >= 0 ? '+' : ''}{q.changePct.toFixed(2)}%
-                        </p>
-                      </>
-                    ) : (
-                      <div className="h-10 bg-white/[0.04] rounded animate-pulse" />
-                    )}
+            {/* ─── Dashboard Strip ─── */}
+            {/* Mobile: portfolio full-width, 3 indices in a row, fear&greed full-width */}
+            {/* Desktop: all 5 cells in one horizontal row */}
+            <div className="border-b border-white/[0.06] pb-4 mb-6">
+              {/* Desktop: single flex row */}
+              <div className="hidden md:flex items-center">
+                {livePortfolio && (
+                  <div className="flex-[1.6] text-center border-r border-white/[0.06] px-3 py-2">
+                    <p className="text-[10px] font-medium text-white/35 uppercase tracking-wider mb-1">Your Portfolio</p>
+                    <p className="text-2xl font-bold text-white tabular-nums">{formatCurrency(livePortfolio.netEquity ?? livePortfolio.totalValue)}</p>
+                    <p className={`text-sm font-semibold tabular-nums ${livePortfolio.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {livePortfolio.dayChange >= 0 ? '+' : ''}{formatCurrency(livePortfolio.dayChange)} ({formatPct(livePortfolio.dayChangePercent)})
+                    </p>
+                    <p className="text-[10px] tabular-nums mt-0.5 text-white/30">
+                      Total Return: {formatPct(livePortfolio.totalPLPercent)} ({livePortfolio.totalPL >= 0 ? '+' : ''}{formatCurrency(livePortfolio.totalPL)})
+                    </p>
                   </div>
-                );
-              })}
+                )}
+                {[
+                  { label: 'S&P 500', ticker: 'SPY' },
+                  { label: 'Nasdaq', ticker: 'QQQ' },
+                  { label: 'Dow', ticker: 'DIA' },
+                ].map(({ label, ticker }) => {
+                  const q = indexQuotes[ticker];
+                  return (
+                    <div key={ticker} className="flex-1 text-center border-r border-white/[0.06] last:border-r-0 px-3 py-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                      onClick={() => onTickerClick?.(ticker)}>
+                      <p className="text-[10px] font-medium text-white/35 uppercase tracking-wider mb-1">{label}</p>
+                      {q ? (
+                        <>
+                          <p className="text-lg font-bold text-white tabular-nums">${q.price.toFixed(2)}</p>
+                          <p className={`text-xs font-semibold tabular-nums ${q.changePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                            {q.changePct >= 0 ? '+' : ''}{q.changePct.toFixed(2)}%
+                          </p>
+                        </>
+                      ) : (
+                        <div className="h-10 bg-white/[0.04] rounded animate-pulse" />
+                      )}
+                    </div>
+                  );
+                })}
+                {sentiment && (
+                  <div className="flex-1 text-center border-l border-white/[0.06] px-3 py-2">
+                    <p className="text-[10px] font-medium text-white/35 uppercase tracking-wider mb-1">Fear & Greed</p>
+                    <p className="text-2xl font-extrabold tabular-nums" style={{ color: sentiment.score <= 25 ? '#ef4444' : sentiment.score < 42 ? '#f97316' : sentiment.score <= 58 ? '#a3a3a3' : sentiment.score <= 75 ? '#84cc16' : '#22c55e' }}>{sentiment.score}</p>
+                    <p className="text-[10px] font-semibold" style={{ color: sentiment.score <= 25 ? '#ef4444' : sentiment.score < 42 ? '#f97316' : sentiment.score <= 58 ? '#a3a3a3' : sentiment.score <= 75 ? '#84cc16' : '#22c55e' }}>{sentiment.label}</p>
+                  </div>
+                )}
+              </div>
+              {/* Mobile: stacked rows */}
+              <div className="md:hidden">
+                {livePortfolio && (
+                  <div className="text-center pb-3 mb-3 border-b border-white/[0.06]">
+                    <p className="text-[10px] font-medium text-white/35 uppercase tracking-wider mb-1">Your Portfolio</p>
+                    <p className="text-2xl font-bold text-white tabular-nums">{formatCurrency(livePortfolio.netEquity ?? livePortfolio.totalValue)}</p>
+                    <p className={`text-sm font-semibold tabular-nums ${livePortfolio.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {livePortfolio.dayChange >= 0 ? '+' : ''}{formatCurrency(livePortfolio.dayChange)} ({formatPct(livePortfolio.dayChangePercent)})
+                    </p>
+                    <p className="text-[10px] tabular-nums mt-0.5 text-white/30">
+                      Total Return: {formatPct(livePortfolio.totalPLPercent)} ({livePortfolio.totalPL >= 0 ? '+' : ''}{formatCurrency(livePortfolio.totalPL)})
+                    </p>
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-0">
+                  {[
+                    { label: 'S&P 500', ticker: 'SPY' },
+                    { label: 'Nasdaq', ticker: 'QQQ' },
+                    { label: 'Dow', ticker: 'DIA' },
+                  ].map(({ label, ticker }) => {
+                    const q = indexQuotes[ticker];
+                    return (
+                      <div key={ticker} className="text-center py-2 px-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                        onClick={() => onTickerClick?.(ticker)}>
+                        <p className="text-[10px] font-medium text-white/35 uppercase tracking-wider mb-1">{label}</p>
+                        {q ? (
+                          <>
+                            <p className="text-base font-bold text-white tabular-nums">${q.price.toFixed(2)}</p>
+                            <p className={`text-xs font-semibold tabular-nums ${q.changePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                              {q.changePct >= 0 ? '+' : ''}{q.changePct.toFixed(2)}%
+                            </p>
+                          </>
+                        ) : (
+                          <div className="h-8 bg-white/[0.04] rounded animate-pulse" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {sentiment && (
+                  <div className="text-center pt-3 mt-3 border-t border-white/[0.04]">
+                    <p className="text-[10px] font-medium text-white/35 uppercase tracking-wider mb-1">Fear & Greed</p>
+                    <p className="text-xl font-extrabold tabular-nums" style={{ color: sentiment.score <= 25 ? '#ef4444' : sentiment.score < 42 ? '#f97316' : sentiment.score <= 58 ? '#a3a3a3' : sentiment.score <= 75 ? '#84cc16' : '#22c55e' }}>{sentiment.score}</p>
+                    <p className="text-[10px] font-semibold" style={{ color: sentiment.score <= 25 ? '#ef4444' : sentiment.score < 42 ? '#f97316' : sentiment.score <= 58 ? '#a3a3a3' : sentiment.score <= 75 ? '#84cc16' : '#22c55e' }}>{sentiment.label}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* ─── Two-Column Layout ─── */}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-4 md:gap-8">
 
-            {/* Portfolio Snapshot — glass: no card, content floats */}
-            {livePortfolio && (
-              <div className="mb-10">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mb-1">Your Portfolio</p>
-                    <p className="text-3xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">{formatCurrency(livePortfolio.netEquity ?? livePortfolio.totalValue)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-extrabold tabular-nums ${livePortfolio.dayChange >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'}`}>
-                      {livePortfolio.dayChange >= 0 ? '+' : ''}{formatCurrency(livePortfolio.dayChange)}
-                    </p>
-                    <p className={`text-sm tabular-nums ${livePortfolio.dayChangePercent >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
-                      {formatPct(livePortfolio.dayChangePercent)}
-                    </p>
-                  </div>
+              {/* ── Main Column: Editorial ── */}
+              <div>
+                {/* Greeting / AI headline */}
+                <div className="mb-6">
+                  <h2 className="text-[22px] font-bold text-white leading-snug">{stripCitations(data.greeting)}</h2>
                 </div>
-                <div className="mt-3 flex justify-between text-[12px]">
-                  <span className="text-rh-light-muted/40 dark:text-rh-muted/40">Total Return</span>
-                  <span className={`tabular-nums ${livePortfolio.totalPLPercent >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
-                    {formatPct(livePortfolio.totalPLPercent)} ({livePortfolio.totalPL >= 0 ? '+' : ''}{formatCurrency(livePortfolio.totalPL)})
-                  </span>
-                </div>
+
+                {/* Market Overview */}
+                <Section title="Market Overview">
+                  <p className="text-[14px] text-white/75 leading-[1.8]">
+                    {renderWithPills(data.marketOverview, onTickerClick, liveQuotes)}
+                  </p>
+                </Section>
+
+                {/* Portfolio Analysis */}
+                <Section title="Portfolio Analysis">
+                  <p className="text-[14px] text-white/75 leading-[1.8]">
+                    {renderWithPills(data.portfolioSummary, onTickerClick, liveQuotes)}
+                  </p>
+                </Section>
+
+                {/* Market Analysis */}
+                {portfolioNewsData?.summary && (
+                  <Section title="Market Analysis">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`text-[11px] font-semibold ${
+                          portfolioNewsData.summary.sentiment === 'bullish' ? 'text-rh-green' :
+                          portfolioNewsData.summary.sentiment === 'bearish' ? 'text-rh-red' :
+                          portfolioNewsData.summary.sentiment === 'mixed' ? 'text-amber-500' :
+                          'text-white/50'
+                        }`}>
+                          {portfolioNewsData.summary.sentiment === 'bullish' ? 'Bullish' :
+                           portfolioNewsData.summary.sentiment === 'bearish' ? 'Bearish' :
+                           portfolioNewsData.summary.sentiment === 'mixed' ? 'Mixed' : 'Neutral'}
+                        </span>
+                        <span className="text-[10px] text-white/20">Powered by NALA AI</span>
+                      </div>
+                      <p className="text-sm text-white/80 leading-relaxed mb-3">{portfolioNewsData.summary.overview}</p>
+                      <p className="text-xs text-white/50 leading-relaxed mb-3">{portfolioNewsData.summary.portfolioImpact}</p>
+                      <p className="text-xs text-white/40 leading-relaxed italic">{portfolioNewsData.summary.outlook}</p>
+                    </div>
+                  </Section>
+                )}
+
+                {/* Top Stories */}
+                <Section title="Top Stories">
+                  <div className="space-y-5">
+                    {data.topStories.map((story, i) => (
+                      <div key={i}>
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                            story.sentiment === 'positive' ? 'bg-rh-green'
+                              : story.sentiment === 'negative' ? 'bg-rh-red' : 'bg-white/20'
+                          }`} />
+                          <div className="flex-1">
+                            <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
+                              {renderWithPills(story.headline, onTickerClick, liveQuotes)}
+                            </h4>
+                            <p className="text-sm text-white/50 leading-relaxed">
+                              {renderWithPills(story.body, onTickerClick, liveQuotes)}
+                            </p>
+                            {story.relatedTickers.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {story.relatedTickers.map(ticker => (
+                                  <TickerPill key={ticker} ticker={ticker} quote={liveQuotes[ticker]} onClick={onTickerClick} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
+                      </div>
+                    ))}
+                  </div>
+                </Section>
               </div>
-            )}
 
-            {/* Top Movers — glass: no card backgrounds */}
-            {(movers.gainers.length > 0 || movers.losers.length > 0) && (
-              <div className="mb-10">
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-1 h-4 rounded-full bg-rh-green flex-shrink-0" />
-                  <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Top Movers</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Gainers */}
-                  <div className="space-y-0">
+              {/* ── Sidebar: Data ── */}
+              <div className="-mt-2 md:mt-0">
+                {/* Top Movers */}
+                {(movers.gainers.length > 0 || movers.losers.length > 0) && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Top Movers</div>
                     {movers.gainers.map(h => (
                       <button key={h.ticker} onClick={() => onTickerClick?.(h.ticker)}
-                        className="w-full flex items-center justify-between py-2.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
-                        <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{h.ticker}</span>
-                        <span className="text-sm font-bold tabular-nums text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+                        className="w-full flex items-center justify-between py-1.5 hover:bg-white/[0.02] transition-colors">
+                        <span className="text-[13px] font-semibold text-white">{h.ticker}</span>
+                        <span className="text-[13px] font-bold tabular-nums text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
                       </button>
                     ))}
-                    {movers.gainers.length === 0 && <p className="text-[12px] text-rh-light-muted/40 dark:text-rh-muted/40 py-2">No gainers</p>}
-                  </div>
-                  {/* Losers */}
-                  <div className="space-y-0">
+                    {movers.gainers.length > 0 && movers.losers.length > 0 && <div className="h-2" />}
                     {movers.losers.map(h => (
                       <button key={h.ticker} onClick={() => onTickerClick?.(h.ticker)}
-                        className="w-full flex items-center justify-between py-2.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
-                        <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{h.ticker}</span>
-                        <span className="text-sm font-bold tabular-nums text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+                        className="w-full flex items-center justify-between py-1.5 hover:bg-white/[0.02] transition-colors">
+                        <span className="text-[13px] font-semibold text-white">{h.ticker}</span>
+                        <span className="text-[13px] font-bold tabular-nums text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
                       </button>
                     ))}
-                    {movers.losers.length === 0 && <p className="text-[12px] text-rh-light-muted/40 dark:text-rh-muted/40 py-2">No losers</p>}
                   </div>
-                </div>
+                )}
+
+                {/* Why Positions Moved */}
+                {data.positionMoves && data.positionMoves.length > 0 && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Why Positions Moved</div>
+                    {data.positionMoves.map((move, i) => (
+                      <div key={i} className="flex items-center gap-2.5 py-2 border-b border-white/[0.04] last:border-b-0">
+                        <button onClick={() => onTickerClick?.(move.ticker)} className="text-[13px] font-bold text-white w-[50px] shrink-0 hover:text-rh-green transition-colors">{move.ticker}</button>
+                        <span className={`text-[12px] font-bold tabular-nums w-[50px] text-right shrink-0 ${move.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                          {move.changePercent >= 0 ? '+' : ''}{move.changePercent.toFixed(1)}%
+                        </span>
+                        <span className="text-[11px] text-white/45 leading-snug flex-1">{renderWithPills(move.reason, onTickerClick, liveQuotes)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* S&P 500 Sectors */}
+                {heatmapSectors.length > 0 && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">S&P 500 Sectors</div>
+                    <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
+                  </div>
+                )}
+
+                {/* Watch Today */}
+                {data.watchToday.length > 0 && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Watch Today</div>
+                    {data.watchToday.map((item, i) => (
+                      <div key={i} className="flex items-start gap-2 py-1.5">
+                        <span className="text-rh-green text-sm mt-0 shrink-0">›</span>
+                        <p className="text-[12px] text-white/60 leading-relaxed">{renderWithPills(item, onTickerClick, liveQuotes)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Earnings This Week */}
+                {earnings.length > 0 && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Earnings This Week</div>
+                    {earnings.map(e => (
+                      <button key={e.ticker} onClick={() => onTickerClick?.(e.ticker)}
+                        className="w-full flex items-center justify-between py-1.5 hover:bg-white/[0.02] transition-colors">
+                        <span className="text-[13px] font-semibold text-white">{e.ticker}</span>
+                        <span className="text-[11px] text-white/35">
+                          {e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `In ${e.daysUntil}d`}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dividends */}
+                {dividends.length > 0 && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Ex-Dividend Today</div>
+                    {dividends.map(d => (
+                      <button key={d.id} onClick={() => onTickerClick?.(d.ticker)}
+                        className="w-full flex items-center justify-between py-1.5 hover:bg-white/[0.02] transition-colors">
+                        <span className="text-[13px] font-semibold text-white">{d.ticker}</span>
+                        <span className="text-[11px] text-white/30 font-mono">${d.amountPerShare.toFixed(4)}/share</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Market Sentiment Gauge */}
-            {sentiment && <SentimentGauge sentiment={sentiment} />}
-
-            {/* Greeting / AI headline */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white leading-snug">{stripCitations(data.greeting)}</h2>
             </div>
 
-            {/* Market Overview */}
-            <Section title="Market Overview">
-              <p className="text-[15px] text-white/80 leading-[1.8]">
-                {renderWithPills(data.marketOverview, onTickerClick, liveQuotes)}
-              </p>
-            </Section>
-
-            {/* Your Portfolio AI summary */}
-            <Section title="Portfolio Analysis">
-              <p className="text-[15px] text-white/80 leading-[1.8]">
-                {renderWithPills(data.portfolioSummary, onTickerClick, liveQuotes)}
-              </p>
-            </Section>
-
-            {/* S&P 500 Sector Performance Bars */}
-            {heatmapSectors.length > 0 && (
-              <Section title="S&P 500 Sectors">
-                <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
-              </Section>
-            )}
-
-            {/* Macro — same content as the old Macro tab */}
-            {portfolioNewsData?.summary && (
-              <Section title="Market Analysis">
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`text-[11px] font-semibold ${
-                      portfolioNewsData.summary.sentiment === 'bullish' ? 'text-rh-green' :
-                      portfolioNewsData.summary.sentiment === 'bearish' ? 'text-rh-red' :
-                      portfolioNewsData.summary.sentiment === 'mixed' ? 'text-amber-500' :
-                      'text-white/50'
-                    }`}>
-                      {portfolioNewsData.summary.sentiment === 'bullish' ? 'Bullish' :
-                       portfolioNewsData.summary.sentiment === 'bearish' ? 'Bearish' :
-                       portfolioNewsData.summary.sentiment === 'mixed' ? 'Mixed' : 'Neutral'}
-                    </span>
-                    <span className="text-[10px] text-white/20">Powered by NALA AI</span>
-                  </div>
-                  <p className="text-sm text-white/80 leading-relaxed mb-3">{portfolioNewsData.summary.overview}</p>
-                  <p className="text-xs text-white/50 leading-relaxed mb-3">{portfolioNewsData.summary.portfolioImpact}</p>
-                  <p className="text-xs text-white/40 leading-relaxed italic">{portfolioNewsData.summary.outlook}</p>
-                </div>
-              </Section>
-            )}
-
-            {/* Earnings This Week — only if there are upcoming earnings */}
-            {earnings.length > 0 && (
-              <Section title="Earnings This Week">
-                <div className="space-y-2">
-                  {earnings.map(e => (
-                    <button key={e.ticker} onClick={() => onTickerClick?.(e.ticker)}
-                      className="w-full flex items-center justify-between py-3 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                        <span className="text-sm font-medium text-white">{e.ticker}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[12px] text-white/50">
-                          {e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `In ${e.daysUntil} days`}
-                        </p>
-                        {e.estimatedEPS != null && (
-                          <p className="text-[11px] text-white/30 font-mono">Est. EPS ${e.estimatedEPS.toFixed(2)}</p>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {/* Dividends — only if ex-date is today */}
-            {dividends.length > 0 && (
-              <Section title="Ex-Dividend Today">
-                <div className="space-y-2">
-                  {dividends.map(d => (
-                    <button key={d.id} onClick={() => onTickerClick?.(d.ticker)}
-                      className="w-full flex items-center justify-between py-3 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-rh-green" />
-                        <span className="text-sm font-medium text-white">{d.ticker}</span>
-                      </div>
-                      <p className="text-[11px] text-white/30 font-mono">${d.amountPerShare.toFixed(4)}/share</p>
-                    </button>
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {/* Watch Today */}
-            <Section title="Watch Today">
-              <div className="space-y-3">
-                {data.watchToday.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="text-rh-green text-xs mt-1">-</span>
-                    <p className="text-[15px] text-white/70 leading-relaxed">{renderWithPills(item, onTickerClick, liveQuotes)}</p>
-                  </div>
-                ))}
-              </div>
-            </Section>
-
-            {/* Why Your Positions Moved */}
-            {data.positionMoves && data.positionMoves.length > 0 && (
-              <Section title="Why Your Positions Moved">
-                <div>
-                  {data.positionMoves.map((move, i) => (
-                    <div key={i} className="flex items-center gap-3 py-3" style={{ borderBottom: i < data.positionMoves!.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                      <button
-                        onClick={() => onTickerClick?.(move.ticker)}
-                        className="text-[14px] font-bold text-white min-w-[50px] hover:text-rh-green transition-colors"
-                      >
-                        {move.ticker}
-                      </button>
-                      <span className={`text-[13px] font-bold px-2 py-0.5 rounded min-w-[58px] text-center ${
-                        move.changePercent >= 0
-                          ? 'bg-rh-green/12 text-rh-green'
-                          : 'bg-rh-red/12 text-rh-red'
-                      }`}>
-                        {move.changePercent >= 0 ? '+' : ''}{move.changePercent.toFixed(2)}%
-                      </span>
-                      <span className="text-[13px] text-white/50 leading-snug flex-1">
-                        {renderWithPills(move.reason, onTickerClick, liveQuotes)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {/* Top Stories — after Watch Today */}
-            <Section title="Top Stories">
-              <div className="space-y-5">
-                {data.topStories.map((story, i) => (
-                  <div key={i}>
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                        story.sentiment === 'positive' ? 'bg-rh-green'
-                          : story.sentiment === 'negative' ? 'bg-rh-red' : 'bg-white/20'
-                      }`} />
-                      <div className="flex-1">
-                        <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
-                          {renderWithPills(story.headline, onTickerClick, liveQuotes)}
-                        </h4>
-                        <p className="text-sm text-white/50 leading-relaxed">
-                          {renderWithPills(story.body, onTickerClick, liveQuotes)}
-                        </p>
-                        {story.relatedTickers.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {story.relatedTickers.map(ticker => (
-                              <TickerPill key={ticker} ticker={ticker} quote={liveQuotes[ticker]} onClick={onTickerClick} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
-                  </div>
-                ))}
-              </div>
-            </Section>
-
-            {/* Questions of the Day */}
+            {/* ─── Questions of the Day — full width, side by side ─── */}
             {data.questionsOfTheDay && data.questionsOfTheDay.length > 0 && (
               <Section title="Questions of the Day">
-                <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {data.questionsOfTheDay.map((q, i) => (
                     <div key={i}>
-                      <h4 className="text-[15px] font-semibold text-white mb-2 leading-snug">{q.question}</h4>
-                      <p className="text-sm text-white/50 leading-relaxed">{renderWithPills(q.answer, onTickerClick, liveQuotes)}</p>
+                      <h4 className="text-[14px] font-semibold text-white mb-2 leading-snug">{q.question}</h4>
+                      <p className="text-[13px] text-white/50 leading-relaxed">{renderWithPills(q.answer, onTickerClick, liveQuotes)}</p>
                     </div>
                   ))}
                 </div>
@@ -1064,9 +1081,16 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
 
             {/* Economic Calendar — remaining days this week only */}
             {economicEvents.length > 0 && (() => {
-              const todayStr = new Date().toISOString().split('T')[0];
-              const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-              const futureEvents = economicEvents.filter(ev => ev.date >= todayStr);
+              const now = new Date();
+              const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+              const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+              // End of week (Friday)
+              const dayOfWeek = now.getDay(); // 0=Sun
+              const daysUntilFri = dayOfWeek <= 5 ? 5 - dayOfWeek : 0;
+              const friday = new Date(now); friday.setDate(friday.getDate() + daysUntilFri);
+              const endOfWeekStr = `${friday.getFullYear()}-${String(friday.getMonth() + 1).padStart(2, '0')}-${String(friday.getDate()).padStart(2, '0')}`;
+              const futureEvents = economicEvents.filter(ev => ev.date >= todayStr && ev.date <= endOfWeekStr);
               if (futureEvents.length === 0) return null;
               const groups = new Map<string, EconomicCalendarEvent[]>();
               for (const ev of futureEvents) {
