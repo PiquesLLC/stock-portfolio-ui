@@ -53,7 +53,7 @@ const TICKER_BLACKLIST = new Set([
   'NYSE', 'YOY', 'QOQ', 'MOM', 'BPS', 'CEO', 'CFO', 'COO', 'CTO',
   'YTD', 'QTD', 'MTD', 'ATH', 'ATL', 'EPS', 'ROE', 'ROA', 'ROI', 'NAV', 'AUM',
   'DCF', 'FCF', 'EBIT', 'WACC', 'CAGR', 'GAAP', 'IFRS',
-  'SK', 'AI', 'EV', 'IV', 'PE', 'PB', 'PS',
+  'SK', 'AI', 'EV', 'IV', 'PE', 'PB', 'PS', 'ET', 'AM', 'PM',
   'VIX', 'DXY', 'TNX', 'TLT', 'USD', 'EUR', 'GBP', 'JPY', 'CNY',
 ]);
 
@@ -111,24 +111,15 @@ function formatPct(n: number): string {
 
 type LiveQuotes = Record<string, { changePercent: number; currentPrice?: number; previousClose?: number }>;
 
-// Subtle inline ticker with small change% suffix
-function TickerPill({ ticker, quote, onClick }: { ticker: string; quote?: { changePercent: number }; onClick?: (t: string) => void }) {
-  const pct = quote?.changePercent ?? 0;
-  const isUp = pct >= 0;
+// Inline ticker — green bold text, no pill background (matches v2 mockup)
+function TickerPill({ ticker, onClick }: { ticker: string; quote?: { changePercent: number }; onClick?: (t: string) => void }) {
   return (
-    <span className="inline-flex items-baseline gap-0.5">
-      <button
-        onClick={(e) => { e.stopPropagation(); onClick?.(ticker); }}
-        className="text-white/90 font-semibold underline decoration-white/15 underline-offset-2 hover:decoration-rh-green hover:text-rh-green transition-colors"
-      >
-        {ticker}
-      </button>
-      {quote && (
-        <span className={`text-[11px] font-mono font-medium ${isUp ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
-          {isUp ? '+' : ''}{pct.toFixed(1)}%
-        </span>
-      )}
-    </span>
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick?.(ticker); }}
+      className="text-rh-green font-bold hover:text-rh-green/80 transition-colors"
+    >
+      {ticker}
+    </button>
   );
 }
 
@@ -137,7 +128,7 @@ function renderWithPills(text: string, onClick?: (ticker: string) => void, quote
   const cleaned = stripCitations(text);
   const parts = cleaned.split(/\b([A-Z]{1,5})\b/g);
   return parts.map((part, i) => {
-    if (i % 2 === 1 && !TICKER_BLACKLIST.has(part) && part.length >= 2) {
+    if (i % 2 === 1 && !TICKER_BLACKLIST.has(part) && part.length >= 2 && quotes?.[part]) {
       return <TickerPill key={i} ticker={part} quote={quotes?.[part]} onClick={onClick} />;
     }
     return part;
@@ -255,21 +246,15 @@ function BriefingLoader({ retryAttempt }: { retryAttempt: number }) {
   );
 }
 
-// Collapsible section
-function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
+// Section header — matches v2 mockup: green bar + small uppercase, no collapse
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-10">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2.5 w-full text-left group mb-5">
-        <div className="w-1 h-4 rounded-full bg-rh-green flex-shrink-0" />
-        <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
-          {title}
-        </h3>
-        <svg className={`w-3 h-3 text-white/20 transition-transform ${open ? 'rotate-0' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {open && children}
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+        <h3 className="text-[11px] font-bold uppercase tracking-[1.2px] text-white/35">{title}</h3>
+      </div>
+      {children}
     </div>
   );
 }
@@ -956,13 +941,7 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                             <p className="text-sm text-white/50 leading-relaxed">
                               {renderWithPills(story.body, onTickerClick, liveQuotes)}
                             </p>
-                            {story.relatedTickers.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mt-2">
-                                {story.relatedTickers.map(ticker => (
-                                  <TickerPill key={ticker} ticker={ticker} quote={liveQuotes[ticker]} onClick={onTickerClick} />
-                                ))}
-                              </div>
-                            )}
+                            {/* Related tickers removed — already highlighted inline */}
                           </div>
                         </div>
                         {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
@@ -996,27 +975,42 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                   </div>
                 )}
 
+                {/* S&P 500 Sectors */}
+                {heatmapSectors.length > 0 && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">S&P 500 Sectors</div>
+                    {[...heatmapSectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent).map(s => {
+                      const pct = s.avgChangePercent;
+                      const isPositive = pct >= 0;
+                      const etf = SECTOR_ETF_MAP[s.name];
+                      return (
+                        <button key={s.name} className="w-full flex items-center justify-between py-1.5 hover:bg-white/[0.02] transition-colors"
+                          onClick={() => etf && onTickerClick?.(etf)}>
+                          <span className="text-[13px] font-semibold text-white">{s.name}</span>
+                          <span className={`text-[13px] font-bold tabular-nums ${isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+                            {isPositive ? '+' : ''}{pct.toFixed(2)}%
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Why Positions Moved */}
                 {data.positionMoves && data.positionMoves.length > 0 && (
                   <div className="mb-5">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Why Positions Moved</div>
                     {data.positionMoves.map((move, i) => (
-                      <div key={i} className="flex items-center gap-2.5 py-2 border-b border-white/[0.04] last:border-b-0">
-                        <button onClick={() => onTickerClick?.(move.ticker)} className="text-[13px] font-bold text-white w-[50px] shrink-0 hover:text-rh-green transition-colors">{move.ticker}</button>
-                        <span className={`text-[12px] font-bold tabular-nums w-[50px] text-right shrink-0 ${move.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                          {move.changePercent >= 0 ? '+' : ''}{move.changePercent.toFixed(1)}%
-                        </span>
-                        <span className="text-[11px] text-white/45 leading-snug flex-1">{renderWithPills(move.reason, onTickerClick, liveQuotes)}</span>
+                      <div key={i} className="py-2 border-b border-white/[0.04] last:border-b-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <button onClick={() => onTickerClick?.(move.ticker)} className="text-[13px] font-bold text-white hover:text-rh-green transition-colors">{move.ticker}</button>
+                          <span className={`text-[12px] font-bold tabular-nums ${move.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                            {move.changePercent >= 0 ? '+' : ''}{move.changePercent.toFixed(1)}%
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-white/45 leading-snug">{renderWithPills(move.reason, onTickerClick, liveQuotes)}</p>
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {/* S&P 500 Sectors */}
-                {heatmapSectors.length > 0 && (
-                  <div className="mb-5">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">S&P 500 Sectors</div>
-                    <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
                   </div>
                 )}
 
