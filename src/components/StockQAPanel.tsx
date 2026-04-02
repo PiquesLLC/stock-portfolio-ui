@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { askStockQuestion, StockQAResponse } from '../api';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
+import { StepLoader } from './StepLoader';
 
 const SUGGESTIONS = [
   'What are the biggest risks?',
@@ -140,13 +141,8 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
 
       {/* Loading state */}
       {loading && (
-        <div className="mt-4 flex items-center gap-2 text-sm text-rh-light-muted/60 dark:text-white/30">
-          <div className="flex gap-1">
-            <span className="w-1.5 h-1.5 bg-rh-green rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 bg-rh-green rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 bg-rh-green rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-          Researching...
+        <div className="mt-4">
+          <StepLoader title="Researching Your Question" steps={['Understanding context', 'Searching sources', 'Analyzing data', 'Preparing answer']} interval={2500} />
         </div>
       )}
 

@@ -53,6 +53,28 @@ html {
   animation: nala-shimmer 1.8s ease-in-out infinite;
 }
 
+/* Step loader — text shimmer on active step */
+.step-loader-shimmer {
+  background: linear-gradient(90deg, #e5e7eb 0%, #00c805 45%, #00c805 55%, #e5e7eb 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: step-text-shimmer 2.5s ease-in-out infinite;
+}
+.dark .step-loader-shimmer {
+  background: linear-gradient(90deg, #fff 0%, #00c805 45%, #00c805 55%, #fff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: step-text-shimmer 2.5s ease-in-out infinite;
+}
+@keyframes step-text-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* Nala AI — glowing border pulse */
 @keyframes nala-glow-pulse {
   0%, 100% { box-shadow: 0 0 6px 0 rgba(0, 200, 5, 0.25), inset 0 0 6px 0 rgba(0, 200, 5, 0.05); }

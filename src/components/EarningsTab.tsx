@@ -3,6 +3,7 @@ import { Holding } from '../types';
 import { getEarningsSummary, EarningsSummaryItem } from '../api';
 import EventsCalendar from './EventsCalendar';
 import { earningsUpcomingCache, EARNINGS_CACHE_TTL_MS, UpcomingEarningCacheEntry } from '../utils/earnings-cache';
+import { StepLoader } from './StepLoader';
 
 const EARNINGS_STEPS = [
   'Checking upcoming reports',
@@ -10,75 +11,6 @@ const EARNINGS_STEPS = [
   'Analyzing beat/miss history',
   'Building earnings calendar',
 ];
-
-function EarningsLoader() {
-  const [activeStep, setActiveStep] = useState(0);
-  const [typedText, setTypedText] = useState('');
-  const fullText = EARNINGS_STEPS[activeStep] || '';
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveStep(prev => (prev < EARNINGS_STEPS.length - 1 ? prev + 1 : prev));
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    setTypedText('');
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      if (i <= fullText.length) setTypedText(fullText.slice(0, i));
-      else clearInterval(interval);
-    }, 30);
-    return () => clearInterval(interval);
-  }, [activeStep, fullText]);
-
-  return (
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-          <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-rh-light-text dark:text-white">Loading Earnings</p>
-          <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25">Powered by NALA</p>
-        </div>
-      </div>
-      <div className="space-y-2.5">
-        {EARNINGS_STEPS.map((step, i) => {
-          const isActive = i === activeStep;
-          const isDone = i < activeStep;
-          return (
-            <div key={i} className={`flex items-center gap-2.5 transition-all duration-500 ${isActive ? 'opacity-100' : isDone ? 'opacity-40' : 'opacity-15'}`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-500 ${
-                isDone ? 'bg-amber-500/20 text-amber-500' : isActive ? 'bg-amber-500 text-black' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-white/30'
-              }`}>
-                {isDone ? (
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (i + 1)}
-              </div>
-              <span className={`text-[12px] transition-all duration-500 ${isActive ? 'text-rh-light-text dark:text-white font-medium' : isDone ? 'text-rh-light-muted dark:text-white/50' : 'text-rh-light-muted/50 dark:text-white/30'}`}>
-                {isActive ? typedText : step}
-                {isActive && <span className="inline-block w-[2px] h-[12px] bg-amber-500 ml-0.5 align-middle animate-pulse" />}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-4 h-1 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-amber-500/60 to-amber-500 rounded-full transition-all duration-[2500ms] ease-linear"
-          style={{ width: `${Math.min(95, ((activeStep + 1) / EARNINGS_STEPS.length) * 100)}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 interface EarningsTabProps {
   holdings: Holding[];
@@ -171,7 +103,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
     <div className="space-y-6">
       {/* Countdown Hero */}
       {loading ? (
-        <EarningsLoader />
+        <StepLoader title="Loading Earnings" steps={EARNINGS_STEPS} interval={2500} />
       ) : next ? (
         <div className="relative overflow-hidden border-b border-gray-200/10 dark:border-white/[0.04] pb-6">
           <div className="absolute top-3 right-4">

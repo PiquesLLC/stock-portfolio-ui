@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Holding } from '../types';
 import { getHourlyCandles, IntradayCandle } from '../api';
+import { StepLoader } from './StepLoader';
 
 interface CorrelationHeatmapProps {
   holdings: Holding[];
@@ -92,36 +93,6 @@ function buildMatrix(
   }
 
   return matrix;
-}
-
-// ── Skeleton grid ──────────────────────────────────────────────────
-function SkeletonGrid({ count }: { count: number }) {
-  const rows = Math.min(count, 8);
-  return (
-    <div className="space-y-4">
-      {/* Title skeleton */}
-      <div className="h-5 w-48 rounded bg-gray-200 dark:bg-white/[0.06] animate-pulse" />
-      {/* Grid skeleton */}
-      <div className="overflow-x-auto">
-        <div className="inline-grid gap-[2px]" style={{ gridTemplateColumns: `60px repeat(${rows}, 48px)` }}>
-          {/* Header row */}
-          <div />
-          {Array.from({ length: rows }).map((_, i) => (
-            <div key={`h-${i}`} className="h-6 rounded bg-gray-200 dark:bg-white/[0.06] animate-pulse" />
-          ))}
-          {/* Data rows */}
-          {Array.from({ length: rows }).map((_, r) => (
-            <Fragment key={`row-${r}`}>
-              <div className="h-10 w-14 rounded bg-gray-200 dark:bg-white/[0.06] animate-pulse" />
-              {Array.from({ length: rows }).map((_, c) => (
-                <div key={`c-${r}-${c}`} className="h-10 rounded bg-gray-200 dark:bg-white/[0.06] animate-pulse" />
-              ))}
-            </Fragment>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ── Color legend bar ───────────────────────────────────────────────
@@ -262,7 +233,7 @@ export default function CorrelationHeatmap({ holdings }: CorrelationHeatmapProps
     return (
       <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm p-6
                       dark:bg-white/[0.04] dark:backdrop-blur-sm dark:border-white/[0.06]">
-        <SkeletonGrid count={tickerList.length || 5} />
+        <StepLoader title="Building Correlation Matrix" steps={['Fetching price history', 'Calculating correlations', 'Analyzing relationships', 'Rendering matrix']} interval={3000} />
       </div>
     );
   }

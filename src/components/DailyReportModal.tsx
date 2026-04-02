@@ -924,6 +924,31 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                   </Section>
                 )}
 
+                {/* Top Stories */}
+                <Section title="Top Stories">
+                  <div className="space-y-5">
+                    {data.topStories.map((story, i) => (
+                      <div key={i}>
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                            story.sentiment === 'positive' ? 'bg-rh-green'
+                              : story.sentiment === 'negative' ? 'bg-rh-red' : 'bg-white/20'
+                          }`} />
+                          <div className="flex-1">
+                            <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
+                              {renderWithPills(story.headline, onTickerClick, liveQuotes)}
+                            </h4>
+                            <p className="text-sm text-white/50 leading-relaxed">
+                              {renderWithPills(story.body, onTickerClick, liveQuotes)}
+                            </p>
+                          </div>
+                        </div>
+                        {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+
               </div>
 
               {/* ── Sidebar: Data ── */}
@@ -950,24 +975,6 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                   </div>
                 )}
 
-                {/* Why Positions Moved */}
-                {data.positionMoves && data.positionMoves.length > 0 && (
-                  <div className="mb-5">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Why Positions Moved</div>
-                    {data.positionMoves.map((move, i) => (
-                      <div key={i} className="py-2 border-b border-white/[0.04] last:border-b-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <button onClick={() => onTickerClick?.(move.ticker)} className="text-[13px] font-bold text-white hover:text-rh-green transition-colors">{move.ticker}</button>
-                          <span className={`text-[12px] font-bold tabular-nums ${move.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                            {move.changePercent >= 0 ? '+' : ''}{move.changePercent.toFixed(1)}%
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-white/45 leading-snug">{renderWithPills(move.reason, onTickerClick, liveQuotes)}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 {/* S&P 500 Sectors */}
                 {heatmapSectors.length > 0 && (
                   <div className="mb-5">
@@ -989,30 +996,23 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
                   </div>
                 )}
 
-                {/* Top Stories */}
-                <Section title="Top Stories">
-                  <div className="space-y-5">
-                    {data.topStories.map((story, i) => (
-                      <div key={i}>
-                        <div className="flex items-start gap-3">
-                          <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                            story.sentiment === 'positive' ? 'bg-rh-green'
-                              : story.sentiment === 'negative' ? 'bg-rh-red' : 'bg-white/20'
-                          }`} />
-                          <div className="flex-1">
-                            <h4 className="text-[15px] font-semibold text-white mb-1 leading-snug">
-                              {renderWithPills(story.headline, onTickerClick, liveQuotes)}
-                            </h4>
-                            <p className="text-sm text-white/50 leading-relaxed">
-                              {renderWithPills(story.body, onTickerClick, liveQuotes)}
-                            </p>
-                          </div>
+                {/* Why Positions Moved */}
+                {data.positionMoves && data.positionMoves.length > 0 && (
+                  <div className="mb-5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/30 pb-2 mb-2 border-b border-white/[0.06]">Why Positions Moved</div>
+                    {data.positionMoves.map((move, i) => (
+                      <div key={i} className="py-2 border-b border-white/[0.04] last:border-b-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <button onClick={() => onTickerClick?.(move.ticker)} className="text-[13px] font-bold text-white hover:text-rh-green transition-colors">{move.ticker}</button>
+                          <span className={`text-[12px] font-bold tabular-nums ${move.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                            {move.changePercent >= 0 ? '+' : ''}{move.changePercent.toFixed(1)}%
+                          </span>
                         </div>
-                        {i < data.topStories.length - 1 && <div className="border-t border-white/[0.03] mt-5" />}
+                        <p className="text-[11px] text-white/45 leading-snug">{renderWithPills(move.reason, onTickerClick, liveQuotes)}</p>
                       </div>
                     ))}
                   </div>
-                </Section>
+                )}
 
                 {/* Watch Today */}
                 {data.watchToday.length > 0 && (
