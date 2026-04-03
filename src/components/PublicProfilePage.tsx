@@ -7,7 +7,7 @@ const UserProfileView = lazy(() =>
   import('./UserProfileView').then(m => ({ default: m.UserProfileView }))
 );
 
-const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
+const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED === 'true';
 
 interface PublicProfilePageProps {
   username: string;

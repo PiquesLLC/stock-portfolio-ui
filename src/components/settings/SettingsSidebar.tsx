@@ -126,7 +126,18 @@ export function SettingsSidebar({
         ))}
 
         {/* Footer */}
-        <div className="pt-2 px-1">
+        <div className="pt-2 px-1 space-y-2">
+          <a
+            href="/support"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-green transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Help & Support
+          </a>
           <button
             onClick={onPrivacyPolicy}
             className="text-xs text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
@@ -168,7 +179,19 @@ export function SettingsSidebar({
         ))}
 
         {/* Footer — navigation only */}
-        <div className="pt-4 mt-4 border-t border-gray-200/20 dark:border-white/[0.03]">
+        <div className="pt-4 mt-4 border-t border-gray-200/20 dark:border-white/[0.03] space-y-px">
+          <a
+            href="/support"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/40
+              hover:text-rh-green hover:bg-gray-100/50 dark:hover:bg-white/[0.04] transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Help & Support
+          </a>
           <button
             onClick={onPrivacyPolicy}
             className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/40

@@ -14,7 +14,7 @@ const GOOGLE_CLIENT_ID = getGoogleClientId();
 const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID;
 const APPLE_ENABLED = isAppleOAuthEnabled();
 const OAUTH_ENABLED = GOOGLE_ENABLED || APPLE_ENABLED;
-const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED !== 'false';
+const WAITLIST_ENABLED = import.meta.env.VITE_WAITLIST_ENABLED === 'true';
 const DIRECT_SIGNUP_ENABLED = !WAITLIST_ENABLED || isNative;
 const EMAIL_INPUT_TYPE = isNative ? 'text' : 'email';
 const NATIVE_PUBLIC_API_URL = 'https://stock-portfolio-api-production.up.railway.app';

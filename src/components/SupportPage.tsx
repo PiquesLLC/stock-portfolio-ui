@@ -21,6 +21,19 @@ export function SupportPage() {
           </p>
         </div>
 
+        <div className="rounded-2xl border border-rh-green/20 bg-rh-green/[0.04] p-5 mb-10">
+          <div className="flex items-start gap-3">
+            <span className="text-rh-green text-lg leading-none mt-0.5">Beta</span>
+            <div>
+              <p className="text-sm text-white/70 leading-6">
+                Nala is currently in beta. You may encounter bugs or incomplete features as we
+                actively build and improve the platform. Your feedback is incredibly valuable
+                — please report anything that feels off and we'll address it quickly.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 mb-10">
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/25 mb-2">Email</div>
           <a href="mailto:support@nalaai.com" className="text-rh-green hover:text-rh-green/80 transition-colors text-base font-semibold">

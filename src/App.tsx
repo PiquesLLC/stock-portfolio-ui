@@ -23,6 +23,7 @@ import { DailyReportModal } from './components/DailyReportModal';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { SupportPage } from './components/SupportPage';
+import { NotFoundPage } from './components/NotFoundPage';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import PortfolioPicker from './components/PortfolioPicker';
@@ -131,7 +132,6 @@ const PRIMARY_TABS: { id: TabType; label: string }[] = [
 ];
 
 const MORE_TABS: { id: TabType; label: string }[] = [
-  { id: 'profile', label: 'Profile' },
   { id: 'pricing', label: 'Pricing' },
 ];
 
@@ -200,17 +200,27 @@ const _pathSegments = _pathname.split('/').filter(Boolean);
 const _RESERVED_PATHS = new Set([
   // Build / dev / static
   'assets', 'src', 'node_modules',
+  // System / admin
+  '_system', 'system',
   // API route prefixes (mirrored from auth.validators.ts)
   'auth', 'health', 'market', 'portfolio', 'dividends', 'settings', 'insights',
   'goals', 'intelligence', 'leaderboard', 'users', 'social', 'transactions',
-  'alerts', 'analyst', 'milestones', 'fundamentals', 'watchlists', 'creator',
-  'referral', 'notifications', 'plaid', 'billing',
+  'alerts', 'price-alerts', 'analyst', 'milestones', 'fundamentals', 'watchlists',
+  'stock-follows', 'creator', 'referral', 'notifications', 'plaid', 'billing', 'waitlist',
   // UI tab names / routes
-  'profile', 'discover', 'feed', 'pricing', 'macro', 'nala',
+  'profile', 'discover', 'feed', 'watch', 'pricing', 'macro', 'nala', 'join',
   // Common reserved words
   'api', 'www', 'app', 'help', 'support', 'about', 'login', 'signup', 'register', 'invite',
   'account', 'dashboard', 'home', 'index', 'privacy', 'terms', 'tos',
-  'admin', 'system', 'favicon', 'robots', 'sitemap',
+  'admin', 'null', 'undefined', 'favicon', 'robots', 'sitemap',
+  // Authority / trust impersonation
+  'moderator', 'mod', 'staff', 'official', 'verified', 'customer_service',
+  'helpdesk', 'operator', 'ceo', 'cto', 'cfo', 'founder', 'developer',
+  'engineer', 'security', 'root', 'superuser', 'sysadmin',
+  // Brokerage / fintech brand impersonation
+  'robinhood', 'fidelity', 'schwab', 'vanguard', 'etrade', 'webull',
+  'coinbase', 'binance', 'ameritrade', 'merrill', 'sofi', 'wealthfront',
+  'betterment', 'charles_schwab', 'td_ameritrade', 'interactive_brokers',
 ]);
 const _candidate = _pathSegments.length === 1 ? _pathSegments[0] : null;
 const _pendingUsername: string | null =
@@ -665,12 +675,18 @@ export default function App() {
     );
   }
 
+  // 404: unrecognized path that isn't a known page (works for both auth and unauth)
+  const _isUnknownPath = safePathname !== '/' && safePathname !== '/invite' && safePathname !== '/join' && safePathname !== '/support' && !_pendingUsername;
+  if (!isAuthenticated && _isUnknownPath) {
+    return <NotFoundPage />;
+  }
+
   if (!isAuthenticated) {
     return <LandingPage />;
   }
 
   // Hard gate: block entire app until email is verified (Resend active in production since Mar 8)
-  if (import.meta.env.VITE_EMAIL_VERIFICATION_ENABLED === 'true' && user && user.emailVerified === false) {
+  if (import.meta.env.VITE_EMAIL_VERIFICATION_ENABLED !== 'false' && user && user.emailVerified === false) {
     // Missing email edge case — show recovery path
     if (!user.email) {
       return (
@@ -866,6 +882,11 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  // 404 for authenticated users on unknown paths
+  if (_isUnknownPath) {
+    return <NotFoundPage />;
   }
 
   return (
