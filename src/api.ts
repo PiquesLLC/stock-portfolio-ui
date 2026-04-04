@@ -951,6 +951,13 @@ export async function changePassword(currentPassword: string, newPassword: strin
   });
 }
 
+export async function changeUsername(username: string): Promise<{ username: string; message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/change-username`, {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  });
+}
+
 export async function deleteAccount(password: string): Promise<{ message: string }> {
   return fetchJson(`${API_BASE_URL}/auth/delete-account`, {
     method: 'DELETE',

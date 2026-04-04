@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ToggleSwitch } from '../ToggleSwitch';
-import { UserSettings } from '../../../api';
+import { ConfirmModal } from '../../ConfirmModal';
+import { UserSettings, checkUsernameAvailable, changeUsername } from '../../../api';
 
 interface ProfileSectionProps {
   settings: UserSettings | null;
@@ -14,6 +15,7 @@ interface ProfileSectionProps {
   setRegion: (v: string | null) => void;
   showRegion: boolean;
   setShowRegion: (v: boolean) => void;
+  onUsernameChanged?: (newUsername: string) => void;
 }
 
 export function ProfileSection({
@@ -28,6 +30,7 @@ export function ProfileSection({
   setRegion,
   showRegion,
   setShowRegion,
+  onUsernameChanged,
 }: ProfileSectionProps) {
   return (
     <div className="space-y-7">
@@ -50,19 +53,11 @@ export function ProfileSection({
           />
         </div>
 
-        {/* Username (read-only) */}
-        <div>
-          <label className="block text-sm font-medium text-rh-light-text dark:text-rh-text mb-1">
-            Username
-          </label>
-          <input
-            type="text"
-            value={settings?.username || ''}
-            disabled
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-rh-border/50
-              bg-gray-50 dark:bg-rh-border/20 text-rh-light-muted dark:text-rh-muted cursor-not-allowed"
-          />
-        </div>
+        {/* Username (editable) */}
+        <UsernameEditor
+          currentUsername={settings?.username || ''}
+          onUsernameChanged={onUsernameChanged}
+        />
 
         {/* Member Since */}
         {settings?.createdAt && (
@@ -76,8 +71,8 @@ export function ProfileSection({
       </div>
 
       {/* Invite Friends */}
-      {settings?.username && (
-        <InviteCard username={settings.username} />
+      {settings?.id && (
+        <InviteCard referralCode={settings.id} />
       )}
 
       {/* Privacy */}
@@ -149,10 +144,197 @@ export function ProfileSection({
   );
 }
 
-function InviteCard({ username }: { username: string }) {
+// Mirrors server-side validation in auth.validators.ts so errors surface instantly
+// without a network round-trip. The server is still the source of truth.
+const USERNAME_FORMAT = /^[a-zA-Z0-9_]+$/;
+const BLOCKED_PREFIXES = ['admin_', 'mod_', 'staff_', 'official_'];
+const BLOCKED_PROFANITY = /(?:^|_)(fuck|shit|nigger|nigga|faggot|cunt|fag)(?:_|$)/;
+
+function validateUsernameFormat(val: string): string | null {
+  if (val.length < 3) return 'Must be at least 3 characters';
+  if (val.length > 20) return 'Must be at most 20 characters';
+  if (!USERNAME_FORMAT.test(val)) return 'Letters, numbers, and underscores only';
+  const lower = val.toLowerCase();
+  if (lower.includes('nala')) return 'This username is not allowed';
+  if (BLOCKED_PREFIXES.some((p) => lower.startsWith(p))) return 'This username is not allowed';
+  if (BLOCKED_PROFANITY.test(lower)) return 'This username is not allowed';
+  return null;
+}
+
+interface UsernameEditorProps {
+  currentUsername: string;
+  onUsernameChanged?: (newUsername: string) => void;
+}
+
+function UsernameEditor({ currentUsername, onUsernameChanged }: UsernameEditorProps) {
+  const [draft, setDraft] = useState(currentUsername);
+  const [availability, setAvailability] = useState<'unknown' | 'checking' | 'available' | 'taken'>('unknown');
+  const [formatError, setFormatError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const checkTimer = useRef<number | null>(null);
+
+  // Keep draft synced when parent's currentUsername changes (e.g., after save)
+  useEffect(() => {
+    setDraft(currentUsername);
+    setAvailability('unknown');
+    setFormatError(null);
+    setSaveError(null);
+  }, [currentUsername]);
+
+  const isUnchanged = draft.toLowerCase() === currentUsername.toLowerCase();
+
+  // Debounced availability check
+  useEffect(() => {
+    if (checkTimer.current) window.clearTimeout(checkTimer.current);
+    setSaveError(null);
+    setSaved(false);
+
+    if (isUnchanged || draft.length === 0) {
+      setAvailability('unknown');
+      setFormatError(null);
+      return;
+    }
+
+    const fmtErr = validateUsernameFormat(draft);
+    setFormatError(fmtErr);
+    if (fmtErr) {
+      setAvailability('unknown');
+      return;
+    }
+
+    setAvailability('checking');
+    checkTimer.current = window.setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailable(draft);
+        setAvailability(res.available ? 'available' : 'taken');
+      } catch {
+        setAvailability('unknown');
+      }
+    }, 400);
+
+    return () => {
+      if (checkTimer.current) window.clearTimeout(checkTimer.current);
+    };
+  }, [draft, isUnchanged]);
+
+  const canSave = !isUnchanged && !formatError && availability === 'available' && !saving;
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleSaveClick = useCallback(() => {
+    if (!canSave) return;
+    setShowConfirm(true);
+  }, [canSave]);
+
+  const handleConfirm = useCallback(async () => {
+    setShowConfirm(false);
+    if (!canSave) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await changeUsername(draft);
+      setSaved(true);
+      setAvailability('unknown');
+      onUsernameChanged?.(res.username);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to change username';
+      setSaveError(msg);
+    } finally {
+      setSaving(false);
+    }
+  }, [canSave, draft, onUsernameChanged]);
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-rh-light-text dark:text-rh-text mb-1">
+        Username
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value.trim())}
+          maxLength={20}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-rh-border
+            bg-white dark:bg-rh-black text-rh-light-text dark:text-rh-text
+            focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors"
+          placeholder="Choose a username"
+        />
+        <button
+          type="button"
+          onClick={handleSaveClick}
+          disabled={!canSave}
+          className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+            canSave
+              ? 'bg-rh-green text-black hover:bg-rh-green/90'
+              : 'bg-gray-100 dark:bg-rh-border/20 text-rh-light-muted dark:text-rh-muted cursor-not-allowed'
+          }`}
+        >
+          {saving ? 'Saving…' : saved ? 'Saved' : 'Save'}
+        </button>
+      </div>
+      <div className="mt-1 min-h-[1.25rem] text-xs">
+        {saveError && <span className="text-red-500">{saveError}</span>}
+        {!saveError && formatError && <span className="text-red-500">{formatError}</span>}
+        {!saveError && !formatError && availability === 'checking' && (
+          <span className="text-rh-light-muted dark:text-rh-muted">Checking availability…</span>
+        )}
+        {!saveError && !formatError && availability === 'available' && (
+          <span className="text-rh-green">Available</span>
+        )}
+        {!saveError && !formatError && availability === 'taken' && (
+          <span className="text-red-500">Username is taken</span>
+        )}
+        {!saveError && !formatError && availability === 'unknown' && !isUnchanged && draft.length === 0 && (
+          <span className="text-rh-light-muted dark:text-rh-muted">Enter a new username</span>
+        )}
+        {!saveError && !formatError && availability === 'unknown' && isUnchanged && (
+          <span className="text-rh-light-muted dark:text-rh-muted">Changing this will break old links to your profile</span>
+        )}
+      </div>
+      {showConfirm && (
+        <ConfirmModal
+          title="Change username?"
+          message={
+            <div className="space-y-2">
+              <p>
+                You&apos;re changing your username from{' '}
+                <span className="font-semibold text-rh-light-text dark:text-white">{currentUsername}</span>
+                {' '}to{' '}
+                <span className="font-semibold text-rh-green">{draft}</span>.
+              </p>
+              <p>Before you confirm:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>
+                  <span className="font-semibold text-rh-light-text dark:text-white">{currentUsername}</span>
+                  {' '}will immediately become available for anyone else to claim.
+                </li>
+                <li>Old links to your profile (<span className="font-mono text-[11px]">/u/{currentUsername}</span>) will stop working.</li>
+                <li>Your posts, followers, holdings, and portfolio history stay with you.</li>
+                <li>You can change it again later.</li>
+              </ul>
+            </div>
+          }
+          confirmLabel="Change username"
+          cancelLabel="Keep current"
+          onConfirm={handleConfirm}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function InviteCard({ referralCode }: { referralCode: string }) {
   const [copied, setCopied] = useState(false);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const referralUrl = origin ? `${origin}/join?ref=${encodeURIComponent(username)}` : '';
+  // Uses stable userId so links survive username changes (see referral.service.ts)
+  const referralUrl = origin ? `${origin}/join?ref=${encodeURIComponent(referralCode)}` : '';
 
   const handleCopy = useCallback(async () => {
     try {

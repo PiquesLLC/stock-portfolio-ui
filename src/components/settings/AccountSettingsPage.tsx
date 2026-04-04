@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, deleteAccount, getNotificationStatus, NotificationStatus, HealthStatus } from '../../api';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { PortfolioImport } from '../PortfolioImport';
 import { PrivacyPolicyModal } from '../PrivacyPolicyModal';
 import { MfaSetupModal } from '../MfaSetupModal';
@@ -52,6 +53,16 @@ function readViewportIsMobile(): boolean {
 export default function AccountSettingsPage({ userId, onBack, onSave, healthStatus, onCreatorNavigate }: AccountSettingsPageProps) {
   const isAdmin = userId === ADMIN_USER_ID;
   const { showToast } = useToast();
+  const { refreshUser } = useAuth();
+
+  const handleUsernameChanged = useCallback(
+    async (newUsername: string) => {
+      setSettings((prev) => (prev ? { ...prev, username: newUsername } : prev));
+      await refreshUser();
+      showToast('Username updated', 'success');
+    },
+    [refreshUser, showToast],
+  );
 
   // Global load state
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -299,6 +310,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
             setRegion={setRegion}
             showRegion={showRegion}
             setShowRegion={setShowRegion}
+            onUsernameChanged={handleUsernameChanged}
           />
         );
       case 'appearance':

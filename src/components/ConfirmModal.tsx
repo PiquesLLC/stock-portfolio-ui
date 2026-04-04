@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface ConfirmModalProps {
   title: string;
-  message: string;
+  message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
@@ -38,7 +38,7 @@ export function ConfirmModal({ title, message, confirmLabel = 'Confirm', cancelL
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-bold text-rh-light-text dark:text-white mb-2">{title}</h3>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-6">{message}</p>
+        <div className="text-sm text-rh-light-muted dark:text-rh-muted mb-6">{message}</div>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
