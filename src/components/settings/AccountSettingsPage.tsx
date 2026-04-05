@@ -81,6 +81,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
   const [profilePublic, setProfilePublic] = useState(true);
   const [region, setRegion] = useState<string | null>(null);
   const [showRegion, setShowRegion] = useState(true);
+  const [timezone, setTimezone] = useState<string | null>(null);
   const [holdingsVisibility, setHoldingsVisibility] = useState<'all' | 'top5' | 'sectors' | 'hidden'>('all');
 
   // Appearance state
@@ -171,6 +172,19 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
         setProfilePublic(data.profilePublic);
         setRegion(data.region);
         setShowRegion(data.showRegion);
+        setTimezone(data.timezone);
+        // Auto-detect timezone on first visit if not set (e.g., OAuth signups)
+        if (data.timezone === null && typeof Intl !== 'undefined') {
+          try {
+            const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (detected) {
+              setTimezone(detected);
+              updateUserSettings(userId, { timezone: detected })
+                .then((updated) => setSettings((prev) => (prev ? { ...prev, timezone: updated.timezone } : updated)))
+                .catch(() => { /* non-critical, user can set manually */ });
+            }
+          } catch { /* Intl unavailable */ }
+        }
         setHoldingsVisibility(data.holdingsVisibility);
         setDripEnabled(data.dripEnabled);
         setCashInterestRate(data.cashInterestRate != null ? String(data.cashInterestRate) : '');
@@ -199,6 +213,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       if (profilePublic !== settings.profilePublic) updates.profilePublic = profilePublic;
       if (region !== settings.region) updates.region = region;
       if (showRegion !== settings.showRegion) updates.showRegion = showRegion;
+      if (timezone !== settings.timezone) updates.timezone = timezone;
       if (holdingsVisibility !== settings.holdingsVisibility) updates.holdingsVisibility = holdingsVisibility;
       if (dripEnabled !== settings.dripEnabled) updates.dripEnabled = dripEnabled;
       const rateVal = cashInterestRate ? parseFloat(cashInterestRate) : null;
@@ -310,6 +325,8 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
             setRegion={setRegion}
             showRegion={showRegion}
             setShowRegion={setShowRegion}
+            timezone={timezone}
+            setTimezone={setTimezone}
             onUsernameChanged={handleUsernameChanged}
           />
         );

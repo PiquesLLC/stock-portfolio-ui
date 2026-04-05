@@ -15,6 +15,8 @@ interface ProfileSectionProps {
   setRegion: (v: string | null) => void;
   showRegion: boolean;
   setShowRegion: (v: boolean) => void;
+  timezone: string | null;
+  setTimezone: (v: string | null) => void;
   onUsernameChanged?: (newUsername: string) => void;
 }
 
@@ -30,6 +32,8 @@ export function ProfileSection({
   setRegion,
   showRegion,
   setShowRegion,
+  timezone,
+  setTimezone,
   onUsernameChanged,
 }: ProfileSectionProps) {
   return (
@@ -139,7 +143,66 @@ export function ProfileSection({
             </label>
           </div>
         </div>
+
+        {/* Timezone */}
+        <TimezonePicker timezone={timezone} setTimezone={setTimezone} />
       </div>
+    </div>
+  );
+}
+
+function TimezonePicker({ timezone, setTimezone }: { timezone: string | null; setTimezone: (v: string | null) => void }) {
+  // Use the browser's IANA list if available, else fall back to a common-timezone shortlist.
+  const supported: string[] = (() => {
+    try {
+      const values = (Intl as any).supportedValuesOf?.('timeZone');
+      if (Array.isArray(values) && values.length > 0) return values;
+    } catch { /* noop */ }
+    return [
+      'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+      'America/Toronto', 'America/Vancouver', 'America/Mexico_City',
+      'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Madrid', 'Europe/Amsterdam',
+      'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Singapore', 'Asia/Dubai', 'Asia/Kolkata',
+      'Australia/Sydney', 'Pacific/Auckland', 'UTC',
+    ];
+  })();
+
+  const detected = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; }
+  })();
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-rh-light-text dark:text-rh-text mb-1">
+        Timezone
+      </label>
+      <select
+        value={timezone || ''}
+        onChange={(e) => setTimezone(e.target.value || null)}
+        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-rh-border
+          bg-white dark:bg-rh-black text-rh-light-text dark:text-rh-text
+          focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors"
+      >
+        <option value="">Default (Eastern Time)</option>
+        {supported.map((tz) => (
+          <option key={tz} value={tz}>{tz}</option>
+        ))}
+      </select>
+      <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+        Used for scheduling your weekly and monthly briefings.
+        {detected && timezone !== detected && (
+          <>
+            {' '}
+            <button
+              type="button"
+              onClick={() => setTimezone(detected)}
+              className="text-rh-green hover:underline"
+            >
+              Use detected: {detected}
+            </button>
+          </>
+        )}
+      </p>
     </div>
   );
 }

@@ -1480,6 +1480,7 @@ export interface UserSettings {
   profilePublic: boolean;
   region: string | null;
   showRegion: boolean;
+  timezone: string | null;
   holdingsVisibility: 'all' | 'top5' | 'sectors' | 'hidden';
   bio?: string | null;
   dripEnabled: boolean;
@@ -1496,6 +1497,7 @@ export interface UserSettingsUpdate {
   profilePublic?: boolean;
   region?: string | null;
   showRegion?: boolean;
+  timezone?: string | null;
   holdingsVisibility?: 'all' | 'top5' | 'sectors' | 'hidden';
   bio?: string | null;
   dripEnabled?: boolean;
