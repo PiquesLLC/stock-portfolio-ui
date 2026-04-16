@@ -12,6 +12,7 @@ import {
   type MAPeriod,
   MA_COLORS,
   calcSMA,
+  computeCandleMaValues,
   detectAllBreaches,
   SIGNAL_MA_PERIODS,
   type BreachCluster,
@@ -993,6 +994,26 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
     return result;
   }, [candles, intradayCandles, points, selectedPeriod]);
+
+  const candleMaValues = useMemo(() => {
+    const result: { period: MAPeriod; values: (number | null)[] }[] = [];
+    if (chartMode !== 'candle') return result;
+    const sourceCandles: IntradayCandle[] = candleData.map(c => ({
+      time: new Date(c.time).toISOString(),
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+      volume: c.volume,
+    }));
+    const daily = candles && candles.closes.length > 0
+      ? { dates: candles.dates, closes: candles.closes }
+      : { dates: [], closes: [] };
+    for (const ma of MA_PERIODS) {
+      result.push({ period: ma, values: computeCandleMaValues(sourceCandles, daily, ma) });
+    }
+    return result;
+  }, [chartMode, candleData, candles]);
 
   // Compute stable Y-axis range (includes enabled MA values + comparison overlays)
   const { paddedMin, paddedMax } = useMemo(() => {
@@ -2083,9 +2104,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // MA values at hovered point
   const hoverMaValues = useMemo(() => {
-    if (hoverIndex === null || enabledMAs.size === 0) return [];
+    if (hoverIndex == null || enabledMAs.size === 0) return [];
     const result: { period: MAPeriod; value: number; color: string }[] = [];
-    for (const ma of visibleMaData) {
+    const source = chartMode === 'candle' ? candleMaValues : visibleMaData;
+    for (const ma of source) {
       if (!enabledMAs.has(ma.period)) continue;
       const val = ma.values[hoverIndex];
       if (val != null) {
@@ -2093,7 +2115,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       }
     }
     return result;
-  }, [hoverIndex, enabledMAs, visibleMaData]);
+  }, [hoverIndex, enabledMAs, visibleMaData, candleMaValues, chartMode]);
 
   // Comparison values at hover position
   const hoverCompValues = useMemo(() => {
@@ -2246,11 +2268,30 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
       {/* MA values bar — fixed height so chart never shifts */}
       <div className="h-[20px] min-h-[20px] mb-1 flex items-center">
-        {safeHoverIndex !== null && (hoverMaValues.length > 0 || hoverCompValues.length > 0 || volumeEnabled) && !hasMeasurement && (
+        {(() => {
+          const isCandleHover = chartMode === 'candle' && candleHover != null;
+          const isLineHover = chartMode !== 'candle' && safeHoverIndex !== null;
+          if (!isCandleHover && !isLineHover) return null;
+          if (hasMeasurement) return null;
+          if (hoverMaValues.length === 0 && hoverCompValues.length === 0 && !volumeEnabled) return null;
+          const hoverPrice = isCandleHover
+            ? candleHover!.price
+            : points[safeHoverIndex!].price;
+          let hoverVolume: number | null = null;
+          if (volumeEnabled) {
+            if (isCandleHover) {
+              const cStart = candleZoom?.start ?? 0;
+              const ci = Math.max(0, Math.min(candleData.length - 1, (hoverIndex ?? 0) + cStart));
+              hoverVolume = candleData[ci]?.volume ?? null;
+            } else {
+              hoverVolume = points[safeHoverIndex!].volume ?? null;
+            }
+          }
+          return (
           <div className="flex items-center gap-4 h-full">
             <span className="flex items-center gap-1 text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {comparisons && comparisons.length > 0 && <span className="text-rh-light-muted dark:text-rh-muted font-medium">{ticker}</span>}
-              ${points[safeHoverIndex].price.toFixed(2)}
+              ${hoverPrice.toFixed(2)}
             </span>
             {hoverMaValues.filter(ma => ma.value != null).map(ma => (
               <span key={ma.period} className="flex items-center gap-1 text-[11px]">
@@ -2269,14 +2310,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 </span>
               </span>
             ))}
-            {volumeEnabled && points[safeHoverIndex].volume != null && points[safeHoverIndex].volume! > 0 && (
+            {volumeEnabled && hoverVolume != null && hoverVolume > 0 && (
               <span className="flex items-center gap-1 text-[11px]">
                 <span className="text-rh-light-muted dark:text-rh-muted">Vol</span>
-                <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatVolume(points[safeHoverIndex].volume!)}</span>
+                <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatVolume(hoverVolume)}</span>
               </span>
             )}
           </div>
-        )}
+          );
+        })()}
       </div>
 
       <div ref={chartContainerRef} className="relative w-full focus-visible:ring-1 focus-visible:ring-rh-green/30 rounded" tabIndex={0} data-no-tab-swipe style={{ aspectRatio: `${CHART_W}/${CHART_H}`, outline: 'none', touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} onClick={handleChartClick} onKeyDown={handleKeyDown}>

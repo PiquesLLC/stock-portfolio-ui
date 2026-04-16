@@ -318,6 +318,28 @@ export function calcSMA(prices: number[], period: number): (number | null)[] {
   return result;
 }
 
+export function computeCandleMaValues(
+  candleData: IntradayCandle[],
+  dailyCandles: { dates: string[]; closes: number[] },
+  period: number,
+): (number | null)[] {
+  if (candleData.length === 0) return [];
+  if (dailyCandles.closes.length === 0) return candleData.map(() => null);
+  const sma = calcSMA(dailyCandles.closes, period);
+  const dateToIdx = new Map<string, number>();
+  for (let i = 0; i < dailyCandles.dates.length; i++) {
+    dateToIdx.set(dailyCandles.dates[i], i);
+  }
+  return candleData.map(c => {
+    const d = new Date(c.time);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const dailyIdx = dateToIdx.get(dateStr);
+    if (dailyIdx == null) return null;
+    const v = sma[dailyIdx];
+    return v == null ? null : v;
+  });
+}
+
 // ── Technical Indicators ─────────────────────────────────────────
 
 // Indicator colors
