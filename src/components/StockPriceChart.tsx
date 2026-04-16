@@ -2107,15 +2107,20 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (hoverIndex == null || enabledMAs.size === 0) return [];
     const result: { period: MAPeriod; value: number; color: string }[] = [];
     const source = chartMode === 'candle' ? candleMaValues : visibleMaData;
+    // In candle mode, hoverIndex is display-relative to the zoom window (see
+    // setHoverIndex(ci - cStart) in updateHoverFromClientX). candleMaValues is
+    // aligned to the full candleData, so shift back by cStart to look up the
+    // absolute candle index — otherwise the MA readout goes wrong when zoomed.
+    const lookupIdx = chartMode === 'candle' ? hoverIndex + (candleZoom?.start ?? 0) : hoverIndex;
     for (const ma of source) {
       if (!enabledMAs.has(ma.period)) continue;
-      const val = ma.values[hoverIndex];
+      const val = ma.values[lookupIdx];
       if (val != null) {
         result.push({ period: ma.period, value: val, color: MA_COLORS[ma.period] });
       }
     }
     return result;
-  }, [hoverIndex, enabledMAs, visibleMaData, candleMaValues, chartMode]);
+  }, [hoverIndex, enabledMAs, visibleMaData, candleMaValues, chartMode, candleZoom]);
 
   // Comparison values at hover position
   const hoverCompValues = useMemo(() => {
