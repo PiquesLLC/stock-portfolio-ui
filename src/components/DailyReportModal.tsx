@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getDailyReport, regenerateDailyReport, getFastQuote, getSectorPerformance, getEarningsSummary, getUpcomingDividends, getMarketSentiment, getPortfolio, getEconomicCalendar, getPortfolioNews, EarningsSummaryItem, MarketSentiment, EconomicCalendarEvent, PortfolioNewsResponse } from '../api';
 import { DailyReportResponse, Portfolio, HeatmapSector, DividendEvent } from '../types';
-import { timeAgo, isEffectivelyZero } from '../utils/format';
+import { timeAgo } from '../utils/format';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { toPng } from 'html-to-image';
 
@@ -273,46 +273,6 @@ const SECTOR_ETF_MAP: Record<string, string> = {
   'Utilities': 'XLU',
   'Real Estate': 'XLRE',
 };
-
-// Horizontal sector bars (matches Discover page style)
-function SectorBars({ sectors, onTickerClick }: { sectors: SectorBarItem[]; onTickerClick?: (ticker: string) => void }) {
-  const sorted = [...sectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent);
-  const maxAbs = Math.max(...sorted.map(s => Math.abs(s.avgChangePercent)), 1);
-  return (
-    <div className="space-y-1.5">
-      {sorted.map(s => {
-        const pct = s.avgChangePercent;
-        const barWidth = (Math.abs(pct) / maxAbs) * 50;
-        const isPositive = pct >= 0;
-        const zero = isEffectivelyZero(pct);
-        const etf = SECTOR_ETF_MAP[s.name];
-        return (
-          <div key={s.name} className={`flex items-center gap-3 ${etf ? 'cursor-pointer hover:bg-white/[0.03] -mx-2 px-2 rounded-lg transition-colors' : ''}`}
-            onClick={() => etf && onTickerClick?.(etf)}>
-            <span className="text-xs w-24 text-right shrink-0 font-medium text-white/40">{s.name}</span>
-            <div className="flex-1 flex items-center h-5">
-              <div className="relative w-full h-full flex items-center">
-                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/[0.08]" />
-                <div
-                  className="absolute h-4 rounded-sm transition-all duration-500"
-                  style={{
-                    left: isPositive ? '50%' : `${50 - barWidth}%`,
-                    width: `${barWidth}%`,
-                    background: zero ? '#888' : isPositive ? '#00C805' : '#E8544E',
-                    opacity: 0.8,
-                  }}
-                />
-              </div>
-            </div>
-            <span className={`text-xs font-semibold min-w-[50px] text-right font-mono ${zero ? 'text-white/40' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
-              {isPositive ? '+' : ''}{pct.toFixed(2)}%
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 type IndexQuote = { price: number; changePct: number; change: number };
 
