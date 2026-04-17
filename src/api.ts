@@ -443,8 +443,8 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       throw new Error(msg);
     }
 
-    // Notify global toast for non-auth errors
-    if (onApiError && !url.includes('/auth/')) {
+    // Notify global toast for non-auth errors — dev-only (too noisy on prod/TestFlight)
+    if (onApiError && !url.includes('/auth/') && import.meta.env.DEV && !isNative) {
       onApiError(msg);
     }
     throw new Error(msg);
