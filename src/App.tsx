@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
 import { isNative } from './utils/platform';
-import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord, getFastQuote } from './api';
+import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord, getFastQuote, getWatchlists, getWatchlistDetail, getMarketHeatmap, getPrices, MarketIndex } from './api';
+import { useTickerTapeSource, TICKER_TAPE_SOURCE_LABELS } from './hooks/useTickerTapeSource';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
@@ -303,11 +304,15 @@ export default function App() {
 
   const jobAlerts = useJobAlerts(!!user?.isWaitlistAdmin);
 
-  // Ticker tape — index quotes for the scrolling tape
+  // Ticker tape — user-selectable source (portfolio / watchlist / sp500 / dow / nasdaq)
+  const { source: tickerSource, cycleSource: cycleTickerSource } = useTickerTapeSource();
+
+  // Portfolio-mode index quotes (SPY/QQQ/DIA) — only fetched when in portfolio mode
   const [tickerIndices, setTickerIndices] = useState<TickerTapeItem[]>([]);
   const tickerIndicesIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (!isAuthenticated || !portfolio?.holdings?.length) return;
+    if (tickerSource !== 'portfolio') return;
     const TAPE_INDICES = [
       { ticker: 'SPY', label: 'S&P 500' },
       { ticker: 'QQQ', label: 'Nasdaq' },
@@ -333,7 +338,121 @@ export default function App() {
     return () => {
       if (tickerIndicesIntervalRef.current) clearInterval(tickerIndicesIntervalRef.current);
     };
-  }, [isAuthenticated, !!portfolio?.holdings?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, !!portfolio?.holdings?.length, tickerSource]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Watchlist-mode: merged holdings across all of user's watchlists
+  const [watchlistTickerItems, setWatchlistTickerItems] = useState<TickerTapeItem[]>([]);
+  const watchlistTickersRef = useRef<string[]>([]);
+  useEffect(() => {
+    if (!isAuthenticated || tickerSource !== 'watchlist') return;
+    let cancelled = false;
+    // Reset so a stale ref from a previous watchlist session can't feed the
+    // polling interval before loadWatchlists resolves
+    watchlistTickersRef.current = [];
+
+    const loadWatchlists = async () => {
+      try {
+        const lists = await getWatchlists();
+        if (cancelled) return;
+        if (lists.length === 0) {
+          setWatchlistTickerItems([]);
+          watchlistTickersRef.current = [];
+          return;
+        }
+        const details = await Promise.all(
+          lists.map(w => getWatchlistDetail(w.id).catch(() => null))
+        );
+        if (cancelled) return;
+        const seen = new Set<string>();
+        const items: TickerTapeItem[] = [];
+        for (const d of details) {
+          if (!d) continue;
+          for (const h of d.holdings) {
+            const key = h.ticker.toUpperCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            if (h.currentPrice > 0) {
+              items.push({ ticker: h.ticker, price: h.currentPrice, changePercent: h.dayChangePercent });
+            }
+          }
+        }
+        setWatchlistTickerItems(items);
+        watchlistTickersRef.current = items.map(i => i.ticker);
+      } catch { /* keep stale */ }
+    };
+
+    const pollPrices = async () => {
+      const tickers = watchlistTickersRef.current;
+      if (tickers.length === 0) return;
+      try {
+        const prices = await getPrices(tickers);
+        if (cancelled) return;
+        setWatchlistTickerItems(prev => prev.map(item => {
+          const p = prices[item.ticker.toUpperCase()];
+          return p ? { ...item, price: p.price, changePercent: p.changePercent } : item;
+        }));
+      } catch { /* keep stale */ }
+    };
+
+    loadWatchlists();
+    const interval = setInterval(pollPrices, 30_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [isAuthenticated, tickerSource]);
+
+  // Index-mode: S&P 500 / Dow 30 / Nasdaq 100 — fetch ticker universe + poll prices
+  const [indexTickerItems, setIndexTickerItems] = useState<Record<'sp500' | 'dow' | 'nasdaq', TickerTapeItem[]>>({ sp500: [], dow: [], nasdaq: [] });
+  // Per-source ticker caches so stale polls can never bleed into a different source
+  const indexTickersBySourceRef = useRef<Record<'sp500' | 'dow' | 'nasdaq', string[]>>({ sp500: [], dow: [], nasdaq: [] });
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (tickerSource !== 'sp500' && tickerSource !== 'dow' && tickerSource !== 'nasdaq') return;
+    const currentSource = tickerSource;
+    const indexKey: MarketIndex = currentSource === 'sp500' ? 'SP500' : currentSource === 'dow' ? 'DOW30' : 'NASDAQ100';
+    let cancelled = false;
+
+    const loadIndex = async () => {
+      try {
+        const heatmap = await getMarketHeatmap('1D', indexKey);
+        if (cancelled) return;
+        const seen = new Set<string>();
+        const items: TickerTapeItem[] = [];
+        for (const sector of heatmap.sectors) {
+          for (const s of sector.stocks) {
+            const key = s.ticker.toUpperCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            if (s.price > 0) {
+              items.push({ ticker: s.ticker, price: s.price, changePercent: s.changePercent });
+            }
+          }
+        }
+        setIndexTickerItems(prev => ({ ...prev, [currentSource]: items }));
+        indexTickersBySourceRef.current[currentSource] = items.map(i => i.ticker);
+      } catch {
+        // Empty-state bar handles "no data" UX, so no loading flag needed
+      }
+    };
+
+    const pollPrices = async () => {
+      const tickers = indexTickersBySourceRef.current[currentSource];
+      if (!tickers || tickers.length === 0) return;
+      try {
+        const prices = await getPrices(tickers);
+        if (cancelled) return;
+        setIndexTickerItems(prev => ({
+          ...prev,
+          [currentSource]: prev[currentSource].map(item => {
+            const p = prices[item.ticker.toUpperCase()];
+            return p ? { ...item, price: p.price, changePercent: p.changePercent } : item;
+          }),
+        }));
+      } catch { /* keep stale */ }
+    };
+
+    loadIndex();
+    const interval = setInterval(pollPrices, 30_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [isAuthenticated, tickerSource]);
 
   // Restore admin view from URL hash AFTER auth confirms admin status.
   // Uses _initialAdminHash (captured at module load) because the nav sync effect
@@ -646,6 +765,41 @@ export default function App() {
         changePercent: h.dayChangePercent,
       }));
   }, [portfolio?.holdings]);
+
+  // Active ticker tape items based on selected source
+  const activeTapeHoldings = useMemo<TickerTapeItem[]>(() => {
+    switch (tickerSource) {
+      case 'portfolio': return tickerHoldings;
+      case 'watchlist': return watchlistTickerItems;
+      case 'sp500': return indexTickerItems.sp500;
+      case 'dow': return indexTickerItems.dow;
+      case 'nasdaq': return indexTickerItems.nasdaq;
+      default: {
+        const _exhaustive: never = tickerSource;
+        void _exhaustive;
+        return [];
+      }
+    }
+  }, [tickerSource, tickerHoldings, watchlistTickerItems, indexTickerItems]);
+
+  // Only inject SPY/QQQ/DIA proxies when in portfolio mode; other modes are pure
+  const activeTapeIndices = tickerSource === 'portfolio' ? tickerIndices : [];
+
+  const tapeSourceAvailability = useMemo(() => ({
+    portfolio: tickerHoldings.length > 0,
+    watchlist: watchlistTickerItems.length > 0,
+    // Indices are always available to cycle TO — they'll fetch on demand once selected
+    sp500: true,
+    dow: true,
+    nasdaq: true,
+  }), [tickerHoldings.length, watchlistTickerItems.length]);
+
+  const handleCycleTickerSource = useCallback(() => {
+    const next = cycleTickerSource(tapeSourceAvailability);
+    if (next) {
+      showToast(`Ticker: ${TICKER_TAPE_SOURCE_LABELS[next]}`, 'info');
+    }
+  }, [cycleTickerSource, tapeSourceAvailability, showToast]);
 
   if (authLoading) {
     return (
@@ -1409,12 +1563,15 @@ export default function App() {
         <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
       )}
 
-      {/* Scrolling ticker tape — shown when logged in */}
-      {isAuthenticated && (tickerHoldings.length > 0 || tickerIndices.length > 0) && !viewingStock && !settingsView && !creatorView && !adminView && activeTab !== 'discover' && (
+      {/* Scrolling ticker tape — shown when logged in. Renders even if active
+          source is empty so user can tap to cycle to another source. */}
+      {isAuthenticated && !viewingStock && !settingsView && !creatorView && !adminView && activeTab !== 'discover' && (
         <TickerTape
-          holdings={tickerHoldings}
-          indices={tickerIndices}
+          holdings={activeTapeHoldings}
+          indices={activeTapeIndices}
           onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+          onBackgroundClick={handleCycleTickerSource}
+          emptyLabel={TICKER_TAPE_SOURCE_LABELS[tickerSource]}
         />
       )}
 

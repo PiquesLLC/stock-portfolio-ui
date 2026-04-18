@@ -12,6 +12,11 @@ interface TickerTapeProps {
   holdings: TickerTapeItem[];
   indices: TickerTapeItem[];
   onTickerClick: (ticker: string) => void;
+  /** Called when the user taps the tape background (not on a ticker button). */
+  onBackgroundClick?: () => void;
+  /** Label of the current source — shown in the empty-state bar so the user
+   *  knows why the tape is blank and can tap to cycle to another source. */
+  emptyLabel?: string;
 }
 
 function useIsDesktop(): boolean {
@@ -98,7 +103,7 @@ function TickerItem({ item, isSelected, onClick }: {
   );
 }
 
-export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps) {
+export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick, emptyLabel }: TickerTapeProps) {
   const isDesktop = useIsDesktop();
   const [paused, setPaused] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
@@ -168,7 +173,40 @@ export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps
     };
   }, [paused, isDesktop]);
 
-  if (tickerKeys.length === 0) return null;
+  const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onBackgroundClick) return;
+    // Only cycle if the tap did NOT land on (or inside) a ticker button.
+    // This keeps stock navigation untouched for direct finger taps on tickers,
+    // while gaps / padding / bar background cycle the source.
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('button')) return;
+    // Clear any mobile pause-on-tap selection before switching source
+    setSelectedTicker(null);
+    setPaused(false);
+    onBackgroundClick();
+  };
+
+  if (tickerKeys.length === 0) {
+    // If the caller provided a cycle handler, render a minimal tappable bar
+    // so the user can still cycle out of an empty/loading source. Otherwise
+    // hide the tape entirely.
+    if (!onBackgroundClick) return null;
+    return (
+      <div
+        ref={containerRef}
+        onClick={handleBackgroundClick}
+        title="Tap to change ticker source"
+        className="relative z-10 py-1.5 px-3
+          bg-gray-50/80 dark:bg-black/60
+          border-b border-gray-200/60 dark:border-white/[0.04]
+          cursor-pointer text-center"
+      >
+        <span className="text-[11px] text-rh-light-muted dark:text-white/40">
+          {emptyLabel ? `${emptyLabel} — no data. Tap to change source.` : 'Tap to change ticker source'}
+        </span>
+      </div>
+    );
+  }
 
   const duration = Math.min(Math.max(tickerKeys.length * 3, 20), 60);
 
@@ -188,9 +226,12 @@ export function TickerTape({ holdings, indices, onTickerClick }: TickerTapeProps
   return (
     <div
       ref={containerRef}
-      className="relative z-10 overflow-hidden py-1.5
+      onClick={handleBackgroundClick}
+      title={onBackgroundClick ? 'Tap to change ticker source' : undefined}
+      className={`relative z-10 overflow-hidden py-1.5
         bg-gray-50/80 dark:bg-black/60
-        border-b border-gray-200/60 dark:border-white/[0.04]"
+        border-b border-gray-200/60 dark:border-white/[0.04]
+        ${onBackgroundClick ? 'cursor-pointer' : ''}`}
     >
       <div
         className="flex items-center gap-3 ticker-tape-track"
