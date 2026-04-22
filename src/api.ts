@@ -1633,9 +1633,11 @@ export async function getCandleData(
   ticker: string,
   period: string,
   interval: CandleInterval,
+  signal?: AbortSignal,
 ): Promise<IntradayCandle[]> {
   const resp = await fetchJson<{ ticker: string; period: string; interval: string; candles: IntradayCandle[] }>(
     `${API_BASE_URL}/market/stock/${ticker}/candles?period=${period}&interval=${interval}`,
+    { signal },
   );
   return resp.candles;
 }
