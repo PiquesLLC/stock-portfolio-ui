@@ -64,7 +64,7 @@ interface LeaderboardPageProps {
 export function LeaderboardPage({ session, currentUserId, onStockClick, selectedUserId: externalSelectedUserId, onSelectedUserChange, onCompare }: LeaderboardPageProps) {
   const [showInfo, setShowInfo] = useState(false);
   const [region, setRegion] = useState<LeaderboardRegion>('world');
-  const [window, setWindow] = useState<LeaderboardWindow>('1M');
+  const [window, setWindow] = useState<LeaderboardWindow>('1D');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
