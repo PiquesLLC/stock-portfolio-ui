@@ -53,7 +53,7 @@ function IntelligenceLoader() {
   }, [activeStep, fullText]);
 
   return (
-    <div className="p-6">
+    <div className="p-6 sm:max-w-sm sm:mx-auto">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-xl bg-rh-green/10 border border-rh-green/20 flex items-center justify-center shrink-0">
           <svg className="w-5 h-5 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
