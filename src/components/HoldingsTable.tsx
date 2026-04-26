@@ -377,7 +377,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
   // Get header class for a column
   const getHeaderClass = (key: SortKey, align: 'left' | 'right' = 'left') => {
-    const base = 'px-4 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap';
+    const base = 'px-3 py-3 font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap';
     const alignClass = align === 'right' ? 'text-right' : '';
     const activeClass = sortKey === key ? 'text-rh-light-text dark:text-white' : '';
     return `${base} ${alignClass} ${activeClass}`;
@@ -1080,7 +1080,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               <th className={`${viewMode !== 'compact' ? 'w-0' : 'w-[12%]'} ${getHeaderClass('ticker')}`} onClick={() => handleSort('ticker')} title="Sort by ticker symbol">
                 Ticker{getSortIndicator('ticker')}
               </th>
-              <th className={`${viewMode !== 'compact' ? 'w-0' : 'w-[11%]'} px-2 py-3 font-medium text-center cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap ${sortKey === 'dayChangePercent' ? 'text-rh-light-text dark:text-white' : ''}`} style={{ paddingLeft: viewMode === 'compact' ? '52px' : '27px' }} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
+              <th className={`${viewMode !== 'compact' ? 'w-0' : 'w-[11%]'} px-2 py-3 font-medium text-center cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap ${sortKey === 'dayChangePercent' ? 'text-rh-light-text dark:text-white' : ''}`} style={viewMode === 'compact' ? { paddingLeft: '52px' } : undefined} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
                 Today{sortKey === 'dayChangePercent' ? <span className="ml-1 opacity-70">{sortDir === 'desc' ? '▼' : '▲'}</span> : null}
               </th>
               <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} ${getHeaderClass('averageCost', 'right')}`} onClick={() => handleSort('averageCost')} title="Sort by average cost basis">
@@ -1158,49 +1158,49 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
                       )}
                     </div>
                   </td>
-                  <td className="px-2 py-2.5 text-center" style={{ paddingLeft: viewMode === 'compact' ? '52px' : '27px' }}>
+                  <td className="px-2 py-2.5 text-center" style={viewMode === 'compact' ? { paddingLeft: '52px' } : undefined}>
                     {hasValidPrice && (
                       <MiniSparkline ticker={holding.ticker} positive={holding.dayChange >= 0} period={chartPeriod} />
                     )}
                   </td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>{formatCurrency(holding.averageCost)}</td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>{holding.shares.toLocaleString()}</td>
-                  <td className={`px-4 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden md:table-cell'} px-3 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>{formatCurrency(holding.averageCost)}</td>
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden lg:table-cell'} px-3 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>{holding.shares.toLocaleString()}</td>
+                  <td className={`px-3 py-3 text-right transition-colors duration-200 ${isRepricing ? 'text-yellow-400' : 'text-rh-light-text dark:text-rh-text dark:group-hover:text-white'}`}>
                     {hasValidPrice ? formatCurrency(holding.currentPrice) : '—'}
                   </td>
-                  <td className={`hidden sm:table-cell px-4 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200`}>
+                  <td className={`hidden sm:table-cell px-3 py-3 text-right font-medium text-rh-light-text dark:text-rh-text dark:group-hover:text-white transition-colors duration-200`}>
                     {hasValidPrice ? formatCurrency(holding.currentValue) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden xl:table-cell'} px-4 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden xl:table-cell'} px-3 py-3 text-right text-rh-light-text dark:text-rh-text group-hover:text-rh-light-text dark:group-hover:text-white transition-colors duration-200`}>
                     {hasValidPrice && totalPortfolioValue > 0
                       ? `${(holding.currentValue / totalPortfolioValue * 100).toFixed(1)}%`
                       : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? '' : 'hidden lg:table-cell'} px-4 py-3 text-right ${
+                  <td className={`${viewMode === 'compact' ? '' : 'hidden lg:table-cell'} px-3 py-3 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChange >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.dayChange) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? '' : 'hidden md:table-cell'} px-4 py-3 text-right ${
+                  <td className={`${viewMode === 'compact' ? '' : 'hidden md:table-cell'} px-3 py-3 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {hasValidPrice ? formatPercent(holding.dayChangePercent) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : ''} px-2 sm:px-4 py-3 text-right font-semibold value-transition ${
+                  <td className={`${viewMode === 'compact' ? 'hidden' : ''} px-2 sm:px-3 py-3 text-right font-semibold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLoss >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} px-2 sm:px-4 py-3 text-right font-bold value-transition ${
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} px-2 sm:px-3 py-3 text-right font-bold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLossPercent >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>
                     {hasValidPrice ? formatPercent(holding.profitLossPercent) : '—'}
                   </td>
-                  <td className="px-2 sm:px-4 py-3 text-right">
+                  <td className="px-2 sm:px-3 py-3 text-right">
                     <div className="flex items-center justify-end gap-3 pl-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEdit(holding); }}
