@@ -208,7 +208,20 @@ export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick
     );
   }
 
-  const duration = Math.min(Math.max(tickerKeys.length * 3, 20), 60);
+  // Constant perceived scroll velocity. Each pill crosses the screen at the same
+  // px/sec regardless of source size. The previous formula clamped duration to
+  // 60s for everything ≥20 pills, so a 500-pill S&P 500 tape moved ~33x faster
+  // than a 15-pill portfolio (same 60s duration, ~33x more pixels traversed).
+  //
+  // PIXELS_PER_TICKER is measured empirically from the rendered TickerItem
+  // (symbol + price + change + bullet, plus the gap-3 between siblings).
+  // PIXELS_PER_SECOND was derived from the prior portfolio cadence at N=15
+  // (15*110/45s ≈ 37 px/s), rounded down for a slightly calmer feel.
+  // Floored at 20s so single-digit lists don't loop jarringly fast (trades
+  // strict velocity invariance for readability when N is very small).
+  const PIXELS_PER_TICKER = 110;
+  const PIXELS_PER_SECOND = 35;
+  const duration = Math.max(20, (tickerKeys.length * PIXELS_PER_TICKER) / PIXELS_PER_SECOND);
 
   const renderItem = (ticker: string, idx: number) => {
     const item = dataMap.get(ticker);
