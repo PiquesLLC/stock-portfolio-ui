@@ -13,7 +13,25 @@ interface ValueRadarProps {
 
 type SectorFilter = string;
 type TierFilter = 'all' | 'deep_value' | 'attractive' | 'fair' | 'expensive';
-type ValueRadarSortKey = 'currentPE' | 'avgPE' | 'discountPct' | 'price' | 'qualityScore';
+type ValueRadarSortKey =
+  | 'ticker'
+  | 'currentPE'
+  | 'avgPE'
+  | 'discountPct'
+  | 'price'
+  | 'changePercent'
+  | 'dividendYield'
+  | 'week52Pos'
+  | 'beta'
+  | 'tier'
+  | 'qualityScore';
+
+const TIER_RANK: Record<string, number> = { deep_value: 4, attractive: 3, fair: 2, expensive: 1 };
+
+function nullableCmp(a: number | null | undefined, b: number | null | undefined, dir: 1 | -1): number {
+  const sentinel = dir > 0 ? Infinity : -Infinity;
+  return ((a ?? sentinel) - (b ?? sentinel)) * dir;
+}
 
 const TIER_LABELS: Record<string, { label: string; short: string; color: string }> = {
   deep_value: {
@@ -281,14 +299,20 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
-    const dir = sortDir === 'asc' ? 1 : -1;
+    const dir: 1 | -1 = sortDir === 'asc' ? 1 : -1;
     return [...filtered].sort((a, b) => {
       switch (sortKey) {
+        case 'ticker': return a.ticker.localeCompare(b.ticker) * dir;
         case 'currentPE': return (a.currentPE - b.currentPE) * dir;
         case 'avgPE': return (a.avgPE - b.avgPE) * dir;
         case 'discountPct': return (a.discountPct - b.discountPct) * dir;
         case 'price': return (a.price - b.price) * dir;
-        case 'qualityScore': return ((a.qualityScore ?? (dir > 0 ? Infinity : -Infinity)) - (b.qualityScore ?? (dir > 0 ? Infinity : -Infinity))) * dir;
+        case 'changePercent': return (a.changePercent - b.changePercent) * dir;
+        case 'dividendYield': return nullableCmp(a.dividendYield, b.dividendYield, dir);
+        case 'week52Pos': return nullableCmp(a.week52Pos, b.week52Pos, dir);
+        case 'beta': return nullableCmp(a.beta, b.beta, dir);
+        case 'tier': return ((TIER_RANK[a.tier] ?? 0) - (TIER_RANK[b.tier] ?? 0)) * dir;
+        case 'qualityScore': return nullableCmp(a.qualityScore, b.qualityScore, dir);
         default: return 0;
       }
     });
@@ -457,7 +481,9 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
       <div className="bg-white/60 dark:bg-transparent rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
         {/* Header row */}
         <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 border-b border-gray-200/30 dark:border-white/[0.05] text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/40">
-          <span className="w-[90px] sm:w-auto sm:flex-1 sm:min-w-0">Stock</span>
+          <button onClick={() => handleSort('ticker')} className={`w-[90px] sm:w-auto sm:flex-1 sm:min-w-0 text-left cursor-pointer transition-colors ${sortKey === 'ticker' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            Stock{sortIndicator('ticker')}
+          </button>
           <button onClick={() => handleSort('discountPct')} className={`w-[120px] sm:flex-1 sm:min-w-[60px] shrink-0 text-center cursor-pointer transition-colors ${sortKey === 'discountPct' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
             vs Avg{sortIndicator('discountPct')}
           </button>
@@ -477,11 +503,31 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               Price{sortIndicator('price')}
             </button>
           </div>
-          <span className="hidden sm:flex w-14 justify-end">Today</span>
-          <span className="hidden lg:flex w-12 justify-end">Yield</span>
-          <span className="hidden lg:flex w-20 justify-center">52W Range</span>
-          <span className="hidden xl:flex w-10 justify-end">Beta</span>
-          <span className="w-[40px] sm:w-[80px] flex justify-end">Signal</span>
+          <div className="hidden sm:flex w-14 justify-end">
+            <button onClick={() => handleSort('changePercent')} className={`cursor-pointer transition-colors ${sortKey === 'changePercent' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              Today{sortIndicator('changePercent')}
+            </button>
+          </div>
+          <div className="hidden lg:flex w-12 justify-end">
+            <button onClick={() => handleSort('dividendYield')} className={`cursor-pointer transition-colors ${sortKey === 'dividendYield' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              Yield{sortIndicator('dividendYield')}
+            </button>
+          </div>
+          <div className="hidden lg:flex w-20 justify-center">
+            <button onClick={() => handleSort('week52Pos')} className={`cursor-pointer transition-colors ${sortKey === 'week52Pos' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              52W Range{sortIndicator('week52Pos')}
+            </button>
+          </div>
+          <div className="hidden xl:flex w-10 justify-end">
+            <button onClick={() => handleSort('beta')} className={`cursor-pointer transition-colors ${sortKey === 'beta' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              Beta{sortIndicator('beta')}
+            </button>
+          </div>
+          <div className="w-[40px] sm:w-[80px] flex justify-end">
+            <button onClick={() => handleSort('tier')} className={`cursor-pointer transition-colors ${sortKey === 'tier' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+              Signal{sortIndicator('tier')}
+            </button>
+          </div>
           <div className="flex w-10 sm:w-14 justify-center items-center pl-[10px] sm:pl-[15px]">
             <button onClick={() => handleSort('qualityScore')} className={`cursor-pointer transition-colors ${sortKey === 'qualityScore' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
               Score

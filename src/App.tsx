@@ -1596,7 +1596,7 @@ export default function App() {
         className={`relative z-10 mx-auto pb-4 pt-0 sm:py-6 space-y-6 sm:space-y-8 ${
           activeTab === 'discover' && !viewingStock
             ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
-            : 'max-w-[clamp(1080px,64vw,1530px)] px-3 sm:px-6'
+            : 'max-w-[clamp(1080px,78vw,1700px)] px-3 sm:px-6'
         }`}
         style={{ willChange: 'transform' }}
       >

@@ -212,7 +212,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
   const hasTodaySection = timeSections.length > 0 && timeSections[0].label === 'Today';
 
   return (
-    <div className="w-full lg:flex lg:gap-6">
+    <div className="w-full max-w-[1220px] mx-auto lg:flex lg:gap-6">
     {/* Main feed column */}
     <div className="flex-1 min-w-0">
       {/* Header with controls */}
@@ -521,6 +521,9 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
     getTrendingTickers().then(setTickers).catch(() => {});
     getCommunityTrades().then(d => { setMostBought(d.mostBought || []); setMostSold(d.mostSold || []); }).catch(() => {});
   }, [feedMode]);
+
+  const hasContent = feedMode === 'social' && (tickers.length > 0 || mostBought.length > 0 || mostSold.length > 0);
+  if (!hasContent) return null;
 
   return (
     <div className="hidden lg:block w-80 flex-shrink-0 pt-1">
