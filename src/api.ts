@@ -2182,6 +2182,21 @@ export async function getMarketHeatmap(period: HeatmapPeriod = '1D', index?: Mar
   return fetchJson<import('./types').HeatmapResponse>(`${API_BASE_URL}/market/heatmap?${params}`);
 }
 
+// Broad-universe screener: ScreenerUniverse (Finviz themes) ∪ curated subSectorGroups.
+// Returns ~1000 tickers with live price + cached fundamentals. No period changes.
+// Shape extends HeatmapStock so existing useScreenerFilters consumes it directly.
+export type ScreenerStockResponse = import('./types').HeatmapStock & { themes?: string[] };
+
+export interface ScreenerResponse {
+  stocks: ScreenerStockResponse[];
+  generated: number;
+  universeSize: number;
+}
+
+export async function getMarketScreener(): Promise<ScreenerResponse> {
+  return fetchJson<ScreenerResponse>(`${API_BASE_URL}/market/screener`);
+}
+
 // Market Sentiment
 export interface MarketSentiment {
   score: number;

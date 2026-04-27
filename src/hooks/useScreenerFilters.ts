@@ -96,6 +96,9 @@ export function useScreenerFilters(stocks: HeatmapStock[]): UseScreenerFiltersRe
     if (capFilter !== 'all') {
       result = result.filter(s => {
         const cap = s.marketCapB;
+        // Exclude tickers with no known market cap (server emits 0 when both
+        // Polygon and Yahoo lack the value) — they don't belong in any cap bucket.
+        if (cap == null || cap <= 0) return false;
         switch (capFilter) {
           case 'small': return cap < 2;
           case 'mid': return cap >= 2 && cap < 10;
@@ -155,7 +158,15 @@ export function useScreenerFilters(stocks: HeatmapStock[]): UseScreenerFiltersRe
         case 'name': return sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
         case 'price': aVal = a.price; bVal = b.price; break;
         case 'changePercent': aVal = a.changePercent; bVal = b.changePercent; break;
-        case 'marketCapB': aVal = a.marketCapB; bVal = b.marketCapB; break;
+        case 'marketCapB': {
+          // Treat 0 (server's "unknown" sentinel) and nullish identically — both
+          // sort as -1 so unknown-cap rows always sit below the smallest real cap.
+          const av = a.marketCapB ?? 0;
+          const bv = b.marketCapB ?? 0;
+          aVal = av > 0 ? av : -1;
+          bVal = bv > 0 ? bv : -1;
+          break;
+        }
         case 'pe': aVal = a.pe ?? -1; bVal = b.pe ?? -1; break;
         case 'dividendYield': aVal = a.dividendYield ?? -1; bVal = b.dividendYield ?? -1; break;
         case 'beta': aVal = a.beta ?? -1; bVal = b.beta ?? -1; break;

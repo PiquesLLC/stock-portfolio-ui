@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
-import { getMarketHeatmap, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
+import { getMarketHeatmap, getMarketScreener, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
 import { SectorPerformanceChart } from './SectorPerformanceChart';
 import { CongressTradesSection } from './CongressTradesSection';
 import { SectorRotationGraph } from './SectorRotationGraph';
@@ -982,7 +983,8 @@ type SectorInnerTab = 'heatmap' | 'performance' | 'movement';
 /* ─── Top 100 by Volume ─── */
 
 
-function formatMktCap(b: number): string {
+function formatMktCap(b: number | null | undefined): string {
+  if (b == null || b <= 0) return '--';
   if (b >= 1000) return `$${(b / 1000).toFixed(1)}T`;
   if (b >= 1) return `$${b.toFixed(0)}B`;
   return `$${(b * 1000).toFixed(0)}M`;
@@ -1379,7 +1381,188 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
 /* ─── Stock Screener ─── */
 // Types, constants, and filter logic are now in useScreenerFilters hook
 
-function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTickerClick: (ticker: string) => void }) {
+/**
+ * Compact filter trigger that opens a popover with options. Replaces dense
+ * chip rails. One per filter category. Popover is portaled to document.body
+ * (per project rule) and closes on outside click, Escape, or scroll.
+ */
+function FilterDropdown<T extends string>({
+  label,
+  value,
+  resetValue,
+  options,
+  onSelect,
+}: {
+  label: string;
+  value: T;
+  resetValue: T;
+  options: ReadonlyArray<{ id: T; label: string }>;
+  onSelect: (id: T) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; minWidth: number } | null>(null);
+  const listboxId = useId();
+
+  const isActive = value !== resetValue;
+  const activeLabel = options.find(o => o.id === value)?.label;
+
+  // Close + return focus to trigger (used for keyboard / programmatic dismiss).
+  const closeAndFocus = useCallback(() => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const desiredMinWidth = Math.max(rect.width, 180);
+    // Clamp left between [scrollX+8, maxLeft] so the popover never overflows
+    // either viewport edge. Reordered as max(floor, min(rect.left, ceiling))
+    // — without the outer max, a trigger scrolled partly off-screen left
+    // would yield a negative left.
+    const maxLeft = window.scrollX + window.innerWidth - desiredMinWidth - 8;
+    const left = Math.max(
+      window.scrollX + 8,
+      Math.min(rect.left + window.scrollX, maxLeft),
+    );
+    setPos({
+      top: rect.bottom + window.scrollY + 6,
+      left,
+      minWidth: desiredMinWidth,
+    });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      // Outside click: close without stealing focus from where the user clicked.
+      setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeAndFocus();
+      }
+    };
+    const onScroll = () => setOpen(false);
+    const onResize = () => setOpen(false);
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [open, closeAndFocus]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/50 ${
+          isActive
+            ? 'bg-rh-green/[0.10] border-rh-green/50 text-gray-900 dark:bg-rh-green/[0.18] dark:border-rh-green/50 dark:text-white ring-1 ring-rh-green/20'
+            : 'bg-white dark:bg-white/[0.04] border-gray-200 dark:border-white/[0.07] text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/[0.07] hover:border-gray-300 dark:hover:border-white/[0.14] hover:text-gray-900 dark:hover:text-white/90'
+        }`}
+      >
+        <span className="whitespace-nowrap">
+          {label}
+          {isActive && activeLabel && (
+            <span className="ml-1 font-semibold text-rh-green">· {activeLabel}</span>
+          )}
+        </span>
+        <svg
+          width="10"
+          height="6"
+          viewBox="0 0 10 6"
+          className={`shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''} ${isActive ? 'text-rh-green' : ''}`}
+          aria-hidden="true"
+        >
+          <path d="M0 0l5 6 5-6z" fill="currentColor" />
+        </svg>
+      </button>
+      {open && pos && createPortal(
+        <div
+          ref={popoverRef}
+          id={listboxId}
+          style={{ position: 'absolute', top: pos.top, left: pos.left, minWidth: pos.minWidth }}
+          className="z-[1000] py-1 rounded-xl bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-md border border-gray-200 dark:border-white/[0.08] shadow-2xl shadow-black/20 dark:shadow-black/60 max-h-[60vh] overflow-y-auto"
+          role="listbox"
+        >
+          {options.map(o => {
+            const selected = o.id === value;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onSelect(o.id);
+                  setOpen(false);
+                  triggerRef.current?.focus();
+                }}
+                className={`w-full flex items-center justify-between gap-3 px-3 py-1.5 text-[12.5px] text-left transition-colors ${
+                  selected
+                    ? 'text-rh-green hover:bg-rh-green/[0.06] dark:hover:bg-rh-green/[0.10]'
+                    : 'text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                <span className={selected ? 'font-semibold' : ''}>{o.label}</span>
+                {selected && (
+                  <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0" aria-hidden="true">
+                    <path d="M2 6l3 3 5-6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
+function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => void }) {
+  // Screener fetches its own data from the broader /market/screener endpoint
+  // (~1000 tickers from ScreenerUniverse ∪ curated). Decoupled from the heatmap
+  // response so Sectors / Top 100 stay snappy.
+  const [stocks, setStocks] = useState<HeatmapStock[]>([]);
+  const [universeSize, setUniverseSize] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getMarketScreener()
+      .then(resp => {
+        if (cancelled) return;
+        setStocks(resp.stocks);
+        setUniverseSize(resp.universeSize);
+      })
+      .catch(err => {
+        if (!cancelled) console.error('[ScreenerView] fetch failed:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   const {
     sectorFilter, setSectorFilter,
     capFilter, setCapFilter,
@@ -1395,68 +1578,90 @@ function ScreenerView({ stocks, onTickerClick }: { stocks: HeatmapStock[]; onTic
     return <span className="ml-0.5 text-[9px]">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>;
   };
 
-  const pillClass = (active: boolean) =>
-    `px-2.5 py-1 text-[11px] font-medium rounded-md transition-all cursor-pointer whitespace-nowrap ${
-      active
-        ? 'bg-rh-green/15 text-rh-green ring-1 ring-rh-green/30'
-        : 'bg-gray-100 dark:bg-white/[0.04] text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
-    }`;
-
   const thClass = 'px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-white/30 cursor-pointer hover:text-gray-600 dark:hover:text-white/50 select-none whitespace-nowrap';
+
+  const sectorOptions = useMemo(
+    () => [
+      { id: 'all', label: 'All Sectors' },
+      ...sectors.map(s => ({ id: s, label: s })),
+    ],
+    [sectors],
+  );
+
+  const activeFilterCount =
+    (sectorFilter !== 'all' ? 1 : 0) +
+    (capFilter !== 'all' ? 1 : 0) +
+    (peFilter !== 'all' ? 1 : 0) +
+    (divFilter !== 'all' ? 1 : 0) +
+    (weekFilter !== 'all' ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setSectorFilter('all');
+    setCapFilter('all');
+    setPeFilter('all');
+    setDivFilter('all');
+    setWeekFilter('all');
+  };
 
   return (
     <div className="space-y-3">
-      {/* Filter bar — grouped by category */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">Sector</span>
-          <select
-            value={sectorFilter}
-            onChange={e => setSectorFilter(e.target.value)}
-            className="px-2.5 py-1 pr-6 text-[11px] font-medium rounded-md appearance-none bg-gray-100 dark:bg-transparent text-gray-600 dark:text-white/80 border border-gray-200 dark:border-white/[0.08] outline-none cursor-pointer bg-[length:10px] bg-[right_6px_center] bg-no-repeat"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E")` }}
+      {/* Modern filter toolbar — popover-per-category trigger buttons, no panel chrome. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterDropdown
+          label="Sector"
+          value={sectorFilter}
+          resetValue="all"
+          options={sectorOptions}
+          onSelect={setSectorFilter}
+        />
+        <FilterDropdown
+          label="Cap"
+          value={capFilter}
+          resetValue="all"
+          options={CAP_RANGES}
+          onSelect={setCapFilter}
+        />
+        <FilterDropdown
+          label="P/E"
+          value={peFilter}
+          resetValue="all"
+          options={PE_RANGES}
+          onSelect={setPeFilter}
+        />
+        <FilterDropdown
+          label="Div"
+          value={divFilter}
+          resetValue="all"
+          options={DIV_RANGES}
+          onSelect={setDivFilter}
+        />
+        <FilterDropdown
+          label="52W"
+          value={weekFilter}
+          resetValue="all"
+          options={WEEK_RANGES}
+          onSelect={setWeekFilter}
+        />
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-1 h-8 px-2 text-[12px] font-medium text-gray-500 dark:text-white/40 hover:text-rh-green dark:hover:text-rh-green transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/50 rounded-md"
           >
-            <option value="all" className="bg-white dark:bg-[#0a0a0d] text-gray-900 dark:text-white">All Sectors</option>
-            {sectors.map(s => <option key={s} value={s} className="bg-white dark:bg-[#0a0a0d] text-gray-900 dark:text-white">{s}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">Cap</span>
-          {CAP_RANGES.map(c => (
-            <button key={c.id} onClick={() => setCapFilter(capFilter === c.id ? 'all' : c.id)} className={pillClass(capFilter === c.id && c.id !== 'all')}>
-              {c.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">P/E</span>
-          {PE_RANGES.map(p => (
-            <button key={p.id} onClick={() => setPeFilter(peFilter === p.id ? 'all' : p.id)} className={pillClass(peFilter === p.id && p.id !== 'all')}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">Div</span>
-          {DIV_RANGES.map(d => (
-            <button key={d.id} onClick={() => setDivFilter(divFilter === d.id ? 'all' : d.id)} className={pillClass(divFilter === d.id && d.id !== 'all')}>
-              {d.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/25 w-12 shrink-0">52W</span>
-          {WEEK_RANGES.map(w => (
-            <button key={w.id} onClick={() => setWeekFilter(weekFilter === w.id ? 'all' : w.id)} className={pillClass(weekFilter === w.id && w.id !== 'all')}>
-              {w.label}
-            </button>
-          ))}
-        </div>
+            Clear all ({activeFilterCount})
+          </button>
+        )}
       </div>
 
       {/* Results count */}
       <div className="text-[11px] text-gray-400 dark:text-white/25 font-medium">
-        {filtered.length} stocks
+        {loading ? (
+          'Loading universe…'
+        ) : universeSize != null && filtered.length !== stocks.length ? (
+          <>{filtered.length.toLocaleString()} of {stocks.length.toLocaleString()} stocks <span className="text-white/15">· {universeSize.toLocaleString()} in universe</span></>
+        ) : (
+          <>{filtered.length.toLocaleString()} stocks {universeSize != null && <span className="text-white/15">· {universeSize.toLocaleString()} in universe</span>}</>
+        )}
       </div>
 
       {/* Table */}
@@ -1867,7 +2072,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       ) : subTab === 'value-radar' ? (
         <ValueRadar onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'screener' ? (
-        <ScreenerView stocks={allStocks} onTickerClick={onTickerClick} />
+        <ScreenerView onTickerClick={onTickerClick} />
       ) : subTab === 'congress' ? (
         <CongressTradesSection onTickerClick={onTickerClick} limit={50} />
       ) : (
