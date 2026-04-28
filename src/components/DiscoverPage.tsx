@@ -18,6 +18,7 @@ import {
 } from '../hooks/useScreenerFilters';
 
 const CreatorDiscoverSection = lazy(() => import('./CreatorDiscoverSection').then(m => ({ default: m.CreatorDiscoverSection })));
+const BottlenecksView = lazy(() => import('./BottlenecksView').then(m => ({ default: m.BottlenecksView })));
 import { ValueRadar } from './ValueRadar';
 import { StepLoader } from './StepLoader';
 
@@ -34,6 +35,7 @@ interface DiscoverPageProps {
 function parseSubTab(raw?: string | null): { subTab: DiscoverSubTab; sectorInner?: SectorInnerTab; heatmapIndex?: MarketIndex } {
   if (!raw) return { subTab: 'sectors', sectorInner: 'heatmap' };
   if (raw === 'top100') return { subTab: 'top100' };
+  if (raw === 'bottlenecks') return { subTab: 'bottlenecks' };
   if (raw === 'screener') return { subTab: 'screener' };
   if (raw === 'value-radar') return { subTab: 'value-radar' };
   if (raw === 'creators') return { subTab: 'creators' };
@@ -977,7 +979,7 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'sectors' | 'top100' | 'value-radar' | 'screener' | 'creators' | 'congress';
+type DiscoverSubTab = 'sectors' | 'top100' | 'bottlenecks' | 'value-radar' | 'screener' | 'creators' | 'congress';
 type SectorInnerTab = 'heatmap' | 'performance' | 'movement';
 
 /* ─── Top 100 by Volume ─── */
@@ -2030,6 +2032,9 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <button onClick={() => setSubTab('top100')} className={tabClass(subTab === 'top100')}>
           Top 100
         </button>
+        <button onClick={() => setSubTab('bottlenecks')} className={tabClass(subTab === 'bottlenecks')}>
+          AI Bottlenecks
+        </button>
         <button onClick={() => setSubTab('value-radar')} className={tabClass(subTab === 'value-radar')}>
           Value Radar
         </button>
@@ -2069,6 +2074,10 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         </div>
       ) : subTab === 'top100' ? (
         <Top100View stocks={allStocks} onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
+      ) : subTab === 'bottlenecks' ? (
+        <Suspense fallback={<div className="flex items-center justify-center py-20"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
+          <BottlenecksView onTickerClick={onTickerClick} />
+        </Suspense>
       ) : subTab === 'value-radar' ? (
         <ValueRadar onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'screener' ? (

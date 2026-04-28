@@ -2251,6 +2251,38 @@ export async function getValueRadar(): Promise<ValueRadarResponse> {
   return fetchJson<ValueRadarResponse>(`${API_BASE_URL}/market/value-radar`);
 }
 
+// AI Bottlenecks
+export interface ChokepointMetric {
+  label: string;
+  value: string;
+}
+
+export interface BottleneckEntry {
+  id: string;
+  name: string;
+  layer: string;
+  primaryTicker: string;
+  relatedTickers: string[];
+  thesisShort: string;
+  thesisLong: string;
+  chokepointMetrics: ChokepointMetric[];
+  catalysts: string[];
+  risks: string[];
+  featured: boolean;
+  lastUpdated: string;
+}
+
+export interface BottlenecksResponse {
+  featured: BottleneckEntry | null;
+  entries: BottleneckEntry[];
+  layers: string[];
+  generatedAt: string;
+}
+
+export async function getBottlenecks(): Promise<BottlenecksResponse> {
+  return fetchJson<BottlenecksResponse>(`${API_BASE_URL}/discover/bottlenecks`);
+}
+
 // Cash Interest
 export interface CashInterestAccrual {
   cashBalance: number;
