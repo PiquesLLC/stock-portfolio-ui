@@ -5,7 +5,7 @@ export function PrivacyPage({ initialTab = 'privacy' }: { initialTab?: 'privacy'
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms'>(initialTab);
 
   return (
-    <div className="min-h-screen min-h-dvh bg-[#050505] text-white">
+    <div className="min-h-screen min-h-dvh bg-black text-white">
       {/* Nav */}
       <nav className="border-b border-white/[0.04]">
         <div className="max-w-3xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">

@@ -408,10 +408,10 @@ export function LandingPage() {
   const ic = "w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/60 focus-visible:border-rh-green transition-all duration-150";
 
   return (
-    <div className="h-screen h-dvh bg-[#050505] text-white overflow-hidden flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="h-screen h-dvh bg-black text-white overflow-hidden flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
 
       {/* ═══ NAV — in the non-scrolling shell ═══ */}
-      <nav className="relative z-40 bg-[#050505] border-b border-white/[0.04] shrink-0">
+      <nav className="relative z-40 bg-black border-b border-white/[0.04] shrink-0">
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5"><img src="/north-signal-logo.png" alt="" className="h-7 w-7" /><span className="text-lg font-bold text-white tracking-tight">Nala</span></div>
           <div className="hidden sm:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
@@ -432,7 +432,7 @@ export function LandingPage() {
 
       {/* Pull-to-refresh indicator (between nav and content) */}
       <div
-        className="flex items-center justify-center overflow-hidden shrink-0 bg-[#050505]"
+        className="flex items-center justify-center overflow-hidden shrink-0 bg-black"
         style={{
           height: pullY > 0 ? `${pullY}px` : '0px',
           transition: pulling.current ? 'none' : 'height 0.3s ease',
@@ -488,7 +488,7 @@ export function LandingPage() {
                   </div>
                 </div>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#050505] to-transparent pointer-events-none z-10" />
+              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black to-transparent pointer-events-none z-10" />
             </div>
             <div className="flex items-center justify-center gap-2 mt-3">{[0,1,2,3,4].map(i=><button key={i} onClick={()=>{const el=phoneRef.current;if(el)el.scrollTo({left:i*el.offsetWidth,behavior:'smooth'});}} className={`rounded-full transition-all duration-300 ${phoneSlide===i?'w-6 h-1.5 bg-white/40':'w-1.5 h-1.5 bg-white/15'}`}/>)}</div>
           </div>

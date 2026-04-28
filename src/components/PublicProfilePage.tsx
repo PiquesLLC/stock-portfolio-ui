@@ -47,7 +47,7 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
   // Loading
   if (state.status === 'loading') {
     return (
-      <div className="h-screen h-dvh bg-[#050505] flex items-center justify-center">
+      <div className="h-screen h-dvh bg-black flex items-center justify-center">
         <Starfield />
         <img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin relative z-10" />
       </div>
@@ -62,11 +62,11 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
   const { userId, displayName } = state;
 
   return (
-    <div className="h-screen h-dvh bg-[#050505] text-white overflow-hidden flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="h-screen h-dvh bg-black text-white overflow-hidden flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <Starfield />
 
       {/* ═══ NAV ═══ */}
-      <nav className="relative z-40 bg-[#050505] border-b border-white/[0.04] shrink-0">
+      <nav className="relative z-40 bg-black border-b border-white/[0.04] shrink-0">
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <button
             onClick={() => { window.history.pushState({}, '', '/'); window.location.reload(); }}
@@ -126,7 +126,7 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
       </div>
 
       {/* ═══ FLOATING CTA BAR ═══ */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#050505] via-[#050505]/95 to-transparent pt-8 pb-6 px-4 pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black via-black/95 to-transparent pt-8 pb-6 px-4 pointer-events-none">
         <div className="max-w-md mx-auto text-center pointer-events-auto">
           <p className="text-sm text-white/50 mb-3">
             Join Nala to follow <span className="text-white/80 font-medium">{displayName}</span> and thousands of investors sharing real performance.

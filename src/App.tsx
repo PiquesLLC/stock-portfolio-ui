@@ -823,7 +823,7 @@ export default function App() {
 
   if (!isAuthenticated && _pendingUsername) {
     return (
-      <Suspense fallback={<div className="h-screen h-dvh bg-[#050505] flex items-center justify-center"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
+      <Suspense fallback={<div className="h-screen h-dvh bg-black flex items-center justify-center"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
         <PublicProfilePage username={_pendingUsername} />
       </Suspense>
     );

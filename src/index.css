@@ -16,7 +16,7 @@ html, body {
 }
 
 html {
-  background-color: #050505;
+  background-color: #000000;
 }
 
 /* Nala AI — orbital animations */
@@ -147,7 +147,7 @@ body {
 
 /* Dark mode (when .dark class is on html) */
 .dark body {
-  background-color: #050505;
+  background-color: #000000;
   color: #f5f5f7;
 }
 
@@ -496,24 +496,8 @@ button:active:not(:disabled) {
   pointer-events: none;
 }
 
-/* Vignette overlay — dims stars at edges for readability */
-.starfield-vignette {
-  position: fixed;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 70% 60% at 50% 50%,
-    transparent 0%,
-    rgba(5, 5, 5, 0.3) 50%,
-    rgba(5, 5, 5, 0.75) 80%,
-    rgba(5, 5, 5, 0.95) 100%
-  );
-}
-
 /* Hide starfield in light mode */
-:root:not(.dark) .starfield-canvas,
-:root:not(.dark) .starfield-vignette {
+:root:not(.dark) .starfield-canvas {
   display: none;
 }
 

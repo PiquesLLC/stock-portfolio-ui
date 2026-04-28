@@ -147,11 +147,7 @@ export default function Starfield() {
 
       const time = timeRef.current++;
 
-      const grad = ctx!.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, '#050505');
-      grad.addColorStop(0.5, '#070708');
-      grad.addColorStop(1, '#080809');
-      ctx!.fillStyle = grad;
+      ctx!.fillStyle = '#000000';
       ctx!.fillRect(0, 0, w, h);
 
       ctx!.shadowColor = 'transparent';
@@ -269,7 +265,6 @@ export default function Starfield() {
         className="starfield-canvas hidden lg:block"
         aria-hidden="true"
       />
-      <div className="starfield-vignette hidden lg:block" aria-hidden="true" />
     </>
   );
 }

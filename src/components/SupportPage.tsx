@@ -1,6 +1,6 @@
 export function SupportPage() {
   return (
-    <div className="min-h-screen min-h-dvh bg-[#050505] text-white">
+    <div className="min-h-screen min-h-dvh bg-black text-white">
       <nav className="border-b border-white/[0.04]">
         <div className="max-w-3xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2.5">

@@ -1,6 +1,6 @@
 export function NotFoundPage() {
   return (
-    <div className="min-h-screen min-h-dvh bg-[#050505] text-white flex items-center justify-center px-4">
+    <div className="min-h-screen min-h-dvh bg-black text-white flex items-center justify-center px-4">
       <div className="text-center max-w-sm">
         <img src="/north-signal-logo-transparent.png" alt="" className="h-12 w-12 mx-auto mb-6 opacity-40" />
         <h1 className="text-5xl font-bold text-white/20 mb-2">404</h1>

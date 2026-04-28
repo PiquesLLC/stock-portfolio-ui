@@ -282,7 +282,7 @@ function FilterBar({
   }, [sortOpen]);
 
   return (
-    <div className="sticky top-[90px] sm:top-[52px] z-20 py-2 -my-2 bg-rh-light-bg dark:bg-[#050505]/95 backdrop-blur-xl">
+    <div className="sticky top-[90px] sm:top-[52px] z-20 py-2 -my-2 bg-rh-light-bg dark:bg-black/95 backdrop-blur-xl">
     <div className="flex flex-wrap items-center gap-2">
       {/* Sort dropdown */}
       <div className="relative" ref={sortRef}>

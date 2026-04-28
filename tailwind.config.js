@@ -40,7 +40,7 @@ export default {
       },
       colors: {
         // Dark mode colors (primary theme)
-        'rh-black': '#050505',
+        'rh-black': '#000000',
         'rh-dark': '#1a1a1a',
         'rh-card': '#1e1e1e',
         'rh-border': '#2f2f2f',
