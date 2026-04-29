@@ -2251,7 +2251,7 @@ export async function getValueRadar(): Promise<ValueRadarResponse> {
   return fetchJson<ValueRadarResponse>(`${API_BASE_URL}/market/value-radar`);
 }
 
-// AI Bottlenecks
+// Bottlenecks (multi-sector: AI, Healthcare, Defense, Energy)
 export interface ChokepointMetric {
   label: string;
   value: string;
@@ -2260,6 +2260,7 @@ export interface ChokepointMetric {
 export interface BottleneckEntry {
   id: string;
   name: string;
+  sector: string;
   layer: string;
   primaryTicker: string;
   relatedTickers: string[];
@@ -2273,9 +2274,10 @@ export interface BottleneckEntry {
 }
 
 export interface BottlenecksResponse {
-  featured: BottleneckEntry | null;
-  entries: BottleneckEntry[];
+  sectors: string[];
   layers: string[];
+  featured: Record<string, BottleneckEntry | null>;
+  entries: BottleneckEntry[];
   generatedAt: string;
 }
 

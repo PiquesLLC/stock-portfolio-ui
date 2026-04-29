@@ -7,6 +7,7 @@ interface Props {
 }
 
 const LAYER_BAR_COLORS: Record<string, string> = {
+  // AI
   Compute: '#00C805',
   Lithography: '#8B5CF6',
   Memory: '#06B6D4',
@@ -17,6 +18,38 @@ const LAYER_BAR_COLORS: Record<string, string> = {
   Optical: '#14B8A6',
   EDA: '#A78BFA',
   Energy: '#FBBF24',
+  // Healthcare
+  'GLP-1 & Obesity': '#10B981',
+  'CDMO / Bio Manufacturing': '#3B82F6',
+  'Gene & Cell Therapy': '#A855F7',
+  'Oncology Pipeline': '#F43F5E',
+  'Diagnostics & Imaging': '#22D3EE',
+  'Medical Devices Surgery': '#6366F1',
+  'Generics & Compounding': '#FB923C',
+  'Plasma / Blood Products': '#DC2626',
+  'Animal Health': '#84CC16',
+  'Hospital REITs / Operators': '#64748B',
+  // Defense
+  Munitions: '#D97706',
+  Shipyards: '#1E40AF',
+  'Aerospace & Engines': '#475569',
+  'Space Launch': '#4F46E5',
+  'Rare Earths & Critical Minerals': '#92400E',
+  'Cyber & Defense Software': '#059669',
+  'Satellites & ISR': '#0891B2',
+  'Drones & Autonomous Systems': '#7C3AED',
+  'Specialty Metals': '#78716C',
+  // Energy (broader sector — distinct from AI's "Energy" layer)
+  'LNG Export': '#CA8A04',
+  Refining: '#EA580C',
+  'Midstream / Pipelines': '#0EA5E9',
+  'Oilfield Services': '#7C2D12',
+  'E&P Premium Basins': '#A16207',
+  'Uranium Fuel Cycle': '#A3E635',
+  'Solar Manufacturing': '#FACC15',
+  'Inverters / Power Electronics': '#FDBA74',
+  Coal: '#525252',
+  'Grid Transmission & Equipment': '#0D9488',
 };
 
 export function layerBarColor(layer: string): string {

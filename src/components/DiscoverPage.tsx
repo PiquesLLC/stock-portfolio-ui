@@ -2033,7 +2033,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
           Top 100
         </button>
         <button onClick={() => setSubTab('bottlenecks')} className={tabClass(subTab === 'bottlenecks')}>
-          AI Bottlenecks
+          Bottlenecks
         </button>
         <button onClick={() => setSubTab('value-radar')} className={tabClass(subTab === 'value-radar')}>
           Value Radar
