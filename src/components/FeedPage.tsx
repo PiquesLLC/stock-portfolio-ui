@@ -646,30 +646,108 @@ function MobileTrendingPill({ ticker, onClick }: { ticker: string; count?: numbe
   );
 }
 
+function MobileTradePill({
+  ticker,
+  count,
+  side,
+  onClick,
+}: {
+  ticker: string;
+  count: number;
+  side: 'buy' | 'sell';
+  onClick: () => void;
+}) {
+  const isBuy = side === 'buy';
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+        isBuy
+          ? 'bg-rh-green/[0.08] hover:bg-rh-green/[0.14]'
+          : 'bg-rh-red/[0.08] hover:bg-rh-red/[0.14]'
+      }`}
+    >
+      <span className={`text-[12px] font-bold ${isBuy ? 'text-rh-green' : 'text-rh-red'}`}>
+        ${ticker}
+      </span>
+      <span className={`text-[10px] font-semibold tabular-nums ${isBuy ? 'text-rh-green/80' : 'text-rh-red/80'}`}>
+        {count} {isBuy ? (count === 1 ? 'buy' : 'buys') : (count === 1 ? 'sell' : 'sells')}
+      </span>
+    </button>
+  );
+}
+
 function MobileTrending({ onTickerClick }: { onTickerClick?: (ticker: string) => void }) {
   const [tickers, setTickers] = useState<{ ticker: string; count: number }[]>([]);
+  const [mostBought, setMostBought] = useState<{ ticker: string; count: number }[]>([]);
+  const [mostSold, setMostSold] = useState<{ ticker: string; count: number }[]>([]);
 
   useEffect(() => {
     getTrendingTickers().then(setTickers).catch(() => {});
+    getCommunityTrades().then(d => {
+      setMostBought(d.mostBought || []);
+      setMostSold(d.mostSold || []);
+    }).catch(() => {});
   }, []);
 
-  if (tickers.length === 0) return null;
+  if (tickers.length === 0 && mostBought.length === 0 && mostSold.length === 0) return null;
 
   // Already sorted descending by count from the API, but ensure it
   const sorted = [...tickers].sort((a, b) => b.count - a.count);
 
+  const sectionLabel = 'text-[10px] font-bold uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30';
+  const rowScroll = 'flex gap-2 overflow-x-auto';
+  const rowStyle = { scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none' } as React.CSSProperties;
+
   return (
-    <div className="lg:hidden py-3 px-5">
-      <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none' }}>
-        {sorted.slice(0, 8).map(t => (
-          <MobileTrendingPill
-            key={t.ticker}
-            ticker={t.ticker}
-            count={t.count}
-            onClick={() => onTickerClick?.(t.ticker)}
-          />
-        ))}
-      </div>
+    <div className="lg:hidden py-3 px-5 space-y-3">
+      {sorted.length > 0 && (
+        <div>
+          <div className={`${sectionLabel} mb-1.5`}>Trending</div>
+          <div className={rowScroll} style={rowStyle}>
+            {sorted.slice(0, 8).map(t => (
+              <MobileTrendingPill
+                key={t.ticker}
+                ticker={t.ticker}
+                count={t.count}
+                onClick={() => onTickerClick?.(t.ticker)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {mostBought.length > 0 && (
+        <div>
+          <div className={`${sectionLabel} mb-1.5`}>Most Bought</div>
+          <div className={rowScroll} style={rowStyle}>
+            {mostBought.slice(0, 6).map(t => (
+              <MobileTradePill
+                key={t.ticker}
+                ticker={t.ticker}
+                count={t.count}
+                side="buy"
+                onClick={() => onTickerClick?.(t.ticker)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {mostSold.length > 0 && (
+        <div>
+          <div className={`${sectionLabel} mb-1.5`}>Most Sold</div>
+          <div className={rowScroll} style={rowStyle}>
+            {mostSold.slice(0, 6).map(t => (
+              <MobileTradePill
+                key={t.ticker}
+                ticker={t.ticker}
+                count={t.count}
+                side="sell"
+                onClick={() => onTickerClick?.(t.ticker)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

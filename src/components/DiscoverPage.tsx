@@ -318,12 +318,25 @@ function Treemap({
     setIsDragging(true);
   }, [tooltipPos.x, tooltipPos.y]);
 
+  const handlePopupTouchDragStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    e.stopPropagation();
+    const t = e.touches[0];
+    dragStartRef.current = {
+      mouseX: t.clientX,
+      mouseY: t.clientY,
+      popupX: tooltipPos.x,
+      popupY: tooltipPos.y,
+    };
+    setIsDragging(true);
+  }, [tooltipPos.x, tooltipPos.y]);
+
   useEffect(() => {
     if (!isDragging) return;
-    const onMove = (e: MouseEvent) => {
+    const updateTo = (clientX: number, clientY: number) => {
       if (!dragStartRef.current) return;
-      const dx = e.clientX - dragStartRef.current.mouseX;
-      const dy = e.clientY - dragStartRef.current.mouseY;
+      const dx = clientX - dragStartRef.current.mouseX;
+      const dy = clientY - dragStartRef.current.mouseY;
       const newX = dragStartRef.current.popupX + dx;
       const newY = dragStartRef.current.popupY + dy;
       // Read latest dims through ref so a resize mid-drag doesn't tear down listeners.
@@ -338,18 +351,33 @@ function Treemap({
         y: Math.max(minY, Math.min(newY, maxY)),
       });
     };
+    const onMove = (e: MouseEvent) => updateTo(e.clientX, e.clientY);
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      // preventDefault to stop the page from scrolling while the popup is being dragged.
+      // Requires { passive: false } below.
+      e.preventDefault();
+      const t = e.touches[0];
+      updateTo(t.clientX, t.clientY);
+    };
     const onUp = () => {
       dragStartRef.current = null;
       setIsDragging(false);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+    document.addEventListener('touchcancel', onUp);
     // Safety: if user releases mouse outside the browser window, the window blurs
     // before mouseup fires. End the drag on blur to avoid getting stuck.
     window.addEventListener('blur', onUp);
     return () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onUp);
+      document.removeEventListener('touchcancel', onUp);
       window.removeEventListener('blur', onUp);
     };
   }, [isDragging]);
@@ -789,8 +817,9 @@ function Treemap({
           {/* Drag handle: header row */}
           <div
             onMouseDown={handlePopupDragStart}
+            onTouchStart={handlePopupTouchDragStart}
             title="Drag to move"
-            className={`px-3 py-2 border-b border-gray-200/60 dark:border-white/5 select-none flex items-center justify-between gap-2 shrink-0 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            className={`px-3 py-2 border-b border-gray-200/60 dark:border-white/5 select-none flex items-center justify-between gap-2 shrink-0 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           >
             <div className="font-bold text-[10px] tracking-wide uppercase text-rh-light-muted dark:text-rh-muted truncate">
               {popupSubSector.sector.name === popupSubSector.subSector.name

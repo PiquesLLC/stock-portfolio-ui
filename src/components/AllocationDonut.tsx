@@ -478,7 +478,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
         const otherSeg = segments.find(s => s.ticker === 'Other');
         if (!otherSeg?.constituents) return null;
         const isVisible = hoveredSegment?.ticker === 'Other';
-        const MAX_SHOW = isMobile ? 5 : 8;
+        const MAX_SHOW = 8;
         const items = otherSeg.constituents.slice(0, MAX_SHOW);
         const remaining = otherSeg.constituents.length - MAX_SHOW;
         const otherIdx = segments.findIndex(s => s.ticker === 'Other');

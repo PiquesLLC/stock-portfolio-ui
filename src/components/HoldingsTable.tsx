@@ -957,7 +957,27 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               </button>
               {showDisplayMenu && (
                 <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
-                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
+                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">View density</p>
+                  {(['compact', 'detailed'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className="flex items-center justify-between w-full px-3 py-2 text-[13px] text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                      onClick={() => {
+                        setViewMode(mode);
+                        setShowDisplayMenu(false);
+                      }}
+                    >
+                      <span>{mode === 'compact' ? 'Simple' : 'Detailed'}</span>
+                      {viewMode === mode && (
+                        <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                  <div className="my-1 border-t border-gray-100 dark:border-white/[0.06]" />
+                  <p className="px-3 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
                   {DISPLAY_METRICS.map((m) => (
                     <button
                       key={m.key}

@@ -183,16 +183,16 @@ export function PortfolioImpactCard() {
           </span>
         )}
       </div>
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         {/* Insight pills — 2x2 grid */}
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {data.insights.map(insight => (
             <InsightPill key={insight.id} insight={insight} />
           ))}
         </div>
-        {/* Fed Sentiment Gauge — right side */}
+        {/* Fed Sentiment Gauge — right side on desktop, stacked below on mobile */}
         {data.fedSentiment && (
-          <div className="hidden md:flex flex-shrink-0 items-center border-l border-gray-200/50 dark:border-white/[0.06] pl-4">
+          <div className="flex flex-shrink-0 items-center justify-center md:justify-start border-t md:border-t-0 md:border-l border-gray-200/50 dark:border-white/[0.06] pt-4 md:pt-0 md:pl-4">
             <FedSentimentGauge sentiment={data.fedSentiment} />
           </div>
         )}
