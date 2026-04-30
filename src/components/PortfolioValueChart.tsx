@@ -1242,29 +1242,7 @@ export function PortfolioValueChart({
                 </span>
               </div>
             )}
-
-            {/* Single-point selected indicator */}
-            {isMeasuring && measureA !== null && points[measureA] && (
-              <div className="mt-3 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
-                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-                    {formatShortDate(points[measureA].time, is1D)}
-                  </span>
-                  <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
-                    — click another point to measure
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
-
-        {/* Measurement hint — details shown in stats section below chart */}
-        {hasMeasurement && measurement && (
-          <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-1">
-            {'ontouchstart' in window ? 'Tap chart to remeasure · Tap outside to clear' : 'Click chart to remeasure · Click outside to clear'}
-          </div>
-        )}
       </div>
 
       {/* Chart — MIDGROUND: recessed, context only */}
@@ -1829,6 +1807,63 @@ export function PortfolioValueChart({
 
         </svg>
 
+        {/* Measurement summary overlay — floats between the two clicked points so the
+            header overview (total $ + change + vs-benchmark on hover) stays untouched. */}
+        {hasMeasurement && measurement && mAx !== null && mBx !== null && mAy !== null && mBy !== null && (() => {
+          const midX = (mAx + mBx) / 2;
+          const midY = (mAy + mBy) / 2;
+          const leftPct = Math.max(8, Math.min(92, (midX / CHART_W) * 100));
+          const topPct = (midY / CHART_H) * 100;
+          return (
+            <div
+              className="absolute pointer-events-none z-[25]"
+              style={{ left: `${leftPct}%`, top: `${topPct}%`, transform: 'translate(-50%, calc(-100% - 10px))' }}
+            >
+              <div className="bg-white/95 dark:bg-[#1a1a1e]/95 backdrop-blur-md border border-gray-200/60 dark:border-white/[0.1] rounded-lg shadow-lg shadow-black/10 dark:shadow-black/40 px-3 py-2 whitespace-nowrap">
+                <div className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted/70 font-semibold mb-1">
+                  {formatShortDate(measurement.startTime, is1D)} → {formatShortDate(measurement.endTime, is1D)}
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-sm font-bold ${measureIsGain ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {formatPct(measurement.percentChange)}
+                  </span>
+                  <span className={`text-xs font-semibold ${measureIsGain ? 'text-rh-green/80' : 'text-rh-red/80'}`}>
+                    {formatChange(measurement.dollarChange)}
+                  </span>
+                </div>
+                {benchmarkResult && (
+                  <div className="text-[10px] mt-0.5 text-rh-light-muted dark:text-rh-muted">
+                    <span className="opacity-60">vs SPY: </span>
+                    <span className={benchmarkResult.outperformance >= 0 ? 'text-rh-green' : 'text-rh-red'}>
+                      {formatPct(benchmarkResult.outperformance)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Single-point hint — small chip above the first clicked dot, before the user picks a second point. */}
+        {isMeasuring && !hasMeasurement && measureA !== null && points[measureA] && mAx !== null && mAy !== null && (() => {
+          const leftPct = Math.max(6, Math.min(94, (mAx / CHART_W) * 100));
+          const topPct = (mAy / CHART_H) * 100;
+          return (
+            <div
+              className="absolute pointer-events-none z-[25]"
+              style={{ left: `${leftPct}%`, top: `${topPct}%`, transform: 'translate(-50%, calc(-100% - 12px))' }}
+            >
+              <div className="bg-white/95 dark:bg-[#1a1a1e]/95 backdrop-blur-md border border-gray-200/60 dark:border-white/[0.1] rounded-md shadow-md px-2.5 py-1 text-[11px] whitespace-nowrap">
+                <span className="text-rh-light-text dark:text-rh-text font-medium">
+                  {formatShortDate(points[measureA].time, is1D)}
+                </span>
+                <span className="text-rh-light-muted/60 dark:text-rh-muted/50 ml-2">
+                  {'ontouchstart' in window ? 'tap another point' : 'click another point'}
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
 
