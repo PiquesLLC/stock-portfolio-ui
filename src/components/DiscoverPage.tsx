@@ -226,6 +226,9 @@ function Treemap({
   const [hoveredSectorLabel, setHoveredSectorLabel] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [tappedStock, setTappedStock] = useState<{ stock: HeatmapStock; sectorName: string } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ mouseX: number; mouseY: number; popupX: number; popupY: number } | null>(null);
+  const dimsRef = useRef({ width: 0, height: 0 });
   const isDark = useIsDark();
 
   // Pinch-to-zoom state (mobile only)
@@ -269,7 +272,9 @@ function Treemap({
     };
     const ro = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect;
-      setDims({ width, height: computeHeight(width) });
+      const next = { width, height: computeHeight(width) };
+      dimsRef.current = next;
+      setDims(next);
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -301,12 +306,53 @@ function Treemap({
   // Use drilldown rects when drilling into a subtheme, otherwise normal layout
   const displayRects = drilldownRects || sectorRects;
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) {
-      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    }
-  }, []);
+  const handlePopupDragStart = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      popupX: tooltipPos.x,
+      popupY: tooltipPos.y,
+    };
+    setIsDragging(true);
+  }, [tooltipPos.x, tooltipPos.y]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: MouseEvent) => {
+      if (!dragStartRef.current) return;
+      const dx = e.clientX - dragStartRef.current.mouseX;
+      const dy = e.clientY - dragStartRef.current.mouseY;
+      const newX = dragStartRef.current.popupX + dx;
+      const newY = dragStartRef.current.popupY + dy;
+      // Read latest dims through ref so a resize mid-drag doesn't tear down listeners.
+      // Clamp so popup body (rendered at x+16 / y-40) stays inside the heatmap container.
+      const { width, height } = dimsRef.current;
+      const minX = -12;
+      const maxX = Math.max(minX, width - 280);
+      const minY = 44;
+      const maxY = Math.max(minY, height - 80);
+      setTooltipPos({
+        x: Math.max(minX, Math.min(newX, maxX)),
+        y: Math.max(minY, Math.min(newY, maxY)),
+      });
+    };
+    const onUp = () => {
+      dragStartRef.current = null;
+      setIsDragging(false);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    // Safety: if user releases mouse outside the browser window, the window blurs
+    // before mouseup fires. End the drag on blur to avoid getting stuck.
+    window.addEventListener('blur', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      window.removeEventListener('blur', onUp);
+    };
+  }, [isDragging]);
 
   const handleStockHover = useCallback((stock: HeatmapStock, sectorName: string) => {
     setHoveredStock(stock);
@@ -364,7 +410,7 @@ function Treemap({
     : null;
 
   return (
-    <div ref={containerRef} className="w-full relative isolate" onMouseMove={handleMouseMove}
+    <div ref={containerRef} className="w-full relative isolate"
       onClick={() => {
         if (tappedStock) { setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); }
         // Double-tap to reset zoom
@@ -724,54 +770,67 @@ function Treemap({
       </svg>
       </div>
 
-      {/* Finviz-style sub-sector popup */}
-      {hoveredStock && popupSubSector && (
+      {/* Stationary sub-sector popup. Drag the header to move; scroll the list to browse. */}
+      {tappedStock && popupSubSector && (
         <div
-          className={`absolute z-50 rounded-xl shadow-lg shadow-black/25 dark:shadow-2xl dark:shadow-black/60 border text-xs
-            bg-white dark:bg-[#1a1a1e] border-gray-200/60 dark:border-white/10
-            ${tappedStock ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          role="dialog"
+          aria-label="Industry stocks"
+          className="absolute z-50 rounded-xl shadow-lg shadow-black/25 dark:shadow-2xl dark:shadow-black/60 border text-xs flex flex-col pointer-events-auto
+            bg-white dark:bg-[#1a1a1e] border-gray-200/60 dark:border-white/10"
           style={{
-            left: Math.min(
-              tooltipPos.x + 16,
-              dims.width - 280,
-            ),
-            top: Math.max(tooltipPos.y - 40, 4),
+            left: Math.max(4, Math.min(tooltipPos.x + 16, dims.width - 264)),
+            top: Math.max(4, Math.min(tooltipPos.y - 40, Math.max(4, dims.height - 120))),
             width: 260,
-            maxHeight: dims.height - 8,
+            maxHeight: Math.min(Math.max(220, dims.height - 16), 480),
           }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          {/* Header: SECTOR - SUBSECTOR */}
-          <div className="px-3 py-2 border-b border-gray-200/60 dark:border-white/5">
-            <div className="font-bold text-[10px] tracking-wide uppercase text-rh-light-muted dark:text-rh-muted">
+          {/* Drag handle: header row */}
+          <div
+            onMouseDown={handlePopupDragStart}
+            title="Drag to move"
+            className={`px-3 py-2 border-b border-gray-200/60 dark:border-white/5 select-none flex items-center justify-between gap-2 shrink-0 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          >
+            <div className="font-bold text-[10px] tracking-wide uppercase text-rh-light-muted dark:text-rh-muted truncate">
               {popupSubSector.sector.name === popupSubSector.subSector.name
                 ? popupSubSector.sector.name
                 : `${popupSubSector.sector.name} — ${popupSubSector.subSector.name}`}
             </div>
+            <button
+              type="button"
+              aria-label="Close"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); }}
+              className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-rh-light-muted dark:text-rh-muted hover:bg-black/5 dark:hover:bg-white/10 hover:text-rh-light-text dark:hover:text-rh-text cursor-pointer"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6l-12 12" /></svg>
+            </button>
           </div>
 
-          {/* Hovered stock highlight — shown for normal stocks and drilldown tickers */}
+          {/* Selected stock highlight — shown for normal stocks and drilldown tickers */}
           {!isThemesDefault && (
-            <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
+            <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5 shrink-0">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{hoveredStock.ticker}</span>
-                <span className={`text-sm font-bold ${hoveredStock.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero(hoveredStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {hoveredStock.noTradeData ? '--' : `${hoveredStock.changePercent >= 0 ? '+' : ''}${hoveredStock.changePercent.toFixed(2)}%`}
+                <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{hoveredStock?.ticker ?? tappedStock.stock.ticker}</span>
+                <span className={`text-sm font-bold ${(hoveredStock ?? tappedStock.stock).noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero((hoveredStock ?? tappedStock.stock).changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock.stock).changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {(hoveredStock ?? tappedStock.stock).noTradeData ? '--' : `${(hoveredStock ?? tappedStock.stock).changePercent >= 0 ? '+' : ''}${(hoveredStock ?? tappedStock.stock).changePercent.toFixed(2)}%`}
                 </span>
               </div>
               <div className="flex items-center justify-between mt-0.5">
-                <span className="text-rh-light-muted dark:text-rh-muted truncate mr-2">{hoveredStock.name}</span>
-                <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency(hoveredStock.price)}</span>
+                <span className="text-rh-light-muted dark:text-rh-muted truncate mr-2">{(hoveredStock ?? tappedStock.stock).name}</span>
+                <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency((hoveredStock ?? tappedStock.stock).price)}</span>
               </div>
             </div>
           )}
 
           {/* Themes default: show avg change for subtheme */}
           {isThemesDefault && (
-            <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5">
+            <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5 shrink-0">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-rh-light-muted dark:text-rh-muted">Avg change</span>
-                <span className={`text-sm font-bold ${isEffectivelyZero(hoveredStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : hoveredStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {hoveredStock.changePercent >= 0 ? '+' : ''}{hoveredStock.changePercent.toFixed(2)}%
+                <span className={`text-sm font-bold ${isEffectivelyZero((hoveredStock ?? tappedStock.stock).changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock.stock).changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {(hoveredStock ?? tappedStock.stock).changePercent >= 0 ? '+' : ''}{(hoveredStock ?? tappedStock.stock).changePercent.toFixed(2)}%
                 </span>
               </div>
               <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
@@ -780,19 +839,17 @@ function Treemap({
             </div>
           )}
 
-          {/* Top stocks in this sub-sector (no scroll) */}
-          <div>
+          {/* All stocks in this sub-sector — scrollable. Click a row to open that ticker. */}
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-minimal py-1">
             {[...popupSubSector.subSector.stocks]
               .sort((a, b) => b.marketCapB - a.marketCapB)
-              .slice(0, 6)
               .map((s) => {
-                const isActive = !isThemesDefault && s.ticker === hoveredStock.ticker;
+                const isActive = !isThemesDefault && s.ticker === (hoveredStock?.ticker ?? tappedStock.stock.ticker);
                 return (
                   <div
                     key={s.ticker}
-                    className={`flex items-center justify-between px-3 py-1 ${isActive ? 'bg-white/40 dark:bg-white/10' : ''}`}
-                    onClick={isThemesDefault ? (e) => { e.stopPropagation(); onTickerClick(s.ticker); setTappedStock(null); setHoveredStock(null); } : undefined}
-                    style={isThemesDefault ? { cursor: 'pointer' } : undefined}
+                    className={`flex items-center justify-between px-3 py-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 ${isActive ? 'bg-black/[0.04] dark:bg-white/10' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); onTickerClick(s.ticker); setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`font-semibold text-[11px] w-[42px] shrink-0 ${isActive ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>
@@ -808,21 +865,7 @@ function Treemap({
                   </div>
                 );
               })}
-            {popupSubSector.subSector.stocks.length > 6 && (
-              <div className="px-3 py-1.5 text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 text-center">
-                +{popupSubSector.subSector.stocks.length - 6} more
-              </div>
-            )}
           </div>
-          {/* Tap-again hint for mobile */}
-          {tappedStock && !isThemesDefault && (
-            <button
-              className="w-full px-3 py-2 border-t border-white/10 dark:border-white/5 text-center text-[10px] font-medium text-rh-green hover:bg-rh-green/10 transition-colors rounded-b-xl"
-              onClick={(e) => { e.stopPropagation(); onTickerClick(tappedStock.stock.ticker); setTappedStock(null); setHoveredStock(null); }}
-            >
-              Tap to view {tappedStock.stock.ticker} →
-            </button>
-          )}
         </div>
       )}
     </div>
