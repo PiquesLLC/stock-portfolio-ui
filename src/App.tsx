@@ -136,6 +136,11 @@ const MORE_TABS: { id: TabType; label: string }[] = [
   { id: 'pricing', label: 'Pricing' },
 ];
 
+// Flip to true when the More menu has something worth surfacing again.
+// Today the only entry (Pricing) is empty for paid users on lg+, so the
+// dropdown reads as a dead nav slot — hide it until we add real entries.
+const MORE_MENU_ENABLED = false;
+
 
 function parseHash(): NavState & { compareStocks?: string[] } {
   const hash = getSafeHash();
@@ -1192,7 +1197,8 @@ export default function App() {
               </button>
               );
             })}
-            {/* More dropdown */}
+            {/* More dropdown — gated by MORE_MENU_ENABLED; entire block kept intact */}
+            {MORE_MENU_ENABLED && (
             <div className="relative" ref={moreDropdownRef}>
               {(() => {
                 // Tabs collapsed into More at sm–lg (hidden from primary nav)
@@ -1265,6 +1271,7 @@ export default function App() {
                 );
               })()}
             </div>
+            )}
           </nav>
 
           {/* Search — full bar at lg+, icon at sm–lg (grouped with right controls) */}
