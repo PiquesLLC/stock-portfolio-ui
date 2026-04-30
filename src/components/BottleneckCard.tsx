@@ -1,9 +1,11 @@
-import { BottleneckEntry } from '../api';
+import { BottleneckEntry, PriceData } from '../api';
+import { changeColorClass, formatPercent } from '../utils/format';
 
 interface Props {
   entry: BottleneckEntry;
   onOpen: (entry: BottleneckEntry) => void;
   onTickerClick: (ticker: string) => void;
+  prices?: Record<string, PriceData>;
 }
 
 const LAYER_BAR_COLORS: Record<string, string> = {
@@ -56,7 +58,8 @@ export function layerBarColor(layer: string): string {
   return LAYER_BAR_COLORS[layer] || '#9b9b9b';
 }
 
-export function BottleneckCard({ entry, onOpen, onTickerClick }: Props) {
+export function BottleneckCard({ entry, onOpen, onTickerClick, prices }: Props) {
+  const primaryPrice = prices?.[entry.primaryTicker];
   return (
     <button
       type="button"
@@ -77,8 +80,8 @@ export function BottleneckCard({ entry, onOpen, onTickerClick }: Props) {
         {entry.name}
       </h3>
 
-      <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">
-        Primary:{' '}
+      <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-3 flex items-center gap-1.5 flex-wrap">
+        <span>Primary:</span>
         <span
           role="link"
           tabIndex={0}
@@ -88,6 +91,11 @@ export function BottleneckCard({ entry, onOpen, onTickerClick }: Props) {
         >
           {entry.primaryTicker}
         </span>
+        {primaryPrice && (
+          <span className={`text-[11px] font-semibold ${changeColorClass(primaryPrice.changePercent)}`}>
+            {formatPercent(primaryPrice.changePercent)}
+          </span>
+        )}
       </div>
 
       <p className="text-[13px] leading-relaxed text-rh-light-muted dark:text-rh-text/70 mb-4 line-clamp-3">
@@ -95,19 +103,31 @@ export function BottleneckCard({ entry, onOpen, onTickerClick }: Props) {
       </p>
 
       {entry.relatedTickers.length > 0 && (
-        <div className="flex gap-3 flex-wrap">
-          {entry.relatedTickers.slice(0, 4).map((t) => (
-            <span
-              key={t}
-              role="link"
-              tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); onTickerClick(t); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onTickerClick(t); } }}
-              className="text-xs font-bold tracking-wide text-rh-light-text dark:text-rh-text hover:text-rh-green cursor-pointer transition-colors"
-            >
-              {t}
-            </span>
-          ))}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium">
+            Related
+          </span>
+          {entry.relatedTickers.slice(0, 4).map((t) => {
+            const p = prices?.[t];
+            return (
+              <div key={t} className="flex items-center gap-1">
+                <span
+                  role="link"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); onTickerClick(t); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onTickerClick(t); } }}
+                  className="text-xs font-bold tracking-wide text-rh-light-text dark:text-rh-text hover:text-rh-green cursor-pointer transition-colors"
+                >
+                  {t}
+                </span>
+                {p && (
+                  <span className={`text-[10px] font-semibold ${changeColorClass(p.changePercent)}`}>
+                    {formatPercent(p.changePercent)}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </button>

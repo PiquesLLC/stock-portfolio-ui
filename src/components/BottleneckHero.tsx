@@ -1,15 +1,18 @@
-import { BottleneckEntry } from '../api';
+import { BottleneckEntry, PriceData } from '../api';
 import { StockLogo } from './StockLogo';
 import { layerBarColor } from './BottleneckCard';
+import { changeColorClass, formatPercent } from '../utils/format';
 
 interface Props {
   entry: BottleneckEntry;
   onOpen: (entry: BottleneckEntry) => void;
   onTickerClick: (ticker: string) => void;
+  prices?: Record<string, PriceData>;
 }
 
-export function BottleneckHero({ entry, onOpen, onTickerClick }: Props) {
+export function BottleneckHero({ entry, onOpen, onTickerClick, prices }: Props) {
   const primaryMetrics = entry.chokepointMetrics.slice(0, 4);
+  const primaryPrice = prices?.[entry.primaryTicker];
 
   return (
     <div className="border border-gray-200/10 dark:border-white/[0.04] rounded-2xl p-6 mb-6">
@@ -37,14 +40,21 @@ export function BottleneckHero({ entry, onOpen, onTickerClick }: Props) {
           <h2 className="text-xl sm:text-2xl font-bold text-rh-light-text dark:text-rh-text leading-tight">
             {entry.name}
           </h2>
-          <div
-            role="link"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); onTickerClick(entry.primaryTicker); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onTickerClick(entry.primaryTicker); } }}
-            className="text-sm text-rh-green font-bold cursor-pointer hover:underline mt-0.5 inline-block"
-          >
-            {entry.primaryTicker}
+          <div className="flex items-center gap-2 mt-0.5">
+            <div
+              role="link"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onTickerClick(entry.primaryTicker); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onTickerClick(entry.primaryTicker); } }}
+              className="text-sm text-rh-green font-bold cursor-pointer hover:underline"
+            >
+              {entry.primaryTicker}
+            </div>
+            {primaryPrice && (
+              <span className={`text-xs font-semibold ${changeColorClass(primaryPrice.changePercent)}`}>
+                {formatPercent(primaryPrice.changePercent)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -75,20 +85,34 @@ export function BottleneckHero({ entry, onOpen, onTickerClick }: Props) {
       )}
 
       <div className="flex items-center gap-5 flex-wrap">
-        <div className="flex items-center gap-4 flex-wrap">
-          {entry.relatedTickers.map((t) => (
-            <span
-              key={t}
-              role="link"
-              tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); onTickerClick(t); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onTickerClick(t); } }}
-              className="text-xs font-bold tracking-wide text-rh-light-text dark:text-rh-text hover:text-rh-green cursor-pointer transition-colors"
-            >
-              {t}
+        {entry.relatedTickers.length > 0 && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium">
+              Related
             </span>
-          ))}
-        </div>
+            {entry.relatedTickers.map((t) => {
+              const p = prices?.[t];
+              return (
+                <div key={t} className="flex items-center gap-1.5">
+                  <span
+                    role="link"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); onTickerClick(t); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onTickerClick(t); } }}
+                    className="text-xs font-bold tracking-wide text-rh-light-text dark:text-rh-text hover:text-rh-green cursor-pointer transition-colors"
+                  >
+                    {t}
+                  </span>
+                  {p && (
+                    <span className={`text-[10px] font-semibold ${changeColorClass(p.changePercent)}`}>
+                      {formatPercent(p.changePercent)}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
         <button
           type="button"
           onClick={() => onOpen(entry)}

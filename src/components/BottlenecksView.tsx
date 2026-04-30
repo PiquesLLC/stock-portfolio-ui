@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BottleneckEntry, BottlenecksResponse, getBottlenecks } from '../api';
+import { BottleneckEntry, BottlenecksResponse, getBottlenecks, getPrices, PriceData } from '../api';
 import { BottleneckCard } from './BottleneckCard';
 import { BottleneckHero } from './BottleneckHero';
 import { BottleneckDrawer } from './BottleneckDrawer';
@@ -7,6 +7,7 @@ import { BottleneckDrawer } from './BottleneckDrawer';
 let cachedResponse: BottlenecksResponse | null = null;
 let cachedAt = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const PRICE_POLL_MS = 60 * 1000;
 
 interface Props {
   onTickerClick: (ticker: string) => void;
@@ -26,6 +27,7 @@ export function BottlenecksView({ onTickerClick }: Props) {
   const [sectorFilter, setSectorFilter] = useState<string>('AI');
   const [layerFilter, setLayerFilter] = useState<string>('all');
   const [drawerEntry, setDrawerEntry] = useState<BottleneckEntry | null>(null);
+  const [prices, setPrices] = useState<Record<string, PriceData>>({});
 
   useEffect(() => {
     // Honor the in-memory cache only while it's still fresh (5 min). Lets the
@@ -57,6 +59,37 @@ export function BottlenecksView({ onTickerClick }: Props) {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Collect every ticker referenced by the response (featured + entries, primary + related)
+  // and batch-fetch prices. Polls every 60s while mounted so the change % stays fresh.
+  const allTickers = useMemo(() => {
+    if (!data) return [] as string[];
+    const set = new Set<string>();
+    for (const sector of Object.keys(data.featured)) {
+      const f = data.featured[sector];
+      if (!f) continue;
+      if (f.primaryTicker) set.add(f.primaryTicker);
+      for (const t of f.relatedTickers) if (t) set.add(t);
+    }
+    for (const e of data.entries) {
+      if (e.primaryTicker) set.add(e.primaryTicker);
+      for (const t of e.relatedTickers) if (t) set.add(t);
+    }
+    return [...set];
+  }, [data]);
+
+  useEffect(() => {
+    if (allTickers.length === 0) return;
+    let cancelled = false;
+    const fetchOnce = () => {
+      getPrices(allTickers)
+        .then((p) => { if (!cancelled) setPrices((prev) => ({ ...prev, ...p })); })
+        .catch(() => { /* graceful: tickers just render without the % pill */ });
+    };
+    fetchOnce();
+    const id = window.setInterval(fetchOnce, PRICE_POLL_MS);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [allTickers]);
 
   // Reset layer filter when sector changes
   const handleSectorChange = (sector: string) => {
@@ -170,6 +203,7 @@ export function BottlenecksView({ onTickerClick }: Props) {
           entry={sectorFeatured}
           onOpen={(e) => setDrawerEntry(e)}
           onTickerClick={onTickerClick}
+          prices={prices}
         />
       )}
 
@@ -201,6 +235,7 @@ export function BottlenecksView({ onTickerClick }: Props) {
               entry={entry}
               onOpen={(e) => setDrawerEntry(e)}
               onTickerClick={onTickerClick}
+              prices={prices}
             />
           ))}
         </div>
