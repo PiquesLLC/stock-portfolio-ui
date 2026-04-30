@@ -53,8 +53,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Toast container */}
-      <div className="fixed bottom-6 right-6 z-[70] flex flex-col gap-2 pointer-events-none">
+      {/* Toast container — bottom-24 leaves room for the Share/Post FAB cluster (which sits at bottom-6) */}
+      <div
+        className="fixed right-6 z-[70] flex flex-col gap-2 pointer-events-none"
+        style={{ bottom: 'max(6rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))' }}
+      >
         {toasts.map(toast => (
           <div
             key={toast.id}

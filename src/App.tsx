@@ -1806,6 +1806,7 @@ export default function App() {
                   marginDebt: portfolio.marginDebt,
                 }}
                 chartToolbar={undefined}
+                showShareActions
               />}
               </div>
               </>

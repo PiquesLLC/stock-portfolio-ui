@@ -10,9 +10,10 @@ interface PostToFeedButtonProps {
   period?: string;
   userId?: string;
   className?: string;
+  variant?: 'fab';
 }
 
-export function PostToFeedButton({ type, ticker, period = '1M', userId, className }: PostToFeedButtonProps) {
+export function PostToFeedButton({ type, ticker, period = '1M', userId, className, variant }: PostToFeedButtonProps) {
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -132,15 +133,19 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
     ? `${API_BASE_URL}/social/${userId}/performance-card?period=${period}&${cacheBust}`
     : '';
 
+  const isFab = variant === 'fab';
+
   return (
     <>
       <button
         onClick={handleOpen}
-        className={`flex items-center gap-1.5 text-rh-light-muted dark:text-rh-muted hover:text-rh-green transition-colors ${className || ''}`}
+        className={isFab
+          ? `w-14 h-14 rounded-full bg-rh-green text-black hover:brightness-110 active:scale-95 flex items-center justify-center shadow-xl shadow-rh-green/30 transition-all ${className || ''}`
+          : `flex items-center gap-1.5 text-rh-light-muted dark:text-rh-muted hover:text-rh-green transition-colors ${className || ''}`}
         title="Post to Feed"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+        <svg className={isFab ? 'w-6 h-6' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={isFab ? 2.2 : 1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
         </svg>
       </button>
 

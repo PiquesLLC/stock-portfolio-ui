@@ -20,6 +20,7 @@ interface ShareButtonProps {
   period?: string;
   /** Additional CSS classes */
   className?: string;
+  variant?: 'fab';
   /** Size variant */
   size?: 'sm' | 'md';
   /** Show label text */
@@ -102,11 +103,18 @@ export function ShareButton(props: ShareButtonProps) {
     setTimeout(() => setToast(''), 2000);
   }, []);
 
-  // Position dropdown relative to button when menu opens
+  // Position dropdown relative to button when menu opens.
+  // Flip to render ABOVE the trigger when near the viewport bottom (e.g. FAB variant).
   useEffect(() => {
     if (!menuOpen || !menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();
-    setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    const ESTIMATED_DROPDOWN_HEIGHT = 220;
+    const bottomOverflow = rect.bottom + 4 + ESTIMATED_DROPDOWN_HEIGHT > window.innerHeight - 16;
+    if (bottomOverflow) {
+      setDropdownPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right });
+    } else {
+      setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
   }, [menuOpen]);
 
   // Close menu on click/tap outside
@@ -382,21 +390,33 @@ export function ShareButton(props: ShareButtonProps) {
     ? 'p-1.5 rounded-lg'
     : 'px-2.5 py-1 rounded-lg text-[11px] font-medium';
 
+  // FAB variant: large outlined circle for floating action button cluster
+  const isFab = props.variant === 'fab';
+  const fabClasses = isFab
+    ? 'w-11 h-11 rounded-full bg-rh-light-card/80 dark:bg-rh-card/80 backdrop-blur-md border border-rh-light-border dark:border-white/[0.12] text-rh-light-text dark:text-white hover:border-rh-light-text/40 dark:hover:border-white/30 hover:text-rh-green active:scale-95 flex items-center justify-center shadow-lg'
+    : '';
+
   return (
     <div className="relative inline-flex items-center" ref={menuRef}>
       <button
         onClick={handleClick}
         disabled={loading}
-        className={`inline-flex items-center gap-1 text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green hover:bg-rh-green/[0.06] transition-all ${sizeClasses} ${loading ? 'opacity-50' : ''} ${className || ''}`}
+        className={isFab
+          ? `${fabClasses} transition-all ${loading ? 'opacity-50' : ''} ${className || ''}`
+          : `inline-flex items-center gap-1 text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green hover:bg-rh-green/[0.06] transition-all ${sizeClasses} ${loading ? 'opacity-50' : ''} ${className || ''}`}
         title="Share"
       >
         {loading ? (
-          <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <svg className={isFab ? 'w-5 h-5 animate-spin' : 'w-3.5 h-3.5 animate-spin'} fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
+        ) : isFab ? (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
         ) : SHARE_ICON}
-        {showLabel && <span>Share</span>}
+        {showLabel && !isFab && <span>Share</span>}
       </button>
 
       {/* Toast */}

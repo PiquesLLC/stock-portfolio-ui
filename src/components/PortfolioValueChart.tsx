@@ -11,6 +11,7 @@ import {
   snapToNearest,
 } from '../utils/portfolio-chart';
 import { computeChartGroups } from '../utils/chart-groups';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ShareButton } from './ShareButton';
@@ -67,6 +68,9 @@ interface Props {
   };
   /** Optional toolbar rendered in the compare row (right side) */
   chartToolbar?: React.ReactNode;
+  /** When true, render the Share + Post FAB cluster. Only set on the user's OWN portfolio
+   * tab — never on UserPortfolioView (other users' portfolios) or WatchlistPage. */
+  showShareActions?: boolean;
 }
 
 export function shouldShowEstimatedBadge(
@@ -111,6 +115,7 @@ export function PortfolioValueChart({
   headerLabel,
   portfolioBreakdown,
   chartToolbar,
+  showShareActions = false,
 }: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -1863,13 +1868,6 @@ export function PortfolioValueChart({
             </button>
           );
         })}
-        {/* Share + Post — right-aligned on period row */}
-        {user && (
-          <div className="flex items-center gap-1 ml-auto">
-            <ShareButton type="performance" userId={user.id} username={user.username} displayName={user.displayName} period={selectedPeriod} />
-            <PostToFeedButton type="portfolio" userId={user.id} period={selectedPeriod} />
-          </div>
-        )}
       </div>
       {/* Compare + hint — subtle secondary row; -ml-2.5 offsets button's px-2.5 */}
       <div className="flex items-center justify-between mt-1 px-3 sm:px-6 -ml-2.5" data-capture-skip="true">
@@ -1892,6 +1890,35 @@ export function PortfolioValueChart({
           {chartToolbar}
         </div>
       </div>
+
+      {/* Floating action cluster — Share + Post.
+          Gated on showShareActions so it ONLY renders on the user's own portfolio tab,
+          NOT on UserPortfolioView (other users) or WatchlistPage (watchlists).
+          Portaled to document.body to escape any ancestor with transform/filter/etc.
+          that would create a containing block and break position:fixed. */}
+      {showShareActions && user && createPortal(
+        <div
+          className="fixed right-6 z-40 flex items-end gap-3"
+          style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))' }}
+          data-capture-skip="true"
+        >
+          <ShareButton
+            type="performance"
+            userId={user.id}
+            username={user.username}
+            displayName={user.displayName}
+            period={selectedPeriod}
+            variant="fab"
+          />
+          <PostToFeedButton
+            type="portfolio"
+            userId={user.id}
+            period={selectedPeriod}
+            variant="fab"
+          />
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
