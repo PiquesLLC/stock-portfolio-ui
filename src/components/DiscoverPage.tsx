@@ -677,10 +677,21 @@ function Treemap({
                           key={`${r.sectorName}::${r.stock.ticker}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDrilldownTheme({ theme: r.sectorName, subtheme: r.stock.ticker });
-                            setHoveredStock(null);
-                            setHoveredSubSector(null);
-                            setTappedStock(null);
+                            // First click: pin the popup so the user can scroll the
+                            // stock list inside it. Second click on the same subtheme:
+                            // drill in (zoom into that subtheme's tickers).
+                            if (tappedStock?.stock.ticker === r.stock.ticker) {
+                              setDrilldownTheme({ theme: r.sectorName, subtheme: r.stock.ticker });
+                              setHoveredStock(null);
+                              setHoveredSubSector(null);
+                              setTappedStock(null);
+                            } else {
+                              setTappedStock({ stock: r.stock, sectorName: r.sectorName });
+                              setHoveredStock(r.stock);
+                              setHoveredSubSector({ sector: r.sectorName, subSector: r.stock.subSector });
+                              const rect = containerRef.current?.getBoundingClientRect();
+                              if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                            }
                           }}
                           onMouseEnter={() => { if (!tappedStock) handleStockHover(r.stock, r.sectorName, r.x + halfGap + tileW, r.y + halfGap); }}
                           onMouseLeave={() => { if (!tappedStock) handleStockLeave(); }}
