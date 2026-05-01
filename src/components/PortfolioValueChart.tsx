@@ -1865,65 +1865,70 @@ export function PortfolioValueChart({
           );
         })()}
 
-      </div>
-
-      {/* Period selector — left-aligned, compact; -ml-3 offsets first button's px-3 so text aligns with $ heading */}
-      <div className="flex items-center gap-0 mt-2 px-3 sm:px-6 -ml-1" data-capture-skip="true">
-        {PERIODS.map(period => {
-          const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
-          const isActive = selectedPeriod === period;
-          return (
+        {/* Bottom controls strip — period selector + compare/hint/toolbar.
+            Absolutely positioned at the chart container's bottom so the holdings
+            section can sit closer to the chart instead of below two extra rows.
+            Period buttons sit in the chart's natural padding band; the compare
+            pill is on the right. */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-3 sm:px-6 z-10 pointer-events-none" data-capture-skip="true">
+          {/* Period buttons — left */}
+          <div className="flex items-center gap-0 -ml-1 pointer-events-auto">
+            {PERIODS.map(period => {
+              const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
+              const isActive = selectedPeriod === period;
+              return (
+                <button
+                  key={period}
+                  onClick={() => {
+                    if (isLocked) {
+                      showToast('Upgrade to Pro for all chart periods', 'info');
+                      navigateToPricing();
+                      return;
+                    }
+                    handlePeriodChange(period);
+                  }}
+                  className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 flex items-center gap-1 ${
+                    isActive
+                      ? `${isGain ? 'text-rh-green' : 'text-rh-red'}`
+                      : isLocked
+                        ? 'text-rh-light-muted/25 dark:text-rh-muted/25 cursor-default'
+                        : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                  }`}
+                >
+                  {period}
+                  {isActive && (
+                    <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full ${isGain ? 'bg-rh-green' : 'bg-rh-red'}`} />
+                  )}
+                  {isLocked && (
+                    <svg className="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {/* Compare + hint + toolbar — right */}
+          <div className="flex items-center gap-2 pb-1.5 pointer-events-auto">
             <button
-              key={period}
-              onClick={() => {
-                if (isLocked) {
-                  showToast('Upgrade to Pro for all chart periods', 'info');
-                  navigateToPricing();
-                  return;
-                }
-                handlePeriodChange(period);
-              }}
-              className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 flex items-center gap-1 ${
-                isActive
-                  ? `${isGain ? 'text-rh-green' : 'text-rh-red'}`
-                  : isLocked
-                    ? 'text-rh-light-muted/25 dark:text-rh-muted/25 cursor-default'
-                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+              onClick={() => setShowBenchmark(prev => !prev)}
+              className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+                showBenchmark
+                  ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
+                  : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
               }`}
             >
-              {period}
-              {isActive && (
-                <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full ${isGain ? 'bg-rh-green' : 'bg-rh-red'}`} />
-              )}
-              {isLocked && (
-                <svg className="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              )}
+              <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
             </button>
-          );
-        })}
-      </div>
-      {/* Compare + hint — subtle secondary row; -ml-2.5 offsets button's px-2.5 */}
-      <div className="flex items-center justify-between mt-1 px-3 sm:px-6 -ml-2.5" data-capture-skip="true">
-        <button
-          onClick={() => setShowBenchmark(prev => !prev)}
-          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
-            showBenchmark
-              ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
-              : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
-          }`}
-        >
-          <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
-        </button>
-        <div className="flex items-center gap-2">
-          {showHint && hasData && !isMeasuring && (
-            <span className="text-[10px] text-rh-light-muted/30 dark:text-rh-muted/30 hidden sm:inline">
-              Click chart to measure gains between two dates
-            </span>
-          )}
-          {chartToolbar}
+            {showHint && hasData && !isMeasuring && (
+              <span className="text-[10px] text-rh-light-muted/30 dark:text-rh-muted/30 hidden md:inline">
+                Click chart to measure gains between two dates
+              </span>
+            )}
+            {chartToolbar}
+          </div>
         </div>
+
       </div>
 
       {/* Floating action cluster — Share + Post.
