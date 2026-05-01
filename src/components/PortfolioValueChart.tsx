@@ -192,7 +192,6 @@ export function PortfolioValueChart({
   const [benchmarkCandles, setBenchmarkCandles] = useState<BenchmarkCandle[]>([]);
   const [intradayBenchmark, setIntradayBenchmark] = useState<BenchmarkCandle[]>([]);
   const [spyPreviousClose, setSpyPreviousClose] = useState<number | null>(null);
-  const [showHint, setShowHint] = useState(true);
   const [showBenchmark, setShowBenchmark] = useState(false);
   const [heroAnimationIndex, setHeroAnimationIndex] = useState(0);
   const [heroAnimationRunId, setHeroAnimationRunId] = useState(0);
@@ -744,7 +743,6 @@ export function PortfolioValueChart({
       const svgX1 = ((e.touches[1].clientX - rect.left) / rect.width) * CHART_W;
       setMeasureA(findNearestIndex(svgX0));
       setMeasureB(findNearestIndex(svgX1));
-      setShowHint(false);
     } else if (e.touches.length === 1 && !isTwoFingerRef.current) {
       touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       if (svgRef.current && points.length >= 2) {
@@ -810,7 +808,6 @@ export function PortfolioValueChart({
     const svgX = mouseToSvgX(e);
     const idx = findNearestIndex(svgX);
 
-    setShowHint(false);
 
     if (hasMeasurement) {
       // Third click: clear and start new
@@ -1867,8 +1864,11 @@ export function PortfolioValueChart({
               );
             })}
           </div>
-          {/* Compare + hint + toolbar — right, mirrors the period row's baseline */}
+          {/* Compare + toolbar — right, mirrors the period row's baseline.
+              "Click to measure" hint removed; the floating measurement card
+              that appears between two clicked points already self-explains. */}
           <div className="flex items-center gap-2 pointer-events-auto">
+            {chartToolbar}
             <button
               onClick={() => setShowBenchmark(prev => !prev)}
               className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
@@ -1879,12 +1879,6 @@ export function PortfolioValueChart({
             >
               <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
             </button>
-            {showHint && hasData && !isMeasuring && (
-              <span className="text-[10px] text-rh-light-muted/30 dark:text-rh-muted/30 hidden md:inline">
-                Click chart to measure gains between two dates
-              </span>
-            )}
-            {chartToolbar}
           </div>
         </div>
 
