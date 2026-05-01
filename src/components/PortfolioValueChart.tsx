@@ -683,40 +683,8 @@ export function PortfolioValueChart({
 
   const refY = hasData ? toY(periodStartValue) : 0;
 
-  // Time labels — only for non-1D periods.
-  // Place one label per unique calendar day to avoid duplicates.
-  const timeLabels: { label: string; x: number }[] = [];
-  if (hasData && selectedPeriod !== '1D') {
-    const dayBounds: { label: string; midIdx: number }[] = [];
-    let prevLabel = '', startIdx = 0;
-    for (let i = 0; i <= points.length; i++) {
-      const label = i < points.length
-        ? new Date(points[i].time).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })
-        : '';
-      if (label !== prevLabel) {
-        if (prevLabel) dayBounds.push({ label: prevLabel, midIdx: Math.floor((startIdx + i - 1) / 2) });
-        startIdx = i;
-        prevLabel = label;
-      }
-    }
-    const maxLabels = 6;
-    const step = Math.max(1, Math.ceil(dayBounds.length / maxLabels));
-    for (let g = 0; g < dayBounds.length; g += step) {
-      timeLabels.push({ label: dayBounds[g].label, x: toX(dayBounds[g].midIdx) });
-    }
-    // Always include today (last date) so the chart's right edge is labeled.
-    // If it's too close to the previous label, replace it to avoid cramping.
-    const lastDay = dayBounds[dayBounds.length - 1];
-    if (lastDay && timeLabels[timeLabels.length - 1]?.label !== lastDay.label) {
-      const lastLabel = { label: lastDay.label, x: toX(lastDay.midIdx) };
-      const prev = timeLabels[timeLabels.length - 1];
-      if (prev && lastLabel.x - prev.x < plotW * 0.12) {
-        timeLabels[timeLabels.length - 1] = lastLabel; // replace cramped label
-      } else {
-        timeLabels.push(lastLabel);
-      }
-    }
-  }
+  // Time labels removed per design — period selector + chart edges provide
+  // enough date context. Computation block deleted to avoid dead-render cost.
 
 
   // ── Mouse → SVG X coordinate ───────────────────────────────────
@@ -1796,15 +1764,6 @@ export function PortfolioValueChart({
             </>
           )}
 
-          {/* Time labels — non-1D only */}
-          {timeLabels.map((tl, i) => (
-            <text key={i} x={tl.x} y={CHART_H - 2}
-              className="fill-gray-500" fontSize="10"
-              textAnchor={i === 0 ? 'start' : i === timeLabels.length - 1 ? 'end' : 'middle'}>
-              {tl.label}
-            </text>
-          ))}
-
         </svg>
 
         {/* Measurement summary overlay — floats between the two clicked points so the
@@ -1868,11 +1827,11 @@ export function PortfolioValueChart({
         {/* Bottom controls strip — period selector + compare/hint/toolbar.
             Absolutely positioned at the chart container's bottom so the holdings
             section can sit closer to the chart instead of below two extra rows.
-            Period buttons sit in the chart's natural padding band; the compare
-            pill is on the right. */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-3 sm:px-6 z-10 pointer-events-none" data-capture-skip="true">
-          {/* Period buttons — left */}
-          <div className="flex items-center gap-0 -ml-1 pointer-events-auto">
+            Both groups baseline-align (items-center) so the right side mirrors
+            the left, and the strip sits flush to the chart container's edges. */}
+        <div className="absolute bottom-3 left-0 right-0 flex items-center justify-between z-10 pointer-events-none" data-capture-skip="true">
+          {/* Period buttons — left, flush to chart's left edge */}
+          <div className="flex items-center gap-0 pointer-events-auto">
             {PERIODS.map(period => {
               const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
               const isActive = selectedPeriod === period;
@@ -1908,8 +1867,8 @@ export function PortfolioValueChart({
               );
             })}
           </div>
-          {/* Compare + hint + toolbar — right */}
-          <div className="flex items-center gap-2 pb-1.5 pointer-events-auto">
+          {/* Compare + hint + toolbar — right, mirrors the period row's baseline */}
+          <div className="flex items-center gap-2 pointer-events-auto">
             <button
               onClick={() => setShowBenchmark(prev => !prev)}
               className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
