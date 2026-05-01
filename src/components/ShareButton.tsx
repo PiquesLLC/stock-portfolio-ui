@@ -393,7 +393,7 @@ export function ShareButton(props: ShareButtonProps) {
   // FAB variant: large outlined circle for floating action button cluster
   const isFab = props.variant === 'fab';
   const fabClasses = isFab
-    ? 'w-11 h-11 rounded-full bg-rh-light-card/80 dark:bg-rh-card/80 backdrop-blur-md border border-rh-light-border dark:border-white/[0.12] text-rh-light-text dark:text-white hover:border-rh-light-text/40 dark:hover:border-white/30 hover:text-rh-green active:scale-95 flex items-center justify-center shadow-lg'
+    ? 'w-11 h-11 lg:w-9 lg:h-9 rounded-full bg-rh-light-card/80 dark:bg-rh-card/80 backdrop-blur-md border border-rh-light-border dark:border-white/[0.12] text-rh-light-text dark:text-white hover:border-rh-light-text/40 dark:hover:border-white/30 hover:text-rh-green active:scale-95 flex items-center justify-center shadow-lg'
     : '';
 
   return (
@@ -407,12 +407,12 @@ export function ShareButton(props: ShareButtonProps) {
         title="Share"
       >
         {loading ? (
-          <svg className={isFab ? 'w-5 h-5 animate-spin' : 'w-3.5 h-3.5 animate-spin'} fill="none" viewBox="0 0 24 24">
+          <svg className={isFab ? 'w-5 h-5 lg:w-4 lg:h-4 animate-spin' : 'w-3.5 h-3.5 animate-spin'} fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         ) : isFab ? (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 lg:w-4 lg:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
           </svg>
         ) : SHARE_ICON}
