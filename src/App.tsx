@@ -10,6 +10,7 @@ import { OptionsTable } from './components/OptionsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
 import { Navigation, TabType } from './components/Navigation';
 import { PortfolioValueChart, ChartMeasurement } from './components/PortfolioValueChart';
+import { PortfolioSidebarMock } from './components/PortfolioSidebarMock';
 import { BenchmarkWidget } from './components/BenchmarkWidget';
 import { NotificationBell } from './components/NotificationBell';
 import { UserMenu } from './components/UserMenu';
@@ -1759,9 +1760,44 @@ export default function App() {
               </div>
             )}
 
+            {/* MOCK: 2-col layout on lg+ — chart + stats on left, analytics sidebar on right.
+                Holdings region stays full-width below this flex container. */}
+            {portfolio && portfolio.holdings.length > 0 && (
+            <div className="lg:flex lg:gap-6 lg:items-start">
+            <div className="lg:flex-1 lg:min-w-0">
+
             {portfolio && portfolio.holdings.length > 0 && (
               <>
-              <div className="-mx-3 sm:-mx-6 relative">
+              <div className="-mx-3 sm:-mx-6 lg:mx-0 relative">
+              {/* Action buttons — top-right of the chart wrapper. Moved out of the
+                  HoldingsTable header so the holdings section can sit flush against
+                  the chart bottom. Calls the imperative handlers HoldingsTable
+                  exposes via actionsRef. */}
+              <div
+                className="absolute top-0 right-3 sm:right-6 lg:right-0 z-20 flex items-center gap-2"
+                data-capture-skip="true"
+              >
+                <button
+                  type="button"
+                  onClick={() => holdingsActionsRef.current?.openCashMargin()}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30 text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Cash & Margin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => holdingsActionsRef.current?.openAdd()}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Stock
+                </button>
+              </div>
               {user && (
                 <>
                   {/* Portfolio picker — top-left above the value */}
@@ -1819,6 +1855,8 @@ export default function App() {
               </>
             )}
 
+            {/* Stats block (BenchmarkWidget + measurement) — hidden on lg+ since the sidebar replaces it */}
+            <div className="lg:hidden">
             {portfolio && portfolio.holdings.length > 0 && (() => {
               const showMeasure = !!chartMeasurement && measureStatsView === 'measure';
               return (
@@ -1949,6 +1987,22 @@ export default function App() {
               </div>
               );
             })()}
+            </div>
+            {/* end left column */}
+            </div>
+
+            {/* Right column: analytics sidebar (lg+ only) */}
+            {portfolio && portfolio.holdings.length > 0 && (
+              <PortfolioSidebarMock
+                holdings={portfolio.holdings}
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                portfolioDayChangePct={portfolio.dayChangePercent}
+              />
+            )}
+
+            </div>
+            )}
+            {/* end 2-col flex container */}
 
             <div className="-mx-3 sm:-mx-6 space-y-8">
               <HoldingsTable
@@ -1961,6 +2015,7 @@ export default function App() {
                 chartPeriod={chartPeriod}
                 portfolioId={selectedPortfolioId}
                 hideEmptyState={!!selectedPortfolioId && (portfolio?.holdings?.length ?? 0) === 0}
+                actionsRef={holdingsActionsRef}
               />
               {(portfolio?.options?.length ?? 0) > 0 && (
                 <div className="px-3 sm:px-6">

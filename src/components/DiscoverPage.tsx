@@ -382,9 +382,15 @@ function Treemap({
     };
   }, [isDragging]);
 
-  const handleStockHover = useCallback((stock: HeatmapStock, sectorName: string) => {
+  const handleStockHover = useCallback((stock: HeatmapStock, sectorName: string, tileX?: number, tileY?: number) => {
     setHoveredStock(stock);
     setHoveredSubSector({ sector: sectorName, subSector: stock.subSector });
+    // When hovering, anchor the preview popup to the hovered tile (not the cursor)
+    // so it stays put as the user moves within the tile. Tap-to-pin still wins
+    // because that branch sets tooltipPos from e.clientX/Y in the click handler.
+    if (typeof tileX === 'number' && typeof tileY === 'number') {
+      setTooltipPos({ x: tileX, y: tileY });
+    }
   }, []);
 
   const handleStockLeave = useCallback(() => {
@@ -676,7 +682,7 @@ function Treemap({
                             setHoveredSubSector(null);
                             setTappedStock(null);
                           }}
-                          onMouseEnter={() => { if (!tappedStock) handleStockHover(r.stock, r.sectorName); }}
+                          onMouseEnter={() => { if (!tappedStock) handleStockHover(r.stock, r.sectorName, r.x + halfGap + tileW, r.y + halfGap); }}
                           onMouseLeave={() => { if (!tappedStock) handleStockLeave(); }}
                           style={{ cursor: 'pointer' }}
                         >
@@ -748,7 +754,7 @@ function Treemap({
                             if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
                           }
                         }}
-                        onMouseEnter={() => { if (!tappedStock) handleStockHover(r.stock, r.sectorName); }}
+                        onMouseEnter={() => { if (!tappedStock) handleStockHover(r.stock, r.sectorName, r.x + halfGap + tileW, r.y + halfGap); }}
                         onMouseLeave={() => { if (!tappedStock) handleStockLeave(); }}
                         style={{ cursor: 'pointer' }}
                       >
@@ -798,13 +804,15 @@ function Treemap({
       </svg>
       </div>
 
-      {/* Stationary sub-sector popup. Drag the header to move; scroll the list to browse. */}
-      {tappedStock && popupSubSector && (
+      {/* Sub-sector popup. Hover shows a non-interactive preview anchored to the tile;
+          click/tap pins it (interactive — drag the header to move, scroll the list). */}
+      {(tappedStock || (hoveredStock && hoveredSubSector)) && popupSubSector && (
         <div
           role="dialog"
           aria-label="Industry stocks"
-          className="absolute z-50 rounded-xl shadow-lg shadow-black/25 dark:shadow-2xl dark:shadow-black/60 border text-xs flex flex-col pointer-events-auto
-            bg-white dark:bg-[#1a1a1e] border-gray-200/60 dark:border-white/10"
+          className={`absolute z-50 rounded-xl shadow-lg shadow-black/25 dark:shadow-2xl dark:shadow-black/60 border text-xs flex flex-col
+            bg-white dark:bg-[#1a1a1e] border-gray-200/60 dark:border-white/10
+            ${tappedStock ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
             left: Math.max(4, Math.min(tooltipPos.x + 16, dims.width - 264)),
             top: Math.max(4, Math.min(tooltipPos.y - 40, Math.max(4, dims.height - 120))),
@@ -841,14 +849,14 @@ function Treemap({
           {!isThemesDefault && (
             <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5 shrink-0">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{hoveredStock?.ticker ?? tappedStock.stock.ticker}</span>
-                <span className={`text-sm font-bold ${(hoveredStock ?? tappedStock.stock).noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero((hoveredStock ?? tappedStock.stock).changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock.stock).changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {(hoveredStock ?? tappedStock.stock).noTradeData ? '--' : `${(hoveredStock ?? tappedStock.stock).changePercent >= 0 ? '+' : ''}${(hoveredStock ?? tappedStock.stock).changePercent.toFixed(2)}%`}
+                <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{(hoveredStock?.ticker ?? tappedStock?.stock.ticker)!}</span>
+                <span className={`text-sm font-bold ${(hoveredStock ?? tappedStock?.stock)!.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero((hoveredStock ?? tappedStock?.stock)!.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {(hoveredStock ?? tappedStock?.stock)!.noTradeData ? '--' : `${(hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? '+' : ''}${(hoveredStock ?? tappedStock?.stock)!.changePercent.toFixed(2)}%`}
                 </span>
               </div>
               <div className="flex items-center justify-between mt-0.5">
-                <span className="text-rh-light-muted dark:text-rh-muted truncate mr-2">{(hoveredStock ?? tappedStock.stock).name}</span>
-                <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency((hoveredStock ?? tappedStock.stock).price)}</span>
+                <span className="text-rh-light-muted dark:text-rh-muted truncate mr-2">{(hoveredStock ?? tappedStock?.stock)!.name}</span>
+                <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency((hoveredStock ?? tappedStock?.stock)!.price)}</span>
               </div>
             </div>
           )}
@@ -858,8 +866,8 @@ function Treemap({
             <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5 shrink-0">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-rh-light-muted dark:text-rh-muted">Avg change</span>
-                <span className={`text-sm font-bold ${isEffectivelyZero((hoveredStock ?? tappedStock.stock).changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock.stock).changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-                  {(hoveredStock ?? tappedStock.stock).changePercent >= 0 ? '+' : ''}{(hoveredStock ?? tappedStock.stock).changePercent.toFixed(2)}%
+                <span className={`text-sm font-bold ${isEffectivelyZero((hoveredStock ?? tappedStock?.stock)!.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  {(hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? '+' : ''}{(hoveredStock ?? tappedStock?.stock)!.changePercent.toFixed(2)}%
                 </span>
               </div>
               <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
@@ -873,7 +881,7 @@ function Treemap({
             {[...popupSubSector.subSector.stocks]
               .sort((a, b) => b.marketCapB - a.marketCapB)
               .map((s) => {
-                const isActive = !isThemesDefault && s.ticker === (hoveredStock?.ticker ?? tappedStock.stock.ticker);
+                const isActive = !isThemesDefault && s.ticker === ((hoveredStock?.ticker ?? tappedStock?.stock.ticker)!);
                 return (
                   <div
                     key={s.ticker}
