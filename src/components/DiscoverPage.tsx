@@ -2107,7 +2107,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
       {/* Top-level tab bar */}
       <div className="flex gap-1 p-1 w-full overflow-x-auto no-scrollbar">
         <button onClick={() => setSubTab('sectors')} className={tabClass(subTab === 'sectors')}>
-          Sectors
+          Heatmap
         </button>
         <button onClick={() => setSubTab('top100')} className={tabClass(subTab === 'top100')}>
           Top 100
@@ -2134,7 +2134,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
           {/* Inner sector tabs */}
           <div className="flex gap-0.5 p-0.5 w-fit">
             <button onClick={() => setSectorInner('heatmap')} className={innerTabClass(sectorInner === 'heatmap')}>
-              Heatmap
+              Sectors
             </button>
             <button onClick={() => setSectorInner('performance')} className={innerTabClass(sectorInner === 'performance')}>
               Performance
