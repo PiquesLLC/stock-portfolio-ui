@@ -2062,21 +2062,6 @@ export default function App() {
                 onSearchQueryChange={setHoldingsSearchQuery}
                 viewMode={holdingsViewMode}
                 onViewModeChange={setHoldingsViewMode}
-                headerSlot={
-                  // Desktop only: relocated Compare:SPY toggle. Lives in the
-                  // HOLDINGS toolbar instead of the chart strip per the
-                  // May 3 layout request.
-                  <button
-                    onClick={() => setChartShowBenchmark(prev => !prev)}
-                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
-                      chartShowBenchmark
-                        ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
-                        : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
-                    }`}
-                  >
-                    <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
-                  </button>
-                }
               />
               {(portfolio?.options?.length ?? 0) > 0 && (
                 <div className="px-3 sm:px-6">

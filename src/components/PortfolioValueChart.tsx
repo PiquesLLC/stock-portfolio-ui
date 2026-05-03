@@ -1889,7 +1889,7 @@ export function PortfolioValueChart({
             {chartToolbar}
             <button
               onClick={() => setShowBenchmark(prev => !prev)}
-              className={`hidden items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+              className={`hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
                 showBenchmark
                   ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
                   : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
