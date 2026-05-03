@@ -178,13 +178,12 @@ export function HoldingsTable({
   });
   const [showDisplayMenu, setShowDisplayMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [searchQueryInternal, setSearchQueryInternal] = useState('');
-  // Controlled-or-uncontrolled hybrid: external prop wins when provided.
-  const searchQuery = searchQueryProp ?? searchQueryInternal;
-  const setSearchQuery = (q: string) => {
-    if (onSearchQueryChange) onSearchQueryChange(q);
-    else setSearchQueryInternal(q);
-  };
+  // No UI surface for search any more (input was removed on both mobile +
+  // desktop). The filter logic still keys off `searchQuery` so external
+  // callers can re-introduce a controlled input via the prop without code
+  // changes here. Reference onSearchQueryChange to silence unused-prop lint.
+  void onSearchQueryChange;
+  const searchQuery = searchQueryProp ?? '';
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin', logAsTrade: true });

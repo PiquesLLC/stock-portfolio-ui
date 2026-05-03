@@ -291,7 +291,10 @@ export default function App() {
   // either component (search/toggle in chart strip on desktop, Compare:SPY
   // in HoldingsTable toolbar). On mobile each component falls back to its
   // own internal state — these are only authoritative on lg+.
-  const [holdingsSearchQuery, setHoldingsSearchQuery] = useState('');
+  // Search input was removed from both viewports — keep an empty string
+  // so HoldingsTable's filter logic stays a no-op (setter omitted; nothing
+  // drives a change today).
+  const holdingsSearchQuery = '';
   const [holdingsViewMode, setHoldingsViewMode] = useState<'compact' | 'detailed'>('compact');
   const [chartShowBenchmark, setChartShowBenchmark] = useState(false);
   const {
@@ -1859,9 +1862,9 @@ export default function App() {
                 showBenchmark={chartShowBenchmark}
                 onShowBenchmarkChange={setChartShowBenchmark}
                 chartToolbar={
-                  // Desktop only: Simple/Detailed toggle + Filter ticker input,
-                  // relocated from the HOLDINGS toolbar to the chart's period
-                  // strip per the May 3 layout request.
+                  // Desktop only: Simple/Detailed view-mode toggle in the
+                  // chart's period strip. Filter ticker search removed per
+                  // user request — left a void here intentionally.
                   <div className="hidden lg:flex items-center gap-2 pointer-events-auto">
                     <div className="flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
                       <button
@@ -1874,30 +1877,6 @@ export default function App() {
                         onClick={() => setHoldingsViewMode('detailed')}
                         className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
                       >Detailed</button>
-                    </div>
-                    <div className="relative w-[170px]">
-                      <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/50 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      <input
-                        type="text"
-                        value={holdingsSearchQuery}
-                        onChange={(e) => setHoldingsSearchQuery(e.target.value)}
-                        placeholder="Filter ticker..."
-                        className="w-full pl-8 pr-8 py-1 rounded-lg border border-gray-200/40 dark:border-white/[0.08] bg-white/60 dark:bg-white/[0.04] text-[12px] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:ring-2 focus:ring-rh-green/20 focus:border-rh-green/30"
-                      />
-                      {holdingsSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => setHoldingsSearchQuery('')}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
-                          aria-label="Clear holdings filter"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
                     </div>
                   </div>
                 }
@@ -2059,7 +2038,6 @@ export default function App() {
                 hideEmptyState={!!selectedPortfolioId && (portfolio?.holdings?.length ?? 0) === 0}
                 actionsRef={holdingsActionsRef}
                 searchQuery={holdingsSearchQuery}
-                onSearchQueryChange={setHoldingsSearchQuery}
                 viewMode={holdingsViewMode}
                 onViewModeChange={setHoldingsViewMode}
               />
