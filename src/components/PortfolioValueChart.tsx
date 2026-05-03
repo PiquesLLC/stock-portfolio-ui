@@ -1830,7 +1830,7 @@ export function PortfolioValueChart({
             desktop). Both groups baseline-align (items-center). */}
         <div className="flex items-center justify-between z-10 px-3 mt-1 mb-2 lg:px-0 lg:-mt-[10px] lg:mb-3" data-capture-skip="true">
           {/* Period buttons — left, flush to chart's left edge */}
-          <div className="flex items-center gap-0 pointer-events-auto">
+          <div className="flex items-center gap-0 pointer-events-auto lg:-ml-[3px]">
             {PERIODS.map(period => {
               const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
               const isActive = selectedPeriod === period;
