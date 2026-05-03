@@ -1828,7 +1828,7 @@ export function PortfolioValueChart({
             previously absolutely positioned with reserved bottom padding,
             but that pushed the holdings list too far below the chart on
             desktop). Both groups baseline-align (items-center). */}
-        <div className="flex items-center justify-between z-10 px-3 mt-1 lg:px-0 lg:mt-[3px]" data-capture-skip="true">
+        <div className="flex items-center justify-between z-10 px-3 mt-1 mb-2 lg:px-0 lg:mt-0 lg:mb-3" data-capture-skip="true">
           {/* Period buttons — left, flush to chart's left edge */}
           <div className="flex items-center gap-0 pointer-events-auto">
             {PERIODS.map(period => {
