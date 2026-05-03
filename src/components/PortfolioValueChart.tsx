@@ -1848,7 +1848,7 @@ export function PortfolioValueChart({
           {/* Period buttons — left, flush to chart's left edge.
               Nudged ~8px left on desktop so "1D" lines up with the TICKER
               column / first holding's logo below. */}
-          <div className="flex items-center gap-0 pointer-events-auto -ml-[6px] lg:-ml-[10px]">
+          <div className="flex items-center gap-0 pointer-events-auto -ml-[6px] lg:ml-[6px]">
             {PERIODS.map(period => {
               const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
               const isActive = selectedPeriod === period;
