@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import type { Holding } from '../types';
 import { getHeatColor } from '../utils/format';
-import { getPrices, type PriceData } from '../api';
+import { getPrices, getAccountHistory, type PriceData, type AccountHistoryEntry } from '../api';
 
 interface Props {
   holdings?: Holding[];
@@ -43,6 +43,19 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
     fetchOnce();
     const id = window.setInterval(fetchOnce, 60_000);
     return () => { cancelled = true; window.clearInterval(id); };
+  }, []);
+
+  // Recent Activity — last 5 events (trades, cash moves, adjustments).
+  // Server merges ActivityEvent + PortfolioTrade + LedgerEvent into a unified
+  // shape with normalized category + description. Refreshed on mount only;
+  // not polling since events are user-driven (not market-tick).
+  const [recentActivity, setRecentActivity] = useState<AccountHistoryEntry[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getAccountHistory({ limit: 5 })
+      .then((res) => { if (!cancelled) setRecentActivity(res.entries); })
+      .catch(() => { /* silent — widget hides if empty */ });
+    return () => { cancelled = true; };
   }, []);
 
   const data: { ticker: string; currentValue: number; dayChangePercent: number; dayChange: number }[] =
@@ -265,6 +278,60 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
           </div>
         </div>
       </div>
+
+      {/* RECENT ACTIVITY — last 5 events: buys, sells, dividends, deposits, etc.
+          Hidden when no activity yet (avoids an empty widget for new accounts). */}
+      {recentActivity.length > 0 && (
+        <div className={widgetClass}>
+          <div className={`${sectionLabel} mb-3`}>Recent Activity</div>
+          <div className="space-y-2">
+            {recentActivity.map((entry) => {
+              const isBuy = entry.type === 'buy' || entry.type === 'holding_added';
+              const isSell = entry.type === 'sell' || entry.type === 'holding_removed';
+              const isDividend = entry.type === 'CASH_DIVIDEND' || entry.type === 'DIV_REINVEST';
+              const isCash = entry.category === 'cash';
+              const tone = isBuy
+                ? 'text-rh-green'
+                : isSell
+                  ? 'text-rh-red'
+                  : isDividend
+                    ? 'text-emerald-400'
+                    : 'text-rh-light-muted dark:text-rh-muted';
+              const iconPath = isBuy
+                ? 'M12 4v16m8-8H4' // plus
+                : isSell
+                  ? 'M20 12H4' // minus
+                  : isDividend
+                    ? 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' // dollar
+                    : 'M12 6v6h4'; // generic clock
+              const dateStr = new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              const interactive = entry.ticker && onTickerClick;
+              const Wrapper: React.ElementType = interactive ? 'button' : 'div';
+              return (
+                <Wrapper
+                  key={`${entry.source}-${entry.id}`}
+                  type={interactive ? 'button' : undefined}
+                  onClick={interactive ? () => goTo(entry.ticker!) : undefined}
+                  className={`flex items-start gap-2 w-full text-left ${interactive ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.03] -mx-1 px-1 py-1 rounded-md transition-colors' : ''}`}
+                >
+                  <svg className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${tone}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPath} />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] text-rh-light-text dark:text-rh-text truncate">{entry.description}</div>
+                    <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
+                      {dateStr}
+                      {entry.amount != null && !isCash && entry.shares == null && (
+                        <span className="ml-1.5">{entry.amount >= 0 ? '+' : ''}${Math.abs(entry.amount).toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
+                      )}
+                    </div>
+                  </div>
+                </Wrapper>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
