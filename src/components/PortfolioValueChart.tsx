@@ -1001,7 +1001,7 @@ export function PortfolioValueChart({
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-[5px] sm:pt-5' : 'pt-5'} pb-0 lg:pb-6`} data-capture-id="portfolio-chart">
+    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-[5px] sm:pt-5' : 'pt-5'} pb-0 lg:pb-12`} data-capture-id="portfolio-chart">
       {/* Nala branding — hidden normally, visible only during share captures */}
       <div
         className="absolute bottom-12 right-3 sm:right-6 z-10 pointer-events-none flex items-center gap-2 opacity-0"
