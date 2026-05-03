@@ -866,7 +866,6 @@ export function HoldingsTable({
     <div className="rounded-xl overflow-hidden">
       <div className="px-3 sm:px-4 pb-1 sm:pb-4 pt-0 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
           {hasActiveFilter && (
             <span className="hidden sm:inline text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 whitespace-nowrap">
               {matchCount} match{matchCount === 1 ? '' : 'es'}
