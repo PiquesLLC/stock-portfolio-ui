@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { getMarketHeatmap, getMarketScreener, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
+import { HeatmapMockup } from './HeatmapMockup';
 import { SectorPerformanceChart } from './SectorPerformanceChart';
 import { CongressTradesSection } from './CongressTradesSection';
 import { SectorRotationGraph } from './SectorRotationGraph';
@@ -2156,7 +2157,12 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
           </div>
 
           {sectorInner === 'heatmap' ? (
-            <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
+            // Mockup gate — visit /?mockup=1 to preview the proposed sector
+            // overview + drill-down redesign with mock data. Falls through
+            // to the live HeatmapView for everyone else.
+            (typeof window !== 'undefined' && window.location.search.includes('mockup=1'))
+              ? <HeatmapMockup onTickerClick={onTickerClick} />
+              : <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
           ) : sectorInner === 'performance' ? (
             <SectorPerformanceChart onTickerClick={onTickerClick} />
           ) : (
