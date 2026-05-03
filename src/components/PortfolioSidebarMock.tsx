@@ -280,7 +280,10 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
       </div>
 
       {/* RECENT ACTIVITY — last 5 events: buys, sells, dividends, deposits, etc.
-          Hidden when no activity yet (avoids an empty widget for new accounts). */}
+          Hidden when no activity yet (avoids an empty widget for new accounts).
+          Verbs + share/price tail are reconstructed client-side from raw fields
+          so the wording matches what users say in real life ("Bought" / "Sold")
+          rather than the server's audit-log phrasing ("Added" / "Removed"). */}
       {recentActivity.length > 0 && (
         <div className={widgetClass}>
           <div className={`${sectionLabel} mb-3`}>Recent Activity</div>
@@ -289,7 +292,6 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
               const isBuy = entry.type === 'buy' || entry.type === 'holding_added';
               const isSell = entry.type === 'sell' || entry.type === 'holding_removed';
               const isDividend = entry.type === 'CASH_DIVIDEND' || entry.type === 'DIV_REINVEST';
-              const isCash = entry.category === 'cash';
               const tone = isBuy
                 ? 'text-rh-green'
                 : isSell
@@ -304,7 +306,27 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
                   : isDividend
                     ? 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' // dollar
                     : 'M12 6v6h4'; // generic clock
-              const dateStr = new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              // Build the line client-side so buys + sells both get the
+              // "Bought/Sold N TICKER @ $X" treatment, regardless of whether
+              // the source was a UI delete (holding_removed, no shares) or a
+              // broker import (sell, has shares).
+              let line: string;
+              if (isBuy || isSell) {
+                const verb = isBuy ? 'Bought' : 'Sold';
+                const sharesPart = entry.shares != null ? ` ${entry.shares}` : '';
+                const tickerPart = entry.ticker ? ` ${entry.ticker}` : '';
+                const pricePart = entry.price != null ? ` @ $${entry.price.toFixed(2)}` : '';
+                line = `${verb}${sharesPart}${tickerPart}${pricePart}`;
+              } else {
+                line = entry.description;
+              }
+              // Date in user's local Pacific Time so events near midnight
+              // don't shift to the wrong calendar day vs the browser TZ.
+              const dateStr = new Date(entry.date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                timeZone: 'America/Los_Angeles',
+              });
               const interactive = entry.ticker && onTickerClick;
               const Wrapper: React.ElementType = interactive ? 'button' : 'div';
               return (
@@ -318,13 +340,8 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPath} />
                   </svg>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12px] text-rh-light-text dark:text-rh-text truncate">{entry.description}</div>
-                    <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
-                      {dateStr}
-                      {entry.amount != null && !isCash && entry.shares == null && (
-                        <span className="ml-1.5">{entry.amount >= 0 ? '+' : ''}${Math.abs(entry.amount).toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
-                      )}
-                    </div>
+                    <div className="text-[12px] text-rh-light-text dark:text-rh-text truncate">{line}</div>
+                    <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">{dateStr}</div>
                   </div>
                 </Wrapper>
               );
