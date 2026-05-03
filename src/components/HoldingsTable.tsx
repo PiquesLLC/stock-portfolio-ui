@@ -40,6 +40,17 @@ interface Props {
   chartPeriod?: import('../types').PortfolioChartPeriod;
   portfolioId?: string;
   hideEmptyState?: boolean;
+  // Optional controlled props — when provided, override the internal state.
+  // Used by App.tsx so the search input + view-mode toggle can be rendered
+  // in the chart's period strip on desktop (state lifted) while the
+  // mobile fallback still uses internal state.
+  searchQuery?: string;
+  onSearchQueryChange?: (q: string) => void;
+  viewMode?: 'compact' | 'detailed';
+  onViewModeChange?: (m: 'compact' | 'detailed') => void;
+  // Slot for arbitrary JSX rendered in the toolbar's right side on desktop
+  // (e.g. App.tsx passes the relocated Compare:SPY toggle here).
+  headerSlot?: React.ReactNode;
 }
 
 type SortKey = 'ticker' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'profitLoss' | 'profitLossPercent' | 'custom';
@@ -110,7 +121,23 @@ function getSortValue(holding: Holding, key: SortKey): string | number {
   return holding[key];
 }
 
-export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance = 0, marginDebt = 0, userId, actionsRef, chartPeriod = '1D', portfolioId, hideEmptyState }: Props) {
+export function HoldingsTable({
+  holdings,
+  onUpdate,
+  onTickerClick,
+  cashBalance = 0,
+  marginDebt = 0,
+  userId,
+  actionsRef,
+  chartPeriod = '1D',
+  portfolioId,
+  hideEmptyState,
+  searchQuery: searchQueryProp,
+  onSearchQueryChange,
+  viewMode: viewModeProp,
+  onViewModeChange,
+  headerSlot,
+}: Props) {
   const { showToast } = useToast();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>(() => {
@@ -135,17 +162,29 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
   const [cashMarginError, setCashMarginError] = useState('');
   const [confirmDeleteTicker, setConfirmDeleteTicker] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
-  const [viewMode, setViewMode] = useLocalStorage<'compact' | 'detailed'>('holdingsView', 'compact', {
+  const [viewModeInternal, setViewModeInternal] = useLocalStorage<'compact' | 'detailed'>('holdingsView', 'compact', {
     serialize: v => v,
     deserialize: v => (v === 'detailed' ? 'detailed' : 'compact'),
   });
+  // Controlled-or-uncontrolled hybrid: external prop wins when provided.
+  const viewMode = viewModeProp ?? viewModeInternal;
+  const setViewMode = (m: 'compact' | 'detailed') => {
+    if (onViewModeChange) onViewModeChange(m);
+    else setViewModeInternal(m);
+  };
   const [displayMetric, setDisplayMetric] = useLocalStorage<DisplayMetric>('holdingsDisplayMetric', 'dayChangePct', {
     serialize: v => v,
     deserialize: v => v as DisplayMetric,
   });
   const [showDisplayMenu, setShowDisplayMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQueryInternal, setSearchQueryInternal] = useState('');
+  // Controlled-or-uncontrolled hybrid: external prop wins when provided.
+  const searchQuery = searchQueryProp ?? searchQueryInternal;
+  const setSearchQuery = (q: string) => {
+    if (onSearchQueryChange) onSearchQueryChange(q);
+    else setSearchQueryInternal(q);
+  };
   const [modalError, setModalError] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [formData, setFormData] = useState({ ticker: '', shares: '', averageCost: '', fundingSource: 'cash' as 'cash' | 'margin', logAsTrade: true });
@@ -834,7 +873,10 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             </span>
           )}
           {/* Desktop: Simple/Detailed toggle */}
-          <div className="hidden md:flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
+          {/* Tablet (md to <lg): inline Simple/Detailed toggle. On lg+ it's
+              hidden here and rendered up in the chart's period strip via the
+              chartToolbar prop wired from App.tsx. */}
+          <div className="hidden md:flex lg:hidden rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
             <button
               type="button"
               onClick={() => setViewMode('compact')}
@@ -1031,10 +1073,10 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               </button>
             </div>
           )}
-          {/* Filter ticker — relocated to the right side of the toolbar so
-              it sits opposite the HOLDINGS label, visually balanced and
-              clear of the chart's period selector above. */}
-          <div className="relative w-[150px] sm:w-[190px]">
+          {/* Filter ticker — visible at <lg only. On lg+ the input is rendered
+              up in the chart's period strip via the chartToolbar prop. */}
+          {headerSlot && <div className="hidden lg:flex items-center gap-2">{headerSlot}</div>}
+          <div className="relative w-[150px] sm:w-[190px] lg:hidden">
             <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/50 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>

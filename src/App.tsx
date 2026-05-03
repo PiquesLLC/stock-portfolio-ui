@@ -286,6 +286,14 @@ export default function App() {
   const [chartMeasurement, setChartMeasurement] = useState<ChartMeasurement | null>(null);
   const [measureStatsView, setMeasureStatsView] = useState<'measure' | 'normal'>('measure');
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
+  // Lifted from HoldingsTable + PortfolioValueChart so the search input,
+  // Simple/Detailed toggle, and Compare:SPY toggle can be rendered in
+  // either component (search/toggle in chart strip on desktop, Compare:SPY
+  // in HoldingsTable toolbar). On mobile each component falls back to its
+  // own internal state — these are only authoritative on lg+.
+  const [holdingsSearchQuery, setHoldingsSearchQuery] = useState('');
+  const [holdingsViewMode, setHoldingsViewMode] = useState<'compact' | 'detailed'>('compact');
+  const [chartShowBenchmark, setChartShowBenchmark] = useState(false);
   const {
     activeTab, setActiveTab,
     viewingStock, setViewingStock,
@@ -1848,7 +1856,51 @@ export default function App() {
                   cashBalance: portfolio.cashBalance,
                   marginDebt: portfolio.marginDebt,
                 }}
-                chartToolbar={undefined}
+                showBenchmark={chartShowBenchmark}
+                onShowBenchmarkChange={setChartShowBenchmark}
+                chartToolbar={
+                  // Desktop only: Simple/Detailed toggle + Filter ticker input,
+                  // relocated from the HOLDINGS toolbar to the chart's period
+                  // strip per the May 3 layout request.
+                  <div className="hidden lg:flex items-center gap-2 pointer-events-auto">
+                    <div className="flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
+                      <button
+                        type="button"
+                        onClick={() => setHoldingsViewMode('compact')}
+                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
+                      >Simple</button>
+                      <button
+                        type="button"
+                        onClick={() => setHoldingsViewMode('detailed')}
+                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
+                      >Detailed</button>
+                    </div>
+                    <div className="relative w-[170px]">
+                      <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/50 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <input
+                        type="text"
+                        value={holdingsSearchQuery}
+                        onChange={(e) => setHoldingsSearchQuery(e.target.value)}
+                        placeholder="Filter ticker..."
+                        className="w-full pl-8 pr-8 py-1 rounded-lg border border-gray-200/40 dark:border-white/[0.08] bg-white/60 dark:bg-white/[0.04] text-[12px] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:ring-2 focus:ring-rh-green/20 focus:border-rh-green/30"
+                      />
+                      {holdingsSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setHoldingsSearchQuery('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                          aria-label="Clear holdings filter"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                }
                 showShareActions
               />}
               </div>
@@ -2006,6 +2058,25 @@ export default function App() {
                 portfolioId={selectedPortfolioId}
                 hideEmptyState={!!selectedPortfolioId && (portfolio?.holdings?.length ?? 0) === 0}
                 actionsRef={holdingsActionsRef}
+                searchQuery={holdingsSearchQuery}
+                onSearchQueryChange={setHoldingsSearchQuery}
+                viewMode={holdingsViewMode}
+                onViewModeChange={setHoldingsViewMode}
+                headerSlot={
+                  // Desktop only: relocated Compare:SPY toggle. Lives in the
+                  // HOLDINGS toolbar instead of the chart strip per the
+                  // May 3 layout request.
+                  <button
+                    onClick={() => setChartShowBenchmark(prev => !prev)}
+                    className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+                      chartShowBenchmark
+                        ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
+                        : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
+                    }`}
+                  >
+                    <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
+                  </button>
+                }
               />
               {(portfolio?.options?.length ?? 0) > 0 && (
                 <div className="px-3 sm:px-6">
