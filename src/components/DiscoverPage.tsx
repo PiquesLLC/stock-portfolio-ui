@@ -1,12 +1,11 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { getMarketHeatmap, getMarketScreener, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
-import { HeatmapMockup } from './HeatmapMockup';
 import { SectorPerformanceChart } from './SectorPerformanceChart';
 import { CongressTradesSection } from './CongressTradesSection';
 import { SectorRotationGraph } from './SectorRotationGraph';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
-import { formatCurrency, isEffectivelyZero, getHeatColor } from '../utils/format';
+import { formatCurrency, isEffectivelyZero, getHeatColor, getHeatColorPolished } from '../utils/format';
 import { formatVolume } from '../utils/stock-chart';
 import { StockLogo } from './StockLogo';
 import { useIsDark } from '../hooks/useIsDark';
@@ -220,6 +219,11 @@ function Treemap({
   stockCount?: number;
   isThemes?: boolean;
 }) {
+  // Polish-mode preview: visit /?polish=1 to swap in rounded-corner tiles
+  // (rx=3) + punchier color saturation. Untouched for everyone else.
+  const polishMode = typeof window !== 'undefined' && window.location.search.includes('polish=1');
+  const heatColor = polishMode ? getHeatColorPolished : getHeatColor;
+  const tileRx = polishMode ? 3 : 0;
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 0, height: 0 });
   const [hoveredStock, setHoveredStock] = useState<HeatmapStock | null>(null);
@@ -700,7 +704,8 @@ function Treemap({
                         >
                           <rect
                             x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
-                            fill={getHeatColor(r.stock.changePercent, isDark)}
+                            fill={heatColor(r.stock.changePercent, isDark)}
+                            rx={tileRx}
                             stroke={isHovered ? '#fff' : tileStroke}
                             strokeWidth={isHovered ? 1.5 : 0.5}
                             opacity={opacity}
@@ -772,7 +777,8 @@ function Treemap({
                       >
                         <rect
                           x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
-                          fill={getHeatColor(r.stock.changePercent, isDark)}
+                          fill={heatColor(r.stock.changePercent, isDark)}
+                          rx={tileRx}
                           stroke={isHovered ? '#fff' : tileStroke}
                           strokeWidth={isHovered ? 1.5 : 0.5}
                           opacity={opacity}
@@ -2157,12 +2163,7 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
           </div>
 
           {sectorInner === 'heatmap' ? (
-            // Mockup gate — visit /?mockup=1 to preview the proposed sector
-            // overview + drill-down redesign with mock data. Falls through
-            // to the live HeatmapView for everyone else.
-            (typeof window !== 'undefined' && window.location.search.includes('mockup=1'))
-              ? <HeatmapMockup onTickerClick={onTickerClick} />
-              : <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
+            <HeatmapView onTickerClick={onTickerClick} initialIndex={heatmapIndex} onIndexChange={handleIndexChange} />
           ) : sectorInner === 'performance' ? (
             <SectorPerformanceChart onTickerClick={onTickerClick} />
           ) : (

@@ -45,16 +45,36 @@ export function formatShortDate(dateStr: string): string {
  * Power curve ensures even small moves (±0.3%) are visible.
  */
 export function getHeatColor(pct: number, dark = true): string {
+  return _heatColor(pct, dark, false);
+}
+
+/**
+ * Polished variant — punchier saturation + faster ramp so tiles read with
+ * more visual depth. Used by the heatmap polish-mode preview (?polish=1).
+ */
+export function getHeatColorPolished(pct: number, dark = true): string {
+  return _heatColor(pct, dark, true);
+}
+
+function _heatColor(pct: number, dark: boolean, polished: boolean): string {
   const c = Math.max(-5, Math.min(5, pct));
-  const [bR, bG, bB] = dark ? [62, 66, 78] : [200, 202, 206];
-  const upTarget = dark ? [18, 170, 36] : [30, 175, 45];
-  const downTarget = dark ? [200, 58, 50] : [215, 55, 50];
+  const [bR, bG, bB] = polished
+    ? (dark ? [50, 54, 64] : [205, 207, 210])
+    : (dark ? [62, 66, 78] : [200, 202, 206]);
+  const upTarget = polished
+    ? (dark ? [10, 200, 35] : [20, 195, 40])
+    : (dark ? [18, 170, 36] : [30, 175, 45]);
+  const downTarget = polished
+    ? (dark ? [225, 50, 45] : [230, 55, 50])
+    : (dark ? [200, 58, 50] : [215, 55, 50]);
+  const denom = polished ? 2.0 : 2.5;
+  const curve = polished ? 0.45 : 0.55;
 
   if (c > 0) {
-    const t = Math.pow(Math.min(c / 2.5, 1), 0.55);
+    const t = Math.pow(Math.min(c / denom, 1), curve);
     return `rgb(${Math.round(bR + (upTarget[0] - bR) * t)},${Math.round(bG + (upTarget[1] - bG) * t)},${Math.round(bB + (upTarget[2] - bB) * t)})`;
   } else if (c < 0) {
-    const t = Math.pow(Math.min(Math.abs(c) / 2.5, 1), 0.55);
+    const t = Math.pow(Math.min(Math.abs(c) / denom, 1), curve);
     return `rgb(${Math.round(bR + (downTarget[0] - bR) * t)},${Math.round(bG + (downTarget[1] - bG) * t)},${Math.round(bB + (downTarget[2] - bB) * t)})`;
   }
   return `rgb(${bR},${bG},${bB})`;
