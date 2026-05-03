@@ -190,18 +190,20 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
 
     let filteredData = rawData;
 
-    // For 1D: filter to today's candles only (ET timezone).
-    // During pre-market, the API returns yesterday's full session data —
-    // without this filter, the sparkline renders yesterday's chart.
+    // For 1D: filter to a single trading session (ET timezone).
+    // We derive the session date from the LAST data point — not "today" — so
+    // weekends, holidays, and post-close periods render Friday's session
+    // instead of collapsing to a flat dashed line. The API already returns
+    // the most recent trading session's candles. Mirrors the same pattern
+    // used by PortfolioValueChart.
     if (period === '1D') {
-      const now = Date.now();
       const etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
-      const todayET = etDateFmt.format(new Date(now));
-      const todayData = rawData.filter(p => etDateFmt.format(new Date(p.time)) === todayET);
+      const lastTime = rawData[rawData.length - 1].time;
+      const sessionET = etDateFmt.format(new Date(lastTime));
+      const sessionData = rawData.filter(p => etDateFmt.format(new Date(p.time)) === sessionET);
 
-      if (todayData.length < 2) {
-        // No today data yet (pre-market hasn't started or no activity).
-        // Show a flat dashed reference line instead of yesterday's chart.
+      if (sessionData.length < 2) {
+        // Not enough data for a meaningful line — render a flat dashed reference.
         const midY = HEIGHT / 2;
         return {
           linePath: `M${PAD},${midY} L${WIDTH - PAD},${midY}`,
@@ -211,7 +213,7 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
           isPreMarketStale: true,
         };
       }
-      filteredData = todayData;
+      filteredData = sessionData;
     }
 
     const sampled = downsamplePoints(filteredData, 48);
@@ -231,15 +233,16 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
       // Always use the full trading day window (4 AM – 8 PM ET) so that
       // pre-market data fills only a proportional slice of the sparkline,
       // matching standard fintech chart behavior.
-      const now = Date.now();
-      const todayET = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(now));
-      const noonUtc = new Date(`${todayET}T12:00:00Z`);
+      // The session date comes from the data, not "now" — see weekend
+      // handling note in the filter block above.
+      const sessionET = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(sampled[sampled.length - 1].time));
+      const noonUtc = new Date(`${sessionET}T12:00:00Z`);
       const noonEtH = parseInt(new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
       }).format(noonUtc).split(':')[0]);
       const etOffsetMs = (noonEtH - 12) * 3600000;
-      const dayStartMs = new Date(`${todayET}T04:00:00Z`).getTime() - etOffsetMs; // 4 AM ET
-      const dayEndMs = new Date(`${todayET}T20:00:00Z`).getTime() - etOffsetMs;   // 8 PM ET
+      const dayStartMs = new Date(`${sessionET}T04:00:00Z`).getTime() - etOffsetMs; // 4 AM ET
+      const dayEndMs = new Date(`${sessionET}T20:00:00Z`).getTime() - etOffsetMs;   // 8 PM ET
       // Use the full trading day window (4 AM – 8 PM ET) so sparklines show
       // proportional progress through the day, with empty space on the right
       const dayRange = Math.max(dayEndMs - dayStartMs, 1);

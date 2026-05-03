@@ -57,6 +57,30 @@ export function DraggableHoldingCard({
     onDragActiveChange?.(isDragActive ? holding.id : null);
   }, [isDragActive, holding.id, onDragActiveChange]);
 
+  // Dynamic touch-action handoff: tap+scroll uses native browser scrolling
+  // (touch-action: manipulation), but the moment the 350ms long-press fires
+  // we need to STOP the browser from claiming subsequent vertical movement
+  // as scroll, otherwise framer-motion's Reorder.Item drag never gets the
+  // y-deltas. Two-pronged: (1) a ref-tracked native touchmove listener with
+  // {passive: false} that preventDefaults while the drag is active —
+  // overrides the in-progress gesture; (2) the inline touchAction style
+  // also flips to 'none' so subsequent touches start in drag mode.
+  const cardRef = useRef<HTMLLIElement>(null);
+  const isDragActiveRef = useRef(false);
+  useEffect(() => { isDragActiveRef.current = isDragActive; }, [isDragActive]);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const stopBrowserScroll = (e: TouchEvent) => {
+      if (isDragActiveRef.current && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+    el.addEventListener('touchmove', stopBrowserScroll, { passive: false });
+    return () => el.removeEventListener('touchmove', stopBrowserScroll);
+  }, []);
+
   const isUnavailable = holding.priceUnavailable;
   const hasValidPrice = !isUnavailable && holding.currentPrice > 0;
   const metric = hasValidPrice ? getMetric(holding, displayMetric) : null;
@@ -110,13 +134,19 @@ export function DraggableHoldingCard({
 
   return (
     <Reorder.Item
+      ref={cardRef}
       value={holding.id}
       dragListener={false}
       dragControls={dragControls}
       layout
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       style={{
-        touchAction: 'manipulation',
+        // Dynamic: 'manipulation' lets a quick tap-and-drag scroll the page
+        // natively. The moment the long-press fires (350ms still hold) we
+        // flip to 'none' so framer-motion's drag receives the y-deltas. The
+        // companion native touchmove listener (see useEffect above) calls
+        // preventDefault to also halt the in-progress gesture mid-stream.
+        touchAction: isDragActive ? 'none' : 'manipulation',
         position: 'relative',
         zIndex: isDragActive ? 50 : 'auto',
         WebkitUserSelect: 'none',

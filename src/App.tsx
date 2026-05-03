@@ -1566,11 +1566,6 @@ export default function App() {
       </div>
       </div>
 
-      {/* Market indices strip — portfolio, discover, insights only */}
-      {!viewingStock && !settingsView && !creatorView && !adminView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
-        <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
-      )}
-
       {/* Scrolling ticker tape — shown when logged in. Renders even if active
           source is empty so user can tap to cycle to another source. */}
       {isAuthenticated && !viewingStock && !settingsView && !creatorView && !adminView && activeTab !== 'discover' && (
@@ -1581,6 +1576,11 @@ export default function App() {
           onBackgroundClick={handleCycleTickerSource}
           emptyLabel={TICKER_TAPE_SOURCE_LABELS[tickerSource]}
         />
+      )}
+
+      {/* Market indices strip — portfolio, discover, insights only */}
+      {!viewingStock && !settingsView && !creatorView && !adminView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
+        <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
       )}
 
       {/* Pull-to-refresh indicator */}
@@ -1774,7 +1774,7 @@ export default function App() {
                   the chart bottom. Calls the imperative handlers HoldingsTable
                   exposes via actionsRef. */}
               <div
-                className="absolute top-0 right-3 sm:right-6 lg:right-0 z-20 flex items-center gap-2"
+                className="hidden lg:flex absolute top-0 right-0 z-20 items-center gap-2"
                 data-capture-skip="true"
               >
                 <button
@@ -1841,7 +1841,7 @@ export default function App() {
                 onMeasurementChange={(m) => { setChartMeasurement(prev => { if (m && !prev) setMeasureStatsView('measure'); return m; }); }}
                 session={portfolio.session}
                 quotesStale={isStale || !!portfolio.quotesMeta?.anyRepricing || (portfolio.quotesUnavailableCount ?? 0) > 0}
-                mobileTopPadding="normal"
+                mobileTopPadding="tight"
                 portfolioBreakdown={{
                   totalAssets: portfolio.totalAssets,
                   netEquity: portfolio.netEquity,
@@ -1930,8 +1930,10 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Row 1 — Day or measurement dollar change */}
-                <div className="pt-1 pb-3 space-y-2">
+                {/* Row 1 — Day or measurement dollar change. Hidden on mobile;
+                    the desktop sidebar / chart hero already surfaces today's
+                    change, and this block was redundant on narrow viewports. */}
+                <div className="hidden lg:block pt-1 pb-3 space-y-2">
                   <div>
                     <span className="text-xs font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/50">
                       {showMeasure && chartMeasurement ? 'Change' : <Term beginner="Today" advanced="Day" />}

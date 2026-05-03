@@ -600,7 +600,7 @@ export function PortfolioValueChart({
     let maxV = Math.max(...values, startVal);
     if (maxV === minV) { maxV += 1; minV -= 1; }
     const range = maxV - minV;
-    return { paddedMin: minV - range * 0.08, paddedMax: maxV + range * 0.08 };
+    return { paddedMin: minV - range * 0.03, paddedMax: maxV + range * 0.03 };
   }, [points, periodStartValue]);
 
   // For 1D, use time-based positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
@@ -1001,7 +1001,7 @@ export function PortfolioValueChart({
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-0 sm:pt-5' : 'pt-5'} pb-3`} data-capture-id="portfolio-chart">
+    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-[5px] sm:pt-5' : 'pt-5'} pb-0 lg:pb-6`} data-capture-id="portfolio-chart">
       {/* Nala branding — hidden normally, visible only during share captures */}
       <div
         className="absolute bottom-12 right-3 sm:right-6 z-10 pointer-events-none flex items-center gap-2 opacity-0"
@@ -1013,8 +1013,10 @@ export function PortfolioValueChart({
           <div className="text-white/40 text-[9px] leading-tight">Portfolio Intelligence Platform</div>
         </div>
       </div>
-      {/* Fixed-height header area — prevents chart from shifting when measurement state changes */}
-      <div className="mb-5 relative z-10 px-3 sm:px-6" style={{ minHeight: '150px' }} data-capture-hero="true">
+      {/* Fixed-height header area — prevents chart from shifting when measurement state changes.
+          Mobile uses tighter min-height + bottom margin so the hero sits closer to the ticker
+          tape and the chart pulls up. Desktop unchanged. */}
+      <div className="mb-1 sm:mb-5 relative z-10 px-3 sm:px-6 min-h-[100px] sm:min-h-[150px]" data-capture-hero="true">
         {/* Hero value display — always visible */}
         <div>
             {headerLabel && <div className="mb-0.5">{headerLabel}</div>}
@@ -1826,7 +1828,7 @@ export function PortfolioValueChart({
             section can sit closer to the chart instead of below two extra rows.
             Both groups baseline-align (items-center) so the right side mirrors
             the left, and the strip sits flush to the chart container's edges. */}
-        <div className="absolute bottom-3 left-0 right-0 flex items-center justify-between z-10 pointer-events-none" data-capture-skip="true">
+        <div className="flex items-center justify-between z-10 px-3 mt-1 lg:absolute lg:bottom-[6px] lg:left-0 lg:right-0 lg:px-0 lg:mt-0 lg:pointer-events-none" data-capture-skip="true">
           {/* Period buttons — left, flush to chart's left edge */}
           <div className="flex items-center gap-0 pointer-events-auto">
             {PERIODS.map(period => {
@@ -1871,7 +1873,7 @@ export function PortfolioValueChart({
             {chartToolbar}
             <button
               onClick={() => setShowBenchmark(prev => !prev)}
-              className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+              className={`hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
                 showBenchmark
                   ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
                   : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
@@ -1891,7 +1893,7 @@ export function PortfolioValueChart({
           that would create a containing block and break position:fixed. */}
       {showShareActions && user && createPortal(
         <div
-          className="fixed right-6 z-40 flex items-end gap-3"
+          className="fixed right-4 z-40 hidden lg:flex items-end gap-2 lg:right-6 lg:gap-3"
           style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))' }}
           data-capture-skip="true"
         >

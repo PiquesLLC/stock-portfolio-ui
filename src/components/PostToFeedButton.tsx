@@ -140,11 +140,11 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
       <button
         onClick={handleOpen}
         className={isFab
-          ? `w-14 h-14 lg:w-11 lg:h-11 rounded-full bg-rh-green text-black hover:brightness-110 active:scale-95 flex items-center justify-center shadow-xl shadow-rh-green/30 transition-all ${className || ''}`
+          ? `w-11 h-11 rounded-full bg-rh-green text-black hover:brightness-110 active:scale-95 flex items-center justify-center shadow-xl shadow-rh-green/30 transition-all ${className || ''}`
           : `flex items-center gap-1.5 text-rh-light-muted dark:text-rh-muted hover:text-rh-green transition-colors ${className || ''}`}
         title="Post to Feed"
       >
-        <svg className={isFab ? 'w-6 h-6 lg:w-5 lg:h-5' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={isFab ? 2.2 : 1.5}>
+        <svg className={isFab ? 'w-5 h-5' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={isFab ? 2.2 : 1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
         </svg>
       </button>

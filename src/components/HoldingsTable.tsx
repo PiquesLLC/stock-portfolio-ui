@@ -161,8 +161,6 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       return stored ? JSON.parse(stored) : [];
     } catch { return []; }
   });
-  const [reorderHintShown, setReorderHintShown] = useLocalStorage('holdingsReorderHintShown', false);
-  const showReorderHint = !reorderHintShown;
 
   // Extract held tickers for autocomplete boost
   const heldTickers = useMemo(() => holdings.map(h => h.ticker), [holdings]);
@@ -348,11 +346,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
     if (typeof window !== 'undefined') {
       localStorage.setItem(customOrderKey, JSON.stringify(newOrder));
     }
-    // Dismiss the reorder hint
-    if (showReorderHint) {
-      setReorderHintShown(true);
-    }
-  }, [customOrderKey, showReorderHint, setReorderHintShown]);
+  }, [customOrderKey]);
 
   // Reconcile custom order when holdings change (add/remove)
   useEffect(() => {
@@ -831,7 +825,7 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
 
   return (
     <div className="rounded-xl overflow-hidden">
-      <div className="px-3 sm:px-4 pb-4 pt-2 flex items-center justify-between gap-3">
+      <div className="px-3 sm:px-4 pb-1 sm:pb-4 pt-0 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
           <div className="relative w-[150px] sm:w-[190px]">
@@ -1001,44 +995,70 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
             </div>
           </div>
         </div>
-        {!actionsRef && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {/* Mobile: tucked-away icon buttons. Right side of the HOLDINGS toolbar,
+              next to the filter / sort / gear cluster. Desktop renders the
+              full-text versions elsewhere (App.tsx top-right of chart for
+              actionsRef callers, or the lg:flex block below for fallback). */}
+          <div className="flex items-center gap-1 lg:hidden">
             <button
               type="button"
               onClick={handleOpenCashMargin}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
-                text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+              title="Cash & Margin"
+              aria-label="Cash & Margin"
+              className="p-1.5 rounded-lg text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Cash & Margin
             </button>
             <button
-              ref={addStockButtonRef}
               type="button"
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold
-                hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
+              title="Add Stock"
+              aria-label="Add Stock"
+              className="p-1.5 rounded-lg bg-rh-green text-black hover:bg-green-600 transition-colors"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
-              Add Stock
             </button>
           </div>
-        )}
+          {/* Desktop fallback: full-text buttons for callers that don't hoist
+              actions (e.g. embedded HoldingsTable usage). When App.tsx provides
+              actionsRef, it renders its own desktop buttons at the chart's
+              top-right and this branch stays hidden. */}
+          {!actionsRef && (
+            <div className="hidden lg:flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleOpenCashMargin}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
+                  text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Cash & Margin
+              </button>
+              <button
+                ref={addStockButtonRef}
+                type="button"
+                onClick={handleOpenAdd}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rh-green text-black font-semibold
+                  hover:bg-green-600 transition-all duration-150 text-xs hover:scale-[1.02]"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Stock
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       {/* ── Mobile Card List ──────────────────────────────────────── */}
       <div className="md:hidden">
-        {showReorderHint && !hasActiveFilter && customOrder.length === 0 && holdings.length > 1 && (
-          <div className="flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            Press and hold to reorder
-          </div>
-        )}
         {hasActiveFilter && matchCount === 0 && (
           <div className="py-2 text-center text-[11px] text-rh-light-muted dark:text-rh-muted">
             No tickers match "{searchQuery.trim()}" yet.
