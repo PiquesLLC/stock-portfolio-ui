@@ -828,30 +828,6 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
       <div className="px-3 sm:px-4 pb-1 sm:pb-4 pt-0 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
-          <div className="relative w-[150px] sm:w-[190px]">
-            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/50 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter ticker..."
-              className="w-full pl-8 pr-8 py-1.5 rounded-lg border border-gray-200/40 dark:border-white/[0.08] bg-white/60 dark:bg-white/[0.04] text-[12px] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:ring-2 focus:ring-rh-green/20 focus:border-rh-green/30"
-            />
-            {hasActiveFilter && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
-                aria-label="Clear holdings filter"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
           {hasActiveFilter && (
             <span className="hidden sm:inline text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 whitespace-nowrap">
               {matchCount} match{matchCount === 1 ? '' : 'es'}
@@ -1055,6 +1031,33 @@ export function HoldingsTable({ holdings, onUpdate, onTickerClick, cashBalance =
               </button>
             </div>
           )}
+          {/* Filter ticker — relocated to the right side of the toolbar so
+              it sits opposite the HOLDINGS label, visually balanced and
+              clear of the chart's period selector above. */}
+          <div className="relative w-[150px] sm:w-[190px]">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/50 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter ticker..."
+              className="w-full pl-8 pr-8 py-1.5 rounded-lg border border-gray-200/40 dark:border-white/[0.08] bg-white/60 dark:bg-white/[0.04] text-[12px] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:ring-2 focus:ring-rh-green/20 focus:border-rh-green/30"
+            />
+            {hasActiveFilter && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                aria-label="Clear holdings filter"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
       {/* ── Mobile Card List ──────────────────────────────────────── */}
