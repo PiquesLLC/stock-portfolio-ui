@@ -1989,24 +1989,12 @@ export default function App() {
               </div>
               );
             })()}
-            </div>
-            {/* end left column */}
-            </div>
 
-            {/* Right column: analytics sidebar (lg+ only) */}
-            {portfolio && portfolio.holdings.length > 0 && (
-              <PortfolioSidebarMock
-                holdings={portfolio.holdings}
-                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
-                portfolioDayChangePct={portfolio.dayChangePercent}
-              />
-            )}
-
-            </div>
-            )}
-            {/* end 2-col flex container */}
-
-            <div className="-mx-3 sm:-mx-6 space-y-8">
+            {/* Holdings section — moved INSIDE the left column so the toolbar
+                (HOLDINGS label, search, action buttons) stays within the chart
+                column width on desktop instead of stretching across the page
+                into the sidebar area. Mobile is unaffected (stacks normally). */}
+            <div className="-mx-3 sm:-mx-6 lg:mx-0 space-y-8 mt-6">
               <HoldingsTable
                 holdings={portfolio?.holdings ?? []}
                 onUpdate={handleUpdate}
@@ -2031,6 +2019,22 @@ export default function App() {
                 <PerformanceSummary refreshTrigger={summaryRefreshTrigger} portfolioId={selectedPortfolioId} />
               )}
             </div>
+            </div>
+            {/* end left column */}
+            </div>
+
+            {/* Right column: analytics sidebar (lg+ only) */}
+            {portfolio && portfolio.holdings.length > 0 && (
+              <PortfolioSidebarMock
+                holdings={portfolio.holdings}
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                portfolioDayChangePct={portfolio.dayChangePercent}
+              />
+            )}
+
+            </div>
+            )}
+            {/* end 2-col flex container */}
 
           </>
         )}
