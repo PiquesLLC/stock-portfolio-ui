@@ -1128,7 +1128,7 @@ export function HoldingsTable({
       </div>
 
       {/* ── Desktop Table ─────────────────────────────────────────── */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto no-scrollbar">
         {hasActiveFilter && matchCount === 0 && (
           <div className="py-4 text-center text-[11px] text-rh-light-muted dark:text-rh-muted">
             No tickers match "{searchQuery.trim()}" yet. Your holdings remain visible for context.
