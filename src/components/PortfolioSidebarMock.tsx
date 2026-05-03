@@ -141,7 +141,7 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
                     type="button"
                     onClick={() => goTo(h.ticker)}
                     style={{ flexGrow: h.currentValue, backgroundColor: getHeatColor(h.dayChangePercent, true) }}
-                    className="flex flex-col items-center justify-center text-white px-1 overflow-hidden rounded-sm cursor-pointer hover:brightness-110 active:brightness-95 transition-[filter] outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+                    className="flex flex-col items-center justify-center text-white px-1 overflow-hidden rounded-md cursor-pointer hover:brightness-110 active:brightness-95 transition-[filter] outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                   >
                     <span className="text-[11px] font-bold truncate" style={{ textShadow: '0 0 2px rgba(0,0,0,0.85)' }}>{h.ticker}</span>
                     <span className="text-[9px] opacity-90" style={{ textShadow: '0 0 2px rgba(0,0,0,0.85)' }}>
@@ -158,7 +158,7 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
                       type="button"
                       onClick={() => goTo(h.ticker)}
                       style={{ flexGrow: h.currentValue, backgroundColor: getHeatColor(h.dayChangePercent, true) }}
-                      className="flex flex-col items-center justify-center text-white px-1 overflow-hidden rounded-sm cursor-pointer hover:brightness-110 active:brightness-95 transition-[filter] outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+                      className="flex flex-col items-center justify-center text-white px-1 overflow-hidden rounded-md cursor-pointer hover:brightness-110 active:brightness-95 transition-[filter] outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                     >
                       <span className="text-[11px] font-bold truncate" style={{ textShadow: '0 0 2px rgba(0,0,0,0.85)' }}>{h.ticker}</span>
                       <span className="text-[9px] opacity-90" style={{ textShadow: '0 0 2px rgba(0,0,0,0.85)' }}>
