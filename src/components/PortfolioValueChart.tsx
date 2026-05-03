@@ -1845,8 +1845,10 @@ export function PortfolioValueChart({
             but that pushed the holdings list too far below the chart on
             desktop). Both groups baseline-align (items-center). */}
         <div className="flex items-center justify-between z-10 px-3 mt-1 mb-2 lg:px-0 lg:-mt-[10px] lg:mb-3" data-capture-skip="true">
-          {/* Period buttons — left, flush to chart's left edge */}
-          <div className="flex items-center gap-0 pointer-events-auto lg:-ml-[3px]">
+          {/* Period buttons — left, flush to chart's left edge.
+              Nudged ~8px left on desktop so "1D" lines up with the TICKER
+              column / first holding's logo below. */}
+          <div className="flex items-center gap-0 pointer-events-auto lg:-ml-[10px]">
             {PERIODS.map(period => {
               const isLocked = userPlan === 'free' && !FREE_PERIODS.has(period);
               const isActive = selectedPeriod === period;
@@ -1871,7 +1873,7 @@ export function PortfolioValueChart({
                 >
                   {period}
                   {isActive && (
-                    <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full ${isGain ? 'bg-rh-green' : 'bg-rh-red'}`} />
+                    <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full ${isGain ? 'bg-rh-green' : 'bg-rh-red'}`} />
                   )}
                   {isLocked && (
                     <svg className="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
