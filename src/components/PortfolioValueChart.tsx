@@ -1001,7 +1001,7 @@ export function PortfolioValueChart({
   }, [isIdle]); // Removed pathD dependency - animation persists through data updates
 
   return (
-    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-[5px] sm:pt-5' : 'pt-5'} pb-0 lg:pb-12`} data-capture-id="portfolio-chart">
+    <div className={`relative ${mobileTopPadding === 'tight' ? 'pt-[5px] sm:pt-5' : 'pt-5'} pb-0`} data-capture-id="portfolio-chart">
       {/* Nala branding — hidden normally, visible only during share captures */}
       <div
         className="absolute bottom-12 right-3 sm:right-6 z-10 pointer-events-none flex items-center gap-2 opacity-0"
@@ -1824,11 +1824,11 @@ export function PortfolioValueChart({
         })()}
 
         {/* Bottom controls strip — period selector + compare/hint/toolbar.
-            Absolutely positioned at the chart container's bottom so the holdings
-            section can sit closer to the chart instead of below two extra rows.
-            Both groups baseline-align (items-center) so the right side mirrors
-            the left, and the strip sits flush to the chart container's edges. */}
-        <div className="flex items-center justify-between z-10 px-3 mt-1 lg:absolute lg:bottom-[6px] lg:left-0 lg:right-0 lg:px-0 lg:mt-0 lg:pointer-events-none" data-capture-skip="true">
+            Renders in normal flow as a sibling below the chart layer (was
+            previously absolutely positioned with reserved bottom padding,
+            but that pushed the holdings list too far below the chart on
+            desktop). Both groups baseline-align (items-center). */}
+        <div className="flex items-center justify-between z-10 px-3 mt-1 lg:px-0 lg:mt-2" data-capture-skip="true">
           {/* Period buttons — left, flush to chart's left edge */}
           <div className="flex items-center gap-0 pointer-events-auto">
             {PERIODS.map(period => {
