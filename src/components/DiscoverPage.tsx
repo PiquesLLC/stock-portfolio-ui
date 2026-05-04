@@ -212,12 +212,19 @@ function Treemap({
   highlightedSector,
   stockCount,
   isThemes,
+  inSwipe,
 }: {
   sectors: HeatmapSector[];
   onTickerClick: (ticker: string) => void;
   highlightedSector?: string | null;
   stockCount?: number;
   isThemes?: boolean;
+  // When wrapped by SwipeOrSingleTreemap, horizontal touch pan must escape
+  // to the parent scroll-snap container so the user can swipe between pages.
+  // The treemap's default `touch-action: pan-y` blocks that — flip to
+  // `pan-x pan-y` when in swipe mode so the browser passes horizontal
+  // gestures up to the snap container.
+  inSwipe?: boolean;
 }) {
   // Polish-mode preview: visit /?polish=1 to swap in rounded-corner tiles
   // (rx=3) + punchier color saturation. Untouched for everyone else.
@@ -455,7 +462,7 @@ function Treemap({
         // Double-tap to reset zoom
         if (zoomScale > 1) { setZoomScale(1); }
       }}
-      style={{ touchAction: zoomScale > 1 ? 'none' : 'pan-y', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
+      style={{ touchAction: zoomScale > 1 ? 'none' : (inSwipe ? 'pan-x pan-y' : 'pan-y'), WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
     >
       {/* Back button for themes drilldown */}
       {isThemesDrilldown && drilldownTheme && (
@@ -482,7 +489,7 @@ function Treemap({
         className="block"
         style={{
           background: 'transparent',
-          touchAction: zoomScale > 1 ? 'none' : 'pan-y',
+          touchAction: zoomScale > 1 ? 'none' : (inSwipe ? 'pan-x pan-y' : 'pan-y'),
           WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none',
           transform: zoomScale > 1 ? `scale(${zoomScale})` : undefined,
           transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
@@ -1932,6 +1939,7 @@ function SwipeOrSingleTreemap(props: {
               highlightedSector={props.highlightedSector}
               stockCount={props.stockCount}
               isThemes={props.isThemes}
+              inSwipe
             />
           </div>
         ))}
