@@ -226,11 +226,12 @@ function Treemap({
   // gestures up to the snap container.
   inSwipe?: boolean;
 }) {
-  // Polish-mode preview: visit /?polish=1 to swap in rounded-corner tiles
-  // (rx=3) + punchier color saturation. Untouched for everyone else.
-  const polishMode = typeof window !== 'undefined' && window.location.search.includes('polish=1');
-  const heatColor = polishMode ? getHeatColorPolished : getHeatColor;
-  const tileRx = polishMode ? 3 : 0;
+  // Polished tile rendering is the default — rounded corners (rx=3) +
+  // punchier color saturation. To opt back to flat squares, append
+  // ?flat=1 (escape hatch).
+  const flatMode = typeof window !== 'undefined' && window.location.search.includes('flat=1');
+  const heatColor = flatMode ? getHeatColor : getHeatColorPolished;
+  const tileRx = flatMode ? 0 : 3;
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 0, height: 0 });
   const [hoveredStock, setHoveredStock] = useState<HeatmapStock | null>(null);
@@ -1894,12 +1895,14 @@ function SwipeOrSingleTreemap(props: {
   stockCount: number;
   isThemes?: boolean;
 }) {
-  const swipeMode =
-    typeof window !== 'undefined' && window.location.search.includes('swipe=1');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(0);
-
-  if (!swipeMode) {
+  // Swipe layout is now the default for all viewports. To opt back to the
+  // single dense treemap, append ?nopipe=1 to the URL (escape hatch for
+  // debugging). Themes view skips swipe — themes aren't sectors.
+  const optOut =
+    typeof window !== 'undefined' && window.location.search.includes('nopipe=1');
+  if (optOut || props.isThemes) {
     return <Treemap {...props} />;
   }
 
@@ -1962,9 +1965,6 @@ function SwipeOrSingleTreemap(props: {
             aria-label={`Go to page ${i + 1}`}
           />
         ))}
-      </div>
-      <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 text-center italic">
-        Swipe mode preview · gated by ?swipe=1
       </div>
     </div>
   );
