@@ -213,6 +213,7 @@ function Treemap({
   stockCount,
   isThemes,
   inSwipe,
+  onSectorDrillDown,
 }: {
   sectors: HeatmapSector[];
   onTickerClick: (ticker: string) => void;
@@ -225,6 +226,11 @@ function Treemap({
   // `pan-x pan-y` when in swipe mode so the browser passes horizontal
   // gestures up to the snap container.
   inSwipe?: boolean;
+  // When provided, sector label clicks call this with the sector name instead
+  // of opening the sector ETF. Used by the desktop dense view to drill into a
+  // single swipe group (preserving ETF access elsewhere — e.g., the dedicated
+  // ETFs sub-tab).
+  onSectorDrillDown?: (sectorName: string) => void;
 }) {
   // Polished tile rendering is the default — rounded corners (rx=3) +
   // punchier color saturation. To opt back to flat squares, append
@@ -508,16 +514,22 @@ function Treemap({
               fill={isDark ? '#0a0a0c' : '#e0e0e0'}
               rx={1}
             />
-            {/* Sector label bar — clicks through to sector ETF */}
+            {/* Sector label bar — drills into the sector's swipe group when
+                onSectorDrillDown is wired (desktop dense view); otherwise
+                clicks through to the sector ETF. */}
             {sr.w > 10 && (() => {
               const etf = SECTOR_ETF[sr.sector.name];
               const isLabelHovered = hoveredSectorLabel === sr.sector.name;
+              const drillHandler = onSectorDrillDown
+                ? () => onSectorDrillDown(sr.sector.name)
+                : etf ? () => onTickerClick(etf) : undefined;
+              const showHover = onSectorDrillDown || !!etf;
               return (
                 <g
-                  onClick={etf ? () => onTickerClick(etf) : undefined}
-                  onMouseEnter={etf ? () => setHoveredSectorLabel(sr.sector.name) : undefined}
-                  onMouseLeave={etf ? () => setHoveredSectorLabel(null) : undefined}
-                  style={etf ? { cursor: 'pointer' } : undefined}
+                  onClick={drillHandler}
+                  onMouseEnter={showHover ? () => setHoveredSectorLabel(sr.sector.name) : undefined}
+                  onMouseLeave={showHover ? () => setHoveredSectorLabel(null) : undefined}
+                  style={drillHandler ? { cursor: 'pointer' } : undefined}
                 >
                   <rect
                     x={sr.x + 2}
@@ -1888,6 +1900,19 @@ const SWIPE_GROUPS: { label: string; match: (name: string) => boolean }[] = [
   { label: 'REIT, Materials, Utilities', match: (n) => /real estate|material|utilit/i.test(n) },
 ];
 
+function useIsLgUp(): boolean {
+  const [lg, setLg] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent) => setLg(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return lg;
+}
+
 function SwipeOrSingleTreemap(props: {
   sectors: HeatmapSector[];
   onTickerClick: (ticker: string) => void;
@@ -1895,26 +1920,126 @@ function SwipeOrSingleTreemap(props: {
   stockCount: number;
   isThemes?: boolean;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  // Swipe layout is now the default for all viewports. To opt back to the
-  // single dense treemap, append ?nopipe=1 to the URL (escape hatch for
-  // debugging). Themes view skips swipe — themes aren't sectors.
-  const optOut =
-    typeof window !== 'undefined' && window.location.search.includes('nopipe=1');
-  if (optOut || props.isThemes) {
+  const isLg = useIsLgUp();
+  // Desktop drill-in: clicking a sector header in the dense view zooms into that
+  // sector's swipe group. Mobile is always swipe-paginated and ignores this.
+  const [drilledGroup, setDrilledGroup] = useState<string | null>(null);
+
+  // If the user resizes from desktop down to mobile while drilled-in, drop the
+  // drill state so they land on the regular swipe carousel rather than seeing
+  // a "Back to overview" button on a layout where there's no overview to go back to.
+  useEffect(() => {
+    if (!isLg && drilledGroup) setDrilledGroup(null);
+  }, [isLg, drilledGroup]);
+
+  // Themes view never paginates — themes aren't sectors.
+  if (props.isThemes) {
     return <Treemap {...props} />;
   }
+  // Escape hatch for debugging the legacy single-dense layout on mobile.
+  const forceDense =
+    typeof window !== 'undefined' && window.location.search.includes('nopipe=1');
 
-  // Build groups, drop any that have no matching sectors in the current data.
-  // Sectors that don't match any group fall into a final "Other" page.
-  const grouped = SWIPE_GROUPS.map((g) => ({
-    label: g.label,
-    sectors: props.sectors.filter((s) => g.match(s.name)),
-  })).filter((g) => g.sectors.length > 0);
-  const matchedNames = new Set(grouped.flatMap((g) => g.sectors.map((s) => s.name)));
-  const orphans = props.sectors.filter((s) => !matchedNames.has(s.name));
-  if (orphans.length > 0) grouped.push({ label: 'Other', sectors: orphans });
+  // Build the swipe groups (dropping empty ones) — needed for both the
+  // pagination carousel and the dense-view drill-down lookup.
+  const grouped = useMemo(() => {
+    const built = SWIPE_GROUPS.map((g) => ({
+      label: g.label,
+      sectors: props.sectors.filter((s) => g.match(s.name)),
+    })).filter((g) => g.sectors.length > 0);
+    const matched = new Set(built.flatMap((g) => g.sectors.map((s) => s.name)));
+    const orphans = props.sectors.filter((s) => !matched.has(s.name));
+    if (orphans.length > 0) built.push({ label: 'Other', sectors: orphans });
+    return built;
+  }, [props.sectors]);
+
+  // Desktop dense view (default on lg+). Sector label clicks drill into the
+  // matching swipe group.
+  if ((isLg || forceDense) && !drilledGroup) {
+    return (
+      <Treemap
+        {...props}
+        onSectorDrillDown={(name) => {
+          const g = grouped.find((g) => g.sectors.some((s) => s.name === name));
+          if (g) setDrilledGroup(g.label);
+        }}
+      />
+    );
+  }
+
+  // Swipe carousel: mobile default, OR desktop after drill-in.
+  // When drilling in from desktop, jump straight to the chosen group's page.
+  const drilledIndex = drilledGroup
+    ? Math.max(0, grouped.findIndex((g) => g.label === drilledGroup))
+    : 0;
+
+  return (
+    <SwipeCarousel
+      grouped={grouped}
+      onTickerClick={props.onTickerClick}
+      highlightedSector={props.highlightedSector}
+      stockCount={props.stockCount}
+      isThemes={props.isThemes}
+      initialIndex={drilledIndex}
+      onExit={drilledGroup ? () => setDrilledGroup(null) : undefined}
+    />
+  );
+}
+
+function SwipeCarousel({
+  grouped,
+  onTickerClick,
+  highlightedSector,
+  stockCount,
+  isThemes,
+  initialIndex,
+  onExit,
+}: {
+  grouped: { label: string; sectors: HeatmapSector[] }[];
+  onTickerClick: (ticker: string) => void;
+  highlightedSector: string | null;
+  stockCount: number;
+  isThemes?: boolean;
+  initialIndex: number;
+  onExit?: () => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(initialIndex);
+
+  // Jump to the requested initial page on mount (used when drilling in from
+  // dense view to land on the user's chosen sector group). The first paint may
+  // not have layout yet — if clientWidth is still 0, defer one rAF so the
+  // measured width is real before we compute scrollLeft, otherwise drill-in
+  // silently lands on page 0. Cap retries so a `display:none` ancestor doesn't
+  // spin forever (rare, but the React Strict Mode double-invoke makes it
+  // worse).
+  useEffect(() => {
+    let raf = 0;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30; // ~500ms at 60fps — drill-in falls back to page 0 if layout never resolves
+    const apply = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      if (el.clientWidth === 0 && attempts++ < MAX_ATTEMPTS) {
+        raf = requestAnimationFrame(apply);
+        return;
+      }
+      el.scrollLeft = initialIndex * Math.max(el.clientWidth, 1);
+      setCurrentPage(initialIndex);
+    };
+    apply();
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [initialIndex]);
+
+  // ESC exits drill-in back to dense view.
+  useEffect(() => {
+    if (!onExit) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onExit();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onExit]);
 
   const onScroll = () => {
     const el = scrollRef.current;
@@ -1925,6 +2050,16 @@ function SwipeOrSingleTreemap(props: {
 
   return (
     <div className="space-y-2">
+      {onExit && (
+        <button
+          type="button"
+          onClick={onExit}
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors"
+        >
+          <span aria-hidden>←</span>
+          <span>Back to overview</span>
+        </button>
+      )}
       <div
         ref={scrollRef}
         onScroll={onScroll}
@@ -1938,10 +2073,10 @@ function SwipeOrSingleTreemap(props: {
             </div>
             <Treemap
               sectors={g.sectors}
-              onTickerClick={props.onTickerClick}
-              highlightedSector={props.highlightedSector}
-              stockCount={props.stockCount}
-              isThemes={props.isThemes}
+              onTickerClick={onTickerClick}
+              highlightedSector={highlightedSector}
+              stockCount={stockCount}
+              isThemes={isThemes}
               inSwipe
             />
           </div>
