@@ -162,6 +162,35 @@ export function HoldingsTable({
   const [cashMarginError, setCashMarginError] = useState('');
   const [confirmDeleteTicker, setConfirmDeleteTicker] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  // Per-row kebab menu (Edit/Delete). Anchor stores the kebab button's screen
+  // rect so the floating menu portals to the right position.
+  const [rowMenu, setRowMenu] = useState<{ holding: Holding; anchor: DOMRect } | null>(null);
+  useEffect(() => {
+    if (!rowMenu) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setRowMenu(null); };
+    // Close on scroll/resize — the captured anchor goes stale immediately
+    // when the row moves underneath, leaving the menu detached in screen space.
+    const onScroll = () => setRowMenu(null);
+    const onResize = () => setRowMenu(null);
+    // Outside-click via document mousedown so clicking a DIFFERENT row's kebab
+    // immediately re-opens the menu (a backdrop would swallow that first click).
+    const onMouseDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      if (t.closest('[data-row-menu]') || t.closest('[data-row-kebab]')) return;
+      setRowMenu(null);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+    document.addEventListener('mousedown', onMouseDown);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('mousedown', onMouseDown);
+    };
+  }, [rowMenu]);
   const [viewModeInternal, setViewModeInternal] = useLocalStorage<'compact' | 'detailed'>('holdingsView', 'compact', {
     serialize: v => v,
     deserialize: v => (v === 'detailed' ? 'detailed' : 'compact'),
@@ -1161,16 +1190,30 @@ export function HoldingsTable({
               <th className={`${viewMode === 'compact' ? 'w-[20%]' : 'hidden lg:table-cell'} ${getHeaderClass('dayChange', 'right')}`} onClick={() => handleSort('dayChange')} title="Sort by today's profit/loss">
                 {getSortIndicator('dayChange')}Day P/L
               </th>
-              <th className={`${viewMode === 'compact' ? 'w-[18%]' : 'hidden md:table-cell'} ${getHeaderClass('dayChangePercent', 'right')}`} onClick={() => handleSort('dayChangePercent')} title="Sort by today's percentage change">
+              <th
+                className={`${viewMode === 'compact' ? 'w-[18%]' : 'hidden md:table-cell'} ${getHeaderClass('dayChangePercent', 'right')}`}
+                style={viewMode === 'compact' ? { paddingRight: '2.5rem' } : undefined}
+                onClick={() => handleSort('dayChangePercent')}
+                title="Sort by today's percentage change"
+              >
                 {getSortIndicator('dayChangePercent')}Day %
               </th>
               <th className={`${viewMode === 'compact' ? 'hidden' : ''} ${getHeaderClass('profitLoss', 'right')}`} onClick={() => handleSort('profitLoss')} title="Sort by total profit/loss" style={{ paddingLeft: '0.5rem', paddingRight: '0.5rem' }}>
                 {getSortIndicator('profitLoss')}<span className="hidden sm:inline">Total </span>P/L
               </th>
-              <th className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} ${getHeaderClass('profitLossPercent', 'right')}`} onClick={() => handleSort('profitLossPercent')} title="Sort by total percentage return">
+              <th
+                className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} ${getHeaderClass('profitLossPercent', 'right')}`}
+                style={{ paddingRight: '2.5rem' }}
+                onClick={() => handleSort('profitLossPercent')}
+                title="Sort by total percentage return"
+              >
                 {getSortIndicator('profitLossPercent')}Total %
               </th>
-              <th className="w-0 px-4 py-3 font-medium"></th>
+              {/* Action column collapsed to zero width — Edit/Delete buttons
+                  are absolutely positioned on the <td> below so the rightmost
+                  data column (Total % / Day %) can extend to the chart strip's
+                  right edge (Compare: SPY alignment). */}
+              <th className="w-0 p-0"></th>
             </tr>
           </thead>
           <motion.tbody
@@ -1189,7 +1232,7 @@ export function HoldingsTable({
                 <motion.tr
                   variants={staggerItem}
                   data-search-match={isSearchMatch ? 'true' : 'false'}
-                  className={`border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''} ${hasActiveFilter ? (isSearchMatch ? 'bg-rh-green/10 ring-1 ring-inset ring-rh-green/20' : 'opacity-55') : ''}`}
+                  className={`relative border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''} ${hasActiveFilter ? (isSearchMatch ? 'bg-rh-green/10 ring-1 ring-inset ring-rh-green/20' : 'opacity-55') : ''}`}
                   onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
                 >
                   <td className="px-4 py-2.5 font-semibold text-rh-light-text dark:text-rh-text">
@@ -1242,7 +1285,7 @@ export function HoldingsTable({
                   }`}>
                     {hasValidPrice ? formatPL(holding.dayChange) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? '' : 'hidden md:table-cell'} px-3 py-3 text-right ${
+                  <td className={`${viewMode === 'compact' ? 'pl-3 pr-10' : 'hidden md:table-cell px-3'} py-3 text-right ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.dayChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
@@ -1254,38 +1297,51 @@ export function HoldingsTable({
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
-                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} px-2 sm:px-3 py-3 text-right font-bold value-transition ${
+                  <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} pl-2 sm:pl-3 pr-10 py-3 text-right font-bold value-transition ${
                     !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
                     holding.profitLossPercent >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>
                     {hasValidPrice ? formatPercent(holding.profitLossPercent) : '—'}
                   </td>
-                  <td className="px-2 sm:px-3 py-3 text-right">
-                    <div className="flex items-center justify-end gap-3 pl-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleEdit(holding); }}
-                        className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white text-sm transition-colors"
-                        title="Edit holding"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(holding.ticker); }}
-                        disabled={deleting === holding.ticker}
-                        className="text-rh-light-muted dark:text-rh-muted hover:text-rh-red disabled:opacity-50 text-sm transition-colors"
-                        title="Delete holding"
-                      >
-                        {deleting === holding.ticker ? (
-                          <span className="text-xs">...</span>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
+                  <td className="w-0 p-0 relative">
+                    <button
+                      type="button"
+                      data-row-kebab
+                      aria-haspopup="menu"
+                      aria-expanded={rowMenu?.holding.id === holding.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setRowMenu({ holding, anchor: rect });
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 6,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 28,
+                        height: 28,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        zIndex: 5,
+                      }}
+                      className={`transition-opacity duration-150 rounded text-rh-light-muted dark:text-white/70 hover:text-rh-light-text dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-white/10 ${
+                        rowMenu?.holding.id === holding.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+                      }`}
+                      aria-label="More actions"
+                      title="More actions"
+                    >
+                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24" style={{ display: 'block' }}>
+                        <circle cx="12" cy="5" r="1.8" />
+                        <circle cx="12" cy="12" r="1.8" />
+                        <circle cx="12" cy="19" r="1.8" />
+                      </svg>
+                    </button>
                   </td>
                 </motion.tr>
                 {viewMode === 'detailed' && hasValidPrice && (
@@ -1311,6 +1367,57 @@ export function HoldingsTable({
           </motion.tbody>
         </table>
       </div>
+
+      {/* Per-row Edit/Delete kebab menu — portaled so it isn't clipped by
+          the table's overflow-x-auto container. Outside-click + scroll/resize
+          dismissal lives in the rowMenu effect above (no backdrop overlay,
+          which would swallow the next kebab click on a different row). */}
+      {rowMenu && createPortal(
+        (() => {
+          const MENU_W = 160;
+          const MENU_H = 80; // approx — 2 items x ~36px + py-1 padding
+          // Flip upward if there isn't room below the kebab.
+          const flipUp = rowMenu.anchor.bottom + MENU_H + 8 > window.innerHeight;
+          const top = flipUp
+            ? Math.max(8, rowMenu.anchor.top - MENU_H - 4)
+            : rowMenu.anchor.bottom + 4;
+          // Right-align the menu's right edge with the kebab's right edge.
+          const left = Math.max(8, Math.min(window.innerWidth - MENU_W - 8, rowMenu.anchor.right - MENU_W));
+          return (
+            <div
+              data-row-menu
+              role="menu"
+              className="fixed z-[80] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl rounded-lg border border-gray-200/60 dark:border-white/[0.08] shadow-xl py-1 min-w-[140px]"
+              style={{ top, left, width: MENU_W }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { handleEdit(rowMenu.holding); setRowMenu(null); }}
+                className="w-full px-3 py-2 text-left text-sm text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] flex items-center gap-2 transition-colors"
+              >
+                <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={deleting === rowMenu.holding.ticker}
+                onClick={() => { handleDelete(rowMenu.holding.ticker); setRowMenu(null); }}
+                className="w-full px-3 py-2 text-left text-sm text-rh-red hover:bg-gray-100 dark:hover:bg-white/[0.06] disabled:opacity-50 flex items-center gap-2 transition-colors"
+              >
+                <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22m-13 0V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+                </svg>
+                {deleting === rowMenu.holding.ticker ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          );
+        })(),
+        document.body
+      )}
 
       {/* Add Stock Modal */}
       {showAddModal && createPortal(
