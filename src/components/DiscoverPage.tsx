@@ -1869,6 +1869,99 @@ function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => vo
 
 /* ─── Heatmap View (original DiscoverPage content) ─── */
 
+// Smart sector groups for the ?swipe=1 prototype. Matches partial sector
+// names (case-insensitive) so it works regardless of whether the API uses
+// short ("Tech") or GICS-standard ("Information Technology") strings.
+const SWIPE_GROUPS: { label: string; match: (name: string) => boolean }[] = [
+  { label: 'Tech & Communication', match: (n) => /tech|communic/i.test(n) },
+  { label: 'Finance', match: (n) => /financ/i.test(n) },
+  { label: 'Healthcare & Consumer', match: (n) => /health|consumer/i.test(n) },
+  { label: 'Industrial & Energy', match: (n) => /industri|energy/i.test(n) },
+  { label: 'REIT, Materials, Utilities', match: (n) => /real estate|material|utilit/i.test(n) },
+];
+
+function SwipeOrSingleTreemap(props: {
+  sectors: HeatmapSector[];
+  onTickerClick: (ticker: string) => void;
+  highlightedSector: string | null;
+  stockCount: number;
+  isThemes?: boolean;
+}) {
+  const swipeMode =
+    typeof window !== 'undefined' && window.location.search.includes('swipe=1');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  if (!swipeMode) {
+    return <Treemap {...props} />;
+  }
+
+  // Build groups, drop any that have no matching sectors in the current data.
+  // Sectors that don't match any group fall into a final "Other" page.
+  const grouped = SWIPE_GROUPS.map((g) => ({
+    label: g.label,
+    sectors: props.sectors.filter((s) => g.match(s.name)),
+  })).filter((g) => g.sectors.length > 0);
+  const matchedNames = new Set(grouped.flatMap((g) => g.sectors.map((s) => s.name)));
+  const orphans = props.sectors.filter((s) => !matchedNames.has(s.name));
+  if (orphans.length > 0) grouped.push({ label: 'Other', sectors: orphans });
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const page = Math.round(el.scrollLeft / Math.max(el.clientWidth, 1));
+    setCurrentPage(page);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {grouped.map((g) => (
+          <div key={g.label} className="flex-shrink-0 w-full snap-center pr-1">
+            <div className="text-[11px] uppercase tracking-wider font-semibold text-rh-light-muted dark:text-rh-muted text-center mb-2">
+              {g.label}
+            </div>
+            <Treemap
+              sectors={g.sectors}
+              onTickerClick={props.onTickerClick}
+              highlightedSector={props.highlightedSector}
+              stockCount={props.stockCount}
+              isThemes={props.isThemes}
+            />
+          </div>
+        ))}
+      </div>
+      {/* Pagination dots */}
+      <div className="flex justify-center gap-1.5 pt-1">
+        {grouped.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => {
+              const el = scrollRef.current;
+              if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+            }}
+            className={`h-1.5 rounded-full transition-all ${
+              i === currentPage
+                ? 'w-5 bg-rh-light-text dark:bg-white'
+                : 'w-1.5 bg-rh-light-muted/40 dark:bg-rh-muted/40 hover:bg-rh-light-muted/60 dark:hover:bg-rh-muted/60'
+            }`}
+            aria-label={`Go to page ${i + 1}`}
+          />
+        ))}
+      </div>
+      <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 text-center italic">
+        Swipe mode preview · gated by ?swipe=1
+      </div>
+    </div>
+  );
+}
+
 function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
   onTickerClick: (ticker: string) => void;
   initialIndex?: MarketIndex;
@@ -2033,7 +2126,13 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
       </div>
 
       <div ref={treemapRef}>
-        <Treemap sectors={data.sectors} onTickerClick={onTickerClick} highlightedSector={highlightedSector} stockCount={allStocks.length} isThemes={index === 'THEMES'} />
+        <SwipeOrSingleTreemap
+          sectors={data.sectors}
+          onTickerClick={onTickerClick}
+          highlightedSector={highlightedSector}
+          stockCount={allStocks.length}
+          isThemes={index === 'THEMES'}
+        />
       </div>
       <ColorLegend />
       {index !== 'THEMES' && <TopMovers stocks={allStocks} onTickerClick={onTickerClick} />}
