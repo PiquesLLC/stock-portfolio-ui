@@ -188,7 +188,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
   }
 
   return (
-    <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 pt-2 pb-6">
+    <div className="pt-2 pb-6">
       {/* Header — title + info + toggle */}
       <div className="flex items-center gap-4 mb-4">
         <div className="flex items-center gap-2">

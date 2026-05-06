@@ -9,7 +9,8 @@ import {
 const POLL_INTERVAL_MS = 5_000;
 const ACTIVE_STATUSES = new Set(['queued', 'submitted', 'in_progress']);
 
-export function useDeepResearchPoller() {
+export function useDeepResearchPoller(opts?: { includeArchived?: boolean }) {
+  const includeArchived = opts?.includeArchived ?? false;
   const [jobs, setJobs] = useState<DeepResearchJobSummary[]>([]);
   const [activeStatuses, setActiveStatuses] = useState<Map<string, DeepResearchJobStatus>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -19,7 +20,7 @@ export function useDeepResearchPoller() {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const resp = await listDeepResearchJobs({ limit: 50 });
+      const resp = await listDeepResearchJobs({ limit: 50, includeArchived });
       if (!mountedRef.current) return;
       setJobs(resp.jobs);
       setError(null);
@@ -43,7 +44,7 @@ export function useDeepResearchPoller() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [includeArchived]);
 
   // Initial fetch
   useEffect(() => {

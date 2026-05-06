@@ -2887,6 +2887,7 @@ export interface DeepResearchJobSummary {
   status: string;
   createdAt: string;
   completedAt: string | null;
+  archived: boolean;
 }
 
 export interface ThinkingSummary {
@@ -2944,12 +2945,13 @@ export async function startDeepResearch(
 }
 
 export async function listDeepResearchJobs(
-  opts?: { page?: number; limit?: number; status?: string }
+  opts?: { page?: number; limit?: number; status?: string; includeArchived?: boolean }
 ): Promise<DeepResearchListResponse> {
   const qs = new URLSearchParams();
   if (opts?.page) qs.set('page', String(opts.page));
   if (opts?.limit) qs.set('limit', String(opts.limit));
   if (opts?.status) qs.set('status', opts.status);
+  if (opts?.includeArchived) qs.set('includeArchived', '1');
   const query = qs.toString();
   return fetchJson<DeepResearchListResponse>(
     `${API_BASE_URL}/nala/deep-research${query ? '?' + query : ''}`
@@ -2981,6 +2983,30 @@ export async function submitDeepResearchFollowUp(
 export async function cancelDeepResearch(jobId: string): Promise<{ id: string; status: string }> {
   return fetchJson(`${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/cancel`, {
     method: 'POST',
+  });
+}
+
+export async function archiveDeepResearch(jobId: string): Promise<{ id: string; archived: boolean }> {
+  return fetchJson(`${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/archive`, {
+    method: 'POST',
+  });
+}
+
+export async function unarchiveDeepResearch(jobId: string): Promise<{ id: string; archived: boolean }> {
+  return fetchJson(`${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}/unarchive`, {
+    method: 'POST',
+  });
+}
+
+export async function deleteDeepResearch(jobId: string): Promise<{ id: string }> {
+  return fetchJson(`${API_BASE_URL}/nala/deep-research/${encodeURIComponent(jobId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function clearFinishedDeepResearch(): Promise<{ deleted: number }> {
+  return fetchJson(`${API_BASE_URL}/nala/deep-research/clear-finished`, {
+    method: 'DELETE',
   });
 }
 

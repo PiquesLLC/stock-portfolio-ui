@@ -536,7 +536,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   // ── Loading Skeleton ────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 py-6">
+      <div className="py-6">
         <div className="animate-pulse space-y-3">
           <div className="pb-5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1">
             <div className="flex items-center gap-3">
@@ -568,7 +568,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
   if (!profile) {
     return (
-      <div className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 py-8 text-center">
+      <div className="py-8 text-center">
         <p className="text-rh-light-muted dark:text-rh-muted text-sm">User not found.</p>
         <button onClick={onBack} className="mt-2 text-rh-green text-sm hover:underline">Go back</button>
       </div>
@@ -584,7 +584,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-[clamp(1080px,64vw,1530px)] mx-auto px-3 sm:px-6 pt-2 pb-6"
+      className="pt-2 pb-6"
     >
       {/* Back button */}
       <motion.button

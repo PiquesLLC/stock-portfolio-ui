@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { HealthScore as HealthScoreType, PortfolioIntelligenceResponse, Holding, PerformanceWindow } from '../types';
 import { getHealthScore, getPortfolioIntelligence, getPortfolio, getPerformanceReport } from '../api';
-import { HealthScore } from './HealthScore';
-import { PortfolioIntelligence } from './PortfolioIntelligence';
+import { IntelligenceTab } from './IntelligenceTab';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
 import PortfolioBriefing from './PortfolioBriefing';
@@ -103,8 +102,13 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   activeTab: InsightsSubTab;
   onTabChange: (id: InsightsSubTab) => void;
 }) {
+  // first:pl-0 / last:pr-0 align the leftmost / rightmost tab text with the
+  // <main> container edge so they line up with the section labels (with green
+  // pill prefix) rendered below by each sub-tab. Per the canonical container
+  // rule in CLAUDE.md, width and padding come from <main> only — these inner
+  // tab buttons should not introduce extra horizontal offset on the edges.
   const btnClass = useCallback((active: boolean) =>
-    `relative px-3 py-2 text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+    `relative px-3 first:pl-0 last:pr-0 py-2 text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
       active
         ? 'text-rh-light-text dark:text-white'
         : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'
@@ -524,8 +528,13 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         <IntelligenceLoader />
       ) : (
         <>
-          <PortfolioIntelligence initialData={intelligence} onTickerClick={onTickerClick} session={session} />
-          {healthScore && <HealthScore data={healthScore} />}
+          <IntelligenceTab
+            initialIntelligence={intelligence}
+            initialHealthScore={healthScore}
+            portfolioId={portfolioId}
+            onTickerClick={onTickerClick}
+            onJumpToTab={(tab) => setSubTab(tab as InsightsSubTab)}
+          />
           <PerformanceReportCard portfolioId={portfolioId} />
         </>
       )}

@@ -252,7 +252,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
   // ── Loading state ──────────────────────────────────────────
   if (profileLoading) {
     return (
-      <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 pt-2 pb-6">
+      <div className="pt-2 pb-6">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
@@ -286,7 +286,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
   // ── Error state ────────────────────────────────────────────
   if (profileError || !profile) {
     return (
-      <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 pt-2 pb-6">
+      <div className="pt-2 pb-6">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
@@ -307,7 +307,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
   const changeColor = activeChange.dollar == null ? 'text-rh-light-muted dark:text-rh-muted' : isActiveUp ? 'text-rh-green' : 'text-rh-red';
 
   return (
-    <div className="max-w-[clamp(1200px,75vw,1800px)] mx-auto px-3 sm:px-6 pt-2 pb-6">
+    <div className="pt-2 pb-6">
       {/* ── Back button ─────────────────────────────────────── */}
       <button
         onClick={onBack}

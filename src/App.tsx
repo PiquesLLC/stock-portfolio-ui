@@ -1577,9 +1577,10 @@ export default function App() {
       </div>
       </div>
 
-      {/* Scrolling ticker tape — shown when logged in. Renders even if active
-          source is empty so user can tap to cycle to another source. */}
-      {isAuthenticated && !viewingStock && !settingsView && !creatorView && !adminView && activeTab !== 'discover' && (
+      {/* Scrolling ticker tape — shown on every authenticated page. Renders
+          even if active source is empty so user can tap to cycle to another
+          source. (Previously hidden on Discover; user wants it everywhere.) */}
+      {isAuthenticated && !viewingStock && !settingsView && !creatorView && !adminView && (
         <TickerTape
           holdings={activeTapeHoldings}
           indices={activeTapeIndices}
@@ -1589,8 +1590,10 @@ export default function App() {
         />
       )}
 
-      {/* Market indices strip — portfolio, discover, insights only */}
-      {!viewingStock && !settingsView && !creatorView && !adminView && (activeTab === 'portfolio' || activeTab === 'discover' || activeTab === 'insights') && (
+      {/* Market indices strip — shown on every authenticated page (was
+          previously gated to portfolio / discover / insights only).
+          Globalized so users always see SPY / Nasdaq / Dow regardless of tab. */}
+      {isAuthenticated && !viewingStock && !settingsView && !creatorView && !adminView && (
         <MarketStrip onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })} />
       )}
 
@@ -1612,10 +1615,18 @@ export default function App() {
 
       <main
         ref={mainRef}
+        // Canonical site container. Portfolio gets the wider variant because
+        // the chart + sidebar need the extra width. Every other tab inherits
+        // the Discover-style narrower clamp + tighter gutter — that container
+        // is the agreed standard for the rest of the app. Page components
+        // MUST NOT add their own max-w-* / mx-auto / px-* wrapper inside this.
+        // Mobile horizontal padding bumped from `px-2`→`px-4` (8→16px) so
+        // content has industry-standard breathing room on phones; tablet/
+        // desktop stays at `sm:px-3` (12px) to preserve heatmap density.
         className={`relative z-10 mx-auto pb-4 pt-0 sm:py-6 space-y-6 sm:space-y-8 ${
-          activeTab === 'discover' && !viewingStock
-            ? 'max-w-[clamp(1080px,62vw,1620px)] px-2 sm:px-3'
-            : 'max-w-[clamp(1080px,78vw,1700px)] px-3 sm:px-6'
+          activeTab === 'portfolio' && !viewingStock
+            ? 'max-w-[clamp(1080px,78vw,1700px)] px-3 sm:px-6'
+            : 'max-w-[clamp(1080px,62vw,1620px)] px-4 sm:px-3'
         }`}
         style={{ willChange: 'transform' }}
       >
