@@ -307,9 +307,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Zoom history for back navigation
   const zoomHistoryRef = useRef<({ startMs: number; endMs: number } | null)[]>([]);
   const zoomHistoryDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Touch pinch/pan state
-  const touchStartRef = useRef<{ distance: number; startMs: number; endMs: number; centerRatio: number } | null>(null);
-  const singleTouchRef = useRef<{ x: number; startMs: number; endMs: number } | null>(null);
   // Touch hover state (press-and-drag crosshair)
   const isTouchHoveringRef = useRef(false);
   const wasTouchRef = useRef(false); // suppress click-to-measure after touch
@@ -714,7 +711,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         touchStartPosRef.current = null;
         // Clear single-finger hover
         isTouchHoveringRef.current = false;
-        singleTouchRef.current = null;
         setHoverIndex(null);
         onHoverPrice?.(null, null);
         // Map both touches to data indices → measurement points
@@ -734,17 +730,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (e.touches.length === 1 && !isTwoFingerRef.current) {
       touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       const pts = pointsRef.current;
-      const zoom = zoomRangeRef.current;
-      if (zoom && pts.length >= 20) {
-        // Pan when zoomed
-        isTouchHoveringRef.current = false;
-        singleTouchRef.current = { x: e.touches[0].clientX, startMs: zoom.startMs, endMs: zoom.endMs };
-        touchStartRef.current = null;
-      } else if (pts.length >= 2) {
-        // Press-and-drag hover crosshair
+      if (pts.length >= 2) {
+        // Press-and-drag hover crosshair — mirrors PortfolioValueChart so a
+        // user can scrub the line on every period (1M/3M/6M/YTD/1Y/MAX).
+        // Previously zoomed mode hijacked the gesture for pan; users found
+        // that confusing, so single-finger is always scrub now. Period
+        // switching happens via the period buttons, not gesture.
         isTouchHoveringRef.current = true;
-        touchStartRef.current = null;
-        singleTouchRef.current = null;
         updateHoverFromClientX(e.touches[0].clientX);
       }
     }
@@ -805,23 +797,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (e.touches.length >= 2) return;
     const pts = pointsRef.current;
     if (pts.length < 2) return;
-    const fullStart = pts[0].time;
-    const fullEnd = pts[pts.length - 1].time;
 
-    if (e.touches.length === 1 && singleTouchRef.current) {
-      // Pan when zoomed
-      e.preventDefault();
-      const dx = e.touches[0].clientX - singleTouchRef.current.x;
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const origRange = singleTouchRef.current.endMs - singleTouchRef.current.startMs;
-      const deltaMs = -dx * (origRange / rect.width);
-      let s = singleTouchRef.current.startMs + deltaMs, en = singleTouchRef.current.endMs + deltaMs;
-      if (s < fullStart) { s = fullStart; en = s + origRange; }
-      if (en > fullEnd) { en = fullEnd; s = en - origRange; }
-      setZoomRange({ startMs: s, endMs: en });
-    } else if (e.touches.length === 1 && isTouchHoveringRef.current) {
-      // Drag crosshair — prevent scroll so finger stays on chart
+    if (e.touches.length === 1 && isTouchHoveringRef.current) {
+      // Drag crosshair — prevent scroll so finger stays on chart. Single
+      // finger is always scrub for line mode (no zoom-pan branch); see
+      // handleTouchStart for the rationale.
       e.preventDefault();
       updateHoverFromClientX(e.touches[0].clientX);
     }
@@ -876,8 +856,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         }
       }
       touchStartPosRef.current = null;
-      touchStartRef.current = null;
-      singleTouchRef.current = null;
       if (isTouchHoveringRef.current) {
         isTouchHoveringRef.current = false;
         setHoverIndex(null);
@@ -2005,12 +1983,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setIsDraggingCard(false);
       return;
     } else {
-      // Y-hit-test: reject taps that landed far from the line/candle so the
-      // chart doesn't drop a marker when the user was trying to pinch-zoom
-      // or just stab below the line. SVG-Y unit conversion happens via the
-      // same aspectRatio-locked container, so px == SVG-units * (rect.h / CHART_H).
+      // Y-hit-test. Reject taps outside the plot area (axes/header padding
+      // are not legitimate measurement targets), AND reject taps far from
+      // the line/candle so the chart doesn't drop a marker when the user
+      // was trying to pinch-zoom or just stab in empty space above/below.
       const pxPerSvgY = rect.height / CHART_H;
       const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
+      // Hard reject: outside the plot area (top/bottom padding regions).
+      if (clickSvgY < PAD_TOP || clickSvgY > PAD_TOP + plotH) return;
       let pt: { time: number; price: number };
       if (isCandle) {
         const cStart = candleZoom?.start ?? 0;
@@ -2032,18 +2012,16 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
         }
         const candle = effectiveCandleData[ci];
-        // Candle Y-hit-test: tap must fall within the candle's high→low range
-        // plus 24px of vertical slop so wicks and tight candles stay clickable.
-        const slopSvg = 24 / pxPerSvgY;
-        const topY = toY(candle.high) - slopSvg;
-        const botY = toY(candle.low) + slopSvg;
-        if (clickSvgY < topY || clickSvgY > botY) return;
+        // Candle: tap must fall within high→low + 16px slop for wick clicks.
+        const slopSvg = 16 / pxPerSvgY;
+        if (clickSvgY < toY(candle.high) - slopSvg || clickSvgY > toY(candle.low) + slopSvg) return;
         pt = { time: candle.time, price: candle.close };
       } else {
         const idx = findNearestIndex(svgX);
-        // Line Y-hit-test: tap must be within 36px of the line at this X.
+        // Line: tap must be within 22px of the line at this X (was 36 — too
+        // generous; users felt taps in clear empty space still dropped markers).
         const lineY = toY(points[idx].price);
-        const slopSvg = 36 / pxPerSvgY;
+        const slopSvg = 22 / pxPerSvgY;
         if (Math.abs(clickSvgY - lineY) > slopSvg) return;
         pt = { time: points[idx].time, price: points[idx].price };
       }
@@ -2051,7 +2029,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       else if (measureB === null) { setMeasureB(pt); }
       else { setMeasureC(pt); }
     }
-  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, is1D, dayStartMs, dayEndMs, toY]);
+  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, plotH, is1D, dayStartMs, dayEndMs, toY]);
 
   // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
@@ -2459,10 +2437,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             if (!svgRef.current || (!useCandle && points.length < 2)) return;
             const rect = svgRef.current.getBoundingClientRect();
             const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
-            // Y-hit-test inputs (px → SVG-units conversion is uniform because
-            // the SVG preserves aspect via its viewBox / aspectRatio container)
+            // Y-hit-test inputs. Reject clicks outside the plot area first
+            // (above PAD_TOP or below PAD_TOP+plotH = padding/axis regions),
+            // then check distance to the line/candle.
             const pxPerSvgY = rect.height / CHART_H;
             const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
+            if (clickSvgY < PAD_TOP || clickSvgY > PAD_TOP + plotH) return;
             setShowMeasureHint(false);
             if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
             else {
@@ -2488,16 +2468,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
                 }
                 const candle = effectiveCandleData[ci];
-                // Reject clicks that landed outside the candle's high→low
-                // range with 24px slop on each side.
-                const slopSvgC = 24 / pxPerSvgY;
+                // Candle: must fall within [high, low] + 16px wick slop.
+                const slopSvgC = 16 / pxPerSvgY;
                 if (clickSvgY < toY(candle.high) - slopSvgC || clickSvgY > toY(candle.low) + slopSvgC) return;
                 pt = { time: candle.time, price: candle.close };
               } else {
                 const idx = findNearestIndex(svgX);
-                // Reject clicks > 36px from the line at this X.
+                // Line: within 22px of the line at this X (was 36 — too loose).
                 const lineY = toY(points[idx].price);
-                const slopSvgL = 36 / pxPerSvgY;
+                const slopSvgL = 22 / pxPerSvgY;
                 if (Math.abs(clickSvgY - lineY) > slopSvgL) return;
                 pt = { time: points[idx].time, price: points[idx].price };
               }
