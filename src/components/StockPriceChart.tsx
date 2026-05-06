@@ -315,10 +315,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const wasTouchRef = useRef(false); // suppress click-to-measure after touch
   const isTwoFingerRef = useRef(false);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  // Zoom bar drag state
-  const [isBarDragging, setIsBarDragging] = useState(false);
-  const barDragRef = useRef<{ startX: number; startLeft: number; barWidth: number; containerWidth: number } | null>(null);
-  const zoomBarRef = useRef<HTMLDivElement>(null);
   // Animated zoom transition refs
   const zoomAnimRef = useRef<{
     fromStart: number; fromEnd: number; toStart: number; toEnd: number;
@@ -555,32 +551,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     };
   }, [isPanning]);
 
-  // ── Zoom bar drag handler ────────────────────────────────────────
-  useEffect(() => {
-    if (!isBarDragging) return;
-    const moveHandler = (e: MouseEvent) => {
-      const drag = barDragRef.current;
-      if (!drag) return;
-      const pts = pointsRef.current;
-      if (pts.length < 2) return;
-      const fullStart = pts[0].time;
-      const fullEnd = pts[pts.length - 1].time;
-      const fullRange = fullEnd - fullStart;
-      const dx = e.clientX - drag.startX;
-      const deltaPct = (dx / drag.containerWidth) * 100;
-      const newLeftPct = Math.max(0, Math.min(100 - drag.barWidth, drag.startLeft + deltaPct));
-      const cur = zoomRangeRef.current;
-      if (!cur) return;
-      const zoomDuration = cur.endMs - cur.startMs;
-      const newStartMs = fullStart + (newLeftPct / 100) * fullRange;
-      setZoomRange({ startMs: Math.max(fullStart, newStartMs), endMs: Math.min(fullEnd, newStartMs + zoomDuration) });
-    };
-    const upHandler = () => { setIsBarDragging(false); barDragRef.current = null; };
-    window.addEventListener('mousemove', moveHandler);
-    window.addEventListener('mouseup', upHandler);
-    return () => { window.removeEventListener('mousemove', moveHandler); window.removeEventListener('mouseup', upHandler); };
-  }, [isBarDragging]);
-
   // ── Animated zoom transition ──────────────────────────────────────
   const animateZoomTo = useCallback((target: { startMs: number; endMs: number } | null, duration = 250) => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -721,6 +691,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     if (chartMode === 'candle' && e.touches.length === 2 && svgRef.current && effectiveCandleData.length > 0) {
       e.preventDefault();
       isTwoFingerRef.current = true;
+      // A pinch may have started as 1-finger an instant ago; poison the
+      // tap-detector so lifting both fingers can't be misread as a tap.
+      touchStartPosRef.current = null;
       const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       candlePinchRef.current = { dist, zoom: candleZoom ? { ...candleZoom } : { start: 0, end: effectiveCandleData.length - 1 } };
       return;
@@ -735,6 +708,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       if (pts.length >= 2) {
         e.preventDefault();
         isTwoFingerRef.current = true;
+        // Poison the tap-detector — a 1-finger touchstart may have armed it
+        // an instant ago; we must NOT treat the eventual two-finger lift as
+        // a tap that drops a measurement.
+        touchStartPosRef.current = null;
         // Clear single-finger hover
         isTouchHoveringRef.current = false;
         singleTouchRef.current = null;
@@ -886,13 +863,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
 
     if (e.touches.length === 0) {
-      // Detect tap vs drag: if finger barely moved, treat as a tap
-      // so the synthesized click event fires the measurement system
-      if (touchStartPosRef.current && e.changedTouches.length > 0) {
+      // Detect tap vs drag: if finger barely moved AND no pinch happened,
+      // treat as a tap so the synthesized click event fires the measurement
+      // system. 6px slop (was 10) tightens the threshold so the early
+      // frames of a pinch don't slip through as a tap.
+      if (touchStartPosRef.current && e.changedTouches.length > 0 && !isTwoFingerRef.current) {
         const endTouch = e.changedTouches[0];
         const dx = Math.abs(endTouch.clientX - touchStartPosRef.current.x);
         const dy = Math.abs(endTouch.clientY - touchStartPosRef.current.y);
-        if (dx < 10 && dy < 10) {
+        if (dx < 6 && dy < 6) {
           wasTouchRef.current = false; // allow click handler to fire → places measurement
         }
       }
@@ -2026,6 +2005,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setIsDraggingCard(false);
       return;
     } else {
+      // Y-hit-test: reject taps that landed far from the line/candle so the
+      // chart doesn't drop a marker when the user was trying to pinch-zoom
+      // or just stab below the line. SVG-Y unit conversion happens via the
+      // same aspectRatio-locked container, so px == SVG-units * (rect.h / CHART_H).
+      const pxPerSvgY = rect.height / CHART_H;
+      const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
       let pt: { time: number; price: number };
       if (isCandle) {
         const cStart = candleZoom?.start ?? 0;
@@ -2046,16 +2031,27 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           const cCount = cEnd - cStart + 1;
           ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
         }
-        pt = { time: effectiveCandleData[ci].time, price: effectiveCandleData[ci].close };
+        const candle = effectiveCandleData[ci];
+        // Candle Y-hit-test: tap must fall within the candle's high→low range
+        // plus 24px of vertical slop so wicks and tight candles stay clickable.
+        const slopSvg = 24 / pxPerSvgY;
+        const topY = toY(candle.high) - slopSvg;
+        const botY = toY(candle.low) + slopSvg;
+        if (clickSvgY < topY || clickSvgY > botY) return;
+        pt = { time: candle.time, price: candle.close };
       } else {
         const idx = findNearestIndex(svgX);
+        // Line Y-hit-test: tap must be within 36px of the line at this X.
+        const lineY = toY(points[idx].price);
+        const slopSvg = 36 / pxPerSvgY;
+        if (Math.abs(clickSvgY - lineY) > slopSvg) return;
         pt = { time: points[idx].time, price: points[idx].price };
       }
       if (measureA === null) { setMeasureA(pt); }
       else if (measureB === null) { setMeasureB(pt); }
       else { setMeasureC(pt); }
     }
-  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, is1D, dayStartMs, dayEndMs]);
+  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, is1D, dayStartMs, dayEndMs, toY]);
 
   // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
@@ -2463,6 +2459,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             if (!svgRef.current || (!useCandle && points.length < 2)) return;
             const rect = svgRef.current.getBoundingClientRect();
             const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
+            // Y-hit-test inputs (px → SVG-units conversion is uniform because
+            // the SVG preserves aspect via its viewBox / aspectRatio container)
+            const pxPerSvgY = rect.height / CHART_H;
+            const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
             setShowMeasureHint(false);
             if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
             else {
@@ -2487,9 +2487,18 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 } else {
                   ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
                 }
-                pt = { time: effectiveCandleData[ci].time, price: effectiveCandleData[ci].close };
+                const candle = effectiveCandleData[ci];
+                // Reject clicks that landed outside the candle's high→low
+                // range with 24px slop on each side.
+                const slopSvgC = 24 / pxPerSvgY;
+                if (clickSvgY < toY(candle.high) - slopSvgC || clickSvgY > toY(candle.low) + slopSvgC) return;
+                pt = { time: candle.time, price: candle.close };
               } else {
                 const idx = findNearestIndex(svgX);
+                // Reject clicks > 36px from the line at this X.
+                const lineY = toY(points[idx].price);
+                const slopSvgL = 36 / pxPerSvgY;
+                if (Math.abs(clickSvgY - lineY) > slopSvgL) return;
                 pt = { time: points[idx].time, price: points[idx].price };
               }
               if (measureA === null) { setMeasureA(pt); }
@@ -3849,45 +3858,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           </div>
         )}
       </div>
-
-      {/* Zoom indicator bar — shows visible window position within full range */}
-      {zoomRange && points.length > 1 && (() => {
-        const fullStart = points[0].time;
-        const fullEnd = points[points.length - 1].time;
-        const fullRange = fullEnd - fullStart;
-        if (fullRange <= 0) return null;
-        const leftPct = ((zoomRange.startMs - fullStart) / fullRange) * 100;
-        const widthPct = ((zoomRange.endMs - zoomRange.startMs) / fullRange) * 100;
-        return (
-          <div
-            ref={zoomBarRef}
-            className="relative h-2 bg-gray-200/30 dark:bg-white/[0.06] rounded-full mt-1.5 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              const rect = e.currentTarget.getBoundingClientRect();
-              const clickPct = ((e.clientX - rect.left) / rect.width) * 100;
-              const zoomDuration = zoomRange.endMs - zoomRange.startMs;
-              const newCenterMs = fullStart + (clickPct / 100) * fullRange;
-              let s = newCenterMs - zoomDuration / 2, en = newCenterMs + zoomDuration / 2;
-              if (s < fullStart) { s = fullStart; en = s + zoomDuration; }
-              if (en > fullEnd) { en = fullEnd; s = en - zoomDuration; }
-              animateZoomTo({ startMs: s, endMs: en }, 150);
-            }}
-          >
-            <div
-              className="absolute top-0 h-full bg-rh-green/50 rounded-full cursor-grab active:cursor-grabbing hover:bg-rh-green/60 transition-colors"
-              style={{ left: `${Math.max(0, leftPct)}%`, width: `${Math.min(100, widthPct)}%` }}
-              onMouseDown={(e) => {
-                e.stopPropagation(); e.preventDefault();
-                const rect = zoomBarRef.current?.getBoundingClientRect();
-                if (!rect) return;
-                barDragRef.current = { startX: e.clientX, startLeft: leftPct, barWidth: widthPct, containerWidth: rect.width };
-                setIsBarDragging(true);
-              }}
-            />
-          </div>
-        );
-      })()}
 
     </div>{/* end overflowX:clip wrapper */}
 
