@@ -42,6 +42,9 @@ export function useLongPressDrag(dragControls: DragControls): UseLongPressDragRe
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     // Only handle primary pointer (left click / single touch)
     if (e.button !== 0) return;
+    // A second finger landing during the press would otherwise stomp our
+    // refs and spawn a duplicate long-press timer. Ignore re-entry.
+    if (timerRef.current || pointerIdRef.current !== -1) return;
 
     startPosRef.current = { x: e.clientX, y: e.clientY };
     nativeEventRef.current = e.nativeEvent;
