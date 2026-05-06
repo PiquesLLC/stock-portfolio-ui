@@ -27,6 +27,8 @@ export function useLongPressDrag(dragControls: DragControls): UseLongPressDragRe
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const nativeEventRef = useRef<PointerEvent | null>(null);
+  const targetRef = useRef<HTMLElement | null>(null);
+  const pointerIdRef = useRef<number>(-1);
   const lastDragEndRef = useRef(0);
 
   const cancel = useCallback(() => {
@@ -43,6 +45,8 @@ export function useLongPressDrag(dragControls: DragControls): UseLongPressDragRe
 
     startPosRef.current = { x: e.clientX, y: e.clientY };
     nativeEventRef.current = e.nativeEvent;
+    targetRef.current = e.currentTarget as HTMLElement;
+    pointerIdRef.current = e.pointerId;
     setIsPressed(true);
 
     timerRef.current = setTimeout(() => {
@@ -54,7 +58,19 @@ export function useLongPressDrag(dragControls: DragControls): UseLongPressDragRe
         navigator.vibrate(20);
       }
 
-      // Start framer-motion drag with the stored native event
+      // Claim the pointer for the element so WKWebView routes subsequent
+      // pointermoves to our handler (and to framer-motion's drag listener)
+      // instead of routing them to the browser's scroll machinery. Mobile
+      // Safari is permissive about this; WKWebView is not.
+      if (targetRef.current && pointerIdRef.current !== -1) {
+        try { targetRef.current.setPointerCapture(pointerIdRef.current); } catch { /* element may have unmounted */ }
+      }
+
+      // Start framer-motion drag with the MOST RECENT pointer event, not
+      // the 350ms-stale pointerdown. WKWebView does not reliably establish
+      // fresh pointer capture from a stale event, so passing the latest
+      // pointermove (kept fresh by `onPointerMove` below) gives framer-motion
+      // a usable event to seed its drag from.
       if (nativeEventRef.current) {
         dragControls.start(nativeEventRef.current);
       }
@@ -63,6 +79,10 @@ export function useLongPressDrag(dragControls: DragControls): UseLongPressDragRe
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!startPosRef.current || !timerRef.current) return;
+
+    // Keep the native event fresh — when the long-press timer fires it will
+    // pass THIS event to dragControls.start, not the stale pointerdown.
+    nativeEventRef.current = e.nativeEvent;
 
     const dx = e.clientX - startPosRef.current.x;
     const dy = e.clientY - startPosRef.current.y;
@@ -75,6 +95,11 @@ export function useLongPressDrag(dragControls: DragControls): UseLongPressDragRe
 
   const onPointerUp = useCallback(() => {
     cancel();
+    if (targetRef.current && pointerIdRef.current !== -1) {
+      try { targetRef.current.releasePointerCapture(pointerIdRef.current); } catch { /* not captured / detached */ }
+    }
+    targetRef.current = null;
+    pointerIdRef.current = -1;
     if (isDragActive) {
       lastDragEndRef.current = Date.now();
       setIsDragActive(false);
