@@ -260,9 +260,171 @@ export function isSameOriginApi(): boolean {
 
 // Refresh token mutex: only one refresh at a time, others wait
 let refreshPromise: Promise<boolean> | null = null;
-// Once refresh fails, stop retrying until next successful login
-let authDead = false;
 
+// Transient debounce — if /auth/refresh just returned 401, suppress
+// re-attempts for a short window so we don't spam the endpoint while
+// the user is mid-logout. NOT a sticky kill switch: the next caller
+// outside the window may try again. This is the defense against the
+// "concurrent tab race" bug — a sibling tab can rotate the refresh
+// cookie first and our refresh comes back 401 once. Future calls
+// must be allowed to retry.
+const REFRESH_FAIL_DEBOUNCE_BASE_MS = 2000;
+// Circuit breaker — after this many consecutive failed refreshes,
+// extend the debounce window so a polling loop with a permanently
+// expired token doesn't beat /auth/refresh once per poll forever.
+const REFRESH_FAIL_CIRCUIT_THRESHOLD = 3;
+const REFRESH_FAIL_DEBOUNCE_LONG_MS = 60_000;
+let lastRefreshFailureAt = 0;
+let consecutiveRefreshFailures = 0;
+
+function currentRefreshDebounceMs(): number {
+  return consecutiveRefreshFailures >= REFRESH_FAIL_CIRCUIT_THRESHOLD
+    ? REFRESH_FAIL_DEBOUNCE_LONG_MS
+    : REFRESH_FAIL_DEBOUNCE_BASE_MS;
+}
+
+// Cross-tab auth coordination — when one tab successfully rotates
+// the refresh token (or determines auth is dead), other tabs are
+// notified so they don't run their own racing refresh attempts.
+//
+// Each broadcast carries a unique `origin` tag identifying the tab
+// instance that sent it. Receivers compare this tag against their own
+// `TAB_INSTANCE_ID` and ignore messages they themselves emitted —
+// otherwise an `auth-cleared` echo from `resetAuthState()` would
+// re-invoke `onAuthExpired()` on the originating tab and trigger an
+// infinite logout loop across the BroadcastChannel.
+const TAB_INSTANCE_ID =
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `tab-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+
+type AuthBroadcast =
+  | { type: 'refresh-success'; at: number; origin: string }
+  | { type: 'auth-cleared'; at: number; origin: string };
+
+function isValidAuthBroadcast(value: unknown): value is AuthBroadcast {
+  if (typeof value !== 'object' || value === null) return false;
+  const msg = value as { type?: unknown; at?: unknown; origin?: unknown };
+  if (typeof msg.at !== 'number' || !Number.isFinite(msg.at)) return false;
+  if (typeof msg.origin !== 'string') return false;
+  return msg.type === 'refresh-success' || msg.type === 'auth-cleared';
+}
+
+// Singleton guards — under Vite HMR or vitest `vi.resetModules()` this
+// module can be re-evaluated. Without these guards every reload would
+// (a) attach another `visibilitychange` listener to `document`, and
+// (b) open another `BroadcastChannel('nala-auth')`. Both leak across
+// reloads. Stash the singletons on globalThis so re-evaluations reuse
+// the existing instances instead of creating new ones. Production has
+// no HMR, so this is a no-op extra dereference there.
+interface NalaAuthGlobals {
+  __NALA_AUTH_CHANNEL__?: BroadcastChannel | null;
+  __NALA_VISIBILITY_BOUND__?: boolean;
+  __NALA_APPSTATE_BOUND__?: boolean;
+}
+const nalaGlobals = globalThis as unknown as NalaAuthGlobals;
+
+function getAuthChannel(): BroadcastChannel | null {
+  if (typeof BroadcastChannel === 'undefined') return null;
+  if (nalaGlobals.__NALA_AUTH_CHANNEL__ === undefined) {
+    try {
+      const ch = new BroadcastChannel('nala-auth');
+      ch.addEventListener('message', (ev: MessageEvent<unknown>) => {
+        if (!isValidAuthBroadcast(ev.data)) return;
+        // Ignore our own echoes — `postMessage` doesn't deliver back
+        // to the sender within the same realm, but in some browsers /
+        // test harnesses (jsdom) this is not guaranteed. Comparing
+        // origin keeps us safe from an infinite logout loop where
+        // `auth-cleared` -> `onAuthExpired()` -> `resetAuthState()`
+        // -> another `auth-cleared`.
+        if (ev.data.origin === TAB_INSTANCE_ID) return;
+        // Another tab made progress — clear our transient debounce so
+        // the next request here can attempt refresh immediately.
+        lastRefreshFailureAt = 0;
+        consecutiveRefreshFailures = 0;
+        // If a sibling tab cleared auth (logout), this tab's session
+        // is also gone — drop user state by invoking the registered
+        // expiry handler. Without this, sibling tabs keep showing
+        // stale user data after another tab logs out.
+        if (ev.data.type === 'auth-cleared') {
+          if (onAuthExpired && isSameOriginApi()) {
+            try { onAuthExpired(); } catch { /* ignore */ }
+          }
+        }
+      });
+      nalaGlobals.__NALA_AUTH_CHANNEL__ = ch;
+    } catch {
+      nalaGlobals.__NALA_AUTH_CHANNEL__ = null;
+    }
+  }
+  return nalaGlobals.__NALA_AUTH_CHANNEL__ ?? null;
+}
+function broadcastAuth(message: Omit<AuthBroadcast, 'origin'>): void {
+  const ch = getAuthChannel();
+  if (!ch) return;
+  try { ch.postMessage({ ...message, origin: TAB_INSTANCE_ID } as AuthBroadcast); } catch { /* ignore */ }
+}
+
+// Eagerly initialize the BroadcastChannel + listener on module load so
+// `auth-cleared` events from sibling tabs are caught immediately — even
+// before THIS tab makes its own auth call. Without eager init, the
+// listener wouldn't be attached until the first `broadcastAuth(...)`
+// call here, and we'd silently drop the early sibling logout signal.
+getAuthChannel();
+
+// Reset transient refresh debounce when the tab returns to foreground —
+// a tab returning from background most likely has stale state.
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  if (!nalaGlobals.__NALA_VISIBILITY_BOUND__) {
+    try {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          lastRefreshFailureAt = 0;
+          consecutiveRefreshFailures = 0;
+        }
+      });
+      nalaGlobals.__NALA_VISIBILITY_BOUND__ = true;
+    } catch { /* ignore — non-DOM env */ }
+  }
+}
+
+// On iOS Capacitor, `visibilitychange` is unreliable in WKWebView.
+// Mirror the listener via @capacitor/app's appStateChange so resume
+// events also reset the transient debounce. Wrapped in try/catch so
+// non-native builds (no plugin available) don't crash on import.
+if (typeof window !== 'undefined' && !nalaGlobals.__NALA_APPSTATE_BOUND__) {
+  nalaGlobals.__NALA_APPSTATE_BOUND__ = true;
+  void (async () => {
+    try {
+      const mod = await import('@capacitor/app');
+      const App = mod?.App;
+      if (App && typeof App.addListener === 'function') {
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            lastRefreshFailureAt = 0;
+            consecutiveRefreshFailures = 0;
+          }
+        });
+      }
+    } catch {
+      // @capacitor/app not available (web build) or plugin not registered — ignore.
+    }
+  })();
+}
+
+// HMR cleanup — close the channel on hot dispose so the next module
+// evaluation creates a fresh one (and we don't accumulate channels).
+// `import.meta.hot` is `undefined` in production builds.
+if (typeof import.meta !== 'undefined' && (import.meta as { hot?: { dispose: (cb: () => void) => void } }).hot) {
+  (import.meta as { hot: { dispose: (cb: () => void) => void } }).hot.dispose(() => {
+    try { nalaGlobals.__NALA_AUTH_CHANNEL__?.close(); } catch { /* ignore */ }
+    nalaGlobals.__NALA_AUTH_CHANNEL__ = undefined;
+    // visibility / appstate listeners are intentionally NOT removed:
+    // we rely on the bound flag so they're attached at most once per
+    // page lifetime, and the new module evaluation will see the flag
+    // and skip re-binding. This keeps the singletons truly single.
+  });
+}
 
 async function tryRefreshToken(): Promise<boolean> {
   try {
@@ -319,15 +481,22 @@ async function tryRefreshToken(): Promise<boolean> {
           setNativeAuthSession(accessToken, newRefresh);
         }
       }
-      authDead = false;
+      // Successful refresh — clear transient debounce + tell other tabs.
+      lastRefreshFailureAt = 0;
+      consecutiveRefreshFailures = 0;
+      broadcastAuth({ type: 'refresh-success', at: Date.now() });
       return true;
     }
-    // Only mark auth dead on 401 (definitive token failure).
-    // Other 4xx (e.g. 429 rate-limit, 400 validation) are NOT terminal auth failures.
+    // Definitive token failure (401). Set a SHORT transient debounce so
+    // sibling code on the same page doesn't spam /auth/refresh, but DO
+    // allow a fresh attempt after the window expires. This is the key
+    // departure from the old sticky `authDead` flag.
     if (status === 401) {
-      nativeLog('REFRESH', 'FAILED 401 — marking authDead');
+      consecutiveRefreshFailures += 1;
+      const longWindow = consecutiveRefreshFailures >= REFRESH_FAIL_CIRCUIT_THRESHOLD;
+      nativeLog('REFRESH', `FAILED 401 — debouncing (consecutive=${consecutiveRefreshFailures}, long=${longWindow})`);
       nativeLog('REFRESH', 'error body', data);
-      authDead = true;
+      lastRefreshFailureAt = Date.now();
     }
     return false;
   } catch (err) {
@@ -338,18 +507,57 @@ async function tryRefreshToken(): Promise<boolean> {
   }
 }
 
+/**
+ * Whether the most recent /auth/refresh failed with 401 within the active
+ * debounce window. Callers use this to skip an in-flight retry loop and
+ * surface SESSION_EXPIRED, but the next caller AFTER the window is allowed
+ * to try again. This is intentionally NOT a permanent flag.
+ *
+ * The window starts at REFRESH_FAIL_DEBOUNCE_BASE_MS (2s) and widens to
+ * REFRESH_FAIL_DEBOUNCE_LONG_MS (60s) once we've seen
+ * REFRESH_FAIL_CIRCUIT_THRESHOLD consecutive failures — the circuit
+ * breaker that prevents a polling loop with a permanently expired token
+ * from hammering /auth/refresh forever.
+ *
+ * Self-healing reset: if the LONG window has fully elapsed without a
+ * single retry attempt (which would normally have reset on success or
+ * via visibility/appstate listeners), we reset the consecutive-failure
+ * counter to zero so the next 401 starts fresh on the SHORT (2s)
+ * debounce. Without this, a backgrounded PWA on iOS — where
+ * `visibilitychange` is unreliable — would inherit a permanently
+ * elevated counter and immediately get the 60s debounce on every
+ * future 401.
+ */
+function refreshRecentlyFailed(): boolean {
+  if (lastRefreshFailureAt === 0) return false;
+  const elapsed = Date.now() - lastRefreshFailureAt;
+  // Long window fully elapsed without retry — counter goes back to 0.
+  if (elapsed >= REFRESH_FAIL_DEBOUNCE_LONG_MS) {
+    consecutiveRefreshFailures = 0;
+    lastRefreshFailureAt = 0;
+    return false;
+  }
+  return elapsed < currentRefreshDebounceMs();
+}
+
 async function refreshOnce(): Promise<boolean> {
-  if (authDead) return false;
   if (refreshPromise) return refreshPromise;
+  if (refreshRecentlyFailed()) return false;
   refreshPromise = tryRefreshToken().finally(() => { refreshPromise = null; });
   return refreshPromise;
 }
 
-/** Reset auth-dead flag after successful login */
+/** Clears native session + transient refresh debounce. Called after a
+ *  successful login/signup/MFA/OAuth — guarantees the new session starts
+ *  with no stale failure state, AND notifies sibling tabs so they drop
+ *  their own debounce too. Also resets the circuit-breaker counter so
+ *  the new session doesn't inherit the previous session's failure tally. */
 export function resetAuthState(): void {
-  nativeLog('AUTH', 'resetAuthState — clearing authDead + native session');
-  authDead = false;
+  nativeLog('AUTH', 'resetAuthState — clearing transient refresh state + native session');
+  lastRefreshFailureAt = 0;
+  consecutiveRefreshFailures = 0;
   clearNativeAuthSession();
+  broadcastAuth({ type: 'auth-cleared', at: Date.now() });
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -370,7 +578,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       nativeRuntime,
       hasBearer,
       hasNativeSession: !!refreshToken,
-      authDead,
+      refreshRecentlyFailed: refreshRecentlyFailed(),
     });
     if (nativeRuntime) {
       // Use CapacitorHttp.request() on native — bypass WebKit fetch quirks
@@ -400,19 +608,19 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 
   // On 401, try refreshing tokens once then retry the original request
   if (response.status === 401 && !url.includes('/auth/refresh') && !url.includes('/auth/login')) {
-    nativeLog('FETCH', `401 on ${shortUrl} — attempting refresh`, { authDead });
-    if (authDead) {
-      nativeLog('FETCH', 'authDead=true, throwing SESSION_EXPIRED immediately');
-      throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
-    }
+    nativeLog('FETCH', `401 on ${shortUrl} — attempting refresh`, {
+      refreshRecentlyFailed: refreshRecentlyFailed(),
+    });
     const refreshed = await refreshOnce();
     if (refreshed) {
       nativeLog('FETCH', `refresh OK — retrying ${shortUrl}`);
       response = await doFetch();
       nativeLog('FETCH', `← ${response.status} ${shortUrl} (retry)`);
-    } else if (authDead) {
-      nativeLog('FETCH', 'refresh failed (authDead) — SESSION_EXPIRED');
-      // Refresh failed with a definitive auth error (4xx) — session is dead.
+    } else if (refreshRecentlyFailed()) {
+      nativeLog('FETCH', 'refresh failed (401, debounced) — SESSION_EXPIRED');
+      // Refresh failed with a definitive auth error (401) — for THIS
+      // request, surface SESSION_EXPIRED. The transient debounce expires
+      // shortly so a subsequent independent operation may try again.
       if (onAuthExpired && isSameOriginApi()) {
         onAuthExpired();
       }
@@ -580,11 +788,10 @@ async function fetchFormData<T>(url: string, formData: FormData, errorLabel = 'U
 
   let response = await doFetch();
   if (response.status === 401) {
-    if (authDead) throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
     const refreshed = await refreshOnce();
     if (refreshed) {
       response = await doFetch();
-    } else if (authDead) {
+    } else if (refreshRecentlyFailed()) {
       if (onAuthExpired && isSameOriginApi()) onAuthExpired();
       throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);
     } else {
@@ -2132,7 +2339,7 @@ export async function getPerformanceReport(period: PerformanceWindow, benchmark:
   const doFetch = () => fetch(url, { credentials: 'include', headers });
 
   let response = await doFetch();
-  if (response.status === 401 && !authDead) {
+  if (response.status === 401) {
     const refreshed = await refreshOnce();
     if (refreshed) response = await doFetch();
     else throw new ApiError('Session expired', 'SESSION_EXPIRED', 401);

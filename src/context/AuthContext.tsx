@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+﻿import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, setNativeRefreshSession, clearNativeAuthSession, hasNativeRefreshSession, ApiError } from '../api';
 import { isNativePlatform } from '../utils/platform';
 import { nativeLog } from '../utils/nativeDebug';
@@ -376,14 +376,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearClientSessionState]);
 
-  // When any API call gets an unrecoverable 401, force back to login
+  // The `verifyingExpiry` guard MUST be on a ref, not a closure-local
+  // `let`, because `setAuthExpiredHandler` is module-global. Under React
+  // 18 StrictMode dev double-invoke (or any AuthProvider remount), the
+  // effect cleanup runs and a fresh effect installs a NEW handler. A
+  // closure-local flag would reset to `false` for the new handler while
+  // the OLD handler's `getCurrentUser()` promise is still in flight —
+  // allowing two concurrent verifications. The ref persists across
+  // re-runs of this effect, so both the old in-flight promise and the
+  // new handler observe the same guard.
+  const verifyingExpiryRef = useRef(false);
+
+  // When any API call gets an unrecoverable 401, force back to login —
+  // BUT first verify the session is actually dead. If a sibling tab
+  // rotated the refresh cookie a moment before us, our /auth/refresh can
+  // come back 401 transiently while a fresh /auth/me succeeds. In that
+  // case the user is still signed in and we MUST NOT log them out.
   useEffect(() => {
     setAuthExpiredHandler(() => {
-      if (isSameOriginApi()) {
-        clearClientSessionState({ resetLocation: true });
-      } else {
+      if (!isSameOriginApi()) {
         console.warn('[Auth] Skipping auto-logout due to cross-origin API base.');
+        return;
       }
+      if (verifyingExpiryRef.current) return;
+      verifyingExpiryRef.current = true;
+      // Last-chance verification — if /auth/me returns 200, the session
+      // is still valid (likely a concurrent-tab race). Only proceed with
+      // logout if /auth/me itself confirms SESSION_EXPIRED.
+      getCurrentUser()
+        .then((current) => {
+          // Session is still alive — keep the user signed in and
+          // refresh the cached profile so any stale fields update.
+          const u: User = { ...current, plan: current.plan as PlanTier | undefined };
+          setUser(u);
+          writeCachedUser(u);
+        })
+        .catch((err: unknown) => {
+          if (err instanceof ApiError && err.code === 'SESSION_EXPIRED') {
+            clearClientSessionState({ resetLocation: true });
+          }
+          // For SERVER_UNAVAILABLE / NETWORK_ERROR / unknown errors:
+          // do NOT log out. The session may still be valid once the
+          // backend recovers — the user can retry naturally.
+        })
+        .finally(() => { verifyingExpiryRef.current = false; });
     });
     return () => setAuthExpiredHandler(null);
   }, [clearClientSessionState]);
