@@ -22,6 +22,7 @@ import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
 import { DailyReportModal } from './components/DailyReportModal';
+import { DailyReportSummary } from './components/DailyReportSummary';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { SupportPage } from './components/SupportPage';
@@ -1716,6 +1717,16 @@ export default function App() {
             )}
 
             {/* Portfolio picker moved to above chart */}
+
+            {/* Today's Brief preview — same data as the auto-popup modal */}
+            {currentUserId && portfolio && portfolio.holdings.length > 0 && (
+              <DailyReportSummary
+                onOpenFull={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
+                onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
+                displayName={currentUserName}
+                briefingOpened={showDailyReport}
+              />
+            )}
 
             {/* Getting started checklist for new users */}
             {currentUserId && (

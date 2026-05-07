@@ -1995,44 +1995,10 @@ export async function askStockQuestion(ticker: string, question: string): Promis
   });
 }
 
-// Portfolio Briefing (Perplexity AI)
-export interface BriefingSection {
-  title: string;
-  takeaway: string;
-  body: string;
-  sentiment?: 'positive' | 'neutral' | 'negative';
-}
-
-export interface PortfolioBriefingResponse {
-  generatedAt: string;
-  verdict: string;
-  headline: string;
-  sections: BriefingSection[];
-  holdingCount: number;
-  cached: boolean;
-  holdingReturns?: Record<string, number>;
-}
-
-export async function getPortfolioBriefing(portfolioId?: string, period?: string): Promise<PortfolioBriefingResponse> {
-  const params = new URLSearchParams();
-  if (portfolioId) params.set('portfolioId', portfolioId);
-  if (period) params.set('period', period);
-  const qs = params.toString() ? `?${params.toString()}` : '';
-  return fetchJson<PortfolioBriefingResponse>(`${API_BASE_URL}/insights/briefing${qs}`);
-}
-
-export interface BriefingExplainResponse {
-  explanation: string;
-  citations: string[];
-  cached: boolean;
-}
-
-export async function explainBriefingSection(title: string, body: string): Promise<BriefingExplainResponse> {
-  return fetchJson<BriefingExplainResponse>(`${API_BASE_URL}/insights/briefing/explain`, {
-    method: 'POST',
-    body: JSON.stringify({ title, body }),
-  });
-}
+// NOTE: Legacy /insights/briefing client (PortfolioBriefingResponse,
+// getPortfolioBriefing, explainBriefingSection) was removed when the UI
+// unified on the canonical Today's Brief (/insights/daily-report). The
+// backend route remains for now but is no longer called from the web client.
 
 // Behavior Insights (Perplexity AI)
 export interface BehaviorInsight {

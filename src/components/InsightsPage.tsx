@@ -4,7 +4,7 @@ import { getHealthScore, getPortfolioIntelligence, getPortfolio, getPerformanceR
 import { IntelligenceTab } from './IntelligenceTab';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
 import { IncomeInsights } from './IncomeInsights';
-import PortfolioBriefing from './PortfolioBriefing';
+import { DailyReportContent } from './DailyReportContent';
 import BehaviorInsights from './BehaviorInsights';
 import { AllocationDonut } from './AllocationDonut';
 import { WhatIfSimulator } from './WhatIfSimulator';
@@ -378,7 +378,7 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   // Portfolio picker moved to nav dropdown — no inline picker needed
   const portfolioPicker = null;
 
-  // AI Briefing subtab (Premium)
+  // AI Briefing subtab (Premium) — canonical daily brief, daily-only
   if (subTab === 'ai-briefing') {
     return (
       <div className="space-y-3">
@@ -386,9 +386,12 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
         <InsightsTabBar tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} />
         <PremiumOverlay
           featureName="AI Portfolio Briefing"
-          description="Weekly AI-generated briefing analyzing your portfolio's performance, market conditions, and actionable insights tailored to your holdings."
+          description="Daily AI-generated briefing covering market overview, your portfolio, top stories, and what to watch — tailored to your holdings."
         >
-          <PortfolioBriefing portfolioId={portfolioId} onTickerClick={onTickerClick} holdings={holdings} currentValue={currentValue} />
+          <DailyReportContent
+            onTickerClick={onTickerClick}
+            className="pt-2 pb-6"
+          />
         </PremiumOverlay>
       </div>
     );
