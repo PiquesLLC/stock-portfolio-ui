@@ -1,16 +1,17 @@
 // DailyReportSummary — compact preview of today's brief for the home /
-// portfolio dashboard. Replaces HomeBriefingCard and reads from the same
-// canonical /insights/daily-report endpoint that the modal + Insights tab
-// use, so all three surfaces show the same content.
+// portfolio dashboard. Mirrors the live-dashboard layout used in the full
+// modal but condensed: portfolio block + 3 top movers + "View full brief"
+// CTA. No editorial prose, no top-stories cards — matches the TestFlight
+// version of "Today's Brief".
 //
 // Behavior:
 //   - Quietly hides itself when there is nothing to show (e.g. user dismissed
-//     it earlier today, or the report has not been generated yet).
+//     it earlier today, or the user has no holdings yet).
 //   - Click "View full brief" → calls onOpenFull, which the parent wires up
 //     to opening the auto-popup DailyReportModal.
 import { useEffect, useState } from 'react';
-import { getDailyReport } from '../api';
-import { DailyReportResponse } from '../types';
+import { getPortfolio } from '../api';
+import { Portfolio } from '../types';
 
 interface Props {
   onOpenFull: () => void;
@@ -33,31 +34,35 @@ function todayKey(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+function formatCurrency(n: number): string {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function formatPct(n: number): string {
+  return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+}
+
 export function DailyReportSummary({ onOpenFull, onTickerClick, displayName, briefingOpened }: Props) {
-  const [report, setReport] = useState<DailyReportResponse | null>(null);
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === todayKey());
 
   useEffect(() => {
     let cancelled = false;
-    getDailyReport()
-      .then((r) => {
-        if (cancelled) return;
-        // Only show the card when there's actual content (not an in-flight fallback)
-        if (r.topStories && r.topStories.length > 0) setReport(r);
-      })
+    getPortfolio()
+      .then((p) => { if (!cancelled) setPortfolio(p); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
   if (dismissed || briefingOpened) return null;
-  if (!loading && !report) return null;
+  if (!loading && (!portfolio || !portfolio.holdings || portfolio.holdings.length === 0)) return null;
 
   const greeting = getGreeting();
   const firstName = displayName?.split(' ')[0] || displayName;
 
-  if (loading) {
+  if (loading || !portfolio) {
     return (
       <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-4">
         <div className="flex items-center gap-2">
@@ -71,9 +76,13 @@ export function DailyReportSummary({ onOpenFull, onTickerClick, displayName, bri
     );
   }
 
-  // Pull a headline + a couple of position moves for the preview
-  const topStory = report!.topStories[0];
-  const moves = (report!.positionMoves ?? []).slice(0, 3);
+  // Top 3 movers by absolute day-change percent
+  const movers = [...(portfolio.holdings ?? [])]
+    .filter(h => h.shares > 0 && h.dayChangePercent != null)
+    .sort((a, b) => Math.abs(b.dayChangePercent ?? 0) - Math.abs(a.dayChangePercent ?? 0))
+    .slice(0, 3);
+
+  const dayUp = portfolio.dayChange >= 0;
 
   return (
     <div className="relative bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-4 group">
@@ -91,47 +100,47 @@ export function DailyReportSummary({ onOpenFull, onTickerClick, displayName, bri
       <div className="flex items-start gap-3">
         <div className="w-0.5 h-10 bg-rh-green rounded-full flex-shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1 pr-6">
-          <div className="text-[11px] font-medium text-rh-light-muted/60 dark:text-rh-muted/50 mb-1">
+          <div className="text-[11px] font-medium text-rh-light-muted/60 dark:text-rh-muted/50 mb-1.5">
             {greeting}{firstName ? `, ${firstName}` : ''} · Today's Brief
           </div>
 
-          {topStory && (
-            <p className="text-[13px] font-semibold text-rh-light-text dark:text-rh-text leading-snug">
-              {topStory.headline}
-            </p>
-          )}
+          {/* Portfolio mini-block */}
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <span className="text-[15px] font-bold text-rh-light-text dark:text-rh-text font-mono">
+              {formatCurrency(portfolio.netEquity ?? portfolio.totalValue)}
+            </span>
+            <span className={`text-[12px] font-semibold font-mono ${dayUp ? 'text-rh-green' : 'text-rh-red'}`}>
+              {dayUp ? '+' : ''}{formatCurrency(portfolio.dayChange)} ({formatPct(portfolio.dayChangePercent)})
+            </span>
+          </div>
 
-          {moves.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-              {moves.map((m) => (
-                <button
-                  key={m.ticker}
-                  onClick={(e) => { e.stopPropagation(); onTickerClick?.(m.ticker); }}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-80 transition-opacity"
-                >
-                  <span className="text-rh-light-text dark:text-rh-text font-semibold">{m.ticker}</span>
-                  <span className={m.changePercent >= 0 ? 'text-rh-green tabular-nums' : 'text-rh-red tabular-nums'}>
-                    {m.changePercent >= 0 ? '+' : ''}{m.changePercent.toFixed(1)}%
-                  </span>
-                </button>
-              ))}
+          {/* Top movers row */}
+          {movers.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+              {movers.map((m) => {
+                const up = (m.dayChangePercent ?? 0) >= 0;
+                return (
+                  <button
+                    key={m.ticker}
+                    onClick={(e) => { e.stopPropagation(); onTickerClick?.(m.ticker); }}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-80 transition-opacity"
+                  >
+                    <span className="text-rh-light-text dark:text-rh-text font-semibold">{m.ticker}</span>
+                    <span className={up ? 'text-rh-green tabular-nums' : 'text-rh-red tabular-nums'}>
+                      {up ? '+' : ''}{(m.dayChangePercent ?? 0).toFixed(1)}%
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {topStory && (
-            <p className="mt-1.5 text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed line-clamp-2">
-              {topStory.body}
-            </p>
-          )}
-
-          <div className="mt-2 flex items-center gap-3">
-            <button
-              onClick={onOpenFull}
-              className="text-[11px] font-medium text-rh-green hover:text-rh-green/80 transition-colors"
-            >
-              View full brief →
-            </button>
-          </div>
+          <button
+            onClick={onOpenFull}
+            className="text-[11px] font-medium text-rh-green hover:text-rh-green/80 transition-colors"
+          >
+            View full brief →
+          </button>
         </div>
       </div>
     </div>

@@ -41,3 +41,7 @@ nul
 # Temp/debug files
 dist-remote/
 remote-server.cjs
+
+# Local screenshot harness (dev-only)
+screenshot-harness.html
+src/screenshot-harness.tsx

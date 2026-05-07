@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
 import { isNative } from './utils/platform';
-import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, getDailyReport, listPortfolios, PortfolioRecord, getFastQuote, getWatchlists, getWatchlistDetail, getMarketHeatmap, getPrices, MarketIndex } from './api';
+import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, listPortfolios, PortfolioRecord, getFastQuote, getWatchlists, getWatchlistDetail, getMarketHeatmap, getPrices, MarketIndex } from './api';
 import { useTickerTapeSource, TICKER_TAPE_SOURCE_LABELS } from './hooks/useTickerTapeSource';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
@@ -497,13 +497,6 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Pre-warm daily report cache — fire-and-forget on login so it's ready when user opens Daily Brief
-  useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      getDailyReport().catch(() => {});
-    }
-  }, [isAuthenticated, authLoading]);
 
   // Fetch portfolios list for insights page picker
   useEffect(() => {
