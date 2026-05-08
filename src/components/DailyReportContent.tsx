@@ -476,6 +476,55 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         </div>
       )}
 
+      {/* Top Movers — vertical list: winners, divider, losers (matches v2 sidebar style) */}
+      {(movers.gainers.length > 0 || movers.losers.length > 0) && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Top Movers</h3>
+          </div>
+          <div className="space-y-1">
+            {movers.gainers.map(h => (
+              <button
+                key={h.ticker}
+                onClick={() => onTickerClick?.(h.ticker)}
+                className="w-full flex items-center justify-between py-2 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
+              >
+                <span className="text-sm font-semibold text-rh-light-text dark:text-white">{h.ticker}</span>
+                <span className="text-sm font-mono text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+              </button>
+            ))}
+            {movers.gainers.length > 0 && movers.losers.length > 0 && (
+              <div className="border-t border-gray-200/60 dark:border-white/[0.06] my-2" />
+            )}
+            {movers.losers.map(h => (
+              <button
+                key={h.ticker}
+                onClick={() => onTickerClick?.(h.ticker)}
+                className="w-full flex items-center justify-between py-2 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
+              >
+                <span className="text-sm font-semibold text-rh-light-text dark:text-white">{h.ticker}</span>
+                <span className="text-sm font-mono text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Market Sentiment Gauge (with signal breakdown bars) */}
+      {sentiment && <SentimentGauge sentiment={sentiment} />}
+
+      {/* S&P 500 Sectors — horizontal performance bars */}
+      {heatmapSectors.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">S&amp;P 500 Sectors</h3>
+          </div>
+          <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
+        </div>
+      )}
+
       {/* Market Overview — macro report (AI prose). Hidden when blank. */}
       {aiReport?.marketOverview && aiReport.marketOverview.trim().length > 0 && (
         <section className="mb-8">
@@ -571,55 +620,6 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Top Movers — vertical list: winners, divider, losers (matches v2 sidebar style) */}
-      {(movers.gainers.length > 0 || movers.losers.length > 0) && (
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Top Movers</h3>
-          </div>
-          <div className="space-y-1">
-            {movers.gainers.map(h => (
-              <button
-                key={h.ticker}
-                onClick={() => onTickerClick?.(h.ticker)}
-                className="w-full flex items-center justify-between py-2 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
-              >
-                <span className="text-sm font-semibold text-rh-light-text dark:text-white">{h.ticker}</span>
-                <span className="text-sm font-mono text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
-              </button>
-            ))}
-            {movers.gainers.length > 0 && movers.losers.length > 0 && (
-              <div className="border-t border-gray-200/60 dark:border-white/[0.06] my-2" />
-            )}
-            {movers.losers.map(h => (
-              <button
-                key={h.ticker}
-                onClick={() => onTickerClick?.(h.ticker)}
-                className="w-full flex items-center justify-between py-2 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
-              >
-                <span className="text-sm font-semibold text-rh-light-text dark:text-white">{h.ticker}</span>
-                <span className="text-sm font-mono text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Market Sentiment Gauge (with signal breakdown bars) */}
-      {sentiment && <SentimentGauge sentiment={sentiment} />}
-
-      {/* S&P 500 Sectors — horizontal performance bars */}
-      {heatmapSectors.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">S&amp;P 500 Sectors</h3>
-          </div>
-          <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
         </div>
       )}
 
