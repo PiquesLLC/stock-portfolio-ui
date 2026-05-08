@@ -476,46 +476,37 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         </div>
       )}
 
-      {/* Top Movers */}
+      {/* Top Movers — vertical list: winners, divider, losers (matches v2 sidebar style) */}
       {(movers.gainers.length > 0 || movers.losers.length > 0) && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Top Movers</h3>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {/* Gainers */}
-            <div className="space-y-1.5">
-              {movers.gainers.map(h => (
-                <button
-                  key={h.ticker}
-                  onClick={() => onTickerClick?.(h.ticker)}
-                  className="w-full flex items-center justify-between px-3 py-2 bg-rh-green/[0.06] border border-rh-green/10 rounded-lg hover:bg-rh-green/10 transition-colors"
-                >
-                  <span className="text-sm font-medium text-rh-light-text dark:text-white">{h.ticker}</span>
-                  <span className="text-sm font-mono text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
-                </button>
-              ))}
-              {movers.gainers.length === 0 && (
-                <p className="text-[12px] text-rh-light-muted/60 dark:text-white/20 px-3 py-2">No gainers</p>
-              )}
-            </div>
-            {/* Losers */}
-            <div className="space-y-1.5">
-              {movers.losers.map(h => (
-                <button
-                  key={h.ticker}
-                  onClick={() => onTickerClick?.(h.ticker)}
-                  className="w-full flex items-center justify-between px-3 py-2 bg-rh-red/[0.06] border border-rh-red/10 rounded-lg hover:bg-rh-red/10 transition-colors"
-                >
-                  <span className="text-sm font-medium text-rh-light-text dark:text-white">{h.ticker}</span>
-                  <span className="text-sm font-mono text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
-                </button>
-              ))}
-              {movers.losers.length === 0 && (
-                <p className="text-[12px] text-rh-light-muted/60 dark:text-white/20 px-3 py-2">No losers</p>
-              )}
-            </div>
+          <div className="space-y-1">
+            {movers.gainers.map(h => (
+              <button
+                key={h.ticker}
+                onClick={() => onTickerClick?.(h.ticker)}
+                className="w-full flex items-center justify-between py-2 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
+              >
+                <span className="text-sm font-semibold text-rh-light-text dark:text-white">{h.ticker}</span>
+                <span className="text-sm font-mono text-rh-green">+{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+              </button>
+            ))}
+            {movers.gainers.length > 0 && movers.losers.length > 0 && (
+              <div className="border-t border-gray-200/60 dark:border-white/[0.06] my-2" />
+            )}
+            {movers.losers.map(h => (
+              <button
+                key={h.ticker}
+                onClick={() => onTickerClick?.(h.ticker)}
+                className="w-full flex items-center justify-between py-2 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
+              >
+                <span className="text-sm font-semibold text-rh-light-text dark:text-white">{h.ticker}</span>
+                <span className="text-sm font-mono text-rh-red">{(h.dayChangePercent ?? 0).toFixed(1)}%</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -597,6 +588,46 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
           <div className="w-6 h-6 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
           <p className="text-sm text-rh-light-muted dark:text-white/40">Loading your brief...</p>
         </div>
+      )}
+
+      {/* Why Positions Moved — per-holding AI commentary on today's move. */}
+      {aiReport?.positionMoves && aiReport.positionMoves.length > 0 && (
+        <section className="mt-10">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 bg-rh-green rounded-sm" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Why Positions Moved</h3>
+          </div>
+          <div className="space-y-5">
+            {aiReport.positionMoves.map((move, i) => {
+              const pct = move.changePercent ?? 0;
+              const isUp = pct >= 0;
+              const isLast = i === (aiReport.positionMoves?.length ?? 0) - 1;
+              return (
+                <div key={`${move.ticker}-${i}`}>
+                  <div className="flex items-baseline gap-2 mb-1.5">
+                    <button
+                      onClick={() => onTickerClick?.(move.ticker)}
+                      className="text-[15px] font-bold text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
+                    >
+                      {move.ticker}
+                    </button>
+                    <span className={`text-sm font-mono ${isUp ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {isUp ? '+' : ''}{pct.toFixed(1)}%
+                    </span>
+                  </div>
+                  {move.reason && move.reason.trim().length > 0 && (
+                    <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.7]">
+                      {move.reason}
+                    </p>
+                  )}
+                  {!isLast && (
+                    <div className="border-t border-gray-200/60 dark:border-white/[0.04] mt-5" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Market Overview — macro report (AI prose). Hidden when blank. */}
