@@ -167,11 +167,11 @@ const LOADING_STEPS = [
 const MAX_RETRIES = 2;
 
 function isValidReport(result: DailyReportResponse): boolean {
-  if (result.sample) return true;
-  if (!result.topStories || result.topStories.length === 0) return false;
-  if (result.cached) return true;
-  const hasContent = result.topStories.some(s => s.headline.length > 5 && s.body.length > 10);
-  return hasContent;
+  // Accept any payload with a generatedAt timestamp. The v2 layout has many
+  // independent sections (movers, sectors, earnings, F&G, position moves)
+  // that render fine even when the AI editorial body is empty/sparse — better
+  // to show the chrome with whatever loaded than to retry into a blank stub.
+  return Boolean(result?.generatedAt);
 }
 
 function BriefingLoader({ retryAttempt }: { retryAttempt: number }) {
@@ -628,21 +628,27 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
             {/* Two-Column Layout */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-4 md:gap-8">
               <div>
-                <div className="mb-6">
-                  <h2 className="text-[22px] font-bold text-rh-light-text dark:text-white leading-snug">{stripCitations(data.greeting)}</h2>
-                </div>
+                {data.greeting && data.greeting.trim().length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-[22px] font-bold text-rh-light-text dark:text-white leading-snug">{stripCitations(data.greeting)}</h2>
+                  </div>
+                )}
 
-                <Section title="Market Overview">
-                  <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
-                    {renderWithPills(data.marketOverview, onTickerClick, liveQuotes)}
-                  </p>
-                </Section>
+                {data.marketOverview && data.marketOverview.trim().length > 0 && (
+                  <Section title="Market Overview">
+                    <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
+                      {renderWithPills(data.marketOverview, onTickerClick, liveQuotes)}
+                    </p>
+                  </Section>
+                )}
 
-                <Section title="Portfolio Analysis">
-                  <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
-                    {renderWithPills(data.portfolioSummary, onTickerClick, liveQuotes)}
-                  </p>
-                </Section>
+                {data.portfolioSummary && data.portfolioSummary.trim().length > 0 && (
+                  <Section title="Portfolio Analysis">
+                    <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
+                      {renderWithPills(data.portfolioSummary, onTickerClick, liveQuotes)}
+                    </p>
+                  </Section>
+                )}
 
                 {portfolioNewsData?.summary && (
                   <Section title="Market Analysis">
@@ -667,9 +673,10 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
                   </Section>
                 )}
 
-                <Section title="Top Stories">
-                  <div className="space-y-5">
-                    {data.topStories.map((story, i) => (
+                {data.topStories && data.topStories.length > 0 && (
+                  <Section title="Top Stories">
+                    <div className="space-y-5">
+                      {data.topStories.map((story, i) => (
                       <div key={i}>
                         <div className="flex items-start gap-3">
                           <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
@@ -685,11 +692,12 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
                             </p>
                           </div>
                         </div>
-                        {i < data.topStories.length - 1 && <div className="border-t border-gray-200/60 dark:border-white/[0.03] mt-5" />}
-                      </div>
-                    ))}
-                  </div>
-                </Section>
+                          {i < data.topStories.length - 1 && <div className="border-t border-gray-200/60 dark:border-white/[0.03] mt-5" />}
+                        </div>
+                      ))}
+                    </div>
+                  </Section>
+                )}
               </div>
 
               <div className="-mt-2 md:mt-0">
