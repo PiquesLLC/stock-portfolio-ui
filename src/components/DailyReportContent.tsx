@@ -476,6 +476,104 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         </div>
       )}
 
+      {/* Market Overview — macro report (AI prose). Hidden when blank. */}
+      {aiReport?.marketOverview && aiReport.marketOverview.trim().length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 bg-rh-green rounded-sm" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Market Overview</h3>
+          </div>
+          <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
+            {aiReport.marketOverview}
+          </p>
+        </section>
+      )}
+
+      {/* Portfolio Analysis — profile for the day (AI prose). Hidden when blank. */}
+      {aiReport?.portfolioSummary && aiReport.portfolioSummary.trim().length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 bg-rh-green rounded-sm" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Portfolio Analysis</h3>
+          </div>
+          <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
+            {aiReport.portfolioSummary}
+          </p>
+        </section>
+      )}
+
+      {/* Why Positions Moved — per-holding AI commentary on today's move. */}
+      {aiReport?.positionMoves && aiReport.positionMoves.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 bg-rh-green rounded-sm" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Why Positions Moved</h3>
+          </div>
+          <div className="space-y-5">
+            {aiReport.positionMoves.map((move, i) => {
+              const pct = move.changePercent ?? 0;
+              const isUp = pct >= 0;
+              const isLast = i === (aiReport.positionMoves?.length ?? 0) - 1;
+              return (
+                <div key={`${move.ticker}-${i}`}>
+                  <div className="flex items-baseline gap-2 mb-1.5">
+                    <button
+                      onClick={() => onTickerClick?.(move.ticker)}
+                      className="text-[15px] font-bold text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
+                    >
+                      {move.ticker}
+                    </button>
+                    <span className={`text-sm font-mono ${isUp ? 'text-rh-green' : 'text-rh-red'}`}>
+                      {isUp ? '+' : ''}{pct.toFixed(1)}%
+                    </span>
+                  </div>
+                  {move.reason && move.reason.trim().length > 0 && (
+                    <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.7]">
+                      {move.reason}
+                    </p>
+                  )}
+                  {!isLast && (
+                    <div className="border-t border-gray-200/60 dark:border-white/[0.04] mt-5" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Earnings This Week — only renders if there are upcoming earnings in next 7 days */}
+      {earnings.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Earnings This Week</h3>
+          </div>
+          <div className="space-y-2">
+            {earnings.map(e => (
+              <button
+                key={e.ticker}
+                onClick={() => onTickerClick?.(e.ticker)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/[0.06] rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span className="text-sm font-medium text-rh-light-text dark:text-white">{e.ticker}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-[12px] text-rh-light-muted dark:text-white/50">
+                    {e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `In ${e.daysUntil} days`}
+                  </p>
+                  {e.estimatedEPS != null && (
+                    <p className="text-[11px] text-rh-light-muted/60 dark:text-white/30 font-mono">Est. EPS ${e.estimatedEPS.toFixed(2)}</p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Top Movers — vertical list: winners, divider, losers (matches v2 sidebar style) */}
       {(movers.gainers.length > 0 || movers.losers.length > 0) && (
         <div className="mb-8">
@@ -525,38 +623,6 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         </div>
       )}
 
-      {/* Earnings This Week — only renders if there are upcoming earnings in next 7 days */}
-      {earnings.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Earnings This Week</h3>
-          </div>
-          <div className="space-y-2">
-            {earnings.map(e => (
-              <button
-                key={e.ticker}
-                onClick={() => onTickerClick?.(e.ticker)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/[0.06] rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  <span className="text-sm font-medium text-rh-light-text dark:text-white">{e.ticker}</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-[12px] text-rh-light-muted dark:text-white/50">
-                    {e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `In ${e.daysUntil} days`}
-                  </p>
-                  {e.estimatedEPS != null && (
-                    <p className="text-[11px] text-rh-light-muted/60 dark:text-white/30 font-mono">Est. EPS ${e.estimatedEPS.toFixed(2)}</p>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Ex-Dividend Today — only renders if any holding's ex-date is today */}
       {dividends.length > 0 && (
         <div className="mb-8">
@@ -588,72 +654,6 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
           <div className="w-6 h-6 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
           <p className="text-sm text-rh-light-muted dark:text-white/40">Loading your brief...</p>
         </div>
-      )}
-
-      {/* Why Positions Moved — per-holding AI commentary on today's move. */}
-      {aiReport?.positionMoves && aiReport.positionMoves.length > 0 && (
-        <section className="mt-10">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-4 bg-rh-green rounded-sm" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Why Positions Moved</h3>
-          </div>
-          <div className="space-y-5">
-            {aiReport.positionMoves.map((move, i) => {
-              const pct = move.changePercent ?? 0;
-              const isUp = pct >= 0;
-              const isLast = i === (aiReport.positionMoves?.length ?? 0) - 1;
-              return (
-                <div key={`${move.ticker}-${i}`}>
-                  <div className="flex items-baseline gap-2 mb-1.5">
-                    <button
-                      onClick={() => onTickerClick?.(move.ticker)}
-                      className="text-[15px] font-bold text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
-                    >
-                      {move.ticker}
-                    </button>
-                    <span className={`text-sm font-mono ${isUp ? 'text-rh-green' : 'text-rh-red'}`}>
-                      {isUp ? '+' : ''}{pct.toFixed(1)}%
-                    </span>
-                  </div>
-                  {move.reason && move.reason.trim().length > 0 && (
-                    <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.7]">
-                      {move.reason}
-                    </p>
-                  )}
-                  {!isLast && (
-                    <div className="border-t border-gray-200/60 dark:border-white/[0.04] mt-5" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Market Overview — macro report (AI prose). Hidden when blank. */}
-      {aiReport?.marketOverview && aiReport.marketOverview.trim().length > 0 && (
-        <section className="mt-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1 h-4 bg-rh-green rounded-sm" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Market Overview</h3>
-          </div>
-          <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
-            {aiReport.marketOverview}
-          </p>
-        </section>
-      )}
-
-      {/* Portfolio Analysis — profile for the day (AI prose). Hidden when blank. */}
-      {aiReport?.portfolioSummary && aiReport.portfolioSummary.trim().length > 0 && (
-        <section className="mt-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1 h-4 bg-rh-green rounded-sm" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Portfolio Analysis</h3>
-          </div>
-          <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
-            {aiReport.portfolioSummary}
-          </p>
-        </section>
       )}
 
       {dismissSlot && (
