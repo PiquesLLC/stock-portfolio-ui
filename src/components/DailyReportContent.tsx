@@ -476,6 +476,20 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         </div>
       )}
 
+      {/* Market Sentiment Gauge (with signal breakdown bars) */}
+      {sentiment && <SentimentGauge sentiment={sentiment} />}
+
+      {/* S&P 500 Sectors — horizontal performance bars */}
+      {heatmapSectors.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">S&amp;P 500 Sectors</h3>
+          </div>
+          <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
+        </div>
+      )}
+
       {/* Top Movers — vertical list: winners, divider, losers (matches v2 sidebar style) */}
       {(movers.gainers.length > 0 || movers.losers.length > 0) && (
         <div className="mb-8">
@@ -508,20 +522,6 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Market Sentiment Gauge (with signal breakdown bars) */}
-      {sentiment && <SentimentGauge sentiment={sentiment} />}
-
-      {/* S&P 500 Sectors — horizontal performance bars */}
-      {heatmapSectors.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">S&amp;P 500 Sectors</h3>
-          </div>
-          <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
         </div>
       )}
 
