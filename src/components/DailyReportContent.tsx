@@ -8,6 +8,11 @@
 //   - Portfolio block: total + day change + total return
 //   - Top Movers grid: 3 winners (left) / 3 losers (right) from holdings
 //   - Fear & Greed gauge: half-circle SVG with 5 zones + needle
+//   - Fear & Greed signal breakdown bars (Volatility / Momentum / Breadth /
+//     Price Strength / Put-Call / Safe Haven / Junk Bond)
+//   - S&P 500 Sectors: horizontal performance bars, click-through to ETF
+//   - Earnings This Week: holdings reporting in next 7 days
+//   - Ex-Dividend Today: holdings whose ex-date is today
 //
 // No modal chrome here: no fixed positioning, no backdrop, no portal, no
 // close button. The wrapper provides all of that.
@@ -21,12 +26,16 @@
 
 import { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
 import {
+  EarningsSummaryItem,
+  getEarningsSummary,
   getFastQuote,
   getMarketSentiment,
   getPortfolio,
+  getSectorPerformance,
+  getUpcomingDividends,
   MarketSentiment,
 } from '../api';
-import { Portfolio } from '../types';
+import { DividendEvent, Portfolio } from '../types';
 
 function formatDate(d: Date): string {
   return d.toLocaleDateString('en-US', {
@@ -43,6 +52,68 @@ function formatPct(n: number): string {
 }
 
 type IndexQuote = { price: number; changePct: number; change: number };
+type SectorBarItem = { name: string; avgChangePercent: number };
+
+function isEffectivelyZero(pct: number): boolean {
+  return Math.abs(pct) < 0.005;
+}
+
+// Sector → ETF ticker mapping (matches old TestFlight version)
+const SECTOR_ETF_MAP: Record<string, string> = {
+  'Technology': 'XLK', 'Tech': 'XLK',
+  'Financial': 'XLF', 'Finance': 'XLF', 'Financials': 'XLF',
+  'Healthcare': 'XLV', 'Health Care': 'XLV',
+  'Consumer': 'XLY', 'Consumer Cyclical': 'XLY', 'Consumer Defensive': 'XLP',
+  'Industrial': 'XLI', 'Industrials': 'XLI',
+  'Energy': 'XLE',
+  'Communication': 'XLC', 'Communication Services': 'XLC',
+  'Materials': 'XLB', 'Basic Materials': 'XLB',
+  'Utilities': 'XLU',
+  'Real Estate': 'XLRE',
+};
+
+// Horizontal sector bars (matches Discover page style)
+function SectorBars({ sectors, onTickerClick }: { sectors: SectorBarItem[]; onTickerClick?: (ticker: string) => void }) {
+  const sorted = [...sectors].sort((a, b) => b.avgChangePercent - a.avgChangePercent);
+  const maxAbs = Math.max(...sorted.map(s => Math.abs(s.avgChangePercent)), 1);
+  return (
+    <div className="space-y-1.5">
+      {sorted.map(s => {
+        const pct = s.avgChangePercent;
+        const barWidth = (Math.abs(pct) / maxAbs) * 50;
+        const isPositive = pct >= 0;
+        const zero = isEffectivelyZero(pct);
+        const etf = SECTOR_ETF_MAP[s.name];
+        return (
+          <div
+            key={s.name}
+            className={`flex items-center gap-3 ${etf ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.03] -mx-2 px-2 rounded-lg transition-colors' : ''}`}
+            onClick={() => etf && onTickerClick?.(etf)}
+          >
+            <span className="text-xs w-24 text-right shrink-0 font-medium text-rh-light-muted dark:text-white/40">{s.name}</span>
+            <div className="flex-1 flex items-center h-5">
+              <div className="relative w-full h-full flex items-center">
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200/60 dark:bg-white/[0.08]" />
+                <div
+                  className="absolute h-4 rounded-sm transition-all duration-500"
+                  style={{
+                    left: isPositive ? '50%' : `${50 - barWidth}%`,
+                    width: `${barWidth}%`,
+                    background: zero ? '#888' : isPositive ? '#00C805' : '#E8544E',
+                    opacity: 0.8,
+                  }}
+                />
+              </div>
+            </div>
+            <span className={`text-xs font-semibold min-w-[50px] text-right font-mono ${zero ? 'text-rh-light-muted dark:text-white/40' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+              {isPositive ? '+' : ''}{pct.toFixed(2)}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // Sentiment gauge — Fear & Greed speedometer
 // Top semicircle: score 0 (fear/left) to 100 (greed/right).
@@ -175,6 +246,41 @@ function SentimentGauge({ sentiment }: { sentiment: MarketSentiment }) {
       <div className="text-center -mt-3">
         <p className="text-sm font-bold tracking-wide" style={{ color: labelColor }}>{label}</p>
       </div>
+
+      {/* Signal breakdown */}
+      <div className="mt-5 space-y-2 px-2">
+        {([
+          { key: 'vix', label: 'Market Volatility' },
+          { key: 'momentum', label: 'Market Momentum' },
+          { key: 'breadth', label: 'Stock Price Breadth' },
+          { key: 'priceStrength', label: 'Stock Price Strength' },
+          { key: 'putCall', label: 'Put/Call Options' },
+          { key: 'safeHaven', label: 'Safe Haven Demand' },
+          { key: 'junkBond', label: 'Junk Bond Demand' },
+        ] as const).map(({ key, label: sigLabel }) => {
+          const sig = sentiment.signals?.[key];
+          if (!sig || (sig.signal === 0 && sig.value === 0)) return null;
+          const sigColor =
+            sig.signal <= 25 ? '#ef4444' :
+            sig.signal < 42 ? '#f97316' :
+            sig.signal <= 58 ? '#a3a3a3' :
+            sig.signal <= 75 ? '#84cc16' : '#22c55e';
+          const sigText =
+            sig.signal <= 25 ? 'Extreme Fear' :
+            sig.signal < 42 ? 'Fear' :
+            sig.signal <= 58 ? 'Neutral' :
+            sig.signal <= 75 ? 'Greed' : 'Extreme Greed';
+          return (
+            <div key={key} className="flex items-center gap-3">
+              <span className="text-[11px] text-rh-light-muted dark:text-white/50 w-36 shrink-0">{sigLabel}</span>
+              <div className="flex-1 h-1.5 bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${sig.signal}%`, backgroundColor: sigColor }} />
+              </div>
+              <span className="text-[11px] font-medium w-20 text-right shrink-0" style={{ color: sigColor }}>{sigText}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -204,6 +310,9 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
   const [indexQuotes, setIndexQuotes] = useState<Record<string, IndexQuote>>({});
   const [sentiment, setSentiment] = useState<MarketSentiment | null>(null);
   const [livePortfolio, setLivePortfolio] = useState<Portfolio | null>(null);
+  const [heatmapSectors, setHeatmapSectors] = useState<SectorBarItem[]>([]);
+  const [earnings, setEarnings] = useState<EarningsSummaryItem[]>([]);
+  const [dividends, setDividends] = useState<DividendEvent[]>([]);
   const [refreshTick, setRefreshTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -225,6 +334,25 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
       try { setLivePortfolio(await getPortfolio()); } catch { /* ignore */ }
       // Sentiment
       try { setSentiment(await getMarketSentiment()); } catch { /* ignore */ }
+      // Sector performance (1D) → bar chart of S&P 500 sectors
+      try {
+        const r = await getSectorPerformance('1D');
+        setHeatmapSectors(r.sectors.map(s => ({ name: s.name, avgChangePercent: s.changePercent })));
+      } catch { /* ignore */ }
+      // Earnings this week (next 7 days, holdings only)
+      try {
+        const r = await getEarningsSummary();
+        setEarnings(r.results.filter(e => e.daysUntil >= 0 && e.daysUntil <= 7));
+      } catch { /* ignore */ }
+      // Upcoming dividends — only show if ex-date is today.
+      // Compare on YYYY-MM-DD substrings to avoid `new Date("2026-05-07")`
+      // parsing as UTC midnight and shifting to the prior day for users west of UTC.
+      try {
+        const divs = await getUpcomingDividends();
+        const now = new Date();
+        const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        setDividends(divs.filter(d => (d.exDate ?? '').slice(0, 10) === todayLocal));
+      } catch { /* ignore */ }
     } finally {
       setRefreshing(false);
     }
@@ -382,8 +510,76 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         </div>
       )}
 
-      {/* Market Sentiment Gauge */}
+      {/* Market Sentiment Gauge (with signal breakdown bars) */}
       {sentiment && <SentimentGauge sentiment={sentiment} />}
+
+      {/* S&P 500 Sectors — horizontal performance bars */}
+      {heatmapSectors.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">S&amp;P 500 Sectors</h3>
+          </div>
+          <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
+        </div>
+      )}
+
+      {/* Earnings This Week — only renders if there are upcoming earnings in next 7 days */}
+      {earnings.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Earnings This Week</h3>
+          </div>
+          <div className="space-y-2">
+            {earnings.map(e => (
+              <button
+                key={e.ticker}
+                onClick={() => onTickerClick?.(e.ticker)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/[0.06] rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span className="text-sm font-medium text-rh-light-text dark:text-white">{e.ticker}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-[12px] text-rh-light-muted dark:text-white/50">
+                    {e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `In ${e.daysUntil} days`}
+                  </p>
+                  {e.estimatedEPS != null && (
+                    <p className="text-[11px] text-rh-light-muted/60 dark:text-white/30 font-mono">Est. EPS ${e.estimatedEPS.toFixed(2)}</p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ex-Dividend Today — only renders if any holding's ex-date is today */}
+      {dividends.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Ex-Dividend Today</h3>
+          </div>
+          <div className="space-y-2">
+            {dividends.map(d => (
+              <button
+                key={d.id}
+                onClick={() => onTickerClick?.(d.ticker)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/[0.06] rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rh-green" />
+                  <span className="text-sm font-medium text-rh-light-text dark:text-white">{d.ticker}</span>
+                </div>
+                <p className="text-[11px] text-rh-light-muted/60 dark:text-white/30 font-mono">${d.amountPerShare.toFixed(4)}/share</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Loading shell when nothing has resolved yet */}
       {!livePortfolio && !sentiment && Object.keys(indexQuotes).length === 0 && (
