@@ -518,8 +518,8 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
 
   useEffect(() => {
     if (feedMode !== 'social') return;
-    getTrendingTickers().then(setTickers).catch(() => {});
-    getCommunityTrades().then(d => { setMostBought(d.mostBought || []); setMostSold(d.mostSold || []); }).catch(() => {});
+    getTrendingTickers().then(setTickers).catch(err => console.error('[FeedPage] trending tickers failed:', err));
+    getCommunityTrades().then(d => { setMostBought(d.mostBought || []); setMostSold(d.mostSold || []); }).catch(err => console.error('[FeedPage] community trades failed:', err));
   }, [feedMode]);
 
   const hasContent = feedMode === 'social' && (tickers.length > 0 || mostBought.length > 0 || mostSold.length > 0);
@@ -613,7 +613,7 @@ function MobileTrendingPill({ ticker, onClick }: { ticker: string; count?: numbe
         if (candles.length >= 2) {
           setPositive(candles[candles.length - 1].close >= candles[0].close);
         }
-      }).catch(() => {});
+      }).catch(err => console.error('[FeedPage] hourly candles failed:', err));
     });
   }, [ticker]);
 
@@ -683,11 +683,11 @@ function MobileTrending({ onTickerClick }: { onTickerClick?: (ticker: string) =>
   const [mostSold, setMostSold] = useState<{ ticker: string; count: number }[]>([]);
 
   useEffect(() => {
-    getTrendingTickers().then(setTickers).catch(() => {});
+    getTrendingTickers().then(setTickers).catch(err => console.error('[FeedPage mobile] trending tickers failed:', err));
     getCommunityTrades().then(d => {
       setMostBought(d.mostBought || []);
       setMostSold(d.mostSold || []);
-    }).catch(() => {});
+    }).catch(err => console.error('[FeedPage mobile] community trades failed:', err));
   }, []);
 
   if (tickers.length === 0 && mostBought.length === 0 && mostSold.length === 0) return null;
@@ -763,7 +763,7 @@ function TrendingSidebarRow({ ticker, rank, count, onClick }: { ticker: string; 
           setPrice(d.quote.currentPrice ?? null);
           setChangePct(d.quote.changePercent ?? null);
         }
-      }).catch(() => {});
+      }).catch(err => console.error('[FeedPage] stock details failed:', err));
     });
   }, [ticker]);
 

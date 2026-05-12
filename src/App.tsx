@@ -511,7 +511,7 @@ export default function App() {
             return visiblePortfolios[0].id;
           });
         })
-        .catch(() => {});
+        .catch(err => console.error('[Portfolio picker] Failed to list portfolios:', err));
     }
   }, [isAuthenticated, authLoading]);
 
@@ -549,6 +549,13 @@ export default function App() {
   const [verifyLocked, setVerifyLocked] = useState(false);
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
   const verificationEmail = user?.email ?? null;
+
+  // Note: the verify-email resend cooldown intervals are self-clearing via
+  // their `if (prev <= 1) clearInterval(iv)` branch, and App.tsx is the SPA
+  // root so it only unmounts on full app teardown — no unmount-cleanup ref
+  // needed here. If the verify-email JSX is ever extracted into its own
+  // component, that component should track and clear pending intervals on
+  // unmount (see the LoginPage.tsx `cooldownIntervalsRef` pattern).
 
   // Close "More" dropdown on outside click
   useEffect(() => {
@@ -1653,9 +1660,10 @@ export default function App() {
             <StockDetailView
               ticker={viewingStock.ticker}
               holding={findHolding(viewingStock.ticker) ?? viewingStock.holding}
+              siblings={viewingStock.siblings}
               portfolioTotal={portfolio?.totalAssets ?? 0}
               onTickerNavigate={(ticker) => {
-                setViewingStock({ ticker, holding: findHolding(ticker) });
+                setViewingStock(prev => prev ? { ticker, holding: findHolding(ticker), siblings: prev.siblings } : { ticker, holding: findHolding(ticker) });
               }}
               onBack={() => {
                 if (dailyReportHidden) {
@@ -2033,7 +2041,7 @@ export default function App() {
               <HoldingsTable
                 holdings={portfolio?.holdings ?? []}
                 onUpdate={handleUpdate}
-                onTickerClick={(ticker, holding) => setViewingStock({ ticker, holding })}
+                onTickerClick={(ticker, holding, siblings) => setViewingStock({ ticker, holding, siblings })}
                 cashBalance={portfolio?.cashBalance ?? 0}
                 marginDebt={portfolio?.marginDebt ?? 0}
                 userId={currentUserId}

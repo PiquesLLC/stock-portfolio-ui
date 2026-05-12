@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, FormEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { setPassword as apiSetPassword, checkHasPassword } from '../api';
@@ -110,6 +110,15 @@ export function LoginPage() {
   const [privacyTab, setPrivacyTab] = useState<'privacy' | 'terms'>('privacy');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [referralCode, setReferralCode] = useState('');
+
+  // Track cooldown intervals so they can be cleared on unmount. Without this,
+  // pending setState fires on an unmounted component if the user navigates
+  // away mid-cooldown (e.g. closes the modal during the 60s resend timer).
+  const cooldownIntervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set());
+  useEffect(() => () => {
+    cooldownIntervalsRef.current.forEach(clearInterval);
+    cooldownIntervalsRef.current.clear();
+  }, []);
 
   // Capture referral code from URL (?ref=username)
   useEffect(() => {
@@ -334,10 +343,11 @@ export function LoginPage() {
       setResendCooldown(60);
       const interval = setInterval(() => {
         setResendCooldown(prev => {
-          if (prev <= 1) { clearInterval(interval); return 0; }
+          if (prev <= 1) { clearInterval(interval); cooldownIntervalsRef.current.delete(interval); return 0; }
           return prev - 1;
         });
       }, 1000);
+      cooldownIntervalsRef.current.add(interval);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resend code');
     }
@@ -599,10 +609,11 @@ export function LoginPage() {
                         setResetCooldown(60);
                         const interval = setInterval(() => {
                           setResetCooldown(prev => {
-                            if (prev <= 1) { clearInterval(interval); return 0; }
+                            if (prev <= 1) { clearInterval(interval); cooldownIntervalsRef.current.delete(interval); return 0; }
                             return prev - 1;
                           });
                         }, 1000);
+                        cooldownIntervalsRef.current.add(interval);
                       } catch (err) {
                         setError(err instanceof Error ? err.message : 'Failed to resend code');
                       }

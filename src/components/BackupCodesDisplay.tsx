@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface BackupCodesDisplayProps {
   codes: string[];
@@ -7,12 +7,23 @@ interface BackupCodesDisplayProps {
 
 export function BackupCodesDisplay({ codes, onDone }: BackupCodesDisplayProps) {
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cancel pending "copied" reset on unmount — MFA-flow modal can close
+  // within the 2s window if the user moves fast.
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const handleCopyAll = async () => {
     try {
       await navigator.clipboard.writeText(codes.join('\n'));
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copiedTimerRef.current = setTimeout(() => {
+        setCopied(false);
+        copiedTimerRef.current = null;
+      }, 2000);
     } catch {
       // Fallback
     }

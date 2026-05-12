@@ -36,6 +36,16 @@ export function useStockData(ticker: string, chartPeriod: string) {
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
+  // Abort signal for in-flight fetches. When ticker changes (or hook unmounts)
+  // we abort the prior controller so stale-ticker requests stop consuming
+  // bandwidth and rate-limit headroom (Finnhub's stock-details queue burns fast
+  // during rapid swipe-between-stocks navigation). The requestIdRef guard
+  // still prevents stale setState — abort is a network-side optimization.
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Suppress logging for fetches that were aborted intentionally on ticker change
+  const isAbortError = (e: unknown): boolean =>
+    e instanceof DOMException && e.name === 'AbortError';
+
   // Intraday candles for 1D chart (from Yahoo Finance via API)
   const [intradayCandles, setIntradayCandles] = useState<IntradayCandle[]>([]);
 
@@ -131,14 +141,14 @@ export function useStockData(ticker: string, chartPeriod: string) {
   }, [ticker, chartPeriod]);
 
   // Initial fetch — progressive loading: quote + chart first (fast), then full details
-  const fetchInitial = useCallback(async (requestId: number) => {
+  const fetchInitial = useCallback(async (requestId: number, signal: AbortSignal) => {
     setCandlesLoaded(false);
     try {
       // PHASE 1: Quick load - only fetch what the default 1D open state needs.
       // Don't block the whole stock view on 1W/1M hourly prefetch.
       const [quoteResult, intraday] = await Promise.all([
-        getFastQuote(ticker).catch(e => { console.error('Fast quote fetch failed:', e); return null; }),
-        getIntradayCandles(ticker).catch(e => { console.error('Intraday candles fetch failed:', e); return []; }),
+        getFastQuote(ticker, signal).catch(e => { if (!isAbortError(e)) console.error('Fast quote fetch failed:', e); return null; }),
+        getIntradayCandles(ticker, signal).catch(e => { if (!isAbortError(e)) console.error('Intraday candles fetch failed:', e); return []; }),
       ]);
 
       if (requestIdRef.current !== requestId) return;
@@ -163,8 +173,8 @@ export function useStockData(ticker: string, chartPeriod: string) {
       // Prefetch hourly data in the background so period switches stay snappy,
       // but don't hold up initial stock-detail paint for it.
       Promise.all([
-        getHourlyCandles(ticker, '1W').catch(e => { console.error('Hourly 1W candles fetch failed:', e); return []; }),
-        getHourlyCandles(ticker, '1M').catch(e => { console.error('Hourly 1M candles fetch failed:', e); return []; }),
+        getHourlyCandles(ticker, '1W', signal).catch(e => { if (!isAbortError(e)) console.error('Hourly 1W candles fetch failed:', e); return []; }),
+        getHourlyCandles(ticker, '1M', signal).catch(e => { if (!isAbortError(e)) console.error('Hourly 1M candles fetch failed:', e); return []; }),
       ]).then(([hourly1W, hourly1M]) => {
         if (requestIdRef.current !== requestId) return;
         hourlyCache.current = { '1W': hourly1W, '1M': hourly1M };
@@ -174,7 +184,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
       });
 
       // PHASE 2: Full load - profile, metrics, historical candles (slower - Finnhub queue)
-      const result = await getStockDetails(ticker);
+      const result = await getStockDetails(ticker, signal);
       if (requestIdRef.current !== requestId) return;
 
       setData(result);
@@ -183,6 +193,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
       setCandlesLoaded(true);
       setError(null);
     } catch (err) {
+      if (isAbortError(err)) return; // intentional abort on ticker change
       if (requestIdRef.current === requestId) {
         setError(err instanceof Error ? err.message : 'Failed to load stock details');
         setQuickLoaded(true); // Show whatever we have instead of infinite skeleton
@@ -192,14 +203,20 @@ export function useStockData(ticker: string, chartPeriod: string) {
     }
   }, [ticker]);
 
-  // Poll — refresh quote + intraday candles
+  // Poll — refresh quote + intraday candles.
+  // Captures requestIdRef at call time and checks it before every setState so
+  // a slow response for the previous ticker can't bleed into the new ticker's
+  // state (the "Robinhood revisit-the-stock-chart-goes-weird" bug class).
   const pollQuote = useCallback(async () => {
     if (document.hidden) return;
+    const requestId = requestIdRef.current;
+    const signal = abortControllerRef.current?.signal;
     try {
       const [quote, intraday] = await Promise.all([
-        getStockQuote(ticker),
-        getIntradayCandles(ticker).catch(e => { console.error('Intraday candles poll failed:', e); return null; }),
+        getStockQuote(ticker, signal),
+        getIntradayCandles(ticker, signal).catch(e => { if (!isAbortError(e)) console.error('Intraday candles poll failed:', e); return null; }),
       ]);
+      if (requestIdRef.current !== requestId) return; // ticker changed mid-fetch
       setData(prev => {
         if (!prev) return prev;
         // Preserve the best high/low/open across poll updates (Yahoo initial + Finnhub polls)
@@ -219,24 +236,34 @@ export function useStockData(ticker: string, chartPeriod: string) {
         return next.length > 500 ? next.slice(-500) : next;
       });
     } catch (e) {
-      console.error('Quote poll failed:', e);
+      if (!isAbortError(e)) console.error('Quote poll failed:', e);
     }
   }, [ticker]);
 
   // Reset + fetch on ticker change
   useEffect(() => {
+    // Abort any in-flight fetches for the previous ticker so they don't
+    // continue eating bandwidth / Finnhub queue slots after the user has moved on.
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     setLoading(true);
     setQuickLoaded(false);
+    setCandlesLoaded(false);
+    setAiEventsLoaded(false);
     setError(null);
     setData(null);
     setLivePrices([]);
     setIntradayCandles([]);
     setHourlyCandles([]);
     hourlyCache.current = {};
-    fetchInitial(requestId);
+    fetchInitial(requestId, controller.signal);
   }, [fetchInitial]);
+
+  // Abort all in-flight fetches on unmount
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   // Polling interval — adaptive based on market session
   useEffect(() => {

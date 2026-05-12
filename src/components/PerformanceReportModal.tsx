@@ -61,16 +61,25 @@ export function PerformanceReportModal({ onClose }: Props) {
       printWindow.document.write(html);
       printWindow.document.close();
 
-      // Wait for content to render, then trigger print dialog
-      printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
-      };
-      // Fallback if onload doesn't fire (some browsers)
-      setTimeout(() => {
+      // Wait for content to render, then trigger print dialog.
+      // Some browsers fire `onload`; others don't — fall back to a 500ms
+      // timer. Use a `printed` flag so we don't print twice if both fire,
+      // and clear the timer in onload to avoid printing into a closed window
+      // when the user dismisses the print preview within 500ms.
+      let printed = false;
+      const fallbackTimer = setTimeout(() => {
+        if (printed || printWindow.closed) return;
+        printed = true;
         printWindow.focus();
         printWindow.print();
       }, 500);
+      printWindow.onload = () => {
+        clearTimeout(fallbackTimer);
+        if (printed || printWindow.closed) return;
+        printed = true;
+        printWindow.focus();
+        printWindow.print();
+      };
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate report');
     } finally {

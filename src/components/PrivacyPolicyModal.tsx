@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface PrivacyPolicyModalProps {
   isOpen: boolean;
@@ -253,7 +254,7 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -311,6 +312,7 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

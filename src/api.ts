@@ -583,17 +583,47 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     if (nativeRuntime) {
       // Use CapacitorHttp.request() on native — bypass WebKit fetch quirks
       // fetch() on WKWebView throws "string did not match expected pattern"
+      const signal = options?.signal;
+      // Honor pre-aborted signal synchronously.
+      if (signal?.aborted) {
+        throw new DOMException('Request aborted', 'AbortError');
+      }
       let data: unknown = undefined;
       if (options?.body && typeof options.body === 'string') {
         try { data = JSON.parse(options.body); } catch { data = options.body; }
       }
-      const result = await CapacitorHttp.request({
+      const httpPromise = CapacitorHttp.request({
         url,
         method: options?.method || 'GET',
         headers,
         data,
         responseType: 'json',
       });
+      // CapacitorHttp has no native cancellation, but we can fake-abort by
+      // racing the request against the signal. The underlying HTTP call still
+      // completes on the device (so any server-side write already happened —
+      // don't assume aborted = no-op for non-GET methods), but our promise
+      // rejects so the caller stops waiting and we can short-circuit before
+      // processing the response. Makes rapid-swipe rate-limit optimization
+      // semantically consistent between web and native.
+      //
+      // The listener must be detached after the race resolves either way —
+      // `{ once: true }` only auto-removes after the event FIRES, not after
+      // the http path wins the race, so without explicit removeEventListener
+      // long-lived AbortControllers accumulate one orphan listener per call.
+      let result: Awaited<typeof httpPromise>;
+      if (signal) {
+        result = await new Promise<Awaited<typeof httpPromise>>((resolve, reject) => {
+          const onAbort = () => reject(new DOMException('Request aborted', 'AbortError'));
+          signal.addEventListener('abort', onAbort);
+          httpPromise.then(
+            r => { signal.removeEventListener('abort', onAbort); resolve(r); },
+            e => { signal.removeEventListener('abort', onAbort); reject(e); },
+          );
+        });
+      } else {
+        result = await httpPromise;
+      }
       return new Response(JSON.stringify(result.data), { status: result.status, headers: { 'Content-Type': 'application/json' } });
     }
     return fetch(url, {
@@ -1773,8 +1803,8 @@ export async function getFollowingList(userId: string): Promise<{ id: string; us
   return fetchJson(`${API_BASE_URL}/users/${userId}/following`);
 }
 
-export async function getStockDetails(ticker: string): Promise<StockDetailsResponse> {
-  return fetchJson<StockDetailsResponse>(`${API_BASE_URL}/market/stock/${ticker}/details`);
+export async function getStockDetails(ticker: string, signal?: AbortSignal): Promise<StockDetailsResponse> {
+  return fetchJson<StockDetailsResponse>(`${API_BASE_URL}/market/stock/${ticker}/details`, { signal });
 }
 
 export async function getETFHoldings(ticker: string): Promise<ETFHoldingsData | null> {
@@ -1793,16 +1823,16 @@ export async function getAssetAbout(ticker: string): Promise<AssetAbout | null> 
   }
 }
 
-export async function getStockQuote(ticker: string): Promise<StockDetailsResponse['quote']> {
-  return fetchJson<StockDetailsResponse['quote']>(`${API_BASE_URL}/market/quote/${ticker}`);
+export async function getStockQuote(ticker: string, signal?: AbortSignal): Promise<StockDetailsResponse['quote']> {
+  return fetchJson<StockDetailsResponse['quote']>(`${API_BASE_URL}/market/quote/${ticker}`, { signal });
 }
 
 /**
  * Fast quote using Yahoo Finance directly - no queue delays.
  * Used for progressive loading to show price immediately.
  */
-export async function getFastQuote(ticker: string): Promise<StockDetailsResponse['quote']> {
-  return fetchJson<StockDetailsResponse['quote']>(`${API_BASE_URL}/market/fast-quote/${ticker}`);
+export async function getFastQuote(ticker: string, signal?: AbortSignal): Promise<StockDetailsResponse['quote']> {
+  return fetchJson<StockDetailsResponse['quote']>(`${API_BASE_URL}/market/fast-quote/${ticker}`, { signal });
 }
 
 export interface IntradayCandle {
@@ -1814,8 +1844,8 @@ export interface IntradayCandle {
   volume: number;
 }
 
-export async function getIntradayCandles(ticker: string): Promise<IntradayCandle[]> {
-  const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/intraday`);
+export async function getIntradayCandles(ticker: string, signal?: AbortSignal): Promise<IntradayCandle[]> {
+  const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/intraday`, { signal });
   return resp.candles;
 }
 
@@ -1824,8 +1854,8 @@ export async function getIntradayCandlesWithPrevClose(ticker: string): Promise<{
   return { candles: resp.candles, previousClose: resp.previousClose ?? null };
 }
 
-export async function getHourlyCandles(ticker: string, period: '1W' | '1M' | 'YTD'): Promise<IntradayCandle[]> {
-  const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/hourly?period=${period}`);
+export async function getHourlyCandles(ticker: string, period: '1W' | '1M' | 'YTD', signal?: AbortSignal): Promise<IntradayCandle[]> {
+  const resp = await fetchJson<{ ticker: string; candles: IntradayCandle[] }>(`${API_BASE_URL}/market/stock/${ticker}/hourly?period=${period}`, { signal });
   return resp.candles;
 }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   getMfaStatus, MfaStatus, setupTotp, verifyTotpSetup, disableTotp,
   updateMfaEmail, verifyMfaEmail, setupEmailOtp, verifyEmailOtpSetup, disableEmailOtp,
@@ -204,7 +205,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
 
   const inputClasses = "w-full px-3 py-2 rounded-lg border border-rh-border bg-rh-black text-white text-sm focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors";
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-rh-card border border-rh-border/40 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -567,6 +568,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

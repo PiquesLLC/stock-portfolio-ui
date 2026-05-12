@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, FormEvent, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { checkHasPassword, forgotUsername, resetPassword, joinWaitlist } from '../api';
@@ -707,7 +708,7 @@ export function LandingPage() {
       </div>{/* end scrollable content */}
 
       {/* ═══ AUTH MODAL ═══ */}
-      {authOpen && (
+      {authOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !isLoading && closeAuth()} />
           <div className="relative w-full max-w-sm bg-[#0e0e0e] rounded-2xl p-6 shadow-2xl border border-white/[0.06]">
@@ -791,7 +792,8 @@ export function LandingPage() {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
       <PrivacyPolicyModal isOpen={showPrivacyPolicy} onClose={() => setShowPrivacyPolicy(false)} initialTab={privacyTab} />
     </div>

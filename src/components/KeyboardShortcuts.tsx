@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // ─── Toast ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
@@ -101,6 +102,7 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

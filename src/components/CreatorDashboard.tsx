@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCreatorDashboard, getCreatorLedger, getCreatorSetupStatus, requestCreatorPayout, getReferralStats, selfActivateCreator, ReferralStats, CreatorSetupStatus } from '../api';
 import { CreatorApplicationModal } from './CreatorApplicationModal';
@@ -889,7 +890,8 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
         </section>
       )}
       {/* ─── Ledger Modal ─── */}
-      <AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
         {showLedger && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1011,7 +1013,9 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
+      )}
 
       {/* Terms acceptance modal for step 1 */}
       <CreatorApplicationModal

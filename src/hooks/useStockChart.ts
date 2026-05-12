@@ -18,6 +18,7 @@ interface UseStockChartParams {
  * and computed chart values (period change, golden cross detection).
  */
 export function useStockChart({
+  ticker,
   data,
   chartPeriod,
   setChartPeriod,
@@ -81,6 +82,16 @@ export function useStockChart({
     setHoverLabel(label);
     setHoverRefPrice(refPrice ?? null);
   }, []);
+
+  // Reset internal chart state on ticker change. Prevents the previous ticker's
+  // zoom resolution data and hover crosshair values from contaminating the new
+  // ticker's first paint (the Robinhood revisit-bug class).
+  useEffect(() => {
+    setZoomData([]);
+    setHoverPrice(null);
+    setHoverLabel(null);
+    setHoverRefPrice(null);
+  }, [ticker]);
 
   // Set hourly candles from prefetched cache — instant switch
   useEffect(() => {

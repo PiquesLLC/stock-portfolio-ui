@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { setBaseline } from '../api';
 
 interface Props {
@@ -23,7 +24,7 @@ export function OnboardingModal({ onComplete, hasExistingHoldings }: Props) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-rh-card border border-rh-border rounded-xl max-w-lg w-full p-6">
         <h2 className="text-xl font-bold mb-2">Welcome to Stock Portfolio</h2>
@@ -79,6 +80,7 @@ export function OnboardingModal({ onComplete, hasExistingHoldings }: Props) {
           You can add your broker's lifetime stats later for a complete picture.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

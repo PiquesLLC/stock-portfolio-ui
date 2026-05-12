@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, PanInfo, useDragControls } from 'framer-motion';
 import { Holding, ChartPeriod } from '../types';
+import { hapticSelection, hapticLight } from '../utils/haptics';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useStockData } from '../hooks/useStockData';
 import { useStockChart } from '../hooks/useStockChart';
@@ -43,6 +45,10 @@ interface Props {
   onHoldingAdded?: () => void;
   onHoldingDeleted?: () => void;
   onTickerNavigate?: (ticker: string) => void;
+  /** Ordered list of tickers the user can swipe through. When provided and
+   * the current ticker is in the list, horizontal swipes navigate to the
+   * next/previous ticker. Hard-stop with rubber-band at first/last. */
+  siblings?: string[];
 }
 
 function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
@@ -73,7 +79,7 @@ function PositionCard({ label, value, valueColor, sub }: {
 
 const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, amber, pink, cyan
 
-export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded, onHoldingDeleted, onTickerNavigate }: Props) {
+export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded, onHoldingDeleted, onTickerNavigate, siblings }: Props) {
   // Chart period — owned by component, shared between both hooks
   // Always start at 1D — persisting across sessions causes stale period bugs
   // (share card wrong period, benchmark wrong window label)
@@ -343,6 +349,76 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     return () => window.removeEventListener('keydown', handleKey);
   }, [isModalOpen, onBack]);
 
+  // Swipe-between-stocks navigation (mobile gesture)
+  // siblings is the ordered ticker list the user came from (e.g. sorted holdings).
+  // When the current ticker is in that list, horizontal drag navigates between
+  // adjacent tickers. Hard-stop with rubber-band at first/last.
+  const swipeNav = useMemo(() => {
+    if (!siblings || siblings.length < 2 || !onTickerNavigate) {
+      return { enabled: false, atFirst: true, atLast: true, prev: null as string | null, next: null as string | null };
+    }
+    const idx = siblings.indexOf(ticker);
+    if (idx < 0) return { enabled: false, atFirst: true, atLast: true, prev: null, next: null };
+    return {
+      enabled: true,
+      atFirst: idx === 0,
+      atLast: idx === siblings.length - 1,
+      prev: idx > 0 ? siblings[idx - 1] : null,
+      next: idx < siblings.length - 1 ? siblings[idx + 1] : null,
+    };
+  }, [siblings, ticker, onTickerNavigate]);
+
+  // Manually-triggered drag controls. We don't let framer auto-listen because
+  // its pointer-capture would steal touchmoves from interactive children
+  // (charts, kebab menu, scrollers). Instead we filter pointerdowns ourselves
+  // and only start a drag when the touch lands on a non-interactive area.
+  const bodyDragControls = useDragControls();
+  const dragStartedRef = useRef(false);
+
+  const handleBodyPointerDown = (e: React.PointerEvent) => {
+    if (!swipeNav.enabled || isModalOpen) return;
+    if (e.pointerType !== 'touch') return; // mobile gesture only
+    // Skip left-edge column — that's the back gesture's territory.
+    if (e.clientX < 20) return;
+    // Skip if touch starts inside an element that opts out of swipe.
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('[data-no-swipe]')) return;
+    dragStartedRef.current = true;
+    bodyDragControls.start(e);
+  };
+
+  const handleBodyDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    dragStartedRef.current = false;
+    if (!swipeNav.enabled || isModalOpen) return;
+    const SWIPE_DISTANCE = 80;
+    const SWIPE_VELOCITY = 500;
+    const dx = info.offset.x;
+    const vx = info.velocity.x;
+    // Right swipe → previous ticker
+    if ((dx > SWIPE_DISTANCE || vx > SWIPE_VELOCITY) && swipeNav.prev) {
+      hapticSelection();
+      onTickerNavigate!(swipeNav.prev);
+      return;
+    }
+    // Left swipe → next ticker
+    if ((dx < -SWIPE_DISTANCE || vx < -SWIPE_VELOCITY) && swipeNav.next) {
+      hapticSelection();
+      onTickerNavigate!(swipeNav.next);
+      return;
+    }
+    // Otherwise framer auto-snaps back to x=0
+  };
+
+  const handleEdgeBackDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (isModalOpen) return;
+    const EDGE_BACK_DISTANCE = 60;
+    const EDGE_BACK_VELOCITY = 400;
+    if (info.offset.x > EDGE_BACK_DISTANCE || info.velocity.x > EDGE_BACK_VELOCITY) {
+      hapticLight();
+      onBack();
+    }
+  };
+
   // Full skeleton only when we don't even have the quick quote yet
   if (!quickLoaded) {
     return (
@@ -506,7 +582,32 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   );
 
   return (
-    <div className="pt-2 pb-6">
+    <motion.div
+      className="pt-2 pb-6"
+      data-no-tab-swipe
+      drag={swipeNav.enabled && !isModalOpen ? 'x' : false}
+      dragListener={false}
+      dragControls={bodyDragControls}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={swipeNav.atFirst || swipeNav.atLast ? 0.18 : 0.4}
+      dragMomentum={false}
+      onPointerDown={handleBodyPointerDown}
+      onDragEnd={handleBodyDragEnd}
+    >
+      {/* Left-edge swipe-back gesture overlay — 20px wide column pinned to the
+          left edge, BELOW the header so it doesn't intercept Back-button taps.
+          Mirrors the iOS native back gesture. Disabled while a modal is open. */}
+      <motion.div
+        className="fixed left-0 w-5 z-[60]"
+        style={{ top: 96, bottom: 0 }}
+        data-no-tab-swipe
+        drag={!isModalOpen ? 'x' : false}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.5}
+        dragMomentum={false}
+        onDragEnd={handleEdgeBackDragEnd}
+        aria-hidden="true"
+      />
       <div className="flex items-start justify-between gap-3 mb-5">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
           <span>&larr;</span> Back
@@ -720,7 +821,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       </div>
 
       {/* Chart */}
-      <div className="mb-8 relative">
+      <div className="mb-8 relative" data-no-swipe>
         <StockPriceChart
           key={ticker}
           ticker={ticker}
@@ -1229,6 +1330,6 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </div>,
         document.body
       )}
-    </div>
+    </motion.div>
   );
 }

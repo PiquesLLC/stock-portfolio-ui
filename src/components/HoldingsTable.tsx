@@ -32,7 +32,7 @@ export interface HoldingsTableActions {
 interface Props {
   holdings: Holding[];
   onUpdate: () => void;
-  onTickerClick?: (ticker: string, holding: Holding) => void;
+  onTickerClick?: (ticker: string, holding: Holding, siblings?: string[]) => void;
   cashBalance?: number;
   marginDebt?: number;
   userId?: string;
@@ -390,6 +390,14 @@ export function HoldingsTable({
       return sortDir === 'desc' ? -comparison : comparison;
     });
   }, [holdings, sortKey, sortDir, customOrder]);
+
+  // Wrap onTickerClick to inject the current sorted ticker list as `siblings`,
+  // enabling swipe-between-stocks navigation in StockDetailView.
+  const handleTickerClick = useCallback((ticker: string, holding: Holding) => {
+    if (!onTickerClick) return;
+    const siblings = sortedHoldings.map(h => h.ticker);
+    onTickerClick(ticker, holding, siblings);
+  }, [onTickerClick, sortedHoldings]);
 
   const normalizedSearch = searchQuery.trim().toUpperCase();
   const matchingHoldingIds = useMemo(() => {
@@ -1123,7 +1131,7 @@ export function HoldingsTable({
                 displayMetric={displayMetric}
                 chartPeriod={chartPeriod}
                 earningsBadge={earningsBadges[holding.ticker]}
-                onTickerClick={onTickerClick}
+                onTickerClick={handleTickerClick}
                 onDelete={handleDelete}
                 getMetricDisplay={getMetricDisplay}
                 formatCurrency={formatCurrency}
@@ -1142,7 +1150,7 @@ export function HoldingsTable({
                 displayMetric={displayMetric}
                 chartPeriod={chartPeriod}
                 earningsBadge={earningsBadges[holding.ticker]}
-                onTickerClick={onTickerClick}
+                onTickerClick={handleTickerClick}
                 onDelete={handleDelete}
                 getMetricDisplay={getMetricDisplay}
                 formatCurrency={formatCurrency}
@@ -1233,14 +1241,14 @@ export function HoldingsTable({
                   variants={staggerItem}
                   data-search-match={isSearchMatch ? 'true' : 'false'}
                   className={`relative border-b border-rh-light-border/20 dark:border-rh-border/20 holding-row group hover:bg-gray-50/80 dark:hover:bg-white/[0.03] hover:backdrop-blur-[5px] transition-all duration-300 ${isUnavailable ? 'opacity-60' : ''} ${onTickerClick ? 'cursor-pointer' : ''} ${hasActiveFilter ? (isSearchMatch ? 'bg-rh-green/10 ring-1 ring-inset ring-rh-green/20' : 'opacity-55') : ''}`}
-                  onClick={onTickerClick && !isUnavailable ? () => onTickerClick(holding.ticker, holding) : undefined}
+                  onClick={onTickerClick && !isUnavailable ? () => handleTickerClick(holding.ticker, holding) : undefined}
                 >
                   <td className="px-4 py-2.5 font-semibold text-rh-light-text dark:text-rh-text">
                     <div className="flex items-center gap-2">
                       <StockLogo ticker={holding.ticker} size="sm" />
                       <span
                         className={onTickerClick ? 'cursor-pointer hover:underline hover:text-rh-green transition-colors' : ''}
-                        onClick={onTickerClick ? () => onTickerClick(holding.ticker, holding) : undefined}
+                        onClick={onTickerClick ? () => handleTickerClick(holding.ticker, holding) : undefined}
                       >
                         {holding.ticker}
                       </span>

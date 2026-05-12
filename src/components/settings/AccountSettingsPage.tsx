@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { getUserSettings, updateUserSettings, UserSettings, UserSettingsUpdate, deleteAccount, getNotificationStatus, NotificationStatus, HealthStatus } from '../../api';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -560,7 +561,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       </div>
 
       {/* Delete Account Confirmation */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError(''); }} />
           <div className="relative w-full max-w-sm bg-white dark:bg-[#111] border border-gray-200 dark:border-white/[0.06] rounded-2xl p-6">
@@ -610,7 +611,8 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Portfolio Import Modal */}

@@ -84,9 +84,12 @@ function RegionSection({
       || prevSelectedRef.current.idx !== selected.idx);
     prevSelectedRef.current = selected;
     if (justSelected && isThisRegion && chartRef.current) {
-      setTimeout(() => {
+      // Optional-chain handles the unmount race where chartRef went null;
+      // clearTimeout in the cleanup stops the scroll firing after unmount.
+      const t = setTimeout(() => {
         chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 50);
+      return () => clearTimeout(t);
     }
   }, [selected, isThisRegion]);
 

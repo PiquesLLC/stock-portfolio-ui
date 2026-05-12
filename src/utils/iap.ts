@@ -1,3 +1,4 @@
+import type { Product, Transaction } from '@capgo/native-purchases';
 import { isNative, platform } from './platform';
 import { API_BASE_URL } from '../config';
 
@@ -7,10 +8,11 @@ import { API_BASE_URL } from '../config';
  * All functions are no-ops on web — web uses Stripe via PricingPage.
  */
 
-// Lazy-load the plugin to avoid import errors on web
+// Lazy-load the plugin module to avoid bundling native code in the web build.
+// Types are imported separately above (type-only imports erase at compile time).
 async function getIAPPlugin() {
-  const { NativePurchases } = await import('@capgo/native-purchases');
-  return NativePurchases;
+  const mod = await import('@capgo/native-purchases');
+  return { NativePurchases: mod.NativePurchases, PURCHASE_TYPE: mod.PURCHASE_TYPE };
 }
 
 // Product IDs matching App Store Connect configuration
@@ -48,21 +50,21 @@ export async function getProducts(): Promise<IAPProduct[]> {
   if (!isIAPAvailable()) return [];
 
   try {
-    const NativePurchases = await getIAPPlugin();
+    const { NativePurchases, PURCHASE_TYPE } = await getIAPPlugin();
     const { products } = await NativePurchases.getProducts({
       productIdentifiers: PRODUCT_IDS,
-      productType: 'subs' as any,
+      productType: PURCHASE_TYPE.SUBS,
     });
 
-    return products.map((p: any) => {
-      const id = p.identifier || p.productIdentifier;
+    return products.map((p: Product) => {
+      const id = p.identifier;
       const parts = id.split('_'); // e.g., 'nala_pro_monthly' -> ['nala', 'pro', 'monthly']
       return {
         id,
-        title: p.title || p.localizedTitle || id,
-        description: p.description || p.localizedDescription || '',
-        price: p.priceString || p.localizedPrice || `$${p.price}`,
-        priceAmount: parseFloat(p.price) || 0,
+        title: p.title || id,
+        description: p.description || '',
+        price: p.priceString || `$${p.price}`,
+        priceAmount: typeof p.price === 'number' ? p.price : parseFloat(String(p.price)) || 0,
         currencyCode: p.currencyCode || 'USD',
         plan: parts[1] as 'pro' | 'premium' | 'elite',
         period: parts[2] as 'monthly' | 'yearly',
@@ -87,17 +89,17 @@ export async function purchaseProduct(
   }
 
   try {
-    const NativePurchases = await getIAPPlugin();
+    const { NativePurchases, PURCHASE_TYPE } = await getIAPPlugin();
 
     // Trigger Apple payment sheet
-    const transaction = await NativePurchases.purchaseProduct({
+    const transaction: Transaction = await NativePurchases.purchaseProduct({
       productIdentifier: productId,
-      productType: 'subs' as any,
+      productType: PURCHASE_TYPE.SUBS,
       appAccountToken: userId, // Links purchase to Nala user
     });
 
     // Get the JWS signed transaction for server verification
-    const signedTransaction = (transaction as any).jwsRepresentation;
+    const signedTransaction = transaction.jwsRepresentation;
     if (!signedTransaction) {
       return { ok: false, error: 'No JWS transaction received from StoreKit' };
     }
@@ -150,7 +152,7 @@ export async function restorePurchases(): Promise<{ ok: boolean; plan?: string; 
   }
 
   try {
-    const NativePurchases = await getIAPPlugin();
+    const { NativePurchases } = await getIAPPlugin();
     await NativePurchases.restorePurchases();
 
     // After restore, the listener will handle the transactions

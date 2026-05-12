@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { WatchlistSummary, WatchlistDetail, WatchlistHolding, PortfolioChartPeriod } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
@@ -709,7 +710,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
         )}
 
         {/* Edit holding modal */}
-        {editingHolding && (
+        {editingHolding && createPortal(
           <div className="fixed inset-0 z-[999] flex items-center justify-center" role="dialog" aria-modal="true" onClick={() => setEditingHolding(null)}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div
@@ -754,7 +755,8 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         )}
 
         {/* Delete holding confirm */}

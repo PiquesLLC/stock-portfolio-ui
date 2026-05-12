@@ -26,6 +26,21 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
   const currentPortfolioIdRef = useRef(portfolioId);
   currentPortfolioIdRef.current = portfolioId;
 
+  // Reset portfolio state when the user switches portfolios. Without this,
+  // the previous portfolio's holdings/cash/totals remain visible until the
+  // new fetch resolves — a "flash of wrong portfolio" UX bug.
+  // The `currentPortfolioIdRef` guard at fetchData:37 prevents stale-fetch
+  // setState, but the existing state has to be cleared explicitly.
+  useEffect(() => {
+    setPortfolio(null);
+    setIsStale(false);
+    setLoading(true);
+    setError('');
+    lastValidPortfolio.current = null;
+    hasPortfolioRef.current = false;
+    lastTotalAssets.current = null;
+  }, [portfolioId]);
+
   const fetchData = useCallback(async () => {
     if (!currentUserId || authLoading) return;
     const fetchPortfolioId = portfolioId; // capture at call time

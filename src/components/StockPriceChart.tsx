@@ -535,16 +535,18 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
       setZoomRange({ startMs: newStart, endMs: newEnd });
     };
+    let panEndTimer: ReturnType<typeof setTimeout> | null = null;
     const upHandler = () => {
       panStartRef.current = null;
       candlePanRef.current = null;
-      setTimeout(() => setIsPanning(false), 0);
+      panEndTimer = setTimeout(() => setIsPanning(false), 0);
     };
     window.addEventListener('mousemove', moveHandler);
     window.addEventListener('mouseup', upHandler);
     return () => {
       window.removeEventListener('mousemove', moveHandler);
       window.removeEventListener('mouseup', upHandler);
+      if (panEndTimer) clearTimeout(panEndTimer);
     };
   }, [isPanning]);
 
@@ -580,6 +582,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // Clean up animation on unmount
   useEffect(() => () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); }, []);
+
+  // Clean up pending hover/debounce timers on unmount so they can't fire
+  // setState on an unmounted instance (important now that <StockPriceChart>
+  // remounts per-ticker via key={ticker} during swipe-between-stocks).
+  useEffect(() => () => {
+    if (hoverClearTimer.current) clearTimeout(hoverClearTimer.current);
+    if (zoomHistoryDebounce.current) clearTimeout(zoomHistoryDebounce.current);
+  }, []);
 
   // Track zoom changes into history (debounced to avoid flooding during scroll)
   useEffect(() => {

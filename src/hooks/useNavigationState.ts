@@ -62,7 +62,7 @@ export function useNavigationState({
   const [insightsSubTab, setInsightsSubTab] = useState<string | null>(initialNav.tab === 'insights' ? initialNav.subtab : null);
   const [discoverSubTab, setDiscoverSubTab] = useState<string | null>(initialNav.tab === 'discover' ? initialNav.subtab : null);
   const [comparingUser, setComparingUser] = useState<{ userId: string; displayName: string } | null>(null);
-  const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null } | null>(
+  const [viewingStock, setViewingStock] = useState<{ ticker: string; holding: Holding | null; siblings?: string[] } | null>(
     initialNav.stock ? { ticker: initialNav.stock, holding: null } : null
   );
   const [compareStocks, setCompareStocks] = useState<string[] | null>(initialNav.compareStocks ?? null);
