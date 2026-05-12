@@ -116,7 +116,7 @@ function RichNarrative({ text, knownTickers, onTickerClick }: {
 
 const PERIODS: { id: IntelligenceWindow; label: string }[] = [
   { id: '1d', label: 'Today' },
-  { id: '5d', label: '5D' },
+  { id: '5d', label: '1W' }, // backend label is '5d', display 1W to match the main Portfolio chart nomenclature
   { id: '1m', label: '1M' },
 ];
 
@@ -468,6 +468,10 @@ interface Props {
   portfolioId?: string;
   onTickerClick?: (ticker: string) => void;
   onJumpToTab?: (tab: string) => void;
+  /** Fires when the tab's period selector changes. InsightsPage uses this
+   * to keep the bottom "Download Intelligence Report" button in sync with
+   * whatever timeline the user is currently viewing. */
+  onPeriodChange?: (period: IntelligenceWindow) => void;
 }
 
 export function IntelligenceTab({
@@ -476,10 +480,21 @@ export function IntelligenceTab({
   portfolioId,
   onTickerClick,
   onJumpToTab,
+  onPeriodChange,
 }: Props) {
   const { showToast } = useToast();
   const [period, setPeriod] = useState<IntelligenceWindow>(initialIntelligence.window);
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse>(initialIntelligence);
+  // Period-matched returns reported by PortfolioVsSpyMini once its data loads.
+  // Used to derive the Alpha-vs-SPY card so it stays consistent with the chart.
+  const [chartMetrics, setChartMetrics] = useState<{ youPct: number | null; spyPct: number | null }>({ youPct: null, spyPct: null });
+
+  // Forward period changes to the parent (InsightsPage) so the bottom
+  // "Download Intelligence Report" button can pick up whatever timeline the
+  // user is currently viewing — without lifting period state out of this tab.
+  useEffect(() => {
+    onPeriodChange?.(period);
+  }, [period, onPeriodChange]);
   const [healthScore, setHealthScore] = useState<HealthScoreType | null>(initialHealthScore);
   const [risk, setRisk] = useState<RiskForecast | null>(null);
   const [leak, setLeak] = useState<LeakDetectorResult | null>(null);
@@ -624,22 +639,24 @@ export function IntelligenceTab({
     'Needs work';
 
   // Period-matched alpha = portfolio period-return % minus SPY period-return %.
-  // We DO NOT use intelligence.beta.alphaPercent because that's CAPM alpha
-  // computed over the beta-fit lookback window (typically ~1Y), which would
-  // show double-digit values that read as completely wrong against the
-  // visible period selector.
+  // We DO NOT use intelligence.beta.alphaPercent (CAPM alpha over the
+  // ~180-day beta-fit lookback) NOR intelligence.beta.spyReturnPercent
+  // (SPY return over that SAME 180-day window). Both produce wildly wrong
+  // values against the period selector — they're the source of the
+  // inverted "−0.78% underperforming" bug when the chart clearly showed
+  // You +16.75% vs SPY +9.44% for 1M.
   //   - 1D: portfolio.dayChangePercent − SPY's live quote.changePercent
-  //   - 5D/1M: heroPct (intelligence.netPnL / netEquity) − intelligence.beta.spyReturnPercent
-  // Falls back to null when either side hasn't loaded.
+  //   - 5D/1M: chartMetrics from PortfolioVsSpyMini — the same series the
+  //     chart's legend renders, so the card and chart can never disagree.
   const periodSpyPct = isToday
     ? spyDayPct
-    : (intelligence.beta?.spyReturnPercent ?? null);
+    : chartMetrics.spyPct;
   const periodYouPct = isToday
     ? (portfolio?.dayChangePercent ?? null)
-    : (Number.isFinite(heroPct) ? heroPct : null);
+    : (chartMetrics.youPct ?? (Number.isFinite(heroPct) ? heroPct : null));
   const alphaPct = (periodYouPct != null && periodSpyPct != null) ? periodYouPct - periodSpyPct : null;
   const alphaPositive = (alphaPct ?? 0) >= 0;
-  const alphaPeriodLabel = isToday ? 'today' : period === '5d' ? '5-day' : '1-month';
+  const alphaPeriodLabel = isToday ? 'today' : period === '5d' ? '1-week' : '1-month';
 
   const diversifGrade =
     !healthScore ? 'B' :
@@ -808,7 +825,7 @@ export function IntelligenceTab({
               {fmtPct(heroPct, 2)}
             </div>
             <div className="text-[11px] uppercase tracking-[0.12em] text-rh-light-muted dark:text-rh-muted ml-1">
-              {isToday ? 'today' : period === '5d' ? '5-day' : '1-month'}
+              {isToday ? 'today' : period === '5d' ? '1-week' : '1-month'}
             </div>
           </div>
           <div className="text-[11px] sm:text-[12px] text-rh-light-muted dark:text-rh-muted mb-5 sm:mb-6 tabular-nums">
@@ -840,19 +857,28 @@ export function IntelligenceTab({
             <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
             <span>Generated from your portfolio + market signals</span>
           </div>
-
-          <div className="mt-6">
-            <PeriodSelector value={period} onChange={setPeriod} />
-            {periodLoading && <span className="ml-3 text-[11px] text-rh-light-muted dark:text-rh-muted">Updating…</span>}
-          </div>
         </div>
 
         {/* Path vs SPY intraday chart — replaces the old Hero Stats panel.
             Hero-stats data (sector driver, largest drag/driver, win rate)
             moves to a slim inline strip below the chart so we keep the info
-            without losing the visual the mockup intended. */}
+            without losing the visual the mockup intended. Period selector
+            lives inside the chart header so the pills sit next to the chart
+            they control (instead of floating in the left column where they
+            had no visual connection to the chart on desktop). */}
         <div className="lg:pt-1">
-          <PortfolioVsSpyMini portfolioId={portfolioId} period={period} height={210} />
+          <PortfolioVsSpyMini
+            portfolioId={portfolioId}
+            period={period}
+            height={210}
+            periodSelector={
+              <div className="flex items-center gap-3">
+                <PeriodSelector value={period} onChange={setPeriod} />
+                {periodLoading && <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Updating…</span>}
+              </div>
+            }
+            onMetricsLoaded={setChartMetrics}
+          />
 
           <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-3 text-[11px]">
             {intelligence.heroStats?.sectorDriver?.sector && (
@@ -978,7 +1004,7 @@ export function IntelligenceTab({
         <div>
           <SectionHeader
             label="P/L Attribution"
-            title={period === '1d' ? "Today's Movers" : period === '5d' ? "5-Day Movers" : "1-Month Movers"}
+            title={period === '1d' ? "Today's Movers" : period === '5d' ? "1-Week Movers" : "1-Month Movers"}
             sub={`${intelligence.contributors.length} contributors · ${intelligence.detractors.length} detractors`}
             right={
               <div className="flex gap-3.5 text-[11px] font-bold tracking-wide">

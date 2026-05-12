@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { HealthScore as HealthScoreType, PortfolioIntelligenceResponse, Holding, PerformanceWindow } from '../types';
+import { HealthScore as HealthScoreType, PortfolioIntelligenceResponse, Holding, PerformanceWindow, IntelligenceWindow } from '../types';
 import { getHealthScore, getPortfolioIntelligence, getPortfolio, getPerformanceReport } from '../api';
 import { IntelligenceTab } from './IntelligenceTab';
 import { ProjectionsAndGoals } from './ProjectionsAndGoals';
@@ -128,26 +128,33 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
   );
 }
 
-const REPORT_PERIODS: { value: PerformanceWindow; label: string }[] = [
-  { value: '1W', label: '1W' },
-  { value: '1M', label: '1M' },
-  { value: '3M', label: '3M' },
-  { value: '6M', label: '6M' },
-  { value: 'YTD', label: 'YTD' },
-  { value: '1Y', label: '1Y' },
-  { value: 'ALL', label: 'All' },
-];
+// Map the Intelligence tab's three-period selector (Today / 1W / 1M) to the
+// PerformanceReport endpoint's window vocabulary. The report backend has no
+// daily option, so "Today" rolls up to the 1W report — the shortest report
+// window available.
+function intelligenceToReportWindow(p: IntelligenceWindow): PerformanceWindow {
+  if (p === '1m') return '1M';
+  return '1W'; // '1d' and '5d' both map to 1W
+}
 
-function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
-  const [period, setPeriod] = useState<PerformanceWindow>('1M');
+function reportSubtitle(p: IntelligenceWindow): string {
+  if (p === '1m') return 'PDF — 1-month window, matches your current view';
+  if (p === '5d') return 'PDF — 1-week window, matches your current view';
+  // 'Today' silently rolls up to the 1-week PDF — be explicit about it so
+  // the user isn't surprised that the report covers more than the chart.
+  return 'PDF — 1-week window (daily report not available)';
+}
+
+function PerformanceReportCard({ portfolioId, intelligencePeriod }: { portfolioId?: string; intelligencePeriod: IntelligenceWindow }) {
   const [generating, setGenerating] = useState(false);
   const { showToast } = useToast();
+  const reportPeriod = intelligenceToReportWindow(intelligencePeriod);
 
   const handleDownload = useCallback(async () => {
     setGenerating(true);
     try {
       const isDark = document.documentElement.classList.contains('dark');
-      const html = await getPerformanceReport(period, 'SPY', isDark ? 'dark' : 'light', portfolioId);
+      const html = await getPerformanceReport(reportPeriod, 'SPY', isDark ? 'dark' : 'light', portfolioId);
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         showToast('Pop-up blocked — please allow pop-ups for this site', 'error');
@@ -167,7 +174,7 @@ function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
     } finally {
       setGenerating(false);
     }
-  }, [period, showToast, portfolioId]);
+  }, [reportPeriod, showToast, portfolioId]);
 
   return (
     <PremiumOverlay
@@ -175,53 +182,32 @@ function PerformanceReportCard({ portfolioId }: { portfolioId?: string }) {
       description="Download beautifully formatted performance reports with sparklines, sector allocation, and benchmark comparison."
       requiredPlan="elite"
     >
-      <div className="border-t border-gray-200/10 dark:border-white/[0.04] pt-4 pb-2">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-4 rounded-full bg-rh-green" />
-            <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Performance Report</h3>
-          </div>
-          <button
-            onClick={handleDownload}
-            disabled={generating}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rh-green bg-rh-green/10 hover:bg-rh-green/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {generating ? (
-              <>
-                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-                  <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
-                </svg>
-                Generating...
-              </>
-            ) : (
-              <>
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download
-              </>
-            )}
-          </button>
-        </div>
-        <div className="flex">
-          {REPORT_PERIODS.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => setPeriod(p.value)}
-              className={`relative px-2.5 py-2 text-[12px] font-medium transition-all ${
-                period === p.value
-                  ? 'text-rh-light-text dark:text-white'
-                  : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
-              }`}
-            >
-              {p.label}
-              {period === p.value && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
-              )}
-            </button>
-          ))}
-        </div>
+      <div className="border-t border-gray-200/10 dark:border-white/[0.04] pt-6 pb-2 flex flex-col items-center gap-2">
+        <button
+          onClick={handleDownload}
+          disabled={generating}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-rh-green bg-rh-green/10 hover:bg-rh-green/20 border border-rh-green/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {generating ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
+              </svg>
+              Generating Report…
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download Intelligence Report
+            </>
+          )}
+        </button>
+        <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+          {reportSubtitle(intelligencePeriod)}
+        </span>
       </div>
     </PremiumOverlay>
   );
@@ -260,6 +246,11 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
   const [intelligence, setIntelligence] = useState<PortfolioIntelligenceResponse | null>(insightsCache.intelligence);
   const [initialLoadComplete, setInitialLoadComplete] = useState(insightsCache.lastFetchTime !== null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
+  // Intelligence tab's current period — captured here so the bottom
+  // "Download Intelligence Report" button can ship the report for the
+  // same timeline the user is viewing, without duplicating its own
+  // period selector.
+  const [intelligencePeriod, setIntelligencePeriod] = useState<IntelligenceWindow>(insightsCache.intelligence?.window ?? '1d');
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const holdingsFetchedRef = useRef(false);
@@ -537,8 +528,9 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
             portfolioId={portfolioId}
             onTickerClick={onTickerClick}
             onJumpToTab={(tab) => setSubTab(tab as InsightsSubTab)}
+            onPeriodChange={setIntelligencePeriod}
           />
-          <PerformanceReportCard portfolioId={portfolioId} />
+          <PerformanceReportCard portfolioId={portfolioId} intelligencePeriod={intelligencePeriod} />
         </>
       )}
 

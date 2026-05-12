@@ -25,6 +25,20 @@ interface Props {
   portfolioId?: string;
   height?: number; // px, default 200
   period?: IntelligenceWindow; // '1d' | '5d' | '1m'
+  /** Optional slot rendered inside the chart header (under the title row).
+   * Lets the parent attach the period selector to the chart it controls,
+   * instead of leaving them visually disconnected. */
+  periodSelector?: React.ReactNode;
+  /** Fires whenever the computed period returns change. The Intelligence
+   * tab's Alpha-vs-SPY card uses this to derive a period-matched alpha
+   * (`youPct - spyPct`) instead of pulling SPY's ~180-day beta-window
+   * return from the API, which was the source of the inverted-alpha bug.
+   *
+   * Pass a stable reference (useState setter, useCallback, or ref-wrapped
+   * fn) — this is included in an effect dep array; an inline arrow that
+   * captures changing values will trigger the effect on every parent
+   * render. */
+  onMetricsLoaded?: (metrics: { youPct: number | null; spyPct: number | null }) => void;
 }
 
 const PERIOD_MAP: Record<IntelligenceWindow, PortfolioChartPeriod> = {
@@ -35,7 +49,7 @@ const PERIOD_MAP: Record<IntelligenceWindow, PortfolioChartPeriod> = {
 
 const PERIOD_LABEL: Record<IntelligenceWindow, string> = {
   '1d': 'TODAY',
-  '5d': '5 DAYS',
+  '5d': '1 WEEK',
   '1m': '1 MONTH',
 };
 
@@ -86,7 +100,7 @@ function todayTradingWindowET(latestPointTime: number): { start: number; end: nu
   return { start, end };
 }
 
-export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d' }: Props) {
+export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d', periodSelector, onMetricsLoaded }: Props) {
   const [portfolio, setPortfolio] = useState<PortfolioChartData | null>(null);
   // For 1D we get intraday candles + prev close; for non-1D we synthesize
   // the same shape from hourly candles + the most recent daily close.
@@ -198,14 +212,13 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d' }:
 
   const layout = useMemo(() => {
     if (!youSeries) return null;
-    // For non-1D we drop time-based x positioning entirely and use index 0..N
-    // so non-trading hours don't get rendered as flat plateaus. The two series
-    // share an index space sized to the LARGER of the two so neither is squished.
+    // For non-1D we drop time-based x positioning entirely. `pathFor` then
+    // normalizes EACH series independently to fill 0..W (so a shorter You
+    // window doesn't appear truncated against a denser SPY series). Layout's
+    // xMin/xMax are therefore only meaningful for the time-based (1D) branch.
     const useIndex = filterToTradingHours;
-    const youLen = youSeries.length;
-    const spyLen = spySeries?.length ?? 0;
     const xMin = useIndex ? 0 : Math.min(...youSeries.map(p => p.t), ...(spySeries?.map(p => p.t) ?? []));
-    const xMax = useIndex ? Math.max(youLen, spyLen) - 1 : Math.max(...youSeries.map(p => p.t), ...(spySeries?.map(p => p.t) ?? []));
+    const xMax = useIndex ? 0 : Math.max(...youSeries.map(p => p.t), ...(spySeries?.map(p => p.t) ?? []));
     const allPcts = [...youSeries.map(p => p.pct), ...(spySeries?.map(p => p.pct) ?? []), 0];
     let yMin = Math.min(...allPcts);
     let yMax = Math.max(...allPcts);
@@ -225,8 +238,20 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d' }:
     const yRange = (yMax - yMin) || 1;
     return series
       .map((p, i) => {
-        const xVal = useIndex ? i : p.t;
-        const x = ((xVal - xMin) / xRange) * W;
+        let x: number;
+        if (useIndex) {
+          // Per-series normalization: each series fills 0..W independently.
+          // The backend returns different point densities for You (hourly
+          // portfolio snapshots) vs SPY (15-min market candles) and the You
+          // window can also start late if holdings were added recently or
+          // some tickers fail the coverage filter. A shared x-axis sized to
+          // max(youLen, spyLen) made the shorter series appear truncated at
+          // ~30% of the chart width. Per-series scaling makes both fill the
+          // chart while preserving each series's own shape.
+          x = series.length > 1 ? (i / (series.length - 1)) * W : 0;
+        } else {
+          x = ((p.t - xMin) / xRange) * W;
+        }
         const y = H - ((p.pct - yMin) / yRange) * H;
         return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
       })
@@ -245,6 +270,13 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d' }:
   const youFinalPct = youSeries && youSeries.length > 0 ? youSeries[youSeries.length - 1].pct : null;
   const spyFinalPct = spySeries && spySeries.length > 0 ? spySeries[spySeries.length - 1].pct : null;
 
+  // Report period-matched returns up to the parent so the Alpha-vs-SPY card
+  // can compute alpha = youPct - spyPct using the SAME values the chart shows
+  // (not the API's beta-lookback SPY return, which is a different window).
+  useEffect(() => {
+    onMetricsLoaded?.({ youPct: youFinalPct, spyPct: spyFinalPct });
+  }, [youFinalPct, spyFinalPct, onMetricsLoaded]);
+
   const youColor = (youFinalPct ?? 0) < 0 ? '#ff3b30' : '#00c805';
   const youGlow = (youFinalPct ?? 0) < 0 ? 'rgba(255,59,48,0.4)' : 'rgba(0,200,5,0.4)';
   const youFillId = (youFinalPct ?? 0) < 0 ? redFillId : greenFillId;
@@ -259,63 +291,79 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d' }:
 
   /* ── Render ── */
 
+  // Header (title + period pills + legend) — always rendered so the period
+  // pills stay interactive during the chart's loading / error states.
+  const header = (
+    <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="flex flex-col gap-2 min-w-0">
+        <span className="inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-rh-light-text dark:text-rh-text">
+          <span className="block w-[3px] h-3 rounded-full bg-rh-green shadow-[0_0_10px_rgba(0,200,5,0.45)]" />
+          Path vs SPY
+          <span className="text-rh-light-muted dark:text-rh-muted font-bold tracking-[0.18em]">· {PERIOD_LABEL[period]}</span>
+        </span>
+        {periodSelector && (
+          <div className="-mx-0.5">{periodSelector}</div>
+        )}
+      </div>
+      <div className="text-right text-[11px] tabular-nums shrink-0">
+        <div className="flex items-center gap-2 justify-end">
+          <span className="block w-3 h-[2px] rounded-full" style={{ background: youColor }} />
+          <span className="text-rh-light-muted dark:text-rh-muted">You</span>
+          <span style={{ color: youColor }} className="font-bold">
+            {youFinalPct != null ? `${youFinalPct >= 0 ? '+' : ''}${youFinalPct.toFixed(2)}%` : '—'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 justify-end mt-1">
+          <span className={`block w-3 h-[2px] rounded-full ${spyLegendSwatch}`} />
+          <span className="text-rh-light-muted dark:text-rh-muted">SPY</span>
+          <span className="font-bold text-rh-light-muted dark:text-white/60">
+            {spyFinalPct != null ? `${spyFinalPct >= 0 ? '+' : ''}${spyFinalPct.toFixed(2)}%` : '—'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   if (error) {
     return (
-      <div style={{ height }} className="flex items-center justify-center text-[12px] text-rh-light-muted dark:text-rh-muted">
-        Chart unavailable
+      <div>
+        {header}
+        <div style={{ height }} className="flex items-center justify-center text-[12px] text-rh-light-muted dark:text-rh-muted">
+          Chart unavailable
+        </div>
       </div>
     );
   }
 
   if (!youSeries || !layout) {
     return (
-      <div style={{ height }} className="flex items-center justify-center">
-        <div className="text-[11px] text-rh-light-muted dark:text-rh-muted">
-          {loaded ? 'No portfolio activity yet — add holdings to see your path' : <span className="animate-pulse">Loading chart…</span>}
+      <div>
+        {header}
+        <div style={{ height }} className="flex items-center justify-center">
+          <div className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            {loaded ? 'No portfolio activity yet — add holdings to see your path' : <span className="animate-pulse">Loading chart…</span>}
+          </div>
         </div>
       </div>
     );
   }
 
   const youPath = pathFor(youSeries);
-  // Compute the rightmost x of the You line so the area-fill closes precisely
-  // at the line's terminus instead of always running to W (which left a stray
-  // diagonal when youSeries.length < spySeries.length).
+  // Rightmost x of the You line for closing the area fill. Under per-series
+  // normalization (useIndex branch in pathFor) You always ends at x=W; for
+  // the time-based (1D) branch we compute it from the actual last timestamp.
   const lastYouX = (() => {
-    const i = youSeries.length - 1;
     if (!layout) return W;
-    const xVal = layout.useIndex ? i : youSeries[i].t;
-    return ((xVal - layout.xMin) / ((layout.xMax - layout.xMin) || 1)) * W;
+    if (layout.useIndex) return W;
+    const i = youSeries.length - 1;
+    return ((youSeries[i].t - layout.xMin) / ((layout.xMax - layout.xMin) || 1)) * W;
   })();
   const youArea = `${youPath} L${lastYouX.toFixed(1)} ${H} L0 ${H} Z`;
   const spyPath = spySeries ? pathFor(spySeries) : '';
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-rh-light-text dark:text-rh-text">
-          <span className="block w-[3px] h-3 rounded-full bg-rh-green shadow-[0_0_10px_rgba(0,200,5,0.45)]" />
-          Path vs SPY
-          <span className="text-rh-light-muted dark:text-rh-muted font-bold tracking-[0.18em]">· {PERIOD_LABEL[period]}</span>
-        </span>
-        <div className="text-right text-[11px] tabular-nums">
-          <div className="flex items-center gap-2 justify-end">
-            <span className="block w-3 h-[2px] rounded-full" style={{ background: youColor }} />
-            <span className="text-rh-light-muted dark:text-rh-muted">You</span>
-            <span style={{ color: youColor }} className="font-bold">
-              {youFinalPct != null ? `${youFinalPct >= 0 ? '+' : ''}${youFinalPct.toFixed(2)}%` : '—'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 justify-end mt-1">
-            <span className={`block w-3 h-[2px] rounded-full ${spyLegendSwatch}`} />
-            <span className="text-rh-light-muted dark:text-rh-muted">SPY</span>
-            <span className="font-bold text-rh-light-muted dark:text-white/60">
-              {spyFinalPct != null ? `${spyFinalPct >= 0 ? '+' : ''}${spyFinalPct.toFixed(2)}%` : '—'}
-            </span>
-          </div>
-        </div>
-      </div>
-
+      {header}
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
@@ -352,14 +400,14 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d' }:
         />
 
         {/* End-point dot for "You" — must use the same useIndex branch as
-            pathFor, otherwise on 5D/1M the dot is positioned with raw ms
-            timestamps against an index-based xMax and ends up off-canvas. */}
+            pathFor. Under per-series normalization the dot always sits at
+            x=W on the index branch; the time-based branch (1D) uses the
+            actual last timestamp against the shared time axis. */}
         {(() => {
           const i = youSeries.length - 1;
           const last = youSeries[i];
           const { xMin, xMax, yMin, yMax, useIndex } = layout;
-          const xVal = useIndex ? i : last.t;
-          const x = ((xVal - xMin) / ((xMax - xMin) || 1)) * W;
+          const x = useIndex ? W : ((last.t - xMin) / ((xMax - xMin) || 1)) * W;
           const y = H - ((last.pct - yMin) / ((yMax - yMin) || 1)) * H;
           return <circle cx={x} cy={y} r={3.5} fill={youColor} stroke={dotBorder} strokeWidth={2} />;
         })()}
