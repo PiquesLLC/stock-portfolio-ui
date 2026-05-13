@@ -63,9 +63,16 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
     setEmailBusy(true);
     try {
       await confirmEmailChange(emailCode);
-      await refreshUser();
-      showToast('Email updated', 'success');
+      // Server already applied the change. Reset the form first, then refresh —
+      // if the refresh fails (transient network), the local user.email is stale
+      // but the form is closed and the user sees the success toast.
       closeEmailForm();
+      showToast('Email updated', 'success');
+      try {
+        await refreshUser();
+      } catch {
+        // Best-effort; the change is durable server-side regardless.
+      }
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : 'Failed to confirm code');
     } finally {
