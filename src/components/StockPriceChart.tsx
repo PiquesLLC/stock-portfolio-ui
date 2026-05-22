@@ -435,7 +435,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   useEffect(() => {
     if (!isMeasuring && pinnedEventIdx === null) return;
     const handler = (e: MouseEvent) => {
-      if (chartContainerRef.current && !chartContainerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inChart = chartContainerRef.current?.contains(target) ?? false;
+      // RSI/MACD panels live outside chartContainerRef but their own onClicks
+      // set measurement state. Without this guard, a click on those panels
+      // would both place a marker AND immediately wipe it via this listener.
+      const inIndicator = target instanceof Element && !!target.closest('[data-chart-area]');
+      if (!inChart && !inIndicator) {
         setPinnedEventIdx(null);
         setMeasureA(null);
         setMeasureB(null);
@@ -2028,10 +2034,26 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         pt = { time: candle.time, price: candle.close };
       } else {
         const idx = findNearestIndex(svgX);
-        // Line: tap must be within 22px of the line at this X (was 36 — too
-        // generous; users felt taps in clear empty space still dropped markers).
-        const lineY = toY(points[idx].price);
-        const slopSvg = 22 / pxPerSvgY;
+        // Hit-test against the INTERPOLATED visible line at the click's X,
+        // not against the Y of the nearest data point. On steep segments
+        // (earnings gaps, rapid moves) the click can land exactly on the
+        // rendered line while still being far in Y from the nearest data
+        // point, which silently dropped valid clicks.
+        const xAtIdx = toX(idx);
+        const other = svgX < xAtIdx && idx > 0
+          ? idx - 1
+          : svgX > xAtIdx && idx < points.length - 1
+            ? idx + 1
+            : idx;
+        const lo = Math.min(idx, other);
+        const hi = Math.max(idx, other);
+        const x0 = toX(lo);
+        const x1 = toX(hi);
+        const y0 = toY(points[lo].price);
+        const y1 = toY(points[hi].price);
+        const t = x1 === x0 ? 0 : (svgX - x0) / (x1 - x0);
+        const lineY = y0 + t * (y1 - y0);
+        const slopSvg = 32 / pxPerSvgY;
         if (Math.abs(clickSvgY - lineY) > slopSvg) return;
         pt = { time: points[idx].time, price: points[idx].price };
       }
@@ -2439,8 +2461,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           onClick={(e) => {
             if (isPanning) return;
             e.stopPropagation();
-            // Dismiss pinned event card on background click
-            if (pinnedEventIdx !== null) { setPinnedEventIdx(null); return; }
+            // Dismiss pinned event card on background click. Don't `return` —
+            // a click on the chart background is a legitimate placement target;
+            // requiring two clicks (one to dismiss, one to place) made users
+            // think the click was lost.
+            if (pinnedEventIdx !== null) setPinnedEventIdx(null);
             // Skip measurement on touch — touch uses press-drag hover instead
             if (wasTouchRef.current) { wasTouchRef.current = false; return; }
             const useCandle = chartMode === 'candle' && effectiveCandleData.length > 0;
@@ -2484,9 +2509,23 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 pt = { time: candle.time, price: candle.close };
               } else {
                 const idx = findNearestIndex(svgX);
-                // Line: within 22px of the line at this X (was 36 — too loose).
-                const lineY = toY(points[idx].price);
-                const slopSvgL = 22 / pxPerSvgY;
+                // Hit-test against the interpolated visible line at the click's
+                // X (see container handler above for rationale).
+                const xAtIdx = toX(idx);
+                const other = svgX < xAtIdx && idx > 0
+                  ? idx - 1
+                  : svgX > xAtIdx && idx < points.length - 1
+                    ? idx + 1
+                    : idx;
+                const lo = Math.min(idx, other);
+                const hi = Math.max(idx, other);
+                const x0 = toX(lo);
+                const x1 = toX(hi);
+                const y0 = toY(points[lo].price);
+                const y1 = toY(points[hi].price);
+                const tAlpha = x1 === x0 ? 0 : (svgX - x0) / (x1 - x0);
+                const lineY = y0 + tAlpha * (y1 - y0);
+                const slopSvgL = 32 / pxPerSvgY;
                 if (Math.abs(clickSvgY - lineY) > slopSvgL) return;
                 pt = { time: points[idx].time, price: points[idx].price };
               }
@@ -3532,6 +3571,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               className="absolute z-40 pointer-events-auto"
               onMouseEnter={() => { if (pinnedEventIdx === null) setHoveredEventIdx(activeEventCluster); }}
               onMouseLeave={() => { if (pinnedEventIdx === null) setHoveredEventIdx(null); }}
+              onClick={(e) => e.stopPropagation()}
               style={{
                 top: showAbove ? `${((priceY - 14) / CHART_H) * 100}%` : `${((priceY + 14) / CHART_H) * 100}%`,
                 left: `${leftPct}%`,
@@ -3642,15 +3682,30 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 userSelect: 'none',
               }}
               onMouseDown={(e) => {
-                e.stopPropagation();
+                // Arm a drag, but don't commit until the pointer actually
+                // moves. A click without movement should fall through to the
+                // chart so the user can place the next measurement point even
+                // when their target lands under this card.
                 e.preventDefault();
-                const rect = chartContainerRef.current?.getBoundingClientRect();
-                if (rect) {
-                  setCardDragPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-                }
-                setIsDraggingCard(true);
+                const startX = e.clientX;
+                const startY = e.clientY;
+                let committed = false;
+                const move = (ev: MouseEvent) => {
+                  if (committed) return;
+                  if (Math.abs(ev.clientX - startX) > 4 || Math.abs(ev.clientY - startY) > 4) {
+                    committed = true;
+                    const r = chartContainerRef.current?.getBoundingClientRect();
+                    if (r) setCardDragPos({ x: ev.clientX - r.left, y: ev.clientY - r.top });
+                    setIsDraggingCard(true);
+                  }
+                };
+                const up = () => {
+                  document.removeEventListener('mousemove', move);
+                  document.removeEventListener('mouseup', up);
+                };
+                document.addEventListener('mousemove', move);
+                document.addEventListener('mouseup', up);
               }}
-              onClick={(e) => e.stopPropagation()}
             >
               <div className="inline-flex flex-col gap-0.5">
                 {/* Segment A → B */}
@@ -3878,7 +3933,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         const lastRsi = rsiData.filter(v => v !== null).pop();
         const displayRsi = hoverRsi ?? lastRsi;
         return (
-          <div className="border-t-2 border-white/[0.08] mt-1" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
+          <div data-chart-area className="border-t-2 border-white/[0.08] mt-1" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
               <span className="text-[11px] font-bold text-white/60">RSI (14)</span>
               {displayRsi != null && <span className={`text-[11px] font-semibold ${hoverRsi != null ? 'text-white' : 'text-white/90'}`}>{displayRsi.toFixed(2)}</span>}
@@ -4059,7 +4114,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         const lastMacd = macdData.macd.filter(v => v !== null).pop();
         const displayMacd = hoverMacdVal ?? lastMacd;
         return (
-          <div className="border-t border-white/[0.12]" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
+          <div data-chart-area className="border-t border-white/[0.12]" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
               <span className="text-[11px] font-bold text-white/60">MACD</span>
               {displayMacd != null && <span className={`text-[11px] font-semibold ${hoverMacdVal != null ? 'text-white' : 'text-white/90'}`}>{displayMacd.toFixed(2)}</span>}
