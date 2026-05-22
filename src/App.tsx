@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
 import { isNative } from './utils/platform';
@@ -16,7 +16,7 @@ import { NotificationBell } from './components/NotificationBell';
 import { UserMenu } from './components/UserMenu';
 // AccountSettingsModal removed — replaced by full-page AccountSettingsPage
 import { TickerAutocompleteInput } from './components/TickerAutocompleteInput';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { LazyPage } from './components/LazyPage';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
@@ -101,14 +101,6 @@ if (isBrowser()) {
       }).catch(e => console.error('Heatmap preload failed:', e));
     });
   }, 3000);
-}
-
-function PageFallback() {
-  return (
-    <div className="flex items-center justify-center py-20">
-      <img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" />
-    </div>
-  );
 }
 
 // Parse hash to restore navigation state on load/refresh
@@ -840,9 +832,12 @@ export default function App() {
 
   if (!isAuthenticated && _pendingUsername) {
     return (
-      <Suspense fallback={<div className="h-screen h-dvh bg-black flex items-center justify-center"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
+      <LazyPage
+        name="PublicProfilePage"
+        fallback={<div className="h-screen h-dvh bg-black flex items-center justify-center"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}
+      >
         <PublicProfilePage username={_pendingUsername} />
-      </Suspense>
+      </LazyPage>
     );
   }
 
@@ -1068,7 +1063,7 @@ export default function App() {
       <div className="grain-overlay" />
       {/* Onboarding tour for new users */}
       {showOnboardingTour && (
-        <Suspense fallback={null}>
+        <LazyPage name="OnboardingTour" fallback={null}>
           <OnboardingTour
             onComplete={() => {
               localStorage.setItem('nala_tour_completed', '1');
@@ -1080,7 +1075,7 @@ export default function App() {
               setShowOnboardingTour(false);
             }}
           />
-        </Suspense>
+        </LazyPage>
       )}
       <div className={isNative ? 'z-30' : 'sticky z-30'} style={{ top: isNative ? undefined : 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden', ...(isNative ? { overflow: 'visible' } : {}) }}>
       <header className={`relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg ${isNative ? 'dark:bg-black' : 'dark:bg-black/95 backdrop-blur-xl'}`} style={isNative ? { overflow: 'visible' } : undefined}>
@@ -1638,7 +1633,7 @@ export default function App() {
           </div>
         )}
         {!settingsView && !creatorView && !adminView && compareStocks && compareStocks.length >= 2 && (
-          <Suspense fallback={<PageFallback />}>
+          <LazyPage name="CompareStocksPage">
             <CompareStocksPage
               tickers={compareStocks}
               onBack={() => {
@@ -1652,36 +1647,34 @@ export default function App() {
               }}
               onUpdateTickers={(tickers) => setCompareStocks(tickers)}
             />
-          </Suspense>
+          </LazyPage>
         )}
 
         {!settingsView && !creatorView && !adminView && viewingStock && !compareStocks && (
-          <ErrorBoundary>
-            <Suspense fallback={<PageFallback />}>
-              <StockDetailView
-                ticker={viewingStock.ticker}
-                holding={findHolding(viewingStock.ticker) ?? viewingStock.holding}
-                siblings={viewingStock.siblings}
-                portfolioTotal={portfolio?.totalAssets ?? 0}
-                onTickerNavigate={(ticker) => {
-                  setViewingStock(prev => prev ? { ticker, holding: findHolding(ticker), siblings: prev.siblings } : { ticker, holding: findHolding(ticker) });
-                }}
-                onBack={() => {
-                  if (dailyReportHidden) {
-                    setDailyReportHidden(false);
-                  }
-                  setViewingStock(null);
-                }}
-                onHoldingAdded={async () => {
-                  const p = await getPortfolio();
-                  handleUpdate();
-                  const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
-                  setViewingStock(prev => prev ? { ...prev, holding: held } : null);
-                }}
-                onHoldingDeleted={() => handleUpdate()}
-              />
-            </Suspense>
-          </ErrorBoundary>
+          <LazyPage name="StockDetailView">
+            <StockDetailView
+              ticker={viewingStock.ticker}
+              holding={findHolding(viewingStock.ticker) ?? viewingStock.holding}
+              siblings={viewingStock.siblings}
+              portfolioTotal={portfolio?.totalAssets ?? 0}
+              onTickerNavigate={(ticker) => {
+                setViewingStock(prev => prev ? { ticker, holding: findHolding(ticker), siblings: prev.siblings } : { ticker, holding: findHolding(ticker) });
+              }}
+              onBack={() => {
+                if (dailyReportHidden) {
+                  setDailyReportHidden(false);
+                }
+                setViewingStock(null);
+              }}
+              onHoldingAdded={async () => {
+                const p = await getPortfolio();
+                handleUpdate();
+                const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
+                setViewingStock(prev => prev ? { ...prev, holding: held } : null);
+              }}
+              onHoldingDeleted={() => handleUpdate()}
+            />
+          </LazyPage>
         )}
 
         <AnimatePresence mode="wait">
@@ -1722,7 +1715,7 @@ export default function App() {
 
             {/* Getting started checklist for new users */}
             {currentUserId && (
-              <Suspense fallback={null}>
+              <LazyPage name="GettingStartedChecklist" fallback={null}>
                 <GettingStartedChecklist
                   userId={currentUserId}
                   hasHoldings={!!portfolio && portfolio.holdings.length > 0}
@@ -1732,7 +1725,7 @@ export default function App() {
                   onOpenCreatorSettings={() => setCreatorView('settings')}
                   onOpenAddStock={() => holdingsActionsRef.current?.openAdd()}
                 />
-              </Suspense>
+              </LazyPage>
             )}
 
 
@@ -2086,23 +2079,22 @@ export default function App() {
           </>
         )}
 
-        <Suspense fallback={<PageFallback />}>
           {!settingsView && !creatorView && !adminView && activeTab === 'nala' && !viewingStock && (
             <PremiumOverlay
               featureName="NALA AI Deep Research"
               description="Institutional-quality research reports powered by Google Deep Research. Get deep-dive stock analysis, portfolio risk assessments, and structured bull/bear/base scenarios."
               requiredPlan="premium"
             >
-              <ErrorBoundary>
+              <LazyPage name="DeepResearchPage">
                 <DeepResearchPage
                   onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
                 />
-              </ErrorBoundary>
+              </LazyPage>
             </PremiumOverlay>
           )}
 
           {!settingsView && !creatorView && !adminView && activeTab === 'insights' && !viewingStock && (
-            <ErrorBoundary>
+            <LazyPage name="InsightsPage">
               <InsightsPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
                 currentValue={portfolio?.netEquity ?? 0}
@@ -2117,21 +2109,21 @@ export default function App() {
                 onPortfolioChange={setSelectedPortfolioId}
                 portfolios={userPortfolios.map(p => ({ id: p.id, name: p.name }))}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {!settingsView && !creatorView && !adminView && activeTab === 'watchlists' && (
             <div style={viewingStock ? { display: 'none' } : undefined}>
-              <ErrorBoundary>
+              <LazyPage name="WatchlistPage">
                 <WatchlistPage
                   onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
                 />
-              </ErrorBoundary>
+              </LazyPage>
             </div>
           )}
 
           {!settingsView && !creatorView && !adminView && activeTab === 'discover' && !viewingStock && !viewingProfileId && (
-            <ErrorBoundary>
+            <LazyPage name="DiscoverPage">
               <DiscoverPage
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
                 onUserClick={handleViewProfile}
@@ -2139,23 +2131,23 @@ export default function App() {
                 onSubTabChange={setDiscoverSubTab}
                 portfolioTickers={portfolioTickers}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
 
           {!settingsView && !creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && comparingUser && (
-            <ErrorBoundary>
+            <LazyPage name="PortfolioCompare">
               <PortfolioCompare
                 theirUserId={comparingUser.userId}
                 theirDisplayName={comparingUser.displayName}
                 onBack={() => setComparingUser(null)}
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {!settingsView && !creatorView && !adminView && activeTab === 'leaderboard' && !viewingProfileId && !viewingStock && !comparingUser && (
-            <ErrorBoundary>
+            <LazyPage name="LeaderboardPage">
               <LeaderboardPage
                 session={portfolio?.session}
                 currentUserId={currentUserId}
@@ -2164,11 +2156,11 @@ export default function App() {
                 onSelectedUserChange={setLeaderboardUserId}
                 onCompare={handleCompare}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {!settingsView && !creatorView && !adminView && viewingProfileId && !viewingStock && (
-            <ErrorBoundary>
+            <LazyPage name="UserProfileView">
               <UserProfileView
                 userId={viewingProfileId}
                 currentUserId={currentUserId}
@@ -2178,71 +2170,71 @@ export default function App() {
                 onUserClick={handleViewProfile}
                 onPortfolioUpdate={handleUpdate}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {!settingsView && !creatorView && !adminView && activeTab === 'feed' && !viewingProfileId && !viewingStock && (
-            <ErrorBoundary>
+            <LazyPage name="FeedPage">
               <FeedPage
                 currentUserId={currentUserId}
                 onUserClick={handleViewProfile}
                 onTickerClick={(ticker) => setViewingStock({ ticker, holding: findHolding(ticker) })}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {!settingsView && !creatorView && !adminView && activeTab === 'pricing' && (
-            <ErrorBoundary>
+            <LazyPage name="PricingPage">
               <PricingPage />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {creatorView === 'dashboard' && (
-            <ErrorBoundary>
+            <LazyPage name="CreatorDashboard">
               <CreatorDashboardPage
                 onBack={() => setCreatorView(null)}
                 onSettingsClick={() => setCreatorView('settings')}
                 setupStatus={creatorSetupStatus}
                 onSetupComplete={refreshCreatorSetupStatus}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {creatorView === 'settings' && (
-            <ErrorBoundary>
+            <LazyPage name="CreatorSettings">
               <CreatorSettingsPageComp
                 userId={currentUserId}
                 onBack={() => setCreatorView('dashboard')}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {adminView === 'waitlist' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
-            <ErrorBoundary>
+            <LazyPage name="WaitlistAdminPage">
               <WaitlistAdminPage onBack={() => { setAdminView(null); window.location.hash = ''; }} />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {adminView === 'jobs' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
-            <ErrorBoundary>
+            <LazyPage name="JobsDashboard">
               <JobsDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {adminView === 'analytics' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
-            <ErrorBoundary>
+            <LazyPage name="AnalyticsDashboard">
               <AnalyticsDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {adminView === 'api-usage' && user?.isWaitlistAdmin && !settingsView && !creatorView && (
-            <ErrorBoundary>
+            <LazyPage name="ApiUsageDashboard">
               <ApiUsageDashboard onBack={() => { setAdminView(null); window.location.hash = ''; }} />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
           {settingsView && !adminView && !creatorView && (
-            <ErrorBoundary>
+            <LazyPage name="AccountSettings">
               <AccountSettingsPageComp2
                 userId={currentUserId}
                 onBack={() => { setSettingsView(false); window.location.hash = ''; }}
@@ -2250,10 +2242,9 @@ export default function App() {
                 healthStatus={healthStatus}
                 onCreatorNavigate={(view) => { setSettingsView(false); setCreatorView(view); }}
               />
-            </ErrorBoundary>
+            </LazyPage>
           )}
 
-        </Suspense>
         </motion.div>
         </AnimatePresence>
       </main>

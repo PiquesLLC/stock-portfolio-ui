@@ -4,6 +4,8 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   isAdmin?: boolean;
+  /** Optional page identifier — included in error logs so the failing page is grep-able. */
+  pageName?: string;
 }
 
 interface State {
@@ -22,7 +24,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, info.componentStack);
+    const tag = this.props.pageName ? `[ErrorBoundary:${this.props.pageName}]` : 'ErrorBoundary';
+    console.error(`${tag} caught:`, error, info.componentStack);
     // Auto-reload once for stale chunk errors (new deploy invalidated old JS bundles)
     const msg = error?.message || '';
     if (msg.includes('dynamically imported module') || msg.includes('Failed to fetch') || msg.includes('Loading chunk')) {
