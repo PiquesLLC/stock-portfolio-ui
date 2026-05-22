@@ -1656,30 +1656,32 @@ export default function App() {
         )}
 
         {!settingsView && !creatorView && !adminView && viewingStock && !compareStocks && (
-          <Suspense fallback={<PageFallback />}>
-            <StockDetailView
-              ticker={viewingStock.ticker}
-              holding={findHolding(viewingStock.ticker) ?? viewingStock.holding}
-              siblings={viewingStock.siblings}
-              portfolioTotal={portfolio?.totalAssets ?? 0}
-              onTickerNavigate={(ticker) => {
-                setViewingStock(prev => prev ? { ticker, holding: findHolding(ticker), siblings: prev.siblings } : { ticker, holding: findHolding(ticker) });
-              }}
-              onBack={() => {
-                if (dailyReportHidden) {
-                  setDailyReportHidden(false);
-                }
-                setViewingStock(null);
-              }}
-              onHoldingAdded={async () => {
-                const p = await getPortfolio();
-                handleUpdate();
-                const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
-                setViewingStock(prev => prev ? { ...prev, holding: held } : null);
-              }}
-              onHoldingDeleted={() => handleUpdate()}
-            />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<PageFallback />}>
+              <StockDetailView
+                ticker={viewingStock.ticker}
+                holding={findHolding(viewingStock.ticker) ?? viewingStock.holding}
+                siblings={viewingStock.siblings}
+                portfolioTotal={portfolio?.totalAssets ?? 0}
+                onTickerNavigate={(ticker) => {
+                  setViewingStock(prev => prev ? { ticker, holding: findHolding(ticker), siblings: prev.siblings } : { ticker, holding: findHolding(ticker) });
+                }}
+                onBack={() => {
+                  if (dailyReportHidden) {
+                    setDailyReportHidden(false);
+                  }
+                  setViewingStock(null);
+                }}
+                onHoldingAdded={async () => {
+                  const p = await getPortfolio();
+                  handleUpdate();
+                  const held = p.holdings.find(h => h.ticker.toUpperCase() === viewingStock.ticker.toUpperCase()) ?? null;
+                  setViewingStock(prev => prev ? { ...prev, holding: held } : null);
+                }}
+                onHoldingDeleted={() => handleUpdate()}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         <AnimatePresence mode="wait">

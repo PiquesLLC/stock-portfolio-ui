@@ -1188,6 +1188,20 @@ export async function changePassword(currentPassword: string, newPassword: strin
   });
 }
 
+export async function requestEmailChange(currentPassword: string, newEmail: string): Promise<{ message: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/request-email-change`, {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newEmail }),
+  });
+}
+
+export async function confirmEmailChange(code: string): Promise<{ message: string; email: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/confirm-email-change`, {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
 export async function changeUsername(username: string): Promise<{ username: string; message: string }> {
   return fetchJson(`${API_BASE_URL}/auth/change-username`, {
     method: 'POST',

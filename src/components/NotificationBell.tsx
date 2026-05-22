@@ -89,6 +89,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
   const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     const saved = localStorage.getItem('notificationsEnabled');
     return saved !== 'false'; // Default to true
@@ -178,14 +179,24 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
   const fetchEvents = useCallback(async (): Promise<UnifiedNotification[]> => {
     if (!userId) return [];
+    setIsLoading(true);
+    // Per-endpoint timing + fallback. A single slow/failing endpoint must not
+    // blank the entire panel — that is the original "8 unread, empty list"
+    // bug. Logs land in the browser console so the slowest endpoint can be
+    // identified on the next slow load.
+    const t0 = performance.now();
+    const debug = import.meta.env.DEV;
+    const timed = <T,>(name: string, p: Promise<T>, fallback: T): Promise<T> =>
+      p.then((r) => { if (debug) console.log(`[NotificationBell] ${name}: ${(performance.now() - t0).toFixed(0)}ms`); return r; })
+        .catch((e) => { console.error(`[NotificationBell] ${name} failed after ${(performance.now() - t0).toFixed(0)}ms:`, e); return fallback; });
     try {
       const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents, anomalyEvents, socialEvents] = await Promise.all([
-        getAlertEvents(userId),
-        getPriceAlertEvents(userId, 50),
-        getAnalystEvents(50),
-        getMilestoneEvents(50),
-        getAnomalies(50),
-        getSocialNotifications(50).catch(() => [] as SocialNotificationData[]),
+        timed('alerts', getAlertEvents(userId), [] as AlertEventType[]),
+        timed('priceAlerts', getPriceAlertEvents(userId, 50), [] as PriceAlertEvent[]),
+        timed('analyst', getAnalystEvents(50), [] as AnalystEvent[]),
+        timed('milestones', getMilestoneEvents(50), [] as MilestoneEvent[]),
+        timed('anomalies', getAnomalies(50), [] as AnomalyEvent[]),
+        timed('social', getSocialNotifications(50), [] as SocialNotificationData[]),
       ]);
 
       // Convert alert events — filter orphaned events where parent Alert was deleted
@@ -283,6 +294,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       setUnreadCount(merged.filter(n => !n.read).length);
       return merged;
     } catch (e) { console.error('Notifications fetch failed:', e); }
+    finally { setIsLoading(false); }
     return [];
   }, [userId]);
 
@@ -502,7 +514,15 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
             </div>
           </div>
 
-          {notifications.length === 0 ? (
+          {isLoading && notifications.length === 0 ? (
+            <div className="px-4 py-10 text-center">
+              <svg className="w-6 h-6 mx-auto mb-2 animate-spin text-rh-green" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              <p className="text-sm text-rh-light-muted dark:text-rh-muted">Loading notifications…</p>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="px-4 py-10 text-center">
               <svg className="w-8 h-8 mx-auto mb-2 text-rh-light-muted/30 dark:text-rh-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />

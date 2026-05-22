@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { changePassword, forgotPassword } from '../../../api';
+import { changePassword, forgotPassword, requestEmailChange, confirmEmailChange } from '../../../api';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
-import { validatePassword } from '../../../utils/validation';
+import { validatePassword, isValidEmail } from '../../../utils/validation';
 
 interface SecuritySectionProps {
   onOpenMfa: () => void;
 }
 
 export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -18,6 +18,67 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
   const [passwordError, setPasswordError] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
+
+  // Email change (two-step verify) state.
+  // Step 'idle' → button collapsed.
+  // Step 'request' → form for currentPassword + newEmail visible.
+  // Step 'confirm' → code input visible; we keep newEmail/currentPassword cleared at this point.
+  const [emailStep, setEmailStep] = useState<'idle' | 'request' | 'confirm'>('idle');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [emailNew, setEmailNew] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  const closeEmailForm = () => {
+    setEmailStep('idle');
+    setEmailPassword('');
+    setEmailNew('');
+    setEmailCode('');
+    setEmailError('');
+  };
+
+  const handleRequestEmailChange = async () => {
+    setEmailError('');
+    if (!emailPassword) { setEmailError('Current password is required'); return; }
+    if (!isValidEmail(emailNew)) { setEmailError('Enter a valid email address'); return; }
+    setEmailBusy(true);
+    try {
+      await requestEmailChange(emailPassword, emailNew.trim().toLowerCase());
+      // Keep newEmail visible at the confirm step so the user can see where the code went,
+      // but clear the password from memory immediately — it's no longer needed.
+      setEmailPassword('');
+      setEmailStep('confirm');
+      showToast(`Code sent to ${emailNew.trim().toLowerCase()}`, 'success');
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Failed to send verification code');
+    } finally {
+      setEmailBusy(false);
+    }
+  };
+
+  const handleConfirmEmailChange = async () => {
+    setEmailError('');
+    if (!/^\d{6}$/.test(emailCode)) { setEmailError('Code must be 6 digits'); return; }
+    setEmailBusy(true);
+    try {
+      await confirmEmailChange(emailCode);
+      // Server already applied the change. Reset the form first, then refresh —
+      // if the refresh fails (transient network), the local user.email is stale
+      // but the form is closed and the user sees the success toast.
+      closeEmailForm();
+      showToast('Email updated', 'success');
+      try {
+        await refreshUser();
+      } catch {
+        // Best-effort; the change is durable server-side regardless.
+      }
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Failed to confirm code');
+    } finally {
+      setEmailBusy(false);
+    }
+  };
 
   const handleChangePassword = async () => {
     setPasswordError('');
@@ -76,6 +137,140 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
 
   return (
     <div className="space-y-7">
+      <div className="space-y-4">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Email Address</h3>
+
+        {emailStep === 'idle' ? (
+          <button
+            type="button"
+            onClick={() => { setEmailStep('request'); setEmailError(''); }}
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-left
+              bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-rh-text
+              hover:bg-gray-200 dark:hover:bg-rh-border/80 transition-colors
+              flex items-center justify-between"
+          >
+            <div className="flex flex-col items-start gap-0.5">
+              <span>{user?.email ? 'Change Email' : 'Add Email'}</span>
+              {user?.email && (
+                <span className="text-[11px] font-normal text-rh-light-muted dark:text-rh-muted truncate max-w-[260px]">
+                  {user.email}{user.emailVerified ? ' · verified' : ' · unverified'}
+                </span>
+              )}
+            </div>
+            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        ) : (
+          <div className="space-y-3 p-4 bg-gray-50 dark:bg-rh-border/20 rounded-lg">
+            {emailError && (
+              <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-red-500 text-xs">
+                {emailError}
+              </div>
+            )}
+
+            {emailStep === 'request' ? (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                    New Email Address
+                  </label>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={emailNew}
+                    onChange={(e) => setEmailNew(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-rh-border
+                      bg-white dark:bg-rh-black text-rh-light-text dark:text-rh-text text-sm
+                      focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-rh-border
+                      bg-white dark:bg-rh-black text-rh-light-text dark:text-rh-text text-sm
+                      focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors"
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={closeEmailForm}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium
+                      text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                      hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRequestEmailChange}
+                    disabled={emailBusy}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold
+                      bg-rh-green text-black hover:bg-green-400
+                      disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {emailBusy ? 'Sending...' : 'Send Code'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+                  We sent a 6-digit code to <span className="text-rh-light-text dark:text-rh-text font-medium">{emailNew.trim().toLowerCase()}</span>. Enter it below to finish changing your email.
+                </p>
+                <div>
+                  <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                    Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={emailCode}
+                    onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="123456"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-rh-border
+                      bg-white dark:bg-rh-black text-rh-light-text dark:text-rh-text text-sm tracking-widest font-mono
+                      focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors"
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={closeEmailForm}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium
+                      text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                      hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmEmailChange}
+                    disabled={emailBusy}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold
+                      bg-rh-green text-black hover:bg-green-400
+                      disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {emailBusy ? 'Confirming...' : 'Confirm'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="space-y-4">
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Authentication</h3>
 
