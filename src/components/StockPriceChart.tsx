@@ -2447,10 +2447,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             if (!svgRef.current || (!useCandle && points.length < 2)) return;
             const rect = svgRef.current.getBoundingClientRect();
             const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
-            // Y-hit-test inputs. Reject clicks outside the plot area first
-            // (above PAD_TOP or below PAD_TOP+plotH = padding/axis regions),
-            // then check distance to the line/candle.
-            const pxPerSvgY = rect.height / CHART_H;
+            // X-axis hit-test only: any click inside the plot area maps to
+            // the nearest X data point. Plot-area Y gate stays so clicks on
+            // axes/header padding still don't drop markers. See container
+            // handler above for rationale.
             const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
             if (clickSvgY < PAD_TOP || clickSvgY > PAD_TOP + plotH) return;
             setShowMeasureHint(false);
@@ -2478,30 +2478,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
                 }
                 const candle = effectiveCandleData[ci];
-                // Candle: must fall within [high, low] + 16px wick slop.
-                const slopSvgC = 16 / pxPerSvgY;
-                if (clickSvgY < toY(candle.high) - slopSvgC || clickSvgY > toY(candle.low) + slopSvgC) return;
                 pt = { time: candle.time, price: candle.close };
               } else {
                 const idx = findNearestIndex(svgX);
-                // Hit-test against the interpolated visible line at the click's
-                // X (see container handler above for rationale).
-                const xAtIdx = toX(idx);
-                const other = svgX < xAtIdx && idx > 0
-                  ? idx - 1
-                  : svgX > xAtIdx && idx < points.length - 1
-                    ? idx + 1
-                    : idx;
-                const lo = Math.min(idx, other);
-                const hi = Math.max(idx, other);
-                const x0 = toX(lo);
-                const x1 = toX(hi);
-                const y0 = toY(points[lo].price);
-                const y1 = toY(points[hi].price);
-                const tAlpha = x1 === x0 ? 0 : (svgX - x0) / (x1 - x0);
-                const lineY = y0 + tAlpha * (y1 - y0);
-                const slopSvgL = 32 / pxPerSvgY;
-                if (Math.abs(clickSvgY - lineY) > slopSvgL) return;
                 pt = { time: points[idx].time, price: points[idx].price };
               }
               if (measureA === null) { setMeasureA(pt); }
