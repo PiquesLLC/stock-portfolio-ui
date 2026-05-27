@@ -1999,11 +1999,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setIsDraggingCard(false);
       return;
     } else {
-      // Y-hit-test. Reject taps outside the plot area (axes/header padding
-      // are not legitimate measurement targets), AND reject taps far from
-      // the line/candle so the chart doesn't drop a marker when the user
-      // was trying to pinch-zoom or just stab in empty space above/below.
-      const pxPerSvgY = rect.height / CHART_H;
+      // X-axis hit-test only: any click inside the plot area maps to the
+      // nearest X data point. A previous Y-distance gate rejected clicks
+      // above/below the line, surprising users who expected to be able to
+      // tap anywhere in the chart area at a valid X.
       const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
       // Hard reject: outside the plot area (top/bottom padding regions).
       if (clickSvgY < PAD_TOP || clickSvgY > PAD_TOP + plotH) return;
@@ -2028,40 +2027,16 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           ci = Math.min(cStart + Math.round(ratio * (cCount - 1)), cEnd);
         }
         const candle = effectiveCandleData[ci];
-        // Candle: tap must fall within high→low + 16px slop for wick clicks.
-        const slopSvg = 16 / pxPerSvgY;
-        if (clickSvgY < toY(candle.high) - slopSvg || clickSvgY > toY(candle.low) + slopSvg) return;
         pt = { time: candle.time, price: candle.close };
       } else {
         const idx = findNearestIndex(svgX);
-        // Hit-test against the INTERPOLATED visible line at the click's X,
-        // not against the Y of the nearest data point. On steep segments
-        // (earnings gaps, rapid moves) the click can land exactly on the
-        // rendered line while still being far in Y from the nearest data
-        // point, which silently dropped valid clicks.
-        const xAtIdx = toX(idx);
-        const other = svgX < xAtIdx && idx > 0
-          ? idx - 1
-          : svgX > xAtIdx && idx < points.length - 1
-            ? idx + 1
-            : idx;
-        const lo = Math.min(idx, other);
-        const hi = Math.max(idx, other);
-        const x0 = toX(lo);
-        const x1 = toX(hi);
-        const y0 = toY(points[lo].price);
-        const y1 = toY(points[hi].price);
-        const t = x1 === x0 ? 0 : (svgX - x0) / (x1 - x0);
-        const lineY = y0 + t * (y1 - y0);
-        const slopSvg = 32 / pxPerSvgY;
-        if (Math.abs(clickSvgY - lineY) > slopSvg) return;
         pt = { time: points[idx].time, price: points[idx].price };
       }
       if (measureA === null) { setMeasureA(pt); }
       else if (measureB === null) { setMeasureB(pt); }
       else { setMeasureC(pt); }
     }
-  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, plotH, is1D, dayStartMs, dayEndMs, toY]);
+  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, plotH, is1D, dayStartMs, dayEndMs]);
 
   // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
