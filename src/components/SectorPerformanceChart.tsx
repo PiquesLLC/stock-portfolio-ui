@@ -192,8 +192,10 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   // (e.g., user clicks 1D → 3M while the 1D fetch is still in flight).
   useEffect(() => {
     let cancelled = false;
-    const safeFetch = async () => {
-      setLoading(true);
+    // initial=true only for the first fetch of a period; polling ticks pass false so the
+    // already-visible chart isn't flipped back into the loading gate — new data swaps in.
+    const safeFetch = async (initial: boolean) => {
+      if (initial) setLoading(true);
       try {
         const resp = await getSectorPerformance(period);
         if (cancelled) return;
@@ -202,12 +204,12 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         if (cancelled) return;
         console.error('Sector performance fetch failed:', e);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && initial) setLoading(false);
       }
     };
     setData(null);
-    safeFetch();
-    const interval = setInterval(safeFetch, period === '1D' ? 60_000 : 300_000);
+    safeFetch(true);
+    const interval = setInterval(() => safeFetch(false), period === '1D' ? 60_000 : 300_000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -454,6 +456,17 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     [allItems, period, minutesMap, yMin, yRange],
   );
 
+  // Prune pins that have become unrenderable (ticker dropped from the response, or the
+  // index/time scrolled out of the visible window). Such pins are invisible AND can't be
+  // toggled off by clicking (the hit-tests skip null positions), so drop them from state.
+  // Returns the same array reference when nothing changed to avoid a needless re-render.
+  useEffect(() => {
+    setPins(prev => {
+      const visible = prev.filter(p => computePinPos(p) !== null);
+      return visible.length === prev.length ? prev : visible;
+    });
+  }, [computePinPos]);
+
   const cancelLongPress = useCallback(() => {
     if (longPressTimerRef.current !== null) {
       clearTimeout(longPressTimerRef.current);
@@ -463,10 +476,12 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   }, []);
 
   const removePin = useCallback((idx: number) => {
+    hapticLight();
     setPins(prev => prev.filter((_, i) => i !== idx));
   }, []);
 
   const dropPin = useCallback((pin: SectorPin) => {
+    hapticLight();
     setPins(prev => [...prev, pin].slice(-MAX_PINS));
   }, []);
 
@@ -497,13 +512,11 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       const pos = computePinPos(pins[i]);
       if (!pos) continue;
       if (Math.hypot(pos.x - originX, pos.y - originY) <= PIN_HIT_RADIUS) {
-        removePin(i);
-        hapticLight();
+        removePin(i); // haptic fires inside removePin
         return;
       }
     }
-    dropPinAtX(lastXRef.current);
-    hapticLight();
+    dropPinAtX(lastXRef.current); // haptic fires inside dropPin, and only on a successful drop
   }, [pins, computePinPos, removePin, dropPinAtX]);
 
   // Plain click on chart → either remove the clicked pin OR drop a new one.
@@ -582,6 +595,13 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     // browsers fire after touchend (for plain taps) needs this to know which sector to pin.
     if (lockedTickerRef.current) lastLockedTickerRef.current = lockedTickerRef.current;
     clearHover();
+    // Safety net: a fired long-press is normally consumed by the synthetic click that
+    // follows touchend. If that click never arrives (touchcancel, or browsers that suppress
+    // the click after a long-press), clear the flag after the click window so it can't
+    // swallow the next legitimate tap. The next touchstart also resets it.
+    if (longPressFiredRef.current) {
+      setTimeout(() => { longPressFiredRef.current = false; }, 400);
+    }
   }, [clearHover, cancelLongPress]);
 
   // Native touchmove listener with { passive: false } so preventDefault() works.
