@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getIntradayCandles, getHourlyCandles, getDailyCandles, IntradayCandle } from '../api';
+import { getIntradayCandlesWithPrevClose, getHourlyCandles, getDailyCandles, IntradayCandle } from '../api';
 import { PortfolioChartPeriod } from '../types';
 
 interface MiniSparklineProps {
@@ -8,18 +8,33 @@ interface MiniSparklineProps {
   period?: PortfolioChartPeriod;
 }
 
+// A candle series plus the stock's previous close. previousClose is only
+// populated for 1D (from the intraday endpoint) — it's the value the detail
+// chart anchors its line on, so the sparkline needs it to match that shape.
+interface CandleBundle {
+  candles: IntradayCandle[];
+  previousClose: number | null;
+}
+
 // Module-level cache: key -> { data, timestamp }
-const cache = new Map<string, { data: IntradayCandle[]; timestamp: number }>();
+const cache = new Map<string, { data: CandleBundle; timestamp: number }>();
 const CACHE_TTL = 60_000; // 60 seconds
 
 // In-flight requests to avoid duplicate fetches for the same key
-const inflight = new Map<string, Promise<IntradayCandle[]>>();
+const inflight = new Map<string, Promise<CandleBundle>>();
+
+// How often a 1D sparkline re-fetches during trading hours so it keeps drawing
+// the live intraday pattern. Kept just ABOVE CACHE_TTL (60s) so each tick
+// reliably outpaces the cache and actually pulls fresh candles (a value == TTL
+// can land on still-fresh cache and skip a cycle), while duplicate-ticker rows
+// within the TTL window still coalesce. Gentle on the API for long lists.
+const LIVE_REFRESH_MS = 65_000;
 
 function getCacheKey(ticker: string, period: string): string {
   return `${ticker}:${period}`;
 }
 
-function getCachedData(ticker: string, period: string): IntradayCandle[] | null {
+function getCachedData(ticker: string, period: string): CandleBundle | null {
   const key = getCacheKey(ticker, period);
   const entry = cache.get(key);
   if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
@@ -28,13 +43,18 @@ function getCachedData(ticker: string, period: string): IntradayCandle[] | null 
   return null;
 }
 
-async function fetchCandles(ticker: string, period: PortfolioChartPeriod): Promise<IntradayCandle[]> {
-  if (period === '1D') return getIntradayCandles(ticker);
-  if (period === '1W' || period === '1M') return getHourlyCandles(ticker, period);
-  return getDailyCandles(ticker, period as '3M' | 'YTD' | '1Y' | 'ALL');
+async function fetchCandles(ticker: string, period: PortfolioChartPeriod): Promise<CandleBundle> {
+  if (period === '1D') {
+    const { candles, previousClose } = await getIntradayCandlesWithPrevClose(ticker);
+    return { candles, previousClose };
+  }
+  if (period === '1W' || period === '1M') {
+    return { candles: await getHourlyCandles(ticker, period), previousClose: null };
+  }
+  return { candles: await getDailyCandles(ticker, period as '3M' | 'YTD' | '1Y' | 'ALL'), previousClose: null };
 }
 
-async function fetchWithCache(ticker: string, period: PortfolioChartPeriod): Promise<IntradayCandle[]> {
+async function fetchWithCache(ticker: string, period: PortfolioChartPeriod): Promise<CandleBundle> {
   const cached = getCachedData(ticker, period);
   if (cached) return cached;
 
@@ -55,6 +75,20 @@ async function fetchWithCache(ticker: string, period: PortfolioChartPeriod): Pro
 
   inflight.set(key, promise);
   return promise;
+}
+
+// True during extended US market hours (4 AM – 8 PM ET, Mon–Fri) — the window
+// the detail chart treats as "live". Gates the sparkline's live-refresh so it
+// doesn't poll overnight or on weekends when the data can't change.
+function isWithinTradingWindowET(): boolean {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour12: false, weekday: 'short', hour: '2-digit',
+  }).formatToParts(new Date());
+  const wd = parts.find(p => p.type === 'weekday')?.value;
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10) % 24; // some ICU builds emit '24' at midnight
+  if (wd === 'Sat' || wd === 'Sun') return false;
+  return hour >= 4 && hour < 20;
 }
 
 interface SparkPoint {
@@ -143,16 +177,19 @@ function toSparkPoints(candles: IntradayCandle[]): SparkPoint[] {
 
 export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparklineProps) {
   const [rawData, setRawData] = useState<SparkPoint[] | null>(null);
+  const [prevClose, setPrevClose] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // Initial load (cache-first).
   useEffect(() => {
     let cancelled = false;
 
     // Check cache synchronously first
     const cached = getCachedData(ticker, period);
     if (cached) {
-      setRawData(toSparkPoints(cached));
+      setRawData(toSparkPoints(cached.candles));
+      setPrevClose(cached.previousClose);
       setLoading(false);
       return;
     }
@@ -163,7 +200,8 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
     fetchWithCache(ticker, period)
       .then((data) => {
         if (!cancelled) {
-          setRawData(toSparkPoints(data));
+          setRawData(toSparkPoints(data.candles));
+          setPrevClose(data.previousClose);
           setLoading(false);
         }
       })
@@ -176,6 +214,51 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
 
     return () => {
       cancelled = true;
+    };
+  }, [ticker, period]);
+
+  // Live refresh: during trading hours keep redrawing the real intraday
+  // pattern (mirrors the detail chart's polling). Only 1D is intraday-live;
+  // longer periods move slowly and the detail chart doesn't poll them either.
+  // The interval stays armed and simply no-ops outside the window / when the tab
+  // is hidden (both gates re-checked per tick), so it self-heals at the next
+  // open without any "ms until 4 AM ET" DST math; off-hours ticks are ~free.
+  useEffect(() => {
+    if (period !== '1D') return;
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (!isWithinTradingWindowET()) return;
+      // Cache-respecting fetch: the interval is just above CACHE_TTL, so each
+      // tick finds the entry expired and pulls fresh candles, while N rows of
+      // the SAME ticker within the TTL window coalesce onto one request (via the
+      // cache + in-flight map) instead of stampeding.
+      fetchWithCache(ticker, period)
+        .then((data) => {
+          if (!cancelled) {
+            setRawData(toSparkPoints(data.candles));
+            setPrevClose(data.previousClose);
+            setError(false);   // self-heal if the initial load had failed
+            setLoading(false);
+          }
+        })
+        .catch(() => { /* keep last good render */ });
+    };
+
+    // Jittered start so a long list doesn't refetch every row in one burst.
+    const startDelay = Math.floor(Math.random() * LIVE_REFRESH_MS);
+    const timeoutId = setTimeout(() => {
+      if (cancelled) return;
+      tick();
+      intervalId = setInterval(tick, LIVE_REFRESH_MS);
+    }, startDelay);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
     };
   }, [ticker, period]);
 
@@ -219,8 +302,17 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
     const sampled = downsamplePoints(filteredData, 48);
     const closes = sampled.map(p => p.close);
 
-    const min = Math.min(...closes);
-    const max = Math.max(...closes);
+    // For 1D, fold previousClose into the value range and use it as the left
+    // anchor — exactly like the detail chart (buildPoints anchors previousClose
+    // at 4 AM ET). Without it the line starts at the first (often pre-market)
+    // candle, which inverts the day's true up/down move: e.g. AMD on a down day
+    // reads "down then recover" against previousClose, but "flat then spike up"
+    // against the first pre-market candle.
+    const anchorPrice = period === '1D' && prevClose != null ? prevClose : sampled[0].close;
+    const rangeValues = period === '1D' && prevClose != null ? [...closes, prevClose] : closes;
+
+    const min = Math.min(...rangeValues);
+    const max = Math.max(...rangeValues);
     const range = max - min || 1;
 
     const innerW = WIDTH - PAD * 2 - DOT_R; // leave room for end dot
@@ -247,10 +339,12 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
       // proportional progress through the day, with empty space on the right
       const dayRange = Math.max(dayEndMs - dayStartMs, 1);
 
-      // Anchor at left edge (4 AM ET) with first candle's price, then position
-      // real data by time. This fills the left side with a flat line, matching
-      // how the stock chart anchors previousClose at 4 AM.
-      const anchorY = PAD + (1 - (sampled[0].close - min) / range) * innerH;
+      // Anchor the left edge (4 AM ET) at previousClose, then position real
+      // data by time. This holds a flat line on the left and makes the
+      // sparkline's shape match the detail chart, which anchors previousClose
+      // at 4 AM. (anchorPrice falls back to the first candle if previousClose
+      // is unavailable.)
+      const anchorY = PAD + (1 - (anchorPrice - min) / range) * innerH;
       crds = [
         { x: PAD, y: anchorY },
         ...sampled.map((p) => ({
@@ -275,7 +369,7 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
     const area = `${line} L${last.x.toFixed(1)},${HEIGHT} L${first.x.toFixed(1)},${HEIGHT} Z`;
 
     return { linePath: line, areaPath: area, coords: crds, points: closes, isPreMarketStale: false };
-  }, [rawData, period]);
+  }, [rawData, prevClose, period]);
 
   // Error state: render nothing
   if (error) return null;
@@ -293,8 +387,14 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
   // No data or insufficient data
   if (!isPreMarketStale && (!points || points.length < 2)) return null;
 
-  // Use parent's positive prop if provided, otherwise auto-detect from data
-  const autoPositive = points.length >= 2 ? points[points.length - 1] >= points[0] : true;
+  // Use parent's positive prop if provided, otherwise auto-detect from data.
+  // For 1D, "up" means up vs previousClose (matches the detail chart's day
+  // change), not up vs the first plotted candle.
+  const autoPositive = points.length >= 2
+    ? (period === '1D' && prevClose != null
+        ? points[points.length - 1] >= prevClose
+        : points[points.length - 1] >= points[0])
+    : true;
   const dataPositive = positive ?? autoPositive;
   const strokeColor = dataPositive ? '#00c805' : '#ff5000';
   const gradientId = `sparkGrad-${ticker}-${period}`;
