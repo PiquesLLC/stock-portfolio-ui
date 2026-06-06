@@ -183,7 +183,7 @@ export default function EventFeed({ events }: EventFeedProps) {
                 <div className="relative flex items-center justify-between mt-2.5 pt-2 border-t border-white/[0.03] dark:border-white/[0.03] border-gray-200/20">
                   {event.source_url ? (
                     <a
-                      href={event.source_url}
+                      href={/^https?:\/\//i.test(event.source_url) ? event.source_url : undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] font-mono font-medium text-rh-green/40 hover:text-rh-green transition-colors"

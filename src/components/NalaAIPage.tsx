@@ -515,7 +515,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
                   return (
                     <a
                       key={i}
-                      href={url}
+                      href={url && /^https?:\/\//i.test(url) ? url : undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono text-[10px] px-2.5 py-1 rounded-lg

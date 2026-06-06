@@ -108,7 +108,7 @@ export async function downloadReportAsPdf(result: DeepResearchJobResult) {
             <div class="citation">
               <span class="cite-num">${i + 1}.</span>
               <div>
-                <a href="${escHtml(cite.url)}" class="cite-link">${escHtml(cite.title)}</a>
+                <a href="${escHtml(cite.url && /^https?:\/\//i.test(cite.url) ? cite.url : '#')}" class="cite-link">${escHtml(cite.title)}</a>
                 ${cite.snippet ? `<p class="cite-snippet">${escHtml(cite.snippet)}</p>` : ''}
               </div>
             </div>`).join('')}

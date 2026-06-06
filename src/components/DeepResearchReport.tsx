@@ -185,7 +185,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
                   </span>
                   <div className="min-w-0">
                     <a
-                      href={cite.url}
+                      href={cite.url && /^https?:\/\//i.test(cite.url) ? cite.url : undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs font-medium text-rh-green hover:underline"
