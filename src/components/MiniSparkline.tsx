@@ -4,7 +4,7 @@ import { PortfolioChartPeriod } from '../types';
 
 interface MiniSparklineProps {
   ticker: string;
-  positive?: boolean; // If omitted, auto-detects from data (last > first)
+  positive?: boolean; // Day-change hint: preferred on 1D when previousClose is unavailable, and used for the no-series flat line. Ignored on non-1D periods (color follows the period's direction).
   period?: PortfolioChartPeriod;
 }
 
@@ -387,15 +387,21 @@ export function MiniSparkline({ ticker, positive, period = '1D' }: MiniSparkline
   // No data or insufficient data
   if (!isPreMarketStale && (!points || points.length < 2)) return null;
 
-  // Use parent's positive prop if provided, otherwise auto-detect from data.
-  // For 1D, "up" means up vs previousClose (matches the detail chart's day
-  // change), not up vs the first plotted candle.
-  const autoPositive = points.length >= 2
-    ? (period === '1D' && prevClose != null
-        ? points[points.length - 1] >= prevClose
+  // Color follows the SELECTED period's direction, so it changes with the
+  // timeframe: a stock down on 1D (red) shows GREEN on 1M when it's up over the
+  // month. Per period: 1D colors vs previousClose (= the day change, matching the
+  // detail chart); other periods color by last-vs-first plotted point (the line's
+  // net direction). On 1D when previousClose is unavailable, fall back to the
+  // parent's `positive` day-change hint — NOT the first candle, which would
+  // re-introduce the pre-market inversion. `positive` is otherwise only used for
+  // the no-series (pre-market/stale) flat line.
+  const dataPositive = points.length >= 2
+    ? (period === '1D'
+        ? (prevClose != null
+            ? points[points.length - 1] >= prevClose
+            : (positive ?? (points[points.length - 1] >= points[0])))
         : points[points.length - 1] >= points[0])
-    : true;
-  const dataPositive = positive ?? autoPositive;
+    : (positive ?? true);
   const strokeColor = dataPositive ? '#00c805' : '#ff5000';
   const gradientId = `sparkGrad-${ticker}-${period}`;
   const lastPt = coords[coords.length - 1];

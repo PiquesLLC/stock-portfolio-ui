@@ -8,7 +8,7 @@ vi.mock('../api', () => ({
   getDailyCandles: vi.fn(),
 }));
 
-import { getIntradayCandlesWithPrevClose } from '../api';
+import { getIntradayCandlesWithPrevClose, getHourlyCandles } from '../api';
 
 describe('MiniSparkline weekend session', () => {
   beforeEach(() => {
@@ -103,5 +103,75 @@ describe('MiniSparkline weekend session', () => {
     const highY = await firstAnchorY('PC-HIGH'); // anchor near top → small y
     const lowY = await firstAnchorY('PC-LOW');   // anchor near bottom → large y
     expect(highY).toBeLessThan(lowY);
+  });
+
+  it('colors by the SELECTED period direction, not the fixed 1D day-change prop', async () => {
+    // For non-1D periods the color must follow the period (last vs first point),
+    // so a stock up on the day (positive=true) but DOWN over 1M renders red, and
+    // a stock down on the day (positive=false) but UP over 1M renders green.
+    const series = (dir: 'down' | 'up') =>
+      Array.from({ length: 20 }, (_, i) => {
+        const close = dir === 'down' ? 120 - i * 2 : 80 + i * 2;
+        return {
+          time: new Date(`2026-05-${String(i + 1).padStart(2, '0')}T16:00:00Z`).getTime(),
+          open: close, high: close + 0.5, low: close - 0.5, close, volume: 1000,
+        };
+      });
+
+    const strokeFor = async (ticker: string, dir: 'down' | 'up', positiveProp: boolean): Promise<string> => {
+      (getHourlyCandles as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue(series(dir));
+      const { container, unmount } = render(<MiniSparkline ticker={ticker} period="1M" positive={positiveProp} />);
+      let stroke = '';
+      await vi.waitFor(() => {
+        const p = container.querySelector('path[stroke]');
+        expect(p).toBeTruthy();
+        stroke = p!.getAttribute('stroke') || '';
+      }, { timeout: 2000, interval: 50 });
+      unmount();
+      return stroke;
+    };
+
+    // down over 1M but parent says positive (up on the day) -> red (prop ignored on non-1D)
+    expect(await strokeFor('CLR-DOWN', 'down', true)).toBe('#ff5000');
+    // up over 1M but parent says negative (down on the day) -> green (prop ignored on non-1D)
+    expect(await strokeFor('CLR-UP', 'up', false)).toBe('#00c805');
+  });
+
+  it('on 1D without previousClose, the explicit day-change hint wins over candle direction', async () => {
+    // A RISING Friday intraday session (last > first) with the API omitting
+    // previousClose. With an explicit `positive` hint the color follows the hint
+    // (a down-on-the-day stock stays RED, not GREEN from last-vs-first — the
+    // pre-market-inversion trap). With no hint it falls back to candle direction.
+    const rising = Array.from({ length: 20 }, (_, i) => {
+      const minutes = 13 * 60 + 30 + i * 15;
+      const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+      const m = String(minutes % 60).padStart(2, '0');
+      const close = 100 + i; // strictly rising
+      return {
+        time: new Date(`2026-05-01T${h}:${m}:00Z`).getTime(),
+        open: close, high: close + 0.5, low: close - 0.5, close, volume: 1000,
+      };
+    });
+    (getIntradayCandlesWithPrevClose as unknown as { mockResolvedValue: (v: unknown) => void })
+      .mockResolvedValue({ candles: rising, previousClose: null });
+
+    const strokeFor = async (ticker: string, positiveProp: boolean | undefined): Promise<string> => {
+      const { container, unmount } = render(
+        <MiniSparkline ticker={ticker} period="1D" positive={positiveProp} />,
+      );
+      let stroke = '';
+      await vi.waitFor(() => {
+        const p = container.querySelector('path[stroke]');
+        expect(p).toBeTruthy();
+        stroke = p!.getAttribute('stroke') || '';
+      }, { timeout: 2000, interval: 50 });
+      unmount();
+      return stroke;
+    };
+
+    // explicit "down on the day" hint wins -> RED, despite the rising line
+    expect(await strokeFor('NOPC-FALSE', false)).toBe('#ff5000');
+    // no hint -> falls back to candle direction (rising) -> GREEN
+    expect(await strokeFor('NOPC-NONE', undefined)).toBe('#00c805');
   });
 });
