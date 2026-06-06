@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioChartPeriod } from './types';
 import { isNative } from './utils/platform';
@@ -21,7 +21,9 @@ import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { PremiumOverlay } from './components/PremiumOverlay';
 import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import { ShortcutToast, KeyboardCheatSheet } from './components/KeyboardShortcuts';
-import { DailyReportModal } from './components/DailyReportModal';
+// Lazy-loaded: pulls in html-to-image (~50KB) only when the daily brief is opened,
+// keeping it out of the main bundle.
+const DailyReportModal = lazy(() => import('./components/DailyReportModal').then((m) => ({ default: m.DailyReportModal })));
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { SupportPage } from './components/SupportPage';
@@ -2279,15 +2281,17 @@ export default function App() {
         initialTab={privacyModalTab}
       />
       {(showDailyReport || dailyReportHidden) && (
-        <DailyReportModal
-          onClose={() => { setShowDailyReport(false); setDailyReportHidden(false); }}
-          hidden={dailyReportHidden}
-          portfolio={portfolio}
-          onTickerClick={(ticker) => {
-            setDailyReportHidden(true);
-            setViewingStock({ ticker, holding: findHolding(ticker) });
-          }}
-        />
+        <Suspense fallback={null}>
+          <DailyReportModal
+            onClose={() => { setShowDailyReport(false); setDailyReportHidden(false); }}
+            hidden={dailyReportHidden}
+            portfolio={portfolio}
+            onTickerClick={(ticker) => {
+              setDailyReportHidden(true);
+              setViewingStock({ ticker, holding: findHolding(ticker) });
+            }}
+          />
+        </Suspense>
       )}
       <ShortcutToast message={toastMessage} />
       <KeyboardCheatSheet isOpen={isCheatSheetOpen} onClose={closeCheatSheet} />
