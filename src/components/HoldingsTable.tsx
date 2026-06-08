@@ -425,7 +425,11 @@ export function HoldingsTable({
 
   // Reconcile custom order when holdings change (add/remove)
   useEffect(() => {
-    if (customOrder.length === 0) return;
+    // Skip when there are no holdings — there's nothing to reconcile, and
+    // reconciling against an empty list would wipe a previously-saved custom
+    // order. (App.tsx now mounts a hidden HoldingsTable on empty portfolios to
+    // host the add/cash/import modals, so this effect runs on empty too.)
+    if (customOrder.length === 0 || holdings.length === 0) return;
     const holdingIds = new Set(holdings.map(h => h.id));
     const filtered = customOrder.filter(id => holdingIds.has(id));
     const newIds = holdings.filter(h => !customOrder.includes(h.id)).map(h => h.id);

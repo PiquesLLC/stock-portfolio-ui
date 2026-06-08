@@ -1780,6 +1780,33 @@ export default function App() {
               </div>
             )}
 
+            {/* Headless HoldingsTable for the empty-portfolio case. The visible
+                holdings table + chart below are gated on holdings.length > 0, so
+                when a portfolio has 0 holdings the component that owns the Add
+                Stock / Cash & Margin / Import modals (and that populates
+                holdingsActionsRef) never mounts — which made the empty-state
+                buttons above silently no-op, since they call
+                holdingsActionsRef.current?.openX(). Mounting it here with
+                hideEmptyState renders nothing visible but wires up the ref +
+                modals so those buttons work. */}
+            {portfolio && portfolio.holdings.length === 0 && selectedPortfolioId && (
+              <HoldingsTable
+                holdings={[]}
+                onUpdate={handleUpdate}
+                onTickerClick={(ticker, holding, siblings) => setViewingStock({ ticker, holding, siblings })}
+                cashBalance={portfolio?.cashBalance ?? 0}
+                marginDebt={portfolio?.marginDebt ?? 0}
+                userId={currentUserId}
+                chartPeriod={chartPeriod}
+                portfolioId={selectedPortfolioId}
+                hideEmptyState
+                actionsRef={holdingsActionsRef}
+                searchQuery={holdingsSearchQuery}
+                viewMode={holdingsViewMode}
+                onViewModeChange={setHoldingsViewMode}
+              />
+            )}
+
             {/* MOCK: 2-col layout on lg+ — chart + stats on left, analytics sidebar on right.
                 Holdings region stays full-width below this flex container. */}
             {portfolio && portfolio.holdings.length > 0 && (
