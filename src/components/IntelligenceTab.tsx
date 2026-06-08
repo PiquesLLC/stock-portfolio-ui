@@ -355,7 +355,7 @@ function InsightRow({ signal }: { signal: InsightSignal }) {
     </>
   );
   const cls2 = "grid grid-cols-[20px_1fr] sm:grid-cols-[24px_1fr_auto] gap-3 sm:gap-4 items-center py-3.5 sm:py-4 border-b border-white/[0.06] last:border-b-0 cursor-pointer transition-all hover:pl-1";
-  if (signal.url) {
+  if (signal.url && /^https?:\/\//i.test(signal.url)) {
     return <a className={cls2} href={signal.url} target="_blank" rel="noopener noreferrer">{inner}</a>;
   }
   return <button type="button" className={`${cls2} text-left w-full`} onClick={signal.onClick}>{inner}</button>;
@@ -1179,7 +1179,7 @@ export function IntelligenceTab({
             {news.slice(0, 6).map(n => (
               <a
                 key={n.id}
-                href={n.url}
+                href={/^https?:\/\//i.test(n.url) ? n.url : undefined}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 py-3.5 sm:py-4 border-b border-white/[0.06] last:border-b-0 hover:pl-1 transition-all cursor-pointer"

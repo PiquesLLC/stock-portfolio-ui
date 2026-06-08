@@ -3574,7 +3574,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
                     {/* Source link */}
                     {item.sourceUrl && (
-                      <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                      <a href={/^https?:\/\//i.test(item.sourceUrl) ? item.sourceUrl : undefined} target="_blank" rel="noopener noreferrer"
                         className="inline-block mt-1 text-[9px] text-rh-green/50 hover:text-rh-green transition-colors"
                         onClick={(e) => e.stopPropagation()}>
                         source &rarr;

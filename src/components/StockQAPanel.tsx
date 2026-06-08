@@ -185,7 +185,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
                 return (
                   <a
                     key={i}
-                    href={url}
+                    href={/^https?:\/\//i.test(url) ? url : undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] px-2.5 py-1 rounded-lg
