@@ -995,8 +995,11 @@ export async function sendMfaEmailOtp(challengeToken: string): Promise<{ sent: b
   });
 }
 
-export async function setupTotp(): Promise<{ qrCodeDataUrl: string; secret: string; issuer: string; accountName: string }> {
-  return fetchJson(`${API_BASE_URL}/auth/mfa/totp/setup`, { method: 'POST' });
+export async function setupTotp(password: string): Promise<{ qrCodeDataUrl: string; secret: string; issuer: string; accountName: string }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/totp/setup`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
 }
 
 export async function verifyTotpSetup(code: string): Promise<{ enabled: boolean; backupCodes: string[] }> {
@@ -1013,10 +1016,10 @@ export async function disableTotp(password: string): Promise<{ disabled: boolean
   });
 }
 
-export async function updateMfaEmail(email: string): Promise<{ email: string; verified: boolean }> {
+export async function updateMfaEmail(email: string, password: string): Promise<{ email: string; verified: boolean }> {
   return fetchJson(`${API_BASE_URL}/auth/mfa/email`, {
     method: 'PUT',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, password }),
   });
 }
 
@@ -1027,8 +1030,11 @@ export async function verifyMfaEmail(code: string): Promise<{ verified: boolean 
   });
 }
 
-export async function setupEmailOtp(): Promise<{ codeSent: boolean }> {
-  return fetchJson(`${API_BASE_URL}/auth/mfa/email-otp/setup`, { method: 'POST' });
+export async function setupEmailOtp(password: string): Promise<{ codeSent: boolean }> {
+  return fetchJson(`${API_BASE_URL}/auth/mfa/email-otp/setup`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
 }
 
 export async function verifyEmailOtpSetup(code: string): Promise<{ enabled: boolean; backupCodes: string[] }> {

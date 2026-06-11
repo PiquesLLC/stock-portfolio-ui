@@ -38,6 +38,11 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
   const [emailCode, setEmailCode] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
 
+  // Password re-auth captured at the start of a setup flow. Both setup endpoints
+  // (TOTP setup, email-OTP setup) and the email re-confirm require it server-side;
+  // held for the flow's duration so the multi-step email flow reuses one entry.
+  const [setupPassword, setSetupPassword] = useState('');
+
   // Backup codes
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
@@ -66,6 +71,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
     if (isOpen) {
       setView('overview');
       setError('');
+      setSetupPassword('');
       fetchStatus();
     }
   }, [isOpen]);
@@ -88,14 +94,26 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
   const anyMfaEnabled = totpEnabled || emailEnabled;
 
   // ─── TOTP Setup Flow ───
-  const handleBeginTotpSetup = async () => {
+  // Step 1: open the setup view and collect the password. The QR is only
+  // generated after password re-auth (POST /auth/mfa/totp/setup requires it).
+  const handleBeginTotpSetup = () => {
+    setError('');
+    setQrData(null);
+    setTotpCode('');
+    setSetupPassword('');
+    setView('totp-setup');
+  };
+
+  // Step 2: verify the password and generate the QR.
+  const handleConfirmTotpPassword = async () => {
+    if (!setupPassword) return;
     setError('');
     setTotpLoading(true);
     try {
-      const result = await setupTotp();
+      const result = await setupTotp(setupPassword);
       setQrData({ qrCodeDataUrl: result.qrCodeDataUrl, secret: result.secret });
       setTotpCode('');
-      setView('totp-setup');
+      setSetupPassword(''); // not needed past QR generation (verify uses only the code)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start setup');
     } finally {
@@ -110,6 +128,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
     try {
       const result = await verifyTotpSetup(totpCode);
       setBackupCodes(result.backupCodes);
+      setSetupPassword('');
       setView('backup-codes');
       await fetchStatus();
     } catch (err) {
@@ -121,13 +140,24 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
 
   // ─── Email OTP Setup Flow ───
   const handleEmailSubmit = async () => {
+    if (!setupPassword) return;
     setError('');
     setEmailLoading(true);
     try {
-      await updateMfaEmail(emailInput);
-      setEmailStep('verify-email');
+      if (status?.emailVerified) {
+        // Email already verified — skip the verify-email step and send the
+        // email-OTP enable code directly (POST /auth/mfa/email-otp/setup).
+        await setupEmailOtp(setupPassword);
+        setEmailCode('');
+        setEmailStep('verify-otp');
+      } else {
+        // Confirm control of the account email first (PUT /auth/mfa/email).
+        await updateMfaEmail(emailInput, setupPassword);
+        setEmailCode('');
+        setEmailStep('verify-email');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update email');
+      setError(err instanceof Error ? err.message : 'Failed to send code');
     } finally {
       setEmailLoading(false);
     }
@@ -138,8 +168,8 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
     setEmailLoading(true);
     try {
       await verifyMfaEmail(emailCode);
-      // Now enable email OTP
-      await setupEmailOtp();
+      // Email now verified — enable email OTP (reuses the captured password).
+      await setupEmailOtp(setupPassword);
       setEmailCode('');
       setEmailStep('verify-otp');
     } catch (err) {
@@ -155,6 +185,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
     try {
       const result = await verifyEmailOtpSetup(emailCode);
       setBackupCodes(result.backupCodes);
+      setSetupPassword('');
       setView('backup-codes');
       await fetchStatus();
     } catch (err) {
@@ -343,29 +374,13 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                     </button>
                   )
                 ) : (
-                  <button onClick={async () => {
+                  <button onClick={() => {
                     setEmailInput(status.email || '');
                     setEmailCode('');
+                    setSetupPassword('');
                     setError('');
-                    if (status.emailVerified) {
-                      // Email already verified — send OTP before showing verify step
-                      setEmailLoading(true);
-                      setView('email-setup');
-                      setEmailStep('verify-otp');
-                      try {
-                        await setupEmailOtp();
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Failed to send code');
-                        // Revert to overview so user isn't stuck on OTP step without a code
-                        setView('overview');
-                        setEmailStep('enter');
-                      } finally {
-                        setEmailLoading(false);
-                      }
-                    } else {
-                      setEmailStep('enter');
-                      setView('email-setup');
-                    }
+                    setEmailStep('enter');
+                    setView('email-setup');
                   }}
                     className="py-1.5 px-3 text-xs font-medium bg-rh-green/15 text-rh-green hover:bg-rh-green/25 rounded-lg transition-colors">
                     Set up
@@ -390,6 +405,34 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                 </div>
               )}
             </>
+          )}
+
+          {/* ═══ TOTP Setup — password gate (before QR) ═══ */}
+          {view === 'totp-setup' && !qrData && (
+            <div className="space-y-4">
+              <p className="text-sm text-rh-muted">Confirm your password to set up an authenticator app.</p>
+              <div>
+                <label className="block text-xs font-medium text-rh-muted mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={setupPassword}
+                  onChange={(e) => setSetupPassword(e.target.value)}
+                  placeholder="Your account password"
+                  autoFocus
+                  className={inputClasses}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => { setView('overview'); setSetupPassword(''); setError(''); }}
+                  className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                  Back
+                </button>
+                <button onClick={handleConfirmTotpPassword} disabled={totpLoading || !setupPassword}
+                  className="flex-1 py-2 text-sm font-medium bg-rh-green hover:bg-rh-green/90 text-white rounded-lg transition-colors disabled:opacity-50">
+                  {totpLoading ? <Spinner /> : 'Continue'}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* ═══ TOTP Setup ═══ */}
@@ -423,7 +466,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                 />
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setView('overview')}
+                <button onClick={() => { setView('overview'); setQrData(null); setSetupPassword(''); }}
                   className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
                   Back
                 </button>
@@ -440,24 +483,35 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
             <div className="space-y-4">
               {emailStep === 'enter' && (
                 <>
-                  <p className="text-sm text-rh-muted">Enter your email address. We'll send a verification code.</p>
+                  <p className="text-sm text-rh-muted">Confirm your password to set up email two-factor codes for your account email.</p>
                   <div>
                     <label className="block text-xs font-medium text-rh-muted mb-1">Email Address</label>
                     <input
                       type="email"
                       value={emailInput}
-                      onChange={(e) => setEmailInput(e.target.value)}
-                      placeholder="you@example.com"
+                      readOnly
+                      aria-readonly="true"
+                      className={`${inputClasses} opacity-70 cursor-not-allowed`}
+                    />
+                    <p className="mt-1 text-xs text-rh-muted">To change your account email, use Settings → Security → Change Email.</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-rh-muted mb-1">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={setupPassword}
+                      onChange={(e) => setSetupPassword(e.target.value)}
+                      placeholder="Your account password"
                       autoFocus
                       className={inputClasses}
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setView('overview')}
+                    <button onClick={() => { setView('overview'); setSetupPassword(''); }}
                       className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
                       Back
                     </button>
-                    <button onClick={handleEmailSubmit} disabled={emailLoading || !emailInput.includes('@')}
+                    <button onClick={handleEmailSubmit} disabled={emailLoading || !setupPassword || !emailInput.includes('@')}
                       className="flex-1 py-2 text-sm font-medium bg-rh-green hover:bg-rh-green/90 text-white rounded-lg transition-colors disabled:opacity-50">
                       {emailLoading ? <Spinner /> : 'Send Code'}
                     </button>
@@ -513,7 +567,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setView('overview')}
+                    <button onClick={() => { setView('overview'); setSetupPassword(''); setEmailCode(''); }}
                       className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
                       Back
                     </button>
