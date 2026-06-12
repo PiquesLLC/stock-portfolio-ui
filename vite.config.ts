@@ -8,6 +8,24 @@ import pkg from './package.json'
 export default defineConfig(({ command }) => ({
   plugins: [
     react(),
+    {
+      // The dev server injects the React fast-refresh preamble as an inline
+      // script, which the hash-only script-src in index.html would block
+      // (browsers ignore 'unsafe-inline' while any hash is listed, so the
+      // hashes must be dropped here, not just supplemented). Serve-only:
+      // the built index.html keeps the strict hash-only policy.
+      name: 'dev-csp-relax',
+      apply: 'serve',
+      transformIndexHtml(html: string) {
+        // Anchor on the directive name itself so the relax cannot silently
+        // no-op (a hashes-stripped-but-still-strict policy would brick dev).
+        return html.replace(/script-src(?!-)[^;]*/, (directive) =>
+          directive
+            .replace(/\s*'sha256-[^']+'/g, '')
+            .replace(/^script-src/, "script-src 'unsafe-inline'"),
+        )
+      },
+    },
   ],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
