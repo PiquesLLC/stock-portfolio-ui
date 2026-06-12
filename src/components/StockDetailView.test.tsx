@@ -163,11 +163,13 @@ describe('StockDetailView', () => {
       <StockDetailView ticker="AAPL" holding={null} portfolioTotal={0} onBack={vi.fn()} />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /\+ compare/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Select MSFT' }));
+    // The Compare button renders in both the header toolbar and the chart strip,
+    // so query with getAllBy* and use the first instance.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Compare' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Select MSFT' })[0]);
 
-    expect(await screen.findByText('MSFT')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /full compare/i })).toBeInTheDocument();
+    expect(await screen.findAllByText('MSFT')).not.toHaveLength(0);
+    expect(screen.getAllByRole('button', { name: /full compare/i }).length).toBeGreaterThan(0);
 
     rerender(
       <StockDetailView ticker="NVDA" holding={null} portfolioTotal={0} onBack={vi.fn()} />,
@@ -176,7 +178,7 @@ describe('StockDetailView', () => {
     await waitFor(() => {
       expect(screen.queryByText('MSFT')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /full compare/i })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /\+ compare/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: 'Compare' }).length).toBeGreaterThan(0);
     });
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { HoldingsTable } from './HoldingsTable';
 
 vi.mock('../context/ToastContext', () => ({
@@ -81,17 +81,14 @@ describe('HoldingsTable', () => {
     vi.clearAllMocks();
   });
 
-  it('filters holdings by ticker', () => {
+  it('highlights matching holdings and dims the rest when searchQuery filters by ticker', () => {
     render(
-      <HoldingsTable holdings={holdings} onUpdate={vi.fn()} />,
+      <HoldingsTable holdings={holdings} onUpdate={vi.fn()} searchQuery="AAP" />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText(/filter ticker/i), {
-      target: { value: 'AAP' },
-    });
-
-    expect(screen.getByText('AAPL')).toBeInTheDocument();
-    expect(screen.queryByText('MSFT')).not.toBeInTheDocument();
-    expect(screen.getByText('1 of 2')).toBeInTheDocument();
+    // Non-matching holdings stay rendered for context — they are dimmed, not removed.
+    expect(screen.getByText('AAPL').closest('tr')).toHaveAttribute('data-search-match', 'true');
+    expect(screen.getByText('MSFT').closest('tr')).toHaveAttribute('data-search-match', 'false');
+    expect(screen.getByText('1 match')).toBeInTheDocument();
   });
 });

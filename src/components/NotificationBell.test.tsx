@@ -20,6 +20,10 @@ vi.mock('../api', () => ({
   markAllMilestoneEventsRead: vi.fn(),
   getAnomalies: vi.fn(),
   markAnomalyRead: vi.fn(),
+  getSocialNotifications: vi.fn(),
+  getUnreadSocialNotifCount: vi.fn(),
+  markSocialNotifRead: vi.fn(),
+  markAllSocialNotifsRead: vi.fn(),
 }));
 
 vi.mock('../context/ToastContext', () => ({
@@ -51,6 +55,9 @@ const mockMarkAllAlertsRead = vi.mocked(api.markAllAlertsRead);
 const mockMarkAllAnalystEventsRead = vi.mocked(api.markAllAnalystEventsRead);
 const mockMarkAllMilestoneEventsRead = vi.mocked(api.markAllMilestoneEventsRead);
 const mockMarkAnomalyRead = vi.mocked(api.markAnomalyRead);
+const mockGetSocialNotifications = vi.mocked(api.getSocialNotifications);
+const mockGetUnreadSocialNotifCount = vi.mocked(api.getUnreadSocialNotifCount);
+const mockMarkAllSocialNotifsRead = vi.mocked(api.markAllSocialNotifsRead);
 
 describe('NotificationBell', () => {
   beforeEach(() => {
@@ -59,6 +66,7 @@ describe('NotificationBell', () => {
     mockGetUnreadPriceAlertCount.mockResolvedValue({ count: 0 });
     mockGetUnreadAnalystCount.mockResolvedValue({ count: 0 });
     mockGetUnreadMilestoneCount.mockResolvedValue({ count: 0 });
+    mockGetUnreadSocialNotifCount.mockResolvedValue({ count: 0 });
     mockGetAnomalies.mockResolvedValue([
       { id: 'a-visible', type: 'price_spike', title: 'Visible', analysis: null, read: false, createdAt: '2026-03-14T10:00:00.000Z', ticker: 'AAPL' },
       { id: 'a-hidden', type: 'concentration', title: 'Hidden', analysis: null, read: false, createdAt: '2026-03-14T09:00:00.000Z', ticker: null },
@@ -67,9 +75,11 @@ describe('NotificationBell', () => {
     mockGetPriceAlertEvents.mockResolvedValue([]);
     mockGetAnalystEvents.mockResolvedValue([]);
     mockGetMilestoneEvents.mockResolvedValue([]);
+    mockGetSocialNotifications.mockResolvedValue([]);
     mockMarkAllAlertsRead.mockResolvedValue();
     mockMarkAllAnalystEventsRead.mockResolvedValue();
     mockMarkAllMilestoneEventsRead.mockResolvedValue();
+    mockMarkAllSocialNotifsRead.mockResolvedValue();
     mockMarkAnomalyRead.mockResolvedValue();
     localStorage.clear();
   });
@@ -99,5 +109,6 @@ describe('NotificationBell', () => {
     expect(mockMarkAllAlertsRead).toHaveBeenCalledWith('user-1');
     expect(mockMarkAllAnalystEventsRead).toHaveBeenCalled();
     expect(mockMarkAllMilestoneEventsRead).toHaveBeenCalled();
+    expect(mockMarkAllSocialNotifsRead).toHaveBeenCalled();
   });
 });
