@@ -92,6 +92,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     quickLoaded,
     candlesLoaded,
     error,
+    notFound,
     tickerDividends,
     tickerCredits,
     etfHoldings,
@@ -433,6 +434,29 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           <div className="grid grid-cols-3 gap-4">
             {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-200/30 dark:bg-white/[0.04] rounded-xl" />)}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="py-6">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+          <span>&larr;</span> Back
+        </button>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="text-3xl font-bold text-rh-light-muted dark:text-rh-muted mb-2">{ticker}</div>
+          <div className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-1">Stock not found</div>
+          <div className="text-sm text-rh-light-muted dark:text-rh-muted mb-6">
+            We couldn't find data for this symbol. Check the ticker, or search for another stock.
+          </div>
+          <button
+            onClick={onBack}
+            className="px-4 py-2 rounded-lg bg-rh-green text-black text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            Back to portfolio
+          </button>
         </div>
       </div>
     );

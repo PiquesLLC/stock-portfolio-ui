@@ -685,7 +685,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     if (onApiError && !url.includes('/auth/') && import.meta.env.DEV && !isNative) {
       onApiError(msg);
     }
-    throw new Error(msg);
+    // Carry the HTTP status (same shape as the 403 plan error above) so
+    // callers can branch on it — e.g. 404 = ticker doesn't exist.
+    const httpError = new Error(msg) as Error & { status: number };
+    httpError.status = response.status;
+    throw httpError;
   }
 
   if (response.status === 204) {

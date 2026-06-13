@@ -252,6 +252,10 @@ export function TickerAutocompleteInput({
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < results.length) {
           handleSelect(results[selectedIndex]);
+        } else if (results.length > 0) {
+          // Nothing highlighted yet: Enter takes the top result, matching
+          // every search box users have muscle memory for.
+          handleSelect(results[0]);
         }
         break;
       case 'Escape':

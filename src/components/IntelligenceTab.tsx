@@ -630,6 +630,12 @@ export function IntelligenceTab({
   const compositeRiskColor =
     compositeRisk < 4 ? '#00c805' : compositeRisk < 6.5 ? '#ff9f0a' : '#ff3b30';
 
+  // With zero holdings the server still returns a baseline health score, beta,
+  // etc., which rendered as fabricated stats ("Good 55/100", "Moderate",
+  // "underperforming", "D") next to the hero's "Add holdings…" empty state.
+  // Gate the stat row on real positions.
+  const hasHoldings = (portfolio?.holdings?.length ?? 0) > 0;
+
   const healthLabel =
     !healthScore ? '—' :
     healthScore.overall >= 85 ? 'Excellent' :
@@ -932,42 +938,42 @@ export function IntelligenceTab({
       <section className="mb-10 lg:mb-14 border-t border-b border-white/[0.06] grid grid-cols-2 lg:grid-cols-4">
         <StatCell
           label="Health Score"
-          value={healthLabel}
-          valueColor="#00c805"
-          glyph={healthScore && <HealthRing score={healthScore.overall} />}
-          sub={<>
+          value={hasHoldings ? healthLabel : '—'}
+          valueColor={hasHoldings ? '#00c805' : undefined}
+          glyph={hasHoldings && healthScore && <HealthRing score={healthScore.overall} />}
+          sub={hasHoldings ? <>
             {healthScore ? `${healthScore.overall} / 100` : '—'}
             {healthScore && healthScore.quickFixes.length > 0 && <>
               <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
               <span className="text-rh-amber dark:text-amber-400 font-semibold">{healthScore.quickFixes.length} quick fix{healthScore.quickFixes.length > 1 ? 'es' : ''}</span>
             </>}
-          </>}
+          </> : 'No holdings yet'}
         />
         <StatCell
           label="Risk Index"
-          value={compositeRisk < 4 ? 'Low' : compositeRisk < 6.5 ? 'Moderate' : 'High'}
-          valueColor={compositeRiskColor}
+          value={hasHoldings ? (compositeRisk < 4 ? 'Low' : compositeRisk < 6.5 ? 'Moderate' : 'High') : '—'}
+          valueColor={hasHoldings ? compositeRiskColor : undefined}
           glyph={
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={compositeRiskColor} strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={hasHoldings ? compositeRiskColor : 'currentColor'} strokeWidth="2">
               <path d="M12 2 L2 22 H22 L12 2 Z M12 9 V14 M12 17 V18" />
             </svg>
           }
-          sub={<>
+          sub={hasHoldings ? <>
             β {(intelligence.beta?.portfolioBeta ?? 1).toFixed(2)}
             <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
             <span className="tabular-nums">{compositeRisk.toFixed(1)}/10</span>
-          </>}
+          </> : '—'}
         />
         <StatCell
           label="Alpha vs SPY"
-          value={alphaPct != null ? fmtPct(alphaPct, 2) : '—'}
-          valueColor={alphaPct == null ? undefined : alphaPositive ? '#00c805' : '#ff3b30'}
+          value={hasHoldings && alphaPct != null ? fmtPct(alphaPct, 2) : '—'}
+          valueColor={!hasHoldings || alphaPct == null ? undefined : alphaPositive ? '#00c805' : '#ff3b30'}
           glyph={
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={alphaPct == null ? 'currentColor' : alphaPositive ? '#00c805' : '#ff3b30'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={!hasHoldings || alphaPct == null ? 'currentColor' : alphaPositive ? '#00c805' : '#ff3b30'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d={alphaPositive ? "M3 17 L9 11 L13 15 L21 7 M14 7 H21 V14" : "M3 7 L9 13 L13 9 L21 17 M14 17 H21 V10"} />
             </svg>
           }
-          sub={<>
+          sub={hasHoldings ? <>
             {alphaPeriodLabel} vs SPY{periodSpyPct != null && <> ({fmtPct(periodSpyPct, 2)})</>}
             {alphaPct != null && <>
               <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
@@ -975,13 +981,13 @@ export function IntelligenceTab({
                 {alphaPositive ? '▲ outperforming' : '▼ underperforming'}
               </span>
             </>}
-          </>}
+          </> : '—'}
         />
         <StatCell
           label="Diversification"
-          value={diversifGrade}
+          value={hasHoldings ? diversifGrade : '—'}
           glyph={
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#4cb3ff">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={hasHoldings ? '#4cb3ff' : 'currentColor'}>
               <circle cx="12" cy="12" r="3" />
               <circle cx="6" cy="6" r="2" />
               <circle cx="18" cy="6" r="2" />
@@ -989,12 +995,12 @@ export function IntelligenceTab({
               <circle cx="6" cy="18" r="2" />
             </svg>
           }
-          sub={<>
+          sub={hasHoldings ? <>
             {intelligence.sectorExposure.length} sectors
             <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
             {portfolio?.holdings?.length ?? '—'} holdings
-          </>}
-          onClick={() => onJumpToTab?.('allocation')}
+          </> : '—'}
+          onClick={hasHoldings ? () => onJumpToTab?.('allocation') : undefined}
         />
       </section>
 

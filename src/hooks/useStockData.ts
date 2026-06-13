@@ -34,6 +34,9 @@ export function useStockData(ticker: string, chartPeriod: string) {
   const [quickLoaded, setQuickLoaded] = useState(false);
   const [candlesLoaded, setCandlesLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 404 from quote/details — the ticker doesn't exist at any provider
+  // (mistyped URL, or a foreign listing search offers but can't resolve).
+  const [notFound, setNotFound] = useState(false);
   const requestIdRef = useRef(0);
 
   // Abort signal for in-flight fetches. When ticker changes (or hook unmounts)
@@ -143,9 +146,14 @@ export function useStockData(ticker: string, chartPeriod: string) {
   // Initial fetch — progressive loading: quote + chart first (fast), then full details
   const fetchInitial = useCallback(async (requestId: number, signal: AbortSignal) => {
     setCandlesLoaded(false);
+    setNotFound(false);
     try {
       // PHASE 1: Quick load - only fetch what the default 1D open state needs.
       // Don't block the whole stock view on 1W/1M hourly prefetch.
+      // NOTE: a 404 here is NOT treated as not-found — fast-quote can't tell an
+      // unknown symbol from a transient all-providers-down blip. The not-found
+      // verdict comes only from the Phase-2 getStockDetails 404, which the
+      // server gates behind an exact symbol-search confirmation.
       const [quoteResult, intraday] = await Promise.all([
         getFastQuote(ticker, signal).catch(e => { if (!isAbortError(e)) console.error('Fast quote fetch failed:', e); return null; }),
         getIntradayCandles(ticker, signal).catch(e => { if (!isAbortError(e)) console.error('Intraday candles fetch failed:', e); return []; }),
@@ -195,7 +203,15 @@ export function useStockData(ticker: string, chartPeriod: string) {
     } catch (err) {
       if (isAbortError(err)) return; // intentional abort on ticker change
       if (requestIdRef.current === requestId) {
-        setError(err instanceof Error ? err.message : 'Failed to load stock details');
+        // getStockDetails only 404s for a search-confirmed unknown symbol, so a
+        // 404 here is an authoritative "not found"; everything else (incl. a
+        // transient all-providers-down 5xx) shows the retryable error state.
+        if ((err as { status?: number })?.status === 404) {
+          setNotFound(true);
+          setError(null);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load stock details');
+        }
         setQuickLoaded(true); // Show whatever we have instead of infinite skeleton
       }
     } finally {
@@ -290,6 +306,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
     candlesLoaded,
     setCandlesLoaded,
     error,
+    notFound,
     tickerDividends,
     tickerCredits,
     etfHoldings,
