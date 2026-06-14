@@ -42,6 +42,7 @@ import { formatCurrency, formatPercent } from './utils/format';
 import { getInitialTheme, applyTheme } from './utils/theme';
 import { getLocalTzAbbr } from './utils/market';
 import { normalizePortfolioTabs } from './utils/portfolioDisplay';
+import { planKnownBelow } from './utils/plan';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { usePortfolioData } from './hooks/usePortfolioData';
@@ -718,6 +719,10 @@ export default function App() {
     if (showOnboardingTour) return;
     // Don't auto-show for users with no holdings — they'd just see a loading loop
     if (!portfolio.holdings || portfolio.holdings.length === 0) return;
+    // The brief is a Premium feature — don't auto-open a modal a confirmed
+    // non-premium user can't use (it would just 403). By the time holdings have
+    // loaded, plan is known, so this won't suppress it for an entitled user.
+    if (planKnownBelow(user?.plan, 'premium')) return;
     // Use market-day boundaries: new trading day starts at 9:30 AM ET (market open)
     // Before 9:30 AM ET, the "market day" is still the previous calendar day
     const now = new Date();
@@ -735,7 +740,7 @@ export default function App() {
       setShowDailyReport(true);
       localStorage.setItem('dailyReportLastShown', marketDayKey);
     }
-  }, [currentUserId, portfolio, showOnboardingTour]);
+  }, [currentUserId, portfolio, showOnboardingTour, user?.plan]);
 
   // Show onboarding tour for new users (account created within last 5 minutes)
   useEffect(() => {

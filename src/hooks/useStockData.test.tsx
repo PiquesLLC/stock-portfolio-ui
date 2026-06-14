@@ -21,6 +21,13 @@ vi.mock('../api', () => ({
   getStockFollowStatus: vi.fn(),
 }));
 
+// useStockData reads useAuth() to skip plan-gated fetches for confirmed-free
+// users. Mock a premium user so all fetches fire (these tests exercise the
+// data-flow, not plan gating).
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1', username: 'test', displayName: 'Test', plan: 'premium' } }),
+}));
+
 const mockGetStockDetails = vi.mocked(api.getStockDetails);
 const mockGetStockQuote = vi.mocked(api.getStockQuote);
 const mockGetFastQuote = vi.mocked(api.getFastQuote);

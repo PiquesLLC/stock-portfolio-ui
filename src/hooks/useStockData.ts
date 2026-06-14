@@ -20,6 +20,8 @@ import {
   getAIEvents,
   getStockFollowStatus,
 } from '../api';
+import { useAuth } from '../context/AuthContext';
+import { planKnownBelow } from '../utils/plan';
 
 /**
  * Hook that manages all stock data fetching: quote, candles, dividends,
@@ -29,6 +31,7 @@ import {
  * @param chartPeriod - Current chart period (used for AI events and hourly candle selection)
  */
 export function useStockData(ticker: string, chartPeriod: string) {
+  const { user } = useAuth();
   const [data, setData] = useState<StockDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [quickLoaded, setQuickLoaded] = useState(false);
@@ -129,7 +132,10 @@ export function useStockData(ticker: string, chartPeriod: string) {
     return () => { stale = true; };
   }, [ticker]);
 
-  // Fetch AI-powered events (Perplexity) — period-aware
+  // Fetch AI-powered events (Perplexity) — period-aware. Premium feature; skip
+  // the request entirely for a confirmed non-premium user (it would 403 on
+  // every range change). Unknown/unloaded plan still fires (never hide it from
+  // a paying user whose plan hasn't resolved yet).
   useEffect(() => {
     const periodDays: Record<string, number> = {
       '1D': 0, '1W': 14, '1M': 45, '3M': 100, '6M': 200, 'YTD': 365, '1Y': 730, 'MAX': 7300,
@@ -137,11 +143,12 @@ export function useStockData(ticker: string, chartPeriod: string) {
     const days = periodDays[chartPeriod] || 90;
     setAiEvents(null);
     if (days === 0) { setAiEvents(null); setAiEventsLoaded(true); return; } // skip 1D
+    if (planKnownBelow(user?.plan, 'premium')) { setAiEvents(null); setAiEventsLoaded(true); return; }
     let stale = false;
     setAiEventsLoaded(false);
     getAIEvents(ticker, days).then(r => { if (!stale) { setAiEvents(r); setAiEventsLoaded(true); } }).catch(() => { if (!stale) { setAiEvents(null); setAiEventsLoaded(true); } });
     return () => { stale = true; };
-  }, [ticker, chartPeriod]);
+  }, [ticker, chartPeriod, user?.plan]);
 
   // Initial fetch — progressive loading: quote + chart first (fast), then full details
   const fetchInitial = useCallback(async (requestId: number, signal: AbortSignal) => {

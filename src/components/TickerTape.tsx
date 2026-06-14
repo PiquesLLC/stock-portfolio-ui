@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { isEffectivelyZero, changeColorClass } from '../utils/format';
 
 export interface TickerTapeItem {
@@ -107,7 +107,20 @@ export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick
   const isDesktop = useIsDesktop();
   const [paused, setPaused] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Track the bar's inner width so we can decide whether the tape needs to
+  // scroll (content wider than the bar) or can sit static (content fits).
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => setContainerWidth(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Build stable ticker list — only changes when tickers are added/removed, NOT on price updates
   const tickerKeys = useMemo(() => {
@@ -223,6 +236,16 @@ export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick
   const PIXELS_PER_SECOND = 35;
   const duration = Math.max(20, (tickerKeys.length * PIXELS_PER_TICKER) / PIXELS_PER_SECOND);
 
+  // Only duplicate the list + scroll when the content actually overflows the
+  // bar. With a few tickers (e.g. a 1-holding portfolio) the duplicate would
+  // otherwise sit visibly in-frame ("AAPL • AAPL •"). Default true until
+  // measured so the common many-ticker path is unchanged on first paint.
+  // PIXELS_PER_TICKER is an empirical AVERAGE, not an upper bound, so go static
+  // only when the content fits with margin — a slight per-ticker underestimate
+  // should err toward scrolling (harmless) rather than clipping a pill.
+  const contentWidth = tickerKeys.length * PIXELS_PER_TICKER;
+  const shouldScroll = containerWidth === 0 || contentWidth > containerWidth * 0.85;
+
   const renderItem = (ticker: string, idx: number) => {
     const item = dataMap.get(ticker);
     if (!item) return null;
@@ -248,17 +271,19 @@ export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick
     >
       <div
         className="flex items-center gap-3 ticker-tape-track"
-        style={{
+        style={shouldScroll ? {
           animationName: 'ticker-scroll',
           animationDuration: `${duration}s`,
           animationTimingFunction: 'linear',
           animationIterationCount: 'infinite',
           animationPlayState: paused ? 'paused' : 'running',
           width: 'max-content',
-        }}
+        } : undefined}
       >
         {tickerKeys.map((t, i) => renderItem(t, i))}
-        {tickerKeys.map((t, i) => renderItem(t, i + tickerKeys.length))}
+        {/* Second copy only exists to make the scroll seamless; when the list
+            fits without scrolling it would just show as a visible duplicate. */}
+        {shouldScroll && tickerKeys.map((t, i) => renderItem(t, i + tickerKeys.length))}
       </div>
     </div>
   );

@@ -129,13 +129,17 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
     return () => clearTimeout(timer);
   }, [fetchData, currentUserId, authLoading]);
 
-  // Fetch provider health status periodically
+  // Fetch provider health status periodically. Gated on auth like the data
+  // effect above — /health/status requires a session, so firing it for a
+  // logged-out visitor on the landing page just 401s and logs a spurious
+  // "Session expired" error.
   useEffect(() => {
+    if (!currentUserId || authLoading) return;
     const fetchHealth = () => getHealthStatus().then(setHealthStatus).catch(e => console.error('Health status fetch failed:', e));
     fetchHealth();
     const interval = setInterval(fetchHealth, 60_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUserId, authLoading]);
 
   const handleUpdate = useCallback(() => {
     fetchData();

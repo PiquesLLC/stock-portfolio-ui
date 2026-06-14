@@ -8,6 +8,13 @@ vi.mock('../api', () => ({
   getNalaScore: vi.fn(),
 }));
 
+// NalaScore reads useAuth() to skip the fetch for confirmed-free users (Pro+
+// feature). Mock a pro user so the fetch fires (these tests exercise fetch
+// race-handling, not plan gating).
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1', username: 'test', displayName: 'Test', plan: 'pro' } }),
+}));
+
 const mockGetNalaScore = vi.mocked(api.getNalaScore);
 
 function deferred<T>() {

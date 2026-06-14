@@ -221,7 +221,9 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
             <div className="text-center py-4">
               <p className="text-rh-light-muted dark:text-rh-muted">No baseline set</p>
               <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
-                Add holdings and set a baseline to track performance
+                {holdingsPL.totalCost > 0 || holdingsPL.currentValue > 0
+                  ? 'Set a baseline to start tracking performance'
+                  : 'Add holdings and set a baseline to track performance'}
               </p>
             </div>
           )}

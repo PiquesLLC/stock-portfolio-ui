@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { useAuth, PlanTier } from '../context/AuthContext';
+import { hasPlanAccess } from '../utils/plan';
 import { navigateToPricing } from '../utils/navigate-to-pricing';
 
 interface PremiumOverlayProps {
@@ -12,11 +13,9 @@ interface PremiumOverlayProps {
 
 export function PremiumOverlay({ featureName, description, requiredPlan = 'premium', children }: PremiumOverlayProps) {
   const { user } = useAuth();
-  const currentPlan = user?.plan || 'free';
 
   // Check if user has access
-  const planRank: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2, elite: 3 };
-  if (planRank[currentPlan] >= planRank[requiredPlan]) {
+  if (hasPlanAccess(user?.plan, requiredPlan)) {
     return <>{children}</>;
   }
 

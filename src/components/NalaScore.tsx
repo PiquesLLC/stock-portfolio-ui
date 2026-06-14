@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { NalaScoreResponse, NalaDimension, NalaSubMetric } from '../types';
 import { getNalaScore } from '../api';
 import { timeAgo } from '../utils/format';
+import { useAuth } from '../context/AuthContext';
+import { planKnownBelow } from '../utils/plan';
 
 interface NalaScoreProps {
   ticker: string;
@@ -268,6 +270,7 @@ function DimensionRow({ dimension, onClick, available }: { dimension: NalaDimens
 // ── Main Component ───────────────────────────────────────────────
 
 export function NalaScore({ ticker }: NalaScoreProps) {
+  const { user } = useAuth();
   const [data, setData] = useState<NalaScoreResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [drawerDim, setDrawerDim] = useState<NalaDimension | null>(null);
@@ -276,6 +279,10 @@ export function NalaScore({ ticker }: NalaScoreProps) {
   const requestIdRef = useRef(0);
 
   useEffect(() => {
+    // Nala Score is a Pro+ feature. Skip the fetch for a confirmed-free user
+    // (it 403s); unknown/unloaded plan still fires so a paying user isn't
+    // blocked while their plan resolves.
+    if (planKnownBelow(user?.plan, 'pro')) { setData(null); setLoading(false); return; }
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     setLoading(true);
@@ -292,7 +299,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
           setLoading(false);
         }
       });
-  }, [ticker]);
+  }, [ticker, user?.plan]);
 
   if (loading) {
     return (
