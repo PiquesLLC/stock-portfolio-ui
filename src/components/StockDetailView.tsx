@@ -60,16 +60,17 @@ function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
   );
 }
 
-function PositionCard({ label, value, valueColor, sub }: {
+function PositionCard({ label, value, valueColor, sub, title }: {
   label: string;
   value: string;
   valueColor?: string;
   sub?: string;
+  title?: string;
 }) {
   return (
     <div className="px-4 py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
       <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">{label}</div>
-      <div className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>{value}</div>
+      <div title={title} className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>{value}</div>
       {sub && (
         <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted/60 dark:text-rh-muted/60'}`}>{sub}</div>
       )}
@@ -1013,6 +1014,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               value={`${holding.dayChange >= 0 ? '+' : ''}${formatCurrency(holding.dayChange)}`}
               valueColor={holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}
               sub={formatPercent(holding.dayChangePercent)}
+              title="Your position's gain/loss today. For shares bought today this is measured from your cost basis (not the stock's previous close), so it can differ from the stock's 1D change shown above."
             />
             <PositionCard
               label="Total Return"

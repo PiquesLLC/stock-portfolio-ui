@@ -636,13 +636,16 @@ export function IntelligenceTab({
   // Gate the stat row on real positions.
   const hasHoldings = (portfolio?.holdings?.length ?? 0) > 0;
 
+  // Canonical Health Score grade — MUST match HealthScore.tsx getScoreLabel (80/60/40/20)
+  // so the same number reads the same word on every screen (was 85/70/55/40 here, which
+  // made e.g. 72 show "Strong" here but "Good" on the Health card).
   const healthLabel =
     !healthScore ? '—' :
-    healthScore.overall >= 85 ? 'Excellent' :
-    healthScore.overall >= 70 ? 'Strong' :
-    healthScore.overall >= 55 ? 'Good' :
+    healthScore.overall >= 80 ? 'Excellent' :
+    healthScore.overall >= 60 ? 'Good' :
     healthScore.overall >= 40 ? 'Fair' :
-    'Needs work';
+    healthScore.overall >= 20 ? 'Needs Work' :
+    'At Risk';
 
   // Period-matched alpha = portfolio period-return % minus SPY period-return %.
   // We DO NOT use intelligence.beta.alphaPercent (CAPM alpha over the
