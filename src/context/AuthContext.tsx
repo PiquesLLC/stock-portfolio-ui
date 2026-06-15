@@ -93,13 +93,24 @@ function readCachedUser(): User | null {
   }
 }
 
+/**
+ * Whitelist the non-PII identity fields that are safe to persist at rest for
+ * an instant first paint. `email`/`emailVerified` are PII-at-rest and are
+ * deliberately excluded — they are re-sourced from `GET /auth/me` on every
+ * boot (see `loadUser`). `createdAt` is not needed for first paint either.
+ */
+export function toCachedUser(user: User): Pick<User, 'id' | 'username' | 'displayName' | 'plan' | 'planExpiresAt' | 'isWaitlistAdmin'> {
+  const { id, username, displayName, plan, planExpiresAt, isWaitlistAdmin } = user;
+  return { id, username, displayName, plan, planExpiresAt, isWaitlistAdmin };
+}
+
 function writeCachedUser(user: User | null): void {
   if (typeof window === 'undefined') return;
   try {
     if (!user) {
       localStorage.removeItem(STORAGE_KEY);
     } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toCachedUser(user)));
     }
   } catch {
     // Ignore storage errors
