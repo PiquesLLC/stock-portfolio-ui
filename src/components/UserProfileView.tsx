@@ -461,18 +461,32 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     if (profile) setBioText(profile.bio ?? '');
   }, [profile]);
 
-  const signalRating = useMemo(() => computeSignalRating(profile?.performance ?? null), [profile?.performance]);
-  const tagline = useMemo(() => generateTagline(profile?.performance ?? null), [profile?.performance]);
+  // Use the SAME period-matched alpha the "vs SPY" stat shows (chartReturnPct -
+  // benchmarkReturnPct) for the grade / tagline / badges, so they can't contradict the
+  // displayed alpha. Falls back to the API alphaPct until the chart return loads. (The
+  // raw perf.alphaPct is benchmarked against a window that doesn't match the displayed
+  // chart return, so a "Beat SPY" badge could otherwise fire on a mismatched number.)
+  const perfForRating = useMemo<PerformanceData | null>(() => {
+    const perf = profile?.performance ?? null;
+    if (!perf) return null;
+    const alphaPct = (chartReturnPct != null && perf.benchmarkReturnPct != null)
+      ? Math.round((chartReturnPct - perf.benchmarkReturnPct) * 100) / 100
+      : perf.alphaPct;
+    return { ...perf, alphaPct };
+  }, [profile?.performance, chartReturnPct]);
+
+  const signalRating = useMemo(() => computeSignalRating(perfForRating), [perfForRating]);
+  const tagline = useMemo(() => generateTagline(perfForRating), [perfForRating]);
   const riskPosture = useMemo(() => getRiskPosture(profile?.performance ?? null), [profile?.performance]);
   const signalColors = useMemo(() => getSignalColors(signalRating.grade), [signalRating.grade]);
   const badges = useMemo(() => {
     if (!profile) return [];
-    const b = computeBadges(profile.performance, profile.createdAt, profile.plan, profile.planStartedAt, userId);
+    const b = computeBadges(perfForRating, profile.createdAt, profile.plan, profile.planStartedAt, userId);
     if (profile.creator?.status === 'active') {
       b.unshift({ label: 'Creator', icon: '\u{2728}', color: 'text-rh-green border-rh-green/20' });
     }
     return b;
-  }, [profile, userId]);
+  }, [profile, perfForRating, userId]);
 
   // Creator entitlement for current viewer
   const [entitlement, setEntitlement] = useState<CreatorEntitlement | null>(null);
