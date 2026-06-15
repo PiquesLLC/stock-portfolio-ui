@@ -8,10 +8,12 @@ interface IndexQuote {
   changePercent: number;
 }
 
+// These are the SPY/QQQ/DIA ETFs used as index proxies — label them with the ETF
+// ticker so the ETF *share price* (~$580) isn't misread as the index level (~5,800).
 const INDICES = [
-  { ticker: 'SPY', label: 'S&P 500' },
-  { ticker: 'QQQ', label: 'Nasdaq' },
-  { ticker: 'DIA', label: 'Dow' },
+  { ticker: 'SPY', label: 'S&P 500 (SPY)' },
+  { ticker: 'QQQ', label: 'Nasdaq (QQQ)' },
+  { ticker: 'DIA', label: 'Dow (DIA)' },
 ];
 
 const REFRESH_MS = 30_000;

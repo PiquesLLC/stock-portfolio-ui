@@ -308,6 +308,8 @@ export function LoginPage() {
         setPasswordValue('');
         setConfirmPassword('');
       } else {
+        if (!username.trim()) { setError('Username is required'); setIsLoading(false); return; }
+        if (!password) { setError('Password is required'); setIsLoading(false); return; }
         await login(username, password);
       }
     } catch (err) {

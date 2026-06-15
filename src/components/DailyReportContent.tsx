@@ -417,9 +417,9 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
       {/* Index strip — S&P 500 / NASDAQ / DOW */}
       <div className="grid grid-cols-3 gap-3 mb-8">
         {[
-          { label: 'S&P 500', ticker: 'SPY' },
-          { label: 'Nasdaq', ticker: 'QQQ' },
-          { label: 'Dow', ticker: 'DIA' },
+          { label: 'S&P 500 (SPY)', ticker: 'SPY' },
+          { label: 'Nasdaq (QQQ)', ticker: 'QQQ' },
+          { label: 'Dow (DIA)', ticker: 'DIA' },
         ].map(({ label, ticker }) => {
           const q = indexQuotes[ticker];
           return (

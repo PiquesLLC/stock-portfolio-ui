@@ -137,7 +137,7 @@ export function useStockChart({
     const latestPrice = quote.extendedPrice ?? quote.currentPrice;
     const change = latestPrice - startPrice;
     const changePct = startPrice !== 0 ? (change / startPrice) * 100 : 0;
-    const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', '6M': 'Past 6 Months', 'YTD': 'Year to Date', '1Y': 'Past Year', 'MAX': 'All Time' };
+    const labels: Record<string, string> = { '1W': 'Past Week', '1M': 'Past Month', '3M': 'Past 3 Months', '6M': 'Past 6 Months', 'YTD': 'Year to Date', '1Y': 'Past Year', 'MAX': 'Max' };
     return { change, changePct, label: labels[chartPeriod] || chartPeriod };
   }, [chartPeriod, data]);
 
@@ -198,7 +198,12 @@ export function useStockChart({
 
     if (lastCrossDate && !deathCrossAfter) {
       const d = new Date(lastCrossDate + 'T00:00:00');
-      const dateFormatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      // Include the year when the cross isn't in the current year — on the MAX range
+      // a bare "Oct 16" across a 2016–2026 span is ambiguous ("Oct 16, 2019").
+      const dateFormatted = d.toLocaleDateString('en-US',
+        d.getFullYear() === now.getFullYear()
+          ? { month: 'short', day: 'numeric' }
+          : { month: 'short', day: 'numeric', year: 'numeric' });
       return { active: true, date: lastCrossDate, dateFormatted, ma100: lastMa100, ma200: lastMa200 };
     }
     return { active: false };
