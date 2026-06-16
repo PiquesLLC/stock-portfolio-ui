@@ -71,12 +71,23 @@ const fastQuote = {
   session: 'REG',
 };
 
+// Realistic candle payload: the API returns a StockCandles object
+// ({ closes, dates, ... }) or null — never a bare array.
+const candleSeries = {
+  closes: [99, 100],
+  dates: ['2026-06-13', '2026-06-14'],
+  highs: [100, 101],
+  lows: [98, 99],
+  opens: [99, 100],
+  volumes: [1000, 1100],
+};
+
 const stockDetails = {
   ticker: 'AAPL',
   quote: fastQuote,
   profile: null,
   metrics: null,
-  candles: [],
+  candles: candleSeries,
 };
 
 describe('useStockData', () => {
@@ -236,5 +247,43 @@ describe('useStockData', () => {
         expect.objectContaining({ id: 'aapl-alert', ticker: 'AAPL' }),
       ]);
     });
+  });
+
+  // Regression: the "stuck stop-sign cursor on the timeframe buttons" bug.
+  // The backend /details endpoint soft-times-out its historical-candle fetch
+  // (~1.2s) and can return candles:null on a 200. Previously the hook latched
+  // candlesLoaded=true regardless, which disabled every non-1D timeframe button
+  // (cursor:not-allowed) until a manual page refresh, because nothing re-fetched
+  // history. The hook must instead keep candlesLoaded=false (buttons clickable)
+  // and retry in the background until candles arrive.
+  it('retries when historical candles come back empty instead of latching the timeframe buttons disabled', async () => {
+    let detailsCalls = 0;
+    mockGetStockDetails.mockImplementation((ticker: string) => {
+      detailsCalls += 1;
+      // First load: transient empty candles (backend soft-timeout → null).
+      if (detailsCalls === 1) {
+        return Promise.resolve({ ...stockDetails, ticker, candles: null } as any);
+      }
+      // Background retry: candles now available (warm 24h server cache).
+      return Promise.resolve({ ...stockDetails, ticker, candles: candleSeries } as any);
+    });
+    mockGetHourlyCandles.mockResolvedValue([]);
+    mockGetPriceAlerts.mockResolvedValue([]);
+
+    const { result } = renderHook(() => useStockData('AAPL', '1D'));
+
+    // Initial load resolves, but with no historical candles candlesLoaded must
+    // stay false so the disable rule keeps the non-1D buttons clickable.
+    await waitFor(() => {
+      expect(result.current.data?.quote.ticker).toBe('AAPL');
+    });
+    expect(result.current.candlesLoaded).toBe(false);
+
+    // The background retry (first backoff ~800ms) heals it without a refresh.
+    await waitFor(() => {
+      expect(result.current.candlesLoaded).toBe(true);
+    }, { timeout: 3000 });
+    expect(result.current.data?.candles).toMatchObject({ closes: [99, 100] });
+    expect(detailsCalls).toBeGreaterThanOrEqual(2);
   });
 });

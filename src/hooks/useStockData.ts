@@ -23,6 +23,16 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { planKnownBelow } from '../utils/plan';
 
+// Historical daily candles are best-effort on the backend: the /details
+// endpoint soft-times-out its ~10-year candle fetch (~1.2s) and can return
+// `candles: null` on an otherwise-200 response. Treat anything without a
+// non-empty `closes` array as "not loaded yet" so we retry rather than latch
+// the timeframe buttons disabled. Written defensively so an unexpected shape
+// can never throw.
+function hasHistoricalCandles(candles: StockDetailsResponse['candles']): boolean {
+  return !!candles && Array.isArray(candles.closes) && candles.closes.length > 0;
+}
+
 /**
  * Hook that manages all stock data fetching: quote, candles, dividends,
  * earnings, about, ETF holdings, price alerts, follow status, and AI events.
@@ -150,6 +160,40 @@ export function useStockData(ticker: string, chartPeriod: string) {
     return () => { stale = true; };
   }, [ticker, chartPeriod, user?.plan]);
 
+  // When the Phase-2 /details response comes back with empty/null historical
+  // candles it's almost always a transient backend miss: the endpoint
+  // soft-times-out its 10-year daily-candle fetch (~1.2s) and returns
+  // `candles: null` while the underlying provider call keeps running and warms a
+  // 24h server-side cache. Without recovery, `candlesLoaded` latches true with no
+  // candles, which disables every non-1D timeframe button (cursor: not-allowed)
+  // until a manual refresh. Retry a few times with backoff so the buttons
+  // self-heal — the first retry typically hits the now-warm cache and returns
+  // instantly. Only after retries are exhausted do we mark candles "loaded", so
+  // genuinely history-less tickers still disable the longer ranges as intended.
+  const retryEmptyDetailCandles = useCallback(async (requestId: number, signal: AbortSignal) => {
+    const delaysMs = [800, 1500, 3000];
+    for (const delay of delaysMs) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      if (requestIdRef.current !== requestId || signal.aborted) return;
+      try {
+        const retry = await getStockDetails(ticker, signal);
+        if (requestIdRef.current !== requestId) return;
+        if (hasHistoricalCandles(retry.candles)) {
+          setData(prev => prev
+            ? { ...prev, candles: retry.candles, profile: prev.profile ?? retry.profile, metrics: prev.metrics ?? retry.metrics }
+            : retry);
+          setCandlesLoaded(true);
+          return;
+        }
+      } catch (err) {
+        if (isAbortError(err)) return;
+        // transient — fall through to the next attempt
+      }
+    }
+    // Retries exhausted: treat as genuinely history-less so the UI stops waiting.
+    if (requestIdRef.current === requestId) setCandlesLoaded(true);
+  }, [ticker]);
+
   // Initial fetch — progressive loading: quote + chart first (fast), then full details
   const fetchInitial = useCallback(async (requestId: number, signal: AbortSignal) => {
     setCandlesLoaded(false);
@@ -205,8 +249,16 @@ export function useStockData(ticker: string, chartPeriod: string) {
       setData(result);
       setIntradayCandles(prev => intraday.length > 0 ? intraday : prev);
       setQuickLoaded(true);
-      setCandlesLoaded(true);
       setError(null);
+      // Only latch candlesLoaded (which gates the timeframe-button disable) once
+      // historical candles are actually present. An empty/null result is treated
+      // as a transient miss and retried in the background instead of permanently
+      // disabling the non-1D ranges.
+      if (hasHistoricalCandles(result.candles)) {
+        setCandlesLoaded(true);
+      } else {
+        void retryEmptyDetailCandles(requestId, signal);
+      }
     } catch (err) {
       if (isAbortError(err)) return; // intentional abort on ticker change
       if (requestIdRef.current === requestId) {
@@ -224,7 +276,7 @@ export function useStockData(ticker: string, chartPeriod: string) {
     } finally {
       if (requestIdRef.current === requestId) setLoading(false);
     }
-  }, [ticker]);
+  }, [ticker, retryEmptyDetailCandles]);
 
   // Poll — refresh quote + intraday candles.
   // Captures requestIdRef at call time and checks it before every setState so
