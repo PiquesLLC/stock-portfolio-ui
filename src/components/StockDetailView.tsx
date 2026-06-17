@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, PanInfo, useDragControls } from 'framer-motion';
+import { motion, PanInfo, useDragControls, useAnimationControls } from 'framer-motion';
 import { Holding, ChartPeriod } from '../types';
 import { hapticSelection, hapticLight } from '../utils/haptics';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -340,16 +340,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     }
   };
 
-  // ESC key handler
-  useEffect(() => {
-    if (isModalOpen) return;
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onBack();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isModalOpen, onBack]);
+  // Keyboard shortcuts (ESC to close + ← / → to move between sibling stocks)
+  // are registered below, after `swipeNav` is computed — they depend on its
+  // prev/next tickers.
 
   // Swipe-between-stocks navigation (mobile gesture)
   // siblings is the ordered ticker list the user came from (e.g. sorted holdings).
@@ -369,6 +362,70 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       next: idx < siblings.length - 1 ? siblings[idx + 1] : null,
     };
   }, [siblings, ticker, onTickerNavigate]);
+
+  // Slide-between-stocks animation for the desktop arrows/keyboard, so jumping
+  // to an adjacent ticker feels like the mobile swipe rather than an in-place
+  // reload: the current view slides out, the ticker swaps, then the new view
+  // slides in from the opposite side. Desktop never drags (the swipe gesture is
+  // touch-gated), so animating the same wrapper here can't collide with it.
+  const slideControls = useAnimationControls();
+  const slidingRef = useRef(false);
+
+  // Desktop equivalent of the mobile swipe-between-stocks gesture: jump to the
+  // previous/next sibling ticker. Shared by the on-screen edge arrows and the
+  // ← / → keyboard shortcuts. No-ops when there's no sibling list (e.g. viewing
+  // another user's holding) or while a modal is open.
+  const goToSibling = useCallback(async (dir: 'prev' | 'next') => {
+    if (!swipeNav.enabled || isModalOpen || slidingRef.current) return;
+    const target = dir === 'prev' ? swipeNav.prev : swipeNav.next;
+    if (!target) return;
+    hapticSelection();
+    // Respect reduced-motion: jump straight to the stock with no slide.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      onTickerNavigate?.(target);
+      return;
+    }
+    slidingRef.current = true;
+    const DIST = 80;
+    const out = dir === 'next' ? -DIST : DIST; // "next" pushes the current view left
+    try {
+      await slideControls.start({ x: out, opacity: 0, transition: { duration: 0.14, ease: 'easeIn' } });
+      onTickerNavigate?.(target);
+      // The new stock starts off-screen on the opposite side, then slides in.
+      slideControls.set({ x: -out, opacity: 0 });
+      await slideControls.start({ x: 0, opacity: 1, transition: { duration: 0.2, ease: 'easeOut' } });
+    } finally {
+      slidingRef.current = false;
+    }
+  }, [swipeNav, isModalOpen, onTickerNavigate, slideControls]);
+
+  // Keyboard: ESC closes the view; ← / → move between sibling stocks (the
+  // desktop counterpart to the mobile swipe). Arrow keys are ignored while a
+  // modal is open or focus is in a text field, so they never fight typing.
+  useEffect(() => {
+    if (isModalOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onBack(); return; }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Don't steal modifier combos — Alt+← is browser-back, etc.
+        if (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        const el = document.activeElement as HTMLElement | null;
+        // Ignore while typing in a field…
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+        // …or when focus is in a region that owns its own ← / → (e.g. the price
+        // chart's pan handler). `data-no-swipe` is the same opt-out the mobile
+        // swipe respects; NOT `data-no-tab-swipe`, which is on the view root.
+        if (el?.closest('[data-no-swipe]')) return;
+        const dir = e.key === 'ArrowLeft' ? 'prev' : 'next';
+        const target = dir === 'prev' ? swipeNav.prev : swipeNav.next;
+        if (!swipeNav.enabled || !target) return;
+        e.preventDefault();
+        goToSibling(dir);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isModalOpen, onBack, swipeNav, goToSibling]);
 
   // Manually-triggered drag controls. We don't let framer auto-listen because
   // its pointer-capture would steal touchmoves from interactive children
@@ -421,10 +478,15 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     }
   };
 
-  // Full skeleton only when we don't even have the quick quote yet
+  // Full skeleton only when we don't even have the quick quote yet.
+  // Crucially this roots a motion.div sharing the SAME slideControls as the
+  // loaded view: React reconciles them as one element (same type at the root),
+  // so the animated wrapper does NOT unmount on navigation — the swipe's
+  // slide-in plays on the skeleton, then real content fills in place. A plain
+  // <div> here would remount the wrapper mid-swipe and drop the entrance slide.
   if (!quickLoaded) {
     return (
-      <div className="py-6">
+      <motion.div className="pt-2 pb-6" animate={slideControls}>
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
           <span>&larr;</span> Back
         </button>
@@ -436,7 +498,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-200/30 dark:bg-white/[0.04] rounded-xl" />)}
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -610,6 +672,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     <motion.div
       className="pt-2 pb-6"
       data-no-tab-swipe
+      animate={slideControls}
       drag={swipeNav.enabled && !isModalOpen ? 'x' : false}
       dragListener={false}
       dragControls={bodyDragControls}
@@ -633,11 +696,81 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         onDragEnd={handleEdgeBackDragEnd}
         aria-hidden="true"
       />
-      <div className="flex items-start justify-between gap-3 mb-5">
+      {/* Desktop prev/next stock navigation — the mouse equivalent of the
+          mobile swipe-between-stocks gesture. Portaled to <body> so its fixed
+          positioning is viewport-relative (the page/main wrapper carries a
+          transform / will-change that would otherwise become its containing
+          block). Shown only on wide (xl) screens, where the centered content
+          leaves edge gutters to sit in; narrower or touch screens use the
+          swipe gesture or the ← / → keys instead. */}
+      {swipeNav.enabled && !isModalOpen && createPortal(
+        <>
+          <button
+            type="button"
+            onClick={() => goToSibling('prev')}
+            disabled={!swipeNav.prev}
+            aria-label={swipeNav.prev ? `Previous stock: ${swipeNav.prev}` : 'Previous stock'}
+            title={swipeNav.prev ? `Previous: ${swipeNav.prev}  ( ← )` : 'No previous stock'}
+            className="hidden xl:flex fixed left-4 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-11 h-11 rounded-full border border-gray-200/60 dark:border-white/10 bg-white/70 dark:bg-[#1c1c1f]/70 backdrop-blur-md text-rh-light-text dark:text-rh-text shadow-lg transition-all hover:bg-white dark:hover:bg-[#1c1c1f] hover:scale-105 disabled:opacity-25 disabled:pointer-events-none"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => goToSibling('next')}
+            disabled={!swipeNav.next}
+            aria-label={swipeNav.next ? `Next stock: ${swipeNav.next}` : 'Next stock'}
+            title={swipeNav.next ? `Next: ${swipeNav.next}  ( → )` : 'No next stock'}
+            className="hidden xl:flex fixed right-4 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-11 h-11 rounded-full border border-gray-200/60 dark:border-white/10 bg-white/70 dark:bg-[#1c1c1f]/70 backdrop-blur-md text-rh-light-text dark:text-rh-text shadow-lg transition-all hover:bg-white dark:hover:bg-[#1c1c1f] hover:scale-105 disabled:opacity-25 disabled:pointer-events-none"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>,
+        document.body
+      )}
+      <div className="flex items-center justify-between gap-3 mb-5">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
           <span>&larr;</span> Back
         </button>
-        {renderActionsMenu('relative shrink-0 lg:hidden')}
+        <div className="flex items-center gap-2">
+          {/* Prev/next stock arrows for mouse users on mid-width screens
+              (768–1279px), where the floating edge arrows are hidden because
+              the centered content fills the width. Phones use the swipe gesture;
+              ≥xl uses the edge arrows. Keyboard ← / → works at every width. */}
+          {swipeNav.enabled && (
+            <div className="hidden md:flex xl:hidden items-center gap-1">
+              <button
+                type="button"
+                onClick={() => goToSibling('prev')}
+                disabled={!swipeNav.prev}
+                aria-label={swipeNav.prev ? `Previous stock: ${swipeNav.prev}` : 'Previous stock'}
+                title={swipeNav.prev ? `Previous: ${swipeNav.prev}  ( ← )` : 'No previous stock'}
+                className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200/60 dark:border-white/10 text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-25 disabled:pointer-events-none"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => goToSibling('next')}
+                disabled={!swipeNav.next}
+                aria-label={swipeNav.next ? `Next stock: ${swipeNav.next}` : 'Next stock'}
+                title={swipeNav.next ? `Next: ${swipeNav.next}  ( → )` : 'No next stock'}
+                className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200/60 dark:border-white/10 text-rh-light-text dark:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-25 disabled:pointer-events-none"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+          {renderActionsMenu('relative shrink-0 lg:hidden')}
+        </div>
       </div>
 
       {/* Two-column layout: main content + sticky intelligence sidebar */}

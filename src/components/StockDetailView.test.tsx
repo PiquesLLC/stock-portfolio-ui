@@ -145,6 +145,11 @@ vi.mock('../api', () => ({
   createWatchlist: vi.fn(),
 }));
 
+vi.mock('../utils/haptics', () => ({
+  hapticSelection: vi.fn(),
+  hapticLight: vi.fn(),
+}));
+
 vi.mock('./TickerAutocompleteInput', () => ({
   TickerAutocompleteInput: ({ onSelect }: { onSelect?: (result: { symbol: string }) => void }) => (
     <button type="button" onClick={() => onSelect?.({ symbol: 'MSFT' })}>
@@ -156,6 +161,19 @@ vi.mock('./TickerAutocompleteInput', () => ({
 describe('StockDetailView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // jsdom doesn't implement matchMedia; report reduced-motion so the
+    // slide-between-stocks navigation resolves synchronously (no framer
+    // animation to await) and the assertions below stay deterministic.
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
   });
 
   it('clears compare tickers when navigating to a new stock', async () => {
@@ -179,6 +197,138 @@ describe('StockDetailView', () => {
       expect(screen.queryByText('MSFT')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /full compare/i })).not.toBeInTheDocument();
       expect(screen.getAllByRole('button', { name: 'Compare' }).length).toBeGreaterThan(0);
+    });
+  });
+
+  // Desktop counterpart to the mobile swipe-between-stocks gesture. Note jsdom
+  // can't evaluate the Tailwind breakpoints that decide WHERE the buttons show
+  // (edge vs header), so these cover the keyboard handler's logic — which is
+  // what could silently regress.
+  describe('keyboard navigation between sibling stocks', () => {
+    const SIBLINGS = ['AAPL', 'NVDA', 'MSFT'];
+
+    it('ArrowRight goes to the next sibling and ArrowLeft to the previous', () => {
+      const onTickerNavigate = vi.fn();
+      render(
+        <StockDetailView
+          ticker="NVDA"
+          holding={null}
+          portfolioTotal={0}
+          onBack={vi.fn()}
+          siblings={SIBLINGS}
+          onTickerNavigate={onTickerNavigate}
+        />,
+      );
+
+      fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+      expect(onTickerNavigate).toHaveBeenLastCalledWith('MSFT');
+
+      fireEvent.keyDown(document.body, { key: 'ArrowLeft' });
+      expect(onTickerNavigate).toHaveBeenLastCalledWith('AAPL');
+    });
+
+    it('does not navigate past the first or last sibling', () => {
+      const onTickerNavigate = vi.fn();
+      const { rerender } = render(
+        <StockDetailView
+          ticker="AAPL"
+          holding={null}
+          portfolioTotal={0}
+          onBack={vi.fn()}
+          siblings={SIBLINGS}
+          onTickerNavigate={onTickerNavigate}
+        />,
+      );
+      fireEvent.keyDown(document.body, { key: 'ArrowLeft' });
+      expect(onTickerNavigate).not.toHaveBeenCalled();
+
+      rerender(
+        <StockDetailView
+          ticker="MSFT"
+          holding={null}
+          portfolioTotal={0}
+          onBack={vi.fn()}
+          siblings={SIBLINGS}
+          onTickerNavigate={onTickerNavigate}
+        />,
+      );
+      fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+      expect(onTickerNavigate).not.toHaveBeenCalled();
+    });
+
+    it('ignores arrow keys while typing in a field', () => {
+      const onTickerNavigate = vi.fn();
+      render(
+        <StockDetailView
+          ticker="NVDA"
+          holding={null}
+          portfolioTotal={0}
+          onBack={vi.fn()}
+          siblings={SIBLINGS}
+          onTickerNavigate={onTickerNavigate}
+        />,
+      );
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      input.focus();
+      fireEvent.keyDown(input, { key: 'ArrowRight' });
+      expect(onTickerNavigate).not.toHaveBeenCalled();
+      input.remove();
+    });
+
+    it('ignores modifier + arrow combos so browser shortcuts (Alt+Left) survive', () => {
+      const onTickerNavigate = vi.fn();
+      render(
+        <StockDetailView
+          ticker="NVDA"
+          holding={null}
+          portfolioTotal={0}
+          onBack={vi.fn()}
+          siblings={SIBLINGS}
+          onTickerNavigate={onTickerNavigate}
+        />,
+      );
+      fireEvent.keyDown(document.body, { key: 'ArrowLeft', altKey: true });
+      fireEvent.keyDown(document.body, { key: 'ArrowRight', metaKey: true });
+      expect(onTickerNavigate).not.toHaveBeenCalled();
+    });
+
+    it('ignores arrows when focus is in a region that owns them (data-no-swipe, e.g. the chart)', () => {
+      const onTickerNavigate = vi.fn();
+      render(
+        <StockDetailView
+          ticker="NVDA"
+          holding={null}
+          portfolioTotal={0}
+          onBack={vi.fn()}
+          siblings={SIBLINGS}
+          onTickerNavigate={onTickerNavigate}
+        />,
+      );
+      const region = document.createElement('div');
+      region.setAttribute('data-no-swipe', '');
+      const focusable = document.createElement('button');
+      region.appendChild(focusable);
+      document.body.appendChild(region);
+      focusable.focus();
+      fireEvent.keyDown(focusable, { key: 'ArrowRight' });
+      expect(onTickerNavigate).not.toHaveBeenCalled();
+      region.remove();
+    });
+
+    it('does nothing when there is no sibling list', () => {
+      const onTickerNavigate = vi.fn();
+      render(
+        <StockDetailView
+          ticker="AAPL"
+          holding={null}
+          portfolioTotal={0}
+          onBack={vi.fn()}
+          onTickerNavigate={onTickerNavigate}
+        />,
+      );
+      fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+      expect(onTickerNavigate).not.toHaveBeenCalled();
     });
   });
 });
