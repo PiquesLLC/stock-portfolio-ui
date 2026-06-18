@@ -3,6 +3,9 @@ export type MarketSession = 'PRE' | 'REG' | 'POST' | 'CLOSED';
 export interface Holding {
   id: string;
   ticker: string;
+  /** Canonical sector from the API (utils/sectors.getSector). Optional so
+   *  older cached payloads without it still type-check. */
+  sector?: string;
   shares: number;
   averageCost: number;
   currentPrice: number;

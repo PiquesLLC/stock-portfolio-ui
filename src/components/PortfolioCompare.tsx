@@ -3,7 +3,6 @@ import { Portfolio, CreatorEntitlement } from '../types';
 import { getPortfolio, getUserPortfolio, getUserProfile, getCreatorEntitlement, subscribeToCreator } from '../api';
 import { AllocationDonut } from './AllocationDonut';
 import { StockLogo } from './StockLogo';
-import { computeSectorExposure } from '../utils/sectors';
 
 interface PortfolioCompareProps {
   theirUserId: string;
@@ -98,9 +97,23 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
     const myWeights = new Map(myHoldings.map(h => [h.ticker, (h.currentValue / myTotal) * 100]));
     const theirWeights = new Map(theirHoldings.map(h => [h.ticker, (h.currentValue / theirTotal) * 100]));
 
-    // Sector comparison — computed client-side from holdings (no API call)
-    const mySec = computeSectorExposure(myHoldings);
-    const theirSec = computeSectorExposure(theirHoldings);
+    // Sector comparison — group by the canonical per-holding `sector` the API
+    // attaches (utils/sectors.getSector), so the compare page matches every
+    // other allocation/diversification screen instead of a drifted local map.
+    const groupBySector = (holdings: typeof myHoldings) => {
+      const total = holdings.reduce((s, h) => s + h.currentValue, 0) || 1;
+      const bySector = new Map<string, number>();
+      for (const h of holdings) {
+        const sec = h.sector || 'Other';
+        bySector.set(sec, (bySector.get(sec) || 0) + h.currentValue);
+      }
+      return [...bySector.entries()].map(([sector, dollar]) => ({
+        sector,
+        exposurePercent: (dollar / total) * 100,
+      }));
+    };
+    const mySec = groupBySector(myHoldings);
+    const theirSec = groupBySector(theirHoldings);
     const allSectorNames = new Set([
       ...mySec.map(s => s.sector),
       ...theirSec.map(s => s.sector),
