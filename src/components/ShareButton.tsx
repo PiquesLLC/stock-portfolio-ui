@@ -16,7 +16,7 @@ interface ShareButtonProps {
   displayName?: string;
   /** ticker for stock cards */
   ticker?: string;
-  /** period for performance cards (default 1M) */
+  /** period for performance cards (default AUTO = server picks the window the profile shows) */
   period?: string;
   /** Additional CSS classes */
   className?: string;
@@ -48,7 +48,7 @@ function getCardUrl(type: ShareCardType, props: ShareButtonProps): string {
     case 'stock':
       return `${API_BASE_URL}/social/stock/${props.ticker}/share-card?period=${props.period || '1W'}&tz=${tz}${cacheBust}`;
     case 'performance':
-      return `${API_BASE_URL}/social/${props.userId}/performance-card?period=${props.period || '1M'}&tz=${tz}${cacheBust}`;
+      return `${API_BASE_URL}/social/${props.userId}/performance-card?period=${props.period || 'AUTO'}&tz=${tz}${cacheBust}`;
   }
 }
 
@@ -56,8 +56,10 @@ function getFileName(type: ShareCardType, props: ShareButtonProps): string {
   switch (type) {
     case 'stock':
       return `nala-${props.ticker || 'stock'}.png`;
-    case 'performance':
-      return `nala-performance-${props.period || '1M'}.png`;
+    case 'performance': {
+      const p = props.period && props.period !== 'AUTO' ? `-${props.period}` : '';
+      return `nala-performance${p}.png`;
+    }
   }
 }
 

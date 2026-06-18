@@ -596,7 +596,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 userId={userId}
                 username={profile?.username}
                 displayName={profile?.displayName}
-                period="1M"
+                period="AUTO"
                 className="shrink-0 ml-auto"
               />
             </div>
