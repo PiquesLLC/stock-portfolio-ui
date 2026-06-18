@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, MarketSession, PerformanceData, LeaderboardEntry, ActivityEvent, CreatorEntitlement } from '../types';
-import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, getUserChart, updateUserSettings, getCreatorEntitlement, subscribeToCreator, deleteActivityEvent } from '../api';
+import { getUserProfile, updateUserRegion, updateHoldingsVisibility, getLeaderboard, getUserIntelligence, getFollowers, getFollowingList, getUserPortfolio, updateUserSettings, getCreatorEntitlement, subscribeToCreator, deleteActivityEvent } from '../api';
 import { CreatorSubscribeButton, CreatorSubscribeModal } from './CreatorPaywallCard';
 import { isNativePlatform } from '../utils/platform';
 import { createPortal } from 'react-dom';
@@ -415,65 +415,19 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     return () => { stale = true; };
   }, [userId, profile?.profilePublic]);
 
-  const [chartReturnPct, setChartReturnPct] = useState<number | null>(null);
-  const [chartReturnLabel, setChartReturnLabel] = useState('Return (1mo)');
-
-  useEffect(() => {
-    if (!profile?.profilePublic) return;
-    let stale = false;
-
-    // Try periods in order: 1M → 1W → 1D. Use the first one with sufficient data span.
-    const periods: { period: string; minDays: number; label: string }[] = [
-      { period: '1M', minDays: 20, label: 'Return (1mo)' },
-      { period: '1W', minDays: 4, label: 'Return (1wk)' },
-      { period: '1D', minDays: 0, label: 'Return (1d)' },
-    ];
-
-    (async () => {
-      for (const { period, minDays, label } of periods) {
-        try {
-          const data = await getUserChart(userId, period as any);
-          if (stale) return;
-          if (data.points.length >= 2 && data.periodStartValue > 0) {
-            const spanDays = (data.points[data.points.length - 1].time - data.points[0].time) / 86400000;
-            if (spanDays >= minDays || period === '1D') {
-              const lastVal = data.points[data.points.length - 1].value;
-              const pct = Math.round(((lastVal - data.periodStartValue) / data.periodStartValue) * 10000) / 100;
-              setChartReturnPct(pct);
-              // If data doesn't span the full period, show actual span
-              if (period === '1M' && spanDays < 20) {
-                setChartReturnLabel(`Return (${Math.round(spanDays)}d)`);
-              } else {
-                setChartReturnLabel(label);
-              }
-              return;
-            }
-          }
-        } catch { /* try next period */ }
-      }
-    })();
-
-    return () => { stale = true; };
-  }, [userId, profile?.profilePublic]);
+  // Profile return + "vs SPY" + badges all read profile.performance, which the
+  // API computes over ONE auto-resolved window (social.controller AUTO), so the
+  // return and the benchmark can never be measured over mismatched periods.
 
   // Sync bio text when profile loads
   useEffect(() => {
     if (profile) setBioText(profile.bio ?? '');
   }, [profile]);
 
-  // Use the SAME period-matched alpha the "vs SPY" stat shows (chartReturnPct -
-  // benchmarkReturnPct) for the grade / tagline / badges, so they can't contradict the
-  // displayed alpha. Falls back to the API alphaPct until the chart return loads. (The
-  // raw perf.alphaPct is benchmarked against a window that doesn't match the displayed
-  // chart return, so a "Beat SPY" badge could otherwise fire on a mismatched number.)
-  const perfForRating = useMemo<PerformanceData | null>(() => {
-    const perf = profile?.performance ?? null;
-    if (!perf) return null;
-    const alphaPct = (chartReturnPct != null && perf.benchmarkReturnPct != null)
-      ? Math.round((chartReturnPct - perf.benchmarkReturnPct) * 100) / 100
-      : perf.alphaPct;
-    return { ...perf, alphaPct };
-  }, [profile?.performance, chartReturnPct]);
+  // Grade / tagline / badges read the same window-aligned alphaPct the API now
+  // returns (return, benchmark, and alpha are all on one auto-resolved window),
+  // so they can't contradict the displayed "vs SPY".
+  const perfForRating = profile?.performance ?? null;
 
   const signalRating = useMemo(() => computeSignalRating(perfForRating), [perfForRating]);
   const tagline = useMemo(() => generateTagline(perfForRating), [perfForRating]);
@@ -536,7 +490,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       <UserPortfolioView
         userId={userId}
         displayName={profile.displayName}
-        returnPct={chartReturnPct ?? profile.performance?.twrPct ?? null}
+        returnPct={profile.performance?.simpleReturnPct ?? profile.performance?.twrPct ?? null}
         window="1M"
         session={session}
         currentUserId={currentUserId}
@@ -590,6 +544,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   }
 
   const perf = profile.performance;
+  const RETURN_WINDOW_LABEL: Record<string, string> = {
+    '1D': 'Return (1d)', '1W': 'Return (1wk)', '1M': 'Return (1mo)', '3M': 'Return (3mo)',
+    '6M': 'Return (6mo)', 'YTD': 'Return (YTD)', '1Y': 'Return (1yr)', 'ALL': 'Return (All)',
+  };
+  const returnLabel = (perf?.window && RETURN_WINDOW_LABEL[perf.window]) || 'Return';
   const hasPerformance = perf && perf.snapshotCount >= 2;
   const isNewAccount = profile.followerCount === 0 && profile.followingCount === 0;
 
@@ -711,16 +670,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             )}
           <div className="flex items-center gap-0">
             <PerformanceStat
-              value={chartReturnPct ?? perf?.twrPct ?? null}
-              label={chartReturnLabel}
+              value={perf?.simpleReturnPct ?? perf?.twrPct ?? null}
+              label={returnLabel}
               isPercent
               primary
             />
             <div className="w-px h-8 bg-gray-200/30 dark:bg-white/[0.06]" />
             <PerformanceStat
-              value={chartReturnPct != null && perf?.benchmarkReturnPct != null
-                ? Math.round((chartReturnPct - perf.benchmarkReturnPct) * 100) / 100
-                : perf?.alphaPct ?? null}
+              value={perf?.alphaPct ?? null}
               label={`vs ${perf?.benchmarkTicker ?? 'SPY'}`}
               isPercent
             />
