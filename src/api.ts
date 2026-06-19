@@ -1254,9 +1254,9 @@ export async function getMetrics(lookback: LookbackPeriod = '1y'): Promise<Metri
   return fetchJson<MetricsResponse>(`${API_BASE_URL}/portfolio/metrics?lookback=${lookback}`);
 }
 
-export async function getHistoricalCAGR(tickers: string[]): Promise<{ cagrs: HistoricalCAGR[] }> {
+export async function getHistoricalCAGR(tickers: string[]): Promise<{ cagrs: HistoricalCAGR[]; marketAvgRate: number }> {
   const params = new URLSearchParams({ tickers: tickers.join(',') });
-  return fetchJson<{ cagrs: HistoricalCAGR[] }>(`${API_BASE_URL}/market/historical-cagr?${params}`);
+  return fetchJson<{ cagrs: HistoricalCAGR[]; marketAvgRate: number }>(`${API_BASE_URL}/market/historical-cagr?${params}`);
 }
 
 export async function updateCashBalance(cashBalance: number): Promise<{ cashBalance: number }> {

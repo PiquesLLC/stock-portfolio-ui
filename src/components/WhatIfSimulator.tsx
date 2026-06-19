@@ -562,6 +562,9 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
   const [horizon, setHorizon] = useState<Horizon>('10y');
   const [source, setSource] = useState<CAGRSource>('best');
   const [cagrData, setCagrData] = useState<Record<string, HistoricalCAGR>>({});
+  // S&P 500 long-term average annual return — anchor for blending short-history
+  // CAGRs. Sourced from the API (server config) with a 0.10 fallback.
+  const [marketAvgRate, setMarketAvgRate] = useState(0.10);
   const [overrides, setOverrides] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -580,6 +583,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
         const map: Record<string, HistoricalCAGR> = {};
         resp.cagrs.forEach(c => { map[c.ticker] = c; });
         setCagrData(map);
+        setMarketAvgRate(resp.marketAvgRate ?? 0.10);
         setLoading(false);
       })
       .catch(err => {
@@ -593,9 +597,6 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
 
   const years = HORIZON_YEARS[horizon];
   const stocksTotal = useMemo(() => holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0), [holdings]);
-
-  // S&P 500 long-term average annual return (used as anchor for blending)
-  const MARKET_AVG_RATE = 0.10;
 
   // Confidence weight: how much to trust the stock's actual CAGR vs market average
   // based on how many years of data we have relative to the projection horizon
@@ -634,7 +635,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
       if (rawRate !== null && !hasOverride && dataYrs > 0 && dataYrs < 20) {
         const w = getConfidenceWeight(dataYrs);
         if (w < 1.0) {
-          rate = w * rawRate + (1 - w) * MARKET_AVG_RATE;
+          rate = w * rawRate + (1 - w) * marketAvgRate;
           isBlended = true;
         }
       }
@@ -680,7 +681,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
         hasData: rate !== null,
       };
     }),
-    [holdings, getRawRate, years, cagrData, overrides, stocksTotal, monthlyContrib]
+    [holdings, getRawRate, years, cagrData, overrides, stocksTotal, monthlyContrib, marketAvgRate]
   );
 
   const equity = totalValue - marginDebt;
