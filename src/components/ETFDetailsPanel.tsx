@@ -556,7 +556,12 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
 
   const ttmEvents = dividendEvents.filter(d => new Date(d.exDate) >= oneYearAgo);
   const ttmPerShare = ttmEvents.reduce((sum, d) => sum + d.amountPerShare, 0);
-  const ttmTotal = holding ? ttmPerShare * holding.shares : ttmPerShare;
+  // Portfolio-dollar TTM uses ACTUAL share-accurate credits (sharesEligible at each
+  // pay date) rather than today's share count applied to a year of history — the
+  // latter misstates income for any position whose size changed during the year.
+  const ttmCredits = dividendCredits.filter(c => new Date(c.creditedAt) >= oneYearAgo);
+  const ttmReceived = ttmCredits.reduce((sum, c) => sum + c.amountGross, 0);
+  const hasTtmReceived = ttmCredits.length > 0;
 
   // Last dividend
   const lastDividend = dividendEvents.length > 0 ? dividendEvents[0] : null;
@@ -615,10 +620,15 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
           <div>
             {/* Summary strip */}
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-3 py-2">
+              <div
+                className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-3 py-2"
+                title={holding && hasTtmReceived
+                  ? 'Dividends actually credited to your account over the trailing 12 months (share-accurate).'
+                  : 'Trailing 12-month dividends per share for this fund.'}
+              >
                 <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">TTM Total</div>
                 <div className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
-                  {holding ? formatCurrency(ttmTotal) : `$${ttmPerShare.toFixed(4)}/sh`}
+                  {holding && hasTtmReceived ? formatCurrency(ttmReceived) : `$${ttmPerShare.toFixed(4)}/sh`}
                 </div>
               </div>
               <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-3 py-2">

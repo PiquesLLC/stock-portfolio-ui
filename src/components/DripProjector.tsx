@@ -284,11 +284,15 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
   const projection = useMemo(() => {
     if (!data) return null;
     const currentAnnual = data.portfolio.totalAnnualIncome;
+    // Reinvest at the canonical value-weighted forward portfolio yield from the API
+    // (matches the dividend-income definition). Fall back to a simple average of
+    // per-holding yields only if the server didn't supply it.
     const holdingsWithYield = data.holdings.filter(h => h.dividendYield != null && h.dividendYield > 0);
-    const avgYield = holdingsWithYield.length > 0
+    const fallbackAvgYield = holdingsWithYield.length > 0
       ? holdingsWithYield.reduce((sum, h) => sum + h.dividendYield!, 0) / holdingsWithYield.length
       : 0;
-    return projectIncome(currentAnnual, projectionRate, years, reinvest, avgYield);
+    const reinvestYield = data.portfolio.forwardYield ?? fallbackAvgYield;
+    return projectIncome(currentAnnual, projectionRate, years, reinvest, reinvestYield);
   }, [data, years, reinvest, projectionRate]);
 
   const hoveredPoint = projection && hoveredIdx !== null ? projection[hoveredIdx] : null;

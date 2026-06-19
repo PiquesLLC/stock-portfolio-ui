@@ -2566,6 +2566,8 @@ export interface DividendGrowthResponse {
     weightedAvgGrowthRate: number;
     totalAnnualIncome: number;
     totalMonthlyIncome: number;
+    /** Canonical value-weighted forward portfolio yield %, or null when value is 0. */
+    forwardYield: number | null;
   };
 }
 
