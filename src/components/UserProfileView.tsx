@@ -68,13 +68,13 @@ const itemVariants = {
 };
 
 // ── Effective return helper ────────────────────────────────────────────
-// Use TWR for window-based returns. simpleReturnPct is cost-basis (total gain
-// since purchase) which doesn't correspond to any window and is misleading
-// on profile cards labeled "1M". chartReturnPct (real value change from chart
-// data) is preferred when available — it's the most accurate.
+// Scores grade / tagline / badges off the SAME figure shown as the headline
+// Return (perf.simpleReturnPct — the window value-change, first→last snapshot —
+// falling back to twrPct), so the rating can never contradict the number a
+// viewer sees. Both are window-based (simpleReturnPct is the displayed one).
 function effectiveReturn(perf: PerformanceData | null): number | null {
   if (!perf) return null;
-  return perf.twrPct ?? null;
+  return perf.simpleReturnPct ?? perf.twrPct ?? null;
 }
 
 // ── Signal Rating Computation ─────────────────────────────────────────
