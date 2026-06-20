@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcSMA, computeCandleMaValues } from './stock-chart';
+import { calcSMA, computeCandleMaValues, periodStartClose } from './stock-chart';
 import type { IntradayCandle } from '../api';
 
 // Helper: make a daily history of N days ending today at 4:00 PM ET,
@@ -148,5 +148,33 @@ describe('computeCandleMaValues (bug: MA legend disappears when hovering right h
     const out = computeCandleMaValues(candles, { dates: [], closes: [] }, 5);
     expect(out).toHaveLength(candles.length);
     for (const v of out) expect(v).toBeNull();
+  });
+});
+
+describe('periodStartClose (shared chart/Compare period anchor)', () => {
+  it('returns null for 1D and for empty candle data', () => {
+    expect(periodStartClose('1D', makeDailyHistory(60))).toBeNull();
+    expect(periodStartClose('1W', { dates: [], closes: [] })).toBeNull();
+  });
+
+  it('MAX anchors at the earliest available close', () => {
+    const daily = makeDailyHistory(120, 50, 2);
+    expect(periodStartClose('MAX', daily)).toBe(daily.closes[0]);
+  });
+
+  it('anchors at a more recent close as the lookback shortens (calendar-anchored, monotonic)', () => {
+    const daily = makeDailyHistory(400, 100, 1); // consecutive days rising 100..499
+    const wk = periodStartClose('1W', daily)!;
+    const mo = periodStartClose('1M', daily)!;
+    const q3 = periodStartClose('3M', daily)!;
+    const yr = periodStartClose('1Y', daily)!;
+    const max = periodStartClose('MAX', daily)!;
+    // Shorter lookback → later start date → higher close in a rising series.
+    expect(wk).toBeGreaterThanOrEqual(mo);
+    expect(mo).toBeGreaterThanOrEqual(q3);
+    expect(q3).toBeGreaterThanOrEqual(yr);
+    expect(yr).toBeGreaterThanOrEqual(max);
+    expect(max).toBe(daily.closes[0]);
+    expect(daily.closes).toContain(wk);
   });
 });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getStockDetails, getAssetAbout, getNalaScore, getIntradayCandles, getHourlyCandles, IntradayCandle } from '../api';
 import { StockDetailsResponse, AssetAbout, NalaScoreResponse, ChartPeriod, SymbolSearchResult } from '../types';
+import { periodStartClose } from '../utils/stock-chart';
 import { StockPriceChart } from './StockPriceChart';
 import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
@@ -52,21 +53,8 @@ function getPeriodChange(s: StockCompareData, period: ChartPeriod): { change: nu
   if (period === '1D') return { change: q.change ?? 0, pct: q.changePercent ?? 0 };
   const cc = s.details?.candles;
   if (!cc || cc.closes.length < 2) return null;
-  const now = Date.now();
-  let periodStartMs: number;
-  switch (period) {
-    case '1W': periodStartMs = now - 7 * 86400000; break;
-    case '1M': periodStartMs = now - 30 * 86400000; break;
-    case '3M': periodStartMs = now - 90 * 86400000; break;
-    case 'YTD': periodStartMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
-    case '1Y': periodStartMs = now - 365 * 86400000; break;
-    default: periodStartMs = 0; break; // MAX
-  }
-  let refIdx = 0;
-  for (let i = 0; i < cc.dates.length; i++) {
-    if (new Date(cc.dates[i] + 'T12:00:00').getTime() >= periodStartMs) { refIdx = i; break; }
-  }
-  const startPrice = cc.closes[refIdx];
+  // Date-anchored period start shared with the stock chart (was a divergent 30/90/365-day cutoff)
+  const startPrice = periodStartClose(period, cc);
   if (!startPrice) return null;
   const change = q.currentPrice - startPrice;
   const pct = (change / startPrice) * 100;

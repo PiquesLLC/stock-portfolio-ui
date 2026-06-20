@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ChartPeriod, StockDetailsResponse } from '../types';
 import { IntradayCandle } from '../api';
+import { periodStartClose } from '../utils/stock-chart';
 
 interface UseStockChartParams {
   ticker: string;
@@ -113,26 +114,8 @@ export function useStockChart({
     if (!candles || candles.closes.length === 0) {
       return { change: quote.change, changePct: quote.changePercent, label: 'Today' };
     }
-    const now = new Date();
-    let cutoff: Date;
-    switch (chartPeriod) {
-      case '1W': cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7); break;
-      case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
-      case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
-      case '6M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 6); break;
-      case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
-      case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
-      case 'MAX': cutoff = new Date(1970, 0, 1); break;
-      default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
-    }
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    let startPrice = candles.closes[0];
-    for (let i = 0; i < candles.dates.length; i++) {
-      if (candles.dates[i] >= cutoffStr) {
-        startPrice = candles.closes[i];
-        break;
-      }
-    }
+    // Period start = canonical date-anchored close, shared with the Compare page
+    const startPrice = periodStartClose(chartPeriod, candles) ?? candles.closes[0];
     // Use the most recent price (extended/after-hours if available) for period change
     const latestPrice = quote.extendedPrice ?? quote.currentPrice;
     const change = latestPrice - startPrice;

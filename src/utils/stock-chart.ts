@@ -288,6 +288,42 @@ export function buildPoints(
   return pts;
 }
 
+/**
+ * Canonical period-start close for non-1D periods, shared by the stock chart
+ * (useStockChart) and the Compare page so their period returns can't drift.
+ * Anchors by calendar date (1W=-7d, 1M=-1mo, 3M=-3mo, 6M=-6mo, YTD=Jan 1,
+ * 1Y=-1yr, MAX=inception) and returns the close of the first daily candle
+ * on/after that cutoff, falling back to the earliest candle. Returns null for
+ * 1D (which uses the live quote's daily change) or when there are no candles.
+ */
+export function periodStartClose(
+  period: ChartPeriod,
+  candles: { dates: string[]; closes: number[] },
+): number | null {
+  if (period === '1D' || !candles || candles.closes.length === 0) return null;
+  const now = new Date();
+  let cutoff: Date;
+  switch (period) {
+    case '1W': cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7); break;
+    case '1M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1); break;
+    case '3M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3); break;
+    case '6M': cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 6); break;
+    case 'YTD': cutoff = new Date(now.getFullYear(), 0, 1); break;
+    case '1Y': cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+    case 'MAX': cutoff = new Date(1970, 0, 1); break;
+    default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
+  }
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  let startPrice = candles.closes[0];
+  for (let i = 0; i < candles.dates.length; i++) {
+    if (candles.dates[i] >= cutoffStr) {
+      startPrice = candles.closes[i];
+      break;
+    }
+  }
+  return startPrice;
+}
+
 export function formatVolume(v: number): string {
   if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
   if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';

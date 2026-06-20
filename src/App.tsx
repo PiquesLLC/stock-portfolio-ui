@@ -1665,7 +1665,7 @@ export default function App() {
               ticker={viewingStock.ticker}
               holding={findHolding(viewingStock.ticker) ?? viewingStock.holding}
               siblings={viewingStock.siblings}
-              portfolioTotal={(portfolio?.holdings ?? []).reduce((s, h) => s + (h.currentValue || 0), 0)}
+              portfolioTotal={portfolio?.holdingsValue ?? 0}
               onTickerNavigate={(ticker) => {
                 setViewingStock(prev => prev ? { ticker, holding: findHolding(ticker), siblings: prev.siblings } : { ticker, holding: findHolding(ticker) });
               }}

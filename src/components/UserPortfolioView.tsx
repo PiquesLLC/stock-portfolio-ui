@@ -213,7 +213,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       <StockDetailView
         ticker={viewingStock.ticker}
         holding={viewingStock.holding}
-        portfolioTotal={portfolio?.totalValue ?? 0}
+        portfolioTotal={portfolio?.holdingsValue ?? 0}
         onTickerNavigate={(ticker) => {
           const nextHolding = portfolio?.holdings.find(h => h.ticker.toUpperCase() === ticker.toUpperCase()) ?? null;
           setViewingStock({ ticker, holding: nextHolding });
