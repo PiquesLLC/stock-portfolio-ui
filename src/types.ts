@@ -1295,7 +1295,9 @@ export interface HeatmapStock {
   ticker: string;
   name: string;
   price: number;
+  regularPrice?: number;          // regular-session price (drives the heatmap After-hours toggle; market heatmap only)
   changePercent: number;
+  regularChangePercent?: number;  // regular-session 1D % to toggle to (market heatmap only)
   dayChange: number;
   weekChangePercent?: number;
   marketCapB: number;
@@ -1333,6 +1335,7 @@ export interface HeatmapResponse {
   sectors: HeatmapSector[];
   period: string;
   generated: number;
+  session?: MarketSession;        // market session at generation (market heatmap only; drives the AH badge/toggle)
 }
 
 // Nala Score types

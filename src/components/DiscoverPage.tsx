@@ -2132,6 +2132,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
   const [data, setData] = useState<HeatmapResponse | null>(initialCache?.data ?? null);
   const [loading, setLoading] = useState(!initialCache);
   const [error, setError] = useState('');
+  const [showRegular, setShowRegular] = useState(false); // heatmap After-hours→Regular toggle (1D POST only)
 
   useEffect(() => {
     let cancelled = false;
@@ -2172,10 +2173,42 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
     return () => { cancelled = true; clearInterval(interval); };
   }, [period, index]);
 
+  // After-hours toggle (market heatmap, 1D, POST session): flip tiles between the
+  // after-hours-inclusive change (server default) and the regular-session close.
+  // Only the market heatmap supplies session + regularChangePercent; PRE is excluded
+  // (no completed regular session yet), and themes/ETF have no session so never toggle.
+  const canToggleSession = period === '1D' && data?.session === 'POST';
+  const showRegularEffective = showRegular && canToggleSession;
+  const displayData = useMemo(() => {
+    if (!data || !showRegularEffective) return data;
+    const remap = (s: HeatmapStock): HeatmapStock => ({
+      ...s,
+      changePercent: s.regularChangePercent ?? s.changePercent,
+      price: s.regularPrice ?? s.price,
+    });
+    const avg = (stocks: HeatmapStock[]) =>
+      stocks.length ? Math.round((stocks.reduce((a, s) => a + s.changePercent, 0) / stocks.length) * 100) / 100 : 0;
+    const sectors = data.sectors.map(sec => {
+      const stocks = sec.stocks.map(remap);
+      return {
+        ...sec,
+        stocks,
+        subSectors: sec.subSectors.map(sub => {
+          const subStocks = sub.stocks.map(remap);
+          return { ...sub, stocks: subStocks, avgChangePercent: avg(subStocks) };
+        }),
+        avgChangePercent: avg(stocks),
+        gainers: stocks.filter(s => s.changePercent > 0).length,
+        losers: stocks.filter(s => s.changePercent < 0).length,
+      };
+    });
+    return { ...data, sectors };
+  }, [data, showRegularEffective]);
+
   const allStocks = useMemo(() => {
-    if (!data) return [];
-    return data.sectors.flatMap(s => s.stocks);
-  }, [data]);
+    if (!displayData) return [];
+    return displayData.sectors.flatMap(s => s.stocks);
+  }, [displayData]);
 
   if (loading && !data) {
     return (
@@ -2219,6 +2252,27 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {canToggleSession && (
+            <div className="inline-flex items-center rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-0.5" title="After-hours: 1D tiles include extended-hours trading. Switch to the regular-session close.">
+              <button
+                onClick={() => setShowRegular(false)}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${!showRegular ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
+              >
+                After hours
+              </button>
+              <button
+                onClick={() => setShowRegular(true)}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${showRegular ? 'bg-rh-light-text/10 dark:bg-white/10 text-rh-light-text dark:text-white' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
+              >
+                Regular
+              </button>
+            </div>
+          )}
+          {period === '1D' && data.session === 'PRE' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pre-market
+            </span>
+          )}
           {loading && (
             <div className="animate-spin rounded-full h-4 w-4 border border-rh-green border-t-transparent" />
           )}
@@ -2270,7 +2324,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
 
       <div ref={treemapRef}>
         <SwipeOrSingleTreemap
-          sectors={data.sectors}
+          sectors={(displayData ?? data).sectors}
           onTickerClick={onTickerClick}
           highlightedSector={highlightedSector}
           stockCount={allStocks.length}
