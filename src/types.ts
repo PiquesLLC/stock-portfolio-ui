@@ -1336,6 +1336,7 @@ export interface HeatmapResponse {
   period: string;
   generated: number;
   session?: MarketSession;        // market session at generation (market heatmap only; drives the AH badge/toggle)
+  coverage?: number;              // fraction of tiles with real data (market heatmap only; gates the loading skeleton)
 }
 
 // Nala Score types

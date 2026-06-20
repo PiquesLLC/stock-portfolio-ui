@@ -724,7 +724,7 @@ function Treemap({
                         >
                           <rect
                             x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
-                            fill={heatColor(r.stock.changePercent, isDark)}
+                            fill={r.stock.noTradeData ? (isDark ? '#26262c' : '#e6e6e9') : heatColor(r.stock.changePercent, isDark)}
                             rx={tileRx}
                             stroke={isHovered ? '#fff' : tileStroke}
                             strokeWidth={isHovered ? 1.5 : 0.5}
@@ -750,7 +750,7 @@ function Treemap({
                                     textAnchor="start" fontSize={pctFontSize} fontWeight={600} fill="rgba(255,255,255,0.92)"
                                     style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)' }}
                                   >
-                                    {r.stock.changePercent >= 0 ? '+' : ''}{r.stock.changePercent.toFixed(2)}%
+                                    {r.stock.noTradeData ? '–' : `${r.stock.changePercent >= 0 ? '+' : ''}${r.stock.changePercent.toFixed(2)}%`}
                                   </text>
                                 )}
                               </g>
@@ -797,7 +797,7 @@ function Treemap({
                       >
                         <rect
                           x={r.x + halfGap} y={r.y + halfGap} width={tileW} height={tileH}
-                          fill={heatColor(r.stock.changePercent, isDark)}
+                          fill={r.stock.noTradeData ? (isDark ? '#26262c' : '#e6e6e9') : heatColor(r.stock.changePercent, isDark)}
                           rx={tileRx}
                           stroke={isHovered ? '#fff' : tileStroke}
                           strokeWidth={isHovered ? 1.5 : 0.5}
@@ -825,7 +825,7 @@ function Treemap({
                                   textAnchor="middle" fontSize={pctFontSize} fontWeight={600} fill="rgba(255,255,255,0.92)"
                                   style={{ pointerEvents: 'none', fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.6)' }}
                                 >
-                                  {r.stock.changePercent >= 0 ? '+' : ''}{r.stock.changePercent.toFixed(2)}%
+                                  {r.stock.noTradeData ? '–' : `${r.stock.changePercent >= 0 ? '+' : ''}${r.stock.changePercent.toFixed(2)}%`}
                                 </text>
                               )}
                             </g>
@@ -1084,6 +1084,13 @@ const INDEXES: { id: MarketIndex; label: string; fullName: string }[] = [
 
 // In-memory cache keyed by "period-index" so switching is instant
 const heatmapCache = new Map<string, { data: HeatmapResponse; ts: number }>();
+
+// Heatmap completeness gate: render once ≥90% of tiles have real data (a cold/partial
+// fetch otherwise shows fabricated 0.00% tiles); never skeleton past the max-wait; while
+// partial, refetch this often so it self-heals.
+const COVERAGE_OK = 0.9;
+const COVERAGE_MAX_WAIT_MS = 18_000;
+const COVERAGE_FAST_POLL_MS = 3_500;
 
 function cacheKey(period: HeatmapPeriod, index: MarketIndex): string {
   return `${period}-${index}`;
@@ -2133,20 +2140,27 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
   const [loading, setLoading] = useState(!initialCache);
   const [error, setError] = useState('');
   const [showRegular, setShowRegular] = useState(false); // heatmap After-hours→Regular toggle (1D POST only)
+  // Render only once data is sufficiently complete (else cold/partial loads show fake 0.00% tiles).
+  const [ready, setReady] = useState<boolean>(!!initialCache && (initialCache.data.coverage ?? 1) >= COVERAGE_OK);
 
   useEffect(() => {
     let cancelled = false;
+    let fastPoll: ReturnType<typeof setTimeout> | null = null;
+    const startedAt = Date.now();
     const key = cacheKey(period, index);
 
-    // Show cached data instantly (stale-while-revalidate)
+    // Show cached data instantly (stale-while-revalidate) — but only treat it as "ready"
+    // if it was sufficiently complete; a stale partial stays behind the skeleton.
     const cached = heatmapCache.get(key);
     if (cached) {
       setData(cached.data);
       setLoading(false);
+      setReady((cached.data.coverage ?? 1) >= COVERAGE_OK);
     } else {
       // Clear old data immediately so we don't flash the previous index's heatmap
       setData(null);
       setLoading(true);
+      setReady(false);
     }
 
     const load = async () => {
@@ -2156,13 +2170,22 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
           : index === 'ETF'
           ? await getEtfHeatmap(period)
           : await getMarketHeatmap(period, index);
-        if (!cancelled) {
-          setData(resp);
-          heatmapCache.set(key, { data: resp, ts: Date.now() });
-          setError('');
+        if (cancelled) return;
+        setData(resp);
+        heatmapCache.set(key, { data: resp, ts: Date.now() });
+        setError('');
+        // Reveal once coverage is good or we've waited long enough; otherwise keep the
+        // skeleton up and refetch fast so a partial response self-heals (server short-TTLs it).
+        const cov = resp.coverage ?? 1;
+        if (cov >= COVERAGE_OK || Date.now() - startedAt >= COVERAGE_MAX_WAIT_MS) {
+          setReady(true);
+        } else {
+          setReady(false);
+          fastPoll = setTimeout(load, COVERAGE_FAST_POLL_MS);
         }
       } catch (err: any) {
         if (!cancelled && !cached) setError(err.message || 'Failed to load heatmap data');
+        if (!cancelled) setReady(true); // don't trap the user behind a skeleton on error
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -2170,7 +2193,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
     load();
     const refreshInterval = period === '1D' ? 60_000 : 300_000;
     const interval = setInterval(load, refreshInterval);
-    return () => { cancelled = true; clearInterval(interval); };
+    return () => { cancelled = true; clearInterval(interval); if (fastPoll) clearTimeout(fastPoll); };
   }, [period, index]);
 
   // After-hours toggle (market heatmap, 1D, POST session): flip tiles between the
@@ -2210,7 +2233,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
     return displayData.sectors.flatMap(s => s.stocks);
   }, [displayData]);
 
-  if (loading && !data) {
+  if (!ready) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-full max-w-sm">
