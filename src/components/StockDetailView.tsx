@@ -6,6 +6,7 @@ import { hapticSelection, hapticLight } from '../utils/haptics';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useStockData } from '../hooks/useStockData';
 import { useStockChart } from '../hooks/useStockChart';
+import { periodStartClose } from '../utils/stock-chart';
 import { Acronym, getAcronymTitle } from './Acronym';
 import { getStockDetails, getIntradayCandles, getHourlyCandles, getCandleData, followStock, unfollowStock, deleteHolding } from '../api';
 import type { CandleInterval } from '../api';
@@ -221,22 +222,11 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       } else if ((chartPeriod === '1W' || chartPeriod === '1M') && hourlyCandles.length > 0) {
         mainRefPrice = hourlyCandles[0].close;
       } else if (data?.candles && data.candles.closes.length > 0) {
-        // For daily candle periods, find the candle at the period start date
-        const cc = data.candles;
-        const now = Date.now();
-        let periodStartMs: number;
-        switch (chartPeriod) {
-          case '3M': periodStartMs = now - 90 * 86400000; break;
-          case 'YTD': periodStartMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
-          case '1Y': periodStartMs = now - 365 * 86400000; break;
-          default: periodStartMs = 0; break; // MAX: use first candle
-        }
-        // Find first candle on or after the period start
-        let refIdx = 0;
-        for (let i = 0; i < cc.dates.length; i++) {
-          if (new Date(cc.dates[i] + 'T12:00:00').getTime() >= periodStartMs) { refIdx = i; break; }
-        }
-        mainRefPrice = cc.closes[refIdx];
+        // Date-anchored period start shared with the stock chart + Compare cards
+        // via periodStartClose (calendar-anchored, handles 6M). The old inline switch
+        // omitted 6M → anchored the overlay at inception, and used rolling 90/365-day
+        // cutoffs that drifted from the chart's own date anchor.
+        mainRefPrice = periodStartClose(chartPeriod, data.candles) ?? data.candles.closes[0];
       }
       if (!mainRefPrice) return; // no reference yet
 
@@ -267,24 +257,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               }));
             }
           } else {
-            // 3M, YTD, 1Y, MAX — use daily candles with period-aware normalization
+            // 3M, 6M, YTD, 1Y, MAX — daily candles, normalized from the same
+            // date-anchored period start (shared periodStartClose) as the primary.
             const compDetails = await getStockDetails(ct);
             if (compDetails.candles && compDetails.candles.closes.length >= 2) {
               const cc = compDetails.candles;
-              // Find comparison start price at the same period start date
-              const now = Date.now();
-              let periodStartMs: number;
-              switch (chartPeriod) {
-                case '3M': periodStartMs = now - 90 * 86400000; break;
-                case 'YTD': periodStartMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
-                case '1Y': periodStartMs = now - 365 * 86400000; break;
-                default: periodStartMs = 0; break; // MAX
-              }
-              let compRefIdx = 0;
-              for (let i = 0; i < cc.dates.length; i++) {
-                if (new Date(cc.dates[i] + 'T12:00:00').getTime() >= periodStartMs) { compRefIdx = i; break; }
-              }
-              const compStart = cc.closes[compRefIdx];
+              const compStart = periodStartClose(chartPeriod, cc) ?? cc.closes[0];
               points = cc.dates.map((date, i) => ({
                 time: new Date(date + 'T12:00:00').getTime(),
                 price: mainRefPrice * (1 + (cc.closes[i] - compStart) / compStart),

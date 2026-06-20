@@ -167,13 +167,18 @@ describe('periodStartClose (shared chart/Compare period anchor)', () => {
     const wk = periodStartClose('1W', daily)!;
     const mo = periodStartClose('1M', daily)!;
     const q3 = periodStartClose('3M', daily)!;
+    const six = periodStartClose('6M', daily)!;
     const yr = periodStartClose('1Y', daily)!;
     const max = periodStartClose('MAX', daily)!;
     // Shorter lookback → later start date → higher close in a rising series.
     expect(wk).toBeGreaterThanOrEqual(mo);
     expect(mo).toBeGreaterThanOrEqual(q3);
-    expect(q3).toBeGreaterThanOrEqual(yr);
+    expect(q3).toBeGreaterThanOrEqual(six);
+    expect(six).toBeGreaterThanOrEqual(yr);
     expect(yr).toBeGreaterThanOrEqual(max);
+    // 6M must anchor ~6 calendar months back, NOT fall through to inception —
+    // guards the bug where the components' switch omitted 6M (→ closes[0]).
+    expect(six).toBeGreaterThan(max);
     expect(max).toBe(daily.closes[0]);
     expect(daily.closes).toContain(wk);
   });

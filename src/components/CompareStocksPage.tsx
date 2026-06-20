@@ -167,20 +167,10 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
       } else if ((chartPeriod === '1W' || chartPeriod === '1M') && hourlyCandles.length > 0) {
         mainRefPrice = hourlyCandles[0].close;
       } else if (pd.candles && pd.candles.closes.length > 0) {
-        const cc = pd.candles;
-        const now = Date.now();
-        let periodStartMs: number;
-        switch (chartPeriod) {
-          case '3M': periodStartMs = now - 90 * 86400000; break;
-          case 'YTD': periodStartMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
-          case '1Y': periodStartMs = now - 365 * 86400000; break;
-          default: periodStartMs = 0; break;
-        }
-        let refIdx = 0;
-        for (let i = 0; i < cc.dates.length; i++) {
-          if (new Date(cc.dates[i] + 'T12:00:00').getTime() >= periodStartMs) { refIdx = i; break; }
-        }
-        mainRefPrice = cc.closes[refIdx];
+        // Date-anchored period start shared with the stock chart + summary cards
+        // (periodStartClose). The old inline switch omitted 6M → anchored at inception,
+        // and used rolling 90/365-day cutoffs instead of calendar months.
+        mainRefPrice = periodStartClose(chartPeriod, pd.candles) ?? pd.candles.closes[0];
       }
       if (!mainRefPrice) return;
 
@@ -213,19 +203,9 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
             const compDetails = await getStockDetails(s.ticker);
             if (compDetails.candles && compDetails.candles.closes.length >= 2) {
               const cc = compDetails.candles;
-              const now = Date.now();
-              let periodStartMs: number;
-              switch (chartPeriod) {
-                case '3M': periodStartMs = now - 90 * 86400000; break;
-                case 'YTD': periodStartMs = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
-                case '1Y': periodStartMs = now - 365 * 86400000; break;
-                default: periodStartMs = 0; break;
-              }
-              let compRefIdx = 0;
-              for (let i = 0; i < cc.dates.length; i++) {
-                if (new Date(cc.dates[i] + 'T12:00:00').getTime() >= periodStartMs) { compRefIdx = i; break; }
-              }
-              const compStart = cc.closes[compRefIdx];
+              // Same date-anchored period start as the primary (shared helper) so both
+              // legs normalize from the identical calendar cutoff (incl. 6M).
+              const compStart = periodStartClose(chartPeriod, cc) ?? cc.closes[0];
               points = cc.dates.map((date, i) => ({
                 time: new Date(date + 'T12:00:00').getTime(),
                 price: mainRefPrice * (1 + (cc.closes[i] - compStart) / compStart),
