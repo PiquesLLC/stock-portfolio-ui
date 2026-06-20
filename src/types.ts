@@ -1226,6 +1226,7 @@ export interface DailyReportResponse {
   }[];
   watchToday: string[];
   cached: boolean;
+  generating?: boolean; // server still generating the AI report (fallback) — UI shows a generating state + polls faster
   sample?: boolean;
 }
 

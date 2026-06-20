@@ -368,6 +368,9 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
     }
   }, []);
 
+  // True while the AI briefing is still generating (server returned a fallback).
+  const generating = aiReport?.generating ?? false;
+
   // Initial + interval refresh, gated by `paused`.
   useEffect(() => {
     if (paused) return;
@@ -375,6 +378,14 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
     const interval = setInterval(fetchAll, 30000);
     return () => clearInterval(interval);
   }, [paused, fetchAll, refreshTick]);
+
+  // While the briefing is still generating, poll faster so it self-heals quickly
+  // (fallbacks are never cached server-side, so each refetch is a fresh attempt).
+  useEffect(() => {
+    if (paused || !generating) return;
+    const fast = setInterval(fetchAll, 8000);
+    return () => clearInterval(fast);
+  }, [paused, generating, fetchAll]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshTick(t => t + 1);
@@ -525,8 +536,22 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         </div>
       )}
 
-      {/* Market Overview — macro report (AI prose). Hidden when blank. */}
-      {aiReport?.marketOverview && aiReport.marketOverview.trim().length > 0 && (
+      {/* AI briefing still generating — show a clear self-updating state, not the sparse fallback prose. */}
+      {generating && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 bg-rh-green rounded-sm animate-pulse" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Market Overview</h3>
+          </div>
+          <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.03] px-4 py-5 flex items-center gap-3">
+            <div className="animate-spin rounded-full h-4 w-4 border border-rh-green border-t-transparent flex-shrink-0" />
+            <p className="text-[13px] text-rh-light-muted dark:text-white/50">Your AI briefing is being written — this updates automatically in a few seconds.</p>
+          </div>
+        </section>
+      )}
+
+      {/* Market Overview — macro report (AI prose). Hidden when blank or still generating. */}
+      {!generating && aiReport?.marketOverview && aiReport.marketOverview.trim().length > 0 && (
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1 h-4 bg-rh-green rounded-sm" />
