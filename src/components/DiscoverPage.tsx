@@ -2196,10 +2196,10 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
     return () => { cancelled = true; clearInterval(interval); if (fastPoll) clearTimeout(fastPoll); };
   }, [period, index]);
 
-  // After-hours toggle (market heatmap, 1D, POST session): flip tiles between the
-  // after-hours-inclusive change (server default) and the regular-session close.
-  // Only the market heatmap supplies session + regularChangePercent; PRE is excluded
-  // (no completed regular session yet), and themes/ETF have no session so never toggle.
+  // After-hours toggle (1D, POST session): flip tiles between the after-hours-inclusive
+  // change (server default) and the regular-session close. Market, Themes and ETF heatmaps
+  // all supply session + per-tile regularChangePercent; PRE is excluded (no completed
+  // regular session yet, so there's nothing to toggle to).
   const canToggleSession = period === '1D' && data?.session === 'POST';
   const showRegularEffective = showRegular && canToggleSession;
   const displayData = useMemo(() => {

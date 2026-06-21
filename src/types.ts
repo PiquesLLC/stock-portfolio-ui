@@ -1296,9 +1296,9 @@ export interface HeatmapStock {
   ticker: string;
   name: string;
   price: number;
-  regularPrice?: number;          // regular-session price (drives the heatmap After-hours toggle; market heatmap only)
+  regularPrice?: number;          // regular-session price (drives the heatmap After-hours toggle)
   changePercent: number;
-  regularChangePercent?: number;  // regular-session 1D % to toggle to (market heatmap only)
+  regularChangePercent?: number;  // regular-session 1D % to toggle to (market, themes & ETF)
   dayChange: number;
   weekChangePercent?: number;
   marketCapB: number;
@@ -1336,7 +1336,7 @@ export interface HeatmapResponse {
   sectors: HeatmapSector[];
   period: string;
   generated: number;
-  session?: MarketSession;        // market session at generation (market heatmap only; drives the AH badge/toggle)
+  session?: MarketSession;        // market session at generation (market, themes & ETF; drives the AH badge/toggle)
   coverage?: number;              // fraction of tiles with real data (market heatmap only; gates the loading skeleton)
 }
 
