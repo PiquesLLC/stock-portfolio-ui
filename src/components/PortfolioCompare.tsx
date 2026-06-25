@@ -113,7 +113,13 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
       }));
     };
     const mySec = groupBySector(myHoldings);
-    const theirSec = groupBySector(theirHoldings);
+    // Sectors-only privacy: when the other user exposes ONLY a sector breakdown
+    // (the server returns holdings:[] + sectorBreakdown), use it directly instead of
+    // grouping their now-empty holdings — so the sector comparison still renders
+    // while the per-stock breakdown + donut stay hidden (theirRestricted).
+    const theirSec = (theirPortfolio.sectorBreakdown && theirPortfolio.sectorBreakdown.length > 0)
+      ? theirPortfolio.sectorBreakdown.map(s => ({ sector: s.sector, exposurePercent: s.exposurePercent }))
+      : groupBySector(theirHoldings);
     const allSectorNames = new Set([
       ...mySec.map(s => s.sector),
       ...theirSec.map(s => s.sector),

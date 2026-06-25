@@ -59,6 +59,9 @@ export interface QuotesMeta {
 
 export interface Portfolio {
   holdings: Holding[];
+  /** Sectors-only privacy: value-weighted sector allocation shown IN PLACE OF
+   *  individual holdings (holdings is [] then). Never contains tickers/shares/values. */
+  sectorBreakdown?: { sector: string; exposurePercent: number }[];
   options: OptionWithQuote[];
   cashBalance: number;
   marginDebt: number;
