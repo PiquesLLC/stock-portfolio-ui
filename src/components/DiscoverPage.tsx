@@ -280,23 +280,77 @@ function Treemap({
     if (!el) return;
     const computeHeight = (width: number) => {
       const isMobile = width < 640;
-      // Match Finviz proportions: ~2:1 aspect ratio (width × 0.52)
       if (isMobile) {
-        // Mobile: use 1.28x width ratio
+        // Phones / small screens: 276 tiles can't fill one screen legibly, so DON'T
+        // pin the legend — use a tall portrait treemap (1.28× width) and let the page
+        // scroll naturally, with the legend + movers in normal flow below it.
         return Math.max(400, Math.round(width * 1.28));
       }
-      const maxViewportH = Math.max(400, window.innerHeight - 180);
-      const naturalH = Math.max(500, Math.round(width * 0.52));
-      return Math.min(naturalH, maxViewportH);
+      // Landscape (laptop / desktop / tablet): ONE rule for every screen — fill the
+      // height between the treemap's top and the bottom of the viewport, sized so the
+      // color legend sits just above the fold and the Top Gainers/Losers fall just
+      // below it. Because it's defined by these invariants (not fixed pixels), the
+      // SAME behavior holds on any viewport/refresh rate. `top` (chrome above the
+      // treemap) is reliably re-measured below; +scrollY keeps it scroll-invariant.
+      // The legend→movers gap is 8px (space-y-2 overrides TopMovers' mt-6), giving a
+      // usable reserve ∈ ~[35,59]: legend clearance above the fold = reserve−35,
+      // movers margin below = 59−reserve; 56 reads right. The two bounds below keep
+      // the DEVICE EDGES sane (and never engage on normal landscape monitors, so they
+      // don't perturb the common case):
+      //  • floor 300 — on very short viewports (≲680px tall: small laptops, phone
+      //    landscape) the fill is tiny; floor it and let the page scroll (legend drops
+      //    below the fold there, like mobile) instead of clipping a forced-tall map.
+      //  • maxAspect width×0.95 — cap the treemap at just-under-square so it can't
+      //    become portrait-shaped. 0.95 (vs a tighter 0.85) lets tablets in portrait
+      //    fill and hide the movers too; the cap only actually binds on genuinely
+      //    portrait/ultra-tall screens (portrait monitors, big tablets in portrait, 4K
+      //    at 100% scaling), where the movers then show — a deliberate trade-off (sane
+      //    tile shape > hiding movers on a portrait display). Never binds on landscape.
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      const LEGEND_RESERVE = 56; // legend ~21px above the fold; movers just below it
+      const maxViewportH = Math.max(300, Math.round(window.innerHeight - top - LEGEND_RESERVE));
+      const maxAspectH = Math.max(500, Math.round(width * 0.95));
+      return Math.min(maxAspectH, maxViewportH);
     };
-    const ro = new ResizeObserver((entries) => {
-      const { width } = entries[0].contentRect;
-      const next = { width, height: computeHeight(width) };
+    // `top` (chrome above the treemap) is dominated by the sticky header, whose height
+    // settles AFTER first paint: the async market-ticker rows mount late and push the
+    // treemap down. A width-only observer won't re-fire on that (the treemap's own
+    // width is unchanged), so `top` goes stale, the treemap renders too tall, and the
+    // legend clips — a race that only "fit" when the ticker happened to mount before
+    // the first measure. Re-measure whenever the page height changes (catches the late
+    // header growth) plus the usual width/viewport triggers; a guard skips no-op churn.
+    const measure = () => {
+      const width = el.getBoundingClientRect().width;
+      if (!width) return;
+      const height = computeHeight(width);
+      if (width === dimsRef.current.width && height === dimsRef.current.height) return;
+      const next = { width, height };
       dimsRef.current = next;
       setDims(next);
-    });
+    };
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    const docRo = new ResizeObserver(measure);
+    docRo.observe(document.body);
+    window.addEventListener('resize', measure);
+    window.addEventListener('load', measure);
+    // The sticky header's async market-ticker settles at an unpredictable moment after
+    // first paint, growing the chrome above the treemap and shifting `top`. The body
+    // observer above SHOULD catch that, but some late reflows don't re-trigger it
+    // (observed: the 1920 occasionally renders ~one LEGEND_RESERVE too tall, clipping
+    // the legend). So also re-measure on window `load` and a short cascade — a
+    // guarantee the treemap can never stay stuck at the stale, too-tall height. The
+    // guard in measure() makes every redundant tick a no-op once the layout is stable.
+    const raf = requestAnimationFrame(measure);
+    const timers = [80, 250, 600, 1200, 2500, 5000].map((ms) => setTimeout(measure, ms));
+    return () => {
+      ro.disconnect();
+      docRo.disconnect();
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('load', measure);
+      cancelAnimationFrame(raf);
+      timers.forEach((t) => clearTimeout(t));
+    };
   }, []);
 
   // Pick dampening parameters based on stock count:
