@@ -89,37 +89,42 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   );
 
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [enabledMAs, setEnabledMAs] = useState<Set<MAPeriod>>(() => {
-    try {
-      const saved = localStorage.getItem('stockChartMAs');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return new Set(parsed.filter((value): value is MAPeriod => typeof value === 'number'));
-        }
-      }
-    } catch { /* ignore */ }
-    return new Set();
-  });
-  const [signalsEnabled, setSignalsEnabled] = useLocalStorage('stockChartSignals', false);
+  // Indicators reset per stock + default OFF (not persisted): a clean chart on every
+  // new symbol, with no surprise carryover of overlays toggled on a different stock.
+  const [enabledMAs, setEnabledMAs] = useState<Set<MAPeriod>>(() => new Set());
+  const [signalsEnabled, setSignalsEnabled] = useState(false);
   const toggleSignals = useCallback(() => setSignalsEnabled(prev => !prev), [setSignalsEnabled]);
-  const [eventsEnabled, setEventsEnabled] = useLocalStorage('stockChartEventsV2', false);
+  const [eventsEnabled, setEventsEnabled] = useState(false);
   const toggleEvents = useCallback(() => setEventsEnabled(prev => !prev), [setEventsEnabled]);
-  const [volumeEnabled, setVolumeEnabled] = useLocalStorage('stockChartVolume', false);
+  const [volumeEnabled, setVolumeEnabled] = useState(false);
   const toggleVolume = useCallback(() => setVolumeEnabled(prev => !prev), [setVolumeEnabled]);
   // Technical indicators
-  const [bbEnabled, setBbEnabled] = useLocalStorage('stockChartBB', false);
+  const [bbEnabled, setBbEnabled] = useState(false);
   const toggleBB = useCallback(() => setBbEnabled(prev => !prev), [setBbEnabled]);
-  const [vwapEnabled, setVwapEnabled] = useLocalStorage('stockChartVWAP', false);
+  const [vwapEnabled, setVwapEnabled] = useState(false);
   const toggleVWAP = useCallback(() => setVwapEnabled(prev => !prev), [setVwapEnabled]);
-  const [rsiEnabled, setRsiEnabled] = useLocalStorage('stockChartRSI', false);
+  const [rsiEnabled, setRsiEnabled] = useState(false);
   const toggleRSI = useCallback(() => setRsiEnabled(prev => !prev), [setRsiEnabled]);
-  const [macdEnabled, setMacdEnabled] = useLocalStorage('stockChartMACD', false);
+  const [macdEnabled, setMacdEnabled] = useState(false);
   const toggleMACD = useCallback(() => setMacdEnabled(prev => !prev), [setMacdEnabled]);
-  const [divEnabled, setDivEnabled] = useLocalStorage('stockChartDivergence', false);
+  const [divEnabled, setDivEnabled] = useState(false);
   const toggleDiv = useCallback(() => setDivEnabled(prev => !prev), [setDivEnabled]);
   const [hoveredDivIdx, setHoveredDivIdx] = useState<number | null>(null);
   const [pinnedDivIdx, setPinnedDivIdx] = useState<number | null>(null);
+
+  // Reset every chart indicator to its (off) default whenever the viewed symbol
+  // changes, so overlays toggled on one stock never carry over to the next.
+  useEffect(() => {
+    setEnabledMAs(new Set());
+    setSignalsEnabled(false);
+    setEventsEnabled(false);
+    setVolumeEnabled(false);
+    setBbEnabled(false);
+    setVwapEnabled(false);
+    setRsiEnabled(false);
+    setMacdEnabled(false);
+    setDivEnabled(false);
+  }, [ticker]);
   // Candlestick mode
   const [chartMode, setChartMode] = useLocalStorage<'line' | 'candle'>('stockChartMode', 'line');
   const [candleInterval, setCandleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
@@ -371,7 +376,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       const next = new Set(prev);
       if (next.has(period)) next.delete(period);
       else next.add(period);
-      localStorage.setItem('stockChartMAs', JSON.stringify([...next]));
       return next;
     });
   }, []);
