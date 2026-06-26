@@ -223,6 +223,11 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
     );
   }
 
+  // A 'sectors'-privacy user returns no holdings + a server-computed sectorBreakdown.
+  // Show their sector allocation in place of the (empty) holdings table, and hide the
+  // zeroed value chart / summary cards (the server strips those aggregates too).
+  const isSectorsOnly = !!portfolio && portfolio.holdings.length === 0 && (portfolio.sectorBreakdown?.length ?? 0) > 0;
+
   return (
     <div className="py-4 sm:py-6">
       {/* Back button */}
@@ -300,6 +305,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
         <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading portfolio...</div>
       ) : portfolio ? (
         <>
+          {!isSectorsOnly && (<>
           {/* Portfolio Value Chart */}
           <PortfolioValueChart
             currentValue={portfolio.netEquity}
@@ -333,9 +339,12 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
               sub={formatPercent(portfolio.totalPLPercent)}
             />
           </div>
+          </>)}
 
-          {/* Holdings table */}
-          {portfolio.holdings.length === 0 ? (
+          {/* Holdings table (or sector-only allocation for sectors-privacy users) */}
+          {isSectorsOnly ? (
+            <SectorAllocation breakdown={portfolio.sectorBreakdown!} />
+          ) : portfolio.holdings.length === 0 ? (
             <div className="text-rh-light-muted dark:text-rh-muted text-sm">No holdings</div>
           ) : (
             <div className="bg-gray-50/40 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
@@ -417,6 +426,41 @@ function SummaryCard({ label, value, valueColor, sub }: {
           {sub}
         </div>
       )}
+    </div>
+  );
+}
+
+// Sector-only allocation, shown when a user sets holdingsVisibility='sectors'. The
+// server sends a value-weighted sectorBreakdown (no tickers/shares/values); this just
+// renders the relative bars.
+function SectorAllocation({ breakdown }: { breakdown: { sector: string; exposurePercent: number }[] }) {
+  const max = breakdown.reduce((m, s) => Math.max(m, s.exposurePercent), 0) || 1;
+  return (
+    <div>
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+        Sector Allocation
+      </h3>
+      <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-4">
+        This user shares only their sector allocation, not individual holdings.
+      </p>
+      <div className="bg-gray-50/40 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-4 space-y-3">
+        {breakdown.map(({ sector, exposurePercent }) => (
+          <div key={sector} className="flex items-center gap-3">
+            <div className="w-24 sm:w-28 text-xs text-rh-light-text dark:text-rh-text font-medium truncate shrink-0">
+              {sector}
+            </div>
+            <div className="flex-1 h-4 bg-gray-200/40 dark:bg-white/[0.04] rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-rh-green/80 rounded-sm transition-all duration-300"
+                style={{ width: `${(exposurePercent / max) * 100}%` }}
+              />
+            </div>
+            <span className="text-[11px] tabular-nums font-medium text-rh-light-text dark:text-rh-text w-12 text-right shrink-0">
+              {exposurePercent.toFixed(1)}%
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
