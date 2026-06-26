@@ -304,7 +304,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const [showCreateWatchlist, setShowCreateWatchlist] = useState(false);
-  const [showIntelFeed, setShowIntelFeed] = useLocalStorage('stockIntelFeed', true);
+  // Intelligence feed: OFF by default (the page is keyed by ticker, so this resets to
+  // false on every symbol). Not persisted — opening it is a deliberate per-view action,
+  // never an "always on" default that surprises you on the next stock.
+  const [showIntelFeed, setShowIntelFeed] = useState(false);
   const [intelCollapsed, setIntelCollapsed] = useState(false);
   const isModalOpen = showAlertModal || showAddHolding || showWatchlistModal || showCreateWatchlist;
   const toggleIntelFeed = () => {
