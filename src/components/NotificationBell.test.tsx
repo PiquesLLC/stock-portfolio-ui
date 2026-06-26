@@ -20,6 +20,7 @@ vi.mock('../api', () => ({
   markAllMilestoneEventsRead: vi.fn(),
   getAnomalies: vi.fn(),
   markAnomalyRead: vi.fn(),
+  markAllAnomaliesRead: vi.fn(),
   getSocialNotifications: vi.fn(),
   getUnreadSocialNotifCount: vi.fn(),
   markSocialNotifRead: vi.fn(),
@@ -55,6 +56,7 @@ const mockMarkAllAlertsRead = vi.mocked(api.markAllAlertsRead);
 const mockMarkAllAnalystEventsRead = vi.mocked(api.markAllAnalystEventsRead);
 const mockMarkAllMilestoneEventsRead = vi.mocked(api.markAllMilestoneEventsRead);
 const mockMarkAnomalyRead = vi.mocked(api.markAnomalyRead);
+const mockMarkAllAnomaliesRead = vi.mocked(api.markAllAnomaliesRead);
 const mockGetSocialNotifications = vi.mocked(api.getSocialNotifications);
 const mockGetUnreadSocialNotifCount = vi.mocked(api.getUnreadSocialNotifCount);
 const mockMarkAllSocialNotifsRead = vi.mocked(api.markAllSocialNotifsRead);
@@ -81,6 +83,7 @@ describe('NotificationBell', () => {
     mockMarkAllMilestoneEventsRead.mockResolvedValue();
     mockMarkAllSocialNotifsRead.mockResolvedValue();
     mockMarkAnomalyRead.mockResolvedValue();
+    mockMarkAllAnomaliesRead.mockResolvedValue();
     localStorage.clear();
   });
 
@@ -93,7 +96,7 @@ describe('NotificationBell', () => {
     expect(mockGetAnomalies).toHaveBeenCalledWith(100);
   });
 
-  it('marks only visible anomalies as read when opening the dropdown', async () => {
+  it('marks all anomalies read via the bulk endpoint when opening the dropdown', async () => {
     render(<NotificationBell userId="user-1" />);
 
     await waitFor(() => {
@@ -102,10 +105,11 @@ describe('NotificationBell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /notifications/i }));
 
+    // Bulk endpoint clears ALL unread anomalies (not just the ~50 loaded into the
+    // panel) so the badge can't get stuck. Concentration is excluded server-side.
     await waitFor(() => {
-      expect(mockMarkAnomalyRead).toHaveBeenCalledWith('a-visible');
+      expect(mockMarkAllAnomaliesRead).toHaveBeenCalled();
     });
-    expect(mockMarkAnomalyRead).not.toHaveBeenCalledWith('a-hidden');
     expect(mockMarkAllAlertsRead).toHaveBeenCalledWith('user-1');
     expect(mockMarkAllAnalystEventsRead).toHaveBeenCalled();
     expect(mockMarkAllMilestoneEventsRead).toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertEvent as AlertEventType, PriceAlertEvent, AnalystEvent, MilestoneEvent, AnomalyEvent, SocialNotificationData } from '../types';
-import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, markAnomalyRead, getSocialNotifications, getUnreadSocialNotifCount, markSocialNotifRead, markAllSocialNotifsRead } from '../api';
+import { getAlertEvents, getUnreadAlertCount, markAlertRead, markAllAlertsRead, getPriceAlertEvents, getUnreadPriceAlertCount, markPriceAlertEventRead, getAnalystEvents, getUnreadAnalystCount, markAllAnalystEventsRead, getMilestoneEvents, getUnreadMilestoneCount, markMilestoneEventRead, markAllMilestoneEventsRead, getAnomalies, markAnomalyRead, markAllAnomaliesRead, getSocialNotifications, getUnreadSocialNotifCount, markSocialNotifRead, markAllSocialNotifsRead } from '../api';
 import { AlertsPanel } from './AlertsPanel';
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, isPushSubscribed, getPushPermission } from '../utils/push';
 import { useToast } from '../context/ToastContext';
@@ -321,7 +321,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
           setUnreadCount(0);
           if (!markingReadRef.current) {
             markingReadRef.current = true;
-            handleMarkAllRead(merged).finally(() => {
+            handleMarkAllRead().finally(() => {
               markingReadRef.current = false;
             });
           }
@@ -382,7 +382,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     }
   };
 
-  const handleMarkAllRead = async (currentNotifications?: UnifiedNotification[]) => {
+  const handleMarkAllRead = async () => {
     try {
       // Mark all portfolio alerts as read
       await markAllAlertsRead(userId);
@@ -398,10 +398,11 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       // Mark all milestone events as read
       await markAllMilestoneEventsRead();
 
-      // Mark all anomaly events as read
-      const sourceNotifications = currentNotifications ?? notifications;
-      const visibleUnreadAnomalies = sourceNotifications.filter(n => n.type === 'anomaly' && !n.read);
-      await Promise.all(visibleUnreadAnomalies.map(n => markAnomalyRead(n.id)));
+      // Mark ALL anomaly events read server-side in one updateMany (concentration
+      // excluded server-side). The old per-item loop only covered the ~50 anomalies
+      // loaded into the panel, so a user with more unread anomalies than that kept a
+      // stuck red badge — the unread-count still saw the rest.
+      await markAllAnomaliesRead();
 
       // Mark all social notifications as read
       await markAllSocialNotifsRead().catch(() => {});
