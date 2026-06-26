@@ -186,9 +186,23 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     // identified on the next slow load.
     const t0 = performance.now();
     const debug = import.meta.env.DEV;
-    const timed = <T,>(name: string, p: Promise<T>, fallback: T): Promise<T> =>
-      p.then((r) => { if (debug) console.log(`[NotificationBell] ${name}: ${(performance.now() - t0).toFixed(0)}ms`); return r; })
-        .catch((e) => { console.error(`[NotificationBell] ${name} failed after ${(performance.now() - t0).toFixed(0)}ms:`, e); return fallback; });
+    // Each endpoint is bounded two ways: a per-endpoint catch (failures resolve to
+    // fallback) AND an 8s timeout race, so ONE hung/slow request can't keep the
+    // whole panel stuck on "Loading…" (the symptom seen on prod). A timed-out
+    // endpoint resolves to its fallback and the rest of the list still renders.
+    // The timer is cleared once the request settles, so a fast endpoint never logs
+    // a spurious "timed out" warning and no timer lingers past unmount.
+    const timed = <T,>(name: string, p: Promise<T>, fallback: T): Promise<T> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<T>((resolve) => {
+        timer = setTimeout(() => { console.warn(`[NotificationBell] ${name} timed out after 8000ms`); resolve(fallback); }, 8000);
+      });
+      return Promise.race([
+        p.then((r) => { if (debug) console.log(`[NotificationBell] ${name}: ${(performance.now() - t0).toFixed(0)}ms`); return r; })
+          .catch((e) => { console.error(`[NotificationBell] ${name} failed after ${(performance.now() - t0).toFixed(0)}ms:`, e); return fallback; }),
+        timeout,
+      ]).finally(() => clearTimeout(timer));
+    };
     try {
       const [alertEvents, priceAlertEvents, analystEvents, milestoneEvents, anomalyEvents, socialEvents] = await Promise.all([
         timed('alerts', getAlertEvents(userId), [] as AlertEventType[]),
@@ -290,8 +304,10 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
       setNotifications(merged);
 
-      // Compute unread from filtered merged list (avoids counting excluded types like concentration)
-      setUnreadCount(merged.filter(n => !n.read).length);
+      // Compute unread from filtered merged list (avoids counting excluded types like concentration).
+      // Skip while a mark-all is in flight: the list reflects pre-mark server state and would briefly
+      // re-show the stale badge over the optimistic 0 that opening the panel just set.
+      if (!markingReadRef.current) setUnreadCount(merged.filter(n => !n.read).length);
       return merged;
     } catch (e) { console.error('Notifications fetch failed:', e); }
     finally { setIsLoading(false); }
@@ -310,25 +326,30 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
   // Track if we're in the process of marking as read
   const markingReadRef = useRef(false);
 
-  // Load events when dropdown opens, mark as read
+  // Load events when dropdown opens, and mark all read.
   useEffect(() => {
-    if (open) {
-      fetchEvents().then((merged) => {
-        const unreadVisibleCount = merged.filter(n => !n.read).length;
-        // Always fire mark-all-read when opening if badge showed unread,
-        // even if the visible list is empty (handles orphaned/phantom events)
-        if (unreadVisibleCount > 0 || unreadCount > 0) {
-          setUnreadCount(0);
-          if (!markingReadRef.current) {
-            markingReadRef.current = true;
-            handleMarkAllRead().finally(() => {
-              markingReadRef.current = false;
-            });
-          }
-        }
-      });
-    }
-    // fetchEvents/handleMarkAllRead/unreadCount excluded: only `open` toggle should trigger; adding others causes unnecessary re-runs
+    if (!open) return;
+
+    const markAllOnce = () => {
+      if (markingReadRef.current) return;
+      markingReadRef.current = true;
+      setUnreadCount(0);
+      handleMarkAllRead().finally(() => { markingReadRef.current = false; });
+    };
+
+    // Clear the badge IMMEDIATELY when opening with unread — do NOT wait for the
+    // list fetch. On prod a slow notification endpoint can leave the panel stuck
+    // on "Loading…", and the mark-all used to live inside fetchEvents().then(),
+    // so the red badge never cleared while the list was slow. Opening the panel is
+    // an explicit "I've seen these" action; persist that regardless of load time.
+    if (unreadCount > 0) markAllOnce();
+
+    // Still load the list for display, and reconcile in case the badge was 0 but
+    // the freshly loaded list surfaced unread (markingReadRef de-dupes the call).
+    fetchEvents().then((merged) => {
+      if (merged.some(n => !n.read)) markAllOnce();
+    });
+    // Only the `open` toggle should trigger this; deps intentionally limited.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -383,35 +404,45 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
   };
 
   const handleMarkAllRead = async () => {
-    try {
-      // Mark all portfolio alerts as read
-      await markAllAlertsRead(userId);
+    // Every mark runs in ISOLATION via allSettled, and the whole batch is bounded
+    // by a timeout. The old version awaited each endpoint sequentially with no
+    // per-step catch, so the FIRST one to throw (a transient 500, a slow analyst
+    // query) aborted every mark after it AND skipped the UI reset — which is how a
+    // single failing endpoint left the red badge permanently stuck. The 10s bound
+    // additionally guarantees this function always resolves, so the caller's
+    // markingReadRef is always released even if a request never settles (a real
+    // risk on prod). Marks that DID succeed persist; the 30s poll reconciles.
+    const withTimeout = <T,>(p: Promise<T>, fallback: T, ms = 10000): Promise<T> =>
+      Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
 
-      // Fetch current price alert events and mark them as read
-      const priceAlertEvents = await getPriceAlertEvents(userId, 50).catch(() => [] as PriceAlertEvent[]);
-      const unreadPriceAlerts = (priceAlertEvents || []).filter(e => !e.read);
-      await Promise.all(unreadPriceAlerts.map(e => markPriceAlertEventRead(e.id)));
+    const priceAlertEvents = await withTimeout(
+      getPriceAlertEvents(userId, 50).catch(() => [] as PriceAlertEvent[]),
+      [] as PriceAlertEvent[],
+    );
+    const unreadPriceAlerts = (priceAlertEvents || []).filter(e => !e.read);
 
-      // Mark all analyst events as read
-      await markAllAnalystEventsRead();
+    let timedOut = true;
+    await Promise.race([
+      Promise.allSettled([
+        markAllAlertsRead(userId),
+        ...unreadPriceAlerts.map(e => markPriceAlertEventRead(e.id)),
+        markAllAnalystEventsRead(),
+        markAllMilestoneEventsRead(),
+        // Concentration excluded server-side; one updateMany covers ALL unread
+        // anomalies, not just the ~50 loaded into the panel.
+        markAllAnomaliesRead(),
+        markAllSocialNotifsRead(),
+      ]).then((results) => {
+        timedOut = false;
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed > 0) console.error(`[NotificationBell] mark-all: ${failed}/${results.length} mark calls failed`);
+      }),
+      new Promise<void>((resolve) => setTimeout(resolve, 10000)),
+    ]);
+    if (timedOut) console.error('[NotificationBell] mark-all timed out after 10s — UI cleared optimistically; the 30s poll will reconcile');
 
-      // Mark all milestone events as read
-      await markAllMilestoneEventsRead();
-
-      // Mark ALL anomaly events read server-side in one updateMany (concentration
-      // excluded server-side). The old per-item loop only covered the ~50 anomalies
-      // loaded into the panel, so a user with more unread anomalies than that kept a
-      // stuck red badge — the unread-count still saw the rest.
-      await markAllAnomaliesRead();
-
-      // Mark all social notifications as read
-      await markAllSocialNotifsRead().catch(() => {});
-
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch (err) {
-      console.error('Failed to mark notifications as read:', err);
-    }
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
   };
 
   return (
