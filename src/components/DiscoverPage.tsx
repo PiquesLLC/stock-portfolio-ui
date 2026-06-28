@@ -320,7 +320,10 @@ function Treemap({
     // the first measure. Re-measure whenever the page height changes (catches the late
     // header growth) plus the usual width/viewport triggers; a guard skips no-op churn.
     const measure = () => {
-      const width = el.getBoundingClientRect().width;
+      // Round to whole px: getBoundingClientRect().width is sub-pixel, and the dims
+      // guard below compares it exactly — without rounding, a sub-pixel reflow
+      // (scrollbar/zoom) slips past the guard and fires a needless treemap recompute.
+      const width = Math.round(el.getBoundingClientRect().width);
       if (!width) return;
       const height = computeHeight(width);
       if (width === dimsRef.current.width && height === dimsRef.current.height) return;
@@ -333,21 +336,23 @@ function Treemap({
     const docRo = new ResizeObserver(measure);
     docRo.observe(document.body);
     window.addEventListener('resize', measure);
-    window.addEventListener('load', measure);
     // The sticky header's async market-ticker settles at an unpredictable moment after
     // first paint, growing the chrome above the treemap and shifting `top`. The body
     // observer above SHOULD catch that, but some late reflows don't re-trigger it
     // (observed: the 1920 occasionally renders ~one LEGEND_RESERVE too tall, clipping
-    // the legend). So also re-measure on window `load` and a short cascade — a
+    // the legend). So also re-measure on a short cascade after mount — a
     // guarantee the treemap can never stay stuck at the stale, too-tall height. The
     // guard in measure() makes every redundant tick a no-op once the layout is stable.
+    // (No window `load` listener: the body observer + this cascade already cover late
+    // header growth regardless of `load`. A `load` listener adds nothing — on most
+    // navigations this lazy chunk mounts after `load` fired (dead), and on a #discover
+    // deep-link where it could mount before `load`, the cascade still covers it. Don't re-add.)
     const raf = requestAnimationFrame(measure);
     const timers = [80, 250, 600, 1200, 2500, 5000].map((ms) => setTimeout(measure, ms));
     return () => {
       ro.disconnect();
       docRo.disconnect();
       window.removeEventListener('resize', measure);
-      window.removeEventListener('load', measure);
       cancelAnimationFrame(raf);
       timers.forEach((t) => clearTimeout(t));
     };
