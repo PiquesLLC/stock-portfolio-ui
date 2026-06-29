@@ -36,8 +36,36 @@ self.addEventListener('activate', (event) => {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k)));
     } catch (_e) { /* best-effort */ }
-    // Retire this registration entirely. With no fetch handler and no
-    // registration, nothing intercepts requests anymore — the app loads live.
+    // The tabs we just claimed are STILL showing the old shell the stale precache
+    // served before we took over — clearing Cache Storage doesn't repaint them, so
+    // the user keeps seeing the old app until they happen to manually hard-refresh.
+    // Reload each open window once so it pulls the live app from the network right
+    // away. Do this BEFORE unregister() while the clients are still definitely
+    // controlled by this worker — WindowClient.navigate() requires the client's
+    // active worker to be us, which is spec-murky once the registration is
+    // uninstalling. We add a one-shot ?_swrefresh param so the navigation is a real
+    // document load (a plain same-URL navigate on a hash-routed SPA can be treated
+    // as a no-op fragment jump); routing is hash-based so the param doesn't affect
+    // it, and main.tsx strips it from the URL on load. Loop-safe: the reload goes
+    // straight to the network (no fetch handler; the registration is unregistered
+    // just below), gets current code, and main.tsx registers only the push worker —
+    // nothing re-runs this. This whole worker only ever runs in browsers that still
+    // carried the old PWA worker, so users who were never stuck are untouched.
+    try {
+      const windows = await self.clients.matchAll({ type: 'window' });
+      for (const win of windows) {
+        if (typeof win.navigate !== 'function') continue;
+        let target = win.url;
+        try {
+          const u = new URL(win.url);
+          u.searchParams.set('_swrefresh', '1');
+          target = u.href;
+        } catch (_e) { /* malformed URL — fall back to a plain same-URL navigate */ }
+        win.navigate(target).catch(() => { /* ignore per-client navigation failure */ });
+      }
+    } catch (_e) { /* best-effort */ }
+    // Retire this registration entirely. With no fetch handler and no registration,
+    // nothing intercepts requests anymore — subsequent loads come from the network.
     try { await self.registration.unregister(); } catch (_e) { /* ignore */ }
   })());
 });

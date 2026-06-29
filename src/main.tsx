@@ -22,6 +22,17 @@ if ('serviceWorker' in navigator) {
   }
 }
 
+// The kill-switch worker (public/sw.js) appends ?_swrefresh=1 when it force-reloads a
+// stuck tab after retiring the old PWA cache. Strip it on load so it doesn't linger in
+// the URL bar (or ride along on a bookmark/share). Hash/view + any other params are kept.
+try {
+  const u = new URL(window.location.href);
+  if (u.searchParams.has('_swrefresh')) {
+    u.searchParams.delete('_swrefresh');
+    window.history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+} catch { /* ignore */ }
+
 // Register push-only service worker (no caching — just push event handling)
 import { registerPushSW } from './utils/push';
 registerPushSW();
