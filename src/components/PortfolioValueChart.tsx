@@ -558,7 +558,15 @@ export function PortfolioValueChart({
 
   // Compute hero display values
   const hoverValue = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex].value : null;
-  const displayValue = hoverValue ?? currentValue;
+  // When NOT hovering, show the chart's LATEST plotted point — the exact value the user
+  // sees when hovering that last point — instead of the separately-fetched `currentValue`
+  // (portfolio.netEquity). They diverge when quotes are degraded (`quotesStale`): the live
+  // point isn't appended (Guard 1 above), so the chart's last point holds the last GOOD
+  // value while netEquity still reflects stale/opening-ish prices — which left the hero
+  // stuck near the day's open. In the normal case the appended live point == currentValue,
+  // so this is a no-op; it only realigns the hero in the degraded-quote case.
+  const latestPointValue = points.length > 0 ? points[points.length - 1].value : null;
+  const displayValue = hoverValue ?? latestPointValue ?? currentValue;
 
   // For 1D non-hover (or hovering on the very last point): use API dayChange props
   // directly — these are purely price-based and immune to margin debt timing mismatches.
@@ -582,7 +590,9 @@ export function PortfolioValueChart({
     selectedPeriod === '1D'
       ? dayChangePercent
       : (periodStartValue > 0
-        ? ((currentValue - periodStartValue) / periodStartValue) * 100
+        // Use the latest plotted point (same basis as the hero) so the benchmark widget's
+        // "You" % matches the hero's change; hover-independent, falls back to currentValue.
+        ? (((latestPointValue ?? currentValue) - periodStartValue) / periodStartValue) * 100
         : null)
   );
   useEffect(() => {
