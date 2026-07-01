@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { InfoTooltip } from './InfoTooltip';
 import { Acronym } from './Acronym';
 import {
@@ -371,6 +371,43 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
     }
   };
 
+  // The server returns a `loading` placeholder when its (heavy, cached) computation exceeds
+  // the 12s server timeout — but it keeps computing and caches the result, so a later request
+  // lands it. Poll until the real data is ready instead of making the user refresh. Bounded
+  // so it can't spin forever; the attempt budget resets on window change / when real data arrives.
+  const pollAttemptsRef = useRef(0);
+  const pollWindowRef = useRef(selectedWindow);
+  // Keep the latest fetchFn in a ref: the parent passes an inline arrow (new identity every
+  // render), so depending on it directly would cancel+reschedule the timer on each parent
+  // re-render and could starve the poll if the parent ever re-rendered faster than the interval.
+  const fetchFnRef = useRef(fetchFn);
+  fetchFnRef.current = fetchFn;
+  useEffect(() => {
+    if (pollWindowRef.current !== selectedWindow) {
+      pollWindowRef.current = selectedWindow;
+      pollAttemptsRef.current = 0;
+    }
+    if (!data.loading) { pollAttemptsRef.current = 0; return; }
+    if (pollAttemptsRef.current >= 12) return; // ~30s cap
+    const fetcher = fetchFnRef.current || getPortfolioIntelligence;
+    let cancelled = false;
+    const id = setTimeout(async () => {
+      if (cancelled) return;
+      pollAttemptsRef.current += 1;
+      try {
+        const fresh = await fetcher(selectedWindow);
+        if (!cancelled) setData(fresh);
+      } catch {
+        if (!cancelled) setData((prev) => ({ ...prev })); // force a re-run to retry
+      }
+    }, 2500);
+    return () => { cancelled = true; clearTimeout(id); };
+  }, [data, selectedWindow]);
+
+  // Show the loading treatment while an explicit window-change fetch is in flight OR while
+  // the server is still warming the computation (see the poll above).
+  const isBusy = loading || !!data.loading;
+
   const { contributors, detractors, sectorExposure, beta, explanation } = data;
 
   const allEntries = [...contributors, ...detractors];
@@ -496,14 +533,14 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
         />
       )}
 
-      {loading && (
+      {isBusy && (
         <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
           <div className="w-3 h-3 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
           <span>Loading...</span>
         </div>
       )}
 
-      {!loading && (
+      {!isBusy && (
         <>
           {/* Movers — Contributors + Detractors grouped */}
           {(contributors.length > 0 || detractors.length > 0) && (

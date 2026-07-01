@@ -571,6 +571,9 @@ export interface PortfolioIntelligenceResponse {
   beta: BetaResult | null;
   explanation: string;
   partial: boolean;
+  /** Server still warming the (heavy, cached) computation — it returned a placeholder after
+   *  its 12s timeout. The client polls until this clears rather than making the user refresh. */
+  loading?: boolean;
   heroStats: HeroStats | null;
   winnersCount: number;
   losersCount: number;

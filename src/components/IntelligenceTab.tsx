@@ -551,6 +551,34 @@ export function IntelligenceTab({
       });
   }, [period, intelligence.window, portfolioId, showToast]);
 
+  /* ── auto-poll while the server is still warming the (heavy, cached) computation ──
+     The /intelligence endpoint returns a `loading` placeholder if the compute exceeds its
+     12s server timeout, but keeps computing and caches the result — so a later request lands
+     it. Poll until the real data arrives instead of making the user refresh. Bounded; the
+     attempt budget resets on period change / when real data arrives. */
+  const intelPollAttemptsRef = useRef(0);
+  const intelPollWindowRef = useRef(period);
+  useEffect(() => {
+    if (intelPollWindowRef.current !== period) {
+      intelPollWindowRef.current = period;
+      intelPollAttemptsRef.current = 0;
+    }
+    if (!intelligence.loading) { intelPollAttemptsRef.current = 0; return; }
+    if (intelPollAttemptsRef.current >= 12) return; // ~30s cap
+    let cancelled = false;
+    const id = setTimeout(async () => {
+      if (cancelled) return;
+      intelPollAttemptsRef.current += 1;
+      try {
+        const fresh = await getPortfolioIntelligence(period, portfolioId);
+        if (!cancelled) setIntelligence(fresh);
+      } catch {
+        if (!cancelled) setIntelligence((prev) => ({ ...prev })); // force a re-run to retry
+      }
+    }, 2500);
+    return () => { cancelled = true; clearTimeout(id); };
+  }, [intelligence, period, portfolioId]);
+
   /* ── re-fetch health score on portfolio change ── */
   useEffect(() => {
     let cancelled = false;
