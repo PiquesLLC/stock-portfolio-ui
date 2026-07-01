@@ -8,11 +8,16 @@ import { isIAPAvailable } from '../utils/iap';
 import { NativePaywall } from './NativePaywall';
 
 export function PricingPage() {
-  // On iOS native, show Apple IAP paywall instead of Stripe checkout
+  // On iOS native, show the Apple IAP paywall instead of Stripe checkout. This wrapper
+  // has NO hooks, so the early return is rules-of-hooks-safe; the Stripe checkout (with
+  // all its hooks) lives in the child below, which only renders when NOT on native IAP.
   if (isIAPAvailable()) {
     return <NativePaywall />;
   }
+  return <StripePricingCheckout />;
+}
 
+function StripePricingCheckout() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);

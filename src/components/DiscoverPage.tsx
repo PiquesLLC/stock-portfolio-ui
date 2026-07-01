@@ -1998,16 +1998,10 @@ function SwipeOrSingleTreemap(props: {
     if (!isLg && drilledGroup) setDrilledGroup(null);
   }, [isLg, drilledGroup]);
 
-  // Themes view never paginates — themes aren't sectors.
-  if (props.isThemes) {
-    return <Treemap {...props} />;
-  }
-  // Escape hatch for debugging the legacy single-dense layout on mobile.
-  const forceDense =
-    typeof window !== 'undefined' && window.location.search.includes('nopipe=1');
-
-  // Build the swipe groups (dropping empty ones) — needed for both the
-  // pagination carousel and the dense-view drill-down lookup.
+  // Build the swipe groups (dropping empty ones) — needed for both the pagination
+  // carousel and the dense-view drill-down lookup. Computed BEFORE the isThemes early
+  // return below so this hook runs on EVERY render (rules-of-hooks) — otherwise toggling
+  // between the themes and sectors treemaps changes the hook order and crashes React.
   const grouped = useMemo(() => {
     const built = SWIPE_GROUPS.map((g) => ({
       label: g.label,
@@ -2018,6 +2012,14 @@ function SwipeOrSingleTreemap(props: {
     if (orphans.length > 0) built.push({ label: 'Other', sectors: orphans });
     return built;
   }, [props.sectors]);
+
+  // Themes view never paginates — themes aren't sectors.
+  if (props.isThemes) {
+    return <Treemap {...props} />;
+  }
+  // Escape hatch for debugging the legacy single-dense layout on mobile.
+  const forceDense =
+    typeof window !== 'undefined' && window.location.search.includes('nopipe=1');
 
   // Desktop dense view (default on lg+). Sector label clicks drill into the
   // matching swipe group.
