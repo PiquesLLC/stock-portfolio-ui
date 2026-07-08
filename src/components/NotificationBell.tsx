@@ -17,7 +17,6 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   price_spike: 'Price Spike',
   sector_divergence: 'Sector Move',
   dividend_change: 'Dividend Change',
-  congress_trade: 'Congress Trade',
   value_radar: 'Value Radar',
 };
 
@@ -30,10 +29,6 @@ interface UnifiedNotification {
   read: boolean;
   createdAt: string;
   ticker?: string;
-  // Bioguide ID for Congress trade notifications. Set when the politician
-  // resolver matched the FMP name to a known member; absent otherwise.
-  // Used to deep-link the notification to the member's Capitol Trades page.
-  bioguideId?: string;
 }
 
 function isVisibleAnomaly(event: AnomalyEvent): boolean {
@@ -216,14 +211,10 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       // Convert alert events — filter orphaned events where parent Alert was deleted
       const unifiedAlerts: UnifiedNotification[] = (alertEvents || []).filter((e: AlertEventType) => e?.alert).map((e: AlertEventType) => {
         let ticker: string | undefined;
-        let bioguideId: string | undefined;
         try {
           const parsed = e.data ? JSON.parse(e.data) : null;
           if (parsed?.tickers?.[0]) ticker = parsed.tickers[0];
           else if (parsed?.ticker) ticker = parsed.ticker;
-          // Congress trade events embed a bioguideId per trade in data.trades[].
-          // Surface the first one so the row can deep-link to Capitol Trades.
-          if (parsed?.trades?.[0]?.bioguideId) bioguideId = parsed.trades[0].bioguideId;
         } catch { /* skip */ }
         return {
           id: e.id,
@@ -233,7 +224,6 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
           read: e.read,
           createdAt: e.createdAt,
           ticker,
-          bioguideId,
         };
       });
 
@@ -611,18 +601,6 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
                           </div>
                           <p className="text-xs text-rh-light-text dark:text-rh-text mt-0.5 leading-relaxed line-clamp-2">
                             {notification.message.replace(/\*\*/g, '')}
-                            {notification.bioguideId && (
-                              <a
-                                href={`https://www.capitoltrades.com/politicians/${notification.bioguideId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="ml-1 text-[10px] font-medium text-rh-green/60 hover:text-rh-green transition-colors"
-                                title="View on Capitol Trades"
-                              >
-                                view filing &#8599;
-                              </a>
-                            )}
                           </p>
                         </div>
                       </div>

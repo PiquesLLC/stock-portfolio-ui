@@ -3530,42 +3530,6 @@ export function getApiUsage(days = 7): Promise<ApiUsageResponse> {
   return fetchJson<ApiUsageResponse>(`${API_BASE_URL}/health/api-usage?days=${days}`);
 }
 
-// ── Congressional Trades (NALA Signals) ────────────────────────
-
-export interface CongressTrade {
-  id: string;
-  politician: string;
-  chamber: string;
-  ticker: string;
-  transactionType: string;
-  amountFrom: number;
-  amountTo: number;
-  tradeDate: string;
-  filingDate: string;
-  assetName?: string;
-  ownerType?: string;
-}
-
-export function getCongressTrades(options?: { ticker?: string; limit?: number; offset?: number }): Promise<{ trades: CongressTrade[]; total: number }> {
-  const params = new URLSearchParams();
-  if (options?.ticker) params.set('ticker', options.ticker);
-  if (options?.limit) params.set('limit', String(options.limit));
-  if (options?.offset) params.set('offset', String(options.offset));
-  return fetchJson(`${API_BASE_URL}/signals/congress?${params}`);
-}
-
-export function getCongressTradesForPortfolio(): Promise<{ trades: CongressTrade[]; total: number; tickers: string[] }> {
-  return fetchJson(`${API_BASE_URL}/signals/congress/portfolio`);
-}
-
-export function getCongressTradesForTicker(ticker: string): Promise<{ trades: CongressTrade[]; ticker: string }> {
-  return fetchJson(`${API_BASE_URL}/signals/congress/ticker/${encodeURIComponent(ticker)}`);
-}
-
-export function getCongressStats(): Promise<{ mostBought: { ticker: string; count: number }[]; mostSold: { ticker: string; count: number }[]; topTraders: { politician: string; count: number }[] }> {
-  return fetchJson(`${API_BASE_URL}/signals/congress/stats`);
-}
-
 // ── Posts API ──────────────────────────────────────────────────
 
 export async function createPost(content: string, ticker?: string, type?: string, attachmentType?: string, attachmentData?: { ticker?: string; period?: string; action?: string; shares?: number; price?: number }): Promise<PostData> {

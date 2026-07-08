@@ -2,7 +2,6 @@ import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, use
 import { createPortal } from 'react-dom';
 import { getMarketHeatmap, getMarketScreener, getIntradayCandles, HeatmapPeriod, MarketIndex, getMostFollowedStocks, getThemesHeatmap, getEtfHeatmap } from '../api';
 import { SectorPerformanceChart } from './SectorPerformanceChart';
-import { CongressTradesSection } from './CongressTradesSection';
 import { SectorRotationGraph } from './SectorRotationGraph';
 import { HeatmapResponse, HeatmapSector, HeatmapSubSector, HeatmapStock } from '../types';
 import { formatCurrency, isEffectivelyZero, getHeatColor, getHeatColorPolished } from '../utils/format';
@@ -1163,7 +1162,7 @@ if (preloaded && !heatmapCache.has(cacheKey('1D', 'SP500'))) {
 }
 
 
-type DiscoverSubTab = 'sectors' | 'top100' | 'bottlenecks' | 'value-radar' | 'screener' | 'creators' | 'congress';
+type DiscoverSubTab = 'sectors' | 'top100' | 'bottlenecks' | 'value-radar' | 'screener' | 'creators';
 type SectorInnerTab = 'heatmap' | 'performance' | 'movement';
 
 /* ─── Top 100 by Volume ─── */
@@ -2522,9 +2521,6 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <button onClick={() => setSubTab('creators')} className={tabClass(subTab === 'creators')}>
           Creators
         </button>
-        <button onClick={() => setSubTab('congress')} className={tabClass(subTab === 'congress')}>
-          Congress
-        </button>
       </div>
 
       {subTab === 'sectors' ? (
@@ -2560,8 +2556,6 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
         <ValueRadar onTickerClick={onTickerClick} portfolioTickers={portfolioTickers} />
       ) : subTab === 'screener' ? (
         <ScreenerView onTickerClick={onTickerClick} />
-      ) : subTab === 'congress' ? (
-        <CongressTradesSection onTickerClick={onTickerClick} limit={50} />
       ) : (
         <Suspense fallback={<div className="flex items-center justify-center py-20"><img src="/north-signal-logo-transparent.png" alt="" className="h-8 w-8 animate-spin" /></div>}>
           <CreatorDiscoverSection onUserClick={onUserClick} />

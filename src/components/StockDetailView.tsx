@@ -30,7 +30,6 @@ import { TickerAutocompleteInput } from './TickerAutocompleteInput';
 import { NalaScore } from './NalaScore';
 import { ShareButton } from './ShareButton';
 import { PostToFeedButton } from './PostToFeedButton';
-import { CongressTradesSection } from './CongressTradesSection';
 
 /** Format a dollar delta without the $ sign, preserving +/- */
 function formatDelta(value: number): string {
@@ -1334,9 +1333,6 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       <div id="section-financials" className="scroll-mt-32">
         <FundamentalsSection ticker={ticker} currentPrice={data?.quote?.currentPrice ?? undefined} />
       </div>
-
-      {/* Congress Trades */}
-      <CongressTradesSection ticker={ticker} onTickerClick={onTickerNavigate} />
 
       {/* AI Research Q&A */}
       <div id="section-qa" className="scroll-mt-32 mb-6">
