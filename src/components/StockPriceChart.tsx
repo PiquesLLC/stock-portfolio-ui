@@ -215,7 +215,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         setCandleLoading(false);
       });
     return () => { controller.abort(); };
-  }, [chartMode, ticker, selectedPeriod, candleInterval]);
+  }, [chartMode, ticker, selectedPeriod, candleInterval, setCandleInterval]);
   // Auto-refresh candle data during market hours (every 15s for intraday, 60s for daily+)
   useEffect(() => {
     if (chartMode !== 'candle' || !ticker || !session || session === 'CLOSED') return;
@@ -253,8 +253,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   useEffect(() => {
     if (chartMode !== 'candle') return;
     const config = CANDLE_INTERVALS[selectedPeriod];
+    // Re-running on a manual interval change is a no-op (the picker only offers
+    // valid options), so listing candleInterval costs nothing.
     if (!config.options.includes(candleInterval)) setCandleInterval(config.default);
-  }, [selectedPeriod, chartMode]);
+  }, [selectedPeriod, chartMode, candleInterval, setCandleInterval]);
   // Load persisted measurements from localStorage
   const loadMeasurements = useCallback(() => {
     if (!ticker) return { a: null, b: null, c: null };
@@ -501,7 +503,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
     if (!zoomRange || e.button !== 0) return; // only left button, only when zoomed
     panStartRef.current = { x: e.clientX, rangeStart: zoomRange.startMs, rangeEnd: zoomRange.endMs };
-  }, [zoomRange]);
+  }, [zoomRange, chartMode, candleZoom]);
 
   useEffect(() => {
     const moveHandler = (e: MouseEvent) => {
@@ -558,7 +560,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       window.removeEventListener('mouseup', upHandler);
       if (panEndTimer) clearTimeout(panEndTimer);
     };
-  }, [isPanning]);
+    // effectiveCandleData.length keeps the candle-pan clamp in sync as the
+    // auto-refresh appends candles (a stale maxIdx clamped pans short).
+  }, [isPanning, effectiveCandleData.length]);
 
   // ── Animated zoom transition ──────────────────────────────────────
   const animateZoomTo = useCallback((target: { startMs: number; endMs: number } | null, duration = 250) => {
@@ -760,7 +764,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         updateHoverFromClientX(e.touches[0].clientX);
       }
     }
-  }, [updateHoverFromClientX, onHoverPrice]);
+  }, [updateHoverFromClientX, onHoverPrice, chartMode, candleZoom, effectiveCandleData.length]);
 
   // Attached via useEffect with { passive: false } so preventDefault() works on touch
   const handleTouchMoveRef = useRef((_e: TouchEvent) => {});
@@ -882,7 +886,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         onHoverPrice?.(null, null);
       }
     }
-  }, [onHoverPrice]);
+  }, [onHoverPrice, chartMode]);
 
 
   // ── Scroll-to-zoom handler (native for passive:false) ────────────
@@ -1180,7 +1184,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
     return PAD_LEFT + (points.length > 1 ? (i / (points.length - 1)) * plotW : plotW / 2);
   };
-  const toY = (price: number) => PAD_TOP + plotH - ((price - paddedMin) / (paddedMax - paddedMin)) * plotH;
+  // useCallback so the memos depending on toY (candleMeasureCoords, candleHover)
+  // actually memoize — a per-render arrow invalidated them every render.
+  const toY = useCallback(
+    (price: number) => PAD_TOP + plotH - ((price - paddedMin) / (paddedMax - paddedMin)) * plotH,
+    [paddedMin, paddedMax, plotH],
+  );
 
   // Volume bar scaling
   const VOL_MAX_H = plotH * 0.22; // max bar height = 22% of plot
@@ -1913,7 +1922,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       setHoverIndex(clamped);
       onHoverPrice?.(points[clamped].price, points[clamped].label, referencePriceRef.current);
     }
-  }, [points, plotW, onHoverPrice, is1D, dayStartMs, dayRangeMs, zoomRange, visStartIdx, visEndIdx, isPanning, chartMode, effectiveCandleData, candleZoom]);
+  }, [points, plotW, onHoverPrice, is1D, dayStartMs, dayEndMs, dayRangeMs, zoomRange, visStartIdx, visEndIdx, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom]);
 
   const handleMouseLeave = useCallback(() => {
     setHoverIndex(null);
@@ -2151,7 +2160,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       : PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
     const y = Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(effectiveCandleData[ci].close)));
     return { x, y, label: effectiveCandleData[ci].label, price: effectiveCandleData[ci].close };
-  }, [chartMode, effectiveCandleData, candleZoom, candleTimeZoom, hoverIndex, toY, plotW, is1D, dayRangeMs, dayStartMs]);
+  }, [chartMode, effectiveCandleData, candleZoom, candleTimeZoom, hoverIndex, toY, plotW, is1D, dayStartMs, dayEndMs]);
   const hoverX = candleHover ? candleHover.x : (safeHoverIndex !== null ? toX(safeHoverIndex) : null);
   const hoverY = candleHover ? candleHover.y : (safeHoverIndex !== null ? Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(points[safeHoverIndex].price))) : null);
   const hoverLabel = candleHover ? candleHover.label : (safeHoverIndex !== null ? points[safeHoverIndex].label : null);

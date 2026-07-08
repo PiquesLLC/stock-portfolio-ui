@@ -57,7 +57,6 @@ export function BottlenecksView({ onTickerClick }: Props) {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Collect every ticker referenced by the response (featured + entries, primary + related)

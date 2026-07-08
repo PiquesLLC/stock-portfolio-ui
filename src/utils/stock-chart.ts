@@ -288,13 +288,23 @@ export function buildPoints(
   return pts;
 }
 
+// Candle dates follow the US market calendar — render the cutoff in ET so a
+// UTC evening (after 8 PM ET the UTC date has rolled over) can't shift the
+// anchor a day forward.
+const _etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+
 /**
  * Canonical period-start close for non-1D periods, shared by the stock chart
  * (useStockChart) and the Compare page so their period returns can't drift.
  * Anchors by calendar date (1W=-7d, 1M=-1mo, 3M=-3mo, 6M=-6mo, YTD=Jan 1,
- * 1Y=-1yr, MAX=inception) and returns the close of the first daily candle
- * on/after that cutoff, falling back to the earliest candle. Returns null for
- * 1D (which uses the live quote's daily change) or when there are no candles.
+ * 1Y=-1yr, MAX=inception) and returns the close of the LAST daily candle
+ * on/before that cutoff — i.e. the price "a week/month/… ago". Anchoring at
+ * the first close INSIDE the window instead would bake day one's entire move
+ * into the baseline: a stock that rallied on day 1 showed a negative
+ * "Past Week" while its own chart was green (RDDT 2026-07-07). Falls back to
+ * the earliest candle when the window predates available data (IPO / MAX).
+ * Returns null for 1D (which uses the live quote's daily change) or when
+ * there are no candles.
  */
 export function periodStartClose(
   period: ChartPeriod,
@@ -313,15 +323,16 @@ export function periodStartClose(
     case 'MAX': cutoff = new Date(1970, 0, 1); break;
     default: cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); break;
   }
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
-  let startPrice = candles.closes[0];
-  for (let i = 0; i < candles.dates.length; i++) {
-    if (candles.dates[i] >= cutoffStr) {
-      startPrice = candles.closes[i];
-      break;
+  const cutoffStr = _etDateFmt.format(cutoff);
+  // Last close ON or BEFORE the cutoff (YTD thus anchors at the prior year's
+  // final close, matching the convention brokers use).
+  for (let i = candles.dates.length - 1; i >= 0; i--) {
+    if (candles.dates[i] <= cutoffStr) {
+      return candles.closes[i];
     }
   }
-  return startPrice;
+  // Window predates all data — anchor at inception.
+  return candles.closes[0];
 }
 
 export function formatVolume(v: number): string {

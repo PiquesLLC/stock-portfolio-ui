@@ -106,6 +106,10 @@ function getNotionalValue(e: ActivityEvent): number {
     : 0;
 }
 
+// Skip events whose "ticker" is actually a UUID (bad data) — used by both the
+// events filter and the social-feed filter below.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPageProps) {
   const { on } = useDataEvents();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
@@ -185,7 +189,6 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
   }, [showSettings]);
 
   // Apply threshold + muted user filters + skip events with UUID tickers (bad data)
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
       if (isMuted(e.userId)) return false;

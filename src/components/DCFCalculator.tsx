@@ -225,14 +225,16 @@ function Slider({ label, value, onChange, min, max, step, format, autoValue }: {
 
 /* ─── Sensitivity Table ────────────────────────────────────────────── */
 
-function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs; currentPrice: number }) {
-  const growthSteps = [-0.02, -0.01, 0, 0.01, 0.02];
-  const waccSteps = [-0.02, -0.01, 0, 0.01, 0.02];
+// Module-scope so the sensitivity memo below keys only on baseInputs
+// (per-render array literals would invalidate it every render).
+const GROWTH_STEPS = [-0.02, -0.01, 0, 0.01, 0.02];
+const WACC_STEPS = [-0.02, -0.01, 0, 0.01, 0.02];
 
+function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs; currentPrice: number }) {
   const rows = useMemo(() => {
-    return growthSteps.map(gOff => {
+    return GROWTH_STEPS.map(gOff => {
       const growth = baseInputs.revenueGrowth + gOff;
-      return waccSteps.map(wOff => {
+      return WACC_STEPS.map(wOff => {
         const wacc = baseInputs.discountRate + wOff;
         if (wacc <= baseInputs.terminalGrowth + 0.005) return null; // invalid
         const r = runDCF({ ...baseInputs, revenueGrowth: growth, discountRate: wacc });
@@ -249,7 +251,7 @@ function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs;
             <th className="py-1.5 px-1 text-left text-rh-light-muted/40 dark:text-white/20 font-medium">
               <span className="text-[8px]">Growth↓ WACC→</span>
             </th>
-            {waccSteps.map(wOff => (
+            {WACC_STEPS.map(wOff => (
               <th key={wOff} className={`py-1.5 px-1 text-center font-medium ${
                 wOff === 0 ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20'
               }`}>
@@ -259,7 +261,7 @@ function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs;
           </tr>
         </thead>
         <tbody>
-          {growthSteps.map((gOff, ri) => (
+          {GROWTH_STEPS.map((gOff, ri) => (
             <tr key={ri} className="border-t border-gray-200/15 dark:border-white/[0.03]">
               <td className={`py-1.5 px-1 font-medium ${
                 gOff === 0 ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20'
@@ -268,7 +270,7 @@ function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs;
               </td>
               {rows[ri].map((val, ci) => {
                 if (val == null) return <td key={ci} className="py-1.5 px-1 text-center text-rh-light-muted/20 dark:text-white/10">-</td>;
-                const isCenter = gOff === 0 && waccSteps[ci] === 0;
+                const isCenter = gOff === 0 && WACC_STEPS[ci] === 0;
                 const upside = val > currentPrice;
                 return (
                   <td key={ci} className={`py-1.5 px-1 text-center ${
@@ -367,7 +369,7 @@ export function DCFCalculator({ data, currentPrice }: {
   const [terminalGrowth, setTerminalGrowth] = useState(defaults.terminalGrowth);
   const [projectionYears, setProjectionYears] = useState(defaults.projectionYears);
 
-  const inputs: DCFInputs = {
+  const inputs: DCFInputs = useMemo(() => ({
     revenueGrowth,
     fcfMargin,
     discountRate,
@@ -377,14 +379,14 @@ export function DCFCalculator({ data, currentPrice }: {
     cash: defaults.cash,
     totalDebt: defaults.totalDebt,
     sharesOutstanding: defaults.sharesOutstanding,
-  };
+  }), [revenueGrowth, fcfMargin, discountRate, terminalGrowth, projectionYears, defaults]);
 
   const result = useMemo(() => {
     if (discountRate <= terminalGrowth + 0.005) return null;
     if (defaults.ttmRevenue <= 0) return null;
     if (defaults.sharesOutstanding <= 0) return null;
     return runDCF(inputs);
-  }, [revenueGrowth, fcfMargin, discountRate, terminalGrowth, projectionYears, defaults]);
+  }, [inputs, discountRate, terminalGrowth, defaults]);
 
   if (!result) {
     return (

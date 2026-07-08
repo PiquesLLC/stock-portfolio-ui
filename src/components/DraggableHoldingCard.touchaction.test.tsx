@@ -27,7 +27,6 @@ const baseHolding = {
   priceIsStale: false,
   // Holding type carries more fields, but DraggableHoldingCard only reads the
   // ones above for the rendering paths covered by this regression test.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
 
 describe('DraggableHoldingCard touch-action regression', () => {

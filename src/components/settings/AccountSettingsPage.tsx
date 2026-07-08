@@ -259,7 +259,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       setSaving(false);
     }
   }, [settings, displayName, profilePublic, region, showRegion, holdingsVisibility, dripEnabled,
-      cashInterestRate, ytdBaseline, marginDebt, annualSalary, theme, extendedHours, starfieldEnabled,
+      cashInterestRate, ytdBaseline, marginDebt, annualSalary, theme, timezone, extendedHours, starfieldEnabled,
       notifyPriceAlerts, notifyFollowedActivity, notifyEarnings, userId, onSave, showToast]);
 
   const handleDeleteAccount = async () => {

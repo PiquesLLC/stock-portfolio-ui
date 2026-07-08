@@ -157,6 +157,37 @@ describe('periodStartClose (shared chart/Compare period anchor)', () => {
     expect(periodStartClose('1W', { dates: [], closes: [] })).toBeNull();
   });
 
+  it('anchors 1W at the close BEFORE the window, not the first close inside it (RDDT regression)', () => {
+    // Model the RDDT 2026-07-07 shape with the -7d cutoff landing in a
+    // "weekend" gap (no candles at back-7/-6), which makes the old and new
+    // anchors provably diverge at ANY test run time: pre-gap closes ~178,
+    // the first post-gap day rallies to 197.76, then ~196-197 after.
+    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+    const dates: string[] = [];
+    const closes: number[] = [];
+    for (const back of [9, 8, 5, 4, 3, 2, 1, 0]) {
+      const d = new Date();
+      d.setDate(d.getDate() - back);
+      dates.push(fmt.format(d));
+      closes.push(back >= 8 ? 178 : back === 5 ? 197.76 : 196.67);
+    }
+    const start = periodStartClose('1W', { dates, closes })!;
+    // Baseline must be the ~178 close from before the window — the old
+    // first-close-INSIDE anchor picked the 197.76 rally close and made a
+    // clearly-up week read as -0.55%.
+    expect(start).toBe(178);
+    const latest = closes[closes.length - 1];
+    expect((latest - start) / start).toBeGreaterThan(0); // week reads positive
+  });
+
+  it('YTD anchors at the prior year\'s final close when available', () => {
+    const year = new Date().getFullYear();
+    const dates = [`${year - 1}-12-30`, `${year - 1}-12-31`, `${year}-01-02`, `${year}-01-03`];
+    const closes = [100, 105, 110, 120];
+    // Baseline = Dec 31 close (105), not Jan 2's close (110).
+    expect(periodStartClose('YTD', { dates, closes })).toBe(105);
+  });
+
   it('MAX anchors at the earliest available close', () => {
     const daily = makeDailyHistory(120, 50, 2);
     expect(periodStartClose('MAX', daily)).toBe(daily.closes[0]);

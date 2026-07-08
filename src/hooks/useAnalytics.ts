@@ -135,11 +135,13 @@ export function useAnalytics(nav: NavigationState, isAuthenticated: boolean) {
     }
   }, []);
 
-  // Track feature changes
+  // Track feature changes. The feature is derived during render so the effect
+  // can depend on the RESULT: depending on `nav` itself would re-run every
+  // render (its identity churns), and listing sub-fields trips exhaustive-deps
+  // on the deriveFeature(nav) call.
+  const feature = deriveFeature(nav);
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    const feature = deriveFeature(nav);
     if (feature === currentFeatureRef.current) return;
 
     // End previous view
@@ -148,19 +150,7 @@ export function useAnalytics(nav: NavigationState, isAuthenticated: boolean) {
     // Start new view
     currentFeatureRef.current = feature;
     viewStartRef.current = Date.now();
-  }, [
-    isAuthenticated,
-    nav.activeTab,
-    nav.viewingStock,
-    nav.compareStocks,
-    nav.viewingProfileId,
-    nav.settingsView,
-    nav.creatorView,
-    nav.adminView,
-    nav.showDailyReport,
-    nav.comparingUser,
-    endCurrentView,
-  ]);
+  }, [isAuthenticated, feature, endCurrentView]);
 
   // Flush timer
   useEffect(() => {

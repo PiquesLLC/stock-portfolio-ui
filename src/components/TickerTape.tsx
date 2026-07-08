@@ -122,6 +122,12 @@ export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick
     return () => ro.disconnect();
   }, []);
 
+  // Key on the joined ticker strings, NOT the holdings/indices arrays — the
+  // arrays get new identities on every price poll, and the list below must
+  // only rebuild when the SET of tickers changes.
+  const holdingsTickerKey = holdings.map(h => h.ticker).join(',');
+  const indicesTickerKey = indices.map(i => i.ticker).join(',');
+
   // Build stable ticker list — only changes when tickers are added/removed, NOT on price updates
   const tickerKeys = useMemo(() => {
     const seen = new Set<string>();
@@ -138,14 +144,9 @@ export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick
       if (!seen.has(key)) { seen.add(key); keys.push(key); }
     }
     return keys;
-  }, [
-    // Only recompute when the SET of tickers changes, not prices
+    // holdings/indices are intentionally represented by the joined keys above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    holdings.map(h => h.ticker).join(','),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    indices.map(i => i.ticker).join(','),
-    isDesktop,
-  ]);
+  }, [holdingsTickerKey, indicesTickerKey, isDesktop]);
 
   // Live lookup map — updated every render but doesn't trigger list rebuild
   const dataMap = useMemo(() => {

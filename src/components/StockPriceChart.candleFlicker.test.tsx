@@ -19,13 +19,23 @@ vi.mock('../api', async () => {
   };
 });
 
-vi.mock('../hooks/useLocalStorage', () => ({
-  useLocalStorage: (key: string, initial: unknown) => {
-    if (key === 'stockChartMode') return ['candle', vi.fn()];
-    if (key === 'stockCandleInterval') return ['5m', vi.fn()];
-    return [initial, vi.fn()];
-  },
-}));
+// The real useLocalStorage setter is identity-STABLE (useCallback) — the mock
+// must match, or effects that (correctly) list the setter as a dependency
+// re-fire on every render and loop the component to death.
+vi.mock('../hooks/useLocalStorage', () => {
+  const stableSetters = new Map<string, () => void>();
+  const setterFor = (key: string) => {
+    if (!stableSetters.has(key)) stableSetters.set(key, vi.fn());
+    return stableSetters.get(key)!;
+  };
+  return {
+    useLocalStorage: (key: string, initial: unknown) => {
+      if (key === 'stockChartMode') return ['candle', setterFor(key)];
+      if (key === 'stockCandleInterval') return ['5m', setterFor(key)];
+      return [initial, setterFor(key)];
+    },
+  };
+});
 
 // Spy CandlestickRenderer: capture every invocation with props
 const rendererCalls: { period: string; candleCount: number }[] = [];

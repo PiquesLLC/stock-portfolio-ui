@@ -240,6 +240,12 @@ interface Props {
   onTickerClick?: (ticker: string) => void;
 }
 
+// Module-scope SVG layout constants — stable values keep the scale callbacks'
+// dependency lists honest (a per-render pad object would defeat memoization).
+const GRAPH_WIDTH = 1000;
+const GRAPH_PAD = { top: 12, right: 14, bottom: 25, left: 14 };
+const PLOT_W = GRAPH_WIDTH - GRAPH_PAD.left - GRAPH_PAD.right;
+
 export function SectorRotationGraph({ onTickerClick }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('1D');
   const [data, setData] = useState<SectorPerformanceResponse | null>(null);
@@ -312,14 +318,23 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  const width = 1000;
+  const width = GRAPH_WIDTH;
   const height = isMobile ? 1000 : 470;
-  const pad = { top: 12, right: 14, bottom: 25, left: 14 };
-  const plotW = width - pad.left - pad.right;
+  const pad = GRAPH_PAD;
+  const plotW = PLOT_W;
   const plotH = height - pad.top - pad.bottom;
 
-  const scaleX = (v: number) => pad.left + ((v - bounds.minX) / (bounds.maxX - bounds.minX)) * plotW;
-  const scaleY = (v: number) => pad.top + ((bounds.maxY - v) / (bounds.maxY - bounds.minY)) * plotH;
+  // useCallback so resolvedLabels below can key on the scales — previously it
+  // omitted them and could hold stale positions after a mobile/desktop resize
+  // changed plotH without bounds changing.
+  const scaleX = useCallback(
+    (v: number) => GRAPH_PAD.left + ((v - bounds.minX) / (bounds.maxX - bounds.minX)) * PLOT_W,
+    [bounds],
+  );
+  const scaleY = useCallback(
+    (v: number) => GRAPH_PAD.top + ((bounds.maxY - v) / (bounds.maxY - bounds.minY)) * plotH,
+    [bounds, plotH],
+  );
 
   const centerX = scaleX(0);
   const centerY = scaleY(0);
@@ -344,7 +359,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
     if (hoveredSector) return [];
     const raw = dots.map(d => ({ ticker: d.ticker, x: scaleX(d.current.x), y: scaleY(d.current.y) - 16 }));
     return resolveCollisions(raw, 22);
-  }, [dots, hoveredSector, bounds]);
+  }, [dots, hoveredSector, scaleX, scaleY]);
 
   // Diagnostics data
   const diagnostics = useMemo(() => {
