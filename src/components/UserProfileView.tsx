@@ -68,13 +68,16 @@ const itemVariants = {
 };
 
 // ── Effective return helper ────────────────────────────────────────────
-// Scores grade / tagline / badges off the SAME figure shown as the headline
-// Return (perf.simpleReturnPct — the window value-change, first→last snapshot —
-// falling back to twrPct), so the rating can never contradict the number a
-// viewer sees. Both are window-based (simpleReturnPct is the displayed one).
+// TWR first: simpleReturnPct is the raw first→last snapshot change, which
+// counts DEPOSITS as "return" — a user who added cash mid-window showed
+// +48% here while the (deposit-neutral) leaderboard showed +17% for the
+// same month. twrPct is cashflow-neutralized, matching the leaderboard's
+// methodology; simpleReturnPct remains only as a last-resort fallback.
+// The headline display additionally prefers the user's exact leaderboard
+// twrPct when they're ranked (see displayedReturnPct in the component).
 function effectiveReturn(perf: PerformanceData | null): number | null {
   if (!perf) return null;
-  return perf.simpleReturnPct ?? perf.twrPct ?? null;
+  return perf.twrPct ?? perf.simpleReturnPct ?? null;
 }
 
 // ── Signal Rating Computation ─────────────────────────────────────────
@@ -293,6 +296,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   const [showImport, setShowImport] = useState(false);
   const [rankPercentile, setRankPercentile] = useState<number | null>(null);
   const [rankPosition, setRankPosition] = useState<number | null>(null);
+  // The user's exact leaderboard 1M TWR — displayed as the headline Return
+  // when present so the profile can never contradict the leaderboard row
+  // it advertises ("#1 THIS MONTH").
+  const [lbTwrPct, setLbTwrPct] = useState<number | null>(null);
   const [intelligence, setIntelligence] = useState<{
     topContributor: { ticker: string; pct: number } | null;
     largestDrag: { ticker: string; pct: number } | null;
@@ -314,6 +321,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     setSocialTab(null);
     setRankPercentile(null);
     setRankPosition(null);
+    setLbTwrPct(null);
     setIntelligence(null);
     getUserProfile(userId, currentUserId)
       .then(p => { if (!stale) setProfile(p); })
@@ -327,6 +335,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         if (idx >= 0 && entries.length > 0) {
           setRankPercentile(Math.round(((entries.length - idx) / entries.length) * 100));
           setRankPosition(idx + 1);
+          setLbTwrPct(entries[idx].twrPct ?? null);
         }
       })
       .catch(e => console.error('Leaderboard fetch failed:', e));
@@ -490,7 +499,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       <UserPortfolioView
         userId={userId}
         displayName={profile.displayName}
-        returnPct={profile.performance?.simpleReturnPct ?? profile.performance?.twrPct ?? null}
+        returnPct={lbTwrPct ?? effectiveReturn(profile.performance ?? null)}
         window="1M"
         session={session}
         currentUserId={currentUserId}
@@ -549,6 +558,17 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
     '6M': 'Return (6mo)', 'YTD': 'Return (YTD)', '1Y': 'Return (1yr)', 'ALL': 'Return (All)',
   };
   const returnLabel = (perf?.window && RETURN_WINDOW_LABEL[perf.window]) || 'Return';
+  // Headline return: exact leaderboard figure when ranked, else the
+  // deposit-neutral TWR (see effectiveReturn). VS-benchmark alpha is
+  // recomputed against the SAME displayed figure so the pair stays coherent
+  // (benchmark return = simpleReturnPct − alphaPct, both from the API).
+  const displayedReturnPct = lbTwrPct ?? effectiveReturn(perf);
+  const benchmarkReturnPct = perf && perf.simpleReturnPct !== null && perf.alphaPct !== null
+    ? perf.simpleReturnPct - perf.alphaPct
+    : null;
+  const displayedAlphaPct = displayedReturnPct !== null && benchmarkReturnPct !== null
+    ? displayedReturnPct - benchmarkReturnPct
+    : perf?.alphaPct ?? null;
   const hasPerformance = perf && perf.snapshotCount >= 2;
   const isNewAccount = profile.followerCount === 0 && profile.followingCount === 0;
 
@@ -670,14 +690,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             )}
           <div className="flex items-center gap-0">
             <PerformanceStat
-              value={perf?.simpleReturnPct ?? perf?.twrPct ?? null}
+              value={displayedReturnPct}
               label={returnLabel}
               isPercent
               primary
             />
             <div className="w-px h-8 bg-gray-200/30 dark:bg-white/[0.06]" />
             <PerformanceStat
-              value={perf?.alphaPct ?? null}
+              value={displayedAlphaPct}
               label={`vs ${perf?.benchmarkTicker ?? 'SPY'}`}
               isPercent
             />
