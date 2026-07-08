@@ -499,7 +499,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       <UserPortfolioView
         userId={userId}
         displayName={profile.displayName}
-        returnPct={lbTwrPct ?? effectiveReturn(profile.performance ?? null)}
+        returnPct={(profile.performance?.window === '1M' ? lbTwrPct : null) ?? effectiveReturn(profile.performance ?? null)}
         window="1M"
         session={session}
         currentUserId={currentUserId}
@@ -562,7 +562,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   // deposit-neutral TWR (see effectiveReturn). VS-benchmark alpha is
   // recomputed against the SAME displayed figure so the pair stays coherent
   // (benchmark return = simpleReturnPct − alphaPct, both from the API).
-  const displayedReturnPct = lbTwrPct ?? effectiveReturn(perf);
+  // The leaderboard override only applies when the perf window is also 1M —
+  // a ranked user with <30d of history has window '1W'/'1D', and showing the
+  // 1M figure under that label would mix windows in both label and alpha.
+  const displayedReturnPct = (perf?.window === '1M' ? lbTwrPct : null) ?? effectiveReturn(perf);
   const benchmarkReturnPct = perf && perf.simpleReturnPct !== null && perf.alphaPct !== null
     ? perf.simpleReturnPct - perf.alphaPct
     : null;
