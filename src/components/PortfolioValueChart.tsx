@@ -137,6 +137,7 @@ export function PortfolioValueChart({
   // quote glitches from spiking the chart.
   const confirmedValueRef = useRef(currentValue);
   const pendingValueRef = useRef<number | null>(null);
+  const pendingSetAtRef = useRef(0);
   // Synchronous computation — must stay in useMemo (not useEffect) so liveValue
   // updates in the same render as currentValue. An async useEffect would cause
   // a 1-frame delay where the hero shows the new value but the chart line hasn't caught up.
@@ -145,10 +146,23 @@ export function PortfolioValueChart({
     const jumpPct = prev > 0 ? Math.abs(currentValue - prev) / prev : 0;
     const isAfterHours = session === 'POST' || session === 'PRE';
     if (isAfterHours && jumpPct > 0.003) {
-      if (pendingValueRef.current !== null && Math.abs(currentValue - pendingValueRef.current) / currentValue < 0.001) {
+      if (
+        pendingValueRef.current !== null &&
+        Math.abs(currentValue - pendingValueRef.current) / currentValue < 0.001 &&
+        // Temporal guard: StrictMode double-invoke (and discarded concurrent
+        // renders) re-run this memo with the same value in the same tick — two
+        // RENDERS are not two POLLS. Require the pending observation to be ≥1s
+        // old so only a genuinely later poll can confirm the jump.
+        Date.now() - pendingSetAtRef.current >= 1000
+      ) {
         confirmedValueRef.current = currentValue;
         pendingValueRef.current = null;
         return currentValue;
+      }
+      // Only (re)stamp the observation time when the pending value materially
+      // changes — re-stamping on every render would keep it perpetually "fresh".
+      if (pendingValueRef.current === null || Math.abs(currentValue - pendingValueRef.current) / currentValue >= 0.001) {
+        pendingSetAtRef.current = Date.now();
       }
       pendingValueRef.current = currentValue;
       return prev;

@@ -102,7 +102,7 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
     }
   }, [currentUserId, authLoading, portfolioId]);
 
-  // Adaptive polling: 5s during regular hours, 15s during extended/closed
+  // Adaptive polling: 5s during regular hours, 30s extended, 60s closed.
   // Prevents after-hours oscillation from cache TTL mismatches across providers
   const sessionRef = useRef(portfolio?.session);
   sessionRef.current = portfolio?.session;
@@ -112,20 +112,21 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
     fetchData();
     const getInterval = () => {
       const s = sessionRef.current;
-      if (s === 'CLOSED') return 0; // Don't poll when market is closed
+      // CLOSED keeps a slow heartbeat rather than stopping: the only thing that
+      // updates sessionRef is a poll, so a stopped loop could never observe the
+      // CLOSED→PRE/REG transition — values stayed frozen at market open until a
+      // manual refresh (and a mount while CLOSED never started polling at all).
+      if (s === 'CLOSED') return 60_000;
       if (s === 'PRE' || s === 'POST') return 30_000; // 30s during extended hours
       return REFRESH_INTERVAL; // 5s during market hours
     };
-    // Use dynamic interval via chained setTimeout — stops entirely when market closed
+    // Dynamic interval via chained setTimeout — re-evaluated every tick
     let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
-      const interval = getInterval();
-      if (interval === 0) return; // Market closed — stop polling
       fetchData();
-      timer = setTimeout(tick, interval);
+      timer = setTimeout(tick, getInterval());
     };
-    const firstInterval = getInterval();
-    if (firstInterval > 0) timer = setTimeout(tick, firstInterval);
+    timer = setTimeout(tick, getInterval());
     return () => clearTimeout(timer);
   }, [fetchData, currentUserId, authLoading]);
 

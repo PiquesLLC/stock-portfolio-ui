@@ -841,7 +841,13 @@ export function IntelligenceTab({
     <div className="pt-4 lg:pt-6 pb-12">
 
       {/* ============== HERO ============== */}
-      <section className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 lg:gap-14 mb-10 lg:mb-14">
+      {/* Desktop only: a see-through "glass" card (transparent fill, hairline edge, faint top
+          sheen) wraps the whole block; hero + chart sit in the 2-col grid on top and the
+          attribution stats become a full-width strip along the bottom. Mobile is unchanged —
+          every card/grid class here is lg:-scoped, so the phone keeps its single-column stack. */}
+      <section className="mb-10 lg:mb-14 lg:rounded-2xl lg:border lg:border-black/[0.07] dark:lg:border-white/[0.07] lg:p-7 lg:backdrop-blur-[2px] lg:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-8 lg:gap-12">
 
         <div>
           <div className="flex items-center flex-wrap gap-3 mb-4 lg:mb-5">
@@ -916,8 +922,13 @@ export function IntelligenceTab({
             }
             onMetricsLoaded={setChartMetrics}
           />
+        </div>
+        </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-3 text-[11px]">
+        {/* Attribution stats — full-width strip along the bottom of the card on desktop; on
+            mobile it stays the 2-col grid directly under the chart, exactly as before (mt-5,
+            grid-cols-2). Divider + 4-up layout are lg:-only. */}
+        <div className="mt-5 lg:mt-8 lg:pt-6 lg:border-t lg:border-black/[0.06] dark:lg:border-white/[0.06] grid grid-cols-2 lg:grid-cols-4 gap-x-5 lg:gap-x-8 gap-y-3 text-[11px]">
             {intelligence.heroStats?.sectorDriver?.sector && (
               <div className="flex flex-col gap-0.5 border-b border-white/[0.06] pb-2">
                 <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Sector Driver</span>
@@ -962,7 +973,6 @@ export function IntelligenceTab({
               </span>
             </div>
           </div>
-        </div>
       </section>
 
       {/* ============== STAT ROW ============== */}

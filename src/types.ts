@@ -609,7 +609,7 @@ export interface SymbolSearchResponse {
 }
 
 // Leaderboard types
-export type LeaderboardWindow = '1D' | '1W' | '1M' | 'YTD' | '1Y';
+export type LeaderboardWindow = '1D' | '1W' | '1M' | '6M' | 'YTD' | '1Y';
 export type LeaderboardRegion = 'world' | 'na' | 'europe' | 'apac';
 
 export interface LeaderboardEntry {
@@ -631,7 +631,8 @@ export interface LeaderboardEntry {
   snapshotCount: number;
   startDateUsed: string | null;
   endDateUsed: string | null;
-  currentAssets: number | null;
+  // currentAssets intentionally absent — the API withholds exact portfolio
+  // values for privacy (see api leaderboard.service.ts).
 }
 
 export interface LeaderboardResponse {

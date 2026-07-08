@@ -294,10 +294,18 @@ export function useStockData(ticker: string, chartPeriod: string) {
       if (requestIdRef.current !== requestId) return; // ticker changed mid-fetch
       setData(prev => {
         if (!prev) return prev;
-        // Preserve the best high/low/open across poll updates (Yahoo initial + Finnhub polls)
-        const high = Math.max(quote.high || 0, prev.quote.high || 0) || quote.high;
-        const low = (quote.low > 0 && prev.quote.low > 0) ? Math.min(quote.low, prev.quote.low) : (quote.low || prev.quote.low);
-        const open = quote.open > 0 ? quote.open : prev.quote.open;
+        // Preserve the best high/low/open across poll updates (Yahoo initial + Finnhub
+        // polls) — but only within the same ET trading day. A view left mounted across
+        // close→reopen must not carry yesterday's extremes into the new session.
+        const etDay = (ts: number) =>
+          new Date(ts * 1000).toLocaleDateString('en-US', { timeZone: 'America/New_York' });
+        const sameDay = !!(quote.timestamp && prev.quote.timestamp) &&
+          etDay(quote.timestamp) === etDay(prev.quote.timestamp);
+        const high = sameDay ? (Math.max(quote.high || 0, prev.quote.high || 0) || quote.high) : quote.high;
+        const low = sameDay
+          ? ((quote.low > 0 && prev.quote.low > 0) ? Math.min(quote.low, prev.quote.low) : (quote.low || prev.quote.low))
+          : quote.low;
+        const open = sameDay ? (quote.open > 0 ? quote.open : prev.quote.open) : quote.open;
         return { ...prev, quote: { ...quote, high, low, open } };
       });
       if (intraday && intraday.length > 0) {

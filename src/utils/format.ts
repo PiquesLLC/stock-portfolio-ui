@@ -37,7 +37,10 @@ export function changeColorClass(pct: number): string {
 
 /** Format a date string as "Mon D" (e.g. "Mar 26") */
 export function formatShortDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  // Date-only strings parse as UTC midnight, which toLocaleDateString then
+  // renders a day EARLY in all US timezones — anchor them to local midnight.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? new Date(`${dateStr}T00:00:00`) : new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 /**

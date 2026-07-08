@@ -18,7 +18,7 @@ const REGIONS: { id: LeaderboardRegion; label: string }[] = [
   { id: 'apac', label: 'Asia-Pacific' },
 ];
 
-type SortKey = 'rank' | 'user' | 'twrPct' | 'returnDollar' | 'assets';
+type SortKey = 'rank' | 'user' | 'twrPct' | 'returnDollar';
 type SortDir = 'asc' | 'desc';
 
 function formatCurrency(value: number | null): string {
@@ -36,7 +36,6 @@ function getNumericValue(entry: LeaderboardEntry, key: SortKey): number | null {
   switch (key) {
     case 'twrPct': return entry.twrPct;
     case 'returnDollar': return entry.returnDollar;
-    case 'assets': return entry.currentAssets;
     default: return null;
   }
 }
@@ -146,11 +145,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
         else comparison = aVal - bVal;
       }
 
-      if (comparison === 0 && sortKey !== 'assets') {
-        const aAssets = a.currentAssets ?? 0;
-        const bAssets = b.currentAssets ?? 0;
-        comparison = bAssets - aAssets;
-      }
       if (comparison === 0 && sortKey !== 'user') {
         comparison = a.displayName.localeCompare(b.displayName);
       }
@@ -300,9 +294,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                     <th className={`${getHeaderClass('returnDollar', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleSort('returnDollar')}>
                       {getSortIndicator('returnDollar')}Return $
                     </th>
-                    <th className={`${getHeaderClass('assets', 'right')} text-[11px] hidden sm:table-cell`} onClick={() => handleSort('assets')}>
-                      {getSortIndicator('assets')}Assets
-                    </th>
                     <th className="px-2 sm:px-4 py-3 w-10 sm:w-16"></th>
                   </tr>
                 </thead>
@@ -348,9 +339,6 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                               {formatCurrency(entry.returnDollar)}
                             </>
                           ) : '--'}
-                        </td>
-                        <td className="px-2 sm:px-4 py-3.5 text-sm text-right text-rh-light-text dark:text-rh-text hidden sm:table-cell tabular-nums">
-                          {formatCurrency(entry.currentAssets)}
                         </td>
                         <td className="px-2 sm:px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">

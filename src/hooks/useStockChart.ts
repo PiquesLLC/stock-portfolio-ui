@@ -150,7 +150,9 @@ export function useStockChart({
     for (let i = 0; i < n; i++) {
       if (dates[i] >= cutoffStr) { windowStart = i; break; }
     }
-    const scanStart = Math.max(windowStart, 200);
+    // 201, not 200: ma200prev at index i reads closes[i-201], so i=200 would
+    // read closes[-1] → NaN → silently suppress a cross at exactly that index.
+    const scanStart = Math.max(windowStart, 201);
 
     let lastCrossDate: string | null = null;
     let lastMa100 = 0, lastMa200 = 0;
