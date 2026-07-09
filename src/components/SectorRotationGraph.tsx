@@ -243,8 +243,11 @@ interface Props {
 // Module-scope SVG layout constants — stable values keep the scale callbacks'
 // dependency lists honest (a per-render pad object would defeat memoization).
 const GRAPH_WIDTH = 1000;
+// Mobile uses a narrower design canvas: same rendered width across fewer
+// viewBox units means every dot/label/trail paints ~1.8× larger, and
+// 560×1000 ≈ 9:16 (portrait-reel proportions).
+const GRAPH_WIDTH_MOBILE = 560;
 const GRAPH_PAD = { top: 12, right: 14, bottom: 25, left: 14 };
-const PLOT_W = GRAPH_WIDTH - GRAPH_PAD.left - GRAPH_PAD.right;
 
 export function SectorRotationGraph({ onTickerClick }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('1D');
@@ -318,18 +321,18 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  const width = GRAPH_WIDTH;
+  const width = isMobile ? GRAPH_WIDTH_MOBILE : GRAPH_WIDTH;
   const height = isMobile ? 1000 : 470;
   const pad = GRAPH_PAD;
-  const plotW = PLOT_W;
+  const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
 
   // useCallback so resolvedLabels below can key on the scales — previously it
   // omitted them and could hold stale positions after a mobile/desktop resize
   // changed plotH without bounds changing.
   const scaleX = useCallback(
-    (v: number) => GRAPH_PAD.left + ((v - bounds.minX) / (bounds.maxX - bounds.minX)) * PLOT_W,
-    [bounds],
+    (v: number) => GRAPH_PAD.left + ((v - bounds.minX) / (bounds.maxX - bounds.minX)) * plotW,
+    [bounds, plotW],
   );
   const scaleY = useCallback(
     (v: number) => GRAPH_PAD.top + ((bounds.maxY - v) / (bounds.maxY - bounds.minY)) * plotH,
@@ -351,15 +354,15 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
     : '0 1px 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.6)';
 
   // Axis ticks
-  const xTicks = useMemo(() => getAxisTicks(bounds.minX, bounds.maxX, 5), [bounds]);
+  const xTicks = useMemo(() => getAxisTicks(bounds.minX, bounds.maxX, isMobile ? 4 : 5), [bounds, isMobile]);
   const yTicks = useMemo(() => getAxisTicks(bounds.minY, bounds.maxY, 4), [bounds]);
 
   // Collision-resolved ticker labels for non-hovered state
   const resolvedLabels = useMemo(() => {
     if (hoveredSector) return [];
     const raw = dots.map(d => ({ ticker: d.ticker, x: scaleX(d.current.x), y: scaleY(d.current.y) - 16 }));
-    return resolveCollisions(raw, 22);
-  }, [dots, hoveredSector, scaleX, scaleY]);
+    return resolveCollisions(raw, isMobile ? 26 : 22);
+  }, [dots, hoveredSector, scaleX, scaleY, isMobile]);
 
   // Diagnostics data
   const diagnostics = useMemo(() => {
@@ -582,12 +585,12 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
             <g key={q.label}>
               {/* Soft glow behind text */}
               <text x={q.x} y={q.y} textAnchor={q.anchor}
-                fontSize="11" fontWeight="800" letterSpacing="0.18em" fill={q.color} opacity={0.12}
+                fontSize={isMobile ? 14 : 11} fontWeight="800" letterSpacing="0.18em" fill={q.color} opacity={0.12}
                 style={{ filter: 'blur(6px)' }}>
                 {q.label}
               </text>
               <text x={q.x} y={q.y} textAnchor={q.anchor}
-                fontSize="11" fontWeight="800" letterSpacing="0.18em" fill={q.color} opacity={isDark ? 0.35 : 0.5}>
+                fontSize={isMobile ? 14 : 11} fontWeight="800" letterSpacing="0.18em" fill={q.color} opacity={isDark ? 0.35 : 0.5}>
                 {q.label}
               </text>
             </g>
@@ -608,7 +611,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                 <line x1={x} y1={centerY - 3} x2={x} y2={centerY + 3}
                   stroke={lineColor} strokeWidth={0.8} opacity={lineOp * 1.5} />
                 <text x={x} y={pad.top + plotH + 14} textAnchor="middle"
-                  fontSize="8" fill={lineColor} opacity={isDark ? 0.2 : 0.25}>
+                  fontSize={isMobile ? 10 : 8} fill={lineColor} opacity={isDark ? 0.2 : 0.25}>
                   {v > 0 ? '+' : ''}{v.toFixed(1)}%
                 </text>
               </g>
@@ -621,7 +624,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                 <line x1={centerX - 3} y1={y} x2={centerX + 3} y2={y}
                   stroke={lineColor} strokeWidth={0.8} opacity={lineOp * 1.5} />
                 <text x={pad.left + plotW + 2} y={y + 3} textAnchor="end"
-                  fontSize="8" fill={lineColor} opacity={isDark ? 0.2 : 0.25}>
+                  fontSize={isMobile ? 10 : 8} fill={lineColor} opacity={isDark ? 0.2 : 0.25}>
                   {v > 0 ? '+' : ''}{v.toFixed(1)}
                 </text>
               </g>
@@ -749,7 +752,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
               key={`hit-${dot.ticker}`}
               cx={scaleX(dot.current.x)}
               cy={scaleY(dot.current.y)}
-              r={14}
+              r={isMobile ? 20 : 14}
               fill="transparent"
               className="cursor-pointer"
               onMouseEnter={() => setHoveredSector(dot.ticker)}
@@ -771,7 +774,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
             return (
               <text key={`label-${label.ticker}`}
                 x={label.x} y={label.y}
-                textAnchor="middle" fontSize={9} fontWeight={600}
+                textAnchor="middle" fontSize={isMobile ? 13 : 9} fontWeight={600}
                 fill={dot.color} opacity={0.6}
                 className="select-none pointer-events-none"
                 style={{ textShadow }}>
@@ -798,7 +801,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
               : quadrant === 'Weakening' ? '↘ Weakening — fading'
               : '⬇ Lagging — falling behind';
 
-            const foX = rawX + 300 < width ? rawX + 22 : rawX - 280;
+            const foX = Math.max(2, rawX + 300 < width ? rawX + 22 : rawX - 280);
             const foY = Math.max(pad.top, rawY - 40);
 
             return (
