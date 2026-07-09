@@ -233,7 +233,11 @@ function RiskRadar({ values, labels }: {
   };
 
   return (
-    <svg viewBox="0 0 300 280" className="w-full max-w-[280px] h-auto mx-auto">
+    // 30 viewBox units of margin each side + extra bottom so edge labels
+    // (DIVERSIF./CORREL. end-anchored left, VOL/BETA start-anchored right,
+    // DRAWDOWN's second line) can never clip; max-w bumped so the rendered
+    // hexagon stays close to (~5% under) the old 280px/300-unit canvas.
+    <svg viewBox="-30 0 360 292" className="w-full max-w-[320px] h-auto mx-auto">
       {/* grid hexagons */}
       {[1, 0.75, 0.5, 0.25].map((s, i) => (
         <polygon
@@ -283,7 +287,10 @@ function RiskRadar({ values, labels }: {
             opacity={missing ? 0.45 : 1}
             style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}
           >
-            {l}{missing ? ' · N/A' : ''}
+            {l}
+            {missing ? (
+              <tspan x={p.x} dy={11} style={{ fontSize: '8px', fontWeight: 600 }}>N/A</tspan>
+            ) : null}
           </text>
         );
       })}
