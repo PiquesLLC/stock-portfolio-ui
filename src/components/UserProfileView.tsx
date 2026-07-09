@@ -716,7 +716,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             ) : (
               <PerformanceStat
                 value={perf?.beta ?? null}
-                label="Beta"
+                label={perf?.window ? `Beta (${perf.window})` : 'Beta'}
                 formatFn={(v) => v.toFixed(2)}
               />
             )}

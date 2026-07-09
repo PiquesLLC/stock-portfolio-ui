@@ -1032,7 +1032,9 @@ export function IntelligenceTab({
             </svg>
           }
           sub={hasHoldings ? <>
-            β {intelligence.beta?.portfolioBeta != null ? intelligence.beta.portfolioBeta.toFixed(2) : '—'}
+            <span title="Fitted over ~9 months of daily returns vs SPY — a longer window than the profile's Beta">
+              β {intelligence.beta?.portfolioBeta != null ? intelligence.beta.portfolioBeta.toFixed(2) : '—'}
+            </span>
             <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
             <span className="tabular-nums">{compositeRisk != null ? `${compositeRisk.toFixed(1)}/10` : '—'}</span>
           </> : '—'}

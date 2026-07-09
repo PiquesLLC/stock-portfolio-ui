@@ -206,7 +206,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
       </div>
 
       {/* Summary Cards — Fix #1: higher contrast labels */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <SummaryCard
           label="Holdings"
           myValue={`${myPortfolio.holdings.length}`}
@@ -226,12 +226,6 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
           myColor={myPortfolio.dayChangePercent >= 0}
           theirValue={formatPct(theirPortfolio.dayChangePercent)}
           theirColor={theirPortfolio.dayChangePercent >= 0}
-          theirName={theirDisplayName}
-        />
-        <SummaryCard
-          label="Beta"
-          myValue="—"
-          theirValue="—"
           theirName={theirDisplayName}
         />
       </div>

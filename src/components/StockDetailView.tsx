@@ -1311,7 +1311,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <StatItem label={<Term beginner="Year Low" advanced="52W Low" />} value={formatCurrency(metrics.week52Low)} />
             )}
             {metrics?.beta != null && (
-              <StatItem label={<Term beginner="Volatility" advanced="Beta" />} value={metrics.beta.toFixed(2)} />
+              <StatItem label={<Term beginner="Market Sensitivity" advanced="Beta" />} value={metrics.beta.toFixed(2)} />
             )}
             {metrics?.eps !== undefined && metrics.eps !== null && (
               <StatItem label={<Term beginner="Earnings/Share" advanced="EPS" />} value={`$${metrics.eps.toFixed(2)}`} />
