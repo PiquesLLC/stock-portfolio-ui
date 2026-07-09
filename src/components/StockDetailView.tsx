@@ -1164,8 +1164,8 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         )}
       </div>
 
-      {/* Warning Panel */}
-      {!loading && <WarningPanel candles={data.candles} currentPrice={quote.currentPrice} />}
+      {/* Warning Panel — metrics come from the canonical server engine */}
+      {!loading && <WarningPanel ticker={ticker} />}
 
       {/* Nala Score */}
       {showNalaScore ? (

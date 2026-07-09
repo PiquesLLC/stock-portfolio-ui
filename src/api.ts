@@ -2612,6 +2612,48 @@ export function downloadDividendCalendar(months?: number, ticker?: string): void
 // Nala Score
 import { NalaScoreResponse, EtfOverlapResponse, AnomalyEvent } from './types';
 
+// ── Risk Temperature (canonical per-stock risk metrics, computed server-side) ──
+
+export interface RiskMetricResult {
+  value: string;
+  context: string;
+  percentile?: number;
+  level: 'low' | 'elevated' | 'high';
+  detail?: string;
+  explanation?: string;
+}
+
+export interface RiskTemperatureMetrics {
+  temperature: RiskMetricResult | null;
+  trend: RiskMetricResult | null;
+  trendBreak: RiskMetricResult | null;
+  volatility: RiskMetricResult | null;
+  euphoria: RiskMetricResult | null;
+  crash: RiskMetricResult | null;
+  drawdown: RiskMetricResult | null;
+  correction: RiskMetricResult | null;
+  gap: RiskMetricResult | null;
+  distribution: RiskMetricResult | null;
+}
+
+export interface RiskTemperatureResponse {
+  ticker: string;
+  available: boolean;
+  asOf: string | null;
+  days: number;
+  metrics: RiskTemperatureMetrics | null;
+}
+
+export async function getRiskTemperature(ticker: string): Promise<RiskTemperatureResponse | null> {
+  try {
+    return await fetchJson<RiskTemperatureResponse>(
+      `${API_BASE_URL}/market/stock/${encodeURIComponent(ticker)}/risk-temperature`
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function getNalaScore(ticker: string): Promise<NalaScoreResponse | null> {
   try {
     return await fetchJson<NalaScoreResponse>(
