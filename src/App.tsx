@@ -95,7 +95,7 @@ function safeSessionStorageSet(key: string, value: string): void {
   }
 }
 
-// Preload heatmap data 3s after boot so Heatmap tab opens instantly
+// Preload heatmap data 3s after boot so the Sectors tab (heatmap default view) opens instantly
 if (isBrowser()) {
   setTimeout(() => {
     import('./api').then(({ getMarketHeatmap }) => {

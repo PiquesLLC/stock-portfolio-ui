@@ -460,16 +460,17 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
 
       {/* Main graph */}
       <div className="relative">
-        {/* Header: Title + Group filters */}
+        {/* Header: period selector + group filters */}
         <div className="space-y-1 mb-1 px-[1.4%]">
-          {/* Period selector + group pills on same row */}
-          <div className="flex items-center justify-between">
+          {/* Period selector + group pills share one row at every width; compact
+              paddings below sm keep a real gap between the two groups on phones */}
+          <div className="flex items-center justify-between gap-x-2">
             <div className="flex items-center gap-0 -ml-1">
               {(['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`relative px-1.5 py-2 text-[11px] font-semibold transition-all duration-150 ${
+                  className={`relative px-1 sm:px-1.5 py-2 text-[11px] font-semibold transition-all duration-150 ${
                     viewMode === mode
                       ? 'text-rh-green'
                       : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
@@ -482,7 +483,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                 </button>
               ))}
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1 sm:gap-1.5">
               {([
                 { group: 'cyclical' as const, label: 'Cyclical', color: '#f59e0b' },
                 { group: 'defensive' as const, label: 'Defensive', color: '#10b981' },
@@ -493,7 +494,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                   <button
                     key={g.group}
                     onClick={() => toggleGroup(g.group)}
-                    className={`px-2.5 py-0.5 text-[10px] font-medium rounded-full transition-all border ${
+                    className={`px-2 sm:px-2.5 py-0.5 text-[10px] font-medium rounded-full transition-all border ${
                       active
                         ? 'border-current'
                         : 'border-transparent opacity-30 hover:opacity-50'
