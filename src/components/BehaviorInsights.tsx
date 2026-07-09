@@ -34,7 +34,7 @@ const SEVERITY_STYLES: Record<BehaviorInsight['severity'], { border: string; bad
 };
 
 // ── Category icons (inline SVG paths) ────────────────────────────
-// ── Score helpers (matching HealthScore.tsx pattern) ──────────────
+// ── Score helpers (same ladder pattern as the Insights health grade) ──────
 function getScoreColor(score: number): string {
   if (score >= 75) return 'text-rh-green';
   if (score >= 50) return 'text-yellow-400';

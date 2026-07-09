@@ -19,6 +19,7 @@ import {
 } from '../api';
 import { useToast } from '../context/ToastContext';
 import { PortfolioVsSpyMini } from './PortfolioVsSpyMini';
+import { RiskForecast as RiskForecastCard } from './RiskForecast';
 
 /* ─────────────────────────────────────────────
    Tokens & helpers
@@ -218,10 +219,12 @@ function RiskRadar({ values, labels }: {
   };
   const polygonPoints = (scale: number) =>
     angles.map(a => `${cx + r * scale * Math.cos(a)},${cy + r * scale * Math.sin(a)}`).join(' ');
-  // null dims collapse to the center (no measurement) and get no vertex dot —
-  // visually distinct from any real value (real dims are floored at 0.05).
-  const dataPoints = values.map((v, i) => point(v ?? 0, i));
-  const dataPath = dataPoints.map(([x, y]) => `${x},${y}`).join(' ');
+  // Missing dims get no vertex dot and are EXCLUDED from the data polygon —
+  // the shape connects only measured dims, instead of pinching through the
+  // center and degenerating into a sliver when a dim is unavailable.
+  const dataPoints = values.map((v, i) => (v != null ? point(v, i) : null));
+  const measuredPoints = dataPoints.filter((p): p is number[] => p !== null);
+  const dataPath = measuredPoints.length >= 3 ? measuredPoints.map(([x, y]) => `${x},${y}`).join(' ') : '';
 
   const labelPos = (i: number, offset = 22) => {
     const x = cx + (r + offset) * Math.cos(angles[i]);
@@ -260,17 +263,19 @@ function RiskRadar({ values, labels }: {
           strokeWidth={1}
         />
       ))}
-      {/* data area */}
-      <polygon
-        points={dataPath}
-        fill="rgba(0,200,5,0.18)"
-        stroke="#00c805"
-        strokeWidth={1.5}
-        style={{ filter: 'drop-shadow(0 0 8px rgba(0,200,5,0.45))' }}
-      />
-      {dataPoints.map(([x, y], i) => (
-        values[i] != null
-          ? <circle key={i} cx={x} cy={y} r={3.5} fill="#00c805" stroke="#000" strokeWidth={2} />
+      {/* data area — only drawn when 3+ dims are measured */}
+      {dataPath && (
+        <polygon
+          points={dataPath}
+          fill="rgba(0,200,5,0.18)"
+          stroke="#00c805"
+          strokeWidth={1.5}
+          style={{ filter: 'drop-shadow(0 0 8px rgba(0,200,5,0.45))' }}
+        />
+      )}
+      {dataPoints.map((p, i) => (
+        p !== null
+          ? <circle key={i} cx={p[0]} cy={p[1]} r={3.5} fill="#00c805" stroke="#000" strokeWidth={2} />
           : null
       ))}
       {/* labels */}
@@ -696,9 +701,9 @@ export function IntelligenceTab({
   // Gate the stat row on real positions.
   const hasHoldings = (portfolio?.holdings?.length ?? 0) > 0;
 
-  // Canonical Health Score grade — MUST match HealthScore.tsx getScoreLabel (80/60/40/20)
-  // so the same number reads the same word on every screen (was 85/70/55/40 here, which
-  // made e.g. 72 show "Strong" here but "Good" on the Health card).
+  // Canonical Health Score grade ladder (80/60/40/20) — the single home of the
+  // score->word mapping now that the standalone HealthScore card is retired
+  // (it briefly used 85/70/55/40 here, making 72 read "Strong" vs "Good").
   const healthLabel =
     !healthScore ? '—' :
     healthScore.overall >= 80 ? 'Excellent' :
@@ -1177,6 +1182,18 @@ export function IntelligenceTab({
           </div>
         </div>
       </section>
+
+      {/* ============== RISK FORECAST (Monte-Carlo scenarios) ============== */}
+      {hasHoldings && risk && risk.status !== 'insufficient' && (
+        <section className="mb-10 lg:mb-14">
+          <SectionHeader
+            label="Projections"
+            title="One-Year Scenarios"
+            sub="Simulated from your portfolio's realized daily returns"
+          />
+          <RiskForecastCard data={risk} />
+        </section>
+      )}
 
       {/* ============== SECTOR DONUT ============== */}
       <section className="mb-10 lg:mb-14">
