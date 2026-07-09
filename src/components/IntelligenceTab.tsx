@@ -204,7 +204,7 @@ function MoverRow({ ticker, dollar, percent, max, kind, onTickerClick }: {
    ───────────────────────────────────────────── */
 
 function RiskRadar({ values, labels }: {
-  values: number[]; // 0..1, length 6
+  values: (number | null)[]; // 0..1, length 6; null = no measurement (drawn at center, labeled n/a)
   labels: string[];
 }) {
   // 6 vertices on a hexagon, starting from top, clockwise
@@ -218,7 +218,9 @@ function RiskRadar({ values, labels }: {
   };
   const polygonPoints = (scale: number) =>
     angles.map(a => `${cx + r * scale * Math.cos(a)},${cy + r * scale * Math.sin(a)}`).join(' ');
-  const dataPoints = values.map((v, i) => point(v, i));
+  // null dims collapse to the center (no measurement) and get no vertex dot —
+  // visually distinct from any real value (real dims are floored at 0.05).
+  const dataPoints = values.map((v, i) => point(v ?? 0, i));
   const dataPath = dataPoints.map(([x, y]) => `${x},${y}`).join(' ');
 
   const labelPos = (i: number, offset = 22) => {
@@ -263,11 +265,14 @@ function RiskRadar({ values, labels }: {
         style={{ filter: 'drop-shadow(0 0 8px rgba(0,200,5,0.45))' }}
       />
       {dataPoints.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={3.5} fill="#00c805" stroke="#000" strokeWidth={2} />
+        values[i] != null
+          ? <circle key={i} cx={x} cy={y} r={3.5} fill="#00c805" stroke="#000" strokeWidth={2} />
+          : null
       ))}
       {/* labels */}
       {labels.map((l, i) => {
         const p = labelPos(i, 16);
+        const missing = values[i] == null;
         return (
           <text
             key={i}
@@ -275,9 +280,10 @@ function RiskRadar({ values, labels }: {
             textAnchor={p.anchor}
             dominantBaseline="middle"
             className="fill-rh-light-muted dark:fill-rh-muted"
+            opacity={missing ? 0.45 : 1}
             style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}
           >
-            {l}
+            {l}{missing ? ' · N/A' : ''}
           </text>
         );
       })}
@@ -631,32 +637,51 @@ export function IntelligenceTab({
     }));
   }, [intelligence.sectorExposure]);
 
-  // Risk radar values 0..1 (higher = more risk)
-  const radarValues = useMemo(() => {
-    const breakdown = healthScore?.breakdown;
+  // Risk radar values 0..1 (higher = more risk). null = no measurement —
+  // rendered as "n/a" and EXCLUDED from the composite. Previously missing
+  // data silently became neutral-looking constants (0.5 vol, 0.6 corr,
+  // beta 1.0), which painted fabricated values as real measurements.
+  const radarValues = useMemo<(number | null)[]>(() => {
+    // healthScore.partial = zero holdings — the breakdown is a baseline shell,
+    // not a measurement; render the whole radar as unmeasured.
+    const breakdown = healthScore && !healthScore.partial ? healthScore.breakdown : undefined;
+    const missing = new Set(healthScore?.insufficientDims ?? []);
     // Health-score sub-metrics: higher score = lower risk. Invert for radar.
     const inv = (n: number, max: number) => Math.max(0.05, Math.min(1, 1 - n / max));
-    const concentration = breakdown ? inv(breakdown.concentration, 25) : 0.5;
-    const volatility = breakdown ? inv(breakdown.volatility, 25) : 0.5;
-    const drawdown = breakdown ? inv(breakdown.drawdown, 25) : 0.5;
-    const diversification = breakdown ? inv(breakdown.diversification, 25) : 0.5;
-    const beta = intelligence.beta?.portfolioBeta ?? 1.0;
-    const betaRisk = Math.max(0.1, Math.min(1, Math.abs(beta - 1) + 0.4));
-    const corr = leak?.spyCorrelation ?? 0.6;
-    const corrRisk = Math.max(0.15, Math.min(1, corr));
+    const concentration = breakdown ? inv(breakdown.concentration, 25) : null;
+    const volatility = breakdown && !missing.has('volatility') ? inv(breakdown.volatility, 25) : null;
+    const drawdown = breakdown && !missing.has('drawdown') ? inv(breakdown.drawdown, 25) : null;
+    const diversification = breakdown ? inv(breakdown.diversification, 25) : null;
+    const beta = intelligence.beta?.portfolioBeta;
+    const betaRisk = beta != null ? Math.max(0.1, Math.min(1, Math.abs(beta - 1) + 0.4)) : null;
+    const corr = leak?.spyCorrelation;
+    const corrRisk = corr != null ? Math.max(0.15, Math.min(1, corr)) : null;
     return [concentration, volatility, betaRisk, drawdown, corrRisk, diversification];
   }, [healthScore, intelligence.beta, leak]);
 
   const radarLabels = ['Concen.', 'Vol', 'Beta', 'Drawdown', 'Correl.', 'Diversif.'];
 
-  // Composite risk: average of the 6 dims, scale to 0-10
+  // Composite risk: average of the MEASURED dims, scaled to 0-10
+  const measuredDims = useMemo(() => radarValues.filter((v): v is number => v != null), [radarValues]);
   const compositeRisk = useMemo(
-    () => Math.round((radarValues.reduce((s, v) => s + v, 0) / radarValues.length) * 10 * 10) / 10,
-    [radarValues]
+    () => measuredDims.length > 0
+      ? Math.round((measuredDims.reduce((s, v) => s + v, 0) / measuredDims.length) * 10 * 10) / 10
+      : null,
+    [measuredDims]
   );
 
   const compositeRiskColor =
-    compositeRisk < 4 ? '#00c805' : compositeRisk < 6.5 ? '#ff9f0a' : '#ff3b30';
+    compositeRisk == null ? '#8e8e93' : compositeRisk < 4 ? '#00c805' : compositeRisk < 6.5 ? '#ff9f0a' : '#ff3b30';
+
+  // Honest Sharpe window label — the server falls back 1Y -> 6M -> 90D when
+  // history is short; the label must follow the data, not claim 1Y always.
+  const sharpeWindowLabel = useMemo(() => {
+    const days = risk?.basis?.lookbackDays ?? 0;
+    if (days >= 240) return '1Y';
+    if (days >= 120) return '6M';
+    if (days >= 40) return '90D';
+    return null;
+  }, [risk]);
 
   // With zero holdings the server still returns a baseline health score, beta,
   // etc., which rendered as fabricated stats ("Good 55/100", "Moderate",
@@ -992,17 +1017,17 @@ export function IntelligenceTab({
         />
         <StatCell
           label="Risk Index"
-          value={hasHoldings ? (compositeRisk < 4 ? 'Low' : compositeRisk < 6.5 ? 'Moderate' : 'High') : '—'}
-          valueColor={hasHoldings ? compositeRiskColor : undefined}
+          value={hasHoldings && compositeRisk != null ? (compositeRisk < 4 ? 'Low' : compositeRisk < 6.5 ? 'Moderate' : 'High') : '—'}
+          valueColor={hasHoldings && compositeRisk != null ? compositeRiskColor : undefined}
           glyph={
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={hasHoldings ? compositeRiskColor : 'currentColor'} strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={hasHoldings && compositeRisk != null ? compositeRiskColor : 'currentColor'} strokeWidth="2">
               <path d="M12 2 L2 22 H22 L12 2 Z M12 9 V14 M12 17 V18" />
             </svg>
           }
           sub={hasHoldings ? <>
-            β {(intelligence.beta?.portfolioBeta ?? 1).toFixed(2)}
+            β {intelligence.beta?.portfolioBeta != null ? intelligence.beta.portfolioBeta.toFixed(2) : '—'}
             <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
-            <span className="tabular-nums">{compositeRisk.toFixed(1)}/10</span>
+            <span className="tabular-nums">{compositeRisk != null ? `${compositeRisk.toFixed(1)}/10` : '—'}</span>
           </> : '—'}
         />
         <StatCell
@@ -1124,11 +1149,18 @@ export function IntelligenceTab({
             <div>
               <div className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Composite Risk</div>
               <div className="text-[16px] font-bold tabular-nums mt-1.5" style={{ color: compositeRiskColor }}>
-                {compositeRisk.toFixed(1)} / 10
+                {compositeRisk != null ? `${compositeRisk.toFixed(1)} / 10` : '—'}
               </div>
+              {compositeRisk != null && measuredDims.length < 6 && (
+                <div className="text-[9px] text-rh-light-muted dark:text-rh-muted mt-0.5">
+                  based on {measuredDims.length} of 6 dims
+                </div>
+              )}
             </div>
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Sharpe (1Y)</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">
+                Sharpe{sharpeWindowLabel ? ` (${sharpeWindowLabel})` : ''}
+              </div>
               <div className="text-[16px] font-bold tabular-nums mt-1.5 text-rh-light-text dark:text-rh-text">
                 {risk?.metrics.sharpeRatio != null ? risk.metrics.sharpeRatio.toFixed(2) : '—'}
               </div>
