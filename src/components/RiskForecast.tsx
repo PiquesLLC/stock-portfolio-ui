@@ -36,7 +36,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
     const hasAnyMetric = metrics.annualReturn !== null || metrics.annualVolatility !== null || metrics.maxDrawdown !== null || metrics.sharpeRatio !== null;
 
     return (
-      <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-6 shadow-sm dark:shadow-none">
+      <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text flex items-center gap-2">Risk Forecast <InfoTooltip text="Uses historical daily returns to compute CAGR, annualized volatility (std dev * sqrt(252)), Sharpe ratio (return/vol), and max drawdown. 1-year scenarios use Monte Carlo simulation with 10th/50th/90th percentile outcomes." /></h3>
@@ -55,13 +55,13 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
         {hasAnyMetric && (
           <div className="grid grid-cols-2 gap-3 mb-4">
             {metrics.annualVolatility !== null && (
-              <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+              <div className="p-3 rounded-lg bg-gray-50/60 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06]">
                 <p className="text-xs text-rh-light-muted dark:text-rh-muted">Volatility</p>
                 <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{formatPercent(metrics.annualVolatility)}</p>
               </div>
             )}
             {metrics.maxDrawdown !== null && (
-              <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+              <div className="p-3 rounded-lg bg-gray-50/60 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06]">
                 <p className="text-xs text-rh-light-muted dark:text-rh-muted">Max Drawdown</p>
                 <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">-{(metrics.maxDrawdown * 100).toFixed(1)}%</p>
               </div>
@@ -101,7 +101,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
     : 'text-rh-light-text dark:text-rh-text';
 
   return (
-    <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-lg p-5 shadow-sm dark:shadow-none">
+    <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Risk Forecast</h3>
         <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
 
       {/* Metrics Grid - 2x2 */}
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+        <div className="p-3 rounded-lg bg-gray-50/60 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06]">
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">Annual Return</p>
           <p className={`text-lg font-semibold tabular-nums ${returnColor}`}>
             {metrics.annualReturn !== null ? `${metrics.annualReturn >= 0 ? '+' : ''}${formatPercent(metrics.annualReturn)}` : '--'}
@@ -144,7 +144,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
           </p>
         </div>
 
-        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+        <div className="p-3 rounded-lg bg-gray-50/60 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06]">
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">Annual Volatility</p>
           <p className="text-lg font-semibold tabular-nums text-rh-light-text dark:text-rh-text">
             {formatPercent(metrics.annualVolatility)}
@@ -154,7 +154,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
           </p>
         </div>
 
-        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+        <div className="p-3 rounded-lg bg-gray-50/60 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06]">
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">Max Drawdown</p>
           <p className={`text-lg font-semibold tabular-nums ${metrics.maxDrawdown !== null && metrics.maxDrawdown > 0.15 ? 'text-rh-red' : 'text-rh-light-text dark:text-rh-text'}`}>
             {metrics.maxDrawdown !== null ? `-${(metrics.maxDrawdown * 100).toFixed(1)}%` : '--'}
@@ -164,7 +164,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
           </p>
         </div>
 
-        <div className="p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
+        <div className="p-3 rounded-lg bg-gray-50/60 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06]">
           <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1"><Acronym label="Sharpe Ratio" /></p>
           <p className={`text-lg font-semibold tabular-nums ${sharpeColor}`}>
             {formatSharpe(metrics.sharpeRatio)}
@@ -177,7 +177,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
 
       {/* Monte Carlo Projection */}
       {scenarios && (
-        <div className="pt-4 border-t border-rh-light-border dark:border-rh-border">
+        <div className="pt-4 border-t border-gray-200/40 dark:border-white/[0.06]">
           <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-4">
             1-Year Projection (Monte Carlo)
           </h4>
@@ -225,7 +225,7 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
       )}
 
       {/* Footnote */}
-      <div className="mt-4 pt-3 border-t border-rh-light-border/50 dark:border-rh-border/50">
+      <div className="mt-4 pt-3 border-t border-gray-200/40 dark:border-white/[0.06]">
         <p className="text-xs text-rh-light-muted dark:text-rh-muted italic">
           {basis.note && <span>{basis.note}. </span>}
           {scenarios && (
