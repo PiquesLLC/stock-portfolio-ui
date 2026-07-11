@@ -60,24 +60,6 @@ function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
   );
 }
 
-function PositionCard({ label, value, valueColor, sub, title }: {
-  label: string;
-  value: string;
-  valueColor?: string;
-  sub?: string;
-  title?: string;
-}) {
-  return (
-    <div className="px-4 py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">{label}</div>
-      <div title={title} className={`text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>{value}</div>
-      {sub && (
-        <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted/60 dark:text-rh-muted/60'}`}>{sub}</div>
-      )}
-    </div>
-  );
-}
-
 const COMPARE_COLORS = ['#FFFFFF', '#F59E0B', '#EC4899', '#06B6D4']; // white, amber, pink, cyan
 
 export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHoldingAdded, onHoldingDeleted, onTickerNavigate, siblings }: Props) {
@@ -959,7 +941,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       </div>
 
       {/* Chart */}
-      <div className="mb-8 relative" data-no-swipe>
+      <div className="mb-0 relative" data-no-swipe>
         <StockPriceChart
           key={ticker}
           ticker={ticker}
@@ -1119,27 +1101,67 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {holding && (
         <div id="section-position" className="mb-8 scroll-mt-32">
           <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Your Position</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <PositionCard label="Market Value" value={formatCurrency(holding.currentValue)} />
-            <PositionCard label="Average Cost" value={formatCurrency(holding.averageCost)} />
-            <PositionCard
-              label="Today's Return"
-              value={`${holding.dayChange >= 0 ? '+' : ''}${formatCurrency(holding.dayChange)}`}
-              valueColor={holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}
-              sub={formatPercent(holding.dayChangePercent)}
-              title="Your position's gain/loss today. For shares bought today this is measured from your cost basis (not the stock's previous close), so it can differ from the stock's 1D change shown above."
-            />
-            <PositionCard
-              label="Total Return"
-              value={`${holding.profitLoss >= 0 ? '+' : ''}${formatCurrency(holding.profitLoss)}`}
-              valueColor={holding.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}
-              sub={formatPercent(holding.profitLossPercent)}
-            />
-            <PositionCard label="Shares" value={holding.shares.toLocaleString()} />
-            <PositionCard
-              label="Portfolio Diversity"
-              value={portfolioTotal > 0 ? `${((holding.currentValue / portfolioTotal) * 100).toFixed(1)}%` : 'N/A'}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Market value + its returns */}
+            <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">Market Value</p>
+              <p className="text-2xl font-semibold tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.currentValue)}</p>
+              <div className="border-t border-gray-200/40 dark:border-white/[0.06] my-3" />
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Current Price</span>
+                  <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.currentPrice)}</span>
+                </div>
+                <div
+                  className="flex items-baseline justify-between gap-2"
+                  title="Your position's gain/loss today. For shares bought today this is measured from your cost basis (not the stock's previous close), so it can differ from the stock's 1D change shown above."
+                >
+                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Today's Return</span>
+                  <span className={`text-sm font-medium tabular-nums ${holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {holding.dayChange >= 0 ? '+' : ''}{formatCurrency(holding.dayChange)} ({formatPercent(holding.dayChangePercent)})
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Total Return</span>
+                  <span className={`text-sm font-medium tabular-nums ${holding.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    {holding.profitLoss >= 0 ? '+' : ''}{formatCurrency(holding.profitLoss)} ({formatPercent(holding.profitLossPercent)})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cost basis + position composition */}
+            <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">Average Cost</p>
+              <p className="text-2xl font-semibold tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.averageCost)}</p>
+              <div className="border-t border-gray-200/40 dark:border-white/[0.06] my-3" />
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Shares</span>
+                  <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">{holding.shares.toLocaleString()}</span>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Cost Basis</span>
+                  <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.totalCost)}</span>
+                </div>
+                <div title="How much of your total portfolio value this position represents.">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm text-rh-light-muted dark:text-rh-muted">Portfolio Diversity</span>
+                    <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">
+                      {portfolioTotal > 0 ? `${((holding.currentValue / portfolioTotal) * 100).toFixed(1)}%` : 'N/A'}
+                    </span>
+                  </div>
+                  {portfolioTotal > 0 && (
+                    <div className="relative h-1 rounded-full bg-gray-200/60 dark:bg-white/[0.06] overflow-hidden mt-1.5">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full bg-rh-green"
+                        style={{ width: `${Math.min(100, Math.max(0, (holding.currentValue / portfolioTotal) * 100))}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
