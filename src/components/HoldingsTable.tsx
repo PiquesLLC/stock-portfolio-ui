@@ -785,6 +785,7 @@ export function HoldingsTable({
             onImportComplete={() => { setShowImport(false); onUpdate(); }}
             onboarding
             onManualEntry={() => { setShowImport(false); handleOpenAdd(); }}
+            portfolioId={portfolioId}
           />
         )}
 

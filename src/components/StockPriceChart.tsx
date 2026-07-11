@@ -4217,9 +4217,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         );
       })()}
 
-      {/* Period selector + Overlays dropdown */}
-      <div className="flex items-center justify-between gap-2 mt-3">
-        <div className="flex gap-1">
+      {/* Period selector + Overlays dropdown. Mobile: tighter paddings so the
+          row fits a ~390px viewport on one line; flex-wrap lets the control
+          cluster drop to a second right-aligned line on very narrow screens
+          instead of clipping off the right edge. sm+ is unchanged. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mt-3">
+        <div className="flex gap-0.5 sm:gap-1">
           {PERIODS.map(period => {
             const disabled = period !== '1D' && candlesLoaded === true && (!candles || candles.closes.length === 0);
             return (
@@ -4227,7 +4230,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 key={period}
                 onClick={() => !disabled && onPeriodChange(period)}
                 disabled={disabled}
-                className={`px-2 sm:px-3 py-2.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
+                className={`px-1.5 sm:px-3 py-2.5 rounded-md text-xs font-semibold tracking-wide transition-all ${
                   selectedPeriod === period
                     ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
                     : disabled
@@ -4241,12 +4244,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           })}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
           {/* Line/Candle toggle */}
           <div className="flex rounded-md border border-gray-200/40 dark:border-white/[0.08] overflow-hidden">
             <button
               onClick={() => setChartMode('line')}
-              className={`px-1.5 py-1 transition-all ${chartMode === 'line' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
+              className={`px-1 sm:px-1.5 py-1 transition-all ${chartMode === 'line' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
               title="Line chart"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -4255,7 +4258,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             </button>
             <button
               onClick={() => setChartMode('candle')}
-              className={`px-1.5 py-1 border-l border-gray-200/40 dark:border-white/[0.08] transition-all ${chartMode === 'candle' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
+              className={`px-1 sm:px-1.5 py-1 border-l border-gray-200/40 dark:border-white/[0.08] transition-all ${chartMode === 'candle' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
               title="Candlestick chart"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
@@ -4269,7 +4272,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           <div className="relative" ref={overlaysDropdownRef}>
             <button
               onClick={() => setOverlaysOpen(prev => !prev)}
-              className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border ${
+              className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border ${
                 overlayCount > 0
                   ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
                   : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
@@ -4281,26 +4284,27 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               {overlayCount > 0 ? overlayCount : <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>}
             </button>
           {overlaysOpen && (
-            <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-lg border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-md shadow-xl py-2 px-1">
+            <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[264px] max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-black/95 backdrop-blur-md shadow-xl py-2 px-1.5">
               <div className="px-2 pb-1.5 mb-1 border-b border-gray-100 dark:border-white/[0.06]">
                 <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Moving Averages</span>
               </div>
-              <div className="grid grid-cols-2 gap-0.5 px-1 mb-1">
+              <div className="grid grid-cols-3 gap-1 px-1 mb-1">
                 {MA_PERIODS.map(ma => {
                   const active = enabledMAs.has(ma);
                   return (
                     <button
                       key={ma}
                       onClick={() => toggleMA(ma)}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
                         active
-                          ? 'text-white'
-                          : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                          ? ''
+                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                       }`}
+                      style={active ? { borderColor: `${MA_COLORS[ma]}59`, backgroundColor: `${MA_COLORS[ma]}14`, color: MA_COLORS[ma] } : undefined}
                     >
                       <span
-                        className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${active ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
-                        style={active ? { backgroundColor: MA_COLORS[ma], borderColor: MA_COLORS[ma] } : undefined}
+                        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? '' : 'border border-gray-300 dark:border-white/25'}`}
+                        style={active ? { backgroundColor: MA_COLORS[ma] } : undefined}
                       />
                       MA{ma}
                     </button>
@@ -4308,7 +4312,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 })}
               </div>
               <div className="border-t border-gray-100 dark:border-white/[0.06] mt-1 pt-1 px-1">
-                <div className="grid grid-cols-2 gap-0.5">
+                <div className="px-1 pb-1.5 mb-0.5">
+                  <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Overlays</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
                   {([
                     { label: 'Volume', enabled: volumeEnabled, toggle: toggleVolume, color: '#6B7280' },
                     { label: 'Signals', enabled: signalsEnabled, toggle: toggleSignals, color: '#F59E0B' },
@@ -4317,13 +4324,16 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                     <button
                       key={label}
                       onClick={toggle}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
-                        enabled ? 'text-white' : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
+                        enabled
+                          ? ''
+                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                       }`}
+                      style={enabled ? { borderColor: `${color}59`, backgroundColor: `${color}14`, color } : undefined}
                     >
                       <span
-                        className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${enabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
-                        style={enabled ? { backgroundColor: color, borderColor: color } : undefined}
+                        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${enabled ? '' : 'border border-gray-300 dark:border-white/25'}`}
+                        style={enabled ? { backgroundColor: color } : undefined}
                       />
                       {label}
                     </button>
@@ -4334,7 +4344,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               <div className="px-2 pb-1 pt-1 mb-0.5 border-t border-gray-100 dark:border-white/[0.06] mt-1">
                 <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Indicators</span>
               </div>
-              <div className="grid grid-cols-2 gap-0.5 px-1 mb-1">
+              <div className="grid grid-cols-3 gap-1 px-1 mb-1">
                 {([
                   { label: 'BB', enabled: bbEnabled, toggle: toggleBB, color: BB_COLORS.band },
                   { label: 'VWAP', enabled: vwapEnabled, toggle: toggleVWAP, color: VWAP_COLOR },
@@ -4345,13 +4355,16 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   <button
                     key={label}
                     onClick={toggle}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
-                      enabled ? 'text-white' : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
+                      enabled
+                        ? ''
+                        : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                     }`}
+                    style={enabled ? { borderColor: `${color}59`, backgroundColor: `${color}14`, color } : undefined}
                   >
                     <span
-                      className={`w-2.5 h-2.5 rounded-sm border-2 flex-shrink-0 ${enabled ? 'border-transparent' : 'border-gray-300 dark:border-white/20'}`}
-                      style={enabled ? { backgroundColor: color, borderColor: color } : undefined}
+                      className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${enabled ? '' : 'border border-gray-300 dark:border-white/25'}`}
+                      style={enabled ? { backgroundColor: color } : undefined}
                     />
                     {label}
                   </button>

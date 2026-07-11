@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Papa from 'papaparse';
 import { uploadPortfolioCsv, uploadPortfolioScreenshot, confirmPortfolioImport, clearPortfolio, searchSymbols, submitMappedCsv, CsvParsedRow, CsvParseResult, ColumnMappings, MappedTrade, ImportTelemetry } from '../api';
+import { clearInsightsCache } from '../utils/insights-cache';
 import { SymbolSearchResult } from '../types';
 import { WizardStepIndicator, WIZARD_STEPS, type WizardStepKey } from './WizardStepIndicator';
 import { CsvPreviewTable } from './CsvPreviewTable';
@@ -12,11 +13,16 @@ interface PortfolioImportProps {
   onImportComplete: () => void;
   onboarding?: boolean;
   onManualEntry?: () => void;
+  /** Portfolio to import into / clear. Omitted → the user's default portfolio. */
+  portfolioId?: string;
 }
 
 type Step = 'choose' | 'uploading' | 'auto-detected' | 'wizard' | 'processing' | 'review' | 'confirming' | 'done' | 'clear-confirm';
 
 const MAX_IMPORT_ROWS = 2000;
+// Matches the server's multer limit — reject before reading the file into
+// memory (a renamed 300MB binary would otherwise hang the tab in file.text()).
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 function detectBroker(headers: string[]): string | null {
   const h = headers.map(s => s.toLowerCase().trim());
@@ -25,7 +31,7 @@ function detectBroker(headers: string[]): string | null {
   return null;
 }
 
-export function PortfolioImport({ onClose, onImportComplete, onboarding, onManualEntry }: PortfolioImportProps) {
+export function PortfolioImport({ onClose, onImportComplete, onboarding, onManualEntry, portfolioId }: PortfolioImportProps) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -112,6 +118,10 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       setError('Please upload a CSV file');
       return;
     }
+    if (file.size > MAX_FILE_BYTES) {
+      setError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 10MB.`);
+      return;
+    }
     setError('');
     setCsvFile(file);
 
@@ -129,6 +139,11 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
     const headers = parsed.meta.fields || [];
     const rows = parsed.data;
+
+    if (headers.length === 0 || rows.length === 0) {
+      setError('No data rows found in this CSV — check that the file has a header row and at least one data row.');
+      return;
+    }
 
     if (rows.length > MAX_IMPORT_ROWS) {
       setError(`CSV has ${rows.length.toLocaleString()} rows. Maximum is ${MAX_IMPORT_ROWS.toLocaleString()}.`);
@@ -180,6 +195,10 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
     if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
       setError('Please upload an image file (PNG, JPG, WebP, or HEIC)');
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError(`Image is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 10MB.`);
       return;
     }
     setError('');
@@ -333,14 +352,16 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     }
   }, [trades]);
 
-  // Position review toggles
-  const handleTogglePositionRow = useCallback((rowIndex: number) => {
+  // Position review toggles — exclusions are keyed by the row's stable
+  // rowNumber (not array index): removeRow splices the array, and index keys
+  // would silently shift which rows are excluded after a delete.
+  const handleTogglePositionRow = useCallback((rowNumber: number) => {
     setExcludedPositionRows(prev => {
       const next = new Set(prev);
-      if (next.has(rowIndex)) {
-        next.delete(rowIndex);
+      if (next.has(rowNumber)) {
+        next.delete(rowNumber);
       } else {
-        next.add(rowIndex);
+        next.add(rowNumber);
       }
       return next;
     });
@@ -350,7 +371,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     if (selected) {
       setExcludedPositionRows(new Set());
     } else {
-      setExcludedPositionRows(new Set(rows.map((_, i) => i)));
+      setExcludedPositionRows(new Set(rows.map(r => r.rowNumber)));
     }
   }, [rows]);
 
@@ -361,14 +382,14 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
         // Add positions with < 1 share to excluded set
         setExcludedPositionRows(prevExcl => {
           const updated = new Set(prevExcl);
-          rows.forEach((r, i) => { if (r.shares < 1) updated.add(i); });
+          rows.forEach(r => { if (r.shares < 1) updated.add(r.rowNumber); });
           return updated;
         });
       } else {
         // Remove auto-excluded small positions (re-include them)
         setExcludedPositionRows(prevExcl => {
           const updated = new Set(prevExcl);
-          rows.forEach((r, i) => { if (r.shares < 1) updated.delete(i); });
+          rows.forEach(r => { if (r.shares < 1) updated.delete(r.rowNumber); });
           return updated;
         });
       }
@@ -376,15 +397,26 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     });
   }, [rows]);
 
-  const includedPositionCount = rows.length - excludedPositionRows.size;
+  // A row is postable when it's checked AND survives the same validity filter
+  // handleConfirm applies — one predicate so the confirm button, the
+  // "X of Y" header, and the POSTed payload always count the same rows.
+  const isPostableRow = (r: CsvParsedRow) =>
+    !excludedPositionRows.has(r.rowNumber) &&
+    r.ticker.trim().length > 0 &&
+    Number.isFinite(r.shares) && r.shares > 0 &&
+    Number.isFinite(r.averageCost) && r.averageCost >= 0;
+  const includedPositionCount = rows.filter(isPostableRow).length;
 
   // Confirm import
+  const confirmingRef = useRef(false);
   const handleConfirm = async () => {
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
     setStep('confirming');
     setError('');
     try {
       const holdings = rows
-        .filter((_, i) => !excludedPositionRows.has(i))
+        .filter(isPostableRow)
         .map(r => ({ ticker: r.ticker, shares: r.shares, averageCost: r.averageCost }));
 
       // Filter excluded trades
@@ -394,7 +426,10 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
       const parsedMargin = parseFloat(marginDebt);
       const filteredLedgerEvents = ledgerEvents && ledgerEvents.length > 0 ? ledgerEvents : undefined;
-      const res = await confirmPortfolioImport(holdings, importMode, filteredTrades, parsedMargin > 0 ? parsedMargin : undefined, filteredLedgerEvents);
+      const res = await confirmPortfolioImport(holdings, importMode, filteredTrades, parsedMargin > 0 ? parsedMargin : undefined, filteredLedgerEvents, portfolioId);
+      // The Insights page keeps its own 5-min client cache — without this a
+      // replace-import shows the OLD portfolio's health/intelligence.
+      clearInsightsCache();
       setResult(res);
       setStep('done');
     } catch (err) {
@@ -406,6 +441,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
       } else {
         setError(msg);
       }
+      confirmingRef.current = false;
       setStep('review');
     }
   };
@@ -414,7 +450,8 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
     setClearing(true);
     setError('');
     try {
-      await clearPortfolio();
+      await clearPortfolio(portfolioId);
+      clearInsightsCache();
       onImportComplete();
       onClose();
     } catch (err) {
@@ -424,6 +461,17 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
   };
 
   const removeRow = (index: number) => {
+    // Also drop the removed row's exclusion entry so the excluded-count and
+    // the "X of Y" header can't drift out of sync with what gets posted.
+    const target = rows[index];
+    if (target) {
+      setExcludedPositionRows(prev => {
+        if (!prev.has(target.rowNumber)) return prev;
+        const next = new Set(prev);
+        next.delete(target.rowNumber);
+        return next;
+      });
+    }
     setRows(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -791,12 +839,12 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                       </thead>
                       <tbody>
                         {rows.map((row, i) => (
-                          <tr key={i} className={`border-t border-gray-200/20 dark:border-white/[0.06] transition-opacity ${excludedPositionRows.has(i) ? 'opacity-35' : ''}`}>
+                          <tr key={row.rowNumber} className={`border-t border-gray-200/20 dark:border-white/[0.06] transition-opacity ${excludedPositionRows.has(row.rowNumber) ? 'opacity-35' : ''}`}>
                             <td className="px-2 py-1.5">
                               <input
                                 type="checkbox"
-                                checked={!excludedPositionRows.has(i)}
-                                onChange={() => handleTogglePositionRow(i)}
+                                checked={!excludedPositionRows.has(row.rowNumber)}
+                                onChange={() => handleTogglePositionRow(row.rowNumber)}
                                 className="w-3.5 h-3.5 accent-[#00c805] cursor-pointer"
                               />
                             </td>

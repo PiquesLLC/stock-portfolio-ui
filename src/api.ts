@@ -1576,16 +1576,19 @@ export async function confirmPortfolioImport(
   trades?: { date: string; ticker: string; type: string; shares: number; price: number; sourceBroker?: string; rawAction?: string }[],
   marginDebt?: number,
   ledgerEvents?: CsvParseResult['ledgerEvents'],
+  portfolioId?: string,
 ): Promise<{ added: number; updated: number; removed: number; skippedDuplicates?: number; tradesRecorded?: number; ledgerEventsRecorded?: number }> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
   return fetchJson<{ added: number; updated: number; removed: number; skippedDuplicates?: number; tradesRecorded?: number; ledgerEventsRecorded?: number }>(
-    `${API_BASE_URL}/portfolio/import/confirm`,
+    `${API_BASE_URL}/portfolio/import/confirm${qs}`,
     { method: 'POST', body: JSON.stringify({ holdings, mode, trades, marginDebt, ledgerEvents }) }
   );
 }
 
-export async function clearPortfolio(): Promise<{ cleared: boolean; holdingsRemoved: number }> {
+export async function clearPortfolio(portfolioId?: string): Promise<{ cleared: boolean; holdingsRemoved: number }> {
+  const qs = portfolioId ? `?portfolioId=${encodeURIComponent(portfolioId)}` : '';
   return fetchJson<{ cleared: boolean; holdingsRemoved: number }>(
-    `${API_BASE_URL}/portfolio/clear`,
+    `${API_BASE_URL}/portfolio/clear${qs}`,
     { method: 'POST', body: JSON.stringify({ confirmation: 'CLEAR' }) }
   );
 }
