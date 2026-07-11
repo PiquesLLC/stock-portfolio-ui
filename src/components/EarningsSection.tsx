@@ -345,35 +345,19 @@ export function EarningsSection({ ticker }: { ticker: string }) {
                         onMouseEnter={() => setHoveredTableIdx(i)}
                         onMouseLeave={() => setHoveredTableIdx(null)}
                         className={`border-b border-gray-200/15 dark:border-white/[0.025] last:border-b-0 cursor-default ${
-                          isRowHovered
-                            ? 'bg-gray-200/50 dark:bg-white/[0.04]'
-                            : i === 0 ? 'bg-gray-100/40 dark:bg-white/[0.02]' : ''
+                          isRowHovered ? 'bg-gray-200/50 dark:bg-white/[0.04]' : ''
                         }`}
                       >
-                        <td className={`py-2.5 pr-2 font-mono tabular-nums w-[72px] ${
-                          i === 0
-                            ? 'font-semibold text-rh-light-text dark:text-white/80'
-                            : 'font-medium text-rh-light-text/80 dark:text-white/60'
-                        }`}>
+                        <td className="py-2.5 pr-2 font-mono tabular-nums w-[72px] font-medium text-rh-light-text/80 dark:text-white/60">
                           {formatQuarter(q.fiscalDateEnding)}
                         </td>
-                        <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
-                          i === 0
-                            ? 'text-rh-light-muted/60 dark:text-white/40'
-                            : 'text-rh-light-muted/50 dark:text-white/30'
-                        }`}>
+                        <td className="py-2.5 px-1.5 text-right font-mono tabular-nums text-rh-light-muted/50 dark:text-white/30">
                           {formatEPS(q.estimatedEPS)}
                         </td>
-                        <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
-                          i === 0
-                            ? 'font-semibold text-rh-light-text dark:text-white/90'
-                            : 'text-rh-light-text dark:text-white/80'
-                        }`}>
+                        <td className="py-2.5 px-1.5 text-right font-mono tabular-nums text-rh-light-text dark:text-white/80">
                           {formatEPS(q.reportedEPS)}
                         </td>
                         <td className={`py-2.5 px-1.5 text-right font-mono tabular-nums ${
-                          i === 0 ? 'font-semibold' : ''
-                        } ${
                           q.surprisePercentage != null && q.surprisePercentage >= 0 ? 'text-rh-green' : 'text-rh-red'
                         }`}>
                           {q.surprisePercentage != null
@@ -382,10 +366,10 @@ export function EarningsSection({ ticker }: { ticker: string }) {
                         </td>
                         <td className="py-2.5 pl-1.5 text-right">
                           {q.beat === true && (
-                            <span className={`font-mono text-[10px] text-rh-green ${i === 0 ? 'font-semibold' : ''}`}>Beat</span>
+                            <span className="font-mono text-[10px] text-rh-green">Beat</span>
                           )}
                           {q.beat === false && (
-                            <span className={`font-mono text-[10px] text-rh-red ${i === 0 ? 'font-semibold' : ''}`}>Miss</span>
+                            <span className="font-mono text-[10px] text-rh-red">Miss</span>
                           )}
                           {q.beat == null && (
                             <span className="font-mono text-[10px] text-rh-light-muted/30 dark:text-white/15">-</span>

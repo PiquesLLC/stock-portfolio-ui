@@ -1164,19 +1164,6 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         )}
       </div>
 
-      {/* Warning Panel — metrics come from the canonical server engine */}
-      {!loading && <WarningPanel ticker={ticker} />}
-
-      {/* Nala Score */}
-      {showNalaScore ? (
-        <NalaScore ticker={ticker} />
-      ) : (
-        <div className="mb-6 animate-pulse">
-          <div className="h-4 w-24 bg-gray-200/50 dark:bg-white/[0.06] rounded mb-4" />
-          <div className="h-40 bg-gray-200/30 dark:bg-white/[0.03] rounded-lg" />
-        </div>
-      )}
-
       {/* About Section */}
       {(about?.description || profile?.name) && (
         <div id="section-about" className="mb-6 scroll-mt-32">
@@ -1325,6 +1312,19 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           </div>
         </div>
       )}
+
+      {/* Nala Score */}
+      {showNalaScore ? (
+        <NalaScore ticker={ticker} />
+      ) : (
+        <div className="mb-6 animate-pulse">
+          <div className="h-4 w-24 bg-gray-200/50 dark:bg-white/[0.06] rounded mb-4" />
+          <div className="h-40 bg-gray-200/30 dark:bg-white/[0.03] rounded-lg" />
+        </div>
+      )}
+
+      {/* Warning Panel — metrics come from the canonical server engine */}
+      {!loading && <WarningPanel ticker={ticker} />}
 
       {/* Financials & Earnings */}
       <div id="section-earnings" className="scroll-mt-32">
