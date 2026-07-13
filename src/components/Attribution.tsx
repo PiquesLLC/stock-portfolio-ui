@@ -26,32 +26,33 @@ interface PulseSummaryProps {
   topDetractors: WaterfallEntry[];
   winnersCount: number;
   losersCount: number;
+  totalGains: number;
+  totalLosses: number;
+  netPnL: number;
   onTickerClick?: (ticker: string) => void;
 }
 
-function PulseSummary({ topContributors, topDetractors, winnersCount, losersCount, onTickerClick }: PulseSummaryProps) {
+function PulseSummary({ topContributors, topDetractors, winnersCount, losersCount, totalGains, totalLosses, netPnL, onTickerClick }: PulseSummaryProps) {
   const allEntries = [...topContributors, ...topDetractors];
   if (allEntries.length === 0) return null;
 
-  const totalGains = topContributors.reduce((s, e) => s + e.contributionDollar, 0);
-  const totalLosses = topDetractors.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
-  const netPnL = totalGains - totalLosses;
   const winCount = winnersCount;
   const lossCount = losersCount;
   const totalCount = winCount + lossCount;
 
-  // Biggest single mover (by absolute value)
+  // Biggest single mover (by absolute value) among the shown top movers
   const biggestMover = allEntries.reduce((best, e) =>
     Math.abs(e.contributionDollar) > Math.abs(best.contributionDollar) ? e : best
   , allEntries[0]);
 
-  // Concentration: what % of total absolute movement came from top holding
-  const totalAbsMovement = allEntries.reduce((s, e) => s + Math.abs(e.contributionDollar), 0);
+  // Concentration + gains/losses bar use the FULL-portfolio totals (from the backend),
+  // so Net P&L / Gains / Losses are real totals matching the winner/loser counts and
+  // the sibling Intelligence card — not just a sum of the shown top-N. F-H-9.
+  const totalAbsMovement = totalGains + totalLosses;
   const topConcentration = totalAbsMovement > 0
     ? (Math.abs(biggestMover.contributionDollar) / totalAbsMovement) * 100
     : 0;
 
-  // Gains vs losses bar width
   const gainsWidth = totalAbsMovement > 0 ? (totalGains / totalAbsMovement) * 100 : 50;
 
   return (
@@ -209,6 +210,9 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
           topDetractors={topDetractors}
           winnersCount={data.winnersCount ?? topContributors.length}
           losersCount={data.losersCount ?? topDetractors.length}
+          totalGains={data.totalGains ?? topContributors.reduce((s, e) => s + Math.max(0, e.contributionDollar), 0)}
+          totalLosses={data.totalLosses ?? topDetractors.reduce((s, e) => s + Math.abs(Math.min(0, e.contributionDollar)), 0)}
+          netPnL={data.netPnL ?? (topContributors.reduce((s, e) => s + Math.max(0, e.contributionDollar), 0) - topDetractors.reduce((s, e) => s + Math.abs(Math.min(0, e.contributionDollar)), 0))}
           onTickerClick={onTickerClick}
         />
       )}

@@ -619,15 +619,18 @@ export function IntelligenceTab({
   const netEquity = portfolio?.netEquity ?? portfolio?.totalValue ?? 0;
   // Hero number tracks the selected period. For 1d we trust the portfolio
   // service's dayChange (most recent live tick). For 5d/1m we use the
-  // intelligence service's netPnL for that window. The percent is computed
-  // off net equity rather than a baseline that may not match.
+  // intelligence service's netPnL for that window.
   const isToday = period === '1d';
   const heroAmount = isToday
     ? (portfolio?.dayChange ?? intelligence.netPnL ?? 0)
     : (intelligence.netPnL ?? 0);
+  // Period return must be measured against the period-START value (end − P&L), not
+  // the current netEquity (the END value), which understated it and contradicted the
+  // chart's "You %" beside it. Prefer chartMetrics.youPct — the exact same series. F-H-8.
+  const periodStartValue = netEquity - (intelligence.netPnL ?? 0);
   const heroPct = isToday
     ? (portfolio?.dayChangePercent ?? 0)
-    : (netEquity > 0 ? (intelligence.netPnL / netEquity) * 100 : 0);
+    : (chartMetrics.youPct ?? (periodStartValue > 0 ? ((intelligence.netPnL ?? 0) / periodStartValue) * 100 : 0));
   const isLoss = heroAmount < 0;
   const heroColor = isLoss ? 'text-rh-red' : 'text-rh-green';
   const heroGlow = isLoss ? '0 0 40px rgba(255,59,48,0.25)' : '0 0 40px rgba(0,200,5,0.25)';

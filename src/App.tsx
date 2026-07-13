@@ -1881,6 +1881,7 @@ export default function App() {
               )}
               {/* Hide chart when most quotes are unavailable to prevent showing wrong values */}
               {(portfolio.quotesUnavailableCount ?? 0) < portfolio.holdings.length * 0.5 && <PortfolioValueChart
+                key={selectedPortfolioId ?? 'default'}
                 currentValue={portfolio.netEquity}
                 dayChange={portfolio.dayChange}
                 dayChangePercent={portfolio.dayChangePercent}
