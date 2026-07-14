@@ -1226,13 +1226,13 @@ export async function deleteAccount(password: string): Promise<{ message: string
   });
 }
 
-export async function getPortfolio(userId?: string, portfolioId?: string): Promise<Portfolio> {
+export async function getPortfolio(userId?: string, portfolioId?: string, signal?: AbortSignal): Promise<Portfolio> {
   const params = new URLSearchParams();
   if (userId) params.set('userId', userId);
   if (portfolioId) params.set('portfolioId', portfolioId);
   const qs = params.toString();
   const url = qs ? `${API_BASE_URL}/portfolio?${qs}` : `${API_BASE_URL}/portfolio`;
-  return fetchJson<Portfolio>(url);
+  return fetchJson<Portfolio>(url, { signal });
 }
 
 export async function getProjections(
@@ -1353,8 +1353,8 @@ export async function updateDripSettings(enabled: boolean): Promise<{ enabled: b
 }
 
 // Settings endpoints
-export async function getSettings(): Promise<Settings> {
-  return fetchJson<Settings>(`${API_BASE_URL}/settings`);
+export async function getSettings(signal?: AbortSignal): Promise<Settings> {
+  return fetchJson<Settings>(`${API_BASE_URL}/settings`, { signal });
 }
 
 export async function updateSettings(input: SettingsUpdateInput): Promise<Settings> {
