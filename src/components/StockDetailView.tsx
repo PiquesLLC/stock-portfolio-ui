@@ -103,6 +103,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     hoverPrice,
     hoverLabel,
     hoverRefPrice,
+    hoverInExtended,
     handleHoverPrice,
     handleResolutionRequest,
     periodChange,
@@ -128,6 +129,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const [candleInterval] = useLocalStorage<CandleInterval>('stockCandleInterval', '5m');
   const [showNalaScore, setShowNalaScore] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  // Your Position on mobile is a swipeable 2-page carousel (Market Value ⇄
+  // Average Cost); md+ keeps the side-by-side grid. Page index drives the dots.
+  const [positionPage, setPositionPage] = useState(0);
+  const positionScrollRef = useRef<HTMLDivElement | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -145,6 +150,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     setShowCompareInput(false);
     setCompareData([]);
     setActionsOpen(false);
+    // New stock: land the position carousel back on Market Value
+    setPositionPage(0);
+    positionScrollRef.current?.scrollTo({ left: 0 });
   }, [ticker]);
 
   useEffect(() => {
@@ -509,13 +517,30 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   const displayPrice = hoverPrice ?? basePrice;
   const isHovering = hoverPrice !== null;
 
+  // At-close / after-hours split (Robinhood-style), 1D only, POST or CLOSED.
+  // Main line stays anchored to the regular-session close; the sub-line
+  // carries the after-hours price + delta. Scrubbing the after-hours segment
+  // keeps the main line frozen "At close" and moves only the sub-line.
+  // Heatmap/portfolio/every other surface keep the blended day change.
+  const splitEligible = showExtendedLine
+    && quote.regularClose != null
+    && quote.previousClose > 0
+    && (quote.session === 'POST' || quote.session === 'CLOSED');
+  const hoverInAH = splitEligible && isHovering && hoverInExtended;
+  const atCloseChange = splitEligible ? quote.regularClose! - quote.previousClose : 0;
+  const atCloseChangePct = splitEligible ? (atCloseChange / quote.previousClose) * 100 : 0;
+
   // When hovering, compute change from the chart's reference price (first visible point)
   // This ensures correct change when zoomed into historical data
   const periodStartPrice = basePrice - periodChange.change;
   const hoverRef = isHovering && hoverRefPrice !== null ? hoverRefPrice : periodStartPrice;
-  const activeChange = isHovering ? displayPrice - hoverRef : periodChange.change;
-  const activeChangePct = isHovering
-    ? (hoverRef !== 0 ? (activeChange / hoverRef) * 100 : 0)
+  // Frozen at-close main line while resting (split view) or scrubbing after hours
+  const mainShowsAtClose = splitEligible && (!isHovering || hoverInAH);
+  const activeChange = mainShowsAtClose ? atCloseChange
+    : isHovering ? displayPrice - hoverRef
+    : periodChange.change;
+  const activeChangePct = mainShowsAtClose ? atCloseChangePct
+    : isHovering ? (hoverRef !== 0 ? ((displayPrice - hoverRef) / hoverRef) * 100 : 0)
     : periodChange.changePct;
 
   const isGain = activeChange >= 0;
@@ -893,7 +918,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       </div>
 
       {/* Price hero */}
-      <div className="mb-4" style={{ minHeight: showExtendedLine ? '110px' : '85px' }}>
+      <div className="mb-4" style={{ minHeight: showExtendedLine ? '118px' : '85px' }}>
+        {/* Big number = the total/latest price (after-hours included); the
+            lines below split it into at-close + after-hours. */}
         <div className="text-3xl sm:text-4xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">
           {formatCurrency(displayPrice)}
         </div>
@@ -905,32 +932,38 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             ({formatPercent(activeChangePct)})
           </span>
           <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-            {isHovering ? hoverLabel : periodChange.label}
+            {mainShowsAtClose ? 'At close' : isHovering ? hoverLabel : periodChange.label}
           </span>
         </div>
         {showExtendedLine && (() => {
-          const extendedChange = quote.extendedChange;
-          const extendedChangePercent = quote.extendedChangePercent;
-          if (extendedChange == null || extendedChangePercent == null) return null;
+          // Scrubbing the after-hours segment: sub-line tracks the cursor
+          // (cursor price vs today's regular close). Otherwise it shows the
+          // full after-hours move, and hides while scrubbing regular hours.
+          const subChange = hoverInAH ? displayPrice - quote.regularClose! : quote.extendedChange;
+          const subChangePct = hoverInAH
+            ? (quote.regularClose! !== 0 ? ((displayPrice - quote.regularClose!) / quote.regularClose!) * 100 : 0)
+            : quote.extendedChangePercent;
+          if (subChange == null || subChangePct == null) return null;
+          const hideSub = isHovering && !hoverInAH;
 
           return (
             <div className={`flex items-center gap-2 mt-1 h-[20px] transition-opacity duration-100 ${
-              isHovering ? 'opacity-0' : (extendedChange >= 0 ? 'text-rh-green' : 'text-rh-red')
+              hideSub ? 'opacity-0' : (subChange >= 0 ? 'text-rh-green' : 'text-rh-red')
             }`}>
               <span className="text-xs font-medium tabular-nums">
-                {formatDelta(extendedChange)}
+                {formatDelta(subChange)}
               </span>
               <span className="text-xs tabular-nums">
-                ({formatPercent(extendedChangePercent)})
+                ({formatPercent(subChangePct)})
               </span>
               <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
-                {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}
+                {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}{hoverInAH && hoverLabel ? ` · ${hoverLabel}` : ''}
               </span>
             </div>
           );
         })()}
         {quote.session && quote.session !== 'REG' && (
-          <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${
+          <span className={`inline-block mt-2 px-2 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${
             quote.session === 'CLOSED' ? 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted border border-gray-200/60 dark:border-white/[0.08]' :
             quote.session === 'PRE' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20' :
             'bg-purple-400/10 text-purple-400 border border-purple-400/20'
@@ -1101,9 +1134,21 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {holding && (
         <div id="section-position" className="mb-8 scroll-mt-32">
           <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Your Position</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Mobile: horizontal snap carousel (swipe for Average Cost) with
+              dots below. md+: the original two-column grid, unchanged.
+              data-no-swipe keeps the page's stock/tab swipe gestures from
+              hijacking the horizontal scroll (same opt-out as the chart). */}
+          <div
+            ref={positionScrollRef}
+            data-no-swipe
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              setPositionPage(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
+            }}
+            className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar md:grid md:grid-cols-2 md:overflow-visible gap-3"
+          >
             {/* Market value + its returns */}
-            <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
+            <div className="w-full shrink-0 snap-center md:w-auto md:shrink rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
               <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">Market Value</p>
               <p className="text-2xl font-semibold tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.currentValue)}</p>
               <div className="border-t border-gray-200/40 dark:border-white/[0.06] my-3" />
@@ -1131,7 +1176,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             </div>
 
             {/* Cost basis + position composition */}
-            <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
+            <div className="w-full shrink-0 snap-center md:w-auto md:shrink rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
               <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">Average Cost</p>
               <p className="text-2xl font-semibold tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.averageCost)}</p>
               <div className="border-t border-gray-200/40 dark:border-white/[0.06] my-3" />
@@ -1162,6 +1207,19 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 </div>
               </div>
             </div>
+          </div>
+          {/* Carousel page dots — mobile only (md+ shows both cards at once) */}
+          <div className="flex md:hidden items-center justify-center gap-1.5 mt-2.5" aria-hidden="true">
+            {[0, 1].map((i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full transition-colors duration-150 ${
+                  positionPage === i
+                    ? 'bg-gray-400 dark:bg-white/50'
+                    : 'bg-gray-300/60 dark:bg-white/[0.12]'
+                }`}
+              />
+            ))}
           </div>
         </div>
       )}
