@@ -77,11 +77,15 @@ export function useStockChart({
   const [hoverPrice, setHoverPrice] = useState<number | null>(null);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const [hoverRefPrice, setHoverRefPrice] = useState<number | null>(null);
+  // Cursor is in the 1D after-hours segment (≥4PM ET) — drives the
+  // at-close/after-hours split in the price hero.
+  const [hoverInExtended, setHoverInExtended] = useState(false);
 
-  const handleHoverPrice = useCallback((price: number | null, label: string | null, refPrice?: number) => {
+  const handleHoverPrice = useCallback((price: number | null, label: string | null, refPrice?: number, inExtended?: boolean) => {
     setHoverPrice(price);
     setHoverLabel(label);
     setHoverRefPrice(refPrice ?? null);
+    setHoverInExtended(inExtended ?? false);
   }, []);
 
   // Reset internal chart state on ticker change. Prevents the previous ticker's
@@ -92,6 +96,7 @@ export function useStockChart({
     setHoverPrice(null);
     setHoverLabel(null);
     setHoverRefPrice(null);
+    setHoverInExtended(false);
   }, [ticker]);
 
   // Set hourly candles from prefetched cache — instant switch
@@ -200,6 +205,7 @@ export function useStockChart({
     hoverPrice,
     hoverLabel,
     hoverRefPrice,
+    hoverInExtended,
     handleHoverPrice,
     handleResolutionRequest,
     periodChange,

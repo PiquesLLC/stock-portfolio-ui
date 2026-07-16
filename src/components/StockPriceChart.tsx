@@ -24,7 +24,7 @@ import {
   clusterPillSize,
   clusterGlowOpacity,
   CHART_W,
-  CHART_H,
+  CHART_H as CHART_H_BASE,
   PAD_TOP,
   PAD_BOTTOM,
   PAD_LEFT,
@@ -65,7 +65,9 @@ interface Props {
   currentPrice: number;
   previousClose: number;
   regularClose?: number; // Regular market close price (used for non-1D periods during extended hours)
-  onHoverPrice?: (price: number | null, label: string | null, refPrice?: number) => void;
+  // inExtended: hovered point sits in the 1D after-hours segment (≥4PM ET) —
+  // lets the header split at-close vs after-hours while scrubbing.
+  onHoverPrice?: (price: number | null, label: string | null, refPrice?: number, inExtended?: boolean) => void;
   goldenCrossDate?: string | null; // ISO date string of golden cross within timeframe
   session?: string; // Market session: 'REG', 'PRE', 'POST', 'CLOSED'
   // Events layer data
@@ -82,7 +84,30 @@ interface Props {
   overrideLineColor?: string; // Force main line to a specific color (used by Compare page)
 }
 
+// Taller plot on phones (Robinhood-scale ≈ half the viewport width as
+// height; 800/410 ≈ 1.95 vs desktop's 800/280). The viewBox height and ALL
+// vertical math use the same value, so scaling stays uniform — SVG text and
+// strokes do NOT stretch (preserveAspectRatio="none" only distorts when the
+// container aspect deviates from the viewBox aspect).
+const MOBILE_CHART_H = 410;
+const MOBILE_BREAKPOINT_QUERY = '(max-width: 639px)'; // below Tailwind `sm`
+
 export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons, overrideLineColor }: Props) {
+  // matchMedia is feature-checked: jsdom (tests) and some embedded WebViews
+  // don't implement it — fall back to the desktop chart height there.
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(MOBILE_BREAKPOINT_QUERY);
+    const onChange = (e: MediaQueryListEvent) => setIsMobileViewport(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const chartH = isMobileViewport ? MOBILE_CHART_H : CHART_H_BASE;
   const points = useMemo(
     () => buildPoints(candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose),
     [candles, intradayCandles, hourlyCandles, livePrices, selectedPeriod, currentPrice, previousClose],
@@ -695,13 +720,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       const ratio = Math.max(0, Math.min(1, (svgX - PAD_LEFT) / pw));
       const ci = Math.min(cEnd, cStart + Math.round(ratio * (cCount - 1)));
       setHoverIndex(ci - cStart);
-      onHoverPrice?.(effectiveCandleData[ci].close, effectiveCandleData[ci].label, referencePriceRef.current);
+      onHoverPrice?.(effectiveCandleData[ci].close, effectiveCandleData[ci].label, referencePriceRef.current,
+        regularCloseMsRef.current !== null && effectiveCandleData[ci].time >= regularCloseMsRef.current);
       return;
     }
     if (points.length < 2) return;
     const idx = findNearestIndexRef.current(svgX);
     setHoverIndex(idx);
-    onHoverPrice?.(points[idx].price, points[idx].label, referencePriceRef.current);
+    onHoverPrice?.(points[idx].price, points[idx].label, referencePriceRef.current,
+      regularCloseMsRef.current !== null && points[idx].time >= regularCloseMsRef.current);
   }, [points, onHoverPrice, effectiveCandleData, candleZoom]);
 
 
@@ -981,6 +1008,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       : (points.length > 0 ? points[0].price : currentPrice));
   const referencePriceRef = useRef(referencePrice);
   useEffect(() => { referencePriceRef.current = referencePrice; }, [referencePrice]);
+  // 4:00 PM ET boundary of the plotted 1D day (null off-1D) — mirrored into a
+  // ref below the session-split memo; hover handlers read it to report
+  // whether the cursor sits in the after-hours segment.
+  const regularCloseMsRef = useRef<number | null>(null);
   // Line color based on OVERALL visible trend (last visible vs first visible), NOT hover position
   // This keeps the chart color stable — no flipping green/red as the user hovers or places measurement points
   const trendEndPrice = zoomRange && visiblePoints.length > 1
@@ -1130,7 +1161,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   }, [points, referencePrice, selectedPeriod, zoomRange, visiblePoints, comparisons, chartMode, effectiveCandleData, candleZoom, candleTimeZoom]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
-  const plotH = CHART_H - PAD_TOP - PAD_BOTTOM;
+  const plotH = chartH - PAD_TOP - PAD_BOTTOM;
 
   // For 1D, use time-based x positioning from pre-market open (4 AM ET) to AH close (8 PM ET)
   const is1D = selectedPeriod === '1D' && points.length > 1;
@@ -1245,9 +1276,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           return `${j === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.price).toFixed(1)}`;
         }).join(' ');
 
-  // Session split indices for 1D: market open (9:30 AM ET) and close (4:00 PM ET)
-  const { stockOpenIdx, stockCloseIdx } = useMemo(() => {
-    if (!is1D || points.length < 2) return { stockOpenIdx: null, stockCloseIdx: null };
+  // Session split indices for 1D: market open (9:30 AM ET) and close (4:00 PM ET).
+  // regularCloseMs is also the boundary the hover callback uses to tell the
+  // header whether the cursor is in the after-hours segment (at-close /
+  // after-hours split in the price hero).
+  const { stockOpenIdx, stockCloseIdx, regularCloseMs } = useMemo(() => {
+    if (!is1D || points.length < 2) return { stockOpenIdx: null, stockCloseIdx: null, regularCloseMs: null };
     const refDate = new Date(points[0].time);
     const etDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(refDate);
     const noonUtc = new Date(`${etDateStr}T12:00:00Z`);
@@ -1262,13 +1296,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     return {
       stockOpenIdx: (oIdx > 0 && oIdx < points.length) ? oIdx : null,
       stockCloseIdx: (cIdx > 0 && cIdx < points.length) ? cIdx : null,
+      regularCloseMs: closeMs,
     };
   }, [is1D, points]);
+  // Ref mirror so hover handlers defined ABOVE this memo can read the
+  // boundary without dependency-ordering issues (same pattern as
+  // referencePriceRef). null on non-1D periods → hover always reports
+  // inExtended=false there.
+  regularCloseMsRef.current = regularCloseMs;
 
   // Gradient fill path (area under line to bottom) — use visible range when zoomed
   const areaD = pathD
-    + ` L${toX(pathEnd).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)}`
-    + ` L${toX(pathStart).toFixed(1)},${(CHART_H - PAD_BOTTOM).toFixed(1)} Z`;
+    + ` L${toX(pathEnd).toFixed(1)},${(chartH - PAD_BOTTOM).toFixed(1)}`
+    + ` L${toX(pathStart).toFixed(1)},${(chartH - PAD_BOTTOM).toFixed(1)} Z`;
 
   // Monotone cubic interpolation (Fritsch–Carlson) — handles non-uniform x-spacing,
   // never overshoots, never pulls back at endpoints, always passes through every point.
@@ -1844,13 +1884,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // Current price dot — clamp Y to plot area so pre-market outliers don't escape the chart
   const lastX = points.length > 0 ? toX(points.length - 1) : CHART_W / 2;
-  const lastY = Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, points.length > 0 ? toY(points[points.length - 1].price) : toY(currentPrice)));
+  const lastY = Math.max(PAD_TOP, Math.min(chartH - PAD_BOTTOM, points.length > 0 ? toY(points[points.length - 1].price) : toY(currentPrice)));
 
   const hasData = points.length >= 2;
 
   // Hover handler — find nearest data point to mouse X position
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (isPanning) return; // suppress hover during pan drag
+    // After-hours flag for the header's at-close/after-hours split
+    const inExt = (t: number) => regularCloseMsRef.current !== null && t >= regularCloseMsRef.current;
     // Candle mode: resolve hover from candleData
     if (chartMode === 'candle' && effectiveCandleData.length > 0 && svgRef.current) {
       const rect = svgRef.current.getBoundingClientRect();
@@ -1875,7 +1917,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         ci = Math.min(cEnd, cStart + Math.round(ratio * (cCount - 1)));
       }
       setHoverIndex(ci - cStart);
-      onHoverPrice?.(effectiveCandleData[ci].close, effectiveCandleData[ci].label, referencePriceRef.current);
+      onHoverPrice?.(effectiveCandleData[ci].close, effectiveCandleData[ci].label, referencePriceRef.current, inExt(effectiveCandleData[ci].time));
       return;
     }
     if (!svgRef.current || points.length < 2) return;
@@ -1893,7 +1935,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           if (dist < bestDist) { best = i; bestDist = dist; }
         }
         setHoverIndex(best);
-        onHoverPrice?.(points[best].price, points[best].label, referencePriceRef.current);
+        onHoverPrice?.(points[best].price, points[best].label, referencePriceRef.current, inExt(points[best].time));
       } else {
         // Multi-day zoomed: index-based lookup (matches toX)
         const ratio = (mouseX - PAD_LEFT) / plotW;
@@ -1914,13 +1956,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         if (dist < bestDist) { best = i; bestDist = dist; }
       }
       setHoverIndex(best);
-      onHoverPrice?.(points[best].price, points[best].label, referencePriceRef.current);
+      onHoverPrice?.(points[best].price, points[best].label, referencePriceRef.current, inExt(points[best].time));
     } else {
       const ratio = (mouseX - PAD_LEFT) / plotW;
       const idx = Math.round(ratio * (points.length - 1));
       const clamped = Math.max(0, Math.min(points.length - 1, idx));
       setHoverIndex(clamped);
-      onHoverPrice?.(points[clamped].price, points[clamped].label, referencePriceRef.current);
+      onHoverPrice?.(points[clamped].price, points[clamped].label, referencePriceRef.current, inExt(points[clamped].time));
     }
   }, [points, plotW, onHoverPrice, is1D, dayStartMs, dayEndMs, dayRangeMs, zoomRange, visStartIdx, visEndIdx, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom]);
 
@@ -2016,7 +2058,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       // nearest X data point. A previous Y-distance gate rejected clicks
       // above/below the line, surprising users who expected to be able to
       // tap anywhere in the chart area at a valid X.
-      const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
+      const clickSvgY = ((e.clientY - rect.top) / rect.height) * chartH;
       // Hard reject: outside the plot area (top/bottom padding regions).
       if (clickSvgY < PAD_TOP || clickSvgY > PAD_TOP + plotH) return;
       let pt: { time: number; price: number };
@@ -2049,7 +2091,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       else if (measureB === null) { setMeasureB(pt); }
       else { setMeasureC(pt); }
     }
-  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, plotH, is1D, dayStartMs, dayEndMs]);
+  }, [points, findNearestIndex, measureA, measureB, hasFullMeasurement, isPanning, chartMode, effectiveCandleData, candleZoom, candleTimeZoom, plotW, plotH, is1D, dayStartMs, dayEndMs, chartH]);
 
   // Measurement computation — always chronological (earlier → later)
   const measurement = useMemo(() => {
@@ -2158,11 +2200,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const x = use1DTime
       ? PAD_LEFT + Math.max(0, Math.min(1, (effectiveCandleData[ci].time - tz1DStart) / tz1DRange)) * plotW
       : PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
-    const y = Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(effectiveCandleData[ci].close)));
+    const y = Math.max(PAD_TOP, Math.min(chartH - PAD_BOTTOM, toY(effectiveCandleData[ci].close)));
     return { x, y, label: effectiveCandleData[ci].label, price: effectiveCandleData[ci].close };
-  }, [chartMode, effectiveCandleData, candleZoom, candleTimeZoom, hoverIndex, toY, plotW, is1D, dayStartMs, dayEndMs]);
+  }, [chartMode, effectiveCandleData, candleZoom, candleTimeZoom, hoverIndex, toY, plotW, is1D, dayStartMs, dayEndMs, chartH]);
   const hoverX = candleHover ? candleHover.x : (safeHoverIndex !== null ? toX(safeHoverIndex) : null);
-  const hoverY = candleHover ? candleHover.y : (safeHoverIndex !== null ? Math.max(PAD_TOP, Math.min(CHART_H - PAD_BOTTOM, toY(points[safeHoverIndex].price))) : null);
+  const hoverY = candleHover ? candleHover.y : (safeHoverIndex !== null ? Math.max(PAD_TOP, Math.min(chartH - PAD_BOTTOM, toY(points[safeHoverIndex].price))) : null);
   const hoverLabel = candleHover ? candleHover.label : (safeHoverIndex !== null ? points[safeHoverIndex].label : null);
 
   // MA values at hovered point
@@ -2389,10 +2431,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         })()}
       </div>
 
-      <div ref={chartContainerRef} className="relative w-full focus-visible:ring-1 focus-visible:ring-rh-green/30 rounded" tabIndex={0} data-no-tab-swipe style={{ aspectRatio: `${CHART_W}/${CHART_H}`, outline: 'none', touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} onClick={handleChartClick} onKeyDown={handleKeyDown}>
+      <div ref={chartContainerRef} className="relative w-full focus-visible:ring-1 focus-visible:ring-rh-green/30 rounded" tabIndex={0} data-no-tab-swipe style={{ aspectRatio: `${CHART_W}/${chartH}`, outline: 'none', touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} onClick={handleChartClick} onKeyDown={handleKeyDown}>
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+          viewBox={`0 0 ${CHART_W} ${chartH}`}
           className="w-full h-full overflow-hidden"
           preserveAspectRatio="none"
           onMouseDown={handlePanStart}
@@ -2464,7 +2506,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             // the nearest X data point. Plot-area Y gate stays so clicks on
             // axes/header padding still don't drop markers. See container
             // handler above for rationale.
-            const clickSvgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
+            const clickSvgY = ((e.clientY - rect.top) / rect.height) * chartH;
             if (clickSvgY < PAD_TOP || clickSvgY > PAD_TOP + plotH) return;
             setShowMeasureHint(false);
             if (hasFullMeasurement) { setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false); }
@@ -2508,7 +2550,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
             <clipPath id="plot-clip">
-              <rect x={PAD_LEFT} y={PAD_TOP} width={CHART_W - PAD_LEFT - PAD_RIGHT} height={CHART_H - PAD_TOP - PAD_BOTTOM} />
+              <rect x={PAD_LEFT} y={PAD_TOP} width={CHART_W - PAD_LEFT - PAD_RIGHT} height={chartH - PAD_TOP - PAD_BOTTOM} />
             </clipPath>
           </defs>
           <style>{`
@@ -2548,7 +2590,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
           {/* Candlestick loading text */}
           {chartMode === 'candle' && (candleLoading || !candleDataMatches) && effectiveCandleData.length === 0 && (
-            <text x={CHART_W / 2} y={CHART_H / 2} textAnchor="middle" fill="#666" fontSize="12">Loading candles...</text>
+            <text x={CHART_W / 2} y={chartH / 2} textAnchor="middle" fill="#666" fontSize="12">Loading candles...</text>
           )}
           {/* Candlestick rendering */}
           {chartMode === 'candle' && effectiveCandleData.length > 0 && (() => {
@@ -2616,7 +2658,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {chartMode === 'line' && hasData && stockOpenIdx !== null ? (() => {
             const closeIdx = stockCloseIdx ?? points.length - 1;
             const hasAH = stockCloseIdx !== null && stockCloseIdx < points.length - 1;
-            const bottomY = CHART_H - PAD_BOTTOM;
+            const bottomY = chartH - PAD_BOTTOM;
 
             // Build area path for a segment
             const buildAreaSeg = (from: number, to: number) => {
@@ -2658,7 +2700,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 // Skip non-visible bars when zoomed for performance
                 if (zoomRange && (i < visStartIdx || i > visEndIdx)) return null;
                 const barH = (p.volume / volMax) * VOL_MAX_H;
-                const bottomY = CHART_H - PAD_BOTTOM;
+                const bottomY = chartH - PAD_BOTTOM;
                 const x = toX(i);
                 const visibleCount = zoomRange ? (visEndIdx - visStartIdx + 1) : points.length;
                 const barW = Math.max(1, plotW / visibleCount * 0.7);
@@ -3176,7 +3218,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             if (zoomRange && (cluster.index < visStartIdx || cluster.index > visEndIdx)) return null;
             const ex = toX(cluster.index);
             const priceY = toY(points[cluster.index]?.price ?? 0);
-            const bottomY = CHART_H - PAD_BOTTOM;
+            const bottomY = chartH - PAD_BOTTOM;
             const isActive = activeEventCluster === ci;
             const isPinned = pinnedEventIdx === ci;
             const isMulti = cluster.events.length > 1;
@@ -3233,7 +3275,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
           {/* Vertical dashed line A */}
           {mAx !== null && (
-            <line x1={mAx} y1={PAD_TOP} x2={mAx} y2={CHART_H - PAD_BOTTOM}
+            <line x1={mAx} y1={PAD_TOP} x2={mAx} y2={chartH - PAD_BOTTOM}
               className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
@@ -3241,7 +3283,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
           {/* Vertical dashed line B */}
           {mBx !== null && (
-            <line x1={mBx} y1={PAD_TOP} x2={mBx} y2={CHART_H - PAD_BOTTOM}
+            <line x1={mBx} y1={PAD_TOP} x2={mBx} y2={chartH - PAD_BOTTOM}
               className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
@@ -3269,7 +3311,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
           {/* Vertical dashed line C */}
           {mCx !== null && (
-            <line x1={mCx} y1={PAD_TOP} x2={mCx} y2={CHART_H - PAD_BOTTOM}
+            <line x1={mCx} y1={PAD_TOP} x2={mCx} y2={chartH - PAD_BOTTOM}
               className="stroke-gray-800 dark:stroke-white" strokeWidth="1" strokeDasharray="4,3" opacity="0.5">
               <animate attributeName="opacity" from="0" to="0.5" dur="0.2s" fill="freeze" />
             </line>
@@ -3316,7 +3358,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {/* Hover crosshair (suppress when measurement complete) */}
           {hasData && hoverX !== null && hoverY !== null && !hasFullMeasurement && (
             <>
-              <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={CHART_H - PAD_BOTTOM}
+              <line x1={hoverX} y1={PAD_TOP} x2={hoverX} y2={chartH - PAD_BOTTOM}
                 stroke="#9CA3AF" strokeWidth="0.8" opacity="0.6" />
               <circle cx={hoverX} cy={hoverY} r="4" fill={lineColor} stroke="#fff" strokeWidth="1.5" />
               {/* Comparison dots on crosshair */}
@@ -3352,7 +3394,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             const clampedX = Math.max(3, Math.min(CHART_W - 3, tl.x));
             const anchor = clampedX <= 5 ? 'start' : clampedX >= CHART_W - 5 ? 'end' : i === 0 ? 'start' : i === timeLabels.length - 1 ? 'end' : 'middle';
             return (
-              <text key={i} x={clampedX} y={CHART_H - 8} className="fill-gray-600 dark:fill-gray-500" fontSize="10" textAnchor={anchor}>
+              <text key={i} x={clampedX} y={chartH - 8} className="fill-gray-600 dark:fill-gray-500" fontSize="10" textAnchor={anchor}>
                 {tl.label}
               </text>
             );
@@ -3530,7 +3572,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           const items = cluster.events.map(formatEvent);
 
           // Card vertical position: above the marker if room, below if near top
-          const cardTopPct = ((priceY - 10) / CHART_H) * 100;
+          const cardTopPct = ((priceY - 10) / chartH) * 100;
           const showAbove = cardTopPct > 30;
 
           return (
@@ -3540,7 +3582,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               onMouseLeave={() => { if (pinnedEventIdx === null) setHoveredEventIdx(null); }}
               onClick={(e) => e.stopPropagation()}
               style={{
-                top: showAbove ? `${((priceY - 14) / CHART_H) * 100}%` : `${((priceY + 14) / CHART_H) * 100}%`,
+                top: showAbove ? `${((priceY - 14) / chartH) * 100}%` : `${((priceY + 14) / chartH) * 100}%`,
                 left: `${leftPct}%`,
                 transform: `translate(${flipLeft ? 'calc(-100% - 12px)' : '12px'}, ${showAbove ? '-100%' : '0'})`,
               }}
@@ -3611,7 +3653,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           const indices = [measureAIdx!, measureBIdx!, ...(measureCIdx !== null ? [measureCIdx] : [])];
           const lo = Math.min(...indices);
           const hi = Math.max(...indices);
-          let minYInRange = CHART_H;
+          let minYInRange = chartH;
           for (let i = lo; i <= hi; i++) {
             const y = toY(points[i].price);
             if (y < minYInRange) minYInRange = y;
@@ -3628,7 +3670,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             }
           }
           // Position card so its BOTTOM edge is above the highest visible point
-          const highestPointFromBottomPct = 100 - (minYInRange / CHART_H) * 100;
+          const highestPointFromBottomPct = 100 - (minYInRange / chartH) * 100;
           const bottomPct = highestPointFromBottomPct + 8;
           // Measurement card sits right of center — signal card will go to its left
           const leftPct = Math.max(30, Math.min(60, midXPct - 12));
@@ -3771,7 +3813,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         {/* Single-point indicator — above the selected point */}
         {isMeasuring && !hasFullMeasurement && !(hasMeasurement) && measureAIdx !== null && points[measureAIdx] && mAx !== null && mAy !== null && (() => {
           const leftPct = Math.max(2, Math.min(70, (mAx / CHART_W) * 100 - 5));
-          const topPct = Math.max(0, (mAy / CHART_H) * 100 - 14);
+          const topPct = Math.max(0, (mAy / chartH) * 100 - 14);
           return (
             <div
               className="absolute pointer-events-none z-10 rounded-lg border border-white/[0.08] px-3 py-1.5"

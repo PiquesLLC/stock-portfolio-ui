@@ -1952,7 +1952,7 @@ export default function App() {
                       </h3>
                     </div>
                     <div className="flex items-baseline gap-2 mt-2">
-                      <span className={`text-2xl font-bold tracking-tight ${
+                      <span className={`text-xl font-semibold tracking-tight ${
                         chartMeasurement.percentChange >= 0 ? 'text-rh-green' : 'text-rh-red'
                       }`}>
                         {chartMeasurement.percentChange >= 0 ? '+' : ''}{chartMeasurement.percentChange.toFixed(2)}%
@@ -2069,7 +2069,7 @@ export default function App() {
             {/* Holdings section — INSIDE the left column (so the toolbar stays
                 within the chart column width on desktop) but OUTSIDE the
                 lg:hidden stats wrapper above (so it renders on every viewport). */}
-            <div className="-mx-3 sm:-mx-6 lg:mx-0 space-y-8 mt-6">
+            <div className="-mx-3 sm:-mx-6 lg:mx-0 space-y-8 mt-3 sm:mt-6">
               <HoldingsTable
                 holdings={portfolio?.holdings ?? []}
                 onUpdate={handleUpdate}
