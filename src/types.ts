@@ -1209,7 +1209,7 @@ export interface MilestoneEvent {
   id: string;
   userId: string;
   ticker: string;
-  eventType: '52w_high' | '52w_low' | 'ath' | 'atl';
+  eventType: '52w_high' | '52w_low' | 'ath' | 'atl' | '52w_high_close' | '52w_low_close' | 'ath_close' | 'atl_close';
   message: string;
   currentPrice: number;
   thresholdPrice: number;
