@@ -68,21 +68,17 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
 
   if (loading && !data) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[1, 2].map((i) => (
-          <div key={i} className="border border-gray-200/10 dark:border-white/[0.04] p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/3 mb-4"></div>
-            <div className="h-8 bg-gray-200 dark:bg-rh-border rounded w-1/2 mb-2"></div>
-            <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4"></div>
-          </div>
-        ))}
+      <div className="border border-gray-200/10 dark:border-white/[0.04] p-4 animate-pulse">
+        <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/3 mb-4"></div>
+        <div className="h-6 bg-gray-200 dark:bg-rh-border rounded w-1/2 mb-2"></div>
+        <div className="h-4 bg-gray-200 dark:bg-rh-border rounded w-1/4"></div>
       </div>
     );
   }
 
   if (error && !data) {
     return (
-      <div className="border border-gray-200/10 dark:border-white/[0.04] p-6">
+      <div className="border border-gray-200/10 dark:border-white/[0.04] p-4">
         <p className="text-rh-red text-center">{error}</p>
       </div>
     );
@@ -90,144 +86,55 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
 
   if (!data) return null;
 
-  const { sinceTracking, holdingsPL, brokerLifetime } = data;
+  const { holdingsPL, brokerLifetime } = data;
 
   return (
     <div className="space-y-4">
-      {/* Main two-box layout: Holdings P/L (left), Since Tracking Start (right) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Box 1: Current Holdings P/L (LEFT) */}
-        <div className="border border-gray-200/10 dark:border-white/[0.04] p-6">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-4 rounded-full bg-rh-green" />
-              <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Current Holdings <Acronym label="P/L" /></h3>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setShowReportModal(true)}
-                title="Generate performance report"
-                className="p-1 rounded-md text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-green hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </button>
-            </div>
+      {/* Current Holdings P/L */}
+      <div className="border border-gray-200/10 dark:border-white/[0.04] p-4">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <div className="w-0.5 h-3.5 rounded-full bg-rh-green" />
+            <h3 className="text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50">Current Holdings <Acronym label="P/L" /></h3>
           </div>
-          <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mb-4">Unrealized gains only</p>
-
-          <div className="mb-3">
-            <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(holdingsPL.unrealizedPL)}</p>
-            <p
-              className={`text-lg font-semibold ${
-                holdingsPL.unrealizedPLPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
-              }`}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowReportModal(true)}
+              title="Generate performance report"
+              className="p-1 rounded-md text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-green hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
             >
-              {formatPercent(holdingsPL.unrealizedPLPercent)}
-            </p>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </button>
           </div>
+        </div>
+        <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mb-3">Unrealized gains only</p>
 
-          <div className="flex justify-between text-sm text-rh-light-muted/60 dark:text-rh-muted/60 border-t border-gray-200/10 dark:border-white/[0.04] pt-3 mt-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider">Total Cost</p>
-              <p className="text-rh-light-text/80 dark:text-white/80">{formatCurrency(holdingsPL.totalCost)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wider">Market Value</p>
-              <p className="text-rh-light-text/80 dark:text-white/80">{formatCurrency(holdingsPL.currentValue)}</p>
-            </div>
+        <div className={`flex items-baseline gap-1.5 mb-3 ${
+          holdingsPL.unrealizedPL >= 0 ? 'text-rh-green' : 'text-rh-red'
+        }`}>
+          <p className="text-xl font-semibold tabular-nums">
+            {holdingsPL.unrealizedPL >= 0 ? '+' : ''}{formatCurrency(holdingsPL.unrealizedPL)}
+          </p>
+          <p className="text-sm font-semibold tabular-nums">({formatPercent(holdingsPL.unrealizedPLPercent)})</p>
+        </div>
+
+        <div className="flex justify-between text-sm text-rh-light-muted/60 dark:text-rh-muted/60 border-t border-gray-200/10 dark:border-white/[0.04] pt-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider">Total Cost</p>
+            <p className="text-rh-light-text/80 dark:text-white/80 tabular-nums">{formatCurrency(holdingsPL.totalCost)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider">Market Value</p>
+            <p className="text-rh-light-text/80 dark:text-white/80 tabular-nums">{formatCurrency(holdingsPL.currentValue)}</p>
           </div>
         </div>
 
-        {/* Box 2: Since Tracking Start (RIGHT) */}
-        <div className="border border-gray-200/10 dark:border-white/[0.04] p-6">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-4 rounded-full bg-rh-green" />
-              <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Since Tracking Start</h3>
-            </div>
-            {sinceTracking.startDate && (
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted">
-                {formatDate(sinceTracking.startDate)}
-              </span>
-            )}
-          </div>
-          <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mb-4">Asset performance only — excludes margin</p>
-
-          {sinceTracking.hasBaseline ? (
-            <>
-              <div className="mb-3">
-                <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">
-                  {sinceTracking.absoluteReturn !== null
-                    ? formatCurrency(sinceTracking.absoluteReturn)
-                    : '—'}
-                </p>
-                {/* Show TWR when transactions exist, otherwise show simple return */}
-                {sinceTracking.transactionCount > 0 && sinceTracking.twrPercent !== null ? (
-                  <div className="flex items-center gap-2">
-                    <p
-                      className={`text-lg font-semibold ${
-                        sinceTracking.twrPercent >= 0 ? 'text-rh-green' : 'text-rh-red'
-                      }`}
-                    >
-                      {formatPercent(sinceTracking.twrPercent)}
-                    </p>
-                    <span className="group relative">
-                      <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-rh-muted/40 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-white/[0.08] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 w-56 text-left">
-                        <p className="text-[10px] font-medium text-rh-light-text dark:text-rh-text mb-1">Time-Weighted Return (TWR)</p>
-                        <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
-                          Accounts for {sinceTracking.transactionCount} deposit{sinceTracking.transactionCount !== 1 ? 's' : ''}/withdrawal{sinceTracking.transactionCount !== 1 ? 's' : ''}.
-                          Simple return: {sinceTracking.percentReturn !== null ? formatPercent(sinceTracking.percentReturn) : '—'}
-                        </p>
-                      </div>
-                    </span>
-                  </div>
-                ) : (
-                  <p
-                    className={`text-lg font-semibold ${
-                      (sinceTracking.percentReturn ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
-                    }`}
-                  >
-                    {sinceTracking.percentReturn !== null
-                      ? formatPercent(sinceTracking.percentReturn)
-                      : '—'}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex justify-between text-sm text-rh-light-muted/60 dark:text-rh-muted/60 border-t border-gray-200/10 dark:border-white/[0.04] pt-3 mt-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider">Starting Assets</p>
-                  <p className="text-rh-light-text/80 dark:text-white/80">
-                    {sinceTracking.startingValue !== null
-                      ? formatCurrency(sinceTracking.startingValue)
-                      : '—'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-wider">Current Assets</p>
-                  <p className="text-rh-light-text/80 dark:text-white/80">{formatCurrency(sinceTracking.currentValue)}</p>
-                </div>
-              </div>
-
-              {/* Transaction Manager - inline expandable section */}
-              <TransactionManager onTransactionChange={fetchData} />
-            </>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-rh-light-muted dark:text-rh-muted">No baseline set</p>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
-                {holdingsPL.totalCost > 0 || holdingsPL.currentValue > 0
-                  ? 'Set a baseline to start tracking performance'
-                  : 'Add holdings and set a baseline to track performance'}
-              </p>
-            </div>
-          )}
-        </div>
+        {/* Cash flow manager (deposits/withdrawals) — portfolio-level, feeds TWR;
+            this card is its only home since the Since Tracking Start box was removed */}
+        <TransactionManager onTransactionChange={fetchData} />
       </div>
 
       {/* Optional Box 3: Broker Lifetime (if data exists) */}
@@ -235,8 +142,8 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
         <div className="border border-gray-200/10 dark:border-white/[0.04] p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-1 h-4 rounded-full bg-rh-green" />
-              <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Broker Lifetime Performance</h3>
+              <div className="w-0.5 h-3.5 rounded-full bg-rh-green" />
+              <h3 className="text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50">Broker Lifetime Performance</h3>
             </div>
             {brokerLifetime.asOf && (
               <span className="text-xs text-rh-light-muted dark:text-rh-muted">
