@@ -2322,44 +2322,16 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
 
   return (
     <div className="space-y-1 sm:space-y-2">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text hidden sm:block">
-            {INDEXES.find(i => i.id === index)?.fullName ?? 'Market'} Heatmap
-          </h2>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted hidden sm:block">
-            {index === 'THEMES'
-              ? `${allStocks.length} subthemes across ${data.sectors.length} themes — colored by ${PERIOD_LABELS[period]}`
-              : `${allStocks.length} stocks across ${data.sectors.length} sectors — sized by market cap, colored by ${PERIOD_LABELS[period]}`
-            }
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {canToggleSession && (
-            <div className="inline-flex items-center rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-0.5" title="After-hours: 1D tiles include extended-hours trading. Switch to the regular-session close.">
-              <button
-                onClick={() => setShowRegular(false)}
-                className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${!showRegular ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
-              >
-                After hours
-              </button>
-              <button
-                onClick={() => setShowRegular(true)}
-                className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${showRegular ? 'bg-rh-light-text/10 dark:bg-white/10 text-rh-light-text dark:text-white' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
-              >
-                Regular
-              </button>
-            </div>
-          )}
-          {period === '1D' && data.session === 'PRE' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pre-market
-            </span>
-          )}
-          {loading && (
-            <div className="animate-spin rounded-full h-4 w-4 border border-rh-green border-t-transparent" />
-          )}
-        </div>
+      <div className="hidden sm:block">
+        <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">
+          {INDEXES.find(i => i.id === index)?.fullName ?? 'Market'} Heatmap
+        </h2>
+        <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+          {index === 'THEMES'
+            ? `${allStocks.length} subthemes across ${data.sectors.length} themes — colored by ${PERIOD_LABELS[period]}`
+            : `${allStocks.length} stocks across ${data.sectors.length} sectors — sized by market cap, colored by ${PERIOD_LABELS[period]}`
+          }
+        </p>
       </div>
 
       {/* Index + Period selectors */}
@@ -2384,24 +2356,53 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
           ))}
         </div>
 
-        {/* Period selector — below on mobile, right on desktop */}
-        <div className="flex items-center gap-1">
-          {PERIODS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPeriod(p.id)}
-              className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150
-                ${period === p.id
-                  ? 'text-rh-green'
-                  : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
-                }`}
-            >
-              {p.label}
-              {period === p.id && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
-              )}
-            </button>
-          ))}
+        {/* Period selector + session info — periods left, After-hours/Regular across from
+            them, directly above the heatmap. Compact period tabs on mobile so both fit. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 sm:justify-end sm:gap-x-3">
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            {PERIODS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPeriod(p.id)}
+                className={`relative px-1.5 sm:px-2.5 py-2 text-[12px] sm:text-[13px] font-semibold transition-all duration-150
+                  ${period === p.id
+                    ? 'text-rh-green'
+                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                  }`}
+              >
+                {p.label}
+                {period === p.id && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-rh-green" />
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            {loading && (
+              <div className="animate-spin rounded-full h-4 w-4 border border-rh-green border-t-transparent" />
+            )}
+            {canToggleSession && (
+              <div className="inline-flex items-center rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-0.5" title="After-hours: 1D tiles include extended-hours trading. Switch to the regular-session close.">
+                <button
+                  onClick={() => setShowRegular(false)}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${!showRegular ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
+                >
+                  After hours
+                </button>
+                <button
+                  onClick={() => setShowRegular(true)}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${showRegular ? 'bg-rh-light-text/10 dark:bg-white/10 text-rh-light-text dark:text-white' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
+                >
+                  Regular
+                </button>
+              </div>
+            )}
+            {period === '1D' && data.session === 'PRE' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pre-market
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
