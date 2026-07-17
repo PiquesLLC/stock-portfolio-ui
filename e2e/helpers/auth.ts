@@ -52,7 +52,17 @@ function parseEnvFile(raw: string): Record<string, string> {
 
 function loadLocalApiEnv(): LocalApiEnv {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  const apiEnvPath = path.resolve(here, '..', '..', '..', 'stock-portfolio-api', '.env');
+  // The local API .env moved OUTSIDE the cloud-synced repo folder (it held live
+  // secrets on OneDrive) — NALA_ENV_FILE points at it, the same variable the
+  // API's config/index.ts loads from. The old in-repo path stays as a fallback.
+  const candidates = [
+    process.env.NALA_ENV_FILE,
+    path.resolve(here, '..', '..', '..', 'stock-portfolio-api', '.env'),
+  ].filter((p): p is string => !!p);
+  const apiEnvPath = candidates.find(p => fs.existsSync(p));
+  if (!apiEnvPath) {
+    throw new Error(`Local API env file not found — set NALA_ENV_FILE (tried: ${candidates.join(' | ')})`);
+  }
   const raw = fs.readFileSync(apiEnvPath, 'utf8');
   const parsed = parseEnvFile(raw);
   const jwtSecret = parsed.JWT_SECRET;
