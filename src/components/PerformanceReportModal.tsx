@@ -105,14 +105,17 @@ export function PerformanceReportModal({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
-        className="bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl w-full max-w-sm mx-4 p-5"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Performance report"
+        className="bg-white dark:bg-black/95 backdrop-blur-md border border-gray-200/60 dark:border-white/[0.1] rounded-xl shadow-xl w-full max-w-sm mx-4 p-5"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Performance Report</h3>
-          <button onClick={onClose} className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" aria-label="Close" onClick={onClose} className="p-1 -m-1 text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
+            <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -120,16 +123,17 @@ export function PerformanceReportModal({ onClose }: Props) {
 
         {/* Period pills */}
         <div className="mb-3">
-          <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 mb-1.5">Period</div>
-          <div className="flex gap-1">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1.5">Period</div>
+          <div className="flex flex-wrap gap-1.5">
             {PERIODS.map((p) => (
               <button
+                type="button"
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
                   period === p.value
-                    ? 'bg-rh-green text-white'
-                    : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted hover:bg-gray-200 dark:hover:bg-white/[0.08]'
+                    ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
+                    : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                 }`}
               >
                 {p.label}
@@ -140,16 +144,17 @@ export function PerformanceReportModal({ onClose }: Props) {
 
         {/* Benchmark pills */}
         <div className="mb-4">
-          <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 mb-1.5">Benchmark</div>
-          <div className="flex gap-1">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1.5">Benchmark</div>
+          <div className="flex flex-wrap gap-1.5">
             {BENCHMARKS.map((b) => (
               <button
+                type="button"
                 key={b}
                 onClick={() => setBenchmark(b)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
                   benchmark === b
-                    ? 'bg-rh-green text-white'
-                    : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted hover:bg-gray-200 dark:hover:bg-white/[0.08]'
+                    ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
+                    : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                 }`}
               >
                 {b}
@@ -171,9 +176,10 @@ export function PerformanceReportModal({ onClose }: Props) {
         {/* Buttons */}
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={handleDownload}
             disabled={loading}
-            className="flex-1 py-2 text-sm font-semibold rounded-lg bg-rh-green text-white hover:bg-rh-green/90 disabled:opacity-50 transition-colors"
+            className="flex-1 py-2 text-sm font-semibold rounded-lg bg-rh-green hover:bg-green-600 text-black disabled:opacity-50 transition-colors"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-1.5">
@@ -186,9 +192,10 @@ export function PerformanceReportModal({ onClose }: Props) {
             ) : 'Download PDF'}
           </button>
           <button
+            type="button"
             onClick={handleEmail}
             disabled={loading}
-            className="flex-1 py-2 text-sm font-semibold rounded-lg border border-gray-200 dark:border-white/[0.08] text-rh-light-text dark:text-rh-text hover:bg-gray-50 dark:hover:bg-white/[0.04] disabled:opacity-50 transition-colors"
+            className="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-50/60 dark:hover:bg-white/[0.02] disabled:opacity-50 transition-colors"
           >
             Email to Me
           </button>

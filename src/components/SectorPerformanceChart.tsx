@@ -5,10 +5,15 @@ import { hapticLight } from '../utils/haptics';
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
 const CHART_W = 700;
-const CHART_H = 300;
+const CHART_H_BASE = 300;
 const PAD = { top: 12, right: 6, bottom: 24, left: 44 };
 const PLOT_W = CHART_W - PAD.left - PAD.right;
-const PLOT_H = CHART_H - PAD.top - PAD.bottom;
+// Taller plot on phones — 11 overlapping lines need vertical room to separate
+// (700/420 ≈ 1.67 vs desktop's 700/300 ≈ 2.33). Same responsive-viewBox pattern
+// as StockPriceChart: the viewBox height and ALL vertical math share chartH, so
+// scaling stays uniform ("xMidYMid meet" + w-full derives height from viewBox).
+const MOBILE_CHART_H = 420;
+const MOBILE_BREAKPOINT_QUERY = '(max-width: 639px)'; // below Tailwind `sm`
 
 type Period = '1D' | '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y';
 
@@ -65,7 +70,7 @@ function lineShade(pct: number, rank: number, total: number): string {
 
 /* ─── SVG path builders ──────────────────────────────────────────────────── */
 
-function buildTimePathFromMinutes(sparkline: number[], minutes: number[], yMin: number, yRange: number): string {
+function buildTimePathFromMinutes(sparkline: number[], minutes: number[], yMin: number, yRange: number, plotH: number): string {
   if (sparkline.length === 0 || minutes.length === 0) return '';
   const parts: string[] = [];
   let started = false;
@@ -74,21 +79,21 @@ function buildTimePathFromMinutes(sparkline: number[], minutes: number[], yMin: 
     const xFrac = (min - DAY_START_MIN) / DAY_RANGE_MIN;
     if (xFrac < 0 || xFrac > 1) continue;
     const x = PAD.left + xFrac * PLOT_W;
-    const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
+    const y = PAD.top + plotH - ((sparkline[i] - yMin) / (yRange || 1)) * plotH;
     parts.push(`${started ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`);
     started = true;
   }
   return parts.join('');
 }
 
-function buildIndexPath(sparkline: number[], yMin: number, yRange: number): string {
+function buildIndexPath(sparkline: number[], yMin: number, yRange: number, plotH: number): string {
   if (sparkline.length === 0) return '';
   const parts: string[] = [];
   const count = sparkline.length;
   for (let i = 0; i < count; i++) {
     const xFrac = count > 1 ? i / (count - 1) : 0.5;
     const x = PAD.left + xFrac * PLOT_W;
-    const y = PAD.top + PLOT_H - ((sparkline[i] - yMin) / (yRange || 1)) * PLOT_H;
+    const y = PAD.top + plotH - ((sparkline[i] - yMin) / (yRange || 1)) * plotH;
     parts.push(`${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
   }
   return parts.join('');
@@ -184,6 +189,23 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
   const longPressFiredRef = useRef(false);
   // Outer chart container ref — used to detect click-outside for "clear all pins"
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // matchMedia is feature-checked: jsdom (tests) and some embedded WebViews
+  // don't implement it — fall back to the desktop chart height there.
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(MOBILE_BREAKPOINT_QUERY);
+    const onChange = (e: MediaQueryListEvent) => setIsMobileViewport(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const chartH = isMobileViewport ? MOBILE_CHART_H : CHART_H_BASE;
+  const plotH = chartH - PAD.top - PAD.bottom;
 
   // Data fetching with two behaviors:
   //   - Initial mount + period change: blank stale data so the pulse loader shows for the FIRST fetch.
@@ -287,11 +309,11 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     const labels: { value: number; y: number }[] = [];
     for (let v = Math.ceil(yMin / step) * step; v <= yMin + yRange; v += step) {
       const rounded = Math.round(v * 100) / 100;
-      const y = PAD.top + PLOT_H - ((rounded - yMin) / (yRange || 1)) * PLOT_H;
+      const y = PAD.top + plotH - ((rounded - yMin) / (yRange || 1)) * plotH;
       labels.push({ value: rounded, y });
     }
     return { yLabels: labels, yDecimals: decimals };
-  }, [yMin, yRange]);
+  }, [yMin, yRange, plotH]);
 
   // Pre-compute SVG paths (only depend on data, not hover state)
   const pathMap = useMemo(() => {
@@ -299,13 +321,13 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     for (const item of allItems) {
       if (period === '1D' && minutesMap) {
         const mins = minutesMap.get(item.ticker) || [];
-        map.set(item.ticker, buildTimePathFromMinutes(item.sparkline, mins, yMin, yRange));
+        map.set(item.ticker, buildTimePathFromMinutes(item.sparkline, mins, yMin, yRange, plotH));
       } else {
-        map.set(item.ticker, buildIndexPath(item.sparkline, yMin, yRange));
+        map.set(item.ticker, buildIndexPath(item.sparkline, yMin, yRange, plotH));
       }
     }
     return map;
-  }, [allItems, period, yMin, yRange, minutesMap]);
+  }, [allItems, period, yMin, yRange, minutesMap, plotH]);
 
   // Set of sector tickers that have at least one pin for the current period.
   // Selected sectors render in the foreground at high opacity; non-pinned sectors fade behind.
@@ -334,7 +356,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       if (!svgRef.current || allItems.length === 0) return;
       const rect = svgRef.current.getBoundingClientRect();
       const svgX = ((clientX - rect.left) / rect.width) * CHART_W;
-      const svgY = ((clientY - rect.top) / rect.height) * CHART_H;
+      const svgY = ((clientY - rect.top) / rect.height) * chartH;
       if (svgX < PAD.left || svgX > CHART_W - PAD.right) {
         setHoverX(null);
         setHoverInfos([]);
@@ -359,7 +381,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         if (!timeStr && ts) {
           timeStr = formatTimestampET(ts, period !== '1D');
         }
-        const y = PAD.top + PLOT_H - ((val - yMin) / (yRange || 1)) * PLOT_H;
+        const y = PAD.top + plotH - ((val - yMin) / (yRange || 1)) * plotH;
         infos.push({
           ticker: item.ticker,
           value: val,
@@ -417,7 +439,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         }
       }
     },
-    [allItems, period, yMin, yRange, minutesMap],
+    [allItems, period, yMin, yRange, minutesMap, chartH, plotH],
   );
 
   const clearHover = useCallback(() => {
@@ -450,10 +472,10 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       }
       const currentValue = sector.sparkline[safeIdx];
       if (currentValue === undefined) return null;
-      const y = PAD.top + PLOT_H - ((currentValue - yMin) / (yRange || 1)) * PLOT_H;
+      const y = PAD.top + plotH - ((currentValue - yMin) / (yRange || 1)) * plotH;
       return { x, y, color: lineColor(sector.changePercent) };
     },
-    [allItems, period, minutesMap, yMin, yRange],
+    [allItems, period, minutesMap, yMin, yRange, plotH],
   );
 
   // Prune pins that have become unrenderable (ticker dropped from the response, or the
@@ -531,7 +553,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
     const svgX = ((e.clientX - rect.left) / rect.width) * CHART_W;
-    const svgY = ((e.clientY - rect.top) / rect.height) * CHART_H;
+    const svgY = ((e.clientY - rect.top) / rect.height) * chartH;
 
     // If the click landed within an existing pin's hit radius, remove that pin (toggle).
     for (let i = 0; i < pins.length; i++) {
@@ -550,7 +572,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       lastLockedTickerRef.current = null;
     }
     dropPinAtX(svgX);
-  }, [pins, computePinPos, removePin, dropPinAtX]);
+  }, [pins, computePinPos, removePin, dropPinAtX, chartH]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => updateHover(e.clientX, e.clientY),
@@ -574,7 +596,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       if (!svgRef.current) return;
       const rect = svgRef.current.getBoundingClientRect();
       const sx = ((t.clientX - rect.left) / rect.width) * CHART_W;
-      const sy = ((t.clientY - rect.top) / rect.height) * CHART_H;
+      const sy = ((t.clientY - rect.top) / rect.height) * chartH;
       longPressOriginRef.current = { x: sx, y: sy };
       longPressTimerRef.current = setTimeout(() => {
         if (!isTouchingRef.current) return;
@@ -585,7 +607,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         longPressTimerRef.current = null;
       }, LONG_PRESS_MS);
     },
-    [updateHover, cancelLongPress, handleLongPress],
+    [updateHover, cancelLongPress, handleLongPress, chartH],
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -618,7 +640,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
       if (origin && svgRef.current) {
         const rect = svgRef.current.getBoundingClientRect();
         const sx = ((t.clientX - rect.left) / rect.width) * CHART_W;
-        const sy = ((t.clientY - rect.top) / rect.height) * CHART_H;
+        const sy = ((t.clientY - rect.top) / rect.height) * chartH;
         if (Math.hypot(sx - origin.x, sy - origin.y) > LONG_PRESS_MOVE_TOLERANCE) {
           cancelLongPress();
         }
@@ -626,7 +648,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
     };
     svg.addEventListener('touchmove', onTouchMove, { passive: false });
     return () => svg.removeEventListener('touchmove', onTouchMove);
-  }, [updateHover, cancelLongPress]);
+  }, [updateHover, cancelLongPress, chartH]);
 
   // Clean up timer on unmount
   useEffect(() => () => cancelLongPress(), [cancelLongPress]);
@@ -660,7 +682,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
 
   if (!data || allItems.length === 0) return null;
 
-  const zeroY = PAD.top + PLOT_H - ((0 - yMin) / (yRange || 1)) * PLOT_H;
+  const zeroY = PAD.top + plotH - ((0 - yMin) / (yRange || 1)) * plotH;
 
   const timeLabels1D = [
     { min: 4 * 60, label: '4 AM' },
@@ -697,10 +719,14 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
         ))}
       </div>
 
+      {/* Sizing contract: the SVG is intrinsically sized (w-full + viewBox aspect) and every
+          pointer handler maps rect.height→chartH 1:1. Do NOT wrap the chart in a fixed-height
+          or aspect-constrained container — "meet" would letterbox and silently skew all
+          hover/click/touch y-coordinates. */}
       <div className="relative" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}>
           <svg
             ref={svgRef}
-            viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+            viewBox={`0 0 ${CHART_W} ${chartH}`}
             className="w-full"
             preserveAspectRatio="xMidYMid meet"
             onMouseMove={handleMouseMove}
@@ -729,7 +755,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
             ))}
 
             {/* 0% baseline */}
-            {zeroY >= PAD.top && zeroY <= PAD.top + PLOT_H && (
+            {zeroY >= PAD.top && zeroY <= PAD.top + plotH && (
               <line
                 x1={PAD.left} x2={CHART_W - PAD.right}
                 y1={zeroY} y2={zeroY}
@@ -759,7 +785,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               return (
                 <line
                   x1={x} x2={x}
-                  y1={PAD.top} y2={PAD.top + PLOT_H}
+                  y1={PAD.top} y2={PAD.top + plotH}
                   stroke="rgba(0,200,5,0.1)"
                   strokeWidth={0.5}
                   strokeDasharray="3,3"
@@ -830,7 +856,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
             {hoverX !== null && (
               <line
                 x1={hoverX} x2={hoverX}
-                y1={PAD.top} y2={PAD.top + PLOT_H}
+                y1={PAD.top} y2={PAD.top + plotH}
                 stroke="rgba(150,150,150,0.3)"
                 strokeWidth={0.5}
               />
@@ -856,7 +882,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 return (
                   <text
                     key={label}
-                    x={x} y={PAD.top + PLOT_H + 16}
+                    x={x} y={PAD.top + plotH + 16}
                     textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
                     fontSize="7"
@@ -882,7 +908,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 return (
                   <text
                     key={idx}
-                    x={x} y={PAD.top + PLOT_H + 16}
+                    x={x} y={PAD.top + plotH + 16}
                     textAnchor={anchor}
                     className="fill-gray-400 dark:fill-white/20"
                     fontSize="7"
@@ -926,10 +952,11 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
           {pins.map((pin, i) => {
             const pos = computePinPos(pin);
             if (!pos) return null;
-            // Threshold accounts for two-line label (~24 CSS px) + gap, with extra room for mobile (where SVG units compress to smaller CSS px).
-            const labelBelow = pos.y < 70;
+            // Two-line label (~24-35 CSS px) + 12px gap must fit above the pin; the SVG-unit
+            // room scales with chart height, so the threshold does too (≈66 desktop, ≈92 mobile).
+            const labelBelow = pos.y < chartH * 0.22;
             const xPct = (pos.x / CHART_W) * 100;
-            const yPct = (pos.y / CHART_H) * 100;
+            const yPct = (pos.y / chartH) * 100;
             const xAnchor = xPct < 8 ? '0%' : xPct > 92 ? '-100%' : '-50%';
             return (
               <div
