@@ -144,7 +144,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
         <>
           {/* Alpha — hero number */}
           <div className="flex items-baseline gap-2 mb-2">
-            <span className={`text-2xl font-bold tracking-tight ${alphaColor} ${
+            <span className={`text-xl font-semibold tracking-tight ${alphaColor} ${
               beating ? 'alpha-glow-green animate-glow-pulse' : effectiveAlpha !== null && effectiveAlpha < 0 ? 'alpha-glow-red' : ''
             }`}>
               {fmt(effectiveAlpha)}

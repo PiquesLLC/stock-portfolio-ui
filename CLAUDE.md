@@ -52,7 +52,7 @@ Every page section uses this. Card-internal labels: `text-[10px] font-medium upp
 ## Process rules
 
 - **Styling changes need Jon's visual OK on dev BEFORE pushing.** Review verdicts don't substitute.
-- Mobile fit problems: tune spacing/compression (+ `flex-wrap` safety) — do NOT build structural mobile-only layout variants (rejected 2026-07-10).
+- Mobile fit problems: tune spacing/compression (+ `flex-wrap` safety) — do NOT build structural mobile-only layout variants (rejected 2026-07-10). Standing exception, Jon-approved 2026-07-16: the stock-page Your Position swipe carousel (Market Value ⇄ Average Cost, page dots). New exceptions need the same explicit OK.
 - Measure real runtime values for UI-fit work (screenshots, getBoundingClientRect) — never estimate geometry.
 - `sm:`+ must stay byte-identical when fixing mobile-only issues; don't break a working screen to fix another.
 - Dev servers run under pm2 (`nala-ui` :5173, `nala-api` :3001) — never start duplicate `npm run dev`.

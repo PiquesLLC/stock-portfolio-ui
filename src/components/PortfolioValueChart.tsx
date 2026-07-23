@@ -599,10 +599,16 @@ export function PortfolioValueChart({
 
   // Emit period return to parent (for benchmark widget consistency)
   // When data is insufficient, emit null so benchmark widget shows dashes
-  // For 1D: use API dayChangePercent (immune to margin timing)
+  // For 1D: use the regular-session return — the exact number the hero labels
+  // "Today" — so the benchmark widget's "You" can never disagree with the header.
+  // During extended hours dayChangePercent also carries pre/post-market drift
+  // while the benchmark side (quote.changePercent) stays session-based, which
+  // made "You" differ from the "Today" line a few lines above it. Falls back to
+  // dayChangePercent when the session split isn't provided (regular hours,
+  // where they're equal; both are API price-based props, immune to margin timing).
   const periodReturnPct = chartData?.insufficientData ? null : (
     selectedPeriod === '1D'
-      ? dayChangePercent
+      ? (regularDayChangePercent ?? dayChangePercent)
       : (periodStartValue > 0
         // Use the latest plotted point (same basis as the hero) so the benchmark widget's
         // "You" % matches the hero's change; hover-independent, falls back to currentValue.

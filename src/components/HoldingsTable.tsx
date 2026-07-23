@@ -905,7 +905,7 @@ export function HoldingsTable({
 
   return (
     <div className="rounded-xl overflow-hidden">
-      <div className="px-3 sm:px-4 pb-1 sm:pb-4 pt-0 flex items-center justify-between gap-3">
+      <div className="px-3 sm:px-4 pb-2 sm:pb-4 pt-0 flex items-center justify-between gap-3 border-b border-gray-200/40 dark:border-white/[0.06] sm:border-b-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {hasActiveFilter && (
             <span className="hidden sm:inline text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 whitespace-nowrap">

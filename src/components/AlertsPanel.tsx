@@ -21,22 +21,27 @@ const ALERT_LABELS: Record<string, { name: string; description: string; unit: st
   },
   '52w_high': {
     name: '52-Week High',
-    description: 'Triggers when any holding hits a 52-week high',
+    description: 'When a holding sets a new 52-week high, and if it closes there',
     unit: '',
   },
   '52w_low': {
     name: '52-Week Low',
-    description: 'Triggers when any holding hits a 52-week low',
+    description: 'When a holding sets a new 52-week low, and if it closes there',
     unit: '',
   },
   'ath': {
     name: 'All-Time High',
-    description: 'Triggers when any holding hits an all-time high',
+    description: 'When a holding sets a new all-time high, and if it closes there',
     unit: '',
   },
   'atl': {
     name: 'All-Time Low',
-    description: 'Triggers when any holding hits an all-time low',
+    description: 'When a holding sets a new all-time low, and if it closes there',
+    unit: '',
+  },
+  'congress_trade': {
+    name: 'Congress Trades',
+    description: 'When a member of Congress trades one of your holdings',
     unit: '',
   },
   'value_radar': {
@@ -52,6 +57,18 @@ const PRICE_SPIKE_PRESETS = [
   { label: '5%', value: 5 },
   { label: '10%', value: 10 },
 ];
+
+// Flat grouped list — unknown/new alert types fall into the last group
+const ALERT_GROUPS: { label: string; types: string[] }[] = [
+  { label: 'Portfolio', types: ['drawdown', 'underperform_spy'] },
+  { label: 'Milestones', types: ['52w_high', '52w_low', 'ath', 'atl'] },
+  { label: 'Activity', types: ['congress_trade', 'value_radar'] },
+];
+const GROUPED_TYPES = new Set(ALERT_GROUPS.flatMap(g => g.types));
+
+// Only these types have a server-evaluated threshold — the milestone and
+// activity alerts are pure on/off switches
+const THRESHOLD_TYPES = new Set(['drawdown', 'underperform_spy']);
 
 export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
   const [alerts, setAlerts] = useState<AlertConfig[]>([]);
@@ -108,55 +125,56 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" onClick={onClose}>
       <div
-        className="bg-white dark:bg-[#1a1a1e] border border-gray-200/60 dark:border-white/[0.08]
-          rounded-2xl p-6 w-full max-w-md mx-4 max-h-[70vh] overflow-y-auto scrollbar-minimal
-          shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+        className="w-full max-w-sm mx-4 max-h-[75vh] overflow-y-auto scrollbar-minimal rounded-2xl
+          border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-black/95 backdrop-blur-md shadow-xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Alert Settings</h2>
+        <div className="flex items-center justify-between px-5 pt-4 pb-1">
+          <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Alert Settings</h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+            className="w-7 h-7 -mr-1.5 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
               hover:bg-black/5 dark:hover:bg-white/[0.08] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
           >
-            <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {loading ? (
-          <div className="py-8 text-center text-rh-light-muted dark:text-rh-muted text-sm">Loading alerts...</div>
+          <div className="px-5 py-10 text-center text-rh-light-muted dark:text-rh-muted text-sm">Loading alerts...</div>
         ) : (
-          <div className="space-y-3">
-            {/* Price Spike Threshold */}
-            <div className="p-4 rounded-xl border transition-all bg-gray-50/80 dark:bg-white/[0.04] border-gray-200/50 dark:border-white/[0.06]">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Price Action Alerts</span>
+          <div className="px-5">
+            {/* Price action — % move presets */}
+            <div className="pt-2 pb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">Price action</span>
                 {savingSpike && (
                   <span className="text-[10px] text-rh-green">Saving...</span>
                 )}
               </div>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">
+              <p className="text-xs text-rh-light-muted dark:text-rh-muted leading-relaxed">
                 Notify me when any holding moves more than this % in a day
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 mt-2.5">
                 {PRICE_SPIKE_PRESETS.map(preset => (
                   <button
+                    type="button"
                     key={preset.value}
                     onClick={() => handlePriceSpikeChange(preset.value)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                       priceSpikePct === preset.value
-                        ? 'bg-rh-green/10 border-rh-green text-rh-green dark:bg-rh-green/20'
-                        : 'bg-white/60 dark:bg-white/[0.04] border-gray-200/50 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:border-rh-green/50'
+                        ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
+                        : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                     }`}
                   >
                     {preset.label}
                   </button>
                 ))}
-                <div className="flex items-center gap-1 ml-1">
+                <div className="flex items-center gap-1 ml-auto">
                   <input
                     type="number"
                     inputMode="decimal"
@@ -172,65 +190,79 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                       const v = parseFloat(e.target.value);
                       if (!isNaN(v) && v >= 1 && v <= 25) handlePriceSpikeChange(v);
                     }}
-                    className="w-16 px-2 py-1.5 text-xs rounded-lg bg-white/60 dark:bg-white/[0.06] border border-gray-200/50 dark:border-white/[0.08] text-rh-light-text dark:text-rh-text text-center"
+                    className="w-14 px-2 py-1.5 text-xs text-center tabular-nums rounded-lg bg-transparent
+                      border border-gray-200/60 dark:border-white/[0.1] text-rh-light-text dark:text-rh-text
+                      focus:border-rh-green/50 focus:outline-none"
                   />
                   <span className="text-xs text-rh-light-muted dark:text-rh-muted">%</span>
                 </div>
               </div>
             </div>
 
-            {/* Existing portfolio-level alerts */}
-            {alerts.map(alert => {
-              const meta = ALERT_LABELS[alert.type] || { name: alert.type, description: '', unit: '' };
-              const hasThreshold = !['52w_high', '52w_low', 'ath', 'atl'].includes(alert.type);
+            {/* Portfolio-level alerts, grouped flat list — no boxes-in-boxes */}
+            {ALERT_GROUPS.map(group => {
+              const groupAlerts = alerts.filter(a =>
+                group.types.includes(a.type) ||
+                (group.label === 'Activity' && !GROUPED_TYPES.has(a.type))
+              );
+              if (groupAlerts.length === 0) return null;
 
               return (
-                <div
-                  key={alert.id}
-                  className={`p-4 rounded-xl border transition-all ${
-                    alert.enabled
-                      ? 'bg-gray-50/80 dark:bg-white/[0.04] border-gray-200/50 dark:border-white/[0.06]'
-                      : 'bg-gray-50/40 dark:bg-white/[0.02] border-gray-200/30 dark:border-white/[0.03] opacity-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">{meta.name}</span>
-                    <button
-                      onClick={() => handleToggle(alert)}
-                      className={`relative w-10 h-[22px] rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
-                        alert.enabled ? 'bg-rh-green' : 'bg-gray-300 dark:bg-gray-600'
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-                          alert.enabled ? 'translate-x-[18px]' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
+                <div key={group.label} className="pt-3 pb-1 border-t border-gray-200/40 dark:border-white/[0.06]">
+                  <span className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
+                    {group.label}
+                  </span>
+                  <div className="divide-y divide-gray-200/40 dark:divide-white/[0.06]">
+                    {groupAlerts.map(alert => {
+                      const meta = ALERT_LABELS[alert.type] || { name: alert.type, description: '', unit: '' };
+
+                      return (
+                        <div key={alert.id} className="py-3 flex items-start justify-between gap-4">
+                          <div className={`min-w-0 transition-opacity ${alert.enabled ? '' : 'opacity-50'}`}>
+                            <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">{meta.name}</span>
+                            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 leading-relaxed">{meta.description}</p>
+                            {THRESHOLD_TYPES.has(alert.type) && alert.enabled && (
+                              <div className="flex items-center gap-1.5 mt-2">
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0"
+                                  value={alert.threshold ?? ''}
+                                  onChange={e => handleThresholdChange(alert, e.target.value)}
+                                  onBlur={() => handleThresholdBlur(alert)}
+                                  className="w-16 px-2 py-1 text-xs text-right tabular-nums rounded-lg bg-transparent
+                                    border border-gray-200/60 dark:border-white/[0.1] text-rh-light-text dark:text-rh-text
+                                    focus:border-rh-green/50 focus:outline-none"
+                                />
+                                <span className="text-xs text-rh-light-muted dark:text-rh-muted">{meta.unit}</span>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggle(alert)}
+                            aria-pressed={alert.enabled}
+                            className={`relative flex-shrink-0 mt-0.5 w-10 h-[22px] rounded-full transition-colors after:content-[''] after:absolute after:-inset-3 ${
+                              alert.enabled ? 'bg-rh-green' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                                alert.enabled ? 'translate-x-[18px]' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">{meta.description}</p>
-                  {hasThreshold && (
-                    <div className="flex items-center gap-2 mt-2.5">
-                      <span className="text-xs text-rh-light-muted dark:text-rh-muted">Threshold:</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        value={alert.threshold ?? ''}
-                        onChange={e => handleThresholdChange(alert, e.target.value)}
-                        onBlur={() => handleThresholdBlur(alert)}
-                        className="w-20 px-2 py-1 text-xs rounded-lg bg-white/60 dark:bg-white/[0.06] border border-gray-200/50 dark:border-white/[0.08] text-rh-light-text dark:text-rh-text"
-                      />
-                      <span className="text-xs text-rh-light-muted dark:text-rh-muted">{meta.unit}</span>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         )}
 
-        <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/50 mt-4">
+        <p className="px-5 pt-1 pb-4 text-[11px] text-rh-light-muted/60 dark:text-rh-muted/50">
           Alerts are evaluated each time your portfolio snapshot updates.
         </p>
       </div>

@@ -13,6 +13,11 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   '52w_low': '52W Low',
   'ath': 'All-Time High',
   'atl': 'All-Time Low',
+  // End-of-day close milestones — same badge, the message says "closed at"
+  '52w_high_close': '52W High',
+  '52w_low_close': '52W Low',
+  'ath_close': 'All-Time High',
+  'atl_close': 'All-Time Low',
   volume_spike: 'Volume Spike',
   price_spike: 'Price Spike',
   sector_divergence: 'Sector Move',
@@ -458,7 +463,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
       </button>
 
       {open && (
-        <div className="absolute -right-12 top-full mt-2 w-72 max-h-96 overflow-y-auto
+        <div className="absolute -right-11 top-full mt-2 w-72 max-h-96 overflow-y-auto
           bg-white dark:bg-[#1a1a1e] border border-gray-200 dark:border-white/[0.08]
           rounded-xl shadow-2xl z-50 scrollbar-minimal"
         >
