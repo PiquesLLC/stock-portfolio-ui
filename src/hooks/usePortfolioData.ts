@@ -25,6 +25,14 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
   const lastTotalAssets = useRef<number | null>(null);
   const currentPortfolioIdRef = useRef(portfolioId);
   currentPortfolioIdRef.current = portfolioId;
+  // Brownout resilience (2026-07-14 outage): without these, every 5s poll
+  // stacked a NEW request on a stalled server (fetch has no default timeout),
+  // so one degraded API accumulated dozens of hanging /portfolio calls per
+  // open tab — client-side amplification of the exact overload it was
+  // polling. Single-flight + a hard request deadline + failure backoff.
+  const inFlightRef = useRef(false);
+  const inFlightControllerRef = useRef<AbortController | null>(null);
+  const consecutiveFailuresRef = useRef(0);
 
   // Reset portfolio state when the user switches portfolios. Without this,
   // the previous portfolio's holdings/cash/totals remain visible until the
@@ -39,14 +47,26 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
     lastValidPortfolio.current = null;
     hasPortfolioRef.current = false;
     lastTotalAssets.current = null;
+    consecutiveFailuresRef.current = 0;
+    // Abort any in-flight fetch for the previous portfolio so the
+    // single-flight guard can't delay the new portfolio's first load.
+    inFlightControllerRef.current?.abort();
   }, [portfolioId]);
 
   const fetchData = useCallback(async () => {
     if (!currentUserId || authLoading) return;
+    if (inFlightRef.current) return; // single-flight: never stack polls
+    inFlightRef.current = true;
+    const controller = new AbortController();
+    inFlightControllerRef.current = controller;
+    // Hard deadline: a degraded server must produce a failure (and backoff),
+    // not an indefinitely hanging request.
+    const deadline = setTimeout(() => controller.abort(), 20_000);
     const fetchPortfolioId = portfolioId; // capture at call time
     try {
-      const portfolioData = await getPortfolio(undefined, portfolioId);
-      const settingsData = await getSettings();
+      const portfolioData = await getPortfolio(undefined, portfolioId, controller.signal);
+      const settingsData = await getSettings(controller.signal);
+      consecutiveFailuresRef.current = 0;
 
       // Discard stale response if portfolioId changed during fetch
       if (fetchPortfolioId !== currentPortfolioIdRef.current) return;
@@ -91,6 +111,11 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
         lastValidPortfolio.current = portfolioData;
       }
     } catch (err) {
+      // Superseded by a portfolio switch (its reset effect aborts us):
+      // not a failure of the CURRENT portfolio — discard like the
+      // stale-response guard on the success path.
+      if (fetchPortfolioId !== currentPortfolioIdRef.current) return;
+      consecutiveFailuresRef.current += 1;
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
       if (hasPortfolioRef.current) {
         setIsStale(true);
@@ -98,6 +123,9 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
         setError(message);
       }
     } finally {
+      clearTimeout(deadline);
+      inFlightRef.current = false;
+      if (inFlightControllerRef.current === controller) inFlightControllerRef.current = null;
       setLoading(false);
     }
   }, [currentUserId, authLoading, portfolioId]);
@@ -111,6 +139,13 @@ export function usePortfolioData({ currentUserId, authLoading, portfolioId }: Us
     if (!currentUserId || authLoading) return;
     fetchData();
     const getInterval = () => {
+      // Failure backoff: while the server is degraded, retry at 10s→20s→40s→
+      // capped 60s instead of hammering every 5s. Recovery self-heals: the
+      // first successful poll resets the counter (and clears the error state).
+      const failures = consecutiveFailuresRef.current;
+      if (failures >= 2) {
+        return Math.min(60_000, 5_000 * 2 ** (failures - 1));
+      }
       const s = sessionRef.current;
       // CLOSED keeps a slow heartbeat rather than stopping: the only thing that
       // updates sessionRef is a poll, so a stopped loop could never observe the
