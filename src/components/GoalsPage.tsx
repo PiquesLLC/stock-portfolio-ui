@@ -440,7 +440,7 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
           </span>
         </div>
         <div className="flex justify-between text-[10px] text-rh-light-muted dark:text-rh-muted">
-          <span>{formatCurrency(goal.currentPortfolioValue)}</span>
+          <span>{formatCurrency(goal.currentPortfolioValue)}{(goal as any).currentValue != null ? ' · self-reported' : ''}</span>
           <span>{formatCurrency(goal.targetValue)}</span>
         </div>
       </div>

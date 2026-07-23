@@ -335,7 +335,10 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
           {/* YTD Settings Form */}
           {showYtdForm && (
             <div className="border-b border-gray-200/10 dark:border-white/[0.04] pb-3 mb-4">
-              <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text mb-3">True YTD Settings</h4>
+              <div className="flex items-center gap-2 mb-3">
+                <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text">True YTD Settings</h4>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">Self-reported</span>
+              </div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
                   <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1">Net Equity on Jan 1 ($)</label>
@@ -424,6 +427,9 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                     {formatPct(paceData.windowReturnPct)}
                     {paceData.estimated && (
                       <span className="text-xs font-normal text-amber-500 ml-1">Est.</span>
+                    )}
+                    {paceWindow === 'YTD' && paceData.trueYtdAvailable && (
+                      <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted ml-1">Self-reported basis</span>
                     )}
                   </p>
                 </div>

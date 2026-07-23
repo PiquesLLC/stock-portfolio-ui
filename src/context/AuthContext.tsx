@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, resetAuthState, setNativeAuthSession, setNativeRefreshSession, clearNativeAuthSession, hasNativeRefreshSession, ApiError } from '../api';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, signup as apiSignup, verifyMfa as apiVerifyMfa, isMfaChallenge, setAuthExpiredHandler, isSameOriginApi, verifySignupEmail as apiVerifyEmail, resendSignupVerification as apiResendVerification, oauthGoogleLogin as apiOauthGoogle, oauthAppleLogin as apiOauthApple, oauthCompleteSignup as apiOauthComplete, isDobRequired, resetAuthState, setNativeAuthSession, setNativeRefreshSession, clearNativeAuthSession, hasNativeRefreshSession, ApiError } from '../api';
 import { isNativePlatform } from '../utils/platform';
 import { nativeLog } from '../utils/nativeDebug';
 import { isBiometricAvailable, saveBiometricToken, clearBiometricToken } from '../utils/biometric';
@@ -39,11 +39,15 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   verifyMfa: (code: string, method: 'totp' | 'email' | 'backup') => Promise<void>;
   clearMfaChallenge: () => void;
-  signup: (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }, referralCode?: string) => Promise<SignupResult>;
+  signup: (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean; dateOfBirth?: string }, referralCode?: string) => Promise<SignupResult>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
-  loginWithGoogle: (credential: string) => Promise<{ isNewUser: boolean }>;
-  loginWithApple: (idToken: string, user?: { firstName?: string; lastName?: string }, nonce?: string) => Promise<{ isNewUser: boolean }>;
+  loginWithGoogle: (credential: string) => Promise<{ isNewUser: boolean; needsDob?: boolean }>;
+  loginWithApple: (idToken: string, user?: { firstName?: string; lastName?: string }, nonce?: string) => Promise<{ isNewUser: boolean; needsDob?: boolean }>;
+  /** True while a brand-new OAuth signup is waiting on the date-of-birth step. */
+  pendingOAuthDob: boolean;
+  completeOAuthSignup: (dateOfBirth: string) => Promise<void>;
+  cancelOAuthSignup: () => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -142,10 +146,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
+  // Brand-new OAuth signup awaiting the date-of-birth step (nothing persisted server-side yet)
+  const [oauthDobPending, setOauthDobPending] = useState<{ signupToken: string } | null>(null);
 
   const clearClientSessionState = useCallback((options?: { clearBiometric?: boolean; resetLocation?: boolean }) => {
     setUser(null);
     setMfaChallenge(null);
+    setOauthDobPending(null);
     writeCachedUser(null);
     resetAuthState();
     clearNativeAuthSession();
@@ -284,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMfaChallenge(null);
   }, []);
 
-  const signup = useCallback(async (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean }, referralCode?: string): Promise<SignupResult> => {
+  const signup = useCallback(async (username: string, displayName: string, password: string, email: string, consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean; dateOfBirth?: string }, referralCode?: string): Promise<SignupResult> => {
     // Signup sets httpOnly cookie automatically (auto-login)
     const response = await apiSignup(username, displayName, password, email, consent, referralCode);
     // Always set user — App.tsx hard gate checks emailVerified === false
@@ -318,8 +325,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await apiResendVerification(email);
   }, []);
 
-  const loginWithGoogle = useCallback(async (credential: string): Promise<{ isNewUser: boolean }> => {
+  const loginWithGoogle = useCallback(async (credential: string): Promise<{ isNewUser: boolean; needsDob?: boolean }> => {
     const response = await apiOauthGoogle(credential);
+    if (isDobRequired(response)) {
+      // Brand-new signup — hold the signed token and ask for the date of
+      // birth before any account is created. (Checked first: it also narrows
+      // the union so isMfaChallenge's LoginResult parameter typechecks.)
+      setOauthDobPending({ signupToken: response.signupToken });
+      return { isNewUser: false, needsDob: true };
+    }
     if (isMfaChallenge(response)) {
       setMfaChallenge({
         challengeToken: response.challengeToken,
@@ -343,8 +357,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     idToken: string,
     appleUser?: { firstName?: string; lastName?: string },
     nonce?: string,
-  ): Promise<{ isNewUser: boolean }> => {
+  ): Promise<{ isNewUser: boolean; needsDob?: boolean }> => {
     const response = await apiOauthApple(idToken, appleUser, nonce);
+    if (isDobRequired(response)) {
+      // Brand-new signup — hold the signed token and ask for the date of
+      // birth before any account is created. (Checked first: it also narrows
+      // the union so isMfaChallenge's LoginResult parameter typechecks.)
+      setOauthDobPending({ signupToken: response.signupToken });
+      return { isNewUser: false, needsDob: true };
+    }
     if (isMfaChallenge(response)) {
       setMfaChallenge({
         challengeToken: response.challengeToken,
@@ -362,6 +383,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeCachedUser(response.user);
     promptBiometricEnrollment(response.refreshToken);
     return { isNewUser: response.isNewUser };
+  }, []);
+
+  const completeOAuthSignup = useCallback(async (dateOfBirth: string) => {
+    if (!oauthDobPending) throw new Error('No pending OAuth signup');
+    const response = await apiOauthComplete(oauthDobPending.signupToken, dateOfBirth);
+    setOauthDobPending(null);
+    resetAuthState();
+    setNativeAuthSession(response.accessToken, response.refreshToken);
+    if (!response.accessToken && response.refreshToken) {
+      setNativeRefreshSession(response.refreshToken);
+    }
+    setUser(response.user);
+    writeCachedUser(response.user);
+    promptBiometricEnrollment(response.refreshToken);
+  }, [oauthDobPending]);
+
+  const cancelOAuthSignup = useCallback(() => {
+    setOauthDobPending(null);
   }, []);
 
   const logout = useCallback(async () => {
@@ -450,6 +489,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resendVerification,
         loginWithGoogle,
         loginWithApple,
+        pendingOAuthDob: !!oauthDobPending,
+        completeOAuthSignup,
+        cancelOAuthSignup,
         logout,
         refreshUser,
       }}

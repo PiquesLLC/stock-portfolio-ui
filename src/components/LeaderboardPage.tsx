@@ -207,7 +207,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                     <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mb-1.5">Updated {formatRelativeTime(lastUpdated)}</p>
                   )}
                   <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 leading-relaxed">
-                    Rankings based on time-weighted returns (TWR) since tracking began. TWR eliminates the effect of deposits/withdrawals for fair comparison.
+                    Rankings reflect each portfolio's percentage return over the selected window, measured server-side from market prices. Adding or withdrawing funds during the window can affect this figure.
                   </p>
                 </div>
               </>
@@ -344,11 +344,10 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                         </td>
                         <td className="px-2 sm:px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {entry.verified && (
-                              <svg className="w-4 h-4 text-rh-green" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                              </svg>
-                            )}
+                            {/* A1: the verification checkmark was shown on every
+                                row (verified was hardcoded true) and certified
+                                nothing — removed until a real verification
+                                signal (e.g. brokerage-linked) exists. */}
                             {onCompare && currentUserId && currentUserId !== entry.userId && (
                               <button
                                 onClick={(e) => {

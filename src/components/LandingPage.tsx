@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { checkHasPassword, forgotUsername, resetPassword, joinWaitlist } from '../api';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
+import OAuthDobModal from './OAuthDobModal';
 import { PLANS } from '../data/plans';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
@@ -121,6 +122,7 @@ export function LandingPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
@@ -268,7 +270,17 @@ export function LandingPage() {
         const pwErr2 = validatePassword(password);
         if (pwErr2) { setError(pwErr2); return; }
         if (!acceptedTerms) { setError('You must accept the Privacy Policy and Terms of Service'); return; }
-        const result = await signup(username, displayName, password, landingEmail, { acceptedPrivacyPolicy: true, acceptedTerms: true }, referralCode || undefined);
+        if (!dateOfBirth) { setError('Please enter your date of birth'); return; }
+        {
+          // Client-side age check for immediate feedback; the server enforces it authoritatively.
+          const dob = new Date(dateOfBirth);
+          const now = new Date();
+          let age = now.getFullYear() - dob.getFullYear();
+          const mo = now.getMonth() - dob.getMonth();
+          if (mo < 0 || (mo === 0 && now.getDate() < dob.getDate())) age--;
+          if (Number.isNaN(dob.getTime()) || age < 13) { setError('You must be at least 13 years old to use Nala.'); return; }
+        }
+        const result = await signup(username, displayName, password, landingEmail, { acceptedPrivacyPolicy: true, acceptedTerms: true, dateOfBirth }, referralCode || undefined);
         if (result.emailVerificationRequired) {
           showToast('Account created! Check your email for a verification code.', 'success');
           window.location.href = '/';
@@ -410,6 +422,7 @@ export function LandingPage() {
 
   return (
     <div className="h-screen h-dvh bg-black text-white overflow-hidden flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <OAuthDobModal />
 
       {/* ═══ NAV — in the non-scrolling shell ═══ */}
       <nav className="relative z-40 bg-black border-b border-white/[0.04] shrink-0">
@@ -752,6 +765,7 @@ export function LandingPage() {
                   <div><label htmlFor="auth-username" className="block text-[12px] font-medium text-white/30 mb-1.5">Username</label><input id="auth-username" type="text" value={username} onChange={e=>setUsername(e.target.value)} onBlur={checkAndSwitchMode} className={ic} placeholder="e.g. nala_investor" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck="false" required /></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-displayName" className="block text-[12px] font-medium text-white/30 mb-1.5">Display Name</label><input id="auth-displayName" type="text" value={displayName} onChange={e=>setDisplayName(e.target.value)} className={ic} placeholder="How others will see you" autoComplete="name" required /></div>}
                   {authMode==='signup'&&<div><label htmlFor="auth-email" className="block text-[12px] font-medium text-white/30 mb-1.5">Email</label><input id="auth-email" type={EMAIL_INPUT_TYPE} inputMode="email" value={landingEmail} onChange={e=>setLandingEmail(e.target.value)} className={ic} placeholder="you@example.com" autoComplete="email" autoCapitalize="none" required /></div>}
+                  {authMode==='signup'&&<div><label htmlFor="auth-dob" className="block text-[12px] font-medium text-white/30 mb-1.5">Date of Birth</label><input id="auth-dob" type="date" value={dateOfBirth} onChange={e=>setDateOfBirth(e.target.value)} className={ic} autoComplete="bday" required /></div>}
                   <div><div className="flex items-center justify-between mb-1.5"><label htmlFor="auth-password" className="block text-[12px] font-medium text-white/30">Password</label>{authMode==='login'&&<div className="flex items-center gap-3"><button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>{setAuthMode('forgot-username');setError('');}}>Forgot username?</button><button type="button" tabIndex={-1} className="text-[11px] text-white/15 hover:text-white/30 transition-colors" onClick={()=>{setAuthMode('forgot-password');setError('');}}>Forgot password?</button></div>}</div><div className="relative"><input id="auth-password" type={showPassword?'text':'password'} value={password} onChange={e=>setPasswordValue(e.target.value)} className={`${ic} pr-11`} placeholder={authMode==='login'?'••••••••':'Min. 8 chars, upper/lower/number'} autoComplete={authMode==='login'?'current-password':'new-password'} required /><button type="button" onClick={()=>setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>
                   {authMode==='signup'&&<div><label htmlFor="auth-confirm" className="block text-[12px] font-medium text-white/30 mb-1.5">Confirm Password</label><div className="relative"><input id="auth-confirm" type={showConfirmPassword?'text':'password'} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className={`${ic} pr-11`} placeholder="Re-enter password" autoComplete="new-password" required /><button type="button" onClick={()=>setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/15 hover:text-white/40 transition-colors" tabIndex={-1}>{showConfirmPassword?<EyeOffIcon />:<EyeIcon />}</button></div></div>}
                   {authMode==='signup'&&referralCode&&<div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rh-green/10 border border-rh-green/20"><span className="text-rh-green text-sm font-medium">Invited by @{referralCode}</span></div>}

@@ -458,7 +458,7 @@ function CreatorCard({
               </h3>
               {creator.isVerified && (
                 <span className="flex-shrink-0 rounded-full border border-rh-green/40 bg-rh-green/10 px-2 py-0.5 text-[10px] font-medium text-rh-green">
-                  Verified
+                  Ranked
                 </span>
               )}
             </div>

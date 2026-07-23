@@ -949,14 +949,28 @@ export interface OAuthLoginResponse {
   refreshToken?: string;
 }
 
-export type OAuthLoginResult = OAuthLoginResponse | MfaChallengeResponse;
+/**
+ * Brand-new OAuth signup: the server persists NOTHING until the date-of-birth
+ * step at /auth/oauth/complete passes — the signed signupToken carries the
+ * verified provider profile in the meantime.
+ */
+export interface OAuthDobRequiredResponse {
+  requiresDateOfBirth: true;
+  signupToken: string;
+}
+
+export function isDobRequired(response: OAuthLoginResult): response is OAuthDobRequiredResponse {
+  return (response as OAuthDobRequiredResponse).requiresDateOfBirth === true;
+}
+
+export type OAuthLoginResult = OAuthLoginResponse | MfaChallengeResponse | OAuthDobRequiredResponse;
 
 export async function oauthGoogleLogin(accessToken: string): Promise<OAuthLoginResult> {
   const response = await fetchJsonPublic<OAuthLoginResult>(`${API_BASE_URL}/auth/oauth/google/callback`, {
     method: 'POST',
     body: JSON.stringify({ access_token: accessToken }),
   });
-  return isMfaChallenge(response) ? response : hydrateNativeAuthTokens(response);
+  return isDobRequired(response) || isMfaChallenge(response) ? response : hydrateNativeAuthTokens(response);
 }
 
 export async function oauthAppleLogin(
@@ -968,7 +982,15 @@ export async function oauthAppleLogin(
     method: 'POST',
     body: JSON.stringify({ id_token: idToken, user, ...(nonce ? { nonce } : {}) }),
   });
-  return isMfaChallenge(response) ? response : hydrateNativeAuthTokens(response);
+  return isDobRequired(response) || isMfaChallenge(response) ? response : hydrateNativeAuthTokens(response);
+}
+
+export async function oauthCompleteSignup(signupToken: string, dateOfBirth: string): Promise<OAuthLoginResponse> {
+  const response = await fetchJsonPublic<OAuthLoginResponse>(`${API_BASE_URL}/auth/oauth/complete`, {
+    method: 'POST',
+    body: JSON.stringify({ signupToken, dateOfBirth }),
+  });
+  return hydrateNativeAuthTokens(response);
 }
 
 // ─── MFA API ─────────────────────────────────────────────
@@ -1092,7 +1114,7 @@ export async function signup(
   displayName: string,
   password: string,
   email: string,
-  consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean },
+  consent?: { acceptedPrivacyPolicy: boolean; acceptedTerms: boolean; dateOfBirth?: string },
   referralCode?: string
 ): Promise<SignupResponse> {
   const response = await fetchJsonPublic<SignupResponse>(`${API_BASE_URL}/auth/signup`, {
@@ -1104,6 +1126,7 @@ export async function signup(
       email,
       acceptedPrivacyPolicy: consent?.acceptedPrivacyPolicy,
       acceptedTerms: consent?.acceptedTerms,
+      ...(consent?.dateOfBirth ? { dateOfBirth: consent.dateOfBirth } : {}),
       ...(referralCode ? { referralCode } : {}),
     }),
   });

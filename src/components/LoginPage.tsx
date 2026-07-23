@@ -5,6 +5,7 @@ import { setPassword as apiSetPassword, checkHasPassword } from '../api';
 import { isValidEmail, validatePassword } from '../utils/validation';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { MfaVerifyStep } from './MfaVerifyStep';
+import OAuthDobModal from './OAuthDobModal';
 import { ensureAppleAuthReady, isAppleOAuthEnabled } from '../utils/apple-auth';
 import { getGoogleClientId } from '../utils/oauth-config';
 import { isNative } from '../utils/platform';
@@ -106,6 +107,7 @@ export function LoginPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [staySignedIn, setStaySignedIn] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [privacyTab, setPrivacyTab] = useState<'privacy' | 'terms'>('privacy');
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -285,7 +287,17 @@ export function LoginPage() {
           setIsLoading(false);
           return;
         }
-        const result = await signup(username, displayName, password, email, { acceptedPrivacyPolicy: true, acceptedTerms: true }, referralCode || undefined);
+        if (!dateOfBirth) { setError('Please enter your date of birth'); setIsLoading(false); return; }
+        {
+          // Client-side age check for immediate feedback; the server enforces it authoritatively.
+          const dob = new Date(dateOfBirth);
+          const now = new Date();
+          let age = now.getFullYear() - dob.getFullYear();
+          const mo = now.getMonth() - dob.getMonth();
+          if (mo < 0 || (mo === 0 && now.getDate() < dob.getDate())) age--;
+          if (Number.isNaN(dob.getTime()) || age < 13) { setError('You must be at least 13 years old to use Nala.'); setIsLoading(false); return; }
+        }
+        const result = await signup(username, displayName, password, email, { acceptedPrivacyPolicy: true, acceptedTerms: true, dateOfBirth }, referralCode || undefined);
         if (result.emailVerificationRequired) {
           setVerificationEmail(email);
           setMode('verify-email');
@@ -383,6 +395,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen min-h-dvh flex items-center justify-center bg-rh-black px-4 py-8">
+      <OAuthDobModal />
       <div className="w-full max-w-sm">
         {/* Logo/Title */}
         <div className="text-center mb-8">
@@ -705,6 +718,24 @@ export function LoginPage() {
                     placeholder="you@example.com"
                     autoComplete="email"
                     autoCapitalize="none"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Date of Birth Field (Signup only) — A5 age gate */}
+              {mode === 'signup' && (
+                <div>
+                  <label htmlFor="dateOfBirth" className="block text-sm font-medium text-rh-muted mb-2">
+                    Date of Birth
+                  </label>
+                  <input
+                    id="dateOfBirth"
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    className={inputClasses}
+                    autoComplete="bday"
                     required
                   />
                 </div>
