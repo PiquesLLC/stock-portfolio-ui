@@ -8,6 +8,15 @@ import { useAuth } from '../context/AuthContext';
  * itself whenever AuthContext holds a pending OAuth signup. The server
  * persists nothing until this step passes — cancelling leaves no account.
  */
+/** Map the server's machine error codes to human copy; pass friendly strings through. */
+function friendlyDobError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : '';
+  if (raw === 'ACCOUNT_ALREADY_EXISTS') return 'You already have an account — please sign in instead.';
+  if (raw === 'WAITLIST_NOT_APPROVED') return "You're on the waitlist — we'll email you when a spot opens.";
+  if (!raw) return 'Something went wrong — please try again';
+  return raw;
+}
+
 export default function OAuthDobModal() {
   const { pendingOAuthDob, completeOAuthSignup, cancelOAuthSignup } = useAuth();
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -37,7 +46,7 @@ export default function OAuthDobModal() {
       await completeOAuthSignup(dateOfBirth);
       // Success: AuthContext sets the user and the app renders — this modal unmounts with the page.
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong — please try again');
+      setError(friendlyDobError(err));
       setSaving(false);
     }
   };
