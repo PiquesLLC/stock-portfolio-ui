@@ -194,19 +194,20 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const [candleTimeZoom, setCandleTimeZoom] = useState<{ startMs: number; endMs: number } | null>(null);
   const candlePanRef = useRef<{ startX: number; startIdx: number; endIdx: number } | null>(null);
   const candlePinchRef = useRef<{ dist: number; zoom: { start: number; end: number } } | null>(null);
-  // The candle series SHRINKS the moment the daily candles land and the period trim
-  // starts dropping bars, which shifts every index under a live zoom — the user's
-  // window would silently slide onto different candles. Only a shrink is treated as
-  // invalidating: auto-refresh APPENDS candles, and wiping the zoom on every refresh
-  // would be worse than the rare slide.
-  const candleCountRef = useRef(effectiveCandleData.length);
+  // The candle series' FIRST bar moves the instant the daily candles land and the
+  // period trim starts dropping leading bars — that is what shifts every index under
+  // a live zoom, sliding the user's window onto different candles. Keyed on the head
+  // timestamp rather than the length: a tail-only change (the auto-refresh appending,
+  // or a partial trailing bar coming and going) leaves every index valid and must NOT
+  // wipe the zoom, while a front shift that happens to net the same length still must.
+  const candleHeadRef = useRef(effectiveCandleData[0]?.time);
   useEffect(() => {
-    const prev = candleCountRef.current;
-    candleCountRef.current = effectiveCandleData.length;
-    if (effectiveCandleData.length < prev) {
-      setCandleZoom(null); setCandleTimeZoom(null); setHoverIndex(null);
-    }
-  }, [effectiveCandleData.length]);
+    const head = effectiveCandleData[0]?.time;
+    if (candleHeadRef.current === head) return;
+    candleHeadRef.current = head;
+    setCandleZoom(null); setCandleTimeZoom(null); setHoverIndex(null);
+    onHoverPrice?.(null, null); // else the header stays stuck on the last scrubbed price
+  }, [effectiveCandleData, onHoverPrice]);
   const chartModeRef = useRef(chartMode);
   chartModeRef.current = chartMode;
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
@@ -1184,7 +1185,13 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       let maxP = Math.max(...visible.map(c => c.high));
       // Same reason as the line chart below: the dashed baseline renders here too,
       // and the trim removes exactly the bars nearest it, so it has to be in range.
-      if (usesPeriodAnchor) {
+      // ONLY while the whole series is on screen, though. Candle mode zooms through
+      // its own state (candleZoom), which usesPeriodAnchor — keyed on the line
+      // chart's zoomRange — cannot see, so it stays true right through a candle
+      // zoom; stretching the domain back to the period start would flatten a zoomed
+      // view into a sliver. The identity check also covers the stale-slice fallback
+      // above, where `visible` is the full series again.
+      if (usesPeriodAnchor && visible === effectiveCandleData) {
         minP = Math.min(minP, referencePrice);
         maxP = Math.max(maxP, referencePrice);
       }
