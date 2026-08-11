@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcSMA, computeCandleMaValues, periodStartClose } from './stock-chart';
+import { calcSMA, computeCandleMaValues, periodStartClose, periodStartDate, trimToPeriodWindow } from './stock-chart';
 import type { IntradayCandle } from '../api';
 
 // Helper: make a daily history of N days ending today at 4:00 PM ET,
@@ -212,5 +212,64 @@ describe('periodStartClose (shared chart/Compare period anchor)', () => {
     expect(six).toBeGreaterThan(max);
     expect(max).toBe(daily.closes[0]);
     expect(daily.closes).toContain(wk);
+  });
+});
+
+describe('trimToPeriodWindow (1W/1M plotted window)', () => {
+  const etDate = (t: string | number) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(t));
+  const etDays = (series: { time: string | number }[]) => new Set(series.map(c => etDate(c.time)));
+
+  it('drops the anchor day so the line starts where the header starts (AAPL 2026-08-11 regression)', () => {
+    // The header quotes against the anchor day's CLOSE. Replotting that whole day
+    // put its own session — which can open far below its close — inside the
+    // window, so the chart drew green under a red "-2.07 (-0.67%) Past Week".
+    const daily = makeDailyHistory(10);
+    const anchorDate = periodStartDate('1W', daily)!;
+    // The baseline and the trim must come off the SAME candle.
+    expect(periodStartClose('1W', daily)).toBe(daily.closes[daily.dates.indexOf(anchorDate)]);
+
+    const hourly = makeIntradayCandles(10, 4);
+    // The anchor day really was being plotted — otherwise this pins nothing.
+    expect(etDays(hourly).has(anchorDate)).toBe(true);
+
+    const trimmed = trimToPeriodWindow(hourly, '1W', daily);
+    expect(etDays(trimmed).has(anchorDate)).toBe(false); // …and now it isn't
+    // Everything after it survives, in order, and nothing before it sneaks back.
+    expect(trimmed).toEqual(hourly.filter(c => etDate(c.time) > anchorDate));
+    expect([...etDays(trimmed)].every(d => d > anchorDate)).toBe(true);
+    expect(trimmed.length).toBeGreaterThan(1);
+  });
+
+  it('trims a candlestick series (numeric ms timestamps) the same way', () => {
+    const daily = makeDailyHistory(10);
+    const anchorDate = periodStartDate('1W', daily)!;
+    // Candle mode carries `time` as ms, not an ISO string.
+    const candles = makeIntradayCandles(10, 4).map(c => ({ ...c, time: new Date(c.time).getTime() }));
+    const trimmed = trimToPeriodWindow(candles, '1W', daily);
+    expect(etDays(trimmed).has(anchorDate)).toBe(false);
+    expect(trimmed.length).toBeLessThan(candles.length);
+  });
+
+  it('leaves daily-candle periods and un-anchorable series untouched', () => {
+    const daily = makeDailyHistory(400);
+    const hourly = makeIntradayCandles(10, 4);
+    expect(trimToPeriodWindow(hourly, '3M', daily)).toBe(hourly);
+    expect(trimToPeriodWindow(hourly, '1D', daily)).toBe(hourly);
+    expect(trimToPeriodWindow(hourly, '1W', { dates: [], closes: [] })).toBe(hourly);
+    expect(trimToPeriodWindow(hourly, '1W', null)).toBe(hourly);
+    // Identity, not just equality: the chart passes a shared empty sentinel whose
+    // stable reference keeps a downstream useMemo from recomputing every render.
+    const empty: IntradayCandle[] = [];
+    expect(trimToPeriodWindow(empty, '1W', daily)).toBe(empty);
+  });
+
+  it('keeps the full series rather than leave a one-point chart', () => {
+    // An hourly feed that stops on/before the anchor day — trimming empties it.
+    const daily = makeDailyHistory(30);
+    const anchorDate = periodStartDate('1W', daily)!;
+    const hourly = makeIntradayCandles(30, 4).filter(c => etDate(c.time) <= anchorDate);
+    expect(hourly.length).toBeGreaterThan(1);
+    expect(trimToPeriodWindow(hourly, '1W', daily)).toBe(hourly);
   });
 });

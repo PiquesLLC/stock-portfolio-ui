@@ -8,6 +8,8 @@ import {
   snapToCleanBoundary,
   buildPoints,
   formatVolume,
+  periodStartClose,
+  trimToPeriodWindow,
   MA_PERIODS,
   type MAPeriod,
   MA_COLORS,
@@ -63,6 +65,10 @@ interface Props {
   selectedPeriod: ChartPeriod;
   onPeriodChange: (period: ChartPeriod) => void;
   currentPrice: number;
+  // Latest extended-hours price. Pairs with currentPrice to form the same "latest"
+  // the header quotes (extendedPrice ?? currentPrice) so the trend color can be
+  // measured against the identical number.
+  extendedPrice?: number;
   previousClose: number;
   regularClose?: number; // Regular market close price (used for non-1D periods during extended hours)
   // inExtended: hovered point sits in the 1D after-hours segment (≥4PM ET) —
@@ -92,7 +98,7 @@ interface Props {
 const MOBILE_CHART_H = 410;
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 639px)'; // below Tailwind `sm`
 
-export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons, overrideLineColor }: Props) {
+export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, extendedPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons, overrideLineColor }: Props) {
   // matchMedia is feature-checked: jsdom (tests) and some embedded WebViews
   // don't implement it — fall back to the desktop chart height there.
   const [isMobileViewport, setIsMobileViewport] = useState(
@@ -174,13 +180,33 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     dataKey.period === selectedPeriod &&
     dataKey.interval === effectiveInterval;
 
-  const effectiveCandleData: CandleDataPoint[] = candleDataMatches ? candleData : EMPTY_CANDLES;
+  // Same window as the line chart. Candle mode reads the same periodStartClose
+  // baseline, so without this the 1W candles straddle a dashed line drawn at the
+  // anchor day's close while that day's own candles are still on screen — the
+  // exact green-chart-under-a-red-header mismatch, just in the other render mode.
+  const effectiveCandleData: CandleDataPoint[] = useMemo(
+    () => trimToPeriodWindow(candleDataMatches ? candleData : EMPTY_CANDLES, selectedPeriod, candles),
+    [candleDataMatches, candleData, selectedPeriod, candles],
+  );
   // Candle zoom: visible window [startIdx, endIdx] within candleData
   // For 1D: time-based zoom {startMs, endMs} to stay consistent with time positioning
   const [candleZoom, setCandleZoom] = useState<{ start: number; end: number } | null>(null);
   const [candleTimeZoom, setCandleTimeZoom] = useState<{ startMs: number; endMs: number } | null>(null);
   const candlePanRef = useRef<{ startX: number; startIdx: number; endIdx: number } | null>(null);
   const candlePinchRef = useRef<{ dist: number; zoom: { start: number; end: number } } | null>(null);
+  // The candle series SHRINKS the moment the daily candles land and the period trim
+  // starts dropping bars, which shifts every index under a live zoom — the user's
+  // window would silently slide onto different candles. Only a shrink is treated as
+  // invalidating: auto-refresh APPENDS candles, and wiping the zoom on every refresh
+  // would be worse than the rare slide.
+  const candleCountRef = useRef(effectiveCandleData.length);
+  useEffect(() => {
+    const prev = candleCountRef.current;
+    candleCountRef.current = effectiveCandleData.length;
+    if (effectiveCandleData.length < prev) {
+      setCandleZoom(null); setCandleTimeZoom(null); setHoverIndex(null);
+    }
+  }, [effectiveCandleData.length]);
   const chartModeRef = useRef(chartMode);
   chartModeRef.current = chartMode;
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
@@ -329,6 +355,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
   // ── Zoom state ────────────────────────────────────────────────────
   const [zoomRange, setZoomRange] = useState<{ startMs: number; endMs: number } | null>(null);
+  // The window last applied as the PERIOD DEFAULT. Identity-compared against
+  // zoomRange to tell "showing the period exactly as picked" apart from "the
+  // user has zoomed/panned" — the two cases need different price baselines.
+  const defaultZoomRef = useRef<{ startMs: number; endMs: number } | null>(null);
   const zoomRangeRef = useRef(zoomRange);
   useEffect(() => { zoomRangeRef.current = zoomRange; }, [zoomRange]);
   const pointsRef = useRef(points);
@@ -347,7 +377,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // Animated zoom transition refs
   const zoomAnimRef = useRef<{
     fromStart: number; fromEnd: number; toStart: number; toEnd: number;
-    startTime: number; duration: number; toNull: boolean;
+    startTime: number; duration: number;
   } | null>(null);
   const animFrameRef = useRef<number | null>(null);
 
@@ -421,7 +451,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     // For non-1D: period buttons set the visible zoom window on the full dataset
     // MAX = full view (null), others = zoom to that period's time range.
     // Set immediately (no animation) to prevent flash of wrong data.
-    setZoomRange(getDefaultZoomForPeriod(selectedPeriod, points));
+    const def = getDefaultZoomForPeriod(selectedPeriod, points);
+    defaultZoomRef.current = def;
+    setZoomRange(def);
     // getDefaultZoomForPeriod is a local function; points.length used intentionally (don't re-zoom on value changes)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod, points.length]);
@@ -450,7 +482,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setPinnedEventIdx(null); setMeasureA(null); setMeasureB(null); setMeasureC(null); setCardDragPos(null); setIsDraggingCard(false);
-        setZoomRange(getDefaultZoomForPeriod(selectedPeriod, pointsRef.current));
+        const def = getDefaultZoomForPeriod(selectedPeriod, pointsRef.current);
+        defaultZoomRef.current = def;
+        setZoomRange(def);
         zoomHistoryRef.current = [];
       }
     };
@@ -512,6 +546,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const handleDoubleClick = useCallback(() => {
     if (zoomRange) {
       const def = getDefaultZoomForPeriod(selectedPeriod, pointsRef.current);
+      defaultZoomRef.current = def;
       setZoomRange(def);
       zoomHistoryRef.current = [];
     }
@@ -602,14 +637,18 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const toStart = target?.startMs ?? fullStart;
     const toEnd = target?.endMs ?? fullEnd;
     if (Math.abs(fromStart - toStart) < 1 && Math.abs(fromEnd - toEnd) < 1) { setZoomRange(target); return; }
-    zoomAnimRef.current = { fromStart, fromEnd, toStart, toEnd, startTime: performance.now(), duration, toNull: target === null };
+    zoomAnimRef.current = { fromStart, fromEnd, toStart, toEnd, startTime: performance.now(), duration };
     const tick = (now: number) => {
       const anim = zoomAnimRef.current;
       if (!anim) return;
       const t = Math.min(1, (now - anim.startTime) / anim.duration);
       const ease = 1 - Math.pow(1 - t, 3); // cubic ease-out
       if (t >= 1) {
-        setZoomRange(anim.toNull ? null : { startMs: anim.toStart, endMs: anim.toEnd });
+        // Land on the target OBJECT, not a fresh one carrying the same numbers:
+        // identity against defaultZoomRef is what marks the period-default window.
+        // Rebuilding it made "← Back" onto the default window read as a user zoom,
+        // which silently re-anchored the price baseline off the header's number.
+        setZoomRange(target);
         zoomAnimRef.current = null; animFrameRef.current = null;
       } else {
         setZoomRange({ startMs: anim.fromStart + (anim.toStart - anim.fromStart) * ease, endMs: anim.fromEnd + (anim.toEnd - anim.fromEnd) * ease });
@@ -1000,12 +1039,32 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     return () => svg.removeEventListener('wheel', handler);
   }, []); // Uses refs for all changing values — stable handler
 
-  // Reference price: first visible point when zoomed, first point when full view, previousClose for 1D
+  // Period baseline. While the chart shows the period exactly as picked, this MUST
+  // be the same anchor the header quotes — periodStartClose: the close of the last
+  // daily candle on/before the period cutoff, i.e. the price "a week/month/… ago".
+  // Anchoring at points[0] instead — the first bar INSIDE the window, which on the
+  // 1W/1M hourly series is day one's OPEN — puts day one's own move on the wrong
+  // side of the baseline: AAPL 2026-08-11 drew a green chart under a red
+  // "-2.07 (-0.67%) Past Week" header, because Aug 4 opened ~$300 and closed
+  // $309.38 and the chart measured from the open. Once the user zooms or pans,
+  // their own window start is the meaningful reference, so keep that path.
+  const periodAnchor = useMemo(
+    () => (selectedPeriod === '1D' || !candles ? null : periodStartClose(selectedPeriod, candles)),
+    [selectedPeriod, candles],
+  );
+  const isDefaultWindow = zoomRange === defaultZoomRef.current;
+  // Baseline and trend end must come from the SAME regime — either both the
+  // header's canonical period numbers, or both the drawn series. Mixing them
+  // (live price vs a drawn first point, say) is how the color drifts off the
+  // header again. periodAnchor is null on 1D, so 1D keeps the drawn series.
+  const usesPeriodAnchor = isDefaultWindow && periodAnchor != null;
   const referencePrice = selectedPeriod === '1D'
     ? previousClose
-    : (zoomRange && visiblePoints.length > 0
-      ? visiblePoints[0].price
-      : (points.length > 0 ? points[0].price : currentPrice));
+    : (usesPeriodAnchor
+      ? periodAnchor
+      : (zoomRange && visiblePoints.length > 0
+        ? visiblePoints[0].price
+        : (points.length > 0 ? points[0].price : currentPrice)));
   const referencePriceRef = useRef(referencePrice);
   useEffect(() => { referencePriceRef.current = referencePrice; }, [referencePrice]);
   // 4:00 PM ET boundary of the plotted 1D day (null off-1D) — mirrored into a
@@ -1014,9 +1073,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   const regularCloseMsRef = useRef<number | null>(null);
   // Line color based on OVERALL visible trend (last visible vs first visible), NOT hover position
   // This keeps the chart color stable — no flipping green/red as the user hovers or places measurement points
-  const trendEndPrice = zoomRange && visiblePoints.length > 1
-    ? visiblePoints[visiblePoints.length - 1].price
-    : (points.length > 0 ? points[points.length - 1].price : currentPrice);
+  // Whenever the baseline is the header's anchor, the trend end is the header's
+  // latest too — the live quote, not the last DRAWN point, which lags: the 1W/1M
+  // hourly bars by up to an hour, the daily series by a whole session. Within
+  // pennies of flat that lag alone was enough to flip the color off the header.
+  // The > 0 guard is the one place the two regimes can still mix: Compare passes
+  // `currentPrice ?? 0` for a missing quote, and colouring everything red off a
+  // zero is worse than falling back to the drawn line.
+  const latestPrice = extendedPrice ?? currentPrice;
+  const trendEndPrice = usesPeriodAnchor && latestPrice > 0
+    ? latestPrice
+    : (zoomRange && visiblePoints.length > 1
+      ? visiblePoints[visiblePoints.length - 1].price
+      : (points.length > 0 ? points[points.length - 1].price : currentPrice));
   const isGain = trendEndPrice >= referencePrice;
   // Chart line colors — muted (same as portfolio chart so fill intensity matches)
   const lineColor = overrideLineColor ?? (isGain ? '#0A9E10' : '#B87872');
@@ -1106,9 +1175,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         if (visible.length === 0) visible = effectiveCandleData;
       } else if (candleZoom) {
         visible = effectiveCandleData.slice(candleZoom.start, candleZoom.end + 1);
+        // A stale zoom can index past the end (the series shrinks when the daily
+        // candles arrive and the period trim kicks in). Empty here would make
+        // Math.min(...[]) Infinity and NaN every y — a blank chart.
+        if (visible.length === 0) visible = effectiveCandleData;
       }
-      const minP = Math.min(...visible.map(c => c.low));
-      const maxP = Math.max(...visible.map(c => c.high));
+      let minP = Math.min(...visible.map(c => c.low));
+      let maxP = Math.max(...visible.map(c => c.high));
+      // Same reason as the line chart below: the dashed baseline renders here too,
+      // and the trim removes exactly the bars nearest it, so it has to be in range.
+      if (usesPeriodAnchor) {
+        minP = Math.min(minP, referencePrice);
+        maxP = Math.max(maxP, referencePrice);
+      }
       const range = maxP === minP ? 2 : maxP - minP;
       return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
     }
@@ -1116,8 +1195,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const targetPts = zoomRange ? visiblePoints : points;
     if (targetPts.length === 0) return { paddedMin: referencePrice - 1, paddedMax: referencePrice + 1 };
     const prices = targetPts.map(p => p.price);
-    let minP = zoomRange ? Math.min(...prices) : Math.min(...prices, referencePrice);
-    let maxP = zoomRange ? Math.max(...prices) : Math.max(...prices, referencePrice);
+    // The baseline has to stay inside the plot or the dashed reference line clips.
+    // On the default window it can sit one candle BEFORE the first visible point
+    // (see periodAnchor), so fold it in there too — not just in the unzoomed view.
+    const includeRef = !zoomRange || usesPeriodAnchor;
+    let minP = includeRef ? Math.min(...prices, referencePrice) : Math.min(...prices);
+    let maxP = includeRef ? Math.max(...prices, referencePrice) : Math.max(...prices);
 
     // Include comparison overlay data in Y range so lines don't clip
     // Only include points within the visible time range
@@ -1158,7 +1241,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     }
     const range = maxP - minP;
     return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
-  }, [points, referencePrice, selectedPeriod, zoomRange, visiblePoints, comparisons, chartMode, effectiveCandleData, candleZoom, candleTimeZoom]);
+  }, [points, referencePrice, selectedPeriod, zoomRange, usesPeriodAnchor, visiblePoints, comparisons, chartMode, effectiveCandleData, candleZoom, candleTimeZoom]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
   const plotH = chartH - PAD_TOP - PAD_BOTTOM;
@@ -3866,6 +3949,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 onClick={(e) => {
                   e.stopPropagation();
                   const def = getDefaultZoomForPeriod(selectedPeriod, points);
+                  defaultZoomRef.current = def;
                   setZoomRange(def);
                   zoomHistoryRef.current = [];
                 }}

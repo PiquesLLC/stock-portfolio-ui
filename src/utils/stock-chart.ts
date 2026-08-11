@@ -11,6 +11,12 @@ export const PAD_RIGHT = 0;
 
 export const PERIODS: ChartPeriod[] = ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y', 'MAX'];
 
+// Candle dates follow the US market calendar — render cutoffs in ET so a UTC
+// evening (after 8 PM ET the UTC date has rolled over) can't shift a date a day
+// forward. Declared up here because buildPoints, which sits above the period
+// helpers, reaches it transitively.
+const _etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+
 // ── Data Types ───────────────────────────────────────────────────
 export interface DataPoint {
   time: number; // ms timestamp
@@ -239,18 +245,25 @@ export function buildPoints(
   if ((period === '1W' || period === '1M') && hourlyCandles && hourlyCandles.length > 0) {
     const now = new Date();
 
+    // Start the line where the period actually starts. The chart's baseline is the
+    // anchor day's CLOSE (periodStartClose — the same number the header quotes), so
+    // that day's own session belongs before the window, not inside it: plotting it
+    // stranded a full day of price action below the baseline. Trim to bars AFTER the
+    // anchor day, in ET — a UTC date rolls over at 8 PM ET and would clip a day early.
+    const windowCandles = trimToPeriodWindow(hourlyCandles, period, candles);
+
     // Aggregate hourly volumes into daily averages to eliminate volume bar gaps.
     // Extended-hours candles often have 0 volume; spreading the daily total across
     // all candles ensures every bar renders and relative daily volume stays accurate.
     const dailyVolumes = new Map<string, number>();
     const dailyCounts = new Map<string, number>();
-    for (const c of hourlyCandles) {
+    for (const c of windowCandles) {
       const dateKey = new Date(c.time).toISOString().slice(0, 10);
       dailyVolumes.set(dateKey, (dailyVolumes.get(dateKey) || 0) + c.volume);
       dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
     }
 
-    return hourlyCandles.map(c => {
+    return windowCandles.map(c => {
       const d = new Date(c.time);
       const dateKey = d.toISOString().slice(0, 10);
       const avgVolume = Math.round((dailyVolumes.get(dateKey) || 0) / (dailyCounts.get(dateKey) || 1));
@@ -288,11 +301,6 @@ export function buildPoints(
   return pts;
 }
 
-// Candle dates follow the US market calendar — render the cutoff in ET so a
-// UTC evening (after 8 PM ET the UTC date has rolled over) can't shift the
-// anchor a day forward.
-const _etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
-
 /**
  * Canonical period-start close for non-1D periods, shared by the stock chart
  * (useStockChart) and the Compare page so their period returns can't drift.
@@ -307,6 +315,56 @@ const _etDateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_Yor
  * there are no candles.
  */
 export function periodStartClose(
+  period: ChartPeriod,
+  candles: { dates: string[]; closes: number[] },
+): number | null {
+  const idx = periodStartIdx(period, candles);
+  return idx == null ? null : candles.closes[idx];
+}
+
+/**
+ * Date (YYYY-MM-DD) of the candle periodStartClose anchors on. buildPoints trims
+ * the 1W/1M hourly series to bars AFTER this day so the plotted line spans
+ * exactly the window the header quotes — the baseline is that day's CLOSE, so
+ * replotting the day itself would strand a full session before the baseline
+ * moment (and, on a strong day one, on the wrong side of it).
+ */
+export function periodStartDate(
+  period: ChartPeriod,
+  candles: { dates: string[]; closes: number[] },
+): string | null {
+  const idx = periodStartIdx(period, candles);
+  return idx == null ? null : candles.dates[idx];
+}
+
+/**
+ * Trim an intraday series to the window the header quotes: bars AFTER the anchor
+ * day. Shared by the line chart, the candlestick series, and the comparison-overlay
+ * normalization on both the stock page and the Compare page, so every series on
+ * screen spans the same window and starts from the same bar.
+ *
+ * Only 1W/1M are trimmed — those are the periods drawn from an intraday feed that
+ * starts inside the anchor day. The longer periods plot the full daily history and
+ * window it by zoom, which already leaves the anchor outside the visible range.
+ *
+ * Returns the input array UNCHANGED (same reference) when there is nothing to
+ * anchor against, the period isn't trimmable, or the trim would leave under two
+ * bars — a one-point chart is worse than a slightly wide one.
+ */
+export function trimToPeriodWindow<T extends { time: string | number }>(
+  series: T[],
+  period: ChartPeriod,
+  candles: { dates: string[]; closes: number[] } | null | undefined,
+): T[] {
+  if (!candles || series.length === 0 || (period !== '1W' && period !== '1M')) return series;
+  const anchorDate = periodStartDate(period, candles);
+  if (!anchorDate) return series;
+  const trimmed = series.filter(c => _etDateFmt.format(new Date(c.time)) > anchorDate);
+  return trimmed.length >= 2 ? trimmed : series;
+}
+
+/** Index of the anchor candle — the last daily candle on/before the cutoff. */
+function periodStartIdx(
   period: ChartPeriod,
   candles: { dates: string[]; closes: number[] },
 ): number | null {
@@ -328,11 +386,11 @@ export function periodStartClose(
   // final close, matching the convention brokers use).
   for (let i = candles.dates.length - 1; i >= 0; i--) {
     if (candles.dates[i] <= cutoffStr) {
-      return candles.closes[i];
+      return i;
     }
   }
   // Window predates all data — anchor at inception.
-  return candles.closes[0];
+  return 0;
 }
 
 export function formatVolume(v: number): string {

@@ -52,6 +52,12 @@ const PAD = { top: 8, right: 8, bottom: 28, left: 54 };
 function BarChart({ labels, series, formatValue = formatLargeNumber }: BarChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
+  // Tab/period switches swap the dataset under a live hover. A carried-over index
+  // past the new end would paint a ghost tooltip — blank label, "-" for every
+  // series — parked off to the right. Reachable on touch, where the tooltip has
+  // no pointer to follow it out.
+  useEffect(() => { setHoverIdx(null); }, [labels.length, series.length]);
+
   const { yMin, yMax, plotW, plotH } = useMemo(() => {
     let min = 0;
     let max = 0;
@@ -138,7 +144,7 @@ function BarChart({ labels, series, formatValue = formatLargeNumber }: BarChartP
               return (
                 <rect key={si} x={barX} y={barTop} width={barW} height={barH} rx={1.5}
                   fill={s.color} opacity={isHovered ? 1 : 0.7}
-                  style={{ transition: 'opacity 0.15s' }} />
+                  style={{ transition: 'opacity 0.15s', pointerEvents: 'none' }} />
               );
             })}
           </g>
@@ -161,7 +167,7 @@ function BarChart({ labels, series, formatValue = formatLargeNumber }: BarChartP
         const gx = PAD.left + hoverIdx * groupW + groupW / 2;
         const tooltipX = gx > CHART_W * 0.75 ? gx - 80 : gx + 8;
         return (
-          <g>
+          <g style={{ pointerEvents: 'none' }}>
             <line x1={gx} x2={gx} y1={PAD.top} y2={PAD.top + plotH}
               stroke="rgba(150,150,150,0.2)" strokeWidth={0.5} />
             <rect x={tooltipX - 4} y={PAD.top + 2} width={76} height={8 + series.length * 11}

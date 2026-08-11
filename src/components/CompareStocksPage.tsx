@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getStockDetails, getAssetAbout, getNalaScore, getIntradayCandles, getHourlyCandles, IntradayCandle } from '../api';
 import { StockDetailsResponse, AssetAbout, NalaScoreResponse, ChartPeriod, SymbolSearchResult } from '../types';
-import { periodStartClose } from '../utils/stock-chart';
+import { periodStartClose, trimToPeriodWindow } from '../utils/stock-chart';
 import { StockPriceChart } from './StockPriceChart';
 import { StockLogo } from './StockLogo';
 import { TickerAutocompleteInput } from './TickerAutocompleteInput';
@@ -165,7 +165,9 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
       if (chartPeriod === '1D' && intradayCandles.length > 0) {
         mainRefPrice = intradayCandles[0].close;
       } else if ((chartPeriod === '1W' || chartPeriod === '1M') && hourlyCandles.length > 0) {
-        mainRefPrice = hourlyCandles[0].close;
+        // Normalize at the first bar the chart actually PLOTS: buildPoints trims the
+        // anchor day off the 1W/1M series, so hourlyCandles[0] now sits off-window.
+        mainRefPrice = trimToPeriodWindow(hourlyCandles, chartPeriod, pd.candles)[0].close;
       } else if (pd.candles && pd.candles.closes.length > 0) {
         // Date-anchored period start shared with the stock chart + summary cards
         // (periodStartClose). The old inline switch omitted 6M → anchored at inception,
@@ -190,7 +192,9 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
               }));
             }
           } else if (chartPeriod === '1W' || chartPeriod === '1M') {
-            const compCandles = await getHourlyCandles(s.ticker, chartPeriod);
+            // Same trimmed window as the primary. Anchoring off the primary's daily
+            // candles is fine — one US market calendar dates the anchor for all.
+            const compCandles = trimToPeriodWindow(await getHourlyCandles(s.ticker, chartPeriod), chartPeriod, pd.candles);
             if (compCandles.length >= 2) {
               const compStart = compCandles[0].close;
               points = compCandles.map(c => ({
@@ -375,6 +379,7 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
             selectedPeriod={chartPeriod}
             onPeriodChange={setChartPeriod}
             currentPrice={primaryStock.details.quote?.currentPrice ?? 0}
+            extendedPrice={primaryStock.details.quote?.extendedPrice}
             previousClose={primaryStock.details.quote?.previousClose ?? 0}
             session={primaryStock.details.quote?.session}
             comparisons={compareData.length > 0 ? compareData : undefined}

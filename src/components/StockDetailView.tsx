@@ -6,7 +6,7 @@ import { hapticSelection, hapticLight } from '../utils/haptics';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useStockData } from '../hooks/useStockData';
 import { useStockChart } from '../hooks/useStockChart';
-import { periodStartClose } from '../utils/stock-chart';
+import { periodStartClose, trimToPeriodWindow } from '../utils/stock-chart';
 import { Acronym, getAcronymTitle } from './Acronym';
 import { getStockDetails, getIntradayCandles, getHourlyCandles, getCandleData, followStock, unfollowStock, deleteHolding } from '../api';
 import type { CandleInterval } from '../api';
@@ -209,7 +209,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       if (chartPeriod === '1D' && intradayCandles.length > 0) {
         mainRefPrice = intradayCandles[0].close;
       } else if ((chartPeriod === '1W' || chartPeriod === '1M') && hourlyCandles.length > 0) {
-        mainRefPrice = hourlyCandles[0].close;
+        // Normalize at the first bar the chart actually PLOTS: buildPoints trims the
+        // anchor day off the 1W/1M series, so hourlyCandles[0] now sits off-window.
+        mainRefPrice = trimToPeriodWindow(hourlyCandles, chartPeriod, data?.candles)[0].close;
       } else if (data?.candles && data.candles.closes.length > 0) {
         // Date-anchored period start shared with the stock chart + Compare cards
         // via periodStartClose (calendar-anchored, handles 6M). The old inline switch
@@ -236,7 +238,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               }));
             }
           } else if (chartPeriod === '1W' || chartPeriod === '1M') {
-            const compCandles = await getHourlyCandles(ct, chartPeriod);
+            // Same trimmed window as the primary. Anchoring off the primary's daily
+            // candles is fine — one US market calendar dates the anchor for all.
+            const compCandles = trimToPeriodWindow(await getHourlyCandles(ct, chartPeriod), chartPeriod, data?.candles);
             if (compCandles.length >= 2) {
               const compStart = compCandles[0].close;
               points = compCandles.map(c => ({
@@ -986,6 +990,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           selectedPeriod={chartPeriod}
           onPeriodChange={handlePeriodChange}
           currentPrice={quote.currentPrice}
+          extendedPrice={quote.extendedPrice}
           previousClose={quote.previousClose}
           regularClose={quote.regularClose}
           onHoverPrice={handleHoverPrice}
