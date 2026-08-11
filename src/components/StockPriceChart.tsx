@@ -1081,8 +1081,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   // The > 0 guard is the one place the two regimes can still mix: Compare passes
   // `currentPrice ?? 0` for a missing quote, and colouring everything red off a
   // zero is worse than falling back to the drawn line.
+  // 1D rides the same rule, for a different reason: it colors by the TOTAL day move
+  // with extended hours included (Jon 2026-08-11) — +1% into the close and -0.85%
+  // after it is still a green day, and an after-hours slide that erases the whole
+  // gain turns the day red. previousClose is already the 1D baseline, so pairing it
+  // with the blended latest print IS that rule. It also has to be read off the quote
+  // rather than the last drawn point, because the providers disagree about where the
+  // extended print lands: some write it into currentPrice (last point already right),
+  // others leave it only in extendedPrice and currentPrice stays the 4 PM close, in
+  // which case the drawn tail — and the color with it — ignores after hours entirely.
   const latestPrice = extendedPrice ?? currentPrice;
-  const trendEndPrice = usesPeriodAnchor && latestPrice > 0
+  const usesLiveEnd = latestPrice > 0
+    && (usesPeriodAnchor || (selectedPeriod === '1D' && isDefaultWindow));
+  const trendEndPrice = usesLiveEnd
     ? latestPrice
     : (zoomRange && visiblePoints.length > 1
       ? visiblePoints[visiblePoints.length - 1].price
