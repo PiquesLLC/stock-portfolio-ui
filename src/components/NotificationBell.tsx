@@ -444,7 +444,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="group relative p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted
+        className="group tap-target p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted
           hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
         aria-label="Notifications"
       >

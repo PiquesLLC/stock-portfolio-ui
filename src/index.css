@@ -376,6 +376,42 @@ body {
   transform-origin: center;
 }
 
+/* Enlarges a small control's TAPPABLE area without moving or resizing anything
+   visible — the rulebook's "extend hitboxes rather than grow the element",
+   done with a transparent pseudo-element rather than negative margin because
+   `-mx-1 px-1` would also stretch the visible hover:bg pill and its rounded-lg.
+
+   The mobile header icons are 30x30 (p-1.5 around an 18px icon; the bell is
+   32x32 around a w-5 icon), against a 44px minimum, in a row where a mis-tap
+   opens the wrong panel. Vertical +7px takes them to 44/46. Horizontal +4px
+   only: those buttons sit in a gap-2 (8px) row, so stopping at the midpoint
+   means neighbouring hit areas meet but never overlap — overlapping ones would
+   silently hand taps to whichever button comes later in the DOM.
+
+   MOBILE ONLY, and not merely because desktop has the room: NotificationBell is
+   shared with the desktop header, whose row is gap-1 (4px). There the same
+   +4px would consume the entire gap and leave no slack against the next
+   control, and +7px would overflow the h-11 row. Desktop must stay
+   byte-identical (CLAUDE.md).
+
+   Note it makes the host a positioned element, so the pad paints in the
+   positioned layer. Every popup in these rows carries an explicit z-50, which
+   is what keeps a later sibling's pad from covering an earlier dropdown; a new
+   header dropdown relying on z-auto + DOM order would need the same. */
+.tap-target {
+  position: relative;
+}
+@media (max-width: 639.98px) {
+  .tap-target::after {
+    content: '';
+    position: absolute;
+    top: -7px;
+    bottom: -7px;
+    left: -4px;
+    right: -4px;
+  }
+}
+
 /* Section divider — atmospheric separation, not a line */
 .section-divider {
   height: 1px;

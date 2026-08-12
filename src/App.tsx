@@ -1122,7 +1122,7 @@ export default function App() {
             {currentUserId && (
               <button
                 onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
-                className="relative p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                className="tap-target p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
                 title="Today's Brief"
               >
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1134,7 +1134,7 @@ export default function App() {
             {currentUserId && (
               <button
                 onClick={() => setCreatorView('dashboard')}
-                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                className="tap-target p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
                 title="Creator Dashboard"
               >
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1142,24 +1142,9 @@ export default function App() {
                 </svg>
               </button>
             )}
-            <button
-              onClick={toggleTheme}
-              className="hidden sm:flex items-center p-1.5 rounded-lg transition-colors
-                hover:bg-gray-100 dark:hover:bg-rh-dark
-                text-rh-light-muted dark:text-rh-muted"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
-            </button>
+            {/* No theme toggle here: this row is `sm:hidden`, so a `hidden sm:flex`
+                child rendered at no width at all. Mobile switches theme via
+                Settings → Appearance, and the row is already crowded. */}
             {lastUpdate && (
               <span className={`hidden sm:inline text-[11px] whitespace-nowrap flex items-center gap-1.5 ${
                 isStale ? 'text-yellow-500/70' : 'text-rh-light-muted/50 dark:text-rh-muted/50'
