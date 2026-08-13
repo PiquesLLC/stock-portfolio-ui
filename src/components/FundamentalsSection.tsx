@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { FundamentalsResponse, ParsedIncomeStatement, ParsedBalanceSheet, ParsedCashFlow } from '../types';
 import { getFundamentals } from '../api';
+import { computeDerivedMetrics } from '../utils/derived-metrics';
 import { DCFCalculator } from './DCFCalculator';
 
 type FundTab = 'revenue' | 'balance' | 'cashflow' | 'dcf';
@@ -355,6 +356,72 @@ function CashFlowTable({ data, period }: { data: ParsedCashFlow[]; period: Perio
   );
 }
 
+/* ─── Key Metrics ───────────────────────────────────────────────────── */
+
+function formatRatio(n: number | null): string {
+  if (n == null) return '—';
+  // A deep-value name can price at 0.003x sales. Rounding that to "0.00" reads
+  // as broken in a grid where unavailable metrics are dropped entirely.
+  if (n > 0 && n < 0.01) return '<0.01';
+  return n.toFixed(2);
+}
+
+function formatPercent(n: number | null, withSign = false): string {
+  if (n == null) return '—';
+  const pct = n * 100;
+  const sign = withSign && pct > 0 ? '+' : '';
+  return `${sign}${pct.toFixed(2)}%`;
+}
+
+/** Money with the sign outside the currency symbol: -$83.9M, never $-83.9M. */
+function formatMoney(n: number | null): string {
+  if (n == null) return '—';
+  return `${n < 0 ? '-' : ''}$${formatLargeNumber(Math.abs(n))}`;
+}
+
+function formatQuarterLabel(dateStr: string | null): string | null {
+  return dateStr ? formatQuarter(dateStr) : null;
+}
+
+interface Metric {
+  label: string;
+  value: string;
+  /** Sub-line for the inputs behind a derived figure, as the source panels do. */
+  detail?: string;
+  /** Colour by sign — only where direction genuinely reads as good or bad. */
+  signed?: number | null;
+}
+
+function MetricGrid({ metrics }: { metrics: Metric[] }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+      {metrics.map(m => (
+        <div key={m.label} className="min-w-0">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 truncate">
+            {m.label}
+          </div>
+          <div
+            className={`text-sm font-semibold tabular-nums mt-0.5 truncate ${
+              m.signed == null || m.signed === 0
+                ? 'text-rh-light-text dark:text-rh-text'
+                : m.signed > 0
+                  ? 'text-rh-green'
+                  : 'text-rh-red'
+            }`}
+          >
+            {m.value}
+          </div>
+          {m.detail && (
+            <div className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 tabular-nums truncate mt-0.5">
+              {m.detail}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─── Main Component ────────────────────────────────────────────────── */
 
 const fundCache = new Map<string, { data: FundamentalsResponse; time: number }>();
@@ -424,6 +491,47 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
   const balanceData = period === 'annual' ? data!.balanceSheets.annual : data!.balanceSheets.quarterly;
   const cashData = period === 'annual' ? data!.cashFlows.annual : data!.cashFlows.quarterly;
 
+  const derived = computeDerivedMetrics(data, currentPrice);
+  // Which two quarters the YoY figures actually compare — single-quarter YoY is
+  // seasonal, and the Annual/Quarterly toggle sits right below, so an
+  // unqualified "Revenue (YoY)" reads as though it follows that selection.
+  const yoyDetail = derived.yoyLatestPeriod && derived.yoyComparisonPeriod
+    ? `${formatQuarterLabel(derived.yoyLatestPeriod)} vs ${formatQuarterLabel(derived.yoyComparisonPeriod)}`
+    : undefined;
+
+  // EV / EBITDA is deliberately absent. The API derives EBITDA as operating
+  // income + (operating cash flow - net income) whenever the provider omits it,
+  // which folds in stock comp and working-capital movement — biasing EBITDA
+  // high and the multiple low, always in the same direction. A multiple that
+  // makes every company look cheaper than it is has no place next to real ones.
+  const metrics: Metric[] = [
+    { label: 'Price / Sales', value: formatRatio(derived.priceToSales) },
+    { label: 'Price / Book', value: formatRatio(derived.priceToBook) },
+    {
+      label: 'FCF Yield',
+      value: formatPercent(derived.fcfYield),
+      detail: derived.fcfPerShare != null && currentPrice != null
+        ? `$${derived.fcfPerShare.toFixed(2)} / $${currentPrice.toFixed(2)}`
+        : undefined,
+      signed: derived.fcfYield,
+    },
+    // No sign colour on operating margin: every profitable company would paint
+    // green, including one earning a dreadful 0.4%. The colour would imply a
+    // verdict the sign can't support.
+    { label: 'Operating Margin', value: formatPercent(derived.operatingMargin) },
+    { label: 'Revenue (YoY)', value: formatPercent(derived.revenueGrowthYoY, true), detail: yoyDetail, signed: derived.revenueGrowthYoY },
+    { label: 'Earnings (YoY)', value: formatPercent(derived.earningsGrowthYoY, true), detail: yoyDetail, signed: derived.earningsGrowthYoY },
+    {
+      // Most large caps run net debt by design, so this is a fact, not a fault
+      // — named for what it is, and left uncoloured.
+      label: derived.netCash != null && derived.netCash < 0 ? 'Net Debt' : 'Net Cash',
+      value: derived.netCash == null ? '—' : formatMoney(Math.abs(derived.netCash)),
+      detail: derived.cash != null && derived.totalDebt != null
+        ? `${formatMoney(derived.cash)} cash · ${formatMoney(derived.totalDebt)} debt`
+        : undefined,
+    },
+  ].filter(m => m.value !== '—');
+
   const latestIncome = incomeData[0];
   const summaryText = latestIncome
     ? `Revenue ${formatLargeNumber(latestIncome.totalRevenue)} · Net Income ${formatLargeNumber(latestIncome.netIncome)}`
@@ -457,6 +565,15 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
 
       {!collapsed && (
         <div className="mt-3">
+          {/* Key metrics — all derived from data already in this response, so
+              they cost no extra request. Anything that can't be computed
+              honestly renders as an em dash rather than a zero. */}
+          {metrics.length > 0 && (
+            <div className="mb-4 pb-4 border-b border-gray-200/40 dark:border-white/[0.06]">
+              <MetricGrid metrics={metrics} />
+            </div>
+          )}
+
           {/* Controls row */}
           <div className="flex items-center justify-between mb-2">
             {/* Tab bar */}
