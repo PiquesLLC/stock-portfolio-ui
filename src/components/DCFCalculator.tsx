@@ -17,6 +17,21 @@ function pct(n: number): string {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+/* ─── Valuation assumptions ────────────────────────────────────────── */
+
+const TAX_RATE = 0.21;                 // US statutory, for unlevering FCF and the debt shield
+const EQUITY_RISK_PREMIUM = 0.055;     // ~Damodaran implied ERP
+const FALLBACK_RISK_FREE = 0.042;      // only when the API can't supply the live 10Y
+const FALLBACK_COST_OF_DEBT = 0.05;    // only when interest expense isn't broken out
+const BETA_FLOOR = 0.5;                // sanity bounds on the adjusted beta — these
+const BETA_CAP = 2.5;                  // catch bad data, not genuine volatility
+const WACC_MIN = 0.05;                 // must match the Discount Rate slider's range,
+const WACC_MAX = 0.20;                 // or AUTO can point off the end of the track
+// Minimum discount-to-terminal spread. Gordon Growth divides by that gap, so a thin
+// one produces an enormous terminal multiple off a rounding error: at the old 0.5pp
+// guard, a 4% WACC against 2.5% terminal growth valued the terminal year at ~68x.
+const MIN_PERPETUITY_SPREAD = 0.02;
+
 /* ─── DCF Math ─────────────────────────────────────────────────────── */
 
 interface DCFInputs {
@@ -42,7 +57,7 @@ interface DCFResult {
   fairValuePerShare: number;
 }
 
-function runDCF(inputs: DCFInputs): DCFResult {
+export function runDCF(inputs: DCFInputs): DCFResult {
   const { revenueGrowth, fcfMargin, discountRate, terminalGrowth, projectionYears,
     ttmRevenue, cash, totalDebt, sharesOutstanding } = inputs;
 
@@ -50,8 +65,18 @@ function runDCF(inputs: DCFInputs): DCFResult {
   const projectedFCFs: number[] = [];
   let rev = ttmRevenue;
 
+  // Growth FADES linearly from the starting rate to the terminal rate across the
+  // projection. Holding the opening rate flat and then dropping to terminal growth
+  // in the very next year is the aggressive version: at 17% for ten years revenue
+  // compounds ~5x and every one of those years is worth more than the terminal
+  // value it precedes. Fading also removes the discontinuity at the handover — by
+  // the final year the company is already growing at the perpetuity rate, which is
+  // the assumption Gordon Growth makes about the cash flow it is handed.
   for (let y = 1; y <= projectionYears; y++) {
-    rev = rev * (1 + revenueGrowth);
+    const g = projectionYears > 1
+      ? revenueGrowth + (terminalGrowth - revenueGrowth) * ((y - 1) / (projectionYears - 1))
+      : revenueGrowth;
+    rev = rev * (1 + g);
     projectedRevenues.push(rev);
     projectedFCFs.push(rev * fcfMargin);
   }
@@ -60,10 +85,15 @@ function runDCF(inputs: DCFInputs): DCFResult {
   const finalFCF = projectedFCFs[projectedFCFs.length - 1];
   const tv = finalFCF * (1 + terminalGrowth) / (discountRate - terminalGrowth);
 
-  // Discount to present
+  // Discount to present on the MID-YEAR convention: a company earns its cash flow
+  // across the year, not in a lump on 31 December. Discounting each year at its full
+  // exponent assumes the latter and understates value by roughly (1+r)^0.5 — 5-9% at
+  // these rates, every year, systematically. Banks use mid-year as standard for
+  // exactly this reason. The terminal value is a value AS AT year N, so it keeps the
+  // full exponent.
   let pvFCFs = 0;
   for (let y = 0; y < projectionYears; y++) {
-    pvFCFs += projectedFCFs[y] / Math.pow(1 + discountRate, y + 1);
+    pvFCFs += projectedFCFs[y] / Math.pow(1 + discountRate, y + 0.5);
   }
   const pvTV = tv / Math.pow(1 + discountRate, projectionYears);
 
@@ -85,7 +115,7 @@ function runDCF(inputs: DCFInputs): DCFResult {
 
 /* ─── Derive defaults from data ────────────────────────────────────── */
 
-function deriveDefaults(data: FundamentalsResponse, currentPrice: number) {
+export function deriveDefaults(data: FundamentalsResponse, currentPrice: number) {
   const annualIS = data.incomeStatements.annual;
   const annualCF = data.cashFlows.annual;
   const annualBS = data.balanceSheets.annual;
@@ -108,54 +138,104 @@ function deriveDefaults(data: FundamentalsResponse, currentPrice: number) {
   // Clamp to reasonable range
   revenueGrowth = Math.max(-0.10, Math.min(0.40, revenueGrowth));
 
-  // FCF margin (average over available years)
-  let fcfMargin = 0.15; // fallback
-  const margins: number[] = [];
-  for (const yr of annualIS) {
-    const rev = yr.totalRevenue;
-    const cf = annualCF.find(c => c.fiscalDateEnding === yr.fiscalDateEnding);
-    if (rev && rev > 0 && cf?.freeCashFlow != null) {
-      margins.push(cf.freeCashFlow / rev);
-    }
-  }
-  if (margins.length > 0) {
-    fcfMargin = margins.reduce((a, b) => a + b, 0) / margins.length;
-  }
-  // Floor at net income margin: for growth companies spending heavily on capex
-  // (e.g. AMZN 2% FCF margin vs 11% net margin), long-term FCF should at least
-  // match net income as D&A covers maintenance capex and growth capex normalizes.
-  const netMargins: number[] = [];
-  for (const yr of annualIS) {
-    if (yr.netIncome != null && yr.totalRevenue != null && yr.totalRevenue > 0) {
-      netMargins.push(yr.netIncome / yr.totalRevenue);
-    }
-  }
-  if (netMargins.length > 0) {
-    // Use median to reduce impact of one-off gains/losses
-    const sorted = [...netMargins].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    const medianNetMargin = sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
-    fcfMargin = Math.max(fcfMargin, medianNetMargin);
-  }
-  fcfMargin = Math.max(-0.30, Math.min(0.50, fcfMargin));
-
-  // WACC estimate
-  const beta = overview?.beta ?? 1.0;
-  const riskFree = 0.042;
-  const erp = 0.055;
-  const costOfEquity = riskFree + beta * erp;
-  // Simple WACC: weighted avg (assume 80/20 equity/debt split if no data)
+  // ── Capital structure (needed before cash flow, to sanity-check interest) ──
   const latestBS = annualBS[0];
   const totalDebt = (latestBS?.longTermDebt ?? 0) + (latestBS?.currentDebt ?? 0);
   const cash = latestBS?.cashAndEquivalents ?? 0;
+  const debtOf = (bs?: { longTermDebt: number | null; currentDebt: number | null }) =>
+    (bs?.longTermDebt ?? 0) + (bs?.currentDebt ?? 0);
+  const avgDebt = annualBS.length >= 2
+    ? (debtOf(annualBS[0]) + debtOf(annualBS[1])) / 2
+    : debtOf(annualBS[0]);
+
+  // Banks and insurers book interest as an OPERATING cost — it is the raw material
+  // of the business, not financing — and it is precisely those filers who populate
+  // the interest tag. Adding it back would inflate cash flow enormously, and their
+  // funding (deposits) never appears in totalDebt to offset it in the bridge. An
+  // FCFF DCF is the wrong model for them; don't dress one up by unlevering.
+  const isFinancial = /financ|bank|insur/i.test(overview?.sector ?? '');
+
+  /**
+   * Interest expense we're willing to unlever with, or null. Guards three ways:
+   * a negative value on the net tag means interest INCOME (adding it back would
+   * inflate cash flow for exactly the cash-rich companies where it is most wrong);
+   * a figure large against revenue or against the debt it supposedly services is a
+   * mis-scaled or cumulative tag, and it would run straight into the FCF-margin
+   * clamp — the single largest lever on fair value.
+   */
+  const usableInterest = (raw: number | null | undefined, revenue: number): number | null => {
+    if (isFinancial || raw == null || !Number.isFinite(raw) || raw <= 0) return null;
+    if (revenue > 0 && raw / revenue > 0.25) return null;
+    if (avgDebt > 0 && raw / avgDebt > 0.15) return null;
+    return raw;
+  };
+
+  // ── FCF margin ──────────────────────────────────────────────────────
+  // The cash-flow statement's FCF is CFO - capex, which is LEVERED: operating cash
+  // flow is already net of interest paid. Discounting that at WACC and then
+  // subtracting debt in the equity bridge charges the company for its leverage
+  // twice. Institutions discount unlevered FCF, so add the interest burden back
+  // after tax — but only when EVERY year can be unlevered, so the average is one
+  // consistent definition rather than a blend of two.
+  let fcfMargin = 0.15; // fallback
+  const leveredMargins: number[] = [];
+  const unleveredMargins: number[] = [];
+  for (const yr of annualIS) {
+    const rev = yr.totalRevenue;
+    const cf = annualCF.find(c => c.fiscalDateEnding === yr.fiscalDateEnding);
+    if (!rev || rev <= 0 || cf?.freeCashFlow == null) continue;
+    leveredMargins.push(cf.freeCashFlow / rev);
+    const interest = usableInterest(yr.interestExpense, rev);
+    if (interest != null) {
+      unleveredMargins.push((cf.freeCashFlow + interest * (1 - TAX_RATE)) / rev);
+    }
+  }
+  const unlevered = leveredMargins.length > 0 && unleveredMargins.length === leveredMargins.length;
+  const chosenMargins = unlevered ? unleveredMargins : leveredMargins;
+  if (chosenMargins.length > 0) {
+    fcfMargin = chosenMargins.reduce((a, b) => a + b, 0) / chosenMargins.length;
+  }
+  // NOTE: this used to be floored at the median net margin, on the theory that a
+  // capex-heavy company's long-run FCF should at least match net income. That is a
+  // house view, not a valuation method, and it silently inflated fair value for
+  // exactly the companies whose capex is the point. Removed 2026-08-11 — which is
+  // why a negative margin now has to be caught at the render (see NOT_MEANINGFUL).
+  fcfMargin = Math.max(-0.30, Math.min(0.50, fcfMargin));
+
+  // ── WACC ────────────────────────────────────────────────────────────
+  // Blume-adjusted beta: regression betas mean-revert toward 1, and desks quote the
+  // adjusted figure (it is what Bloomberg's "adjusted beta" reports). Raw betas on
+  // volatile names drove cost of equity near 20%, pinning the discount-rate slider
+  // at its ceiling and marking almost everything overvalued.
+  const rawBeta = overview?.beta ?? 1.0;
+  const betaAssumed = overview?.beta == null;
+  const beta = Math.min(BETA_CAP, Math.max(BETA_FLOOR, (2 / 3) * rawBeta + (1 / 3)));
+  // Live 10Y from the API; the constant is only a fallback for when it's absent.
+  const riskFree = data.riskFreeRate != null && data.riskFreeRate > 0 && data.riskFreeRate < 0.25
+    ? data.riskFreeRate
+    : FALLBACK_RISK_FREE;
+  const costOfEquity = riskFree + beta * EQUITY_RISK_PREMIUM;
+
   const marketCap = overview?.marketCap ?? (currentPrice * (overview?.sharesOutstanding ?? 1));
   const totalCapital = marketCap + totalDebt;
   const equityWeight = totalCapital > 0 ? marketCap / totalCapital : 0.8;
   const debtWeight = 1 - equityWeight;
-  const costOfDebt = 0.05 * (1 - 0.21); // assume 5% rate, 21% tax
-  const wacc = equityWeight * costOfEquity + debtWeight * costOfDebt;
+
+  // Cost of debt from what the company actually pays — interest expense over
+  // average gross debt — rather than a flat 5% assumption. Bounded, because a
+  // near-zero debt balance against any interest at all produces nonsense.
+  const latestInterest = usableInterest(annualIS[0]?.interestExpense, annualIS[0]?.totalRevenue ?? 0);
+  const impliedCostOfDebt = avgDebt > 0 && latestInterest != null ? latestInterest / avgDebt : null;
+  const preTaxCostOfDebt = impliedCostOfDebt != null
+    ? Math.min(0.15, Math.max(0.01, impliedCostOfDebt))
+    : FALLBACK_COST_OF_DEBT;
+  const costOfDebt = preTaxCostOfDebt * (1 - TAX_RATE);
+
+  const rawWacc = equityWeight * costOfEquity + debtWeight * costOfDebt;
+  // Clamp into the discount-rate slider's own range so AUTO can never land off the
+  // end of the track (which is what a 19.2% auto-WACC looked like).
+  const wacc = Math.min(WACC_MAX, Math.max(WACC_MIN, rawWacc));
+  const waccClamped = Math.abs(wacc - rawWacc) > 1e-9;
 
   // Derive shares: prefer explicit field, fall back to marketCap / price
   // Sanity check: if shares seem impossibly small vs marketCap, use marketCap/price instead
@@ -173,11 +253,39 @@ function deriveDefaults(data: FundamentalsResponse, currentPrice: number) {
     fcfMargin: Math.round(fcfMargin * 1000) / 1000,
     discountRate: Math.round(wacc * 1000) / 1000,
     terminalGrowth: 0.025,
-    projectionYears: 5,
+    // Ten years, not five. The fade has to have somewhere to happen: compressing a
+    // 17% grower down to 2.5% within five years isn't conservatism, it's a different
+    // company. A ten-year explicit window is the standard horizon for a growth name,
+    // and it keeps growth elevated through the early years where most of the value is.
+    projectionYears: 10,
     ttmRevenue,
     cash,
     totalDebt,
     sharesOutstanding,
+    // Surfaced under "Show details" so the discount rate isn't a black box —
+    // it is the single input that moves fair value most.
+    assumptions: {
+      riskFree,
+      beta,
+      rawBeta,
+      betaAssumed,
+      preTaxCostOfDebt,
+      // True only when the fallback was used — a debt-free company showing a
+      // confident "5.0% cost of debt" is the sort of thing this block exists to
+      // stop. Same for a clamped WACC presented as if it were computed.
+      costOfDebtAssumed: impliedCostOfDebt == null,
+      // No usable FCF history at all — the 15% below is invented, not measured, and
+      // a valuation built on it should not be shown as if it meant something.
+      fcfMarginAssumed: chosenMargins.length === 0,
+      riskFreeAssumed: !(data.riskFreeRate != null && data.riskFreeRate > 0 && data.riskFreeRate < 0.25),
+      debtWeight,
+      waccClamped,
+      rawWacc,
+      isFinancial,
+      // False when any year couldn't be unlevered, so the projection is levered
+      // FCF and reads low. Worth saying out loud rather than hiding.
+      unlevered,
+    },
   };
 }
 
@@ -230,18 +338,100 @@ function Slider({ label, value, onChange, min, max, step, format, autoValue }: {
 const GROWTH_STEPS = [-0.02, -0.01, 0, 0.01, 0.02];
 const WACC_STEPS = [-0.02, -0.01, 0, 0.01, 0.02];
 
-function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs; currentPrice: number }) {
-  const rows = useMemo(() => {
-    return GROWTH_STEPS.map(gOff => {
-      const growth = baseInputs.revenueGrowth + gOff;
-      return WACC_STEPS.map(wOff => {
-        const wacc = baseInputs.discountRate + wOff;
-        if (wacc <= baseInputs.terminalGrowth + 0.005) return null; // invalid
-        const r = runDCF({ ...baseInputs, revenueGrowth: growth, discountRate: wacc });
-        return r.fairValuePerShare;
-      });
+/**
+ * Fair value across the growth x WACC grid. Shared by the sensitivity table and the
+ * headline range, so the number in the header is always one the user can find in
+ * the table rather than a separately-derived figure that happens to look similar.
+ */
+export function sensitivityGrid(baseInputs: DCFInputs): (number | null)[][] {
+  return GROWTH_STEPS.map(gOff => {
+    const growth = baseInputs.revenueGrowth + gOff;
+    return WACC_STEPS.map(wOff => {
+      const wacc = baseInputs.discountRate + wOff;
+      if (wacc - baseInputs.terminalGrowth < MIN_PERPETUITY_SPREAD - 1e-9) return null; // invalid
+      const r = runDCF({ ...baseInputs, revenueGrowth: growth, discountRate: wacc });
+      return r.fairValuePerShare;
     });
-  }, [baseInputs]);
+  });
+}
+
+/**
+ * Low/high fair value across that grid, ignoring cells the model refuses. Null when
+ * nothing valid survives, or when the band collapses to a point.
+ */
+export function fairValueRange(baseInputs: DCFInputs): { low: number; high: number } | null {
+  const values = sensitivityGrid(baseInputs).flat().filter((v): v is number => v != null && v > 0);
+  if (values.length === 0) return null;
+  return { low: Math.min(...values), high: Math.max(...values) };
+}
+
+/* ─── Reverse DCF ──────────────────────────────────────────────────── */
+
+// Bracket for the search. Wide enough to cover a hyper-growth name and a
+// business in decline; anything outside it is reported as out-of-range rather
+// than pinned to the edge, because a pinned number reads as a real answer.
+const IMPLIED_GROWTH_MIN = -0.5;
+const IMPLIED_GROWTH_MAX = 1.0;
+const IMPLIED_GROWTH_ITERATIONS = 60;
+
+export interface ImpliedGrowth {
+  growth: number | null;
+  /** Set when today's price sits outside what the bracket can explain. */
+  outOfRange: 'above' | 'below' | null;
+}
+
+/**
+ * The revenue growth rate that makes this model produce exactly today's price —
+ * a reverse DCF.
+ *
+ * This is the most decision-useful thing a DCF can say. A forward DCF answers
+ * "what do I think it's worth", which is only as good as the growth number the
+ * user guessed. The reverse asks "what is the market already assuming?", which
+ * the user can then judge against what the company has actually delivered —
+ * a comparison they're far better equipped to make than picking a growth rate
+ * out of the air.
+ *
+ * Solved by bisection. Fair value is monotonic in growth, but the DIRECTION
+ * depends on sign: for a cash-generative business more growth means more value,
+ * while for one burning cash on every sale, growth destroys value. We detect
+ * the direction from the bracket ends rather than assuming it.
+ */
+export function impliedGrowth(baseInputs: DCFInputs, currentPrice: number): ImpliedGrowth {
+  if (!(currentPrice > 0)) return { growth: null, outOfRange: null };
+  if (baseInputs.discountRate - baseInputs.terminalGrowth < MIN_PERPETUITY_SPREAD - 1e-9) {
+    return { growth: null, outOfRange: null };
+  }
+
+  const valueAt = (growth: number): number =>
+    runDCF({ ...baseInputs, revenueGrowth: growth }).fairValuePerShare - currentPrice;
+
+  let lo = IMPLIED_GROWTH_MIN;
+  let hi = IMPLIED_GROWTH_MAX;
+  const fLo = valueAt(lo);
+  const fHi = valueAt(hi);
+  if (!Number.isFinite(fLo) || !Number.isFinite(fHi)) return { growth: null, outOfRange: null };
+
+  // Same sign at both ends means no root inside the bracket.
+  if (fLo > 0 === fHi > 0) {
+    // Which side depends on whether value rises or falls with growth, so key
+    // off the richer end rather than assuming the usual direction.
+    const richest = Math.max(fLo, fHi);
+    return { growth: null, outOfRange: richest < 0 ? 'above' : 'below' };
+  }
+
+  const increasing = fHi > fLo;
+  for (let i = 0; i < IMPLIED_GROWTH_ITERATIONS; i++) {
+    const mid = (lo + hi) / 2;
+    const f = valueAt(mid);
+    if (Math.abs(f) < 1e-6) return { growth: mid, outOfRange: null };
+    if (increasing ? f > 0 : f < 0) hi = mid;
+    else lo = mid;
+  }
+  return { growth: (lo + hi) / 2, outOfRange: null };
+}
+
+function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs; currentPrice: number }) {
+  const rows = useMemo(() => sensitivityGrid(baseInputs), [baseInputs]);
 
   return (
     <div className="overflow-x-auto">
@@ -365,6 +555,7 @@ export function DCFCalculator({ data, currentPrice }: {
 
   const [revenueGrowth, setRevenueGrowth] = useState(defaults.revenueGrowth);
   const [fcfMargin, setFcfMargin] = useState(defaults.fcfMargin);
+  const [showDetails, setShowDetails] = useState(false);
   const [discountRate, setDiscountRate] = useState(defaults.discountRate);
   const [terminalGrowth, setTerminalGrowth] = useState(defaults.terminalGrowth);
   const [projectionYears, setProjectionYears] = useState(defaults.projectionYears);
@@ -382,13 +573,20 @@ export function DCFCalculator({ data, currentPrice }: {
   }), [revenueGrowth, fcfMargin, discountRate, terminalGrowth, projectionYears, defaults]);
 
   const result = useMemo(() => {
-    if (discountRate <= terminalGrowth + 0.005) return null;
+    // A perpetuity needs real air between the discount and terminal rates. At a
+    // 0.5pp spread the terminal multiple is ~200x final-year cash flow, which
+    // swamps everything else in the model and reads as a confident number.
+    // Epsilon because both operands are slider steps: 0.055 - 0.035 evaluates to
+    // 0.019999999999999997, one ULP under the threshold, and the guard would fire on
+    // a spread the UI renders as exactly 2.0pp.
+    if (discountRate - terminalGrowth < MIN_PERPETUITY_SPREAD - 1e-9) return null;
     if (defaults.ttmRevenue <= 0) return null;
     if (defaults.sharesOutstanding <= 0) return null;
     return runDCF(inputs);
   }, [inputs, discountRate, terminalGrowth, defaults]);
 
-  if (!result) {
+  // The only genuine dead end: no slider can conjure a revenue line or a share count.
+  if (defaults.ttmRevenue <= 0 || defaults.sharesOutstanding <= 0) {
     return (
       <div className="text-xs text-rh-light-muted/40 dark:text-white/20 py-4 text-center">
         Insufficient data for DCF valuation
@@ -396,44 +594,141 @@ export function DCFCalculator({ data, currentPrice }: {
     );
   }
 
-  const fairValue = result.fairValuePerShare;
-  const upside = currentPrice > 0 ? (fairValue - currentPrice) / currentPrice : 0;
-  const isUndervalued = fairValue > currentPrice;
+  // Everything below keeps the SLIDERS on screen. Telling someone to raise the FCF
+  // margin while unmounting the FCF margin slider is a dead end — the only way out
+  // was to leave the tab and lose every other input they had set. Each message names
+  // the condition that actually fired, because "negative free cash flow" is a false
+  // statement about a company whose equity is merely underwater at these assumptions.
+  const blocked = defaults.assumptions.fcfMarginAssumed
+    ? {
+      title: 'DCF not available — no usable cash flow history',
+      body: 'None of the filings report capital expenditure separately, so free cash flow can’t be computed for any year. Rather than assume a margin, the model stops here.',
+    }
+    : !result
+    ? {
+      title: 'Discount rate too close to terminal growth',
+      body: `A perpetuity divides by the gap between the two, so it needs at least ${(MIN_PERPETUITY_SPREAD * 100).toFixed(0)}pp of air. Raise the discount rate, or lower terminal growth.`,
+    }
+    : fcfMargin <= 0
+      ? {
+        title: 'DCF not meaningful — negative free cash flow',
+        body: 'A discounted cash flow model can’t value a company that isn’t generating cash. Raise the FCF margin to explore a profitable scenario.',
+      }
+      : result.fairValuePerShare <= 0
+        ? {
+          title: 'DCF not meaningful — debt exceeds the value of the cash flows',
+          body: 'This company does generate cash, but at these assumptions its debt is worth more than the cash flows are, leaving nothing for equity.',
+        }
+        : null;
 
-  // Projected chart data
+  const fairValue = result?.fairValuePerShare ?? 0;
+  const range = !blocked && result ? fairValueRange(inputs) : null;
+
+  // Deliberately not memoised: this sits below an early return, so a hook here
+  // would break React's hook ordering the moment the component flips between
+  // its blocked and unblocked states. The cost is ~60 bisection steps over a
+  // handful of arithmetic each — cheaper than the comparison would be.
+  const reverse = ((): { implied: string; historical: string | null } | null => {
+    if (blocked || !result || !(currentPrice > 0)) return null;
+    const { growth, outOfRange } = impliedGrowth(inputs, currentPrice);
+    const implied = growth != null
+      ? `${(growth * 100).toFixed(1)}%`
+      : outOfRange === 'above'
+        ? `>${(IMPLIED_GROWTH_MAX * 100).toFixed(0)}%`
+        : outOfRange === 'below'
+          ? `<${(IMPLIED_GROWTH_MIN * 100).toFixed(0)}%`
+          : null;
+    if (implied == null) return null;
+    // `defaults.revenueGrowth` is derived from the company's own filed history.
+    const historical = defaults.revenueGrowth != null
+      ? `${(defaults.revenueGrowth * 100).toFixed(1)}%`
+      : null;
+    return { implied, historical };
+  })();
+
+  // Where the price sits against the BAND, not against a single number. A price
+  // inside the band is the honest "the model can't call this" answer, which a point
+  // estimate can never give — it always lands on one side or the other.
+  const verdict = !range || currentPrice <= 0
+    ? { label: '—', tone: 'text-rh-light-muted/50 dark:text-rh-muted/50', dot: 'bg-gray-400/40 dark:bg-white/20' }
+    : currentPrice > range.high
+      ? { label: 'Above range', tone: 'text-rh-red', dot: 'bg-rh-red' }
+      : currentPrice < range.low
+        ? { label: 'Below range', tone: 'text-rh-green', dot: 'bg-rh-green' }
+        : { label: 'In range', tone: 'text-amber-600 dark:text-yellow-400', dot: 'bg-amber-600 dark:bg-yellow-400' };
+
+  // Projected chart data. The historical bars have to be put on the SAME cash-flow
+  // basis as the projected ones — plotting levered history against unlevered
+  // projections draws a step at the boundary that looks like growth and isn't.
   const annualCF = [...data.cashFlows.annual].reverse().slice(-5);
-  const historicalFCFs = annualCF.map(c => c.freeCashFlow);
+  const historicalFCFs = annualCF.map(c => {
+    if (c.freeCashFlow == null || !defaults.assumptions.unlevered) return c.freeCashFlow;
+    const is = data.incomeStatements.annual.find(y => y.fiscalDateEnding === c.fiscalDateEnding);
+    const interest = is?.interestExpense;
+    if (interest == null || interest <= 0) return c.freeCashFlow;
+    return c.freeCashFlow + interest * (1 - TAX_RATE);
+  });
   const histLabels = annualCF.map(c => c.fiscalDateEnding.substring(0, 4));
   const currentYear = new Date().getFullYear();
   const projLabels = Array.from({ length: projectionYears }, (_, i) => `${currentYear + i + 1}E`);
 
   return (
     <div>
-      {/* Fair value header */}
+      {/* Fair value header.
+          A range, not a point. Every input here is an estimate, so "$25.39" claimed a
+          precision the method cannot support; the band is the same growth x WACC grid
+          shown under Sensitivity, so the header is always a number you can find in
+          the table. Verdict reads as dot + colored text per the design rulebook —
+          never a background wash. */}
+      {blocked ? (
+        <div className="py-4 mb-2 text-center">
+          <div className="text-xs text-rh-light-muted/50 dark:text-white/30">{blocked.title}</div>
+          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/40 dark:text-white/20 max-w-[42ch] mx-auto">
+            {blocked.body}
+          </p>
+        </div>
+      ) : (
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold text-rh-light-text dark:text-white tabular-nums font-mono">
-              ${fairValue.toFixed(2)}
+              {range ? <>${range.low.toFixed(2)}<span className="text-rh-light-muted/40 dark:text-white/25 mx-1">–</span>${range.high.toFixed(2)}</> : `$${fairValue.toFixed(2)}`}
             </span>
-            <span className="text-[10px] text-rh-light-muted/40 dark:text-white/20">Fair Value</span>
+            <span className="text-[10px] text-rh-light-muted/40 dark:text-white/20">
+              {range ? 'Fair Value Range' : 'Fair Value'}
+            </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs text-rh-light-muted/50 dark:text-white/30 font-mono tabular-nums">
               ${currentPrice.toFixed(2)} current
             </span>
-            <span className={`text-xs font-semibold font-mono tabular-nums ${isUndervalued ? 'text-rh-green' : 'text-rh-red'}`}>
-              {upside > 0 ? '+' : ''}{(upside * 100).toFixed(1)}%
+            <span className="text-xs text-rh-light-muted/40 dark:text-white/25 font-mono tabular-nums">
+              base ${fairValue.toFixed(2)}
             </span>
           </div>
+          {/* Reverse DCF. The forward number depends on a growth rate the user
+              guessed; this one states what the market has already assumed, next
+              to what the company actually delivered — a comparison they can
+              actually judge. */}
+          {reverse && (
+            <div className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/50 dark:text-white/30">
+              Price implies{' '}
+              <span className="font-semibold text-rh-light-text dark:text-white/70 tabular-nums">
+                {reverse.implied}
+              </span>{' '}
+              annual revenue growth
+              {reverse.historical && (
+                <> · delivered <span className="font-semibold tabular-nums">{reverse.historical}</span> historically</>
+              )}
+            </div>
+          )}
         </div>
-        {/* Visual gauge */}
-        <div className={`px-2.5 py-1 rounded-md text-[10px] font-semibold ${
-          isUndervalued ? 'bg-rh-green/10 text-rh-green' : 'bg-rh-red/10 text-rh-red'
-        }`}>
-          {isUndervalued ? 'Undervalued' : 'Overvalued'}
+        <div className={`flex items-center gap-1.5 text-[10px] font-semibold ${verdict.tone}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${verdict.dot}`} />
+          {verdict.label}
         </div>
       </div>
+      )}
 
       {/* Sliders */}
       <div className="mb-4">
@@ -442,11 +737,82 @@ export function DCFCalculator({ data, currentPrice }: {
         <Slider label="FCF Margin" value={fcfMargin} onChange={setFcfMargin}
           min={-0.30} max={0.50} step={0.005} format={pct} autoValue={defaults.fcfMargin} />
         <Slider label="Discount Rate" value={discountRate} onChange={setDiscountRate}
-          min={0.04} max={0.20} step={0.005} format={pct} autoValue={defaults.discountRate} />
+          min={WACC_MIN} max={WACC_MAX} step={0.005} format={pct} autoValue={defaults.discountRate} />
         <Slider label="Terminal Growth" value={terminalGrowth} onChange={setTerminalGrowth}
           min={0.00} max={0.05} step={0.005} format={pct} />
         <Slider label="Projection Years" value={projectionYears} onChange={v => setProjectionYears(Math.round(v))}
           min={3} max={10} step={1} format={v => `${v} yrs`} />
+      </div>
+
+      {/* Everything below is detail. Collapsed by default so the panel opens on the
+          answer and the assumptions you'd actually tune, not on a wall of tables. */}
+      {!blocked && result && (<>
+      <button
+        type="button"
+        onClick={() => setShowDetails(v => !v)}
+        aria-expanded={showDetails}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg
+                   text-[10px] font-medium uppercase tracking-wider
+                   text-rh-light-muted/50 dark:text-rh-muted/50
+                   hover:text-rh-light-text dark:hover:text-rh-text
+                   hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors"
+      >
+        {showDetails ? 'Hide details' : 'Show details'}
+        <svg className={`w-3 h-3 transition-transform ${showDetails ? 'rotate-180' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {showDetails && (<>
+      {/* How the discount rate was built — the input that moves fair value most */}
+      <div className="mt-3 mb-4">
+        <h4 className="text-[10px] font-semibold text-rh-light-muted/40 dark:text-white/20 uppercase tracking-wider mb-2">Assumptions</h4>
+        <div className="space-y-1 text-[11px] font-mono tabular-nums text-rh-light-text/60 dark:text-white/40">
+          <div className="flex justify-between">
+            <span>Risk-free rate (10Y)</span>
+            <span>{pct(defaults.assumptions.riskFree)}{defaults.assumptions.riskFreeAssumed &&
+              <span className="text-rh-light-muted/30 dark:text-white/20"> assumed</span>}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Beta (adjusted)</span>
+            <span>{defaults.assumptions.beta.toFixed(2)} <span className="text-rh-light-muted/30 dark:text-white/20">
+              {defaults.assumptions.betaAssumed ? 'assumed' : `from ${defaults.assumptions.rawBeta.toFixed(2)}`}
+            </span></span>
+          </div>
+          <div className="flex justify-between">
+            <span>Cost of debt (pre-tax)</span>
+            <span>
+              {defaults.assumptions.debtWeight < 0.005
+                ? <span className="text-rh-light-muted/30 dark:text-white/20">n/a &middot; no debt</span>
+                : <>{pct(defaults.assumptions.preTaxCostOfDebt)}{defaults.assumptions.costOfDebtAssumed &&
+                    <span className="text-rh-light-muted/30 dark:text-white/20"> assumed</span>}</>}
+            </span>
+          </div>
+          {defaults.assumptions.waccClamped && (
+            <div className="flex justify-between">
+              <span>Computed WACC</span>
+              <span>{pct(defaults.assumptions.rawWacc)} <span className="text-rh-light-muted/30 dark:text-white/20">clamped</span></span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span>Cash flow basis</span>
+            <span>{defaults.assumptions.unlevered ? 'Unlevered FCF' : 'Levered FCF'}</span>
+          </div>
+        </div>
+        {defaults.assumptions.isFinancial && (
+          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/40 dark:text-white/25">
+            For banks and insurers interest is an operating cost, not financing, so
+            cash flow is left levered. A cash-flow DCF is a poor fit for this sector —
+            read this as one scenario, not a valuation.
+          </p>
+        )}
+        {!defaults.assumptions.unlevered && !defaults.assumptions.isFinancial && (
+          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/40 dark:text-white/25">
+            Interest expense isn&apos;t broken out for every year, so cash flow couldn&apos;t be
+            unlevered — fair value reads low for a company carrying debt.
+          </p>
+        )}
       </div>
 
       {/* Sensitivity table */}
@@ -505,6 +871,8 @@ export function DCFCalculator({ data, currentPrice }: {
           })}
         </div>
       </div>
+      </>)}
+      </>)}
     </div>
   );
 }

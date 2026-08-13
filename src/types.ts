@@ -1147,6 +1147,9 @@ export interface ParsedIncomeStatement {
   netIncome: number | null;
   ebitda: number | null;
   researchAndDevelopment: number | null;
+  // Null on payloads cached before the API started parsing it — the DCF falls
+  // back to levered FCF and an assumed cost of debt when it's missing.
+  interestExpense?: number | null;
 }
 
 export interface ParsedBalanceSheet {
@@ -1178,6 +1181,8 @@ export interface FundamentalsResponse {
   cashFlows: { annual: ParsedCashFlow[]; quarterly: ParsedCashFlow[] };
   lastUpdated: string;
   dataAge: 'fresh' | 'cached' | 'stale';
+  /** Live 10Y Treasury yield as a decimal (0.042 = 4.2%); null when unavailable. */
+  riskFreeRate?: number | null;
 }
 
 // Earnings types (Alpha Vantage)
