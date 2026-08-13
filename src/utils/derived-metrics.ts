@@ -39,6 +39,9 @@ export interface DerivedMetrics {
   totalDebt: number | null;
   cash: number | null;
   netCash: number | null;
+  /** Period end of the balance sheet the cash/debt figures came from. Often
+   *  older than the newest filing, so the UI must say which one it is. */
+  balanceAsOf: string | null;
 }
 
 const EMPTY: DerivedMetrics = {
@@ -57,6 +60,7 @@ const EMPTY: DerivedMetrics = {
   totalDebt: null,
   cash: null,
   netCash: null,
+  balanceAsOf: null,
 };
 
 /** A ratio is only meaningful when the denominator is a positive number. */
@@ -172,9 +176,27 @@ function yoyChange(latest: number | null, yearAgo: number | null): number | null
   return (latest - yearAgo) / yearAgo;
 }
 
-/** Latest balance-sheet row, preferring the more recent quarterly filing. */
-function latestBalance(sheets: { annual: ParsedBalanceSheet[]; quarterly: ParsedBalanceSheet[] }): ParsedBalanceSheet | null {
-  return sheets.quarterly[0] ?? sheets.annual[0] ?? null;
+/**
+ * Newest balance sheet that actually carries the cash and debt figures.
+ *
+ * Not simply the newest sheet. The API's EDGAR and Finnhub enrichment passes
+ * only fill ANNUAL filings, and even the most recent annual is often still
+ * missing them — checked live against DE, where 0 of 20 quarterly sheets and
+ * only 6 of 10 annuals carry cash. Reading `quarterly[0]` therefore drops the
+ * tile for exactly the large caps whose gaps the enrichment exists to patch.
+ *
+ * Returns the period too: a figure from two years ago presented as current is
+ * worse than no figure at all, so the caller labels it.
+ */
+function latestUsableBalance(
+  sheets: { annual: ParsedBalanceSheet[]; quarterly: ParsedBalanceSheet[] },
+): { sheet: ParsedBalanceSheet; asOf: string } | null {
+  const usable = [...sheets.quarterly, ...sheets.annual]
+    .filter(s => s.cashAndEquivalents != null && (s.longTermDebt != null || s.currentDebt != null))
+    .filter(s => Number.isFinite(Date.parse(s.fiscalDateEnding)))
+    .sort((a, b) => Date.parse(b.fiscalDateEnding) - Date.parse(a.fiscalDateEnding));
+  const sheet = usable[0];
+  return sheet ? { sheet, asOf: sheet.fiscalDateEnding } : null;
 }
 
 export function computeDerivedMetrics(
@@ -186,7 +208,8 @@ export function computeDerivedMetrics(
   const overview = data.overview;
   const income: { annual: ParsedIncomeStatement[]; quarterly: ParsedIncomeStatement[] } = data.incomeStatements;
   const cashFlows: { annual: ParsedCashFlow[]; quarterly: ParsedCashFlow[] } = data.cashFlows;
-  const balance = latestBalance(data.balanceSheets);
+  const balanceRow = latestUsableBalance(data.balanceSheets);
+  const balance = balanceRow?.sheet ?? null;
 
   const price = currentPrice != null && Number.isFinite(currentPrice) && currentPrice > 0 ? currentPrice : null;
   const sharesOutstanding = overview?.sharesOutstanding ?? null;
@@ -282,5 +305,6 @@ export function computeDerivedMetrics(
     totalDebt,
     cash,
     netCash,
+    balanceAsOf: balanceRow?.asOf ?? null,
   };
 }

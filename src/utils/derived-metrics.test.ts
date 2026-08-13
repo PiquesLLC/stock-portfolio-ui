@@ -261,6 +261,43 @@ describe('computeDerivedMetrics', () => {
     expect(m.totalDebt).toBeNull();
   });
 
+  it('falls back to an older sheet that actually has cash and debt', () => {
+    // Live check against DE: 0 of 20 quarterly sheets and only 6 of 10 annuals
+    // carry cash, because the API's enrichment only fills annual filings and
+    // misses the newest. Reading quarterly[0] drops the tile entirely.
+    const m = computeDerivedMetrics(
+      response({
+        balanceSheets: {
+          quarterly: [sheet('2026-06-30', { cashAndEquivalents: null, longTermDebt: null, currentDebt: null })],
+          annual: [
+            sheet('2025-11-02', { period: 'annual', cashAndEquivalents: null, longTermDebt: null, currentDebt: null }),
+            sheet('2024-10-27', { period: 'annual', cashAndEquivalents: 7_000_000_000, longTermDebt: 40_000_000_000, currentDebt: 12_000_000_000 }),
+          ],
+        },
+      }),
+      50.55,
+    );
+    expect(m.cash).toBe(7_000_000_000);
+    expect(m.totalDebt).toBe(52_000_000_000);
+    expect(m.netCash).toBe(-45_000_000_000);
+    // And it must say WHICH period, or a two-year-old figure reads as current.
+    expect(m.balanceAsOf).toBe('2024-10-27');
+  });
+
+  it('prefers the newest usable sheet, not merely the newest', () => {
+    const m = computeDerivedMetrics(
+      response({
+        balanceSheets: {
+          quarterly: [sheet('2026-06-30', { cashAndEquivalents: 500, longTermDebt: 100, currentDebt: 0 })],
+          annual: [sheet('2024-10-27', { period: 'annual', cashAndEquivalents: 7_000_000_000, longTermDebt: 40_000_000_000, currentDebt: 0 })],
+        },
+      }),
+      50.55,
+    );
+    expect(m.balanceAsOf).toBe('2026-06-30');
+    expect(m.cash).toBe(500);
+  });
+
   it('distinguishes "no current debt" from "no debt data"', () => {
     const noCurrent = computeDerivedMetrics(
       response({ balanceSheets: { annual: [], quarterly: [sheet('2026-06-30', { currentDebt: null })] } }),

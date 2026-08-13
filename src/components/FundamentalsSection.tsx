@@ -526,8 +526,12 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
       // — named for what it is, and left uncoloured.
       label: derived.netCash != null && derived.netCash < 0 ? 'Net Debt' : 'Net Cash',
       value: derived.netCash == null ? '—' : formatMoney(Math.abs(derived.netCash)),
+      // Named with its period: the providers leave cash and debt null on most
+      // recent filings, so this often comes from an older sheet, and an
+      // unlabelled figure would read as current.
       detail: derived.cash != null && derived.totalDebt != null
-        ? `${formatMoney(derived.cash)} cash · ${formatMoney(derived.totalDebt)} debt`
+        ? `${formatMoney(derived.cash)} cash · ${formatMoney(derived.totalDebt)} debt${
+          derived.balanceAsOf ? ` · ${formatQuarterLabel(derived.balanceAsOf)}` : ''}`
         : undefined,
     },
   ].filter(m => m.value !== '—');
