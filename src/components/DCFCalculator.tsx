@@ -126,6 +126,11 @@ export function deriveDefaults(data: FundamentalsResponse, currentPrice: number)
 
   // Revenue CAGR (oldest to newest annual)
   let revenueGrowth = 0.08; // fallback 8%
+  // The realized CAGR BEFORE clamping. The clamp below exists to keep the AUTO
+  // value on the slider's track, which is right for a default and wrong for a
+  // statement about the past — a 65% grower must not be reported as having
+  // "delivered 40%". Null when there isn't enough history to measure one.
+  let historicalRevenueCagr: number | null = null;
   const sortedIS = [...annualIS].reverse(); // oldest first
   if (sortedIS.length >= 2) {
     const oldest = sortedIS[0]?.totalRevenue;
@@ -133,6 +138,7 @@ export function deriveDefaults(data: FundamentalsResponse, currentPrice: number)
     if (oldest && newest && oldest > 0 && newest > 0) {
       const years = sortedIS.length - 1;
       revenueGrowth = Math.pow(newest / oldest, 1 / years) - 1;
+      historicalRevenueCagr = revenueGrowth;
     }
   }
   // Clamp to reasonable range
@@ -262,6 +268,7 @@ export function deriveDefaults(data: FundamentalsResponse, currentPrice: number)
     cash,
     totalDebt,
     sharesOutstanding,
+    historicalRevenueCagr,
     // Surfaced under "Show details" so the discount rate isn't a black box —
     // it is the single input that moves fair value most.
     assumptions: {
@@ -375,9 +382,30 @@ const IMPLIED_GROWTH_MAX = 1.0;
 const IMPLIED_GROWTH_ITERATIONS = 60;
 
 export interface ImpliedGrowth {
+  /** The solved YEAR-ONE rate — the input `runDCF` fades down from. */
   growth: number | null;
+  /**
+   * The compound annual rate that year-one rate actually works out to across
+   * the projection, which is the only form comparable to a realized CAGR.
+   *
+   * These differ a lot: growth fades linearly to terminal, so a solved 30%
+   * over ten years to a 2.5% terminal is a 15.9% CAGR. Reporting the year-one
+   * figure beside a historical CAGR roughly doubles the apparent expectation
+   * and inverts the comparison the reverse DCF exists to make.
+   */
+  impliedCagr: number | null;
   /** Set when today's price sits outside what the bracket can explain. */
   outOfRange: 'above' | 'below' | null;
+}
+
+/** The compound annual revenue growth a given year-one rate works out to. */
+function cagrForGrowth(baseInputs: DCFInputs, growth: number): number | null {
+  const { ttmRevenue, projectionYears } = baseInputs;
+  if (!(ttmRevenue > 0) || projectionYears < 1) return null;
+  const revenues = runDCF({ ...baseInputs, revenueGrowth: growth }).projectedRevenues;
+  const final = revenues[revenues.length - 1];
+  if (!(final > 0)) return null;
+  return Math.pow(final / ttmRevenue, 1 / projectionYears) - 1;
 }
 
 /**
@@ -397,10 +425,14 @@ export interface ImpliedGrowth {
  * the direction from the bracket ends rather than assuming it.
  */
 export function impliedGrowth(baseInputs: DCFInputs, currentPrice: number): ImpliedGrowth {
-  if (!(currentPrice > 0)) return { growth: null, outOfRange: null };
-  if (baseInputs.discountRate - baseInputs.terminalGrowth < MIN_PERPETUITY_SPREAD - 1e-9) {
-    return { growth: null, outOfRange: null };
-  }
+  const none: ImpliedGrowth = { growth: null, impliedCagr: null, outOfRange: null };
+  if (!(currentPrice > 0)) return none;
+  if (baseInputs.discountRate - baseInputs.terminalGrowth < MIN_PERPETUITY_SPREAD - 1e-9) return none;
+  // Degenerate inputs make fair value constant in growth, so the bracket ends
+  // agree and we'd otherwise report a confident out-of-range answer for a
+  // company whose model simply has nothing to solve.
+  if (!(baseInputs.ttmRevenue > 0) || !(baseInputs.sharesOutstanding > 0)) return none;
+  if (baseInputs.fcfMargin === 0) return none;
 
   const valueAt = (growth: number): number =>
     runDCF({ ...baseInputs, revenueGrowth: growth }).fairValuePerShare - currentPrice;
@@ -409,25 +441,37 @@ export function impliedGrowth(baseInputs: DCFInputs, currentPrice: number): Impl
   let hi = IMPLIED_GROWTH_MAX;
   const fLo = valueAt(lo);
   const fHi = valueAt(hi);
-  if (!Number.isFinite(fLo) || !Number.isFinite(fHi)) return { growth: null, outOfRange: null };
-
-  // Same sign at both ends means no root inside the bracket.
-  if (fLo > 0 === fHi > 0) {
-    // Which side depends on whether value rises or falls with growth, so key
-    // off the richer end rather than assuming the usual direction.
-    const richest = Math.max(fLo, fHi);
-    return { growth: null, outOfRange: richest < 0 ? 'above' : 'below' };
-  }
+  if (!Number.isFinite(fLo) || !Number.isFinite(fHi)) return none;
 
   const increasing = fHi > fLo;
+
+  // Same sign at both ends means no root inside the bracket. Which SIDE of the
+  // GROWTH axis the answer lies on depends on the direction of the
+  // relationship, so both facts are needed:
+  //   value rises with growth  · price under every value → grow less → below
+  //                            · price over every value  → grow more → above
+  //   value falls with growth  · price under every value → grow more → above
+  //                            · price over every value  → grow less → below
+  // Classifying on value alone reports the opposite side for a business where
+  // growth destroys value.
+  if (fLo > 0 === fHi > 0) {
+    const priceUnderEveryValue = fLo > 0;
+    const outOfRange = priceUnderEveryValue
+      ? (increasing ? 'below' : 'above')
+      : (increasing ? 'above' : 'below');
+    return { ...none, outOfRange };
+  }
+
+  let solved = (lo + hi) / 2;
   for (let i = 0; i < IMPLIED_GROWTH_ITERATIONS; i++) {
     const mid = (lo + hi) / 2;
+    solved = mid;
     const f = valueAt(mid);
-    if (Math.abs(f) < 1e-6) return { growth: mid, outOfRange: null };
+    if (Math.abs(f) < 1e-6) break;
     if (increasing ? f > 0 : f < 0) hi = mid;
     else lo = mid;
   }
-  return { growth: (lo + hi) / 2, outOfRange: null };
+  return { growth: solved, impliedCagr: cagrForGrowth(baseInputs, solved), outOfRange: null };
 }
 
 function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs; currentPrice: number }) {
@@ -630,18 +674,21 @@ export function DCFCalculator({ data, currentPrice }: {
   // handful of arithmetic each — cheaper than the comparison would be.
   const reverse = ((): { implied: string; historical: string | null } | null => {
     if (blocked || !result || !(currentPrice > 0)) return null;
-    const { growth, outOfRange } = impliedGrowth(inputs, currentPrice);
-    const implied = growth != null
-      ? `${(growth * 100).toFixed(1)}%`
+    const { impliedCagr, outOfRange } = impliedGrowth(inputs, currentPrice);
+    // Report the COMPOUND rate, never the year-one rate the solver works in —
+    // it's the only form comparable to the realized CAGR sitting beside it.
+    const implied = impliedCagr != null
+      ? `${(impliedCagr * 100).toFixed(1)}%`
       : outOfRange === 'above'
-        ? `>${(IMPLIED_GROWTH_MAX * 100).toFixed(0)}%`
+        ? 'more growth than this model can project'
         : outOfRange === 'below'
-          ? `<${(IMPLIED_GROWTH_MIN * 100).toFixed(0)}%`
+          ? 'steep decline'
           : null;
     if (implied == null) return null;
-    // `defaults.revenueGrowth` is derived from the company's own filed history.
-    const historical = defaults.revenueGrowth != null
-      ? `${(defaults.revenueGrowth * 100).toFixed(1)}%`
+    // The company's own realized CAGR, unclamped — `defaults.revenueGrowth` is
+    // squeezed onto the slider's track and would misstate a fast grower.
+    const historical = defaults.historicalRevenueCagr != null
+      ? `${(defaults.historicalRevenueCagr * 100).toFixed(1)}%`
       : null;
     return { implied, historical };
   })();
@@ -712,11 +759,11 @@ export function DCFCalculator({ data, currentPrice }: {
               actually judge. */}
           {reverse && (
             <div className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/50 dark:text-white/30">
-              Price implies{' '}
+              At these assumptions, price implies{' '}
               <span className="font-semibold text-rh-light-text dark:text-white/70 tabular-nums">
                 {reverse.implied}
               </span>{' '}
-              annual revenue growth
+              revenue CAGR over {inputs.projectionYears}y
               {reverse.historical && (
                 <> · delivered <span className="font-semibold tabular-nums">{reverse.historical}</span> historically</>
               )}

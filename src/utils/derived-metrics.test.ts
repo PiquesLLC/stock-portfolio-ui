@@ -18,9 +18,12 @@ const overview = (patch: Partial<ParsedOverview> = {}): ParsedOverview => ({
   ...patch,
 });
 
+// Quarterly revenue x4 equals the overview's revenueTTM exactly. A fixture
+// where the two disagree hides the very inconsistency these metrics guard
+// against — a price-to-sales and an operating margin on different revenue.
 const income = (date: string, patch: Partial<ParsedIncomeStatement> = {}): ParsedIncomeStatement => ({
   fiscalDateEnding: date, period: 'quarterly',
-  totalRevenue: 100_000_000, grossProfit: null, operatingIncome: 22_130_000,
+  totalRevenue: 104_000_000, grossProfit: null, operatingIncome: 22_130_000,
   netIncome: 9_840_000, ebitda: 28_000_000, researchAndDevelopment: null,
   ...patch,
 });
@@ -124,9 +127,9 @@ describe('computeDerivedMetrics', () => {
     expect(m.netCash).toBe(-83_880_000);
     // EV / (4 x 28m EBITDA)
     expect(m.evToEbitda).toBeCloseTo(25.48, 2);
-    // 4 x 22.13m operating income / 4 x 100m revenue — both on the quarterly
+    // 4 x 22.13m operating income / 4 x 104m revenue — both on the quarterly
     // basis, never the overview TTM against a statement numerator
-    expect(m.operatingMargin).toBeCloseTo(0.2213, 4);
+    expect(m.operatingMargin).toBeCloseTo(0.2128, 4);
     // 4 x 31.5m FCF / 2.77b
     expect(m.fcfYield).toBeCloseTo(0.0455, 3);
     expect(m.fcfPerShare).toBeCloseTo(2.299, 2);
@@ -165,13 +168,28 @@ describe('computeDerivedMetrics', () => {
     expect(m.marketCap).toBe(2_770_000_000);
   });
 
-  it('will not divide one twelve-month basis by another', () => {
-    // Operating income falls back to annual (a null quarter), while revenue
-    // still has four clean quarters. A margin across the two matches no period.
+  it('will not divide one twelve-month basis by another — it retries on a single filing', () => {
+    // Operating income falls back to annual (a null quarter) while revenue still
+    // has four clean quarters. Dividing across the two matches no real period,
+    // so fall back to the annual filing where BOTH figures come from one year.
     const quarterly = QUARTER_DATES.map((d, i) => income(d, { operatingIncome: i === 1 ? null : 22_130_000 }));
     const annual = [income('2025-12-31', { period: 'annual', operatingIncome: 60_000_000, totalRevenue: 330_000_000 })];
     const m = computeDerivedMetrics(response({ incomeStatements: { annual, quarterly } }), 50.55);
-    expect(m.operatingMargin).toBeNull();
+    expect(m.operatingMargin).toBeCloseTo(0.1818, 4); // 60 / 330, never 60 / 400
+  });
+
+  it('prices sales off the validated TTM, not the server figure that skipped the check', () => {
+    // A dropped quarter: the server's revenueTTM spans fifteen months, which
+    // would inflate the denominator and make the stock look cheaper than it is.
+    // Our own sum refuses that span and falls back to the annual filing.
+    const quarterly = ['2026-06-30', '2025-12-31', '2025-09-30', '2025-06-30'].map(d => income(d));
+    const annual = [income('2025-12-31', { period: 'annual', totalRevenue: 380_000_000 })];
+    const m = computeDerivedMetrics(
+      response({ incomeStatements: { annual, quarterly }, overview: overview({ revenueTTM: 500_000_000 }) }),
+      50.55,
+    );
+    // 2.77b / 380m (annual), not / 500m (the unvalidated fifteen-month sum)
+    expect(m.priceToSales).toBeCloseTo(7.29, 2);
   });
 
   it('computes a margin on a consistent annual basis when both sides fall back', () => {

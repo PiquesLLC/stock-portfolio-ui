@@ -205,7 +205,13 @@ export function computeDerivedMetrics(
   // use whichever twelve months exist, but a margin must not divide one basis
   // by the other (see below).
   const revenueTtm = sumTtm(income.quarterly, income.annual, r => r.totalRevenue);
-  const revenueForSales = overview?.revenueTTM ?? revenueTtm?.value ?? null;
+  // Prefer OUR validated figure over the server's `revenueTTM`. The server sums
+  // the four newest filings with no consecutiveness check, so in exactly the
+  // case `sumTtm` refuses — a dropped quarter, or an amended filing duplicating
+  // one — its number spans fifteen months or double-counts. Using it there
+  // would inflate the denominator and understate price-to-sales, and would put
+  // this tile on a different revenue base than the operating margin beside it.
+  const revenueForSales = revenueTtm?.value ?? overview?.revenueTTM ?? null;
   const operatingIncomeTtm = sumTtm(income.quarterly, income.annual, r => r.operatingIncome);
   const ebitdaTtm = sumTtm(income.quarterly, income.annual, r => r.ebitda);
   const fcfTtm = sumTtm(cashFlows.quarterly, cashFlows.annual, r => r.freeCashFlow);
@@ -241,11 +247,19 @@ export function computeDerivedMetrics(
   // months. Mixing a TTM revenue with an annual-fallback operating income
   // produces a margin that matches no real period and is materially wrong for
   // any company that grew or shrank across the gap.
-  const operatingMargin = operatingIncomeTtm != null
-    && revenueTtm != null
-    && operatingIncomeTtm.basis === revenueTtm.basis
-    ? safeRatio(operatingIncomeTtm.value, revenueTtm.value)
-    : null;
+  let operatingMargin: number | null = null;
+  if (operatingIncomeTtm != null && revenueTtm != null) {
+    if (operatingIncomeTtm.basis === revenueTtm.basis) {
+      operatingMargin = safeRatio(operatingIncomeTtm.value, revenueTtm.value);
+    } else {
+      // Bases disagree — but both figures exist on the same annual filing, so
+      // retry there rather than dropping a margin we can state honestly.
+      const annualRow = income.annual[0];
+      operatingMargin = annualRow
+        ? safeRatio(annualRow.operatingIncome, annualRow.totalRevenue)
+        : null;
+    }
+  }
 
   const latestQuarter = income.quarterly[0] ?? null;
   const yearAgoQuarter = findYearAgo(income.quarterly);

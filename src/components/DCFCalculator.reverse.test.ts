@@ -50,7 +50,47 @@ describe('impliedGrowth — reverse DCF', () => {
     // a positive share price. Saying so is the honest output.
     const solved = impliedGrowth({ ...BASE, fcfMargin: -0.1 }, 25);
     expect(solved.growth).toBeNull();
-    expect(solved.outOfRange).toBe('above');
+    expect(solved.outOfRange).not.toBeNull();
+  });
+
+  it('picks the correct SIDE of the growth axis when value falls with growth', () => {
+    // Value decreases with growth here, so a price above everything the bracket
+    // produces is reached by growing LESS, not more. Classifying off value
+    // alone reports the opposite side.
+    const burning = { fcfMargin: -0.02, cash: 3_000_000_000, totalDebt: 0 };
+    const inputs = { ...BASE, ...burning };
+    const richest = priceAtGrowth(-0.5, burning); // the top of the value range
+    expect(richest).toBeGreaterThan(priceAtGrowth(1.0, burning));
+
+    // Priced above what even the slowest growth justifies -> "below".
+    expect(impliedGrowth(inputs, richest * 1.5).outOfRange).toBe('below');
+    // Priced under what even the fastest growth implies -> "above".
+    expect(impliedGrowth(inputs, priceAtGrowth(1.0, burning) / 2).outOfRange).toBe('above');
+  });
+
+  it('reports a COMPOUND rate, not the year-one rate it solves in', () => {
+    // runDCF fades growth linearly to terminal, so the solved input is a
+    // year-one figure. Quoting it beside a realized CAGR roughly doubles the
+    // apparent expectation. Over 10y to a 2.5% terminal, 30% year-one is a
+    // ~15.9% CAGR.
+    const tenYear = { ...BASE, projectionYears: 10, terminalGrowth: 0.025 };
+    const price = priceAtGrowth(0.30, { projectionYears: 10, terminalGrowth: 0.025 });
+    const solved = impliedGrowth(tenYear, price);
+
+    expect(solved.growth).toBeCloseTo(0.30, 4);
+    expect(solved.impliedCagr).toBeCloseTo(0.159, 2);
+    expect(solved.impliedCagr as number).toBeLessThan(solved.growth as number);
+
+    // And it must equal the compounding actually applied to revenue.
+    const revenues = runDCF({ ...tenYear, revenueGrowth: solved.growth as number }).projectedRevenues;
+    const implied = Math.pow(revenues[revenues.length - 1] / tenYear.ttmRevenue, 1 / 10) - 1;
+    expect(solved.impliedCagr).toBeCloseTo(implied, 10);
+  });
+
+  it('refuses degenerate inputs instead of confidently reporting out-of-range', () => {
+    expect(impliedGrowth({ ...BASE, sharesOutstanding: 0 }, 25).outOfRange).toBeNull();
+    expect(impliedGrowth({ ...BASE, ttmRevenue: 0 }, 25).outOfRange).toBeNull();
+    expect(impliedGrowth({ ...BASE, fcfMargin: 0 }, 25).outOfRange).toBeNull();
   });
 
   it('reports out-of-range rather than pinning to the bracket edge', () => {
