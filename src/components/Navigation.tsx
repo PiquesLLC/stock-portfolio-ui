@@ -4,7 +4,12 @@ import { motion } from 'framer-motion';
 export type TabType = 'portfolio' | 'nala' | 'insights' | 'watchlists' | 'discover' | 'macro' | 'leaderboard' | 'feed' | 'pricing' | 'profile';
 
 interface NavigationProps {
-  activeTab: TabType;
+  /**
+   * `null` means "you aren't on any tab" — used for detail views like a stock
+   * page, which sit outside the tab hierarchy. Every highlight here is an
+   * `activeTab === tab.id` check, so null simply lights nothing.
+   */
+  activeTab: TabType | null;
   onTabChange: (tab: TabType) => void;
   userPlan?: string;
   portfolioMenuOpen?: boolean;
@@ -159,7 +164,7 @@ export function Navigation({
               className={`group flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-all duration-200 relative
                 ${activeTab === tab.id
                   ? 'text-rh-green'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                 }`}
             >
               <span className={`transition-opacity duration-200 ${activeTab === tab.id ? 'opacity-100' : 'opacity-40 group-hover:opacity-70'}`}>
@@ -214,7 +219,7 @@ export function Navigation({
                 className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
                   ${(lit || showPortfolioActive)
                     ? 'text-rh-green'
-                    : 'text-rh-light-muted dark:text-rh-muted'
+                    : 'text-rh-light-text dark:text-white'
                   }`}
               >
                 <span className={`transition-opacity duration-200 ${(lit || showPortfolioActive) ? 'opacity-100' : 'opacity-50'}`}>
@@ -243,7 +248,7 @@ export function Navigation({
               className={`group flex flex-col items-center gap-0.5 px-3 py-2.5 font-medium transition-all duration-200 relative
                 ${isOverflowActive
                   ? 'text-rh-green'
-                  : 'text-rh-light-muted dark:text-rh-muted'
+                  : 'text-rh-light-text dark:text-white'
                 }`}
             >
               <span className={`transition-opacity duration-200 ${isOverflowActive || moreOpen ? 'opacity-100' : 'opacity-50'}`}>
