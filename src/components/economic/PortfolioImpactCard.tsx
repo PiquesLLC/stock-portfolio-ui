@@ -123,7 +123,7 @@ export function FedSentimentGauge({ sentiment }: { sentiment: FedSentiment }) {
       </svg>
       <div className="text-center -mt-1">
         <span className="text-xs font-medium text-rh-light-text dark:text-rh-text">{sentiment.label}</span>
-        <p className="text-[9px] text-rh-light-muted dark:text-rh-muted mt-0.5">{sentiment.rationale}</p>
+        <p className="text-[9px] text-rh-light-text dark:text-white mt-0.5">{sentiment.rationale}</p>
       </div>
     </div>
   );
@@ -174,11 +174,11 @@ export function PortfolioImpactCard() {
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 mb-2">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-medium text-rh-light-muted dark:text-rh-muted uppercase tracking-wide">
+        <h3 className="text-xs font-medium text-rh-light-text dark:text-white uppercase tracking-wide">
           Portfolio Impact
         </h3>
         {data.projectedQuarter && (
-          <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
+          <span className="text-[10px] text-rh-light-text dark:text-white">
             Outlook through {data.projectedQuarter}
           </span>
         )}

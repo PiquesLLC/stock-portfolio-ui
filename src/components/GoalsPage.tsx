@@ -132,7 +132,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Retirement, House Down Payment"
-          className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
+          className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
         />
       </div>
 
@@ -149,7 +149,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="1000000"
             min="1"
             step="any"
-            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
+            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
           />
         </div>
 
@@ -165,7 +165,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="500"
             min="0"
             step="any"
-            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
+            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
           />
         </div>
       </div>
@@ -184,7 +184,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           </button>
           <div>
             <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Track separately from portfolio</span>
-            <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">Set your own starting amount instead of using portfolio value</p>
+            <p className="text-[11px] text-rh-light-text dark:text-white">Set your own starting amount instead of using portfolio value</p>
           </div>
         </label>
         {trackSeparately && (
@@ -200,7 +200,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
               placeholder="0"
               min="0"
               step="any"
-              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
+              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
             />
           </div>
         )}
@@ -218,7 +218,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.04] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+            className="px-4 py-2 rounded-xl text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.04] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
           >
             Cancel
           </button>
@@ -310,20 +310,20 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
           {editing ? (
             <div className="flex items-center gap-3 mt-1">
               <div className="flex items-center gap-1">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">Target:</span>
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">$</span>
+                <span className="text-xs text-rh-light-text dark:text-white">Target:</span>
+                <span className="text-xs text-rh-light-text dark:text-white">$</span>
                 <input type="number" value={editTarget} onChange={e => setEditTarget(e.target.value)}
                   className="w-24 text-xs font-medium text-rh-light-text dark:text-rh-text bg-transparent border-b border-white/10 focus:outline-none focus:border-rh-green/40" />
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">/mo:</span>
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">$</span>
+                <span className="text-xs text-rh-light-text dark:text-white">/mo:</span>
+                <span className="text-xs text-rh-light-text dark:text-white">$</span>
                 <input type="number" value={editMonthly} onChange={e => setEditMonthly(e.target.value)}
                   className="w-16 text-xs font-medium text-rh-light-text dark:text-rh-text bg-transparent border-b border-white/10 focus:outline-none focus:border-rh-green/40" />
               </div>
             </div>
           ) : (
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+            <p className="text-sm text-rh-light-text dark:text-white">
               Target: {formatCurrency(goal.targetValue)}
             </p>
           )}
@@ -363,7 +363,7 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
                   setEditTarget(goal.targetValue.toString());
                   setEditMonthly(goal.monthlyContribution.toString());
                 }}
-                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                className="p-1.5 rounded-lg text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
                 title="Cancel"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +378,7 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
                 className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
                 title="Edit"
               >
-                <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </button>
@@ -410,10 +410,10 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
             <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${editTrackSeparately ? 'translate-x-4' : ''}`} />
           </button>
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Track separately</span>
+            <span className="text-[11px] text-rh-light-text dark:text-white">Track separately</span>
             {editTrackSeparately && (
               <div className="flex items-center gap-1">
-                <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Saved so far: $</span>
+                <span className="text-[11px] text-rh-light-text dark:text-white">Saved so far: $</span>
                 <input
                   type="number"
                   value={editCurrentValue}
@@ -439,7 +439,7 @@ function GoalCard({ goal, onUpdate, onDelete, annualizedPacePct }: GoalCardProps
             {goal.currentProgress.toFixed(1)}%
           </span>
         </div>
-        <div className="flex justify-between text-[10px] text-rh-light-muted dark:text-rh-muted">
+        <div className="flex justify-between text-[10px] text-rh-light-text dark:text-white">
           <span>{formatCurrency(goal.currentPortfolioValue)}{(goal as any).currentValue != null ? ' · self-reported' : ''}</span>
           <span>{formatCurrency(goal.targetValue)}</span>
         </div>
@@ -588,7 +588,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-rh-green border-t-transparent mx-auto mb-3"></div>
-          <p className="text-rh-light-muted dark:text-rh-muted">Loading goals...</p>
+          <p className="text-rh-light-text dark:text-white">Loading goals...</p>
         </div>
       </div>
     );
@@ -598,7 +598,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
     return (
       <div className="border-l-2 border-rh-red/40 pl-4 py-4">
         <p className="text-sm text-rh-red font-medium mb-1">Error loading goals</p>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted">{error}</p>
+        <p className="text-xs text-rh-light-text dark:text-white">{error}</p>
         <button
           onClick={() => fetchGoals()}
           className="mt-3 px-4 py-1.5 text-xs font-medium text-rh-green bg-rh-green/10 hover:bg-rh-green/20 rounded-lg transition-colors"
@@ -618,7 +618,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
             <div className="w-1 h-5 rounded-full bg-rh-green" />
             <h2 className="text-lg sm:text-xl font-semibold text-rh-light-text dark:text-rh-text">Financial Goals</h2>
           </div>
-          <p className="text-xs sm:text-sm text-rh-light-muted dark:text-rh-muted">
+          <p className="text-xs sm:text-sm text-rh-light-text dark:text-white">
             Track your progress with optimistic, base, and pessimistic scenarios
           </p>
         </div>
@@ -647,15 +647,15 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                 >
                   <span className="text-lg">{t.icon}</span>
                   <span className="text-[12px] font-medium text-rh-light-text dark:text-rh-text leading-tight">{t.name}</span>
-                  <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">{formatCurrency(t.target)}</span>
+                  <span className="text-[10px] text-rh-light-text dark:text-white">{formatCurrency(t.target)}</span>
                 </button>
               ))}
               <button
                 onClick={() => { setShowForm(true); setGoalTemplate({ name: '', target: 0, icon: '', monthly: 0 }); }}
                 className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border border-dashed border-gray-300/40 dark:border-white/[0.08] hover:border-rh-green/40 hover:bg-rh-green/[0.04] transition-all"
               >
-                <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                <span className="text-[12px] font-medium text-rh-light-muted dark:text-rh-muted">Custom</span>
+                <svg className="w-5 h-5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                <span className="text-[12px] font-medium text-rh-light-text dark:text-white">Custom</span>
               </button>
             </div>
           </div>
@@ -680,10 +680,10 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
               onClick={() => setShowForm(true)}
               className="flex flex-col items-center justify-center gap-2 min-h-[120px] rounded-lg border border-dashed border-gray-300/30 dark:border-white/[0.06] hover:border-rh-green/30 hover:bg-rh-green/[0.03] transition-all"
             >
-              <svg className="w-6 h-6 text-rh-light-muted/50 dark:text-white/15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-rh-light-text dark:text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="text-xs text-rh-light-muted/60 dark:text-white/20 font-medium">Add Goal</span>
+              <span className="text-xs text-rh-light-text dark:text-white/80 font-medium">Add Goal</span>
             </button>
           ) : !goalTemplate ? (
             <div className="p-4">
@@ -692,7 +692,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                   <div className="w-1 h-4 rounded-full bg-rh-green" />
                   <span className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Choose a Goal</span>
                 </div>
-                <button onClick={() => setShowForm(false)} className="text-[10px] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">Cancel</button>
+                <button onClick={() => setShowForm(false)} className="text-[10px] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors">Cancel</button>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {GOAL_TEMPLATES.map(t => (
@@ -713,8 +713,8 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                   onClick={() => setGoalTemplate({ name: '', target: 0, icon: '', monthly: 0 })}
                   className="flex flex-col items-center justify-center gap-1 p-2 rounded-md border border-dashed border-gray-300/30 dark:border-white/[0.06] hover:border-rh-green/30 hover:bg-rh-green/[0.04] transition-all"
                 >
-                  <svg className="w-3.5 h-3.5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  <span className="text-[10px] font-medium text-rh-light-muted dark:text-rh-muted">Custom</span>
+                  <svg className="w-3.5 h-3.5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  <span className="text-[10px] font-medium text-rh-light-text dark:text-white">Custom</span>
                 </button>
               </div>
             </div>

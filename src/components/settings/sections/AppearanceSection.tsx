@@ -20,7 +20,7 @@ export function AppearanceSection({
   return (
     <div className="space-y-7">
       <div className="space-y-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Display</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Display</h3>
 
         {/* Theme */}
         <div>
@@ -33,7 +33,7 @@ export function AppearanceSection({
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors
                 ${theme === 'dark'
                   ? 'bg-rh-green text-black'
-                  : 'bg-gray-100 dark:bg-rh-border text-rh-light-muted dark:text-rh-muted hover:bg-gray-200 dark:hover:bg-rh-border/80'
+                  : 'bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-white hover:bg-gray-200 dark:hover:bg-rh-border/80'
                 }`}
             >
               Dark
@@ -43,7 +43,7 @@ export function AppearanceSection({
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors
                 ${theme === 'light'
                   ? 'bg-rh-green text-black'
-                  : 'bg-gray-100 dark:bg-rh-border text-rh-light-muted dark:text-rh-muted hover:bg-gray-200 dark:hover:bg-rh-border/80'
+                  : 'bg-gray-100 dark:bg-rh-border text-rh-light-text dark:text-white hover:bg-gray-200 dark:hover:bg-rh-border/80'
                 }`}
             >
               Light
@@ -55,7 +55,7 @@ export function AppearanceSection({
         <label className="flex items-center justify-between cursor-pointer">
           <div>
             <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Extended Hours</span>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">Show pre/post market prices by default</p>
+            <p className="text-xs text-rh-light-text dark:text-white">Show pre/post market prices by default</p>
           </div>
           <ToggleSwitch checked={extendedHours} onChange={setExtendedHours} />
         </label>
@@ -64,7 +64,7 @@ export function AppearanceSection({
         <label className="flex items-center justify-between cursor-pointer">
           <div>
             <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Starfield Background</span>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">Animated stars in dark mode (desktop only)</p>
+            <p className="text-xs text-rh-light-text dark:text-white">Animated stars in dark mode (desktop only)</p>
           </div>
           <ToggleSwitch checked={starfieldEnabled} onChange={setStarfieldEnabled} />
         </label>

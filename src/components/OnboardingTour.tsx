@@ -144,7 +144,7 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
           </span>
           <button
             onClick={onSkip}
-            className="text-[11px] font-medium text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50 transition-colors"
+            className="text-[11px] font-medium text-gray-500 dark:text-white hover:text-gray-600 dark:hover:text-white/80 transition-colors"
           >
             Skip tour
           </button>
@@ -174,7 +174,7 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
               </h2>
 
               {/* Description */}
-              <p className="text-sm text-gray-500 dark:text-white/50 leading-relaxed max-w-sm">
+              <p className="text-sm text-gray-500 dark:text-white/80 leading-relaxed max-w-sm">
                 {current.description}
               </p>
             </motion.div>
@@ -204,7 +204,7 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
             <button
               onClick={goBack}
               className="px-4 py-2.5 text-sm font-medium rounded-lg
-                text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60
+                text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-white
                 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
             >
               Back

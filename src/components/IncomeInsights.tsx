@@ -109,7 +109,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-text dark:text-white
                 hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
               aria-label="Back"
             >
@@ -126,7 +126,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-text dark:text-white
               hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
             aria-label="Close"
           >
@@ -141,7 +141,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
             <Section title="How we calculated this">
               <ul className="space-y-1.5">
                 {catDetail.calcBullets.map((b, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-rh-light-muted dark:text-rh-muted">
+                  <li key={i} className="flex items-start gap-2 text-sm text-rh-light-text dark:text-white">
                     <span className="text-blue-400 mt-0.5 shrink-0">•</span>
                     <span>{b}</span>
                   </li>
@@ -172,7 +172,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
                       <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">{d.label}</span>
                       <span className="text-sm font-mono text-blue-400">{d.value}</span>
                     </div>
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted">{d.impact}</p>
+                    <p className="text-xs text-rh-light-text dark:text-white">{d.impact}</p>
                   </div>
                 ))}
               </div>
@@ -220,7 +220,7 @@ function BreakdownRow({
         transition-colors cursor-pointer group"
       aria-label={`${label}: ${value}/${maxValue} — click for details`}
     >
-      <span className="text-sm text-rh-light-muted dark:text-rh-muted w-28">{label}</span>
+      <span className="text-sm text-rh-light-text dark:text-white w-28">{label}</span>
       <div className="flex-1 h-2 bg-gray-200/60 dark:bg-white/[0.06] rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${getBarColorClass(value, maxValue)}`}
@@ -228,7 +228,7 @@ function BreakdownRow({
         />
       </div>
       <span className={`text-sm w-12 text-right font-medium ${getScoreColor(value, maxValue)}`}>{value}/{maxValue}</span>
-      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 text-rh-light-text dark:text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
       </svg>
     </button>
@@ -262,7 +262,7 @@ function IncomeHealthScore({ data }: { data: IncomeInsightsResponse['healthScore
             <div className={`text-3xl font-bold ${getScoreColor(overall)}`}>
               {overall}
             </div>
-            <div className="text-xs text-rh-light-muted dark:text-rh-muted">/ 100</div>
+            <div className="text-xs text-rh-light-text dark:text-white">/ 100</div>
           </div>
         </div>
 
@@ -325,7 +325,7 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
   const { cashFlow, momentum, reliability } = signals;
 
   const trendColor = momentum.trend === 'growing' ? 'text-rh-green' :
-    momentum.trend === 'declining' ? 'text-rh-red' : 'text-rh-light-muted dark:text-rh-muted';
+    momentum.trend === 'declining' ? 'text-rh-red' : 'text-rh-light-text dark:text-white';
 
   const reliabilityColor = reliability.classification === 'stable' ? 'text-rh-green' :
     reliability.classification === 'moderate' ? 'text-yellow-400' : 'text-rh-red';
@@ -338,8 +338,8 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
     ? salaryReplacementPct >= 100 ? 'text-rh-green'
       : salaryReplacementPct >= 50 ? 'text-yellow-400'
       : salaryReplacementPct >= 25 ? 'text-orange-400'
-      : 'text-rh-light-muted dark:text-rh-muted'
-    : 'text-rh-light-muted dark:text-rh-muted';
+      : 'text-rh-light-text dark:text-white'
+    : 'text-rh-light-text dark:text-white';
 
   return (
     <div className={`grid grid-cols-1 gap-4 ${annualSalary && annualSalary > 0 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
@@ -349,13 +349,13 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
           <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">Cash Flow</span>
+          <span className="text-xs font-medium text-rh-light-text dark:text-white">Cash Flow</span>
         </div>
         <div className="text-xl font-bold text-rh-light-text dark:text-rh-text">
           {formatCurrency(cashFlow.annualIncome)}
-          <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted">/yr</span>
+          <span className="text-xs font-normal text-rh-light-text dark:text-white">/yr</span>
         </div>
-        <div className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+        <div className="text-xs text-rh-light-text dark:text-white mt-1">
           {formatCurrency(cashFlow.monthlyIncome)}/mo
         </div>
         {cashInterest && cashInterest.annualAccrual > 0 && (
@@ -375,12 +375,12 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
             <svg className={`w-4 h-4 ${salaryColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <span className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">Salary Replacement</span>
+            <span className="text-xs font-medium text-rh-light-text dark:text-white">Salary Replacement</span>
           </div>
           <div className={`text-xl font-bold ${salaryColor}`}>
             {salaryReplacementPct!.toFixed(1)}%
           </div>
-          <div className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+          <div className="text-xs text-rh-light-text dark:text-white mt-1">
             {formatCurrency(cashFlow.annualIncome)} of {formatCurrency(annualSalary)}
           </div>
         </div>
@@ -392,7 +392,7 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
           <svg className={`w-4 h-4 ${trendColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
-          <span className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">Momentum</span>
+          <span className="text-xs font-medium text-rh-light-text dark:text-white">Momentum</span>
         </div>
         <div className={`text-xl font-bold ${trendColor}`}>
           {momentum.yoyChangePct !== null ? (
@@ -400,11 +400,11 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
               {momentum.yoyChangePct >= 0 ? '+' : ''}{momentum.yoyChangePct.toFixed(1)}%
             </>
           ) : (
-            <span className="text-rh-light-muted dark:text-rh-muted">--</span>
+            <span className="text-rh-light-text dark:text-white">--</span>
           )}
-          <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted"> YoY</span>
+          <span className="text-xs font-normal text-rh-light-text dark:text-white"> YoY</span>
         </div>
-        <div className="text-xs text-rh-light-muted dark:text-rh-muted mt-1 capitalize">
+        <div className="text-xs text-rh-light-text dark:text-white mt-1 capitalize">
           {momentum.trend}
         </div>
       </div>
@@ -415,12 +415,12 @@ function IncomeSignalCards({ signals, cashInterest, annualSalary }: { signals: I
           <svg className={`w-4 h-4 ${reliabilityColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          <span className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">Reliability</span>
+          <span className="text-xs font-medium text-rh-light-text dark:text-white">Reliability</span>
         </div>
         <div className={`text-xl font-bold capitalize ${reliabilityColor}`}>
           {reliability.classification}
         </div>
-        <div className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+        <div className="text-xs text-rh-light-text dark:text-white mt-1">
           {reliability.consecutiveMonths} consecutive months
         </div>
       </div>
@@ -445,10 +445,10 @@ function IncomeContributors({
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 rounded-full bg-rh-green" />
           <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
-            Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50">Annual</span>
+            Top Income Contributors <span className="text-[10px] font-normal text-rh-light-text dark:text-white">Annual</span>
           </h3>
         </div>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-4">
+        <p className="text-sm text-rh-light-text dark:text-white text-center py-4">
           No dividend income recorded yet.
         </p>
       </div>
@@ -462,7 +462,7 @@ function IncomeContributors({
       <div className="flex items-center gap-2 mb-4">
         <div className="w-1 h-4 rounded-full bg-rh-green" />
         <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
-          Top Income Contributors <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50">Annual</span>
+          Top Income Contributors <span className="text-[10px] font-normal text-rh-light-text dark:text-white">Annual</span>
         </h3>
       </div>
       <div className="space-y-3">
@@ -486,7 +486,7 @@ function IncomeContributors({
               <div className="text-xs font-semibold text-rh-light-text dark:text-rh-text">
                 {formatCurrency(c.dividendDollar)}
               </div>
-              <div className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+              <div className="text-[10px] text-rh-light-text dark:text-white">
                 {c.percentOfTotal.toFixed(1)}%
               </div>
             </div>
@@ -511,7 +511,7 @@ function IncomeConcentration({ data }: { data: IncomeInsightsResponse['concentra
       <div className="flex items-center gap-2 mb-3">
         <div className="w-1 h-4 rounded-full bg-rh-green" />
         <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">
-          Income Concentration <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50">Annual</span>
+          Income Concentration <span className="text-[10px] font-normal text-rh-light-text dark:text-white">Annual</span>
         </h3>
         {data.isConcentrated && (
           <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-400/20 text-orange-400 rounded">
@@ -521,24 +521,24 @@ function IncomeConcentration({ data }: { data: IncomeInsightsResponse['concentra
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1">
+          <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
             Top 1
           </div>
           <div className="text-lg font-bold text-rh-light-text dark:text-rh-text">
             {data.top1Percent.toFixed(1)}%
           </div>
-          <div className="text-xs text-rh-light-muted dark:text-rh-muted">
+          <div className="text-xs text-rh-light-text dark:text-white">
             {data.top1Ticker}
           </div>
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1">
+          <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
             Top 3
           </div>
           <div className="text-lg font-bold text-rh-light-text dark:text-rh-text">
             {data.top3Percent.toFixed(1)}%
           </div>
-          <div className="text-xs text-rh-light-muted dark:text-rh-muted">
+          <div className="text-xs text-rh-light-text dark:text-white">
             {data.top3Tickers.join(', ')}
           </div>
         </div>
@@ -567,7 +567,7 @@ function IncomeDividendTimeline({
             Dividend Timeline
           </h3>
         </div>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-4">
+        <p className="text-sm text-rh-light-text dark:text-white text-center py-4">
           No recent dividend payments.
         </p>
       </div>
@@ -606,7 +606,7 @@ function IncomeDividendTimeline({
               >
                 {event.ticker}
               </button>
-              <div className="flex-1 text-xs text-rh-light-muted dark:text-rh-muted" title={event.dateEstimated ? 'Date is estimated' : ''}>
+              <div className="flex-1 text-xs text-rh-light-text dark:text-white" title={event.dateEstimated ? 'Date is estimated' : ''}>
                 {event.dateEstimated && <span className="text-orange-400">~</span>}
                 {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
@@ -618,7 +618,7 @@ function IncomeDividendTimeline({
         </div>
       </div>
       {hasEstimatedDates && (
-        <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-3">
+        <p className="text-[10px] text-rh-light-text dark:text-white mt-3">
           <span className="text-orange-400">~</span> Date estimated from ex-date
         </p>
       )}
@@ -701,11 +701,11 @@ export function IncomeInsights({ refreshTrigger, onTickerClick, portfolioId }: P
   if (!data) {
     return (
       <div className="p-12 text-center">
-        <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <p className="text-rh-light-text dark:text-rh-text font-medium mb-2">No income data available</p>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           Add dividend-paying stocks to see income analytics.
         </p>
       </div>

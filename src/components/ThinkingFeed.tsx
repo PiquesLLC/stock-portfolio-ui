@@ -26,7 +26,7 @@ export function ThinkingFeed({ summaries }: ThinkingFeedProps) {
   return (
     <div className="mt-2">
       {hiddenCount > 0 && (
-        <p className="text-[9px] text-rh-light-muted dark:text-white/25 mb-1">
+        <p className="text-[9px] text-rh-light-text dark:text-white/80 mb-1">
           {hiddenCount} earlier step{hiddenCount > 1 ? 's' : ''} hidden
         </p>
       )}
@@ -42,11 +42,11 @@ export function ThinkingFeed({ summaries }: ThinkingFeedProps) {
               className={`flex items-start gap-1.5 px-2 py-1 rounded-md text-[11px] leading-relaxed thinking-entry-in ${
                 isLatest
                   ? 'bg-rh-green/[0.06] text-rh-light-text dark:text-white/80'
-                  : 'text-rh-light-muted dark:text-white/40'
+                  : 'text-rh-light-text dark:text-white'
               }`}
             >
               <svg
-                className={`w-3 h-3 mt-0.5 shrink-0 ${isLatest ? 'text-rh-green' : 'text-rh-light-muted dark:text-white/30'}`}
+                className={`w-3 h-3 mt-0.5 shrink-0 ${isLatest ? 'text-rh-green' : 'text-rh-light-text dark:text-white'}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

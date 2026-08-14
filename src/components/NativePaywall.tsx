@@ -75,7 +75,7 @@ export function NativePaywall() {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
         <div className="w-8 h-8 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">Loading plans...</p>
+        <p className="text-sm text-rh-light-text dark:text-white">Loading plans...</p>
       </div>
     );
   }
@@ -87,13 +87,13 @@ export function NativePaywall() {
         <h1 className="text-2xl font-extrabold uppercase tracking-tight text-rh-light-text dark:text-white mb-3">
           Upgrade Your Plan
         </h1>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           Unlock premium features. Cancel anytime.
         </p>
 
         {/* Billing toggle */}
         <div className="flex items-center justify-center gap-3 mt-5">
-          <span className={`text-sm font-medium ${billing === 'monthly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+          <span className={`text-sm font-medium ${billing === 'monthly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white'}`}>
             Monthly
           </span>
           <button
@@ -106,7 +106,7 @@ export function NativePaywall() {
               billing === 'yearly' ? 'translate-x-7' : 'translate-x-0'
             }`} />
           </button>
-          <span className={`text-sm font-medium ${billing === 'yearly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+          <span className={`text-sm font-medium ${billing === 'yearly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white'}`}>
             Yearly
           </span>
           {billing === 'yearly' && (
@@ -150,14 +150,14 @@ export function NativePaywall() {
                   }`}>
                     {product.plan.charAt(0).toUpperCase() + product.plan.slice(1)}
                   </h3>
-                  <p className="text-xs text-rh-light-muted dark:text-white/40 mt-0.5">{product.description}</p>
+                  <p className="text-xs text-rh-light-text dark:text-white mt-0.5">{product.description}</p>
                 </div>
 
                 <div className="text-right">
                   <span className="text-xl font-extrabold text-rh-light-text dark:text-white">
                     {product.price}
                   </span>
-                  <span className="text-xs text-rh-light-muted dark:text-white/40">
+                  <span className="text-xs text-rh-light-text dark:text-white">
                     /{billing === 'yearly' ? 'yr' : 'mo'}
                   </span>
                 </div>
@@ -165,7 +165,7 @@ export function NativePaywall() {
 
               <div className="mt-4">
                 {isCurrent ? (
-                  <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40">
+                  <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white">
                     Current Plan
                   </div>
                 ) : isUpgrade ? (
@@ -190,7 +190,7 @@ export function NativePaywall() {
                     )}
                   </button>
                 ) : (
-                  <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40">
+                  <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white">
                     Downgrade via Settings
                   </div>
                 )}
@@ -210,17 +210,17 @@ export function NativePaywall() {
           {restoring ? 'Restoring...' : 'Restore Purchases'}
         </button>
 
-        <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed px-4">
+        <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed px-4">
           Payment will be charged to your Apple ID account. Subscriptions automatically renew
           unless cancelled at least 24 hours before the end of the current period.
           Manage subscriptions in your device Settings.
         </p>
         <div className="flex items-center justify-center gap-3 text-[11px]">
-          <button onClick={() => { window.location.hash = '#privacy'; }} className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white underline">
+          <button onClick={() => { window.location.hash = '#privacy'; }} className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white underline">
             Privacy Policy
           </button>
-          <span className="text-rh-light-muted/30 dark:text-rh-muted/30">·</span>
-          <button onClick={() => { window.location.hash = '#terms'; }} className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white underline">
+          <span className="text-rh-light-text dark:text-white">·</span>
+          <button onClick={() => { window.location.hash = '#terms'; }} className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white underline">
             Terms of Service
           </button>
         </div>

@@ -102,13 +102,13 @@ function StripePricingCheckout() {
         <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-rh-light-text dark:text-white mb-3">
           Subscribe to Our Best Plans
         </h1>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted max-w-md mx-auto">
+        <p className="text-sm text-rh-light-text dark:text-white max-w-md mx-auto">
           Choose the plan that's right for you. Start free, upgrade anytime.
         </p>
 
         {/* Billing toggle */}
         <div className="flex items-center justify-center gap-3 mt-6">
-          <span className={`text-sm font-medium transition-colors ${billing === 'monthly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+          <span className={`text-sm font-medium transition-colors ${billing === 'monthly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white'}`}>
             Monthly
           </span>
           <button
@@ -123,7 +123,7 @@ function StripePricingCheckout() {
               billing === 'yearly' ? 'translate-x-7' : 'translate-x-0'
             }`} />
           </button>
-          <span className={`text-sm font-medium transition-colors ${billing === 'yearly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+          <span className={`text-sm font-medium transition-colors ${billing === 'yearly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white'}`}>
             Yearly
           </span>
           {billing === 'yearly' && (
@@ -214,21 +214,21 @@ function StripePricingCheckout() {
                       ${price}
                     </span>
                     {price > 0 && (
-                      <span className="text-sm text-rh-light-muted dark:text-white/40">
+                      <span className="text-sm text-rh-light-text dark:text-white">
                         /{billing === 'yearly' ? 'yr' : 'mo'}
                       </span>
                     )}
                   </div>
 
                   {isCenter && (
-                    <p className="text-[11px] text-white/40 mt-1">Recommended</p>
+                    <p className="text-[11px] text-white mt-1">Recommended</p>
                   )}
 
                   {!isCenter && !isElite && (
-                    <p className="text-xs text-rh-light-muted dark:text-white/40 mt-2">{plan.description}</p>
+                    <p className="text-xs text-rh-light-text dark:text-white mt-2">{plan.description}</p>
                   )}
                   {isElite && (
-                    <p className="text-[11px] text-white/40 mt-1">{plan.description}</p>
+                    <p className="text-[11px] text-white mt-1">{plan.description}</p>
                   )}
                 </div>
 
@@ -239,7 +239,7 @@ function StripePricingCheckout() {
                       <svg className={`w-4 h-4 shrink-0 mt-0.5 ${isElite ? 'text-purple-400' : 'text-rh-green'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className={isCenter || isElite ? 'text-white/80' : 'text-rh-light-text dark:text-white/70'}>
+                      <span className={isCenter || isElite ? 'text-white/80' : 'text-rh-light-text dark:text-white/80'}>
                         {feature}
                       </span>
                     </li>
@@ -253,12 +253,12 @@ function StripePricingCheckout() {
                       <button
                         onClick={handleManage}
                         disabled={loadingPlan === 'manage'}
-                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/50 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
+                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white/80 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                       >
                         {loadingPlan === 'manage' ? 'Opening...' : 'Manage Subscription'}
                       </button>
                     ) : (
-                      <div className="w-full py-3 px-4 rounded-2xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 min-h-[48px] flex items-center justify-center">
+                      <div className="w-full py-3 px-4 rounded-2xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white min-h-[48px] flex items-center justify-center">
                         Selected plan
                       </div>
                     )
@@ -287,7 +287,7 @@ function StripePricingCheckout() {
                     <button
                       onClick={handleManage}
                       disabled={loadingPlan === 'manage'}
-                      className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
+                      className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                     >
                       {loadingPlan === 'manage' ? 'Opening...' : 'Change Plan'}
                     </button>
@@ -378,14 +378,14 @@ function StripePricingCheckout() {
                     <div className="flex items-baseline gap-1 justify-center">
                       <span className="text-4xl font-extrabold text-white">${price}</span>
                       {price > 0 && (
-                        <span className="text-sm text-white/40">/{billing === 'yearly' ? 'yr' : 'mo'}</span>
+                        <span className="text-sm text-white">/{billing === 'yearly' ? 'yr' : 'mo'}</span>
                       )}
                     </div>
                     {plan.highlight && (
-                      <p className="text-[11px] text-white/40 mt-1">Recommended</p>
+                      <p className="text-[11px] text-white mt-1">Recommended</p>
                     )}
                     {!plan.highlight && (
-                      <p className="text-[11px] text-white/40 mt-1">{plan.description}</p>
+                      <p className="text-[11px] text-white mt-1">{plan.description}</p>
                     )}
                   </div>
 
@@ -396,7 +396,7 @@ function StripePricingCheckout() {
                         <svg className={`w-4 h-4 shrink-0 mt-0.5 ${isElite ? 'text-purple-400' : 'text-rh-green'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span className="text-white/75">{feature}</span>
+                        <span className="text-white/80">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -408,12 +408,12 @@ function StripePricingCheckout() {
                         <button
                           onClick={handleManage}
                           disabled={loadingPlan === 'manage'}
-                          className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/50 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
+                          className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white/80 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                         >
                           {loadingPlan === 'manage' ? 'Opening...' : 'Manage Subscription'}
                         </button>
                       ) : (
-                        <div className="w-full py-3 px-4 rounded-2xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 min-h-[48px] flex items-center justify-center">
+                        <div className="w-full py-3 px-4 rounded-2xl text-sm font-medium text-center border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white min-h-[48px] flex items-center justify-center">
                           Selected plan
                         </div>
                       )
@@ -442,7 +442,7 @@ function StripePricingCheckout() {
                       <button
                         onClick={handleManage}
                         disabled={loadingPlan === 'manage'}
-                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-muted dark:text-white/40 hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
+                        className="w-full py-3 px-4 rounded-2xl text-sm font-medium border border-gray-300/50 dark:border-white/10 text-rh-light-text dark:text-white hover:bg-gray-100/60 dark:hover:bg-white/5 transition-colors min-h-[48px]"
                       >
                         {loadingPlan === 'manage' ? 'Opening...' : 'Change Plan'}
                       </button>
@@ -475,10 +475,10 @@ function StripePricingCheckout() {
 
       {/* Trust signals */}
       <div className="text-center space-y-3">
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+        <p className="text-xs text-rh-light-text dark:text-white">
           All plans include a 7-day free trial. Cancel anytime. Payments processed securely by Stripe.
         </p>
-        <div className="flex items-center justify-center gap-4 text-[11px] text-rh-light-muted dark:text-rh-muted">
+        <div className="flex items-center justify-center gap-4 text-[11px] text-rh-light-text dark:text-white">
           <span className="flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

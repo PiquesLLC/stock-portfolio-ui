@@ -309,7 +309,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
   if (sortedHoldings.length === 0) {
     return (
       <div className="p-6 text-center">
-        <p className="text-rh-light-muted dark:text-rh-muted text-sm">No holdings to display</p>
+        <p className="text-rh-light-text dark:text-white text-sm">No holdings to display</p>
       </div>
     );
   }
@@ -332,7 +332,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
           </h3>
         </div>
         {segments.length >= 3 && (
-          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+          <span className="text-[10px] text-gray-500 dark:text-gray-500">
             Top 3 = {segments.slice(0, 3).reduce((s, seg) => s + seg.percent, 0).toFixed(1)}% of portfolio
           </span>
         )}
@@ -451,20 +451,20 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
                 </span>
                 <div className={`${isMobile ? 'mt-0.5 text-[9px]' : 'mt-2 text-[11px]'} space-y-0.5`}>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-gray-400 dark:text-gray-500">Value</span>
+                    <span className="text-gray-500 dark:text-gray-500">Value</span>
                     <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCompact(hoveredSegment.value)}</span>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center text-center">
-                <span className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500`}>
+                <span className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} font-medium uppercase tracking-wider text-gray-500 dark:text-gray-500`}>
                   Total
                 </span>
                 <span className={`${isMobile ? 'text-base' : 'text-2xl'} font-bold text-rh-light-text dark:text-rh-text leading-tight mt-0.5`}>
                   {formatCurrency(total)}
                 </span>
-                <span className={`${isMobile ? 'text-[9px]' : 'text-[11px]'} text-gray-400 dark:text-gray-500 mt-0.5`}>
+                <span className={`${isMobile ? 'text-[9px]' : 'text-[11px]'} text-gray-500 dark:text-gray-500 mt-0.5`}>
                   {sortedHoldings.length} holding{sortedHoldings.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -501,7 +501,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
             onMouseEnter={() => setHoveredIndex(otherIdx)}
             onMouseLeave={() => setHoveredIndex(null)}
           >
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-500 mb-2">
               Other ({otherSeg.constituents.length})
             </div>
             <div className="space-y-1.5">
@@ -521,7 +521,7 @@ export function AllocationDonut({ holdings, totalValue, onTickerClick, title = '
               ))}
             </div>
             {remaining > 0 && (
-              <div className="mt-2 pt-1.5 border-t border-gray-100 dark:border-white/[0.06] text-[10px] text-gray-400 dark:text-gray-500">
+              <div className="mt-2 pt-1.5 border-t border-gray-100 dark:border-white/[0.06] text-[10px] text-gray-500 dark:text-gray-500">
                 +{remaining} more
               </div>
             )}

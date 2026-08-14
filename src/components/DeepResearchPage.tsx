@@ -410,7 +410,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
       <div className="max-w-3xl mx-auto">
         <button
           onClick={() => { setSelectedJobId(null); setReportData(null); }}
-          className="flex items-center gap-1.5 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors mb-4"
+          className="flex items-center gap-1.5 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors mb-4"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -443,7 +443,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
         <h1 className="hero-glow-green font-black tracking-[-0.05em] leading-none text-rh-light-text dark:text-rh-text mb-2 text-[40px] min-[640px]:text-[clamp(48px,3.5vw,64px)]">
           NALA AI Deep Research
         </h1>
-        <p className="text-[13px] max-[640px]:text-[12px] text-rh-light-muted dark:text-white/60">
+        <p className="text-[13px] max-[640px]:text-[12px] text-rh-light-text dark:text-white">
           Institutional-quality reports powered by Google Deep Research
         </p>
       </div>
@@ -452,9 +452,9 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
       <div className="grid grid-cols-3 border-y border-white/[0.06] py-[18px] mb-12 max-[900px]:py-[14px]">
         {/* 1. Reports Generated */}
         <div className="px-7 max-[900px]:px-[14px] max-[640px]:px-2 first:pl-0 first:border-l-0 border-l border-white/[0.06]">
-          <div className="text-[10px] max-[900px]:text-[9px] max-[640px]:text-[8px] font-bold tracking-[0.14em] max-[900px]:tracking-[0.12em] uppercase text-rh-light-muted dark:text-white/30">Reports Generated</div>
+          <div className="text-[10px] max-[900px]:text-[9px] max-[640px]:text-[8px] font-bold tracking-[0.14em] max-[900px]:tracking-[0.12em] uppercase text-rh-light-text dark:text-white">Reports Generated</div>
           <div className="text-[26px] max-[900px]:text-[20px] max-[640px]:text-[17px] font-bold tracking-[-0.02em] mt-2 max-[900px]:mt-[6px] tabular-nums">{stats.reports}</div>
-          <div className="text-[11px] max-[900px]:text-[10px] max-[640px]:text-[9px] text-rh-light-muted dark:text-white/55 mt-1 max-[900px]:mt-[3px]">
+          <div className="text-[11px] max-[900px]:text-[10px] max-[640px]:text-[9px] text-rh-light-text dark:text-white/80 mt-1 max-[900px]:mt-[3px]">
             {stats.thisMonth} this month
             {stats.deltaPct !== 0 && (
               <>
@@ -468,17 +468,17 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
         </div>
         {/* 2. Time Saved */}
         <div className="px-7 max-[900px]:px-[14px] max-[640px]:px-2 border-l border-white/[0.06]">
-          <div className="text-[10px] max-[900px]:text-[9px] max-[640px]:text-[8px] font-bold tracking-[0.14em] max-[900px]:tracking-[0.12em] uppercase text-rh-light-muted dark:text-white/30">Time Saved</div>
+          <div className="text-[10px] max-[900px]:text-[9px] max-[640px]:text-[8px] font-bold tracking-[0.14em] max-[900px]:tracking-[0.12em] uppercase text-rh-light-text dark:text-white">Time Saved</div>
           <div className="text-[26px] max-[900px]:text-[20px] max-[640px]:text-[17px] font-bold tracking-[-0.02em] mt-2 max-[900px]:mt-[6px] tabular-nums">{stats.hoursSaved.toFixed(1)} hrs</div>
-          <div className="text-[11px] max-[900px]:text-[10px] max-[640px]:text-[9px] text-rh-light-muted dark:text-white/55 mt-1 max-[900px]:mt-[3px]">
+          <div className="text-[11px] max-[900px]:text-[10px] max-[640px]:text-[9px] text-rh-light-text dark:text-white/80 mt-1 max-[900px]:mt-[3px]">
             vs manual research
           </div>
         </div>
         {/* 3. Tickers Researched */}
         <div className="px-7 max-[900px]:px-[14px] max-[640px]:px-2 border-l border-white/[0.06]">
-          <div className="text-[10px] max-[900px]:text-[9px] max-[640px]:text-[8px] font-bold tracking-[0.14em] max-[900px]:tracking-[0.12em] uppercase text-rh-light-muted dark:text-white/30">Tickers Researched</div>
+          <div className="text-[10px] max-[900px]:text-[9px] max-[640px]:text-[8px] font-bold tracking-[0.14em] max-[900px]:tracking-[0.12em] uppercase text-rh-light-text dark:text-white">Tickers Researched</div>
           <div className="text-[26px] max-[900px]:text-[20px] max-[640px]:text-[17px] font-bold tracking-[-0.02em] mt-2 max-[900px]:mt-[6px] tabular-nums">{stats.tickers}</div>
-          <div className="text-[11px] max-[900px]:text-[10px] max-[640px]:text-[9px] text-rh-light-muted dark:text-white/55 mt-1 max-[900px]:mt-[3px]">
+          <div className="text-[11px] max-[900px]:text-[10px] max-[640px]:text-[9px] text-rh-light-text dark:text-white/80 mt-1 max-[900px]:mt-[3px]">
             across {stats.sectors} sector{stats.sectors === 1 ? '' : 's'}
           </div>
         </div>
@@ -488,7 +488,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
       <section className="mb-14">
         <div className="flex justify-between items-end mb-[18px]">
           <SectionLabel>Ask anything</SectionLabel>
-          <div className="text-[10px] text-rh-light-muted dark:text-white/30 uppercase tracking-[0.14em]">
+          <div className="text-[10px] text-rh-light-text dark:text-white uppercase tracking-[0.14em]">
             Powered by Gemini · Deep Research
           </div>
         </div>
@@ -506,7 +506,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
           {/* Conditional ticker input (only for stock/sector) */}
           {(researchType === 'stock' || researchType === 'sector') && (
             <div className="mb-3">
-              <label className="text-[10px] font-bold tracking-[0.14em] uppercase text-rh-light-muted dark:text-white/30 mb-1.5 block">
+              <label className="text-[10px] font-bold tracking-[0.14em] uppercase text-rh-light-text dark:text-white mb-1.5 block">
                 {researchType === 'stock' ? 'Ticker (optional)' : 'Sector / ETF'}
               </label>
               <TickerAutocompleteInput
@@ -527,14 +527,14 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
             placeholder={activePromptPlaceholder}
             rows={3}
             maxLength={2000}
-            className="w-full bg-transparent border-0 text-rh-light-text dark:text-white text-[16px] leading-[1.55] resize-none outline-none placeholder:text-rh-light-muted dark:placeholder:text-white/30"
+            className="w-full bg-transparent border-0 text-rh-light-text dark:text-white text-[16px] leading-[1.55] resize-none outline-none placeholder:text-rh-light-text dark:placeholder:text-white"
             style={{ minHeight: 90 }}
           />
 
           {/* Foot row */}
           <div className="flex justify-between items-center mt-3.5 pt-3.5 border-t border-white/[0.06] gap-3 flex-wrap">
-            <div className="flex items-center gap-3.5 text-[11px] text-rh-light-muted dark:text-white/30 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/[0.12] text-rh-light-muted dark:text-white/55 font-semibold">
+            <div className="flex items-center gap-3.5 text-[11px] text-rh-light-text dark:text-white flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/[0.12] text-rh-light-text dark:text-white/80 font-semibold">
                 <span
                   className="block w-[5px] h-[5px] rounded-full bg-rh-green shadow-[0_0_6px_rgba(0,200,5,1)]"
                   style={{ animation: 'drLivePulse 1.6s ease-in-out infinite' }}
@@ -544,7 +544,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
               <span className={`tabular-nums ${prompt.length > 1800 ? 'text-amber-500 dark:text-amber-400' : ''}`}>
                 {prompt.length} / 2000 chars
               </span>
-              <span className="text-rh-light-muted/50 dark:text-white/[0.18]">·</span>
+              <span className="text-rh-light-text dark:text-white/[0.18]">·</span>
               <span>Avg report ~2,400 words</span>
             </div>
             <button
@@ -599,14 +599,14 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
                   {rt.icon}
                 </div>
                 <div className="text-[13px] font-bold text-rh-light-text dark:text-rh-text mb-1">{rt.name}</div>
-                <div className="text-[11.5px] text-rh-light-muted dark:text-white/55 leading-[1.5]">{rt.desc}</div>
+                <div className="text-[11.5px] text-rh-light-text dark:text-white/80 leading-[1.5]">{rt.desc}</div>
               </button>
             );
           })}
         </div>
 
         {/* Suggested prompts chips */}
-        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-rh-light-muted dark:text-white/30 mt-[22px] mb-2.5">
+        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-rh-light-text dark:text-white mt-[22px] mb-2.5">
           Suggested for your portfolio
         </div>
         <div className="flex flex-wrap gap-2">
@@ -615,7 +615,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
               key={i}
               type="button"
               onClick={() => handlePickSuggestion(s)}
-              className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-full border border-white/[0.06] bg-transparent text-rh-light-muted dark:text-white/55 text-[12px] font-medium cursor-pointer transition-all hover:text-rh-light-text dark:hover:text-white hover:border-[rgba(0,200,5,0.4)] hover:bg-[rgba(0,200,5,0.05)]"
+              className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-full border border-white/[0.06] bg-transparent text-rh-light-text dark:text-white/80 text-[12px] font-medium cursor-pointer transition-all hover:text-rh-light-text dark:hover:text-white hover:border-[rgba(0,200,5,0.4)] hover:bg-[rgba(0,200,5,0.05)]"
             >
               <span className="text-rh-green opacity-60">✦</span>
               {s}
@@ -628,7 +628,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
       <section className="mb-14">
         <div className="mb-[18px]">
           <SectionLabel>Trending This Week</SectionLabel>
-          <p className="text-[12px] text-rh-light-muted dark:text-white/55 mt-2">
+          <p className="text-[12px] text-rh-light-text dark:text-white/80 mt-2">
             Most-researched themes across Nala users · refreshed daily
           </p>
         </div>
@@ -657,7 +657,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
                   {t.tag}
                 </span>
                 <div className="text-[14px] font-bold leading-[1.35] mb-1.5 text-rh-light-text dark:text-rh-text">{t.title}</div>
-                <div className="text-[11.5px] text-rh-light-muted dark:text-white/55 leading-[1.5]">{t.why}</div>
+                <div className="text-[11.5px] text-rh-light-text dark:text-white/80 leading-[1.5]">{t.why}</div>
               </button>
             );
           })}
@@ -669,7 +669,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
         <div className="flex justify-between items-end mb-[18px] gap-4 flex-wrap">
           <div>
             <SectionLabel>{showArchived ? 'Archived Reports' : 'Recent Reports'}</SectionLabel>
-            <p className="text-[12px] text-rh-light-muted dark:text-white/55 mt-2">
+            <p className="text-[12px] text-rh-light-text dark:text-white/80 mt-2">
               {jobs.length === 0
                 ? showArchived ? 'Nothing archived yet' : 'Submit your first report above'
                 : showArchived
@@ -681,7 +681,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
             <button
               type="button"
               onClick={() => setShowArchived(s => !s)}
-              className="text-[10px] text-rh-light-muted dark:text-white/55 bg-transparent border-0 font-bold tracking-[0.1em] uppercase cursor-pointer hover:opacity-80"
+              className="text-[10px] text-rh-light-text dark:text-white/80 bg-transparent border-0 font-bold tracking-[0.1em] uppercase cursor-pointer hover:opacity-80"
             >
               {showArchived ? '← Back to active' : 'Show archived'}
             </button>
@@ -689,7 +689,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
               <button
                 type="button"
                 onClick={() => setConfirmAction({ kind: 'clear-all' })}
-                className="text-[10px] text-rh-light-muted dark:text-white/55 bg-transparent border-0 font-bold tracking-[0.1em] uppercase cursor-pointer hover:text-rh-red"
+                className="text-[10px] text-rh-light-text dark:text-white/80 bg-transparent border-0 font-bold tracking-[0.1em] uppercase cursor-pointer hover:text-rh-red"
                 title="Permanently delete all completed, failed, and cancelled reports"
               >
                 Clear completed →
@@ -699,7 +699,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
               <button
                 type="button"
                 onClick={refresh}
-                className="text-[10px] text-rh-light-muted dark:text-white/55 bg-transparent border-0 font-bold tracking-[0.1em] uppercase cursor-pointer hover:opacity-80"
+                className="text-[10px] text-rh-light-text dark:text-white/80 bg-transparent border-0 font-bold tracking-[0.1em] uppercase cursor-pointer hover:opacity-80"
               >
                 View all ({jobs.length}) →
               </button>
@@ -916,7 +916,7 @@ function ReportRow({ job, activeStatus, isMenuOpen, onView, onCancel, onRetry, o
           e.stopPropagation();
           onOpenMenu(e.currentTarget.getBoundingClientRect());
         }}
-        className="absolute top-3 right-1 z-[5] w-7 h-7 flex items-center justify-center rounded text-rh-light-muted dark:text-white/55 hover:text-rh-light-text dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-white/10 transition-colors duration-150"
+        className="absolute top-3 right-1 z-[5] w-7 h-7 flex items-center justify-center rounded text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-white/10 transition-colors duration-150"
       >
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
           <circle cx="12" cy="5" r="1.8" />
@@ -937,7 +937,7 @@ function ReportRow({ job, activeStatus, isMenuOpen, onView, onCancel, onRetry, o
               {job.ticker}
             </button>
           )}
-          <span className="text-[9px] font-bold tracking-[0.16em] uppercase text-rh-light-muted dark:text-white/30">
+          <span className="text-[9px] font-bold tracking-[0.16em] uppercase text-rh-light-text dark:text-white">
             {prettyType(job.researchType)}
           </span>
           {isActive && (
@@ -955,10 +955,10 @@ function ReportRow({ job, activeStatus, isMenuOpen, onView, onCancel, onRetry, o
             <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-rh-red">Failed</span>
           )}
           {isCancelled && (
-            <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-rh-light-muted dark:text-white/30">Cancelled</span>
+            <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-rh-light-text dark:text-white">Cancelled</span>
           )}
           {job.archived && (
-            <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-rh-light-muted dark:text-white/30">Archived</span>
+            <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-rh-light-text dark:text-white">Archived</span>
           )}
         </div>
 
@@ -969,7 +969,7 @@ function ReportRow({ job, activeStatus, isMenuOpen, onView, onCancel, onRetry, o
 
         {/* Completed: snippet + tags */}
         {isCompleted && completedSnippet && (
-          <div className="text-[12px] leading-[1.5] text-rh-light-muted dark:text-white/55 line-clamp-2">
+          <div className="text-[12px] leading-[1.5] text-rh-light-text dark:text-white/80 line-clamp-2">
             {completedSnippet}
           </div>
         )}
@@ -978,7 +978,7 @@ function ReportRow({ job, activeStatus, isMenuOpen, onView, onCancel, onRetry, o
             {tags.map((t, i) => (
               <span
                 key={i}
-                className="text-[10px] text-rh-light-muted dark:text-white/30 border border-white/[0.06] rounded-full px-2 py-0.5 font-semibold"
+                className="text-[10px] text-rh-light-text dark:text-white border border-white/[0.06] rounded-full px-2 py-0.5 font-semibold"
               >
                 {t}
               </span>
@@ -1040,16 +1040,16 @@ function ReportRow({ job, activeStatus, isMenuOpen, onView, onCancel, onRetry, o
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRetry(); }}
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-rh-light-muted dark:text-white/55 hover:text-rh-light-text dark:hover:text-white bg-transparent border-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white bg-transparent border-0 cursor-pointer"
           >
             Retry →
           </button>
         ) : null}
-        <span className="text-[11px] text-rh-light-muted dark:text-white/30">
+        <span className="text-[11px] text-rh-light-text dark:text-white">
           {isActive ? `Started ${formatTimeAgo(job.createdAt)}` : formatTimeAgo(job.createdAt)}
         </span>
         {isCompleted && (
-          <span className="text-[10px] text-rh-light-muted dark:text-white/30 text-right leading-tight max-[900px]:hidden">
+          <span className="text-[10px] text-rh-light-text dark:text-white text-right leading-tight max-[900px]:hidden">
             {wordCount.toLocaleString()} words<br />{readMin} min read
           </span>
         )}
@@ -1057,7 +1057,7 @@ function ReportRow({ job, activeStatus, isMenuOpen, onView, onCancel, onRetry, o
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onCancel(); }}
-            className="text-[10px] text-rh-light-muted/60 dark:text-white/25 hover:text-rh-red bg-transparent border-0 cursor-pointer"
+            className="text-[10px] text-rh-light-text dark:text-white/80 hover:text-rh-red bg-transparent border-0 cursor-pointer"
             title="Cancel job"
           >
             cancel ✕
@@ -1086,7 +1086,7 @@ function EmptyState() {
         </div>
       </div>
       <h3 className="text-base font-bold text-rh-light-text dark:text-rh-text mb-2">Your AI Research Analyst</h3>
-      <p className="text-[13px] text-rh-light-muted dark:text-white/55 max-w-md mx-auto leading-[1.55]">
+      <p className="text-[13px] text-rh-light-text dark:text-white/80 max-w-md mx-auto leading-[1.55]">
         Submit a research prompt above and Nala will read 200+ sources, synthesize a report, and notify you when ready.
         Each report typically takes 15–25 minutes to generate.
       </p>

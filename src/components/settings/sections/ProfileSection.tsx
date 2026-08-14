@@ -39,7 +39,7 @@ export function ProfileSection({
   return (
     <div className="space-y-7">
       <div className="space-y-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Account Info</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Account Info</h3>
 
         {/* Display Name */}
         <div>
@@ -66,7 +66,7 @@ export function ProfileSection({
         {/* Member Since */}
         {settings?.createdAt && (
           <div className="flex items-center justify-between text-sm pt-4 border-t border-gray-200/10 dark:border-white/[0.04]">
-            <span className="text-rh-light-muted dark:text-rh-muted">Member since</span>
+            <span className="text-rh-light-text dark:text-white">Member since</span>
             <span className="text-rh-light-text dark:text-rh-text">
               {new Date(settings.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </span>
@@ -81,13 +81,13 @@ export function ProfileSection({
 
       {/* Privacy */}
       <div className="space-y-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Privacy</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Privacy</h3>
 
         {/* Profile Public */}
         <label className="flex items-center justify-between cursor-pointer">
           <div>
             <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Public Profile</span>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">Allow others to view your profile</p>
+            <p className="text-xs text-rh-light-text dark:text-white">Allow others to view your profile</p>
           </div>
           <ToggleSwitch checked={profilePublic} onChange={setProfilePublic} />
         </label>
@@ -109,7 +109,7 @@ export function ProfileSection({
             <option value="sectors">Show sectors only</option>
             <option value="hidden">Hide all holdings</option>
           </select>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+          <p className="text-xs text-rh-light-text dark:text-white mt-1">
             What others see when viewing your portfolio
           </p>
         </div>
@@ -139,7 +139,7 @@ export function ProfileSection({
                 onChange={(e) => setShowRegion(e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 dark:border-rh-border text-rh-green focus:ring-rh-green"
               />
-              <span className="text-sm text-rh-light-muted dark:text-rh-muted">Show</span>
+              <span className="text-sm text-rh-light-text dark:text-white">Show</span>
             </label>
           </div>
         </div>
@@ -188,7 +188,7 @@ function TimezonePicker({ timezone, setTimezone }: { timezone: string | null; se
           <option key={tz} value={tz}>{tz}</option>
         ))}
       </select>
-      <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+      <p className="text-xs text-rh-light-text dark:text-white mt-1">
         Used for scheduling your weekly and monthly briefings.
         {detected && timezone !== detected && (
           <>
@@ -335,7 +335,7 @@ function UsernameEditor({ currentUsername, onUsernameChanged }: UsernameEditorPr
           className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
             canSave
               ? 'bg-rh-green text-black hover:bg-rh-green/90'
-              : 'bg-gray-100 dark:bg-rh-border/20 text-rh-light-muted dark:text-rh-muted cursor-not-allowed'
+              : 'bg-gray-100 dark:bg-rh-border/20 text-rh-light-text dark:text-white cursor-not-allowed'
           }`}
         >
           {saving ? 'Saving…' : saved ? 'Saved' : 'Save'}
@@ -345,7 +345,7 @@ function UsernameEditor({ currentUsername, onUsernameChanged }: UsernameEditorPr
         {saveError && <span className="text-red-500">{saveError}</span>}
         {!saveError && formatError && <span className="text-red-500">{formatError}</span>}
         {!saveError && !formatError && availability === 'checking' && (
-          <span className="text-rh-light-muted dark:text-rh-muted">Checking availability…</span>
+          <span className="text-rh-light-text dark:text-white">Checking availability…</span>
         )}
         {!saveError && !formatError && availability === 'available' && (
           <span className="text-rh-green">Available</span>
@@ -354,10 +354,10 @@ function UsernameEditor({ currentUsername, onUsernameChanged }: UsernameEditorPr
           <span className="text-red-500">Username is taken</span>
         )}
         {!saveError && !formatError && availability === 'unknown' && !isUnchanged && draft.length === 0 && (
-          <span className="text-rh-light-muted dark:text-rh-muted">Enter a new username</span>
+          <span className="text-rh-light-text dark:text-white">Enter a new username</span>
         )}
         {!saveError && !formatError && availability === 'unknown' && isUnchanged && (
-          <span className="text-rh-light-muted dark:text-rh-muted">Changing this will break old links to your profile</span>
+          <span className="text-rh-light-text dark:text-white">Changing this will break old links to your profile</span>
         )}
       </div>
       {showConfirm && (
@@ -423,7 +423,7 @@ function InviteCard({ referralCode }: { referralCode: string }) {
         </svg>
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Invite Friends</h3>
       </div>
-      <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+      <p className="text-xs text-rh-light-text dark:text-white">
         Share your referral link with friends. When they sign up, they&apos;ll be connected to your network.
       </p>
 
@@ -453,7 +453,7 @@ function InviteCard({ referralCode }: { referralCode: string }) {
       <div className="flex items-center gap-2 pt-1">
         <button
           onClick={handleShareX}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-white/50 hover:text-rh-light-text dark:hover:text-white/80 hover:border-gray-300 dark:hover:border-white/[0.15] transition-all"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white/80 hover:border-gray-300 dark:hover:border-white/[0.15] transition-all"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -463,7 +463,7 @@ function InviteCard({ referralCode }: { referralCode: string }) {
         {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
           <button
             onClick={() => navigator.share({ title: 'Join Nala', text: 'Track your portfolio like a pro', url: referralUrl })}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-white/50 hover:text-rh-light-text dark:hover:text-white/80 hover:border-gray-300 dark:hover:border-white/[0.15] transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white/80 hover:border-gray-300 dark:hover:border-white/[0.15] transition-all"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />

@@ -289,7 +289,7 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
       {/* Header */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <button onClick={onBack}
-          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors text-rh-light-muted dark:text-white/40">
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors text-rh-light-text dark:text-white">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -324,7 +324,7 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
               </div>
             ) : (
               <button onClick={() => setShowAddInput(true)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/60 transition-colors"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
               >
                 + Add
               </button>
@@ -351,7 +351,7 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
                 <StockLogo ticker={s.ticker} size="sm" />
                 <div className="min-w-0">
                   <div className="text-xs font-bold" style={{ color: s.color }}>{s.ticker}</div>
-                  <div className="text-[10px] text-rh-light-muted dark:text-rh-muted truncate">
+                  <div className="text-[10px] text-rh-light-text dark:text-white truncate">
                     {s.details?.profile?.name ?? '—'}
                   </div>
                 </div>
@@ -395,7 +395,7 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-gray-200/30 dark:border-white/[0.05]">
-                <th className="text-left py-2 px-5 font-medium text-rh-light-muted/60 dark:text-white/25 text-[10px] uppercase tracking-wider">Metric</th>
+                <th className="text-left py-2 px-5 font-medium text-rh-light-text/70 dark:text-white/80 text-[10px] uppercase tracking-wider">Metric</th>
                 {stocks.map(s => (
                   <th key={s.ticker} className="text-right py-2 px-4 font-semibold text-[11px]" style={{ color: s.color }}>
                     <span className="inline-flex items-center gap-1">
@@ -411,11 +411,11 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
                 const winners = bestValues[row.label];
                 return (
                   <tr key={row.label} className="border-b border-gray-200/15 dark:border-white/[0.025] last:border-b-0">
-                    <td className="py-2.5 px-5 text-gray-600 dark:text-white/50 font-medium whitespace-nowrap">{row.label}</td>
+                    <td className="py-2.5 px-5 text-gray-600 dark:text-white/80 font-medium whitespace-nowrap">{row.label}</td>
                     {stocks.map(s => {
                       const isBest = winners?.has(s.ticker) ?? false;
                       return (
-                        <td key={s.ticker} className={`py-2.5 px-4 text-right font-medium tabular-nums whitespace-nowrap ${isBest ? 'text-rh-green' : 'text-rh-light-text dark:text-white/85'}`}>
+                        <td key={s.ticker} className={`py-2.5 px-4 text-right font-medium tabular-nums whitespace-nowrap ${isBest ? 'text-rh-green' : 'text-rh-light-text dark:text-white'}`}>
                           {row.format(row.getValue(s))}
                         </td>
                       );
@@ -447,32 +447,32 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
                 <div className="space-y-2 text-xs">
                   {(about?.sector || profile?.industry) && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Sector</div>
-                      <div className="text-rh-light-text dark:text-white/85 font-medium">{about?.sector || profile?.industry || '—'}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Sector</div>
+                      <div className="text-rh-light-text dark:text-white font-medium">{about?.sector || profile?.industry || '—'}</div>
                     </div>
                   )}
                   {about?.industry && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Industry</div>
-                      <div className="text-rh-light-text dark:text-white/85 font-medium">{about.industry}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Industry</div>
+                      <div className="text-rh-light-text dark:text-white font-medium">{about.industry}</div>
                     </div>
                   )}
                   {profile?.country && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Country</div>
-                      <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.country}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Country</div>
+                      <div className="text-rh-light-text dark:text-white font-medium">{profile.country}</div>
                     </div>
                   )}
                   {profile?.exchange && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Exchange</div>
-                      <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.exchange}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Exchange</div>
+                      <div className="text-rh-light-text dark:text-white font-medium">{profile.exchange}</div>
                     </div>
                   )}
                   {profile?.ipoDate && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">IPO Date</div>
-                      <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.ipoDate}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">IPO Date</div>
+                      <div className="text-rh-light-text dark:text-white font-medium">{profile.ipoDate}</div>
                     </div>
                   )}
                 </div>
@@ -492,7 +492,7 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
                 <div className="text-3xl font-bold tabular-nums" style={{ color: s.color }}>
                   {s.nalaScore?.composite ?? '—'}
                 </div>
-                <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mt-1">
+                <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mt-1">
                   {s.nalaScore?.grade || 'N/A'}
                 </div>
                 <div className="text-xs font-semibold mt-0.5" style={{ color: s.color }}>{s.ticker}</div>

@@ -39,7 +39,7 @@ function getEntryIcon(type: string): { icon: string; color: string } {
   if (t === 'merger') return { icon: '\uD83D\uDD04', color: 'text-purple-500 dark:text-purple-400' };
   if (t === 'cancel') return { icon: '\u274C', color: 'text-rh-red' };
   if (t === 'div_reinvest') return { icon: '\uD83D\uDD01', color: 'text-rh-green' };
-  return { icon: '\u2022', color: 'text-gray-500 dark:text-white/40' };
+  return { icon: '\u2022', color: 'text-gray-500 dark:text-white' };
 }
 
 function groupByDate(entries: AccountHistoryEntry[]): Map<string, AccountHistoryEntry[]> {
@@ -135,7 +135,7 @@ export default function AccountHistorySection() {
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 category === f.value
                   ? 'bg-[#00c805] text-white'
-                  : 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/[0.1]'
+                  : 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-white hover:bg-gray-200 dark:hover:bg-white/[0.1]'
               }`}
             >
               {f.label}
@@ -146,7 +146,7 @@ export default function AccountHistorySection() {
         {/* Ticker search — left-aligned below pills */}
         <div className="relative w-[160px]">
           <svg
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-white/30"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 dark:text-white"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -181,7 +181,7 @@ export default function AccountHistorySection() {
       {/* Error state */}
       {!loading && error && (
         <div className="text-center py-10">
-          <p className="text-sm text-gray-500 dark:text-white/40 mb-3">Couldn't load history</p>
+          <p className="text-sm text-gray-500 dark:text-white mb-3">Couldn't load history</p>
           <button
             onClick={handleRetry}
             className="text-xs font-medium text-[#00c805] hover:text-[#00c805]/80 transition-colors"
@@ -194,7 +194,7 @@ export default function AccountHistorySection() {
       {/* Empty state */}
       {!loading && !error && entries.length === 0 && (
         <div className="text-center py-10">
-          <p className="text-sm text-gray-500 dark:text-white/40">No account history yet</p>
+          <p className="text-sm text-gray-500 dark:text-white">No account history yet</p>
         </div>
       )}
 
@@ -204,7 +204,7 @@ export default function AccountHistorySection() {
           {Array.from(dateGroups.entries()).map(([dateLabel, groupEntries]) => (
             <div key={dateLabel}>
               {/* Date header */}
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-white/40 mb-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-white/80 mb-2">
                 {dateLabel}
               </p>
 
@@ -226,7 +226,7 @@ export default function AccountHistorySection() {
                         </p>
                         {entry.amount != null && (
                           <p className={`text-xs mt-0.5 ${
-                            entry.amount > 0 ? 'text-rh-green' : entry.amount < 0 ? 'text-rh-red' : 'text-gray-500 dark:text-white/40'
+                            entry.amount > 0 ? 'text-rh-green' : entry.amount < 0 ? 'text-rh-red' : 'text-gray-500 dark:text-white'
                           }`}>
                             {entry.amount > 0 ? '+' : ''}{formatAmount(entry.amount)}
                           </p>
@@ -235,7 +235,7 @@ export default function AccountHistorySection() {
 
                       {/* Source broker badge */}
                       {entry.sourceBroker && (
-                        <span className="flex-shrink-0 text-[10px] font-medium text-gray-400 dark:text-white/30 bg-gray-50 dark:bg-white/[0.04] px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 text-[10px] font-medium text-gray-500 dark:text-white bg-gray-50 dark:bg-white/[0.04] px-2 py-0.5 rounded-full">
                           via {entry.sourceBroker}
                         </span>
                       )}
@@ -254,7 +254,7 @@ export default function AccountHistorySection() {
                 disabled={loadingMore}
                 className="px-5 py-2 text-xs font-medium rounded-lg
                   bg-gray-100 dark:bg-white/[0.06]
-                  text-gray-700 dark:text-white/70
+                  text-gray-700 dark:text-white/80
                   hover:bg-gray-200 dark:hover:bg-white/[0.1]
                   disabled:opacity-50
                   transition-colors"

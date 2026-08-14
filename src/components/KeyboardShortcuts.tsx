@@ -72,7 +72,7 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors text-lg leading-none"
+            className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors text-lg leading-none"
           >
             &times;
           </button>
@@ -80,13 +80,13 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
         <div className="px-5 py-3 space-y-1.5 max-h-[60vh] overflow-y-auto">
           {SHORTCUTS.map((s, i) => (
             <div key={i} className="flex items-center justify-between py-1.5">
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+              <span className="text-xs text-rh-light-text dark:text-white">
                 {s.description}
               </span>
               <div className="flex items-center gap-1">
                 {s.keys.map((k, j) => (
                   <span key={j}>
-                    {j > 0 && <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mx-0.5">then</span>}
+                    {j > 0 && <span className="text-[10px] text-rh-light-text dark:text-white mx-0.5">then</span>}
                     <kbd className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-[11px] font-mono font-medium text-rh-light-text dark:text-rh-text">
                       {k}
                     </kbd>
@@ -97,7 +97,7 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
           ))}
         </div>
         <div className="px-5 py-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
-          <p className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 text-center">
+          <p className="text-[10px] text-rh-light-text dark:text-white text-center">
             Press <kbd className="inline px-1 py-0.5 rounded border border-rh-light-border/50 dark:border-rh-border/50 text-[10px] font-mono">?</kbd> to toggle
           </p>
         </div>

@@ -91,7 +91,7 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
   // small horizontal padding keeps content off the sidebar's flush left edge.
   const widgetClass = 'px-1 py-4';
   const sectionLabel =
-    'text-[10px] uppercase tracking-wider font-bold text-rh-light-muted dark:text-rh-muted';
+    'text-[10px] uppercase tracking-wider font-bold text-rh-light-text/70 dark:text-white/80';
 
   return (
     <aside
@@ -114,7 +114,7 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
                 className={`px-1.5 py-0.5 rounded transition-colors ${
                   bench === b
                     ? 'bg-rh-green/15 text-rh-green'
-                    : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-white'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                 }`}
               >
                 {b}
@@ -126,11 +126,11 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
           <span className={`text-2xl font-bold ${isOutperforming ? 'text-rh-green' : 'text-rh-red'}`}>
             {isOutperforming ? '+' : ''}{outperformPct.toFixed(2)}%
           </span>
-          <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <span className="text-[11px] text-rh-light-text dark:text-white">
             {isOutperforming ? 'outperforming today' : 'underperforming today'}
           </span>
         </div>
-        <div className="text-[11px] text-rh-light-muted dark:text-rh-muted flex items-center gap-2">
+        <div className="text-[11px] text-rh-light-text dark:text-white flex items-center gap-2">
           <span>You <span className={`font-semibold ${portfolioDayChangePct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{portfolioDayChangePct >= 0 ? '+' : ''}{portfolioDayChangePct.toFixed(2)}%</span></span>
           <span className="opacity-30">|</span>
           <span>{bench} <span className={`font-semibold ${benchPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{benchPct >= 0 ? '+' : ''}{benchPct.toFixed(2)}%</span></span>
@@ -252,12 +252,12 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
         <div className={`${sectionLabel} mb-3`}>Portfolio Pulse</div>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 font-semibold mb-0.5">Win Rate</div>
+            <div className="text-[9px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-semibold mb-0.5">Win Rate</div>
             <div className="text-base font-bold text-rh-light-text dark:text-white">{winRate}%</div>
-            <div className="text-[9px] text-rh-light-muted dark:text-rh-muted">{winners} up · {losers} down</div>
+            <div className="text-[9px] text-rh-light-text dark:text-white">{winners} up · {losers} down</div>
           </div>
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 font-semibold mb-0.5">Top Mover</div>
+            <div className="text-[9px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-semibold mb-0.5">Top Mover</div>
             {biggestMover ? (
               <button
                 type="button"
@@ -269,12 +269,12 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
             ) : (
               <div className="text-base font-bold text-rh-green truncate">—</div>
             )}
-            <div className="text-[9px] text-rh-light-muted dark:text-rh-muted">${fmtUSDShort(biggestMover?.dayChange || 0)}</div>
+            <div className="text-[9px] text-rh-light-text dark:text-white">${fmtUSDShort(biggestMover?.dayChange || 0)}</div>
           </div>
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 font-semibold mb-0.5">Top Conc.</div>
+            <div className="text-[9px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-semibold mb-0.5">Top Conc.</div>
             <div className="text-base font-bold text-rh-light-text dark:text-white">{topConcPct}%</div>
-            <div className="text-[9px] text-rh-light-muted dark:text-rh-muted">of movement</div>
+            <div className="text-[9px] text-rh-light-text dark:text-white">of movement</div>
           </div>
         </div>
       </div>
@@ -298,7 +298,7 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
                   ? 'text-rh-red'
                   : isDividend
                     ? 'text-emerald-400'
-                    : 'text-rh-light-muted dark:text-rh-muted';
+                    : 'text-rh-light-text dark:text-white';
               const iconPath = isBuy
                 ? 'M12 4v16m8-8H4' // plus
                 : isSell
@@ -341,7 +341,7 @@ export function PortfolioSidebarMock({ holdings, onTickerClick, portfolioDayChan
                   </svg>
                   <div className="flex-1 min-w-0">
                     <div className="text-[12px] text-rh-light-text dark:text-rh-text truncate">{line}</div>
-                    <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">{dateStr}</div>
+                    <div className="text-[10px] text-rh-light-text dark:text-white">{dateStr}</div>
                   </div>
                 </Wrapper>
               );

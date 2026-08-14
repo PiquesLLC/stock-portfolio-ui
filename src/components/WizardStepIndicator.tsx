@@ -38,8 +38,8 @@ export function WizardStepIndicator({ currentStep, completedSteps, skippedSteps 
                   : isCompleted
                     ? 'bg-rh-green/20 text-rh-green'
                     : isSkipped
-                      ? 'bg-gray-200/30 dark:bg-white/[0.06] text-rh-light-muted/50 dark:text-rh-muted/40'
-                      : 'border border-gray-300/40 dark:border-white/[0.1] text-rh-light-muted/50 dark:text-rh-muted/40'
+                      ? 'bg-gray-200/30 dark:bg-white/[0.06] text-rh-light-text dark:text-white'
+                      : 'border border-gray-300/40 dark:border-white/[0.1] text-rh-light-text dark:text-white'
               }`}>
                 {isCompleted ? (
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +54,7 @@ export function WizardStepIndicator({ currentStep, completedSteps, skippedSteps 
                   ? 'text-rh-green'
                   : isCompleted
                     ? 'text-rh-green/60'
-                    : 'text-rh-light-muted/40 dark:text-rh-muted/30'
+                    : 'text-rh-light-text dark:text-white'
               }`}>
                 {step.label}
               </span>

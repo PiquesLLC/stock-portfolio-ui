@@ -32,12 +32,12 @@ export function OptionsTable({ options, onTickerClick }: Props) {
           <h2 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
             Options
           </h2>
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-rh-border/40">
+          <span className="text-xs text-rh-light-text dark:text-white px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-rh-border/40">
             {sorted.length}
           </span>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-rh-light-muted dark:text-rh-muted">
+          <span className="text-rh-light-text dark:text-white">
             Value: <span className="text-rh-light-text dark:text-rh-text font-medium">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </span>
           <span className={totalPL >= 0 ? 'text-rh-green' : 'text-rh-red'}>
@@ -50,7 +50,7 @@ export function OptionsTable({ options, onTickerClick }: Props) {
       <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200/50 dark:border-rh-border/30">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-gray-50/50 dark:bg-rh-border/10 text-rh-light-muted dark:text-rh-muted">
+            <tr className="bg-gray-50/50 dark:bg-rh-border/10 text-rh-light-text dark:text-white">
               <th className="text-left py-2 px-3 font-medium">Contract</th>
               <th className="text-right py-2 px-3 font-medium">Contracts</th>
               <th className="text-right py-2 px-3 font-medium">Price</th>
@@ -102,7 +102,7 @@ function OptionRow({ option: opt, onTickerClick }: { option: OptionWithQuote; on
             <span className="font-medium text-rh-light-text dark:text-rh-text">
               {opt.optionUnderlying} ${opt.optionStrike}
             </span>
-            <span className="ml-1.5 text-rh-light-muted dark:text-rh-muted">
+            <span className="ml-1.5 text-rh-light-text dark:text-white">
               {formatExpiry(opt.optionExpiry)}
             </span>
           </div>
@@ -121,7 +121,7 @@ function OptionRow({ option: opt, onTickerClick }: { option: OptionWithQuote; on
       </td>
 
       {/* Bid/Ask */}
-      <td className="py-2.5 px-3 text-right text-rh-light-muted dark:text-rh-muted">
+      <td className="py-2.5 px-3 text-right text-rh-light-text dark:text-white">
         {opt.priceUnavailable ? '—' : `${opt.bid.toFixed(2)} / ${opt.ask.toFixed(2)}`}
       </td>
 
@@ -143,13 +143,13 @@ function OptionRow({ option: opt, onTickerClick }: { option: OptionWithQuote; on
       </td>
 
       {/* IV */}
-      <td className="py-2.5 px-3 text-right text-rh-light-muted dark:text-rh-muted">
+      <td className="py-2.5 px-3 text-right text-rh-light-text dark:text-white">
         {opt.priceUnavailable ? '—' : `${opt.impliedVolatility.toFixed(1)}%`}
       </td>
 
       {/* DTE */}
       <td className="py-2.5 px-3 text-right">
-        <span className={opt.daysToExpiry <= 7 ? 'text-rh-red font-medium' : opt.daysToExpiry <= 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-rh-light-muted dark:text-rh-muted'}>
+        <span className={opt.daysToExpiry <= 7 ? 'text-rh-red font-medium' : opt.daysToExpiry <= 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-rh-light-text dark:text-white'}>
           {opt.daysToExpiry}d
         </span>
       </td>
@@ -184,7 +184,7 @@ function OptionCard({ option: opt, onTickerClick }: { option: OptionWithQuote; o
           {opt.priceUnavailable ? '—' : `${opt.profitLoss >= 0 ? '+' : ''}$${opt.profitLoss.toFixed(2)}`}
         </span>
       </div>
-      <div className="flex items-center justify-between text-xs text-rh-light-muted dark:text-rh-muted">
+      <div className="flex items-center justify-between text-xs text-rh-light-text dark:text-white">
         <span>{opt.shares} contract{opt.shares !== 1 ? 's' : ''} · {formatExpiry(opt.optionExpiry)} · {opt.daysToExpiry}d</span>
         <span>{opt.priceUnavailable ? '—' : `$${opt.currentValue.toFixed(2)}`}</span>
       </div>

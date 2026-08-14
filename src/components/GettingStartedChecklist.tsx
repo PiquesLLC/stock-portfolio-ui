@@ -251,13 +251,13 @@ export function GettingStartedChecklist({
           {/* Skip / Dismiss button — visible text so users know they can skip */}
           <button
             onClick={(e) => { e.stopPropagation(); handleDismiss(); }}
-            className="px-2 py-1 rounded-lg text-[11px] font-medium text-gray-400 dark:text-white/25 hover:text-gray-600 dark:hover:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+            className="px-2 py-1 rounded-lg text-[11px] font-medium text-gray-500 dark:text-white/80 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
           >
             {allDone ? 'Done' : 'Skip'}
           </button>
           {/* Collapse chevron */}
           <svg
-            className={`w-4 h-4 text-gray-400 dark:text-white/20 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
+            className={`w-4 h-4 text-gray-500 dark:text-white/80 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -292,7 +292,7 @@ export function GettingStartedChecklist({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <span className="text-gray-400 dark:text-white/25 group-hover:text-rh-green/60 transition-colors">
+                    <span className="text-gray-500 dark:text-white/80 group-hover:text-rh-green/60 transition-colors">
                       {step.icon}
                     </span>
                   )}
@@ -308,7 +308,7 @@ export function GettingStartedChecklist({
                     {step.label}
                   </span>
                   {!done && (
-                    <span className="text-[11px] text-gray-400 dark:text-white/30">
+                    <span className="text-[11px] text-gray-500 dark:text-white">
                       {step.description}
                     </span>
                   )}
@@ -316,7 +316,7 @@ export function GettingStartedChecklist({
 
                 {/* Arrow */}
                 {!done && (
-                  <svg className="w-4 h-4 text-gray-300 dark:text-white/15 group-hover:text-rh-green/50 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-300 dark:text-white/80 group-hover:text-rh-green/50 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 )}

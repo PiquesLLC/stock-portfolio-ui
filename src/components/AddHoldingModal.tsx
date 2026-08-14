@@ -66,20 +66,20 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">
             {holding ? 'Update Holding' : 'Add to Portfolio'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-light-muted/60 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors">
             <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
         {holding && (
-          <div className="mb-3 text-sm text-rh-light-muted dark:text-rh-muted">
+          <div className="mb-3 text-sm text-rh-light-text dark:text-white">
             Holding <span className="font-semibold text-rh-light-text dark:text-rh-text">{holding.shares}</span> shares at <span className="font-semibold text-rh-light-text dark:text-rh-text">${holding.averageCost.toFixed(2)}</span> avg
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">Shares</label>
+            <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">Shares</label>
             <input
               type="number"
               inputMode="decimal"
@@ -93,7 +93,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
             />
           </div>
           <div>
-            <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-1">Avg Cost per Share</label>
+            <label className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">Avg Cost per Share</label>
             <input
               type="number"
               inputMode="decimal"
@@ -112,10 +112,10 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
               onChange={(e) => setLogAsTrade(e.target.checked)}
               className="w-3.5 h-3.5 rounded border-gray-300 dark:border-white/20 text-rh-green focus:ring-rh-green/30 bg-transparent"
             />
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <span className="text-xs text-rh-light-text dark:text-white">
               Log as trade
             </span>
-            <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
+            <span className="text-[10px] text-rh-light-text dark:text-white">
               {logAsTrade ? 'Shows in Latest Moves' : 'Data correction only'}
             </span>
           </label>

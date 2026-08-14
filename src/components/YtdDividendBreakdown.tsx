@@ -97,7 +97,7 @@ export function YtdDividendBreakdown({ refreshTrigger, onTickerClick, portfolioI
         <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
           YTD Dividends Received
         </h3>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-4">
+        <p className="text-sm text-rh-light-text dark:text-white text-center py-4">
           No dividends received year-to-date.
         </p>
       </div>
@@ -110,20 +110,20 @@ export function YtdDividendBreakdown({ refreshTrigger, onTickerClick, portfolioI
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
       <div className="mb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
           YTD Dividends Received
         </p>
         <div className="flex items-baseline gap-2">
           <span className="text-2xl font-bold text-rh-green">{formatCurrency(data.netIncome)}</span>
           {data.totalDismissed > 0 && (
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[11px] text-rh-light-text dark:text-white">
               ({formatCurrency(data.totalDismissed)} dismissed)
             </span>
           )}
         </div>
       </div>
 
-      <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mb-3">
+      <p className="text-[11px] text-rh-light-text dark:text-white mb-3">
         Dividends are estimated from pay dates and current share count. Remove any you didn't hold at the time.
       </p>
 
@@ -145,7 +145,7 @@ export function YtdDividendBreakdown({ refreshTrigger, onTickerClick, portfolioI
         {/* Dismissed entries */}
         {dismissedEntries.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-200/30 dark:border-white/[0.06]">
-            <p className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+            <p className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
               Dismissed
             </p>
             <div className="space-y-1.5">
@@ -193,19 +193,19 @@ function DividendRow({
         {entry.ticker}
       </button>
 
-      <span className="text-[11px] text-rh-light-muted dark:text-rh-muted w-16 shrink-0">
+      <span className="text-[11px] text-rh-light-text dark:text-white w-16 shrink-0">
         {formatDate(entry.payDate)}
       </span>
 
-      <span className="text-[11px] text-rh-light-muted dark:text-rh-muted w-16 text-right shrink-0">
+      <span className="text-[11px] text-rh-light-text dark:text-white w-16 text-right shrink-0">
         ${entry.amountPerShare.toFixed(4)}
       </span>
 
-      <span className="text-[10px] text-rh-light-muted dark:text-rh-muted shrink-0">
+      <span className="text-[10px] text-rh-light-text dark:text-white shrink-0">
         x{entry.shares.toFixed(entry.shares % 1 === 0 ? 0 : 2)}
       </span>
 
-      <span className={`text-xs font-semibold ml-auto shrink-0 ${isDismissed ? 'text-rh-light-muted dark:text-rh-muted line-through' : 'text-rh-green'}`}>
+      <span className={`text-xs font-semibold ml-auto shrink-0 ${isDismissed ? 'text-rh-light-text dark:text-white line-through' : 'text-rh-green'}`}>
         {formatCurrency(entry.income)}
       </span>
 
@@ -216,7 +216,7 @@ function DividendRow({
           ${pending ? 'opacity-30' : ''}
           ${isDismissed
             ? 'text-rh-green/60 hover:text-rh-green hover:bg-rh-green/10'
-            : 'text-rh-light-muted/30 dark:text-rh-muted/30 hover:text-rh-red hover:bg-rh-red/10 md:opacity-0 md:group-hover:opacity-100'
+            : 'text-rh-light-text dark:text-white hover:text-rh-red hover:bg-rh-red/10 md:opacity-0 md:group-hover:opacity-100'
           }`}
         title={isDismissed ? 'Restore this dividend' : "Didn't receive — remove"}
         aria-label={isDismissed ? `Restore ${entry.ticker} dividend` : `Remove ${entry.ticker} dividend`}

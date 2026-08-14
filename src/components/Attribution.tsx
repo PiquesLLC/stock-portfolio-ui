@@ -57,14 +57,14 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
 
   return (
     <div>
-      <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-muted dark:text-white/40 mb-3">
+      <h4 className="text-xs font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
         Portfolio Pulse
       </h4>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Net P&L */}
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
             Net P&L
           </div>
           <div className={`text-lg font-bold tabular-nums ${netPnL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
@@ -74,20 +74,20 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
 
         {/* Win Rate */}
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
             Win Rate
           </div>
           <div className="text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
             {totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0}%
           </div>
-          <div className="text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">
+          <div className="text-[10px] text-rh-light-text dark:text-white/80 mt-0.5">
             {winCount} up / {lossCount} down
           </div>
         </div>
 
         {/* Biggest Mover */}
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
             Biggest Mover
           </div>
           <button
@@ -107,13 +107,13 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
 
         {/* Concentration */}
         <div className="bg-gray-50/60 dark:bg-white/[0.03] rounded-lg p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30 mb-1">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
             Top Concentration
           </div>
           <div className="text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
             {topConcentration.toFixed(0)}%
           </div>
-          <div className="text-[10px] text-rh-light-muted/50 dark:text-white/25 mt-0.5">
+          <div className="text-[10px] text-rh-light-text dark:text-white/80 mt-0.5">
             of total movement
           </div>
         </div>
@@ -183,7 +183,7 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                 selectedWindow === w
                   ? 'bg-rh-light-card dark:bg-rh-card text-rh-light-text dark:text-rh-text shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               {WINDOW_LABELS[w]}
@@ -194,14 +194,14 @@ export function Attribution({ initialData, onTickerClick }: AttributionProps) {
 
       {loading && (
         <div className="flex items-center justify-end mb-2">
-          <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+          <div className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white">
             <div className="w-3 h-3 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin"></div>
             <span>Loading...</span>
           </div>
         </div>
       )}
       {partial && topContributors.length === 0 && topDetractors.length === 0 ? (
-        <p className="text-sm text-rh-light-muted/60 dark:text-rh-muted/60 italic">
+        <p className="text-sm text-rh-light-text dark:text-white italic">
           Add holdings to see what's driving your returns.
         </p>
       ) : (

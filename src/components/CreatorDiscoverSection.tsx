@@ -154,9 +154,9 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
           onReset={resetFilters}
         />
         <div className="text-center py-16">
-          <div className="text-rh-light-muted dark:text-rh-muted text-4xl mb-3">!</div>
+          <div className="text-rh-light-text dark:text-white text-4xl mb-3">!</div>
           <p className="text-rh-light-text dark:text-rh-text font-medium mb-1">Couldn't load creators</p>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-4">{error}</p>
+          <p className="text-sm text-rh-light-text dark:text-white mb-4">{error}</p>
           <button
             onClick={() => fetchCreators()}
             className="px-4 py-2 bg-rh-green hover:bg-rh-green/90 text-black font-semibold rounded-lg text-sm transition-colors"
@@ -182,14 +182,14 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
         />
         <div className="text-center py-16">
           <div className="text-5xl mb-4 opacity-60">
-            <svg className="w-12 h-12 mx-auto text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 mx-auto text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
           <p className="text-rh-light-text dark:text-rh-text font-semibold mb-1">
             {debouncedSearch ? 'No matching creators' : 'No creators yet'}
           </p>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+          <p className="text-sm text-rh-light-text dark:text-white">
             {debouncedSearch
               ? 'Try a different search term or reset filters.'
               : 'Be the first to share your portfolio insights.'}
@@ -241,7 +241,7 @@ export function CreatorDiscoverSection({ onUserClick }: CreatorDiscoverSectionPr
             {loadingMore ? 'Loading...' : 'Load More'}
           </button>
         ) : creators.length > 0 ? (
-          <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
+          <p className="text-xs text-rh-light-text dark:text-white">
             You've seen all {total != null && total > 0 ? total : creators.length} creators
           </p>
         ) : null}
@@ -316,7 +316,7 @@ function FilterBar({
 
       {/* Search */}
       <div className="relative flex-1 w-full sm:w-auto min-w-0 sm:min-w-[160px] sm:max-w-[280px]">
-        <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
@@ -325,7 +325,7 @@ function FilterBar({
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Search creators..."
           maxLength={100}
-          className="w-full pl-8 pr-3 py-1.5 bg-transparent border border-rh-light-border/20 dark:border-rh-border/20 rounded-lg text-xs text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted dark:placeholder:text-rh-muted focus:outline-none focus:ring-1 focus:ring-rh-green/40 focus:border-rh-green/40"
+          className="w-full pl-8 pr-3 py-1.5 bg-transparent border border-rh-light-border/20 dark:border-rh-border/20 rounded-lg text-xs text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:ring-1 focus:ring-rh-green/40 focus:border-rh-green/40"
         />
       </div>
 
@@ -381,10 +381,10 @@ function StreakChip({ state }: { state: StreakState }) {
     return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-300 dark:text-zinc-600">&nbsp;</span>;
   }
   if (state.kind === 'new') {
-    return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-400 dark:text-zinc-400">New</span>;
+    return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-500 dark:text-zinc-400">New</span>;
   }
   if (state.kind === 'stale') {
-    return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-400 dark:text-zinc-400">Awaiting update</span>;
+    return <span className="rounded-md bg-gray-100 dark:bg-white/[0.04] px-2 py-1 text-[11px] text-gray-500 dark:text-zinc-400">Awaiting update</span>;
   }
   if (state.kind === 'hot') {
     return <span className="rounded-md border border-rh-green/30 bg-rh-green/10 px-2 py-1 text-[11px] text-rh-green font-medium">Hot streak &middot; {state.days}d</span>;
@@ -466,10 +466,10 @@ function CreatorCard({
           </div>
 
           <div className="text-right flex-shrink-0">
-            <p className={`text-lg font-bold ${ret == null ? 'text-gray-400 dark:text-zinc-500' : retUp ? 'text-rh-green' : 'text-rh-red'}`}>
+            <p className={`text-lg font-bold ${ret == null ? 'text-gray-500 dark:text-zinc-500' : retUp ? 'text-rh-green' : 'text-rh-red'}`}>
               {ret == null ? 'New' : `${retUp ? '+' : ''}${ret.toFixed(1)}%`}
             </p>
-            <p className="text-[11px] text-gray-400 dark:text-zinc-500">
+            <p className="text-[11px] text-gray-500 dark:text-zinc-500">
               {ret == null ? 'creator' : '1M performance'}
             </p>
           </div>
@@ -482,12 +482,12 @@ function CreatorCard({
               {creator.pitch}
             </p>
           ) : (
-            <span className="inline-block rounded-lg px-3 py-2 text-xs text-gray-400 dark:text-white/30 italic">
+            <span className="inline-block rounded-lg px-3 py-2 text-xs text-gray-500 dark:text-white italic">
               New creator — no pitch yet
             </span>
           )}
           {sections && (
-            <p className="mt-1 text-[11px] text-gray-400 dark:text-zinc-500">
+            <p className="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
               {sections}
             </p>
           )}

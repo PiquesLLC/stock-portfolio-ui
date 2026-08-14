@@ -299,7 +299,7 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d', p
         <span className="inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-rh-light-text dark:text-rh-text">
           <span className="block w-[3px] h-3 rounded-full bg-rh-green shadow-[0_0_10px_rgba(0,200,5,0.45)]" />
           Path vs SPY
-          <span className="text-rh-light-muted dark:text-rh-muted font-bold tracking-[0.18em]">· {PERIOD_LABEL[period]}</span>
+          <span className="text-rh-light-text dark:text-white font-bold tracking-[0.18em]">· {PERIOD_LABEL[period]}</span>
         </span>
         {periodSelector && (
           <div className="-mx-0.5">{periodSelector}</div>
@@ -308,15 +308,15 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d', p
       <div className="text-right text-[11px] tabular-nums shrink-0">
         <div className="flex items-center gap-2 justify-end">
           <span className="block w-3 h-[2px] rounded-full" style={{ background: youColor }} />
-          <span className="text-rh-light-muted dark:text-rh-muted">You</span>
+          <span className="text-rh-light-text dark:text-white">You</span>
           <span style={{ color: youColor }} className="font-bold">
             {youFinalPct != null ? `${youFinalPct >= 0 ? '+' : ''}${youFinalPct.toFixed(2)}%` : '—'}
           </span>
         </div>
         <div className="flex items-center gap-2 justify-end mt-1">
           <span className={`block w-3 h-[2px] rounded-full ${spyLegendSwatch}`} />
-          <span className="text-rh-light-muted dark:text-rh-muted">SPY</span>
-          <span className="font-bold text-rh-light-muted dark:text-white/60">
+          <span className="text-rh-light-text dark:text-white">SPY</span>
+          <span className="font-bold text-rh-light-text dark:text-white">
             {spyFinalPct != null ? `${spyFinalPct >= 0 ? '+' : ''}${spyFinalPct.toFixed(2)}%` : '—'}
           </span>
         </div>
@@ -328,7 +328,7 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d', p
     return (
       <div>
         {header}
-        <div style={{ height }} className="flex items-center justify-center text-[12px] text-rh-light-muted dark:text-rh-muted">
+        <div style={{ height }} className="flex items-center justify-center text-[12px] text-rh-light-text dark:text-white">
           Chart unavailable
         </div>
       </div>
@@ -340,7 +340,7 @@ export function PortfolioVsSpyMini({ portfolioId, height = 200, period = '1d', p
       <div>
         {header}
         <div style={{ height }} className="flex items-center justify-center">
-          <div className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <div className="text-[11px] text-rh-light-text dark:text-white">
             {loaded ? 'No portfolio activity yet — add holdings to see your path' : <span className="animate-pulse">Loading chart…</span>}
           </div>
         </div>

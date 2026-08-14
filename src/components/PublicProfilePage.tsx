@@ -79,7 +79,7 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowAuth(true)}
-              className="text-[13px] text-white/60 hover:text-white transition-colors"
+              className="text-[13px] text-white hover:text-white transition-colors"
             >
               Log in
             </button>
@@ -101,7 +101,7 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
           <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">
             See how real investors are performing
           </h1>
-          <p className="text-sm text-white/35 mt-2">
+          <p className="text-sm text-white mt-2">
             Track portfolios. Compare returns. Follow the smartest money.
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
       {/* ═══ FLOATING CTA BAR ═══ */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black via-black/95 to-transparent pt-8 pb-6 px-4 pointer-events-none">
         <div className="max-w-md mx-auto text-center pointer-events-auto">
-          <p className="text-sm text-white/50 mb-3">
+          <p className="text-sm text-white/80 mb-3">
             Join Nala to follow <span className="text-white/80 font-medium">{displayName}</span> and thousands of investors sharing real performance.
           </p>
           <button
@@ -137,7 +137,7 @@ export default function PublicProfilePage({ username }: PublicProfilePageProps) 
           >
             {WAITLIST_ENABLED ? 'Join the Waitlist' : 'Sign Up — It\'s Free'}
           </button>
-          <p className="text-[11px] text-white/25 mt-2.5">
+          <p className="text-[11px] text-white/80 mt-2.5">
             Free to join. Upgrade when you're ready for full tracking and AI research.
           </p>
         </div>

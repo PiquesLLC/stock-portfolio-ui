@@ -127,7 +127,7 @@ export function WaitlistAdminPage({ onBack }: WaitlistAdminPageProps) {
             <p className={`text-xl font-bold ${stat.accent ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text'}`}>
               {loading ? '-' : stat.value}
             </p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mt-0.5">
               {stat.label}
             </p>
           </div>
@@ -143,7 +143,7 @@ export function WaitlistAdminPage({ onBack }: WaitlistAdminPageProps) {
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               filter === f
                 ? 'bg-rh-green/15 text-rh-green'
-                : 'text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                : 'text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06]'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -161,11 +161,11 @@ export function WaitlistAdminPage({ onBack }: WaitlistAdminPageProps) {
 
       {/* Entry list */}
       {loading ? (
-        <div className={`${CARD} p-8 text-center text-rh-light-muted dark:text-rh-muted text-sm`}>
+        <div className={`${CARD} p-8 text-center text-rh-light-text dark:text-white text-sm`}>
           Loading...
         </div>
       ) : filtered.length === 0 ? (
-        <div className={`${CARD} p-8 text-center text-rh-light-muted dark:text-rh-muted text-sm`}>
+        <div className={`${CARD} p-8 text-center text-rh-light-text dark:text-white text-sm`}>
           No {filter === 'all' ? '' : filter + ' '}entries
         </div>
       ) : (
@@ -199,16 +199,16 @@ function EntryRow({ entry, loading, onApprove, onReject, onResend }: {
         <p className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate">{entry.email}</p>
         <div className="flex items-center gap-2 mt-1">
           <StatusBadge status={entry.status} />
-          <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <span className="text-[11px] text-rh-light-text dark:text-white">
             {timeAgo(entry.createdAt)}
           </span>
           {entry.approvedAt && (
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[11px] text-rh-light-text dark:text-white">
               · approved {timeAgo(entry.approvedAt)}
             </span>
           )}
           {entry.rejectedAt && (
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[11px] text-rh-light-text dark:text-white">
               · rejected {timeAgo(entry.rejectedAt)}
             </span>
           )}

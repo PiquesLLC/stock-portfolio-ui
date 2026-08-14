@@ -95,7 +95,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
     <div className="mt-4 pt-4 border-t border-rh-light-border/20 dark:border-white/[0.03]">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+        className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
       >
         <svg
           className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
@@ -124,13 +124,13 @@ export function TransactionManager({ onTransactionChange }: Props) {
                     }`}>
                       {t.type === 'deposit' ? '+' : '-'}{formatCurrency(t.amount)}
                     </span>
-                    <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                    <span className="text-[10px] text-rh-light-text dark:text-white">
                       {formatDate(t.date)}
                     </span>
                   </div>
                   <button
                     onClick={() => handleDelete(t.id)}
-                    className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-red transition-colors p-1"
+                    className="text-rh-light-text dark:text-white hover:text-rh-red transition-colors p-1"
                     title="Delete"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
                   placeholder="Amount"
                   min="0"
                   step="0.01"
-                  className="flex-1 text-xs px-2 py-1.5 rounded bg-rh-light-bg dark:bg-white/[0.03] border border-rh-light-border/30 dark:border-white/[0.06] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/40 dark:placeholder:text-rh-muted/40 focus:outline-none focus:border-rh-green"
+                  className="flex-1 text-xs px-2 py-1.5 rounded bg-rh-light-bg dark:bg-white/[0.03] border border-rh-light-border/30 dark:border-white/[0.06] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green"
                 />
                 <input
                   type="date"
@@ -196,7 +196,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
                     setShowForm(false);
                     setError('');
                   }}
-                  className="text-xs px-3 py-1.5 rounded text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                  className="text-xs px-3 py-1.5 rounded text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
                 >
                   Cancel
                 </button>
@@ -205,7 +205,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
           )}
 
           {/* Info text */}
-          <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+          <p className="text-[10px] text-rh-light-text dark:text-white">
             Log deposits and withdrawals to get accurate time-weighted returns.
           </p>
         </div>

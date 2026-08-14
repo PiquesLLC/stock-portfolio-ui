@@ -62,7 +62,7 @@ export function StepLoader({ title, steps, interval = 3000, currentStep, classNa
         </div>
         <div>
           <p className="text-sm font-semibold text-rh-light-text dark:text-white">{title}</p>
-          <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25">Powered by NALA AI</p>
+          <p className="text-[11px] text-rh-light-text dark:text-white/80">Powered by NALA AI</p>
         </div>
       </div>
       <div className="space-y-2.5">
@@ -80,7 +80,7 @@ export function StepLoader({ title, steps, interval = 3000, currentStep, classNa
               } : undefined}
             >
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-500 ${
-                isDone ? 'bg-rh-green/20 text-rh-green' : isActive ? 'bg-rh-green text-black' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-white/30'
+                isDone ? 'bg-rh-green/20 text-rh-green' : isActive ? 'bg-rh-green text-black' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-text dark:text-white'
               }`}>
                 {isDone ? (
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +94,7 @@ export function StepLoader({ title, steps, interval = 3000, currentStep, classNa
                   <span className="inline-block w-[2px] h-[12px] bg-rh-green ml-0.5 align-middle animate-pulse" />
                 </span>
               ) : (
-                <span className={`text-[12px] transition-all duration-500 ${isDone ? 'text-rh-light-muted dark:text-white/50' : 'text-rh-light-muted/50 dark:text-white/30'}`}>
+                <span className={`text-[12px] transition-all duration-500 ${isDone ? 'text-rh-light-text dark:text-white/80' : 'text-rh-light-text dark:text-white'}`}>
                   {step}
                 </span>
               )}

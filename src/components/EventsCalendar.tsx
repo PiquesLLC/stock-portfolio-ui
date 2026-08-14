@@ -258,10 +258,10 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
   if (error) {
     return (
       <div className="bg-gray-50/80 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-8 text-center">
-        <svg className="w-10 h-10 mx-auto mb-3 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-10 h-10 mx-auto mb-3 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">{error}</p>
+        <p className="text-sm text-rh-light-text dark:text-white">{error}</p>
       </div>
     );
   }
@@ -270,11 +270,11 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
   if (events.length === 0) {
     return (
       <div className="bg-gray-50/80 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06] rounded-xl p-12 text-center">
-        <svg className="w-12 h-12 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-12 h-12 mx-auto mb-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         <p className="text-rh-light-text dark:text-rh-text font-medium mb-1">No upcoming events</p>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           Earnings and dividend events for your holdings will appear here.
         </p>
       </div>
@@ -287,17 +287,17 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <div className="bg-gray-50/80 dark:bg-transparent border border-rh-green/20 rounded-xl px-3 sm:px-4 py-2">
-          <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Total Events</span>
+          <span className="text-[10px] sm:text-xs text-rh-light-text dark:text-white">Total Events</span>
           <p className="text-base sm:text-lg font-semibold text-rh-green tabular-nums">{events.length}</p>
         </div>
         <div className="bg-gray-50/80 dark:bg-transparent border border-amber-400/20 rounded-xl px-3 sm:px-4 py-2">
-          <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Earnings</span>
+          <span className="text-[10px] sm:text-xs text-rh-light-text dark:text-white">Earnings</span>
           <p className="text-base sm:text-lg font-semibold text-amber-500 dark:text-amber-400 tabular-nums">
             {events.filter(e => e.type === 'earnings').length}
           </p>
         </div>
         <div className="bg-gray-50/80 dark:bg-transparent border border-blue-400/20 rounded-xl px-3 sm:px-4 py-2">
-          <span className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">Dividends</span>
+          <span className="text-[10px] sm:text-xs text-rh-light-text dark:text-white">Dividends</span>
           <p className="text-base sm:text-lg font-semibold text-blue-500 dark:text-blue-400 tabular-nums">
             {events.filter(e => e.type === 'dividend').length}
           </p>
@@ -311,7 +311,7 @@ export default function EventsCalendar({ holdings, onTickerClick }: EventsCalend
           <div className="flex items-center gap-3 mb-3">
             <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{group.label}</h3>
             <div className="flex-1 h-px bg-gray-200/60 dark:bg-white/[0.06]" />
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted tabular-nums">
+            <span className="text-xs text-rh-light-text dark:text-white tabular-nums">
               {group.events.length} event{group.events.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -360,7 +360,7 @@ function DayGroupCard({ date, events, onTickerClick }: { date: string; events: C
       >
         {/* Date */}
         <div className="text-center min-w-[52px]">
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(date)}</p>
+          <p className="text-xs text-rh-light-text dark:text-white">{formatDate(date)}</p>
         </div>
 
         {/* Divider */}
@@ -383,14 +383,14 @@ function DayGroupCard({ date, events, onTickerClick }: { date: string; events: C
               </span>
             )}
           </div>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted truncate">
+          <p className="text-xs text-rh-light-text dark:text-white truncate">
             {tickers.join(', ')}
           </p>
         </div>
 
         {/* Chevron */}
         <svg
-          className={`w-5 h-5 text-rh-light-text/50 dark:text-white/40 transition-transform duration-200 shrink-0 ${expanded ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-rh-light-text/70 dark:text-white transition-transform duration-200 shrink-0 ${expanded ? 'rotate-180' : ''}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
@@ -427,7 +427,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
     ? 'text-rh-green'
     : event.beat === false
       ? 'text-rh-red'
-      : 'text-rh-light-muted dark:text-rh-muted';
+      : 'text-rh-light-text dark:text-white';
 
   const beatBg = event.beat === true
     ? 'bg-rh-green/10 border-rh-green/20'
@@ -443,7 +443,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
         {!noBorder && (
           <>
             <div className="text-center min-w-[44px] sm:min-w-[52px] shrink-0">
-              <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.date)}</p>
+              <p className="text-[10px] sm:text-xs text-rh-light-text dark:text-white">{formatDate(event.date)}</p>
             </div>
             <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06] shrink-0" />
           </>
@@ -462,7 +462,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
               </span>
             )}
           </div>
-          <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted truncate">
+          <p className="text-[10px] sm:text-xs text-rh-light-text dark:text-white truncate">
             Fiscal quarter ending {event.fiscalDateEnding}
           </p>
         </div>
@@ -474,7 +474,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
               <span className={`text-xs sm:text-sm font-semibold tabular-nums ${beatColor}`}>
                 {formatEPS(event.reportedEPS)}
               </span>
-              <span className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted">
+              <span className="text-[9px] sm:text-[10px] text-rh-light-text dark:text-white">
                 vs est. {formatEPS(event.estimatedEPS)}
               </span>
               {event.surprisePercentage !== null && (
@@ -485,7 +485,7 @@ function EarningsCard({ event, onTickerClick, noBorder }: { event: EarningsEvent
             </div>
           ) : (
             <div className="inline-flex flex-col items-end px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border bg-gray-100/60 dark:bg-white/[0.02] border-gray-200/40 dark:border-white/[0.06]">
-              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Est.</span>
+              <span className="text-[10px] text-rh-light-text dark:text-white">Est.</span>
               <span className="text-xs sm:text-sm font-semibold tabular-nums text-rh-light-text dark:text-rh-text">
                 {formatEPS(event.estimatedEPS)}
               </span>
@@ -504,7 +504,7 @@ function DividendCard({ event, onTickerClick, noBorder }: { event: DividendCalen
       {!noBorder && (
         <>
           <div className="text-center min-w-[44px] sm:min-w-[52px] shrink-0">
-            <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted">{formatDate(event.exDate)}</p>
+            <p className="text-[10px] sm:text-xs text-rh-light-text dark:text-white">{formatDate(event.exDate)}</p>
           </div>
           <div className="w-px h-10 bg-gray-200/60 dark:bg-white/[0.06] shrink-0" />
         </>
@@ -518,7 +518,7 @@ function DividendCard({ event, onTickerClick, noBorder }: { event: DividendCalen
             Dividend
           </span>
         </div>
-        <p className="text-[10px] sm:text-xs text-rh-light-muted dark:text-rh-muted truncate">
+        <p className="text-[10px] sm:text-xs text-rh-light-text dark:text-white truncate">
           Ex {formatDate(event.exDate)} · Pay {formatDate(event.payDate)}
         </p>
       </div>
@@ -529,7 +529,7 @@ function DividendCard({ event, onTickerClick, noBorder }: { event: DividendCalen
           <span className="text-xs sm:text-sm font-semibold tabular-nums text-blue-500 dark:text-blue-400">
             ${event.amountPerShare.toFixed(2)}
           </span>
-          <span className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted">per share</span>
+          <span className="text-[9px] sm:text-[10px] text-rh-light-text dark:text-white">per share</span>
         </div>
       </div>
     </div>

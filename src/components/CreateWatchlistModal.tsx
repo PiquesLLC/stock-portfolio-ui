@@ -65,7 +65,7 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
             {isEdit ? 'Edit Watchlist' : 'New Watchlist'}
           </h3>
           <button onClick={onClose} aria-label="Close" className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rh-light-text dark:text-white" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -73,7 +73,7 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1.5">Name</label>
+            <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1.5">Name</label>
             <input
               ref={nameRef}
               type="text"
@@ -81,25 +81,25 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
               onChange={(e) => { setName(e.target.value); setError(''); }}
               placeholder="e.g. Dividend Kings, Tech Watchlist"
               maxLength={50}
-              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors"
+              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors"
             />
             {error && <p className="text-xs text-rh-red mt-1">{error}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1.5">Description <span className="text-rh-light-muted/50 dark:text-rh-muted/50">(optional)</span></label>
+            <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1.5">Description <span className="text-rh-light-text dark:text-white">(optional)</span></label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What's this watchlist for?"
               maxLength={200}
               rows={2}
-              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors resize-none"
+              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-2">Color</label>
+            <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-2">Color</label>
             <div className="flex gap-3">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -119,7 +119,7 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+              className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
             >
               Cancel
             </button>

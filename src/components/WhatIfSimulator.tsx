@@ -233,7 +233,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
             <span className="text-xl font-bold text-rh-light-text dark:text-rh-text">
               {formatCurrencyFull(equity)}
             </span>
-            <div className="mt-2 text-xs text-rh-light-muted dark:text-rh-muted">
+            <div className="mt-2 text-xs text-rh-light-text dark:text-white">
               {holdings.length} positions &middot; Cash {formatCurrency(cashBalance)} held constant
             </div>
           </div>
@@ -242,9 +242,9 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
           <div>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted mb-0.5">
+                <div className="text-[11px] font-medium text-rh-light-text dark:text-white mb-0.5">
                   {formatCurrencyFull(equity)}
-                  <svg className="w-3.5 h-3.5 inline mx-1.5 -mt-0.5 text-rh-light-muted/50 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 inline mx-1.5 -mt-0.5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </div>
@@ -252,7 +252,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                   {formatCurrencyFull(simEquity)}
                 </span>
               </div>
-              <button onClick={resetAll} className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors flex items-center gap-1">
+              <button onClick={resetAll} className="text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -281,7 +281,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                 );
               })()}
             </div>
-            <div className="mt-2 text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40">
+            <div className="mt-2 text-[10px] text-rh-light-text dark:text-white">
               {holdings.length} positions &middot; {changedCount} adjusted &middot; Cash {formatCurrency(cashBalance)} held constant
             </div>
           </div>
@@ -305,7 +305,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
           className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
             showScenarios
               ? 'bg-blue-500/15 text-blue-400'
-              : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted hover:bg-gray-200 dark:hover:bg-white/10'
+              : 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-text dark:text-white hover:bg-gray-200 dark:hover:bg-white/10'
           }`}
         >
           Scenarios {showScenarios ? '\u25B4' : '\u25BE'}
@@ -320,7 +320,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
               className="text-left px-3 py-2 rounded-lg border border-gray-200/20 dark:border-white/[0.06] bg-gray-50/40 dark:bg-white/[0.02] hover:bg-gray-100/60 dark:hover:bg-white/[0.05] transition-colors"
             >
               <div className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text">{s.name}</div>
-              <div className="text-[10px] text-rh-light-muted dark:text-rh-muted mt-0.5">{s.desc}</div>
+              <div className="text-[10px] text-rh-light-text dark:text-white mt-0.5">{s.desc}</div>
             </button>
           ))}
         </div>
@@ -329,7 +329,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
       {/* Holdings Table */}
       <div className="mb-1">
         <div className="flex items-center gap-2 mb-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
             Holdings ({entries.length})
           </h3>
           {changedCount > 0 && (
@@ -350,7 +350,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                 const allExpanded = allTickers.every(t => expandedTickers.has(t));
                 setExpandedTickers(allExpanded ? new Set() : new Set(allTickers));
               }}
-              className="text-[10px] font-medium text-rh-light-muted/60 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+              className="text-[10px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
             >
               {entries.every(e => expandedTickers.has(e.ticker)) ? 'Collapse All' : 'Expand All'}
             </button>
@@ -358,7 +358,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
         </div>
 
         {/* Sortable Table header */}
-        <div className="grid grid-cols-[1fr_70px_90px_80px] gap-x-1 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 border-b border-gray-200/40 dark:border-white/[0.04]">
+        <div className="grid grid-cols-[1fr_70px_90px_80px] gap-x-1 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 border-b border-gray-200/40 dark:border-white/[0.04]">
           <button className="text-left flex items-center hover:text-rh-light-text dark:hover:text-rh-text transition-colors" onClick={() => toggleSort('alpha')}>
             Stock<SortArrow active={sortKey === 'alpha'} dir={sortDir} />
           </button>
@@ -401,17 +401,17 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                       >
                         {ticker}
                       </button>
-                      <span className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
+                      <span className="text-[9px] text-rh-light-text dark:text-white tabular-nums">
                         {weight.toFixed(1)}%
                       </span>
                     </div>
-                    <div className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
+                    <div className="text-[9px] text-rh-light-text dark:text-white tabular-nums">
                       {formatPrice(price)} &times; {shares % 1 === 0 ? shares : shares.toFixed(2)}
                     </div>
                   </div>
 
                   {/* Current value */}
-                  <span className="text-[11px] text-rh-light-muted dark:text-rh-muted tabular-nums text-right whitespace-nowrap">
+                  <span className="text-[11px] text-rh-light-text dark:text-white tabular-nums text-right whitespace-nowrap">
                     {formatCurrency(marketValue)}
                   </span>
 
@@ -419,7 +419,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                   <div className="flex items-center justify-center gap-0.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={(e) => updateChange(ticker, changePct - (e.shiftKey ? 5 : 1))}
-                      className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-rh-light-muted dark:text-rh-muted hover:bg-gray-200/60 dark:hover:bg-white/10 transition-colors"
+                      className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-rh-light-text dark:text-white hover:bg-gray-200/60 dark:hover:bg-white/10 transition-colors"
                       title="-1% (Shift: -5%)"
                     >
                       &minus;
@@ -431,13 +431,13 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                       onChange={e => updateChange(ticker, parseFloat(e.target.value) || 0)}
                       onDoubleClick={() => updateChange(ticker, 0)}
                       className={`w-12 h-5 text-center text-[11px] font-medium tabular-nums rounded border bg-transparent outline-none transition-colors
-                        ${isUp ? 'text-rh-green border-rh-green/30' : isDown ? 'text-rh-red border-rh-red/30' : 'text-rh-light-muted dark:text-rh-muted border-gray-200/60 dark:border-white/10'}
+                        ${isUp ? 'text-rh-green border-rh-green/30' : isDown ? 'text-rh-red border-rh-red/30' : 'text-rh-light-text dark:text-white border-gray-200/60 dark:border-white/10'}
                         focus:ring-1 focus:ring-rh-green/40`}
                       title="Double-click to reset"
                     />
                     <button
                       onClick={(e) => updateChange(ticker, changePct + (e.shiftKey ? 5 : 1))}
-                      className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-rh-light-muted dark:text-rh-muted hover:bg-gray-200/60 dark:hover:bg-white/10 transition-colors"
+                      className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-rh-light-text dark:text-white hover:bg-gray-200/60 dark:hover:bg-white/10 transition-colors"
                       title="+1% (Shift: +5%)"
                     >
                       +
@@ -447,7 +447,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                   {/* Result + per-stock delta */}
                   <div className="text-right">
                     <span className={`text-[11px] font-medium tabular-nums whitespace-nowrap ${
-                      isUp ? 'text-rh-green' : isDown ? 'text-rh-red' : 'text-rh-light-muted dark:text-rh-muted'
+                      isUp ? 'text-rh-green' : isDown ? 'text-rh-red' : 'text-rh-light-text dark:text-white'
                     }`}>
                       {formatCurrency(simValue)}
                     </span>
@@ -510,10 +510,10 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                       </div>
                       {/* Full labels only in non-compact mode */}
                       {!compact && (
-                        <div className="relative text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 mt-1.5 h-3">
+                        <div className="relative text-[9px] text-rh-light-text dark:text-white mt-1.5 h-3">
                           <span className="absolute left-0">-99%</span>
                           <span className="absolute -translate-x-1/2" style={{ left: `${((-50 + 99) / 299) * 100}%` }}>-50%</span>
-                          <span className="absolute -translate-x-1/2 text-rh-light-muted/70 dark:text-rh-muted/60" style={{ left: `${zeroPct}%` }}>0%</span>
+                          <span className="absolute -translate-x-1/2 text-rh-light-text dark:text-white" style={{ left: `${zeroPct}%` }}>0%</span>
                           <span className="absolute -translate-x-1/2" style={{ left: `${((50 + 99) / 299) * 100}%` }}>+50%</span>
                           <span className="absolute -translate-x-1/2" style={{ left: `${((100 + 99) / 299) * 100}%` }}>+100%</span>
                           <span className="absolute right-0">+200%</span>
@@ -547,7 +547,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
         </div>
       </div>
 
-      <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 text-center mt-2">
+      <div className="text-[10px] text-rh-light-text dark:text-white text-center mt-2">
         Click any row for slider &middot; Double-click input to reset &middot; Shift+&plusmn; for 5% steps
       </div>
     </>
@@ -740,7 +740,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <div className="w-6 h-6 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
-        <span className="text-xs text-rh-light-muted dark:text-rh-muted">Loading historical return data...</span>
+        <span className="text-xs text-rh-light-text dark:text-white">Loading historical return data...</span>
       </div>
     );
   }
@@ -753,7 +753,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
           <span className="text-xl font-bold text-rh-light-text dark:text-rh-text">
             {formatCurrencyFull(equity)}
           </span>
-          <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-rh-light-text dark:text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
           <span className={`text-xl font-bold ${totalGain >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
@@ -766,20 +766,20 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
           </span>
           {totalContributions > 0 && (
             <>
-              <span className="text-rh-light-muted/50 dark:text-rh-muted/40">+</span>
-              <span className="text-rh-light-muted dark:text-rh-muted">
+              <span className="text-rh-light-text dark:text-white">+</span>
+              <span className="text-rh-light-text dark:text-white">
                 {formatCurrency(totalContributions)} contributed
               </span>
             </>
           )}
-          <span className="text-rh-light-muted/50 dark:text-rh-muted/40">&middot;</span>
-          <span className="text-rh-light-muted dark:text-rh-muted">
+          <span className="text-rh-light-text dark:text-white">&middot;</span>
+          <span className="text-rh-light-text dark:text-white">
             in {HORIZON_LABELS[horizon]}
           </span>
           {blendedCAGR !== null && (
             <>
-              <span className="text-rh-light-muted/50 dark:text-rh-muted/40">&middot;</span>
-              <span className="text-rh-light-muted dark:text-rh-muted">
+              <span className="text-rh-light-text dark:text-white">&middot;</span>
+              <span className="text-rh-light-text dark:text-white">
                 Blended {blendedCAGR.toFixed(1)}%/yr
               </span>
             </>
@@ -797,7 +797,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                 source === s
                   ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               {s === 'best' ? 'Best' : s === '20yr' ? '20yr' : s === '10yr' ? '10yr' : s === '5yr' ? '5yr' : s === 'max' ? 'All' : 'Custom'}
@@ -812,7 +812,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                 horizon === h
                   ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               {HORIZON_LABELS[h]}
@@ -822,7 +822,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
 
         {hasOverrides && (
           <button onClick={clearOverrides}
-            className="text-[11px] font-medium text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
+            className="text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
             Reset overrides
           </button>
         )}
@@ -830,19 +830,19 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
 
       {/* Monthly DCA input */}
       <div className="flex items-center gap-2 mb-4 px-1 flex-wrap">
-        <span className="text-[11px] text-rh-light-muted dark:text-rh-muted whitespace-nowrap">Monthly contribution:</span>
+        <span className="text-[11px] text-rh-light-text dark:text-white whitespace-nowrap">Monthly contribution:</span>
         <div className="flex items-center gap-1">
-          <span className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/40">$</span>
+          <span className="text-[11px] text-rh-light-text dark:text-white">$</span>
           <input
             type="number" inputMode="decimal" min={0} step={100} value={monthlyContrib || ''}
             placeholder="0"
             onChange={e => setMonthlyContrib(Math.max(0, parseFloat(e.target.value) || 0))}
             className="w-24 h-6 text-[11px] font-medium tabular-nums rounded border border-gray-200/40 dark:border-white/[0.06] bg-transparent text-rh-light-text dark:text-rh-text outline-none px-2 focus:ring-1 focus:ring-rh-green/40"
           />
-          <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">/mo</span>
+          <span className="text-[10px] text-rh-light-text dark:text-white">/mo</span>
         </div>
         {monthlyContrib > 0 && (
-          <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
+          <span className="text-[10px] text-rh-light-text dark:text-white">
             = {formatCurrency(monthlyContrib * 12)}/yr &middot; {formatCurrency(totalContributions)} over {HORIZON_LABELS[horizon].toLowerCase()}
           </span>
         )}
@@ -852,7 +852,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
       {topContributors.length > 0 && (
         <div className="mb-4">
           <button onClick={() => setShowContributors(v => !v)}
-            className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+            className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2 hover:text-rh-light-text/70 dark:hover:text-rh-text transition-colors"
           >
             <svg className={`w-3 h-3 transition-transform ${showContributors ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -863,13 +863,13 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
             <div className="flex flex-wrap gap-2">
               {topContributors.map((e, i) => (
                 <button key={e.ticker} onClick={() => onTickerClick?.(e.ticker)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50/40 dark:bg-white/[0.03] border border-gray-200/20 dark:border-white/[0.04] hover:bg-gray-100/60 dark:hover:bg-white/[0.06] hover:border-rh-green/20 transition-colors cursor-pointer">
-                  <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">#{i + 1}</span>
+                  <span className="text-[10px] text-rh-light-text dark:text-white">#{i + 1}</span>
                   <span className="text-[11px] font-semibold text-rh-light-text dark:text-rh-text hover:text-rh-green transition-colors">{e.ticker}</span>
                   <span className={`text-[10px] font-medium tabular-nums ${e.gain! >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {e.gain! >= 0 ? '+' : ''}{formatCurrency(e.gain!)}
                   </span>
                   {e.displayRate !== null && (
-                    <span className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40">
+                    <span className="text-[9px] text-rh-light-text dark:text-white">
                       ({e.displayRate.toFixed(1)}%/yr)
                     </span>
                   )}
@@ -881,7 +881,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
       )}
 
       {/* Table header */}
-      <div className="grid grid-cols-[minmax(100px,1.2fr)_80px_80px_minmax(80px,1fr)_minmax(100px,1.2fr)] gap-x-2 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 border-b border-gray-200/40 dark:border-white/[0.04]">
+      <div className="grid grid-cols-[minmax(100px,1.2fr)_80px_80px_minmax(80px,1fr)_minmax(100px,1.2fr)] gap-x-2 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 border-b border-gray-200/40 dark:border-white/[0.04]">
         <span>Stock</span>
         <span className="text-right">Current</span>
         <span className="text-center">Avg Return</span>
@@ -921,11 +921,11 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
                     >
                       {ticker}
                     </button>
-                    <span className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
+                    <span className="text-[9px] text-rh-light-text dark:text-white tabular-nums">
                       {weight.toFixed(1)}%
                     </span>
                     {dataYears > 0 && source === 'best' && hasData && (
-                      <span className={`text-[9px] tabular-nums ${isBlended ? 'text-amber-500/80' : 'text-rh-light-muted/70 dark:text-rh-muted/60'}`} title={isBlended ? `${dataYears.toFixed(0)}yr data blended with market avg (${rawDisplayRate?.toFixed(1)}% → ${displayRate?.toFixed(1)}%)` : `Using ${dataYears >= 16 ? '20yr' : dataYears >= 8 ? '10yr' : dataYears >= 4 ? '5yr' : 'all'} avg (${dataYears.toFixed(0)}yr data)`}>
+                      <span className={`text-[9px] tabular-nums ${isBlended ? 'text-amber-500/80' : 'text-rh-light-text dark:text-white'}`} title={isBlended ? `${dataYears.toFixed(0)}yr data blended with market avg (${rawDisplayRate?.toFixed(1)}% → ${displayRate?.toFixed(1)}%)` : `Using ${dataYears >= 16 ? '20yr' : dataYears >= 8 ? '10yr' : dataYears >= 4 ? '5yr' : 'all'} avg (${dataYears.toFixed(0)}yr data)`}>
                         {dataYears >= 16 ? '20y' : dataYears >= 8 ? '10y' : dataYears >= 4 ? '5y' : `${dataYears.toFixed(0)}y`}
                         {isBlended && ' ~'}
                       </span>
@@ -936,13 +936,13 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
                       </span>
                     )}
                   </div>
-                  <div className="text-[9px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums">
+                  <div className="text-[9px] text-rh-light-text dark:text-white tabular-nums">
                     {formatPrice(price)} &times; {shares % 1 === 0 ? shares : shares.toFixed(2)}
                   </div>
                 </div>
 
                 {/* Current value */}
-                <span className="text-[11px] text-rh-light-muted dark:text-rh-muted tabular-nums text-right whitespace-nowrap">
+                <span className="text-[11px] text-rh-light-text dark:text-white tabular-nums text-right whitespace-nowrap">
                   {formatCurrency(marketValue)}
                 </span>
 
@@ -953,10 +953,10 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
                     placeholder="--"
                     onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val)) updateOverride(ticker, val); }}
                     className={`w-14 h-5 text-center text-[11px] font-medium tabular-nums rounded border bg-transparent outline-none transition-colors
-                      ${displayRate !== null && displayRate > 0 ? 'text-rh-green border-rh-green/20' : displayRate !== null && displayRate < 0 ? 'text-rh-red border-rh-red/20' : 'text-rh-light-muted dark:text-rh-muted border-gray-200/40 dark:border-white/[0.06]'}
+                      ${displayRate !== null && displayRate > 0 ? 'text-rh-green border-rh-green/20' : displayRate !== null && displayRate < 0 ? 'text-rh-red border-rh-red/20' : 'text-rh-light-text dark:text-white border-gray-200/40 dark:border-white/[0.06]'}
                       focus:ring-1 focus:ring-rh-green/40`}
                   />
-                  <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">%</span>
+                  <span className="text-[10px] text-rh-light-text dark:text-white">%</span>
                 </div>
 
                 {/* Growth bar */}
@@ -994,7 +994,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
                       )}
                     </div>
                   ) : (
-                    <span className="text-[11px] text-rh-light-muted/40 dark:text-rh-muted/30">&mdash;</span>
+                    <span className="text-[11px] text-rh-light-text dark:text-white">&mdash;</span>
                   )}
                 </div>
               </div>
@@ -1002,20 +1002,20 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
               {/* Year-by-year breakdown (expanded) */}
               {isExpanded && hasData && yearlyValues.length > 1 && (
                 <div className="px-4 pb-3 pt-1 bg-gray-50/20 dark:bg-white/[0.01]">
-                  <div className="text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1.5 uppercase tracking-wider">
+                  <div className="text-[10px] font-medium text-rh-light-text/70 dark:text-white/80 mb-1.5 uppercase tracking-wider">
                     Year-by-Year Projection
                   </div>
                   <div className={`grid ${annualContrib > 0 ? 'grid-cols-[36px_1fr_1fr_1fr]' : 'grid-cols-[36px_1fr_1fr]'} gap-x-3 gap-y-0.5 text-[10px] tabular-nums`}>
-                    <span className="text-rh-light-muted/50 dark:text-rh-muted/40 font-medium">Yr</span>
-                    <span className="text-rh-light-muted/50 dark:text-rh-muted/40 font-medium text-right">Value</span>
-                    <span className="text-rh-light-muted/50 dark:text-rh-muted/40 font-medium text-right">Growth</span>
-                    {annualContrib > 0 && <span className="text-rh-light-muted/50 dark:text-rh-muted/40 font-medium text-right">Added</span>}
+                    <span className="text-rh-light-text dark:text-white font-medium">Yr</span>
+                    <span className="text-rh-light-text dark:text-white font-medium text-right">Value</span>
+                    <span className="text-rh-light-text dark:text-white font-medium text-right">Growth</span>
+                    {annualContrib > 0 && <span className="text-rh-light-text dark:text-white font-medium text-right">Added</span>}
                     {yearlyValues.slice(1).map((val, i) => {
                       const prev = yearlyValues[i];
                       const growth = val - prev - annualContrib;
                       return (
                         <div key={i} className="contents">
-                          <span className="text-rh-light-muted/60 dark:text-rh-muted/50">{i + 1}</span>
+                          <span className="text-rh-light-text dark:text-white">{i + 1}</span>
                           <span className="text-right text-rh-light-text dark:text-rh-text">{formatCurrency(val)}</span>
                           <span className={`text-right ${growth >= 0 ? 'text-rh-green/80' : 'text-rh-red/80'}`}>
                             {growth >= 0 ? '+' : ''}{formatCurrency(growth)}
@@ -1064,7 +1064,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
         </div>
       </div>
 
-      <div className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 text-center mt-3 space-y-0.5">
+      <div className="text-[10px] text-rh-light-text dark:text-white text-center mt-3 space-y-0.5">
         <div>Click row for year-by-year breakdown &middot; Returns compounded annually &middot; Past performance does not guarantee future results</div>
         <div>Stocks with limited history (<span className="text-amber-500/70">~</span>) use rates blended toward the S&amp;P 500 avg (~10%/yr) for conservative estimates</div>
       </div>
@@ -1085,7 +1085,7 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
         <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
           Scenario Explorer
         </h2>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
+        <p className="text-xs text-rh-light-text dark:text-white mt-0.5">
           {mode === 'whatif'
             ? 'Build custom scenarios and see how they affect your portfolio'
             : 'Project your portfolio\'s growth using historical stock performance'}
@@ -1097,7 +1097,7 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             mode === 'whatif'
               ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
-              : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+              : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
           }`}
         >
           Custom
@@ -1106,7 +1106,7 @@ export function WhatIfSimulator(props: WhatIfSimulatorProps) {
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             mode === 'growth'
               ? 'bg-white/80 dark:bg-white/[0.1] backdrop-blur-sm text-rh-light-text dark:text-rh-text shadow-sm'
-              : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+              : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
           }`}
         >
           Growth Projector

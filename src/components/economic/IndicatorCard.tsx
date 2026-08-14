@@ -276,12 +276,12 @@ export function IndicatorCard({ indicator, isSelected, onClick }: { indicator: E
       <div className="flex items-start justify-between mb-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <h4 className="text-xs font-medium text-rh-light-muted dark:text-rh-muted uppercase tracking-wide truncate">
+            <h4 className="text-xs font-medium text-rh-light-text dark:text-white uppercase tracking-wide truncate">
               {indicator.name}
             </h4>
             {tooltip && (
               <span className="group relative flex-shrink-0">
-                <svg className="w-3 h-3 text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-gray-100/80 dark:bg-white/[0.08] backdrop-blur-md border border-gray-200/50 dark:border-white/[0.06] px-3 py-2.5 text-[11px] leading-relaxed text-rh-light-text dark:text-rh-text shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
@@ -309,14 +309,14 @@ export function IndicatorCard({ indicator, isSelected, onClick }: { indicator: E
               sentiment === 'concern' ? 'text-red-400'
               : sentiment === 'caution' ? 'text-amber-400'
               : sentiment === 'healthy' ? 'text-green-400'
-              : 'text-rh-light-muted/40 dark:text-rh-muted/40'
+              : 'text-rh-light-text dark:text-white'
             }`}>
               {trendArrow}
             </span>
           )}
         </div>
         {indicator.latestDate && (
-          <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
+          <span className="text-[10px] text-rh-light-text dark:text-white">
             {formatDate(indicator.latestDate)}
           </span>
         )}

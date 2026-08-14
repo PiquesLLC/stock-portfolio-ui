@@ -81,7 +81,7 @@ export function PriceAlertsList({ alerts, onRefresh }: Props) {
 
   if (alerts.length === 0) {
     return (
-      <div className="text-center py-4 text-sm text-rh-light-muted dark:text-rh-muted">
+      <div className="text-center py-4 text-sm text-rh-light-text dark:text-white">
         No price alerts set for this ticker
       </div>
     );
@@ -108,10 +108,10 @@ export function PriceAlertsList({ alerts, onRefresh }: Props) {
 
             {/* Condition text */}
             <div>
-              <div className={`text-sm font-medium ${alert.enabled ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+              <div className={`text-sm font-medium ${alert.enabled ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-text dark:text-white'}`}>
                 {formatCondition(alert.condition, alert.targetPrice, alert.percentChange, alert.referencePrice)}
               </div>
-              <div className="text-xs text-rh-light-muted dark:text-rh-muted">
+              <div className="text-xs text-rh-light-text dark:text-white">
                 {alert.triggered ? (
                   <span className="text-rh-green font-medium">
                     Triggered {alert.triggeredAt ? new Date(alert.triggeredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
@@ -147,7 +147,7 @@ export function PriceAlertsList({ alerts, onRefresh }: Props) {
             <button
               onClick={() => handleDelete(alert.id)}
               disabled={deletingId === alert.id}
-              className="relative p-1.5 text-rh-light-muted dark:text-rh-muted hover:text-rh-red transition-colors disabled:opacity-50 after:content-[''] after:absolute after:-inset-2"
+              className="relative p-1.5 text-rh-light-text dark:text-white hover:text-rh-red transition-colors disabled:opacity-50 after:content-[''] after:absolute after:-inset-2"
               title="Delete alert"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

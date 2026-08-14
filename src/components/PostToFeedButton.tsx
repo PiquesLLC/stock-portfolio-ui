@@ -141,7 +141,7 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
         onClick={handleOpen}
         className={isFab
           ? `w-11 h-11 rounded-full bg-rh-green text-black hover:brightness-110 active:scale-95 flex items-center justify-center shadow-xl shadow-rh-green/30 transition-all ${className || ''}`
-          : `flex items-center gap-1.5 text-rh-light-muted dark:text-rh-muted hover:text-rh-green transition-colors ${className || ''}`}
+          : `flex items-center gap-1.5 text-rh-light-text dark:text-white hover:text-rh-green transition-colors ${className || ''}`}
         title="Post to Feed"
       >
         <svg className={isFab ? 'w-5 h-5' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={isFab ? 2.2 : 1.5}>
@@ -159,7 +159,7 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
             {/* Close */}
             <button
               onClick={handleClose}
-              className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white hover:bg-black/60 transition-all"
+              className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:bg-black/60 transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -170,7 +170,7 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
             {capturing ? (
               <div className="flex items-center justify-center py-20">
                 <div className="w-6 h-6 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
-                <span className="ml-3 text-sm text-white/40">Capturing chart...</span>
+                <span className="ml-3 text-sm text-white">Capturing chart...</span>
               </div>
             ) : previewImage ? (
               <img src={previewImage} alt="Chart preview" className="w-full h-auto" />
@@ -201,7 +201,7 @@ export function PostToFeedButton({ type, ticker, period = '1M', userId, classNam
                     <p className="text-xs text-rh-red mb-2">{postError}</p>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15">
+                    <span className="text-[10px] text-rh-light-text dark:text-white/80">
                       {capturedImage ? 'Screenshot of your chart' : 'Chart will be shared with your post'}
                     </span>
                     <button

@@ -22,7 +22,7 @@ export function BottleneckHero({ entry, onOpen, onTickerClick, prices }: Props) 
             className="w-1 h-3.5 rounded-full"
             style={{ backgroundColor: layerBarColor(entry.layer) }}
           />
-          <span className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text dark:text-rh-text">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-rh-text">
             {entry.layer}
           </span>
         </div>
@@ -67,7 +67,7 @@ export function BottleneckHero({ entry, onOpen, onTickerClick, prices }: Props) 
         <div className="flex gap-6 sm:gap-8 mb-5 flex-wrap">
           {primaryMetrics.map((m, i) => (
             <div key={i}>
-              <div className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium mb-1">
+              <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-medium mb-1">
                 {m.label}
               </div>
               <div
@@ -87,7 +87,7 @@ export function BottleneckHero({ entry, onOpen, onTickerClick, prices }: Props) 
       <div className="flex items-center gap-5 flex-wrap">
         {entry.relatedTickers.length > 0 && (
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium">
+            <span className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-medium">
               Related
             </span>
             {entry.relatedTickers.map((t) => {

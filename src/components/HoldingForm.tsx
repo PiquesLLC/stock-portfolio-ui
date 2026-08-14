@@ -61,7 +61,7 @@ export function HoldingForm({ onUpdate, heldTickers = [] }: Props) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Ticker</label>
+            <label className="block text-sm text-rh-light-text dark:text-white mb-1">Ticker</label>
             <TickerAutocompleteInput
               value={ticker}
               onChange={setTicker}
@@ -70,7 +70,7 @@ export function HoldingForm({ onUpdate, heldTickers = [] }: Props) {
             />
           </div>
           <div>
-            <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
+            <label className="block text-sm text-rh-light-text dark:text-white mb-1">Shares</label>
             <input
               type="number"
               inputMode="decimal"
@@ -83,9 +83,9 @@ export function HoldingForm({ onUpdate, heldTickers = [] }: Props) {
             />
           </div>
           <div>
-            <label className="block text-sm text-rh-light-muted dark:text-rh-muted mb-1">Average Cost</label>
+            <label className="block text-sm text-rh-light-text dark:text-white mb-1">Average Cost</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white">$</span>
               <input
                 type="number"
                 inputMode="decimal"

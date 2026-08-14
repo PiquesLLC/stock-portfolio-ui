@@ -82,8 +82,8 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
               onClick={() => handleAsk(s)}
               className="px-3 py-1.5 text-[11px] rounded-full
                 bg-gray-50/60 dark:bg-white/[0.03]
-                text-rh-light-muted/70 dark:text-white/30
-                hover:text-rh-light-text dark:hover:text-white/60
+                text-rh-light-text dark:text-white
+                hover:text-rh-light-text dark:hover:text-white
                 border border-gray-200/40 dark:border-white/[0.06]
                 hover:border-rh-green/30 hover:shadow-md hover:shadow-green-500/5
                 transition-all duration-200"
@@ -109,7 +109,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
             bg-gray-50/80 dark:bg-white/[0.04]
             backdrop-blur-xl
             text-rh-light-text dark:text-white
-            placeholder:text-rh-light-muted/40 dark:placeholder:text-white/20
+            placeholder:text-rh-light-text dark:placeholder:text-white/80
             border border-gray-200/60 dark:border-white/[0.08]
             focus:border-rh-green/50 focus:shadow-lg focus:shadow-green-500/10
             focus:outline-none
@@ -150,7 +150,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
       {error && !loading && (
         (error.includes('upgrade_required') || error.includes('limit_reached')) ? (
           <div className="mt-4 p-4 rounded-xl bg-gray-50/80 dark:bg-white/[0.04] text-center">
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">Upgrade to Premium to ask AI questions about stocks.</p>
+            <p className="text-xs text-rh-light-text dark:text-white mb-2">Upgrade to Premium to ask AI questions about stocks.</p>
             <a
               href="#tab=pricing"
               onClick={(e) => { e.preventDefault(); navigateToPricing(); }}
@@ -170,7 +170,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
       {response && !loading && (
         <div className="mt-4 space-y-3">
           <div className="bg-gray-50/60 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/30 dark:border-white/[0.05] p-4">
-            <p className="text-[12px] leading-[1.6] text-rh-light-text/80 dark:text-white/60 whitespace-pre-wrap">
+            <p className="text-[12px] leading-[1.6] text-rh-light-text/80 dark:text-white whitespace-pre-wrap">
               {response.answer}
             </p>
           </div>
@@ -178,7 +178,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
           {/* Citations */}
           {response.citations.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] text-rh-light-muted/40 dark:text-white/30 uppercase tracking-widest font-medium">Sources</span>
+              <span className="text-[10px] text-rh-light-text dark:text-white uppercase tracking-widest font-medium">Sources</span>
               {response.citations.slice(0, 5).map((url, i) => {
                 let domain = '';
                 try { domain = new URL(url).hostname.replace('www.', ''); } catch { domain = 'source'; }

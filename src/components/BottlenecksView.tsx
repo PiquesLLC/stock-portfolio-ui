@@ -148,7 +148,7 @@ export function BottlenecksView({ onTickerClick }: Props) {
   if (error || !data) {
     return (
       <div className="text-center py-12">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           {error || 'No bottleneck data available'}
         </p>
       </div>
@@ -167,7 +167,7 @@ export function BottlenecksView({ onTickerClick }: Props) {
     'px-4 py-2 text-sm font-bold tracking-wide transition-colors border-b-2 -mb-px whitespace-nowrap';
   const sectorTabActiveClass = 'text-rh-light-text dark:text-rh-text border-rh-green';
   const sectorTabInactiveClass =
-    'text-rh-light-muted dark:text-rh-muted border-transparent hover:text-rh-light-text dark:hover:text-rh-text';
+    'text-rh-light-text dark:text-white border-transparent hover:text-rh-light-text dark:hover:text-rh-text';
 
   return (
     <div>
@@ -176,7 +176,7 @@ export function BottlenecksView({ onTickerClick }: Props) {
         <h1 className="text-2xl font-bold text-rh-light-text dark:text-rh-text mb-1">
           Bottlenecks
         </h1>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           {SECTOR_BLURB[sectorFilter] || SECTOR_BLURB.AI}
         </p>
       </div>
@@ -239,7 +239,7 @@ export function BottlenecksView({ onTickerClick }: Props) {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-sm text-rh-light-muted dark:text-rh-muted">
+        <div className="text-center py-12 text-sm text-rh-light-text dark:text-white">
           No bottlenecks found in this layer.
         </div>
       )}

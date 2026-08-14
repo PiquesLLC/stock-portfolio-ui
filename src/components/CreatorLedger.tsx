@@ -27,7 +27,7 @@ function typeColor(type: CreatorLedgerEntryType): string {
     case 'earning': return 'text-rh-green';
     case 'refund': return 'text-red-500 dark:text-red-400';
     case 'payout': return 'text-blue-500 dark:text-blue-400';
-    case 'platform_fee': return 'text-rh-light-muted dark:text-rh-muted';
+    case 'platform_fee': return 'text-rh-light-text dark:text-white';
   }
 }
 
@@ -116,7 +116,7 @@ export function CreatorLedger({ onBack }: CreatorLedgerProps) {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8 text-center">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">{error}</p>
+        <p className="text-sm text-rh-light-text dark:text-white">{error}</p>
         <button onClick={onBack} className="mt-3 text-sm text-rh-green hover:underline">Go back</button>
       </div>
     );
@@ -140,17 +140,17 @@ export function CreatorLedger({ onBack }: CreatorLedgerProps) {
           <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
             bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-3 text-center">
             <p className="text-lg font-bold text-rh-green">{formatCents(summary.availableCents)}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5">Available</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mt-0.5">Available</p>
           </div>
           <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
             bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-3 text-center">
             <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCents(summary.reservedCents)}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5">Reserved</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mt-0.5">Reserved</p>
           </div>
           <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
             bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-3 text-center">
             <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCents(summary.pendingPayoutCents)}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5">Pending Payout</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mt-0.5">Pending Payout</p>
           </div>
         </div>
       )}
@@ -164,7 +164,7 @@ export function CreatorLedger({ onBack }: CreatorLedgerProps) {
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border ${
               typeFilter === f.value
                 ? 'border-rh-green bg-rh-green/10 text-rh-green'
-                : 'border-gray-200 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:border-gray-300 dark:hover:border-white/20'
+                : 'border-gray-200 dark:border-white/[0.1] text-rh-light-text dark:text-white hover:border-gray-300 dark:hover:border-white/20'
             }`}
           >
             {f.label}
@@ -175,7 +175,7 @@ export function CreatorLedger({ onBack }: CreatorLedgerProps) {
       {/* Entries */}
       {entries.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">No transactions yet.</p>
+          <p className="text-sm text-rh-light-text dark:text-white">No transactions yet.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
@@ -187,12 +187,12 @@ export function CreatorLedger({ onBack }: CreatorLedgerProps) {
                   <span className={`text-[10px] font-semibold uppercase tracking-wider ${typeColor(entry.type)}`}>
                     {typeLabel(entry.type)}
                   </span>
-                  <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+                  <span className="text-[10px] text-rh-light-text dark:text-white">
                     {formatDate(entry.createdAt)}
                   </span>
                 </div>
                 {entry.description && (
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">
+                  <p className="text-xs text-rh-light-text dark:text-white mt-0.5 truncate">
                     {entry.description}
                   </p>
                 )}

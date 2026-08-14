@@ -444,7 +444,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="group tap-target p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted
+        className="group tap-target p-1.5 rounded-lg text-rh-light-text dark:text-white
           hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
         aria-label="Notifications"
       >
@@ -480,7 +480,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
               )}
               <button
                 onClick={() => { setShowSettings(true); setOpen(false); }}
-                className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
+                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text"
                 title="Alert settings"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -493,7 +493,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
 
           {/* Notifications toggle + sound toggle + push toggle */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-rh-light-border dark:border-rh-border bg-rh-light-bg/50 dark:bg-rh-dark/50">
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <span className="text-xs text-rh-light-text dark:text-white">
               Notifications {notificationsEnabled ? 'on' : 'off'}
             </span>
             <div className="flex items-center gap-3">
@@ -501,7 +501,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
               <button
                 onClick={togglePush}
                 disabled={pushLoading}
-                className={`p-1 rounded transition-colors ${pushEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-rh-muted/40'} ${pushLoading ? 'opacity-50' : ''}`}
+                className={`p-1 rounded transition-colors ${pushEnabled ? 'text-rh-green' : 'text-rh-light-text dark:text-white'} ${pushLoading ? 'opacity-50' : ''}`}
                 title={pushEnabled ? 'Push notifications on' : !pushSupported ? 'Push not available — try removing and re-adding app to home screen' : getPushPermission() === 'denied' ? 'Push blocked by browser — check site settings' : 'Enable push notifications'}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -511,7 +511,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
               {/* Sound toggle */}
               <button
                 onClick={toggleSound}
-                className={`p-1 rounded transition-colors ${soundEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-rh-muted/40'}`}
+                className={`p-1 rounded transition-colors ${soundEnabled ? 'text-rh-green' : 'text-rh-light-text dark:text-white'}`}
                 title={soundEnabled ? 'Sound on' : 'Sound off'}
               >
                 {soundEnabled ? (
@@ -547,21 +547,21 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
               </svg>
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">Loading notifications…</p>
+              <p className="text-sm text-rh-light-text dark:text-white">Loading notifications…</p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="px-4 py-10 text-center">
-              <svg className="w-8 h-8 mx-auto mb-2 text-rh-light-muted/30 dark:text-rh-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 mx-auto mb-2 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">All caught up</p>
-              <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">No new notifications</p>
+              <p className="text-sm text-rh-light-text dark:text-white">All caught up</p>
+              <p className="text-[10px] text-rh-light-text dark:text-white mt-0.5">No new notifications</p>
             </div>
           ) : (
             <div>
               {groupByDay(notifications.slice(0, 30)).map(group => (
                 <div key={group.label}>
-                  <div className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 bg-rh-light-card dark:bg-rh-card sticky top-0 z-10">
+                  <div className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 bg-rh-light-card dark:bg-rh-card sticky top-0 z-10">
                     {group.label}
                   </div>
                   {group.items.map(notification => (
@@ -591,7 +591,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
                               notification.type === 'analyst' ? 'text-amber-500' :
                               notification.label === '52W High' || notification.label === 'All-Time High' ? 'text-emerald-500' :
                               notification.label === '52W Low' || notification.label === 'All-Time Low' ? 'text-rose-500' :
-                              'text-rh-light-muted dark:text-rh-muted'
+                              'text-rh-light-text dark:text-white'
                             }`}>
                               {notification.label}
                             </span>
@@ -600,7 +600,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
                                 {notification.ticker}
                               </span>
                             )}
-                            <span className="ml-auto text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 flex-shrink-0">
+                            <span className="ml-auto text-[10px] text-rh-light-text dark:text-white flex-shrink-0">
                               {timeAgo(notification.createdAt)}
                             </span>
                           </div>

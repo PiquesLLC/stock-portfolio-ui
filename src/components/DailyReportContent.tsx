@@ -91,7 +91,7 @@ function SectorBars({ sectors, onTickerClick }: { sectors: SectorBarItem[]; onTi
             className={`flex items-center gap-3 ${etf ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.03] -mx-2 px-2 rounded-lg transition-colors' : ''}`}
             onClick={() => etf && onTickerClick?.(etf)}
           >
-            <span className="text-xs w-24 text-right shrink-0 font-medium text-rh-light-muted dark:text-white/40">{s.name}</span>
+            <span className="text-xs w-24 text-right shrink-0 font-medium text-rh-light-text dark:text-white">{s.name}</span>
             <div className="flex-1 flex items-center h-5">
               <div className="relative w-full h-full flex items-center">
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200/60 dark:bg-white/[0.08]" />
@@ -106,7 +106,7 @@ function SectorBars({ sectors, onTickerClick }: { sectors: SectorBarItem[]; onTi
                 />
               </div>
             </div>
-            <span className={`text-xs font-semibold min-w-[50px] text-right font-mono ${zero ? 'text-rh-light-muted dark:text-white/40' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+            <span className={`text-xs font-semibold min-w-[50px] text-right font-mono ${zero ? 'text-rh-light-text dark:text-white' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
               {isPositive ? '+' : ''}{pct.toFixed(2)}%
             </span>
           </div>
@@ -186,7 +186,7 @@ function SentimentGauge({ sentiment }: { sentiment: MarketSentiment }) {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Fear & Greed Index</h3>
+        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Fear & Greed Index</h3>
       </div>
 
       {/* Score number above the gauge */}
@@ -273,7 +273,7 @@ function SentimentGauge({ sentiment }: { sentiment: MarketSentiment }) {
             sig.signal <= 75 ? 'Greed' : 'Extreme Greed';
           return (
             <div key={key} className="flex items-center gap-3">
-              <span className="text-[11px] text-rh-light-muted dark:text-white/50 w-36 shrink-0">{sigLabel}</span>
+              <span className="text-[11px] text-rh-light-text dark:text-white/80 w-36 shrink-0">{sigLabel}</span>
               <div className="flex-1 h-1.5 bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{ width: `${sig.signal}%`, backgroundColor: sigColor }} />
               </div>
@@ -422,7 +422,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-rh-light-text dark:text-white tracking-tight mb-1">Today's Brief</h1>
         <p className="text-sm text-rh-green mb-1">{formatDate(now)}</p>
-        <p className="text-[11px] text-rh-light-muted dark:text-white/30">{readingTime} min read</p>
+        <p className="text-[11px] text-rh-light-text dark:text-white">{readingTime} min read</p>
       </div>
 
       {/* Index strip — S&P 500 / NASDAQ / DOW */}
@@ -439,7 +439,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
               className="bg-gray-50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] rounded-xl px-4 py-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
               onClick={() => onTickerClick?.(ticker)}
             >
-              <p className="text-[11px] text-rh-light-muted dark:text-white/40 mb-1">{label}</p>
+              <p className="text-[11px] text-rh-light-text dark:text-white mb-1">{label}</p>
               {q ? (
                 <>
                   <p className="text-lg font-semibold text-rh-light-text dark:text-white font-mono">${q.price.toFixed(2)}</p>
@@ -460,7 +460,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Your Portfolio</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Your Portfolio</h3>
           </div>
           <div className="bg-gray-50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] rounded-xl px-5 py-4">
             <div className="flex items-center justify-between">
@@ -478,7 +478,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
             </div>
             {/* Total return line */}
             <div className="mt-2 pt-2 border-t border-gray-200/60 dark:border-white/[0.06] flex justify-between text-[12px]">
-              <span className="text-rh-light-muted dark:text-white/30">Total Return</span>
+              <span className="text-rh-light-text dark:text-white">Total Return</span>
               <span className={`font-mono ${livePortfolio.totalPLPercent >= 0 ? 'text-rh-green/60' : 'text-rh-red/60'}`}>
                 {formatPct(livePortfolio.totalPLPercent)} ({livePortfolio.totalPL >= 0 ? '+' : ''}{formatCurrency(livePortfolio.totalPL)})
               </span>
@@ -495,7 +495,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">S&amp;P 500 Sectors</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">S&amp;P 500 Sectors</h3>
           </div>
           <SectorBars sectors={heatmapSectors} onTickerClick={onTickerClick} />
         </div>
@@ -506,7 +506,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Top Movers</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Top Movers</h3>
           </div>
           <div className="space-y-1">
             {movers.gainers.map(h => (
@@ -541,11 +541,11 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1 h-4 bg-rh-green rounded-sm animate-pulse" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Market Overview</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Market Overview</h3>
           </div>
           <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.03] px-4 py-5 flex items-center gap-3">
             <div className="animate-spin rounded-full h-4 w-4 border border-rh-green border-t-transparent flex-shrink-0" />
-            <p className="text-[13px] text-rh-light-muted dark:text-white/50">Your AI briefing is being written — this updates automatically in a few seconds.</p>
+            <p className="text-[13px] text-rh-light-text dark:text-white/80">Your AI briefing is being written — this updates automatically in a few seconds.</p>
           </div>
         </section>
       )}
@@ -555,9 +555,9 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1 h-4 bg-rh-green rounded-sm" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Market Overview</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Market Overview</h3>
           </div>
-          <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
+          <p className="text-[14px] text-rh-light-text/80 dark:text-white/80 leading-[1.8]">
             {aiReport.marketOverview}
           </p>
         </section>
@@ -568,9 +568,9 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1 h-4 bg-rh-green rounded-sm" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Portfolio Analysis</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Portfolio Analysis</h3>
           </div>
-          <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.8]">
+          <p className="text-[14px] text-rh-light-text/80 dark:text-white/80 leading-[1.8]">
             {aiReport.portfolioSummary}
           </p>
         </section>
@@ -581,7 +581,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-4 bg-rh-green rounded-sm" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Why Positions Moved</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Why Positions Moved</h3>
           </div>
           <div className="space-y-5">
             {aiReport.positionMoves.map((move, i) => {
@@ -602,7 +602,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
                     </span>
                   </div>
                   {move.reason && move.reason.trim().length > 0 && (
-                    <p className="text-[14px] text-rh-light-text/80 dark:text-white/75 leading-[1.7]">
+                    <p className="text-[14px] text-rh-light-text/80 dark:text-white/80 leading-[1.7]">
                       {move.reason}
                     </p>
                   )}
@@ -621,7 +621,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Earnings This Week</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Earnings This Week</h3>
           </div>
           <div className="space-y-2">
             {earnings.map(e => (
@@ -635,11 +635,11 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
                   <span className="text-sm font-medium text-rh-light-text dark:text-white">{e.ticker}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-[12px] text-rh-light-muted dark:text-white/50">
+                  <p className="text-[12px] text-rh-light-text dark:text-white/80">
                     {e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `In ${e.daysUntil} days`}
                   </p>
                   {e.estimatedEPS != null && (
-                    <p className="text-[11px] text-rh-light-muted/60 dark:text-white/30 font-mono">Est. EPS ${e.estimatedEPS.toFixed(2)}</p>
+                    <p className="text-[11px] text-rh-light-text dark:text-white font-mono">Est. EPS ${e.estimatedEPS.toFixed(2)}</p>
                   )}
                 </div>
               </button>
@@ -653,7 +653,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-[3px] h-[14px] rounded-sm bg-rh-green flex-shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-muted dark:text-white/40">Ex-Dividend Today</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-rh-light-text dark:text-white">Ex-Dividend Today</h3>
           </div>
           <div className="space-y-2">
             {dividends.map(d => (
@@ -666,7 +666,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
                   <div className="w-1.5 h-1.5 rounded-full bg-rh-green" />
                   <span className="text-sm font-medium text-rh-light-text dark:text-white">{d.ticker}</span>
                 </div>
-                <p className="text-[11px] text-rh-light-muted/60 dark:text-white/30 font-mono">${d.amountPerShare.toFixed(4)}/share</p>
+                <p className="text-[11px] text-rh-light-text dark:text-white font-mono">${d.amountPerShare.toFixed(4)}/share</p>
               </button>
             ))}
           </div>
@@ -677,7 +677,7 @@ export const DailyReportContent = forwardRef<DailyReportContentHandle, DailyRepo
       {!livePortfolio && !sentiment && Object.keys(indexQuotes).length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="w-6 h-6 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
-          <p className="text-sm text-rh-light-muted dark:text-white/40">Loading your brief...</p>
+          <p className="text-sm text-rh-light-text dark:text-white">Loading your brief...</p>
         </div>
       )}
 

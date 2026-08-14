@@ -42,7 +42,7 @@ export function MACDPanel({ data, toX, width, visibleCount }: Props) {
     <div className="mt-1">
       <div className="flex items-center gap-3 mb-0.5 px-0.5">
         <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: MACD_COLORS.macd }}>MACD</span>
-        <span className="flex items-center gap-1 text-[8px] text-rh-light-muted/40 dark:text-rh-muted/40">
+        <span className="flex items-center gap-1 text-[8px] text-rh-light-text dark:text-white">
           <span className="w-2 h-0.5 rounded" style={{ backgroundColor: MACD_COLORS.macd }} /> MACD
           <span className="w-2 h-0.5 rounded ml-1" style={{ backgroundColor: MACD_COLORS.signal }} /> Signal
         </span>

@@ -95,14 +95,14 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <div className="w-0.5 h-3.5 rounded-full bg-rh-green" />
-            <h3 className="text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50">Current Holdings <Acronym label="P/L" /></h3>
+            <h3 className="text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white">Current Holdings <Acronym label="P/L" /></h3>
           </div>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setShowReportModal(true)}
               title="Generate performance report"
-              className="p-1 rounded-md text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-green hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
+              className="p-1 rounded-md text-rh-light-text dark:text-white hover:text-rh-green hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -110,7 +110,7 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
             </button>
           </div>
         </div>
-        <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 mb-3">Unrealized gains only</p>
+        <p className="text-[10px] text-rh-light-text dark:text-white mb-3">Unrealized gains only</p>
 
         <div className={`flex items-baseline gap-1.5 mb-3 ${
           holdingsPL.unrealizedPL >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -121,7 +121,7 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
           <p className="text-sm font-semibold tabular-nums">({formatPercent(holdingsPL.unrealizedPLPercent)})</p>
         </div>
 
-        <div className="flex justify-between text-sm text-rh-light-muted/60 dark:text-rh-muted/60 border-t border-gray-200/10 dark:border-white/[0.04] pt-3">
+        <div className="flex justify-between text-sm text-rh-light-text dark:text-white border-t border-gray-200/10 dark:border-white/[0.04] pt-3">
           <div>
             <p className="text-[10px] uppercase tracking-wider">Total Cost</p>
             <p className="text-rh-light-text/80 dark:text-white/80 tabular-nums">{formatCurrency(holdingsPL.totalCost)}</p>
@@ -143,10 +143,10 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-0.5 h-3.5 rounded-full bg-rh-green" />
-              <h3 className="text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50">Broker Lifetime Performance</h3>
+              <h3 className="text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white">Broker Lifetime Performance</h3>
             </div>
             {brokerLifetime.asOf && (
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+              <span className="text-xs text-rh-light-text dark:text-white">
                 as of {formatDate(brokerLifetime.asOf)}
               </span>
             )}
@@ -154,7 +154,7 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
 
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200/10 dark:divide-white/[0.04]">
             <div className="px-4 first:pl-0 last:pr-0">
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Net Contributions</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Net Contributions</p>
               <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                 {brokerLifetime.netContributions !== null
                   ? formatCurrency(brokerLifetime.netContributions)
@@ -162,7 +162,7 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
               </p>
             </div>
             <div className="px-4 first:pl-0 last:pr-0">
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Current Value</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Current Value</p>
               <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                 {brokerLifetime.currentValue !== null
                   ? formatCurrency(brokerLifetime.currentValue)
@@ -170,7 +170,7 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
               </p>
             </div>
             <div className="px-4 first:pl-0 last:pr-0">
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Total Return</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Total Return</p>
               <p
                 className={`text-lg font-semibold ${
                   (brokerLifetime.absoluteReturn ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -182,7 +182,7 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
               </p>
             </div>
             <div className="px-4 first:pl-0 last:pr-0">
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Return %</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Return %</p>
               <p
                 className={`text-lg font-semibold ${
                   (brokerLifetime.percentReturn ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
@@ -195,7 +195,7 @@ export function PerformanceSummary({ refreshTrigger, portfolioId }: Props) {
             </div>
           </div>
 
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-3">
+          <p className="text-xs text-rh-light-text dark:text-white mt-3">
             User-provided data from broker account
           </p>
         </div>

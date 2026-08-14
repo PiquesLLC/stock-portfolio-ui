@@ -120,7 +120,7 @@ function SectorDrawerList({ sectors }: { sectors: Array<{ sector: string; weight
                 </div>
                 <span
                   className={`text-sm font-bold transition-colors duration-200 ${
-                    isHovered ? 'text-rh-green' : 'text-rh-light-muted dark:text-rh-muted'
+                    isHovered ? 'text-rh-green' : 'text-rh-light-text dark:text-white'
                   }`}
                 >
                   {s.weight.toFixed(2)}%
@@ -156,7 +156,7 @@ function SectorDrawerList({ sectors }: { sectors: Array<{ sector: string; weight
             top: tooltipPos.y,
           }}
         >
-          <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
+          <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed">
             {SECTOR_DESCRIPTIONS[hoveredData.sector] || 'Sector allocation in the fund.'}
           </p>
         </div>
@@ -391,12 +391,12 @@ function Sector3DVisualization({ sectors }: SectorVisualizationProps) {
                   {activeData.weight.toFixed(2)}%
                 </span>
               </div>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted leading-relaxed">
+              <p className="text-xs text-rh-light-text dark:text-white leading-relaxed">
                 {SECTOR_DESCRIPTIONS[activeData.sector] || 'Sector allocation in the fund.'}
               </p>
               {selectedSector === activeData.sector && (
                 <div className="mt-3 pt-2 border-t border-rh-light-border/30 dark:border-rh-border/30 flex items-center justify-between">
-                  <p className="text-[10px] text-rh-light-muted/70 dark:text-rh-muted/70">
+                  <p className="text-[10px] text-rh-light-text dark:text-white">
                     Click again to collapse
                   </p>
                   <div
@@ -463,7 +463,7 @@ function Sector3DVisualization({ sectors }: SectorVisualizationProps) {
               <span className={isActive ? 'font-semibold' : 'text-rh-light-text dark:text-rh-text'}>
                 {s.sector}
               </span>
-              <span className={isActive ? 'font-bold' : 'text-rh-light-muted dark:text-rh-muted'}>
+              <span className={isActive ? 'font-bold' : 'text-rh-light-text dark:text-white'}>
                 {s.weight.toFixed(1)}%
               </span>
             </button>
@@ -519,7 +519,7 @@ function Drawer({ open, onClose, title, children }: {
           <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-text dark:text-white
               hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
             aria-label="Close"
           >
@@ -606,7 +606,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                   activeTab === t.id
                     ? 'bg-rh-light-card dark:bg-rh-card text-rh-green shadow-sm'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                 }`}
               >
                 {t.label}
@@ -626,19 +626,19 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                   ? 'Dividends actually credited to your account over the trailing 12 months (share-accurate).'
                   : 'Trailing 12-month dividends per share for this fund.'}
               >
-                <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">TTM Total</div>
+                <div className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">TTM Total</div>
                 <div className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
                   {holding && hasTtmReceived ? formatCurrency(ttmReceived) : `$${ttmPerShare.toFixed(4)}/sh`}
                 </div>
               </div>
               <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-3 py-2">
-                <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">Last Div</div>
+                <div className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Last Div</div>
                 <div className="text-sm font-semibold text-rh-green">
                   {lastDividend ? `$${lastDividend.amountPerShare.toFixed(4)}` : 'N/A'}
                 </div>
               </div>
               <div className="bg-rh-light-bg dark:bg-rh-dark rounded-lg px-3 py-2">
-                <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">Frequency</div>
+                <div className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Frequency</div>
                 <div className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{frequency}</div>
               </div>
             </div>
@@ -650,7 +650,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                 className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors ${
                   dividendView === 'received'
                     ? 'bg-rh-green/10 text-rh-green'
-                    : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                    : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                 }`}
               >
                 Received
@@ -660,7 +660,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                 className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors ${
                   dividendView === 'ex-dates'
                     ? 'bg-rh-green/10 text-rh-green'
-                    : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                    : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                 }`}
               >
                 Ex-Dates
@@ -676,7 +676,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                     return (
                       <div key={c.id} className="flex items-center justify-between py-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+                          <span className="text-xs text-rh-light-text dark:text-white">
                             {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                           </span>
                           {isReinvested && (
@@ -693,20 +693,20 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                     );
                   })
                 ) : (
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted py-2">No dividends received yet.</p>
+                  <p className="text-xs text-rh-light-text dark:text-white py-2">No dividends received yet.</p>
                 )
               ) : (
                 dividendEvents.length > 0 ? (
                   dividendEvents.slice(0, 5).map(d => (
                     <div key={d.id} className="flex items-center justify-between py-1">
-                      <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+                      <span className="text-xs text-rh-light-text dark:text-white">
                         Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                       </span>
                       <span className="text-xs font-semibold text-rh-green">${d.amountPerShare.toFixed(4)}/sh</span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted py-2">No dividend history available.</p>
+                  <p className="text-xs text-rh-light-text dark:text-white py-2">No dividend history available.</p>
                 )
               )}
             </div>
@@ -721,7 +721,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                   Show all ({displayEvents.length})
                 </button>
               )}
-              <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 ml-auto">
+              <span className="text-[10px] text-rh-light-text dark:text-white ml-auto">
                 Source: Yahoo Finance
               </span>
             </div>
@@ -739,13 +739,13 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
             {/* Top 3 holdings */}
             {etfHoldings.topHoldings.length > 0 && (
               <div className="mb-3">
-                <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider mb-2">
+                <div className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mb-2">
                   Top Holdings ({etfHoldings.totalHoldingsPercent.toFixed(1)}% of fund)
                 </div>
                 <div className="space-y-2">
                   {etfHoldings.topHoldings.slice(0, 3).map((h, i) => (
                     <div key={h.symbol} className="flex items-center gap-2">
-                      <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 w-4">{i + 1}</span>
+                      <span className="text-[10px] text-rh-light-text dark:text-white w-4">{i + 1}</span>
                       <button
                         onClick={() => onTickerClick?.(h.symbol)}
                         className="text-xs font-mono font-semibold text-rh-green hover:underline w-14"
@@ -778,7 +778,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
         )}
 
         {activeTab === 'holdings' && !hasHoldings && (
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted py-4">Holdings data not available for this ETF.</p>
+          <p className="text-xs text-rh-light-text dark:text-white py-4">Holdings data not available for this ETF.</p>
         )}
       </div>
 
@@ -795,7 +795,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               dividendView === 'received'
                 ? 'bg-rh-green/10 text-rh-green'
-                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted'
+                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white'
             }`}
           >
             Received
@@ -805,7 +805,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               dividendView === 'ex-dates'
                 ? 'bg-rh-green/10 text-rh-green'
-                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted'
+                : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white'
             }`}
           >
             Ex-Dates
@@ -819,7 +819,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
               return (
                 <div key={c.id} className="flex items-center justify-between py-2 border-b border-rh-light-border/20 dark:border-rh-border/20">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-rh-light-muted dark:text-rh-muted">
+                    <span className="text-sm text-rh-light-text dark:text-white">
                       {new Date(c.creditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                     {isReinvested && (
@@ -844,7 +844,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
                   <div className="text-sm text-rh-light-text dark:text-rh-text">
                     Ex: {new Date(d.exDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
-                  <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
+                  <div className="text-[10px] text-rh-light-text dark:text-white">
                     Pay: {new Date(d.payDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </div>
                 </div>
@@ -854,7 +854,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
           )}
         </div>
 
-        <p className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-4">Source: Yahoo Finance</p>
+        <p className="text-[10px] text-rh-light-text dark:text-white mt-4">Source: Yahoo Finance</p>
       </Drawer>
 
       {/* Holdings Drawer */}
@@ -875,14 +875,14 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
               <div>
                 <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-3">
                   Top {etfHoldings.topHoldings.length} Holdings
-                  <span className="font-normal text-rh-light-muted dark:text-rh-muted ml-1">
+                  <span className="font-normal text-rh-light-text dark:text-white ml-1">
                     ({etfHoldings.totalHoldingsPercent.toFixed(2)}% of assets)
                   </span>
                 </h3>
                 <div className="space-y-2">
                   {etfHoldings.topHoldings.map((h, i) => (
                     <div key={h.symbol} className="flex items-center gap-2 py-1 border-b border-rh-light-border/20 dark:border-rh-border/20">
-                      <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 w-5">{i + 1}</span>
+                      <span className="text-[10px] text-rh-light-text dark:text-white w-5">{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs text-rh-light-text dark:text-rh-text truncate">{h.holdingName}</div>
                         <button
@@ -905,7 +905,7 @@ export function ETFDetailsPanel({ ticker, dividendEvents, dividendCredits, etfHo
             )}
 
             {etfHoldings.asOfDate && (
-              <p className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-4">
+              <p className="text-[10px] text-rh-light-text dark:text-white mt-4">
                 As of {new Date(etfHoldings.asOfDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
             )}

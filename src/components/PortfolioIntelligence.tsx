@@ -78,14 +78,14 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
 
       <div className="grid grid-cols-3 gap-3">
         <div className="py-2">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1" title="Percentage of holdings that moved up">Win Rate</div>
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1" title="Percentage of holdings that moved up">Win Rate</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">
             {totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0}%
           </div>
-          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">{winCount} up / {lossCount} down</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-text dark:text-white mt-0.5">{winCount} up / {lossCount} down</div>
         </div>
         <div className="py-2">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1" title="The holding with the largest dollar impact on your portfolio">Biggest Mover</div>
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1" title="The holding with the largest dollar impact on your portfolio">Biggest Mover</div>
           <button className={`text-base sm:text-lg font-bold hover:opacity-80 transition-opacity ${biggestMover.contributionDollar >= 0 ? 'text-rh-green' : 'text-rh-red'}`}
             onClick={() => onTickerClick?.(biggestMover.ticker)}>
             {biggestMover.ticker}
@@ -95,9 +95,9 @@ function PulseSummary({ topContributors, topDetractors, winnersCount, losersCoun
           </div>
         </div>
         <div className="py-2 min-w-0">
-          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1 truncate" title="Top Concentration — how much of total movement comes from the single biggest mover">Top Conc.</div>
+          <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1 truncate" title="Top Concentration — how much of total movement comes from the single biggest mover">Top Conc.</div>
           <div className="text-base sm:text-lg font-bold text-rh-light-text dark:text-rh-text tabular-nums">{topConcentration.toFixed(0)}%</div>
-          <div className="text-[9px] sm:text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-0.5">of movement</div>
+          <div className="text-[9px] sm:text-[10px] text-rh-light-text dark:text-white mt-0.5">of movement</div>
         </div>
       </div>
 
@@ -186,7 +186,7 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
         {formatDollar(entry.contributionDollar)}
       </span>
       <span className={`w-12 sm:w-14 text-right text-[10px] sm:text-xs tabular-nums ${
-        entry.percentReturn === null ? 'text-rh-light-muted dark:text-rh-muted' :
+        entry.percentReturn === null ? 'text-rh-light-text dark:text-white' :
         isPositive ? 'text-rh-green' : 'text-red-400'
       }`}>
         {entry.percentReturn !== null ? formatPct(entry.percentReturn) : '—'}
@@ -227,19 +227,19 @@ function ContributorBar({ entry, maxAbsDollar, isPositive, onTickerClick, totalA
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
               <div>
-                <span className="text-rh-light-muted/70 dark:text-white/40">Shares</span>
+                <span className="text-rh-light-text dark:text-white">Shares</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">{entry.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               </div>
               <div>
-                <span className="text-rh-light-muted/70 dark:text-white/40">Price</span>
+                <span className="text-rh-light-text dark:text-white">Price</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div>
-                <span className="text-rh-light-muted/70 dark:text-white/40">Avg Cost</span>
+                <span className="text-rh-light-text dark:text-white">Avg Cost</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.avgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div>
-                <span className="text-rh-light-muted/70 dark:text-white/40">Position</span>
+                <span className="text-rh-light-text dark:text-white">Position</span>
                 <p className="font-medium text-rh-light-text dark:text-rh-text tabular-nums">${entry.currentValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
               </div>
             </div>
@@ -309,7 +309,7 @@ function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[];
                   <span className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate block">{s.sector}</span>
                 </div>
                 <span className={`text-sm font-bold tabular-nums ${c.text}`}>{s.exposurePercent}%</span>
-                <svg className={`w-3 h-3 text-rh-light-muted dark:text-rh-muted transition-transform duration-200 shrink-0 ${isActive ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-3 h-3 text-rh-light-text dark:text-white transition-transform duration-200 shrink-0 ${isActive ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -335,7 +335,7 @@ function SectorBar({ sectors, onTickerClick }: { sectors: SectorExposureEntry[];
                       </button>
                     ))}
                     {s.tickers.length > 5 && (
-                      <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[11px] font-medium text-rh-light-muted dark:text-rh-muted bg-gray-100/40 dark:bg-white/[0.03]">
+                      <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[11px] font-medium text-rh-light-text dark:text-white bg-gray-100/40 dark:bg-white/[0.03]">
                         +{s.tickers.length - 5} more
                       </span>
                     )}
@@ -460,7 +460,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                   ? 'text-rh-green'
                   : session === 'PRE' || session === 'POST'
                     ? 'text-amber-500 dark:text-amber-400'
-                    : 'text-rh-light-muted/50 dark:text-rh-muted/50'
+                    : 'text-rh-light-text dark:text-white'
               }`}>
                 {session === 'REG' && <span className="w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />}
                 {session === 'REG' ? 'Live' : session === 'PRE' ? 'Pre-Market' : session === 'POST' ? 'After Hours' : 'Closed'}
@@ -476,7 +476,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
                 className={`relative px-2.5 py-2 text-[12px] font-medium transition-all disabled:opacity-50 ${
                   selectedWindow === w
                     ? 'text-rh-light-text dark:text-white'
-                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                 }`}
               >
                 {WINDOW_LABELS[w]}
@@ -489,7 +489,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
         </div>
         {allEntries.length > 0 && (
           <div className={`text-2xl font-bold tabular-nums ${netPnL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
-            {formatDollar(netPnL)} <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted">{WINDOW_LABELS[selectedWindow].toLowerCase()}</span>
+            {formatDollar(netPnL)} <span className="text-xs font-normal text-rh-light-text dark:text-white">{WINDOW_LABELS[selectedWindow].toLowerCase()}</span>
           </div>
         )}
       </div>
@@ -501,7 +501,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
             {renderRichText(headline)}{detail ? '.' : ''}
           </p>
           {detail && (
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+            <p className="text-xs text-rh-light-text dark:text-white mt-1">
               {renderRichText(detail)}
             </p>
           )}
@@ -534,7 +534,7 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
       )}
 
       {isBusy && (
-        <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+        <div className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white">
           <div className="w-3 h-3 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
           <span>Loading...</span>
         </div>
@@ -606,33 +606,33 @@ export function PortfolioIntelligence({ initialData, fetchFn, onTickerClick, ses
               <div>
               <div className="grid grid-cols-2 sm:grid-cols-4">
                 <div className="py-2 pr-3 border-r border-gray-200/10 dark:border-white/[0.04]">
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="How much your portfolio moves relative to the S&P 500. 1.0 = moves with the market">Portfolio <Acronym label="Beta" /></p>
+                  <p className="text-xs text-rh-light-text dark:text-white" title="How much your portfolio moves relative to the S&P 500. 1.0 = moves with the market">Portfolio <Acronym label="Beta" /></p>
                   <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                     {beta.portfolioBeta.toFixed(2)}
                   </p>
                 </div>
                 <div className="py-2 px-3 border-r border-gray-200/10 dark:border-white/[0.04]">
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="Annualized excess return above what market exposure alone would predict"><Acronym label="Alpha (ann.)" /></p>
+                  <p className="text-xs text-rh-light-text dark:text-white" title="Annualized excess return above what market exposure alone would predict"><Acronym label="Alpha (ann.)" /></p>
                   <p className={`text-lg font-semibold ${beta.alphaPercent >= 0 ? 'text-rh-green' : 'text-red-400'}`}>
                     {formatPct(beta.alphaPercent)}
                   </p>
                 </div>
                 <div className="py-2 px-3 border-r border-gray-200/10 dark:border-white/[0.04]">
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted"><Acronym label="SPY" /> Return</p>
+                  <p className="text-xs text-rh-light-text dark:text-white"><Acronym label="SPY" /> Return</p>
                   <p className={`text-lg font-semibold ${beta.spyReturnPercent >= 0 ? 'text-rh-green' : 'text-red-400'}`}>
                     {formatPct(beta.spyReturnPercent)}
                   </p>
                 </div>
                 {beta.betaContributionPercent !== null && (
                   <div className="py-2 pl-3">
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted" title="How much of your portfolio return is explained by market movement alone">Market Contrib.</p>
+                    <p className="text-xs text-rh-light-text dark:text-white" title="How much of your portfolio return is explained by market movement alone">Market Contrib.</p>
                     <p className="text-lg font-semibold text-rh-light-text dark:text-rh-text">
                       {beta.betaContributionPercent.toFixed(1)}%
                     </p>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">{beta.dataNote}</p>
+              <p className="text-xs text-rh-light-text dark:text-white mt-2">{beta.dataNote}</p>
               </div>
             </div>
           )}

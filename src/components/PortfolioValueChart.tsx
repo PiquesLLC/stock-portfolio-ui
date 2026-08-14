@@ -1056,7 +1056,7 @@ export function PortfolioValueChart({
         <img src="/north-signal-logo-transparent.png" alt="" className="w-12 h-12" />
         <div>
           <div className="text-white text-sm font-bold leading-tight">NalaAI.com</div>
-          <div className="text-white/40 text-[9px] leading-tight">Portfolio Intelligence Platform</div>
+          <div className="text-white text-[9px] leading-tight">Portfolio Intelligence Platform</div>
         </div>
       </div>
       {/* Fixed-height header area — prevents chart from shifting when measurement state changes.
@@ -1089,7 +1089,7 @@ export function PortfolioValueChart({
                     onClick={() => setShowBreakdown(v => !v)}
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-medium text-transparent hover:border hover:border-rh-light-muted/40 dark:hover:border-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/35 transition-colors"
+                    className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-medium text-transparent hover:border hover:border-rh-light-muted/40 dark:hover:border-white/25 hover:text-rh-light-text dark:hover:text-white transition-colors"
                   >
                     i
                   </button>
@@ -1097,11 +1097,11 @@ export function PortfolioValueChart({
                     <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/[0.06] backdrop-blur-xl border border-gray-200/60 dark:border-white/[0.08] shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] whitespace-nowrap z-20 animate-in fade-in duration-150">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-6">
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Assets</span>
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/80">Assets</span>
                           <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className="flex items-center justify-between gap-6">
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">Equity</span>
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/80">Equity</span>
                           <span className="text-xs font-bold text-gray-900 dark:text-rh-text">${portfolioBreakdown.netEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         {portfolioBreakdown.cashBalance > 0 && (
@@ -1144,12 +1144,12 @@ export function PortfolioValueChart({
                     <>
                       <p className={`text-sm sm:text-base mt-1.5 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                         {formatChange(regChange)} ({formatPct(regChangePct)})
-                        <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                        <span className="text-rh-light-text dark:text-white font-normal text-sm ml-2">Today</span>
                       </p>
                       <p className={`text-sm mt-0.5 font-medium ${displayChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                         {formatChange(displayChange)} ({formatPct(displayChangePct)})
-                        <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">Pre-market</span>
-                        {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                        <span className="text-rh-light-text dark:text-white font-normal text-xs ml-1.5">Pre-market</span>
+                        {hoverLabel && <span className="text-rh-light-text dark:text-white font-normal text-xs ml-1.5">{hoverLabel}</span>}
                       </p>
                     </>
                   );
@@ -1158,8 +1158,8 @@ export function PortfolioValueChart({
                 return (
                   <p className={`text-sm sm:text-base mt-1.5 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatChange(displayChange)} ({formatPct(displayChangePct)})
-                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Pre-market</span>
-                    {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                    <span className="text-rh-light-text dark:text-white font-normal text-sm ml-2">Pre-market</span>
+                    {hoverLabel && <span className="text-rh-light-text dark:text-white font-normal text-xs ml-1.5">{hoverLabel}</span>}
                   </p>
                 );
               }
@@ -1175,12 +1175,12 @@ export function PortfolioValueChart({
                   <>
                     <p className={`text-sm sm:text-base mt-1.5 font-semibold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {formatChange(regChange)} ({formatPct(regChangePct)})
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                      <span className="text-rh-light-text dark:text-white font-normal text-sm ml-2">Today</span>
                     </p>
                     <p className={`text-sm mt-0.5 font-medium ${ahChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                       {formatChange(ahChange)} ({formatPct(ahChangePct)})
-                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-xs ml-1.5">After hours</span>
-                      {hoverLabel && <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-1.5">{hoverLabel}</span>}
+                      <span className="text-rh-light-text dark:text-white font-normal text-xs ml-1.5">After hours</span>
+                      {hoverLabel && <span className="text-rh-light-text dark:text-white font-normal text-xs ml-1.5">{hoverLabel}</span>}
                     </p>
                   </>
                 );
@@ -1191,7 +1191,7 @@ export function PortfolioValueChart({
                 return (
                   <p className={`text-sm sm:text-base mt-1.5 font-semibold ${displayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatChange(displayChange)} ({formatPct(displayChangePct)})
-                    <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Pre-market</span>
+                    <span className="text-rh-light-text dark:text-white font-normal text-sm ml-2">Pre-market</span>
                   </p>
                 );
               }
@@ -1202,11 +1202,11 @@ export function PortfolioValueChart({
                   <div className="mb-1">
                     <p className={`text-sm mt-1.5 font-semibold ${(regularDayChange ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {formatChange(regularDayChange ?? 0)} ({formatPct(regularDayChangePercent ?? 0)})
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-xs ml-2">Today</span>
+                      <span className="text-rh-light-text dark:text-white font-normal text-xs ml-2">Today</span>
                     </p>
                     <p className={`text-xs mt-0.5 font-medium ${afterHoursChange >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>
                       {formatChange(afterHoursChange)} ({formatPct(afterHoursChangePercent ?? 0)})
-                      <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal text-[10px] ml-1.5">After hours</span>
+                      <span className="text-rh-light-text dark:text-white font-normal text-[10px] ml-1.5">After hours</span>
                     </p>
                   </div>
                 );
@@ -1218,10 +1218,10 @@ export function PortfolioValueChart({
                   <p className={`text-sm sm:text-base mt-1.5 font-semibold ${isGain ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatChange(displayChange)} ({formatPct(displayChangePct)})
                     {hoverIndex !== null && hoverLabel && (
-                      <span className="text-rh-light-muted/60 dark:text-rh-muted/60 font-normal text-sm ml-2">{hoverLabel}</span>
+                      <span className="text-rh-light-text dark:text-white font-normal text-sm ml-2">{hoverLabel}</span>
                     )}
                     {hoverIndex === null && selectedPeriod === '1D' && (
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40 font-normal text-sm ml-2">Today</span>
+                      <span className="text-rh-light-text dark:text-white font-normal text-sm ml-2">Today</span>
                     )}
                   </p>
                   {/* Benchmark comparison on hover */}
@@ -1231,7 +1231,7 @@ export function PortfolioValueChart({
                       const spyChangePct = periodStartValue > 0 ? (spyChange / periodStartValue) * 100 : 0;
                       const outperformPct = displayChangePct - spyChangePct;
                       return (
-                        <p className="text-xs mt-0.5 text-rh-light-muted dark:text-rh-muted">
+                        <p className="text-xs mt-0.5 text-rh-light-text dark:text-white">
                           <span className="opacity-60">SPY: </span>
                           <span className={spyChangePct >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}>
                             {formatPct(spyChangePct)}
@@ -1263,10 +1263,10 @@ export function PortfolioValueChart({
         {/* Fetch error state — shown when chart fails to load */}
         {!loading && fetchError && !hasData && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-gray-300 dark:text-white/20 mb-2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-gray-300 dark:text-white/80 mb-2">
               <path d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <p className="text-sm text-gray-400 dark:text-white/30 mb-2">Chart unavailable</p>
+            <p className="text-sm text-gray-500 dark:text-white mb-2">Chart unavailable</p>
             <button
               onClick={() => { setFetchError(false); fetchChart(selectedPeriod); }}
               className="text-xs text-rh-green hover:underline"
@@ -1278,12 +1278,12 @@ export function PortfolioValueChart({
         {/* Insufficient data state — shown when API returns insufficientData for non-1D periods */}
         {!loading && chartData?.insufficientData && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-gray-300 dark:text-white/20 mb-3">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-gray-300 dark:text-white/80 mb-3">
               <path d="M3 17L9 11L13 15L21 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M17 7H21V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <p className="text-sm font-medium text-gray-400 dark:text-white/30">Not enough data for this period yet</p>
-            <p className="text-xs text-gray-300 dark:text-white/15 mt-1">Your chart will build automatically over time</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-white">Not enough data for this period yet</p>
+            <p className="text-xs text-gray-300 dark:text-white/80 mt-1">Your chart will build automatically over time</p>
           </div>
         )}
         {loading && (
@@ -1303,7 +1303,7 @@ export function PortfolioValueChart({
               <path
                 d={`M0,${CHART_H * 0.5} C${CHART_W * 0.08},${CHART_H * 0.35} ${CHART_W * 0.15},${CHART_H * 0.6} ${CHART_W * 0.22},${CHART_H * 0.45} C${CHART_W * 0.29},${CHART_H * 0.3} ${CHART_W * 0.35},${CHART_H * 0.55} ${CHART_W * 0.42},${CHART_H * 0.38} C${CHART_W * 0.5},${CHART_H * 0.2} ${CHART_W * 0.58},${CHART_H * 0.5} ${CHART_W * 0.65},${CHART_H * 0.35} C${CHART_W * 0.72},${CHART_H * 0.2} ${CHART_W * 0.8},${CHART_H * 0.55} ${CHART_W * 0.88},${CHART_H * 0.4} C${CHART_W * 0.94},${CHART_H * 0.3} ${CHART_W * 0.97},${CHART_H * 0.45} ${CHART_W},${CHART_H * 0.42} L${CHART_W},${CHART_H} L0,${CHART_H} Z`}
                 fill="url(#shimmer)"
-                className="text-gray-400 dark:text-gray-500"
+                className="text-gray-500 dark:text-gray-500"
               />
               <path
                 d={`M0,${CHART_H * 0.5} C${CHART_W * 0.08},${CHART_H * 0.35} ${CHART_W * 0.15},${CHART_H * 0.6} ${CHART_W * 0.22},${CHART_H * 0.45} C${CHART_W * 0.29},${CHART_H * 0.3} ${CHART_W * 0.35},${CHART_H * 0.55} ${CHART_W * 0.42},${CHART_H * 0.38} C${CHART_W * 0.5},${CHART_H * 0.2} ${CHART_W * 0.58},${CHART_H * 0.5} ${CHART_W * 0.65},${CHART_H * 0.35} C${CHART_W * 0.72},${CHART_H * 0.2} ${CHART_W * 0.8},${CHART_H * 0.55} ${CHART_W * 0.88},${CHART_H * 0.4} C${CHART_W * 0.94},${CHART_H * 0.3} ${CHART_W * 0.97},${CHART_H * 0.45} ${CHART_W},${CHART_H * 0.42}`}
@@ -1594,7 +1594,7 @@ export function PortfolioValueChart({
                     const lastBp = smoothed[smoothed.length - 1];
                     return (
                       <text x={toX(lastBp.index) + 6} y={toY(lastBp.value) + 3}
-                        fontSize="9" fontWeight="600" className="fill-black/50 dark:fill-white/30">
+                        fontSize="9" fontWeight="600" className="fill-black/50 dark:fill-white/80">
                         SPY
                       </text>
                     );
@@ -1622,7 +1622,7 @@ export function PortfolioValueChart({
                   const lastBp = benchmarkSmoothed![benchmarkSmoothed!.length - 1];
                   return (
                     <text x={toX(lastBp.index) + 6} y={toY(lastBp.value) + 3}
-                      fontSize="9" fontWeight="600" className="fill-black/50 dark:fill-white/30">
+                      fontSize="9" fontWeight="600" className="fill-black/50 dark:fill-white/80">
                       SPY
                     </text>
                   );
@@ -1802,7 +1802,7 @@ export function PortfolioValueChart({
                   cx={hoverX}
                   cy={toY(hoverBenchmarkValue)}
                   r="2.5"
-                  className="fill-black/20 dark:fill-white/30 stroke-black/10 dark:stroke-white/20"
+                  className="fill-black/20 dark:fill-white/80 stroke-black/10 dark:stroke-white/20"
                   strokeWidth="1"
                 />
               )}
@@ -1824,7 +1824,7 @@ export function PortfolioValueChart({
               style={{ left: `${leftPct}%`, top: `${topPct}%`, transform: 'translate(-50%, calc(-100% - 10px))' }}
             >
               <div className="bg-white/95 dark:bg-[#1a1a1e]/95 backdrop-blur-md border border-gray-200/60 dark:border-white/[0.1] rounded-lg shadow-lg shadow-black/10 dark:shadow-black/40 px-3 py-2 whitespace-nowrap">
-                <div className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted/70 font-semibold mb-1">
+                <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-semibold mb-1">
                   {formatShortDate(measurement.startTime, is1D)} → {formatShortDate(measurement.endTime, is1D)}
                 </div>
                 <div className="flex items-baseline gap-2">
@@ -1836,7 +1836,7 @@ export function PortfolioValueChart({
                   </span>
                 </div>
                 {benchmarkResult && (
-                  <div className="text-[10px] mt-0.5 text-rh-light-muted dark:text-rh-muted">
+                  <div className="text-[10px] mt-0.5 text-rh-light-text dark:text-white">
                     <span className="opacity-60">vs SPY: </span>
                     <span className={benchmarkResult.outperformance >= 0 ? 'text-rh-green' : 'text-rh-red'}>
                       {formatPct(benchmarkResult.outperformance)}
@@ -1861,7 +1861,7 @@ export function PortfolioValueChart({
                 <span className="text-rh-light-text dark:text-rh-text font-medium">
                   {formatShortDate(points[measureA].time, is1D)}
                 </span>
-                <span className="text-rh-light-muted/60 dark:text-rh-muted/50 ml-2">
+                <span className="text-rh-light-text dark:text-white ml-2">
                   {'ontouchstart' in window ? 'tap another point' : 'click another point'}
                 </span>
               </div>
@@ -1897,8 +1897,8 @@ export function PortfolioValueChart({
                     isActive
                       ? `${isGain ? 'text-rh-green' : 'text-rh-red'}`
                       : isLocked
-                        ? 'text-rh-light-muted/25 dark:text-rh-muted/25 cursor-default'
-                        : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                        ? 'text-rh-light-text dark:text-white cursor-default'
+                        : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                   }`}
                 >
                   {period}
@@ -1924,10 +1924,10 @@ export function PortfolioValueChart({
               className={`hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
                 showBenchmark
                   ? 'bg-gray-100/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white border-gray-200 dark:border-white/[0.15]'
-                  : 'text-rh-light-muted/40 dark:text-rh-muted/50 border-transparent hover:text-rh-light-muted dark:hover:text-rh-muted'
+                  : 'text-rh-light-text dark:text-white border-transparent hover:text-rh-light-text dark:hover:text-white'
               }`}
             >
-              <span className="text-rh-light-muted/30 dark:text-rh-muted/30 font-normal">Compare:</span> SPY
+              <span className="text-rh-light-text dark:text-white font-normal">Compare:</span> SPY
             </button>
           </div>
         </div>

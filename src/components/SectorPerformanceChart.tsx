@@ -708,7 +708,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
             className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
               period === p
                 ? 'text-rh-green'
-                : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
             }`}
           >
             {p}
@@ -771,7 +771,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 key={value}
                 x={PAD.left - 4} y={y + 3}
                 textAnchor="end"
-                className="fill-gray-400 dark:fill-white/25"
+                className="fill-gray-500 dark:fill-white/80"
                 fontSize="8"
                 fontFamily="system-ui"
               >
@@ -884,7 +884,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                     key={label}
                     x={x} y={PAD.top + plotH + 16}
                     textAnchor={anchor}
-                    className="fill-gray-400 dark:fill-white/20"
+                    className="fill-gray-500 dark:fill-white/80"
                     fontSize="7"
                     fontFamily="system-ui"
                   >
@@ -910,7 +910,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                     key={idx}
                     x={x} y={PAD.top + plotH + 16}
                     textAnchor={anchor}
-                    className="fill-gray-400 dark:fill-white/20"
+                    className="fill-gray-500 dark:fill-white/80"
                     fontSize="7"
                     fontFamily="system-ui"
                   >
@@ -932,7 +932,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
               }}
             >
               <div className="bg-gray-900/90 dark:bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-white/10">
-                <div className="text-[10px] text-white/50 mb-1">{hoverTime}</div>
+                <div className="text-[10px] text-white/80 mb-1">{hoverTime}</div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-white">{hoveredInfo.ticker}</span>
                   <span className="text-xs font-bold tabular-nums" style={{ color: hoveredInfo.color }}>
@@ -944,7 +944,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
           )}
 
           {/* Pin-feature discoverability hint — adapts based on whether pins exist for this period */}
-          <div className="absolute bottom-1 right-2 text-[9px] text-rh-light-muted/40 dark:text-white/25 pointer-events-none select-none whitespace-nowrap">
+          <div className="absolute bottom-1 right-2 text-[9px] text-rh-light-text dark:text-white/80 pointer-events-none select-none whitespace-nowrap">
             {pins.length === 0 ? 'Click to mark a moment' : 'Click outside or press ESC to clear'}
           </div>
 
@@ -976,7 +976,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                 }}
               >
                 <div className="bg-gray-900/95 dark:bg-black/85 backdrop-blur-sm rounded px-1.5 py-1 text-[10px] leading-tight tabular-nums whitespace-nowrap shadow border border-white/10">
-                  <div className="text-white/65">{formatPinDate(pin.ts, period)}</div>
+                  <div className="text-white/80">{formatPinDate(pin.ts, period)}</div>
                   <div style={{ color: lineColor(pin.value) }}>
                     {pin.value > 0 ? '+' : ''}{pin.value.toFixed(2)}%
                   </div>
@@ -1025,7 +1025,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                   style={{ background: swatchColor }}
                   aria-hidden="true"
                 />
-                <span className={`text-[11px] w-16 sm:w-24 text-right shrink-0 font-medium tabular-nums transition-colors ${isHovered ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted/60 dark:text-rh-muted/60'}`}>
+                <span className={`text-[11px] w-16 sm:w-24 text-right shrink-0 font-medium tabular-nums transition-colors ${isHovered ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-text dark:text-white'}`}>
                   {item.name}
                 </span>
                 <div className="flex-1 flex items-center h-3">
@@ -1043,7 +1043,7 @@ export function SectorPerformanceChart({ onTickerClick }: Props) {
                     )}
                   </div>
                 </div>
-                <span className={`text-[11px] font-bold min-w-[48px] text-right tabular-nums ${isZero ? 'text-rh-light-muted dark:text-rh-muted' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
+                <span className={`text-[11px] font-bold min-w-[48px] text-right tabular-nums ${isZero ? 'text-rh-light-text dark:text-white' : isPositive ? 'text-rh-green' : 'text-rh-red'}`}>
                   {isPositive ? '+' : ''}{pct.toFixed(2)}%
                 </span>
               </div>

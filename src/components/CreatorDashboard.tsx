@@ -112,7 +112,7 @@ function ledgerTypeColor(type: CreatorLedgerEntryType): string {
     case 'earning': return 'text-rh-green';
     case 'refund': return 'text-red-500 dark:text-red-400';
     case 'payout': return 'text-blue-500 dark:text-blue-400';
-    case 'platform_fee': return 'text-rh-light-muted dark:text-rh-muted';
+    case 'platform_fee': return 'text-rh-light-text dark:text-white';
   }
 }
 
@@ -134,7 +134,7 @@ const LEDGER_FILTERS: { value: CreatorLedgerEntryType | 'all'; label: string }[]
 ];
 
 const CARD = 'rounded-xl border border-gray-200/40 dark:border-white/[0.06] bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl';
-const SECTION_TITLE = 'text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted';
+const SECTION_TITLE = 'text-[11px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80';
 
 function UsernameLink({ username, onUserClick }: { username: string; onUserClick?: (username: string) => void }) {
   return (
@@ -168,7 +168,7 @@ function InfoTip({ text }: { text: string }) {
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >
-      <span className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-white/20 flex items-center justify-center cursor-help text-[9px] font-semibold text-gray-400 dark:text-white/30 leading-none select-none">
+      <span className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-white/20 flex items-center justify-center cursor-help text-[9px] font-semibold text-gray-500 dark:text-white leading-none select-none">
         i
       </span>
       {show && (
@@ -365,7 +365,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
         <p className="text-sm text-red-500 dark:text-red-400 mb-3">{error}</p>
         <div className="flex items-center justify-center gap-3">
           <button onClick={() => { setError(null); setLoading(true); loadDashboard(); }} className="text-sm font-medium text-rh-green hover:underline">Retry</button>
-          <button onClick={onBack} className="text-sm text-rh-light-muted dark:text-rh-muted hover:underline">Go back</button>
+          <button onClick={onBack} className="text-sm text-rh-light-text dark:text-white hover:underline">Go back</button>
         </div>
       </div>
     );
@@ -375,12 +375,12 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
-          <svg className="w-7 h-7 text-gray-400 dark:text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-7 h-7 text-gray-500 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
         <h3 className="text-base font-semibold text-gray-700 dark:text-white/80 mb-1">No subscribers yet</h3>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted max-w-sm mx-auto">Share your creator page to start earning. Revenue and subscriber data will appear here once people subscribe.</p>
+        <p className="text-sm text-rh-light-text dark:text-white max-w-sm mx-auto">Share your creator page to start earning. Revenue and subscriber data will appear here once people subscribe.</p>
         <button onClick={onBack} className="mt-4 text-sm text-rh-green hover:underline">Go back</button>
       </div>
     );
@@ -420,7 +420,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
           </button>
           <div className="min-w-0">
             <h1 className="text-lg font-semibold text-rh-light-text dark:text-rh-text truncate">Creator Dashboard</h1>
-            <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">As of {dateStr}</p>
+            <p className="text-[11px] text-rh-light-text dark:text-white">As of {dateStr}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -448,7 +448,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
         <div className={`${CARD} p-5 space-y-4`}>
           <div>
             <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">Get Started as a Creator</h2>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">Complete these steps to start earning</p>
+            <p className="text-xs text-rh-light-text dark:text-white mt-0.5">Complete these steps to start earning</p>
           </div>
           <div className="space-y-2.5">
             {[
@@ -540,7 +540,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
             <p className={`text-xl font-bold ${stat.accent ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text'}`}>
               {stat.value}
             </p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5 flex items-center justify-center gap-0">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mt-0.5 flex items-center justify-center gap-0">
               {stat.label}<InfoTip text={stat.tip} />
             </p>
           </div>
@@ -560,7 +560,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                   className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 ${
                     earningsPeriod === period
                       ? 'bg-rh-green/10 text-rh-green'
-                      : 'text-rh-light-muted/45 dark:text-rh-muted/45 hover:text-rh-light-muted dark:hover:text-rh-muted'
+                      : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                   }`}
                 >
                   {period}
@@ -570,18 +570,18 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
             <div className="flex items-center gap-3 ml-2">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-sm bg-rh-green/70" />
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Subscriptions</span>
+                <span className="text-[10px] text-rh-light-text dark:text-white">Subscriptions</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-sm bg-blue-500/70" />
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Referrals</span>
+                <span className="text-[10px] text-rh-light-text dark:text-white">Referrals</span>
               </div>
             </div>
           </div>
         </div>
 
         {earnings.length === 0 ? (
-          <div className="flex items-center justify-center h-24 text-xs text-rh-light-muted dark:text-rh-muted">
+          <div className="flex items-center justify-center h-24 text-xs text-rh-light-text dark:text-white">
             Revenue will appear here once subscribers start paying.
           </div>
         ) : (
@@ -601,7 +601,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                 />
                 <text
                   x={PAD.l - 8} y={gl.y + 3} textAnchor="end"
-                  className="fill-gray-400 dark:fill-gray-500"
+                  className="fill-gray-500 dark:fill-gray-500"
                   style={{ fontSize: '10px' }}
                 >
                   {gl.label}
@@ -662,7 +662,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                       </text>
                     </>
                   )}
-                  <text x={x + barW / 2} y={CHART_H - 6} textAnchor="middle" className="fill-gray-400 dark:fill-gray-500" style={{ fontSize: '10px' }}>
+                  <text x={x + barW / 2} y={CHART_H - 6} textAnchor="middle" className="fill-gray-500 dark:fill-gray-500" style={{ fontSize: '10px' }}>
                     {new Date(e.month + '-15').toLocaleDateString('en-US', { month: 'short' })}
                   </text>
                 </g>
@@ -679,7 +679,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
           <h2 className={`${SECTION_TITLE} mb-3`}>Revenue Sources</h2>
           <div className="flex items-baseline justify-between mb-3">
             <div>
-              <p className="text-[10px] text-rh-light-muted dark:text-rh-muted flex items-center">Total Estimated Revenue<InfoTip text="Sum of all earnings credited to your account" /></p>
+              <p className="text-[10px] text-rh-light-text dark:text-white flex items-center">Total Estimated Revenue<InfoTip text="Sum of all earnings credited to your account" /></p>
               <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCents(data.totalEarningsCents)}</p>
             </div>
             <button onClick={openLedger} className="text-xs text-rh-green hover:text-rh-green/80 transition-colors">
@@ -702,7 +702,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
               <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">$0.00</span>
             </div>
           </div>
-          <p className="mt-3 text-[10px] text-rh-light-muted dark:text-rh-muted">
+          <p className="mt-3 text-[10px] text-rh-light-text dark:text-white">
             You earn 80% of subscription revenue. Nala retains 20% as a platform fee.
           </p>
         </section>
@@ -712,7 +712,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
           <h2 className={`${SECTION_TITLE} mb-3`}>Subscribers</h2>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-rh-light-muted dark:text-rh-muted text-[10px] uppercase tracking-wider">
+              <tr className="text-rh-light-text/70 dark:text-white/80 text-[10px] uppercase tracking-wider">
                 <th className="text-left pb-2 font-medium">Status</th>
                 <th className="text-right pb-2 font-medium">Count</th>
               </tr>
@@ -742,7 +742,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
           </table>
           <div className="mt-3 pt-2.5 border-t border-gray-200/40 dark:border-white/[0.06]">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted flex items-center">Monthly Revenue per Sub<InfoTip text="Your MRR divided by active subscriber count" /></span>
+              <span className="text-xs text-rh-light-text dark:text-white flex items-center">Monthly Revenue per Sub<InfoTip text="Your MRR divided by active subscriber count" /></span>
               <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
                 {data.activeSubscribers > 0 ? formatCents(Math.round(data.mrr / data.activeSubscribers)) : '—'}
               </span>
@@ -771,7 +771,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
             <div className="h-full rounded-full bg-rh-green transition-all duration-500" style={{ width: `${payoutProgress}%` }} />
           </div>
           {!payoutMet && data.payoutBalanceCents > 0 && (
-            <p className="mt-1.5 text-[10px] text-rh-light-muted dark:text-rh-muted">
+            <p className="mt-1.5 text-[10px] text-rh-light-text dark:text-white">
               {formatCents(PAYOUT_MIN_CENTS - data.payoutBalanceCents)} more to reach payout threshold
             </p>
           )}
@@ -798,12 +798,12 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
           <h2 className={`${SECTION_TITLE} mb-3 flex items-center`}>Payout Eligibility<InfoTip text="Your account status and payout method configuration" /></h2>
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1">Payable Status</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">Payable Status</p>
               <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-rh-green/20 text-rh-green">Eligible</span>
-              <p className="mt-1 text-xs text-rh-light-muted dark:text-rh-muted">Your creator account is active and in good standing.</p>
+              <p className="mt-1 text-xs text-rh-light-text dark:text-white">Your creator account is active and in good standing.</p>
             </div>
             <div className="border-t border-gray-200/40 dark:border-white/[0.06] pt-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1 flex items-center">Revenue Split<InfoTip text="Nala takes 20% platform fee, you receive 80% of subscription revenue" /></p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1 flex items-center">Revenue Split<InfoTip text="Nala takes 20% platform fee, you receive 80% of subscription revenue" /></p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-3 rounded-full overflow-hidden flex">
                   <div className="h-full bg-rh-green" style={{ width: '80%' }} />
@@ -811,11 +811,11 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                 </div>
                 <span className="text-xs font-semibold text-rh-light-text dark:text-rh-text whitespace-nowrap">80 / 20</span>
               </div>
-              <p className="mt-1 text-[10px] text-rh-light-muted dark:text-rh-muted">You receive 80% of all subscription revenue.</p>
+              <p className="mt-1 text-[10px] text-rh-light-text dark:text-white">You receive 80% of all subscription revenue.</p>
             </div>
             <div className="border-t border-gray-200/40 dark:border-white/[0.06] pt-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1">Payout Method</p>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Payouts processed via Stripe Connect to your linked bank account.</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">Payout Method</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Payouts processed via Stripe Connect to your linked bank account.</p>
             </div>
           </div>
         </section>
@@ -825,7 +825,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
       <section className={`${CARD} p-4`}>
         <h2 className={`${SECTION_TITLE} mb-2`}>Recent Activity</h2>
         {data.recentEvents.length === 0 ? (
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted py-4 text-center">
+          <p className="text-xs text-rh-light-text dark:text-white py-4 text-center">
             Events will appear here as subscribers join.
           </p>
         ) : (
@@ -841,7 +841,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                 <span className="text-sm text-rh-light-text dark:text-rh-text flex-1">
                   <DescriptionWithLinks text={event.description} onUserClick={onUserClick} />
                 </span>
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted flex-shrink-0">
+                <span className="text-xs text-rh-light-text dark:text-white flex-shrink-0">
                   {new Date(event.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
               </div>
@@ -855,20 +855,20 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
         <section className={`${CARD} p-4`}>
           <div className="flex items-center justify-between mb-3">
             <h2 className={SECTION_TITLE}>Referral Breakdown</h2>
-            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Credited on Premium signup</span>
+            <span className="text-[10px] text-rh-light-text dark:text-white">Credited on Premium signup</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <div className="text-center">
               <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{referralData.totalReferrals}</p>
-              <p className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Total</p>
+              <p className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Total</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-rh-green">{referralData.activeReferrals}</p>
-              <p className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Premium</p>
+              <p className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Premium</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{referralData.conversionRate}%</p>
-              <p className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Conversion</p>
+              <p className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Conversion</p>
             </div>
           </div>
           {referralData.recentReferrals.length > 0 && (
@@ -879,7 +879,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                   <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
                     r.status === 'active' ? 'bg-rh-green/15 text-rh-green'
                     : r.status === 'verified' ? 'bg-blue-500/15 text-blue-500'
-                    : 'bg-gray-200 dark:bg-white/10 text-rh-light-muted dark:text-rh-muted'
+                    : 'bg-gray-200 dark:bg-white/10 text-rh-light-text dark:text-white'
                   }`}>
                     {r.status === 'active' ? 'premium' : r.status}
                   </span>
@@ -921,7 +921,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                   onClick={() => setShowLedger(false)}
                   className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
                 >
-                  <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -932,15 +932,15 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                 <div className="grid grid-cols-1 sm:grid-cols-3 divide-x divide-gray-200/40 dark:divide-white/[0.06] border-b border-gray-200/40 dark:border-white/[0.06]">
                   <div className="py-3 px-4 text-center">
                     <p className="text-lg font-bold text-rh-green">{formatCents(ledgerSummary.availableCents)}</p>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Available</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Available</p>
                   </div>
                   <div className="py-3 px-4 text-center">
                     <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCents(ledgerSummary.reservedCents)}</p>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Reserved</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Reserved</p>
                   </div>
                   <div className="py-3 px-4 text-center">
                     <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCents(ledgerSummary.pendingPayoutCents)}</p>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">Pending</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Pending</p>
                   </div>
                 </div>
               )}
@@ -954,7 +954,7 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors border ${
                       ledgerFilter === f.value
                         ? 'border-rh-green bg-rh-green/10 text-rh-green'
-                        : 'border-gray-200 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:border-gray-300 dark:hover:border-white/20'
+                        : 'border-gray-200 dark:border-white/[0.1] text-rh-light-text dark:text-white hover:border-gray-300 dark:hover:border-white/20'
                     }`}
                   >
                     {f.label}
@@ -965,9 +965,9 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
               {/* Entries */}
               <div className="flex-1 overflow-y-auto scrollbar-minimal">
                 {ledgerLoading && ledgerEntries.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-rh-light-muted dark:text-rh-muted">Loading...</div>
+                  <div className="py-12 text-center text-sm text-rh-light-text dark:text-white">Loading...</div>
                 ) : ledgerEntries.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-rh-light-muted dark:text-rh-muted">No transactions yet.</div>
+                  <div className="py-12 text-center text-sm text-rh-light-text dark:text-white">No transactions yet.</div>
                 ) : (
                   <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
                     {ledgerEntries.map(entry => (
@@ -977,12 +977,12 @@ export function CreatorDashboard({ onBack, onSettingsClick, onUserClick, setupSt
                             <span className={`text-[10px] font-semibold uppercase tracking-wider ${ledgerTypeColor(entry.type)}`}>
                               {ledgerTypeLabel(entry.type)}
                             </span>
-                            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+                            <span className="text-[10px] text-rh-light-text dark:text-white">
                               {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </span>
                           </div>
                           {entry.description && (
-                            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">
+                            <p className="text-xs text-rh-light-text dark:text-white mt-0.5 truncate">
                               <DescriptionWithLinks text={entry.description} onUserClick={onUserClick} />
                             </p>
                           )}

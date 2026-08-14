@@ -277,7 +277,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
             onClick={() => { setSelectedId(null); setDetail(null); }}
             className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
           >
-            <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -291,7 +291,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
               </h1>
             </div>
             {detail?.description && (
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{detail.description}</p>
+              <p className="text-xs text-rh-light-text dark:text-white mt-0.5 truncate">{detail.description}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -300,7 +300,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 const wl = watchlists.find(w => w.id === selectedId);
                 if (wl) setEditingWatchlist(wl);
               }}
-              className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+              className="p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
               title="Edit watchlist"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,7 +312,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 const wl = watchlists.find(w => w.id === selectedId);
                 if (wl) setDeletingWatchlist(wl);
               }}
-              className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-red hover:bg-rh-red/10 transition-colors"
+              className="p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-red hover:bg-rh-red/10 transition-colors"
               title="Delete watchlist"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -333,13 +333,13 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           return (
             <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-2 py-3.5 border-b border-gray-200/10 dark:border-white/[0.04]">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Value</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Value</span>
                 <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">
                   {formatCurrency(s.totalValue)}
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Total P/L</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Total P/L</span>
                 <span className={`text-sm font-bold ${s.totalPL >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {formatCurrency(s.totalPL)}
                 </span>
@@ -348,7 +348,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Day</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Day</span>
                 <span className={`text-sm font-bold ${regChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {formatCurrency(regChange)}
                 </span>
@@ -358,7 +358,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
               </div>
               {hasAfterHours && (
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">After hrs</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">After hrs</span>
                   <span className={`text-sm font-bold ${ahChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {formatCurrency(ahChange)}
                   </span>
@@ -368,7 +368,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 </div>
               )}
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/80 dark:text-white/45">Holdings</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Holdings</span>
                 <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{s.holdingsCount}</span>
               </div>
             </div>
@@ -405,7 +405,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           <div className="py-4 border-b border-gray-200/10 dark:border-white/[0.04] space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Ticker</label>
+                <label className="block text-[10px] font-medium text-rh-light-text dark:text-white mb-1">Ticker</label>
                 <TickerAutocompleteInput
                   value={addTicker}
                   onChange={(val) => { setAddTicker(val); if (!val) { setAddCurrentPrice(null); setAddCost(''); } }}
@@ -426,7 +426,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
+                <label className="block text-[10px] font-medium text-rh-light-text dark:text-white mb-1">Shares</label>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -438,7 +438,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                <label className="block text-[10px] font-medium text-rh-light-text dark:text-white mb-1">
                   Avg Cost ($)
                   {addCurrentPrice !== null && (
                     <span className="ml-1.5 text-rh-green font-normal">
@@ -454,13 +454,13 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                   min="0.01"
                   step="any"
                   placeholder={addCurrentPrice !== null ? `$${addCurrentPrice.toFixed(2)}` : 'Entry price'}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-muted/50 dark:placeholder:text-rh-muted/50 focus:outline-none focus:border-rh-green/50 transition-colors"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
                 />
               </div>
             </div>
             {addError && <p className="text-xs text-rh-red">{addError}</p>}
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setShowAddStock(false); setAddError(''); setAddCurrentPrice(null); setAddTicker(''); setAddCost(''); setAddShares('1'); }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+              <button onClick={() => { setShowAddStock(false); setAddError(''); setAddCurrentPrice(null); setAddTicker(''); setAddCost(''); setAddShares('1'); }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
                 Cancel
               </button>
               <button onClick={handleAddHolding} className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rh-green/15 text-rh-green hover:bg-rh-green/25 transition-colors">
@@ -473,11 +473,11 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
         {/* Holdings header with display picker */}
         {detail && detail.holdings.length > 0 && (
           <div className="px-3 sm:px-0 flex items-center gap-2">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-muted/80 dark:text-rh-muted/80">Holdings</h2>
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-rh-light-text dark:text-white">Holdings</h2>
             <div className="relative md:hidden">
               <button
                 onClick={() => setShowDisplayMenu(!showDisplayMenu)}
-                className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="p-1 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
                 title="Display data"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -487,7 +487,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
               </button>
               {showDisplayMenu && (
                 <div className="absolute left-0 top-full mt-1.5 z-50 w-52 rounded-xl overflow-hidden bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] shadow-2xl shadow-black/10 dark:shadow-black/50 py-1 animate-fade-in-up">
-                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
+                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Display data</p>
                   {DISPLAY_METRICS.map((m) => (
                     <button
                       key={m.key}
@@ -518,12 +518,12 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
           </div>
         ) : detail && detail.holdings.length === 0 && !showAddStock ? (
           <div className="text-center py-16">
-            <svg className="w-12 h-12 mx-auto mb-3 text-rh-light-muted/30 dark:text-rh-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 mx-auto mb-3 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-1">No holdings yet</p>
-            <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mb-4">Add stocks to track their performance</p>
+            <p className="text-sm text-rh-light-text dark:text-white mb-1">No holdings yet</p>
+            <p className="text-xs text-rh-light-text dark:text-white mb-4">Add stocks to track their performance</p>
             <button
               onClick={() => setShowAddStock(true)}
               className="px-4 py-2 rounded-xl text-sm font-bold bg-rh-green/15 text-rh-green hover:bg-rh-green/25 transition-colors"
@@ -547,7 +547,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       <StockLogo ticker={h.ticker} size="sm" />
                       <div className="min-w-0">
                         <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{h.ticker}</span>
-                        <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                        <p className="text-[11px] text-rh-light-text dark:text-white">
                           {h.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares
                         </p>
                       </div>
@@ -561,7 +561,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       </p>
                       <p className={`text-[11px] font-medium ${
                         metric.isNeutral
-                          ? 'text-rh-light-muted dark:text-rh-muted'
+                          ? 'text-rh-light-text dark:text-white'
                           : metric.isPositive ? 'text-rh-green' : 'text-rh-red'
                       }`}>
                         {metric.text}
@@ -583,13 +583,13 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       <th
                         key={key}
                         onClick={() => handleSort(key)}
-                        className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-white/40 cursor-pointer hover:text-rh-light-text dark:hover:text-rh-text transition-colors select-none`}
+                        className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 cursor-pointer hover:text-rh-light-text/70 dark:hover:text-rh-text transition-colors select-none`}
                       >
                         {label}<SortIcon col={key} />
                       </th>
                     ))}
                     <th className="py-2.5 px-2 text-center">
-                      <svg className="w-5 h-5 inline-block text-rh-light-muted/60 dark:text-white/35" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 inline-block text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17l6-6 4 4 8-8" />
                       </svg>
                     </th>
@@ -608,7 +608,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       <th
                         key={key}
                         onClick={() => handleSort(key)}
-                        className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-white/40 cursor-pointer hover:text-rh-light-text dark:hover:text-rh-text transition-colors select-none`}
+                        className={`${className} py-2.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 cursor-pointer hover:text-rh-light-text/70 dark:hover:text-rh-text transition-colors select-none`}
                       >
                         {label}<SortIcon col={key} />
                       </th>
@@ -637,10 +637,10 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text">
                         {formatCurrency(h.currentPrice)}
                       </td>
-                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
+                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-white hidden xl:table-cell">
                         {h.shares.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                       </td>
-                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-muted dark:text-rh-muted hidden xl:table-cell">
+                      <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-white hidden xl:table-cell">
                         {formatCurrency(h.averageCost)}
                       </td>
                       <td className="py-3 px-3 text-right tabular-nums text-rh-light-text dark:text-rh-text">
@@ -659,7 +659,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                       <td className={`py-3 px-3 text-right tabular-nums hidden lg:table-cell ${h.yearChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                         {formatPercent(h.yearChangePercent)}
                       </td>
-                      <td className="py-3 px-3 text-right tabular-nums hidden lg:table-cell text-rh-light-muted dark:text-rh-muted">
+                      <td className="py-3 px-3 text-right tabular-nums hidden lg:table-cell text-rh-light-text dark:text-white">
                         {h.peRatio !== null ? h.peRatio.toFixed(1) : '—'}
                       </td>
                       <td className={`py-3 px-3 text-right tabular-nums font-medium ${h.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
@@ -675,7 +675,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                               setEditShares(String(h.shares));
                               setEditCost(String(h.averageCost));
                             }}
-                            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/[0.06] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
                             title="Edit"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -687,7 +687,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                               e.stopPropagation();
                               setDeletingHolding(h);
                             }}
-                            className="p-1 rounded hover:bg-rh-red/10 text-rh-light-muted dark:text-rh-muted hover:text-rh-red transition-colors"
+                            className="p-1 rounded hover:bg-rh-red/10 text-rh-light-text dark:text-white hover:text-rh-red transition-colors"
                             title="Remove"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -722,7 +722,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
+                  <label className="block text-[10px] font-medium text-rh-light-text dark:text-white mb-1">Shares</label>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -734,7 +734,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Avg Cost ($)</label>
+                  <label className="block text-[10px] font-medium text-rh-light-text dark:text-white mb-1">Avg Cost ($)</label>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -747,7 +747,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                 </div>
               </div>
               <div className="flex gap-3 justify-end mt-5">
-                <button onClick={() => setEditingHolding(null)} className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+                <button onClick={() => setEditingHolding(null)} className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
                   Cancel
                 </button>
                 <button onClick={handleEditHolding} className="px-5 py-2 rounded-xl text-sm font-bold bg-rh-green/15 text-rh-green hover:bg-rh-green/25 transition-colors">
@@ -826,12 +826,12 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
         </div>
       ) : watchlists.length === 0 ? (
         <div className="text-center py-20">
-          <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-muted/20 dark:text-rh-muted/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-16 h-16 mx-auto mb-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-2">No watchlists yet</h2>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-6 max-w-sm mx-auto">
+          <p className="text-sm text-rh-light-text dark:text-white mb-6 max-w-sm mx-auto">
             Create virtual portfolios to track "what if" scenarios, sector plays, and dividend picks — with full P&L tracking.
           </p>
           <button
@@ -856,15 +856,15 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                     {wl.name}
                   </h3>
                   {wl.description && (
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 line-clamp-2">{wl.description}</p>
+                    <p className="text-xs text-rh-light-text dark:text-white mt-0.5 line-clamp-2">{wl.description}</p>
                   )}
                 </div>
-                <svg className="w-4 h-4 text-rh-light-muted/30 dark:text-rh-muted/30 group-hover:text-rh-light-muted dark:group-hover:text-rh-muted transition-colors flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-rh-light-text dark:text-white group-hover:text-rh-light-text dark:group-hover:text-white transition-colors flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+                <span className="text-xs text-rh-light-text dark:text-white">
                   {wl.holdingsCount} holding{wl.holdingsCount !== 1 ? 's' : ''}
                 </span>
               </div>

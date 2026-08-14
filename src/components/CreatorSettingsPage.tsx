@@ -152,7 +152,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
   if (!creator) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8 text-center">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">Creator profile not found.</p>
+        <p className="text-sm text-rh-light-text dark:text-white">Creator profile not found.</p>
         <button onClick={onBack} className="mt-3 text-sm text-rh-green hover:underline">Go back</button>
       </div>
     );
@@ -182,13 +182,13 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       {/* Stripe Connect */}
       <section className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
         bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-4">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
           Payouts
         </h2>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">Stripe Connect</p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <p className="text-xs text-rh-light-text dark:text-white">
               {creator.stripeConnectOnboarded ? 'Connected — payouts enabled' : 'Connect to receive payouts'}
             </p>
           </div>
@@ -205,7 +205,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
           </button>
         </div>
         {!creator.stripeConnectOnboarded && (
-          <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/50 mt-2">
+          <p className="text-[11px] text-rh-light-text dark:text-white mt-2">
             No Stripe account? No problem — just enter your email and Stripe will walk you through creating one. Takes about 2 minutes.
           </p>
         )}
@@ -214,7 +214,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       {/* Pricing */}
       <section className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
         bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-4">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
           Pricing
         </h2>
         <div className="flex gap-2 mb-3">
@@ -225,7 +225,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors border ${
                 pricing === opt.cents && !customPricing
                   ? 'border-rh-green bg-rh-green/10 text-rh-green'
-                  : 'border-gray-200 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:border-gray-300 dark:hover:border-white/20'
+                  : 'border-gray-200 dark:border-white/[0.1] text-rh-light-text dark:text-white hover:border-gray-300 dark:hover:border-white/20'
               }`}
             >
               {opt.label}
@@ -236,7 +236,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
               customPricing
                 ? 'border-rh-green bg-rh-green/10 text-rh-green'
-                : 'border-gray-200 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:border-gray-300 dark:hover:border-white/20'
+                : 'border-gray-200 dark:border-white/[0.1] text-rh-light-text dark:text-white hover:border-gray-300 dark:hover:border-white/20'
             }`}
           >
             Edit
@@ -262,13 +262,13 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
                 focus:outline-none focus:ring-2 focus:ring-rh-green/50"
               placeholder="1.00"
             />
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">/month</span>
+            <span className="text-xs text-rh-light-text dark:text-white">/month</span>
             {(parseFloat(customDollars) < 1 && customDollars !== '') && (
               <span className="text-xs text-red-500">Min $1.00</span>
             )}
           </div>
         )}
-        <p className="mt-2 text-[10px] text-rh-light-muted dark:text-rh-muted">
+        <p className="mt-2 text-[10px] text-rh-light-text dark:text-white">
           Current: ${(pricing / 100).toFixed(2)}/mo — subscribers pay this monthly for access to your locked content.
         </p>
       </section>
@@ -276,10 +276,10 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       {/* Content Visibility */}
       <section className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
         bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-4">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
           Locked Content
         </h2>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">
+        <p className="text-xs text-rh-light-text dark:text-white mb-3">
           Choose which sections subscribers can access.
         </p>
         <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
@@ -295,7 +295,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       {/* Trade Delay + Hide Share Count */}
       <section className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
         bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-4">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
           Privacy Controls
         </h2>
         <div className="mb-3">
@@ -308,7 +308,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
                 className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors border ${
                   tradeDelayHours === opt.hours
                     ? 'border-rh-green bg-rh-green/10 text-rh-green'
-                    : 'border-gray-200 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted'
+                    : 'border-gray-200 dark:border-white/[0.1] text-rh-light-text dark:text-white'
                 }`}
               >
                 {opt.label}
@@ -319,7 +319,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
         <Toggle label="Hide exact share counts" enabled={hideShareCount} onChange={setHideShareCount} />
         <div className="border-t border-gray-200/40 dark:border-white/[0.06] mt-2 pt-2">
           <Toggle label="Show profile in Discover" enabled={discoverable} onChange={setDiscoverable} />
-          <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 ml-0.5">
+          <p className="text-[11px] text-rh-light-text dark:text-white mt-0.5 ml-0.5">
             When off, your profile won't appear in search results or the creator directory.
           </p>
         </div>
@@ -328,7 +328,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
       {/* Pitch */}
       <section className="rounded-xl border border-gray-200/40 dark:border-white/[0.08]
         bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl p-4">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
           Your Pitch
         </h2>
         <textarea
@@ -339,10 +339,10 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
           placeholder="Tell potential subscribers about your investing approach..."
           className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.1]
             bg-white dark:bg-white/[0.04] text-sm text-rh-light-text dark:text-rh-text
-            placeholder:text-rh-light-muted dark:placeholder:text-rh-muted
+            placeholder:text-rh-light-text dark:placeholder:text-white
             focus:outline-none focus:ring-2 focus:ring-rh-green/50 resize-none"
         />
-        <p className="mt-0.5 text-right text-[10px] text-rh-light-muted dark:text-rh-muted">
+        <p className="mt-0.5 text-right text-[10px] text-rh-light-text dark:text-white">
           {pitch.length}/500
         </p>
       </section>

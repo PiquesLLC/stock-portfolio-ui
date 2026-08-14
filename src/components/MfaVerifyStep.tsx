@@ -91,7 +91,7 @@ export function MfaVerifyStep({ challenge }: MfaVerifyStepProps) {
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-white mb-1">Two-Factor Authentication</h2>
-        <p className="text-sm text-rh-muted">{getMethodLabel()}</p>
+        <p className="text-sm text-rh-light-text dark:text-white">{getMethodLabel()}</p>
       </div>
 
       {/* Error */}
@@ -159,7 +159,7 @@ export function MfaVerifyStep({ challenge }: MfaVerifyStepProps) {
           <button
             type="button"
             onClick={() => { setMethod('totp'); setCode(''); setError(''); }}
-            className="text-xs text-rh-muted hover:text-rh-green transition-colors"
+            className="text-xs text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
           >
             Use authenticator app
           </button>
@@ -168,7 +168,7 @@ export function MfaVerifyStep({ challenge }: MfaVerifyStepProps) {
           <button
             type="button"
             onClick={() => { setMethod('email'); setCode(''); setError(''); setEmailSent(false); }}
-            className="text-xs text-rh-muted hover:text-rh-green transition-colors"
+            className="text-xs text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
           >
             Use email code
           </button>
@@ -177,7 +177,7 @@ export function MfaVerifyStep({ challenge }: MfaVerifyStepProps) {
           <button
             type="button"
             onClick={() => { setMethod('backup'); setCode(''); setError(''); }}
-            className="text-xs text-rh-muted hover:text-rh-green transition-colors"
+            className="text-xs text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
           >
             Use backup code
           </button>
@@ -188,7 +188,7 @@ export function MfaVerifyStep({ challenge }: MfaVerifyStepProps) {
       <button
         type="button"
         onClick={clearMfaChallenge}
-        className="w-full text-sm text-rh-muted/70 hover:text-white transition-colors"
+        className="w-full text-sm text-rh-light-text dark:text-white hover:text-white transition-colors"
       >
         &larr; Back to Sign In
       </button>

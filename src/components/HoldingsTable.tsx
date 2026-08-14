@@ -568,7 +568,7 @@ export function HoldingsTable({
   const renderModalContent = (isEditing: boolean) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+        <label className="block text-sm font-medium text-rh-light-text dark:text-white mb-1">
           Ticker {isEditing && <span className="text-xs">(read-only)</span>}
         </label>
         {isEditing ? (
@@ -615,7 +615,7 @@ export function HoldingsTable({
         )}
       </div>
       <div>
-        <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
+        <label className="block text-sm font-medium text-rh-light-text dark:text-white mb-1">Shares</label>
         <input
           type="number"
           inputMode="decimal"
@@ -630,7 +630,7 @@ export function HoldingsTable({
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+        <label className="block text-sm font-medium text-rh-light-text dark:text-white mb-1">
           Average Cost ($)
           {!isEditing && addCurrentPrice !== null && (
             <span className="ml-1.5 text-rh-green font-normal">
@@ -653,7 +653,7 @@ export function HoldingsTable({
       </div>
       {!isEditing && (
         <div>
-          <label className="block text-sm font-medium text-rh-light-muted dark:text-rh-muted mb-2">Funding Source</label>
+          <label className="block text-sm font-medium text-rh-light-text dark:text-white mb-2">Funding Source</label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -661,7 +661,7 @@ export function HoldingsTable({
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 formData.fundingSource === 'cash'
                   ? 'bg-rh-green/10 text-rh-green border border-rh-green/40'
-                  : 'bg-rh-light-bg dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-white/[0.08] hover:border-rh-green/30'
+                  : 'bg-rh-light-bg dark:bg-white/[0.04] text-rh-light-text dark:text-white border border-rh-light-border dark:border-white/[0.08] hover:border-rh-green/30'
               }`}
             >
               Cash
@@ -672,7 +672,7 @@ export function HoldingsTable({
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 formData.fundingSource === 'margin'
                   ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/40'
-                  : 'bg-rh-light-bg dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-white/[0.08] hover:border-yellow-500/30'
+                  : 'bg-rh-light-bg dark:bg-white/[0.04] text-rh-light-text dark:text-white border border-rh-light-border dark:border-white/[0.08] hover:border-yellow-500/30'
               }`}
             >
               Margin
@@ -690,10 +690,10 @@ export function HoldingsTable({
           onChange={(e) => setFormData({ ...formData, logAsTrade: e.target.checked })}
           className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-rh-green focus:ring-rh-green/30 bg-transparent"
         />
-        <span className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <span className="text-sm text-rh-light-text dark:text-white">
           Log as trade
         </span>
-        <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
+        <span className="text-[10px] text-rh-light-text dark:text-white">
           {formData.logAsTrade ? 'Shows in Latest Moves' : 'Data correction only'}
         </span>
       </label>
@@ -709,7 +709,7 @@ export function HoldingsTable({
             handleCloseModal();
           }}
           className="flex-1 px-4 py-2 rounded-xl border border-rh-light-border dark:border-white/[0.08]
-            text-rh-light-text dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.05] dark:hover:text-rh-text transition-colors"
+            text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.05] dark:hover:text-rh-text transition-colors"
         >
           Cancel
         </button>
@@ -764,11 +764,11 @@ export function HoldingsTable({
               </div>
             </div>
             <div className="text-center py-8 space-y-4">
-              <p className="text-rh-light-muted dark:text-rh-muted">No holdings yet. Add your first stock above.</p>
+              <p className="text-rh-light-text dark:text-white">No holdings yet. Add your first stock above.</p>
               <button
                 type="button"
                 onClick={() => setShowImport(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white hover:border-rh-green/30 transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white hover:border-rh-green/30 transition-colors text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -818,7 +818,7 @@ export function HoldingsTable({
                     e.stopPropagation();
                     handleCloseModal();
                   }}
-                  className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1"
+                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1"
                   aria-label="Close modal"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -842,10 +842,10 @@ export function HoldingsTable({
               <div className="flex items-start justify-between px-5 pt-5 pb-0 dark:px-0 dark:pt-0 dark:pb-0 mb-1 dark:mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Cash & Margin</h3>
-                  <p className="text-xs text-rh-light-muted/60 mt-0.5 dark:hidden">Used to calculate your net equity and returns.</p>
+                  <p className="text-xs text-rh-light-text mt-0.5 dark:hidden">Used to calculate your net equity and returns.</p>
                 </div>
                 <button type="button" onClick={() => setShowCashMarginModal(false)}
-                  className="text-rh-light-muted/50 dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
+                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
                   <svg className="w-4 h-4 dark:w-5 dark:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -853,14 +853,14 @@ export function HoldingsTable({
               </div>
               <form onSubmit={handleSaveCashMargin} className="px-5 pb-5 dark:px-0 dark:pb-0 space-y-4">
                 <div>
-                  <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Cash Balance</label>
+                  <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-white mb-1.5 dark:mb-1">Cash Balance</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-sm">$</span>
                     <input type="number" inputMode="decimal" step="0.01" min="0" value={cashValue} onChange={e => setCashValue(e.target.value)}
                       className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
                       placeholder="0.00" />
                   </div>
-                  <p className="text-[11px] text-rh-light-muted/50 mt-1 dark:hidden">Uninvested cash in your brokerage account.</p>
+                  <p className="text-[11px] text-rh-light-text mt-1 dark:hidden">Uninvested cash in your brokerage account.</p>
                   <div className="flex gap-2 mt-2">
                     <button type="button" onClick={() => { const amt = prompt('Deposit amount:'); if (amt && parseFloat(amt) > 0) setCashValue(v => (parseFloat(v || '0') + parseFloat(amt)).toFixed(2)); }}
                       className="text-[10px] px-2 py-1 rounded-lg bg-rh-green/10 text-rh-green font-medium hover:bg-rh-green/20 transition-colors">
@@ -873,20 +873,20 @@ export function HoldingsTable({
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Margin Debt</label>
+                  <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-white mb-1.5 dark:mb-1">Margin Debt</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-sm">$</span>
                     <input type="number" inputMode="decimal" step="0.01" min="0" value={marginValue} onChange={e => setMarginValue(e.target.value)}
                       className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
                       placeholder="0.00" />
                   </div>
-                  <p className="text-[11px] text-rh-light-muted/50 mt-1 dark:hidden">Amount borrowed (used to compute net equity).</p>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1 hidden dark:block">Enter your broker margin balance to calculate net equity</p>
+                  <p className="text-[11px] text-rh-light-text mt-1 dark:hidden">Amount borrowed (used to compute net equity).</p>
+                  <p className="text-xs text-rh-light-text dark:text-white mt-1 hidden dark:block">Enter your broker margin balance to calculate net equity</p>
                 </div>
                 {cashMarginError && <p className="text-rh-red text-sm">{cashMarginError}</p>}
                 <div className="border-t border-black/[0.06] dark:border-transparent pt-4 dark:pt-0 flex justify-end gap-3 dark:block">
                   <button type="button" onClick={() => setShowCashMarginModal(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-rh-light-muted hover:text-rh-light-text hover:bg-black/[0.04] transition-colors dark:hidden">
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-rh-light-text hover:text-rh-light-text hover:bg-black/[0.04] transition-colors dark:hidden">
                     Cancel
                   </button>
                   <button type="submit" disabled={cashMarginLoading}
@@ -908,7 +908,7 @@ export function HoldingsTable({
       <div className="px-3 sm:px-4 pb-2 sm:pb-4 pt-0 flex items-center justify-between gap-3 border-b border-gray-200/40 dark:border-white/[0.06] sm:border-b-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {hasActiveFilter && (
-            <span className="hidden sm:inline text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 whitespace-nowrap">
+            <span className="hidden sm:inline text-[11px] text-rh-light-text dark:text-white whitespace-nowrap">
               {matchCount} match{matchCount === 1 ? '' : 'es'}
             </span>
           )}
@@ -920,12 +920,12 @@ export function HoldingsTable({
             <button
               type="button"
               onClick={() => setViewMode('compact')}
-              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
+              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white dark:hover:text-white/80'}`}
             >Simple</button>
             <button
               type="button"
               onClick={() => setViewMode('detailed')}
-              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
+              className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${viewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white dark:hover:text-white/80'}`}
             >Detailed</button>
           </div>
           {/* Mobile: sort icon + gear icon */}
@@ -935,7 +935,7 @@ export function HoldingsTable({
               <button
                 type="button"
                 onClick={() => { setShowSortMenu(!showSortMenu); setShowDisplayMenu(false); }}
-                className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="p-1 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
                 title="Sort holdings"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -944,7 +944,7 @@ export function HoldingsTable({
               </button>
               {showSortMenu && (
                 <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
-                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Sort by</p>
+                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Sort by</p>
                   {customOrder.length > 0 && (
                     <button
                       type="button"
@@ -999,7 +999,7 @@ export function HoldingsTable({
               <button
                 type="button"
                 onClick={() => { setShowDisplayMenu(!showDisplayMenu); setShowSortMenu(false); }}
-                className="p-1 text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="p-1 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
                 title="Display data"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1009,7 +1009,7 @@ export function HoldingsTable({
               </button>
               {showDisplayMenu && (
                 <div className="absolute left-0 top-full mt-1 z-50 w-52 bg-rh-light-card dark:bg-rh-card border border-rh-light-border/40 dark:border-rh-border/40 rounded-xl shadow-xl py-1 animate-fade-in-up">
-                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">View density</p>
+                  <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">View density</p>
                   {(['compact', 'detailed'] as const).map((mode) => (
                     <button
                       key={mode}
@@ -1029,7 +1029,7 @@ export function HoldingsTable({
                     </button>
                   ))}
                   <div className="my-1 border-t border-gray-100 dark:border-white/[0.06]" />
-                  <p className="px-3 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">Display data</p>
+                  <p className="px-3 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Display data</p>
                   {DISPLAY_METRICS.map((m) => (
                     <button
                       key={m.key}
@@ -1064,7 +1064,7 @@ export function HoldingsTable({
               onClick={handleOpenCashMargin}
               title="Cash & Margin"
               aria-label="Cash & Margin"
-              className="p-1.5 rounded-lg text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+              className="p-1.5 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1092,7 +1092,7 @@ export function HoldingsTable({
                 type="button"
                 onClick={handleOpenCashMargin}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30
-                  text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+                  text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1122,7 +1122,7 @@ export function HoldingsTable({
       {/* ── Mobile Card List ──────────────────────────────────────── */}
       <div className="md:hidden">
         {hasActiveFilter && matchCount === 0 && (
-          <div className="py-2 text-center text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <div className="py-2 text-center text-[11px] text-rh-light-text dark:text-white">
             No tickers match "{searchQuery.trim()}" yet.
           </div>
         )}
@@ -1172,13 +1172,13 @@ export function HoldingsTable({
       {/* ── Desktop Table ─────────────────────────────────────────── */}
       <div className="hidden md:block overflow-x-auto no-scrollbar">
         {hasActiveFilter && matchCount === 0 && (
-          <div className="py-4 text-center text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <div className="py-4 text-center text-[11px] text-rh-light-text dark:text-white">
             No tickers match "{searchQuery.trim()}" yet. Your holdings remain visible for context.
           </div>
         )}
         <table className={`w-full ${viewMode === 'compact' ? 'table-fixed' : ''}`}>
           <thead className="sticky top-0 z-10 backdrop-blur-sm bg-rh-light-bg/90 dark:bg-rh-black/90">
-            <tr className="border-t border-b border-rh-light-border/25 dark:border-rh-border/25 text-left text-xs uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60">
+            <tr className="border-t border-b border-rh-light-border/25 dark:border-rh-border/25 text-left text-xs uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
               <th className={`${viewMode !== 'compact' ? 'w-0' : 'w-[12%]'} ${getHeaderClass('ticker')}`} onClick={() => handleSort('ticker')} title="Sort by ticker symbol">
                 Ticker{getSortIndicator('ticker')}
               </th>
@@ -1293,25 +1293,25 @@ export function HoldingsTable({
                       : '—'}
                   </td>
                   <td className={`${viewMode === 'compact' ? '' : 'hidden lg:table-cell'} px-3 py-3 text-right ${
-                    !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
+                    !hasValidPrice ? 'text-rh-light-text dark:text-white' :
                     holding.dayChange >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.dayChange) : '—'}
                   </td>
                   <td className={`${viewMode === 'compact' ? 'pl-3 pr-10' : 'hidden md:table-cell px-3'} py-3 text-right ${
-                    !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
+                    !hasValidPrice ? 'text-rh-light-text dark:text-white' :
                     holding.dayChangePercent >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {hasValidPrice ? formatPercent(holding.dayChangePercent) : '—'}
                   </td>
                   <td className={`${viewMode === 'compact' ? 'hidden' : ''} px-2 sm:px-3 py-3 text-right font-semibold value-transition ${
-                    !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
+                    !hasValidPrice ? 'text-rh-light-text dark:text-white' :
                     holding.profitLoss >= 0 ? 'text-rh-green profit-glow' : 'text-rh-red loss-glow'
                   }`}>
                     {hasValidPrice ? formatPL(holding.profitLoss) : '—'}
                   </td>
                   <td className={`${viewMode === 'compact' ? 'hidden' : 'hidden sm:table-cell'} pl-2 sm:pl-3 pr-10 py-3 text-right font-bold value-transition ${
-                    !hasValidPrice ? 'text-rh-light-muted dark:text-rh-muted' :
+                    !hasValidPrice ? 'text-rh-light-text dark:text-white' :
                     holding.profitLossPercent >= 0 ? 'text-rh-green profit-glow twinkle-glow' : 'text-rh-red loss-glow twinkle-glow'
                   }`}>
                     {hasValidPrice ? formatPercent(holding.profitLossPercent) : '—'}
@@ -1343,7 +1343,7 @@ export function HoldingsTable({
                         cursor: 'pointer',
                         zIndex: 5,
                       }}
-                      className={`transition-opacity duration-150 rounded text-rh-light-muted dark:text-white/70 hover:text-rh-light-text dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-white/10 ${
+                      className={`transition-opacity duration-150 rounded text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-white/10 ${
                         rowMenu?.holding.id === holding.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
                       }`}
                       aria-label="More actions"
@@ -1360,7 +1360,7 @@ export function HoldingsTable({
                 {viewMode === 'detailed' && hasValidPrice && (
                   <tr className="md:hidden border-b border-rh-light-border/10 dark:border-rh-border/10">
                     <td colSpan={99} className="px-4 py-1 pb-2">
-                      <div className="flex items-center gap-3 text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
+                      <div className="flex items-center gap-3 text-[10px] text-rh-light-text dark:text-white">
                         <span>{holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares</span>
                         <span>·</span>
                         <span>avg {formatCurrency(holding.averageCost)}</span>
@@ -1462,7 +1462,7 @@ export function HoldingsTable({
                   e.stopPropagation();
                   handleCloseModal();
                 }}
-                className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1"
+                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1"
                 aria-label="Close modal"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1506,7 +1506,7 @@ export function HoldingsTable({
                   e.stopPropagation();
                   handleCloseModal();
                 }}
-                className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1"
+                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1"
                 aria-label="Close modal"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1532,10 +1532,10 @@ export function HoldingsTable({
             <div className="flex items-start justify-between px-5 pt-5 pb-0 dark:px-0 dark:pt-0 dark:pb-0 mb-1 dark:mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Cash & Margin</h3>
-                <p className="text-xs text-rh-light-muted/60 mt-0.5 dark:hidden">Used to calculate your net equity and returns.</p>
+                <p className="text-xs text-rh-light-text mt-0.5 dark:hidden">Used to calculate your net equity and returns.</p>
               </div>
               <button type="button" onClick={() => setShowCashMarginModal(false)}
-                className="text-rh-light-muted/50 dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
+                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
                 <svg className="w-4 h-4 dark:w-5 dark:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1543,14 +1543,14 @@ export function HoldingsTable({
             </div>
             <form onSubmit={handleSaveCashMargin} className="px-5 pb-5 dark:px-0 dark:pb-0 space-y-4">
               <div>
-                <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Cash Balance</label>
+                <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-white mb-1.5 dark:mb-1">Cash Balance</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-sm">$</span>
                   <input type="number" inputMode="decimal" step="0.01" min="0" value={cashValue} onChange={e => setCashValue(e.target.value)}
                     className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl dark:rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
                     placeholder="0.00" />
                 </div>
-                <p className="text-[11px] text-rh-light-muted/50 mt-1 dark:hidden">Uninvested cash in your brokerage account.</p>
+                <p className="text-[11px] text-rh-light-text mt-1 dark:hidden">Uninvested cash in your brokerage account.</p>
                 <div className="flex gap-2 mt-2">
                   <button type="button" onClick={() => { const amt = prompt('Deposit amount:'); if (amt && parseFloat(amt) > 0) setCashValue(v => (parseFloat(v || '0') + parseFloat(amt)).toFixed(2)); }}
                     className="text-[10px] px-2 py-1 rounded-lg bg-rh-green/10 text-rh-green font-medium hover:bg-rh-green/20 transition-colors">
@@ -1563,21 +1563,21 @@ export function HoldingsTable({
                 </div>
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-rh-muted mb-1.5 dark:mb-1">Margin Debt</label>
+                <label className="block text-[13px] font-medium text-rh-light-text/70 dark:text-sm dark:font-normal dark:text-white mb-1.5 dark:mb-1">Margin Debt</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-sm">$</span>
                   <input type="number" inputMode="decimal" step="0.01" min="0" value={marginValue} onChange={e => setMarginValue(e.target.value)}
                     className="w-full bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-xl dark:rounded-xl px-3 py-2.5 dark:py-2 pl-7 text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-2 focus:ring-rh-green/10 dark:focus:border-rh-green dark:focus:ring-rh-green/20 transition-shadow"
                     placeholder="0.00" />
                 </div>
-                <p className="text-[11px] text-rh-light-muted/50 mt-1 dark:hidden">Amount borrowed (used to compute net equity).</p>
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1 hidden dark:block">Enter your broker margin balance to calculate net equity</p>
+                <p className="text-[11px] text-rh-light-text mt-1 dark:hidden">Amount borrowed (used to compute net equity).</p>
+                <p className="text-xs text-rh-light-text dark:text-white mt-1 hidden dark:block">Enter your broker margin balance to calculate net equity</p>
               </div>
               {cashMarginError && <p className="text-rh-red text-sm">{cashMarginError}</p>}
               {/* Footer — light mode: divider + right-aligned buttons; dark mode: full-width save */}
               <div className="border-t border-black/[0.06] dark:border-transparent pt-4 dark:pt-0 flex justify-end gap-3 dark:block">
                 <button type="button" onClick={() => setShowCashMarginModal(false)}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-rh-light-muted hover:text-rh-light-text hover:bg-black/[0.04] transition-colors dark:hidden">
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-rh-light-text hover:text-rh-light-text hover:bg-black/[0.04] transition-colors dark:hidden">
                   Cancel
                 </button>
                 <button type="submit" disabled={cashMarginLoading}

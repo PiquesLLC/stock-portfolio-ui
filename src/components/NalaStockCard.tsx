@@ -76,14 +76,14 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
             >
               {stock.ticker}
             </button>
-            <span className="text-sm text-rh-light-text/80 dark:text-white/70 font-medium tracking-tight">
+            <span className="text-sm text-rh-light-text/80 dark:text-white/80 font-medium tracking-tight">
               {stock.companyName}
             </span>
           </div>
           <span className="text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-full
             bg-gray-100 dark:bg-white/[0.06]
             border border-gray-200/50 dark:border-white/[0.08]
-            text-rh-light-muted dark:text-white/40 tracking-wider">
+            text-rh-light-text dark:text-white tracking-wider">
             {stock.sector}
           </span>
         </div>
@@ -130,7 +130,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
       </div>
 
       {/* AI Explanation — gradient text */}
-      <p className="font-mono text-sm leading-relaxed mb-3 text-rh-light-text/90 dark:text-white/60">
+      <p className="font-mono text-sm leading-relaxed mb-3 text-rh-light-text/90 dark:text-white">
         {stock.explanation}
       </p>
 
@@ -139,7 +139,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
         <div className="mb-3">
           <button
             onClick={() => setShowRisks(!showRisks)}
-            className="flex items-center gap-1.5 text-xs text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/50 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white/80 transition-colors"
           >
             <motion.svg
               animate={{ rotate: showRisks ? 90 : 0 }}
@@ -160,7 +160,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="font-mono text-xs text-rh-light-muted/70 dark:text-white/30 mt-1.5 pl-4 leading-relaxed overflow-hidden"
+                className="font-mono text-xs text-rh-light-text dark:text-white mt-1.5 pl-4 leading-relaxed overflow-hidden"
               >
                 {stock.risks}
               </motion.p>
@@ -199,8 +199,8 @@ function MetricCell({ label, value }: { label: string; value: string }) {
   const isNA = value === '--';
   return (
     <div>
-      <div className={`text-[9px] uppercase tracking-widest font-medium ${isNA ? 'text-rh-light-muted/50 dark:text-white/20' : 'text-rh-light-muted/60 dark:text-white/25'}`}>{label}</div>
-      <div className={`font-mono text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-muted/40 dark:text-white/15' : 'text-rh-light-text dark:text-white/80'}`}>
+      <div className={`text-[9px] uppercase tracking-widest font-medium ${isNA ? 'text-rh-light-text dark:text-white/80' : 'text-rh-light-text dark:text-white/80'}`}>{label}</div>
+      <div className={`font-mono text-xs font-bold tabular-nums tracking-tight ${isNA ? 'text-rh-light-text dark:text-white/80' : 'text-rh-light-text dark:text-white/80'}`}>
         {isNA ? '·' : value}
       </div>
     </div>

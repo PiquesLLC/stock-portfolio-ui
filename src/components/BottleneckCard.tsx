@@ -71,7 +71,7 @@ export function BottleneckCard({ entry, onOpen, onTickerClick, prices }: Props) 
           className="w-1 h-3.5 rounded-full flex-shrink-0"
           style={{ backgroundColor: layerBarColor(entry.layer) }}
         />
-        <span className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text dark:text-rh-text">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-rh-text">
           {entry.layer}
         </span>
       </div>
@@ -80,7 +80,7 @@ export function BottleneckCard({ entry, onOpen, onTickerClick, prices }: Props) 
         {entry.name}
       </h3>
 
-      <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-3 flex items-center gap-1.5 flex-wrap">
+      <div className="text-xs text-rh-light-text dark:text-white mb-3 flex items-center gap-1.5 flex-wrap">
         <span>Primary:</span>
         <span
           role="link"
@@ -98,13 +98,13 @@ export function BottleneckCard({ entry, onOpen, onTickerClick, prices }: Props) 
         )}
       </div>
 
-      <p className="text-[13px] leading-relaxed text-rh-light-muted dark:text-rh-text/70 mb-4 line-clamp-3">
+      <p className="text-[13px] leading-relaxed text-rh-light-text dark:text-rh-text/70 mb-4 line-clamp-3">
         {entry.thesisShort}
       </p>
 
       {entry.relatedTickers.length > 0 && (
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium">
+          <span className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-medium">
             Related
           </span>
           {entry.relatedTickers.slice(0, 4).map((t) => {

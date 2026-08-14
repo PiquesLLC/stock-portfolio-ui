@@ -46,7 +46,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
             </pre>
           </div>
         ) : (
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">No report data available.</p>
+          <p className="text-sm text-rh-light-text dark:text-white">No report data available.</p>
         )}
       </div>
     );
@@ -65,7 +65,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
           <h2 className="text-base font-bold text-rh-light-text dark:text-white">
             Research Report{result.ticker ? ` — ${result.ticker}` : ''}
           </h2>
-          <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <p className="text-[11px] text-rh-light-text dark:text-white">
             {result.researchType.charAt(0).toUpperCase() + result.researchType.slice(1)} analysis
             {costTelemetry.modelUsed && ` · ${costTelemetry.modelUsed}`}
           </p>
@@ -75,7 +75,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
           title="Download as PDF"
           className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.06] border border-gray-200/50 dark:border-white/[0.08] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-colors"
         >
-          <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </button>
@@ -84,7 +84,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
       {/* Executive Summary */}
       <section className="report-section-in" style={{ animationDelay: '0ms' }}>
         <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/[0.06]">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
             Executive Summary
           </h3>
           <p className="text-sm text-rh-light-text dark:text-white/90 leading-relaxed whitespace-pre-line">
@@ -129,7 +129,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
       {/* Valuation */}
       <section className="report-section-in" style={{ animationDelay: '150ms' }}>
         <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/[0.06]">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
             Valuation — {report.valuation.method}
           </h3>
           <p className="text-sm text-rh-light-text dark:text-white/90 leading-relaxed mb-3">
@@ -161,7 +161,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
               </svg>
               <div>
                 <h4 className="text-[11px] font-semibold text-blue-400 mb-1">Confidence Notes</h4>
-                <p className="text-xs text-rh-light-muted dark:text-white/60 leading-relaxed">
+                <p className="text-xs text-rh-light-text dark:text-white leading-relaxed">
                   {report.confidenceNotes}
                 </p>
               </div>
@@ -174,13 +174,13 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
       {report.citations.length > 0 && (
         <section className="report-section-in" style={{ animationDelay: '250ms' }}>
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/[0.06]">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
               Sources ({report.citations.length})
             </h3>
             <div className="space-y-2.5">
               {report.citations.map((cite, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="text-[10px] font-mono text-rh-light-muted dark:text-rh-muted mt-0.5 shrink-0 w-4 text-right">
+                  <span className="text-[10px] font-mono text-rh-light-text dark:text-white mt-0.5 shrink-0 w-4 text-right">
                     {i + 1}.
                   </span>
                   <div className="min-w-0">
@@ -193,7 +193,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
                       {cite.title}
                     </a>
                     {cite.snippet && (
-                      <p className="text-[11px] text-rh-light-muted dark:text-white/50 leading-relaxed mt-0.5 line-clamp-2">
+                      <p className="text-[11px] text-rh-light-text dark:text-white/80 leading-relaxed mt-0.5 line-clamp-2">
                         {cite.snippet}
                       </p>
                     )}
@@ -208,7 +208,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
       {/* Follow-up Question */}
       <section className="report-section-in" style={{ animationDelay: '300ms' }}>
         <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/[0.06]">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
             Ask a Follow-Up
           </h3>
           <div className="flex gap-2">
@@ -218,7 +218,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
               onChange={e => setFollowUpQ(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !submittingFollowUp) handleFollowUp(); }}
               placeholder="Ask a follow-up question about this research..."
-              className="flex-1 px-3 py-2 rounded-lg text-sm bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-rh-light-text dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-rh-green/50"
+              className="flex-1 px-3 py-2 rounded-lg text-sm bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-rh-light-text dark:text-white placeholder:text-gray-500 dark:placeholder:text-white focus:outline-none focus:ring-1 focus:ring-rh-green/50"
               maxLength={1000}
               disabled={submittingFollowUp}
             />
@@ -235,11 +235,11 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
 
       {/* Disclaimer */}
       <div className="pt-2 border-t border-gray-200/30 dark:border-white/[0.04]">
-        <p className="text-[10px] text-rh-light-muted dark:text-white/30 leading-relaxed">
+        <p className="text-[10px] text-rh-light-text dark:text-white leading-relaxed">
           This report is generated by NALA AI for informational purposes only and does not constitute financial advice.
           Always conduct your own due diligence before making investment decisions.
         </p>
-        <p className="text-[10px] text-rh-light-muted dark:text-white/20 mt-1">
+        <p className="text-[10px] text-rh-light-text dark:text-white/80 mt-1">
           Powered by Google Deep Research (Gemini)
         </p>
       </div>
@@ -280,14 +280,14 @@ function BulletCard({ label, items, icon }: { label: string; items: string[]; ic
     <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200/50 dark:border-white/[0.06]">
       <div className="flex items-center gap-1.5 mb-2">
         {icon}
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
           {label}
         </h3>
       </div>
       <ul className="space-y-1.5">
         {items.map((item, i) => (
           <li key={i} className="flex items-start gap-2 text-xs text-rh-light-text dark:text-white/80 leading-relaxed">
-            <span className="text-rh-light-muted dark:text-white/30 mt-1 shrink-0">•</span>
+            <span className="text-rh-light-text dark:text-white mt-1 shrink-0">•</span>
             {item}
           </li>
         ))}

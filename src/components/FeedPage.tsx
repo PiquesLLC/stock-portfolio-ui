@@ -229,13 +229,13 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
             <button
               onClick={() => setFeedMode('activity')}
               className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
-                feedMode === 'activity' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
+                feedMode === 'activity' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-text dark:text-white'
               }`}
             >Trades</button>
             <button
               onClick={() => setFeedMode('social')}
               className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
-                feedMode === 'social' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-muted/50 dark:text-white/30'
+                feedMode === 'social' ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm' : 'text-rh-light-text dark:text-white'
               }`}
             >Social</button>
           </div>
@@ -248,7 +248,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all
                 ${showSettings
                   ? 'bg-gray-200/60 dark:bg-white/[0.08] text-rh-light-text dark:text-white'
-                  : 'text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-muted dark:hover:text-white/50 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white/80 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
                 }`}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +268,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
               <div className="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl overflow-hidden
                 bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] shadow-2xl shadow-black/10 dark:shadow-black/50">
                 <div className="px-3 py-2 border-b border-gray-200/60 dark:border-white/[0.06]">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-rh-light-muted/50 dark:text-white/30">Min Trade Size</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-rh-light-text dark:text-white">Min Trade Size</span>
                 </div>
                 {THRESHOLD_OPTIONS.map((opt) => (
                   <button
@@ -277,7 +277,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
                     className={`w-full px-3 py-2 text-left text-[12px] font-medium transition-colors flex items-center justify-between
                       ${threshold === opt.value
                         ? 'bg-rh-green/10 text-rh-green'
-                        : 'text-rh-light-muted dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/[0.04] hover:text-rh-light-text dark:hover:text-white/80'
+                        : 'text-rh-light-text dark:text-white hover:bg-gray-50 dark:hover:bg-white/[0.04] hover:text-rh-light-text dark:hover:text-white/80'
                       }`}
                   >
                     {opt.label}
@@ -293,7 +293,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
                 {mutedList.length > 0 && (
                   <>
                     <div className="px-3 py-2 border-t border-gray-200/60 dark:border-white/[0.06]">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-rh-light-muted/50 dark:text-white/30">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-rh-light-text dark:text-white">
                         Muted ({mutedList.length})
                       </span>
                     </div>
@@ -303,7 +303,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
                           key={user.userId}
                           className="flex items-center justify-between px-3 py-1.5 text-[12px]"
                         >
-                          <span className="text-rh-light-muted dark:text-white/50 truncate mr-2">{user.displayName}</span>
+                          <span className="text-rh-light-text dark:text-white/80 truncate mr-2">{user.displayName}</span>
                           <button
                             onClick={() => unmute(user.userId)}
                             className="text-[10px] font-semibold text-rh-green/60 hover:text-rh-green transition-colors flex-shrink-0"
@@ -323,7 +323,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
           <button
             onClick={() => setFeedEnabled(!feedEnabled)}
             className={`relative px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all ${
-              feedEnabled ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-white/25'
+              feedEnabled ? 'text-rh-green' : 'text-rh-light-text dark:text-white/80'
             }`}
           >
             <span className="flex items-center gap-1.5">
@@ -338,12 +338,12 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
       {!feedEnabled ? (
         <div className="p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-white/[0.03] mx-auto mb-4 flex items-center justify-center">
-            <svg className="w-7 h-7 text-rh-light-muted/30 dark:text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-7 h-7 text-rh-light-text dark:text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
           </div>
           <p className="text-rh-light-text dark:text-white font-medium mb-1">Activity paused</p>
-          <p className="text-rh-light-muted/50 dark:text-white/30 text-sm">
+          <p className="text-rh-light-text dark:text-white text-sm">
             Tap "Off" to resume the feed.
           </p>
         </div>
@@ -363,12 +363,12 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
           ) : socialItems.length === 0 ? (
             <div className="p-8 text-center">
               <div className="w-14 h-14 rounded-full bg-rh-light-bg dark:bg-white/5 mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-7 h-7 text-rh-light-muted/50 dark:text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-7 h-7 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
               <p className="text-rh-light-text dark:text-white font-medium mb-1">No posts yet</p>
-              <p className="text-rh-light-muted/70 dark:text-white/50 text-sm">
+              <p className="text-rh-light-text dark:text-white/80 text-sm">
                 Share a thought or follow investors to see their posts.
               </p>
             </div>
@@ -429,7 +429,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] text-rh-light-muted/50 dark:text-white/25 ml-auto">
+                <span className="text-[11px] text-rh-light-text dark:text-white/80 ml-auto">
                   {summary.total} trades
                 </span>
               </div>
@@ -449,14 +449,14 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
           ) : filteredEvents.length === 0 ? (
             <div className="p-8 text-center">
               <div className="w-14 h-14 rounded-full bg-rh-light-bg dark:bg-white/5 mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-7 h-7 text-rh-light-muted/50 dark:text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-7 h-7 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
               <p className="text-rh-light-text dark:text-white font-medium mb-1">
                 {threshold > 0 ? 'No trades above threshold' : 'No activity yet'}
               </p>
-              <p className="text-rh-light-muted/70 dark:text-white/50 text-sm">
+              <p className="text-rh-light-text dark:text-white/80 text-sm">
                 {threshold > 0
                   ? `No trades above ${THRESHOLD_OPTIONS.find(o => o.value === threshold)?.label}. Try lowering the filter.`
                   : 'Follow investors from the Leaderboard to see their trades.'}
@@ -472,7 +472,7 @@ export function FeedPage({ currentUserId, onUserClick, onTickerClick }: FeedPage
                   <div key={section.label}>
                     {!skipHeader && (
                       <div className="px-4 pt-4 pb-1.5 flex items-center gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-rh-light-muted/50 dark:text-white/25">
+                        <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-rh-light-text dark:text-white/80">
                           {section.label}
                         </span>
                         <div className="flex-1 h-px bg-rh-light-border/15 dark:bg-white/[0.05]" />
@@ -539,7 +539,7 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
                 <div className="w-1 h-4 rounded-full bg-rh-green" />
                 <h3 className="text-[13px] font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Trending</h3>
               </div>
-              <p className="text-[10px] text-rh-light-muted/40 dark:text-white/15 mt-1 ml-3">Most mentioned in the last 24h</p>
+              <p className="text-[10px] text-rh-light-text dark:text-white/80 mt-1 ml-3">Most mentioned in the last 24h</p>
             </div>
             <div>
               {tickers.slice(0, 6).map((t, i) => (
@@ -557,7 +557,7 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
                 <div className="w-1 h-4 rounded-full bg-rh-green" />
                 <h3 className="text-[13px] font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Most Bought</h3>
               </div>
-              <p className="text-[10px] text-rh-light-muted/40 dark:text-white/15 mt-1 ml-3">Community buys this week</p>
+              <p className="text-[10px] text-rh-light-text dark:text-white/80 mt-1 ml-3">Community buys this week</p>
             </div>
             <div>
               {mostBought.slice(0, 6).map((t, i) => (
@@ -566,7 +566,7 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
                   onClick={() => onTickerClick?.(t.ticker)}
                   className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
                 >
-                  <span className="text-[11px] font-bold text-rh-light-muted/20 dark:text-white/10 w-4 tabular-nums">{i + 1}</span>
+                  <span className="text-[11px] font-bold text-rh-light-text dark:text-white/80 w-4 tabular-nums">{i + 1}</span>
                   <span className="text-[13px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-green transition-colors flex-1 text-left">${t.ticker}</span>
                   <span className="text-[11px] font-semibold text-rh-green tabular-nums">{t.count} {t.count === 1 ? 'buy' : 'buys'}</span>
                 </button>
@@ -583,7 +583,7 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
                 <div className="w-1 h-4 rounded-full bg-rh-red" />
                 <h3 className="text-[13px] font-bold text-rh-light-text dark:text-white uppercase tracking-wide">Most Sold</h3>
               </div>
-              <p className="text-[10px] text-rh-light-muted/40 dark:text-white/15 mt-1 ml-3">Community sells this week</p>
+              <p className="text-[10px] text-rh-light-text dark:text-white/80 mt-1 ml-3">Community sells this week</p>
             </div>
             <div>
               {mostSold.slice(0, 6).map((t, i) => (
@@ -592,7 +592,7 @@ function FeedSidebar({ feedMode, onTickerClick }: { feedMode: string; onTickerCl
                   onClick={() => onTickerClick?.(t.ticker)}
                   className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
                 >
-                  <span className="text-[11px] font-bold text-rh-light-muted/20 dark:text-white/10 w-4 tabular-nums">{i + 1}</span>
+                  <span className="text-[11px] font-bold text-rh-light-text dark:text-white/80 w-4 tabular-nums">{i + 1}</span>
                   <span className="text-[13px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-red transition-colors flex-1 text-left">${t.ticker}</span>
                   <span className="text-[11px] font-semibold text-rh-red tabular-nums">{t.count} {t.count === 1 ? 'sell' : 'sells'}</span>
                 </button>
@@ -698,7 +698,7 @@ function MobileTrending({ onTickerClick }: { onTickerClick?: (ticker: string) =>
   // Already sorted descending by count from the API, but ensure it
   const sorted = [...tickers].sort((a, b) => b.count - a.count);
 
-  const sectionLabel = 'text-[10px] font-bold uppercase tracking-wider text-rh-light-muted/60 dark:text-white/30';
+  const sectionLabel = 'text-[10px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80';
   const rowScroll = 'flex gap-2 overflow-x-auto';
   const rowStyle = { scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none' } as React.CSSProperties;
 
@@ -777,7 +777,7 @@ function TrendingSidebarRow({ ticker, rank, count, onClick }: { ticker: string; 
       onClick={onClick}
       className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
     >
-      <span className="text-[11px] font-bold text-rh-light-muted/20 dark:text-white/10 w-4 tabular-nums">{rank}</span>
+      <span className="text-[11px] font-bold text-rh-light-text dark:text-white/80 w-4 tabular-nums">{rank}</span>
       <span className="text-[13px] font-bold text-rh-light-text dark:text-white group-hover:text-rh-green transition-colors w-16">${ticker}</span>
       <div className="w-14 h-5 opacity-50 group-hover:opacity-80 transition-opacity flex-shrink-0">
         <MiniSparkline ticker={ticker} period="1W" />
@@ -792,7 +792,7 @@ function TrendingSidebarRow({ ticker, rank, count, onClick }: { ticker: string; 
           </span>
         )}
       </div>
-      <span className="text-[10px] text-rh-light-muted/30 dark:text-white/15 w-8 text-right tabular-nums">{count}</span>
+      <span className="text-[10px] text-rh-light-text dark:text-white/80 w-8 text-right tabular-nums">{count}</span>
     </button>
   );
 }

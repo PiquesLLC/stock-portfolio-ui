@@ -43,7 +43,7 @@ export function MarginDebt({ currentDebt, onUpdate }: Props) {
       <form onSubmit={handleSubmit} className="flex gap-3">
         <div className="flex-1">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white">$</span>
             <input
               type="number"
               inputMode="decimal"
@@ -65,7 +65,7 @@ export function MarginDebt({ currentDebt, onUpdate }: Props) {
         </button>
       </form>
       {error && <p className="text-rh-red text-sm mt-2">{error}</p>}
-      <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">
+      <p className="text-xs text-rh-light-text dark:text-white mt-2">
         Enter your broker margin balance to calculate net equity
       </p>
     </div>

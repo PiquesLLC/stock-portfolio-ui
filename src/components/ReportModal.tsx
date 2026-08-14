@@ -86,7 +86,7 @@ export function ReportModal({ isOpen, onClose, targetUserId, targetUsername, con
             aria-label="Close"
             className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
           >
-            <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-rh-light-text dark:text-white" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -100,7 +100,7 @@ export function ReportModal({ isOpen, onClose, targetUserId, targetUsername, con
               </svg>
             </div>
             <p className="text-sm font-medium text-rh-light-text dark:text-white">Report submitted</p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">We'll review this shortly.</p>
+            <p className="text-xs text-rh-light-text dark:text-white mt-1">We'll review this shortly.</p>
           </div>
         ) : (
           <>
@@ -126,7 +126,7 @@ export function ReportModal({ isOpen, onClose, targetUserId, targetUsername, con
             {/* Description textarea */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-rh-light-text dark:text-rh-text mb-1.5">
-                Additional details <span className="text-rh-light-muted dark:text-rh-muted font-normal">(optional)</span>
+                Additional details <span className="text-rh-light-text dark:text-white font-normal">(optional)</span>
               </label>
               <textarea
                 value={description}
@@ -139,7 +139,7 @@ export function ReportModal({ isOpen, onClose, targetUserId, targetUsername, con
                   focus:ring-2 focus:ring-rh-green/50 focus:border-rh-green outline-none transition-colors
                   text-sm resize-none"
               />
-              <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-1 text-right">
+              <p className="text-[11px] text-rh-light-text dark:text-white mt-1 text-right">
                 {description.length}/1000
               </p>
             </div>
@@ -154,7 +154,7 @@ export function ReportModal({ isOpen, onClose, targetUserId, targetUsername, con
             <div className="flex gap-3 justify-end">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
               >
                 Cancel
               </button>

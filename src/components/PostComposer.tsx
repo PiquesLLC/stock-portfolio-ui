@@ -116,12 +116,12 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
         <div className="mt-2 relative rounded-xl overflow-hidden border border-rh-light-border/20 dark:border-white/[0.08] bg-rh-light-bg/50 dark:bg-white/[0.03]">
           <div className="px-3 pt-2 pb-1 flex items-center justify-between">
             <span className="text-[11px] font-bold text-rh-light-text dark:text-white">${attachTicker.toUpperCase()}</span>
-            <span className="text-[10px] text-rh-light-muted/50 dark:text-white/25">{attachPeriod}</span>
+            <span className="text-[10px] text-rh-light-text dark:text-white/80">{attachPeriod}</span>
           </div>
           <div className="h-14 px-2">
             <MiniSparkline ticker={attachTicker.toUpperCase()} positive={true} period={attachPeriod as any} />
           </div>
-          <button onClick={clearAttachment} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-gray-200/80 dark:bg-white/10 flex items-center justify-center text-rh-light-muted dark:text-white/40 hover:text-rh-red text-xs">&times;</button>
+          <button onClick={clearAttachment} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-gray-200/80 dark:bg-white/10 flex items-center justify-center text-rh-light-text dark:text-white hover:text-rh-red text-xs">&times;</button>
         </div>
       )}
 
@@ -130,9 +130,9 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
             <span className="text-[11px] font-bold text-rh-light-text dark:text-white">My Portfolio</span>
-            <span className="text-[10px] text-rh-light-muted/50 dark:text-white/25">{attachPeriod}</span>
+            <span className="text-[10px] text-rh-light-text dark:text-white/80">{attachPeriod}</span>
           </div>
-          <button onClick={clearAttachment} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-gray-200/80 dark:bg-white/10 flex items-center justify-center text-rh-light-muted dark:text-white/40 hover:text-rh-red text-xs">&times;</button>
+          <button onClick={clearAttachment} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-gray-200/80 dark:bg-white/10 flex items-center justify-center text-rh-light-text dark:text-white hover:text-rh-red text-xs">&times;</button>
         </div>
       )}
 
@@ -141,10 +141,10 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           <div className="flex items-center gap-3">
             <span className={`text-[11px] font-bold uppercase ${attachAction === 'buy' ? 'text-rh-green' : 'text-rh-red'}`}>{attachAction}</span>
             <span className="text-[11px] font-bold text-rh-light-text dark:text-white">${attachTicker.toUpperCase()}</span>
-            {attachShares && <span className="text-[11px] text-rh-light-muted dark:text-white/50">{attachShares} shares</span>}
-            {attachPrice && <span className="text-[11px] text-rh-light-muted dark:text-white/50">@ ${attachPrice}</span>}
+            {attachShares && <span className="text-[11px] text-rh-light-text dark:text-white/80">{attachShares} shares</span>}
+            {attachPrice && <span className="text-[11px] text-rh-light-text dark:text-white/80">@ ${attachPrice}</span>}
           </div>
-          <button onClick={clearAttachment} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-gray-200/80 dark:bg-white/10 flex items-center justify-center text-rh-light-muted dark:text-white/40 hover:text-rh-red text-xs">&times;</button>
+          <button onClick={clearAttachment} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-gray-200/80 dark:bg-white/10 flex items-center justify-center text-rh-light-text dark:text-white hover:text-rh-red text-xs">&times;</button>
         </div>
       )}
 
@@ -167,7 +167,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
             <div className="flex gap-0.5">
               {PERIODS.map(p => (
                 <button key={p} onClick={() => setAttachPeriod(p)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${attachPeriod === p ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40'}`}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${attachPeriod === p ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white'}`}
                 >{p}</button>
               ))}
             </div>
@@ -175,8 +175,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           {attachMode === 'trade' && (
             <>
               <div className="flex gap-0.5">
-                <button onClick={() => setAttachAction('buy')} className={`px-2 py-0.5 rounded text-[10px] font-bold ${attachAction === 'buy' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20'}`}>Buy</button>
-                <button onClick={() => setAttachAction('sell')} className={`px-2 py-0.5 rounded text-[10px] font-bold ${attachAction === 'sell' ? 'bg-rh-red/15 text-rh-red' : 'text-rh-light-muted/40 dark:text-white/20'}`}>Sell</button>
+                <button onClick={() => setAttachAction('buy')} className={`px-2 py-0.5 rounded text-[10px] font-bold ${attachAction === 'buy' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-text dark:text-white/80'}`}>Buy</button>
+                <button onClick={() => setAttachAction('sell')} className={`px-2 py-0.5 rounded text-[10px] font-bold ${attachAction === 'sell' ? 'bg-rh-red/15 text-rh-red' : 'text-rh-light-text dark:text-white/80'}`}>Sell</button>
               </div>
               <input value={attachShares} onChange={e => setAttachShares(e.target.value)} placeholder="Shares" type="number"
                 className="w-16 bg-white dark:bg-[#1a1a1e] text-xs text-rh-light-text dark:text-white placeholder-rh-light-muted/30 dark:placeholder-white/15 border border-rh-light-border/20 dark:border-white/[0.06] rounded-lg px-2 py-1 outline-none" />
@@ -192,17 +192,17 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           {/* Attachment buttons */}
           <button onClick={() => setAttachMode(attachMode === 'stock_chart' ? null : 'stock_chart')}
             title="Attach stock chart"
-            className={`p-1.5 rounded-lg transition-colors ${attachMode === 'stock_chart' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20 hover:text-rh-green hover:bg-rh-green/5'}`}>
+            className={`p-1.5 rounded-lg transition-colors ${attachMode === 'stock_chart' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-text dark:text-white/80 hover:text-rh-green hover:bg-rh-green/5'}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
           </button>
           <button onClick={() => setAttachMode(attachMode === 'portfolio_chart' ? null : 'portfolio_chart')}
             title="Attach portfolio chart"
-            className={`p-1.5 rounded-lg transition-colors ${attachMode === 'portfolio_chart' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20 hover:text-rh-green hover:bg-rh-green/5'}`}>
+            className={`p-1.5 rounded-lg transition-colors ${attachMode === 'portfolio_chart' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-text dark:text-white/80 hover:text-rh-green hover:bg-rh-green/5'}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3v18h18M7 16l4-4 4 4 5-5" /></svg>
           </button>
           <button onClick={() => setAttachMode(attachMode === 'trade' ? null : 'trade')}
             title="Share a trade"
-            className={`p-1.5 rounded-lg transition-colors ${attachMode === 'trade' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20 hover:text-rh-green hover:bg-rh-green/5'}`}>
+            className={`p-1.5 rounded-lg transition-colors ${attachMode === 'trade' ? 'bg-rh-green/15 text-rh-green' : 'text-rh-light-text dark:text-white/80 hover:text-rh-green hover:bg-rh-green/5'}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
           </button>
 
@@ -229,14 +229,14 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           ) : (
             <button onClick={() => setTickerSearchOpen(true)}
               title="Tag a ticker"
-              className="p-1.5 rounded-lg transition-colors text-rh-light-muted/40 dark:text-white/20 hover:text-rh-green hover:bg-rh-green/5">
+              className="p-1.5 rounded-lg transition-colors text-rh-light-text dark:text-white/80 hover:text-rh-green hover:bg-rh-green/5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </button>
           )}
           <select
             value={type}
             onChange={e => setType(e.target.value as 'thought' | 'analysis' | 'trade_idea')}
-            className="text-xs bg-white dark:bg-[#1a1a1e] text-rh-light-muted dark:text-white/50
+            className="text-xs bg-white dark:bg-[#1a1a1e] text-rh-light-text dark:text-white/80
               border border-rh-light-border/20 dark:border-white/[0.06] rounded-lg px-2 py-1 outline-none appearance-none hidden sm:block"
           >
             <option value="thought" className="bg-white dark:bg-[#1a1a1e]">Thought</option>
@@ -245,7 +245,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-rh-light-muted/40 dark:text-white/20">{content.length}/1000</span>
+          <span className="text-[10px] text-rh-light-text dark:text-white/80">{content.length}/1000</span>
           <button
             onClick={handleSubmit}
             disabled={!content.trim() || submitting}

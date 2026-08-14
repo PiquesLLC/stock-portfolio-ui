@@ -131,7 +131,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
         </motion.div>
         <div>
           <h1 className="text-xl font-bold tracking-tighter text-rh-light-text dark:text-white">Ask Nala AI</h1>
-          <p className="text-xs text-rh-light-muted/60 dark:text-white/30 tracking-wide">AI-powered stock research using real financial data</p>
+          <p className="text-xs text-rh-light-text dark:text-white tracking-wide">AI-powered stock research using real financial data</p>
         </div>
       </motion.div>
 
@@ -195,7 +195,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
             aria-label="Ask Nala AI a question about investing"
             className="w-full px-1 py-3 text-lg bg-transparent
               text-rh-light-text dark:text-white
-              placeholder:text-rh-light-muted/40 dark:placeholder:text-white/25
+              placeholder:text-rh-light-text dark:placeholder:text-white/80
               border-b border-gray-300/60 dark:border-white/[0.12]
               focus:border-b-2 focus:border-rh-green focus:shadow-[0_2px_15px_-3px_rgba(0,200,5,0.4)]
               focus:outline-none
@@ -236,7 +236,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
 
       {/* Input validation hint */}
       {question.trim().length > 0 && question.trim().length < 5 && !loading && (
-        <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 -mt-4 ml-11 pl-1">
+        <p className="text-[11px] text-rh-light-text dark:text-white/80 -mt-4 ml-11 pl-1">
           Type at least 5 characters to search
         </p>
       )}
@@ -261,7 +261,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
               className="px-3.5 py-2 text-xs rounded-xl
                 bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60
                 backdrop-blur-md
-                text-rh-light-muted/80 dark:text-white/40 hover:text-rh-light-text dark:hover:text-white/70
+                text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white
                 border border-white/[0.06] dark:border-white/[0.06] border-gray-200/40
                 hover:border-rh-green/30 hover:shadow-md hover:shadow-green-500/10
                 transition-all duration-200"
@@ -308,13 +308,13 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
                 ))}
               </div>
               <p className="font-mono text-sm font-medium text-rh-green">Researching...</p>
-              <p className="font-mono text-[11px] text-rh-light-muted/50 dark:text-white/30 mt-1">This may take 15-30 seconds</p>
+              <p className="font-mono text-[11px] text-rh-light-text dark:text-white mt-1">This may take 15-30 seconds</p>
               <button
                 onClick={handleStop}
                 aria-label="Stop research"
                 className="mt-4 text-[11px] font-medium px-3 py-1 rounded-lg
                   bg-transparent border border-gray-200/40 dark:border-white/[0.1]
-                  text-rh-light-muted/50 dark:text-white/30
+                  text-rh-light-text dark:text-white
                   hover:text-rh-red hover:border-rh-red/40
                   transition-all duration-200"
               >
@@ -398,10 +398,10 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-red-400 mb-1">Something went wrong</p>
-                <p className="font-mono text-xs text-rh-light-muted/50 dark:text-white/25 mb-3">{error}</p>
+                <p className="font-mono text-xs text-rh-light-text dark:text-white/80 mb-3">{error}</p>
                 <div className="space-y-1.5 mb-4">
-                  <p className="text-[11px] text-rh-light-muted/50 dark:text-white/30">Things to try:</p>
-                  <ul className="text-[11px] text-rh-light-muted/50 dark:text-white/30 space-y-0.5 pl-3">
+                  <p className="text-[11px] text-rh-light-text dark:text-white">Things to try:</p>
+                  <ul className="text-[11px] text-rh-light-text dark:text-white space-y-0.5 pl-3">
                     <li>- Check your internet connection</li>
                     <li>- Try a simpler or more specific query</li>
                     <li>- Wait a moment and try again</li>
@@ -419,7 +419,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
                   </button>
                   <button
                     onClick={handleReset}
-                    className="text-[11px] text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-muted dark:hover:text-white/40 transition-colors"
+                    className="text-[11px] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
                   >
                     Ask something else
                   </button>
@@ -460,7 +460,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
                       {response.strategy.riskLevel}
                     </span>
                   </div>
-                  <p className="font-mono text-xs text-rh-light-muted/60 dark:text-white/35 leading-relaxed">
+                  <p className="font-mono text-xs text-rh-light-text dark:text-white leading-relaxed">
                     {response.strategy.description}
                   </p>
                 </div>
@@ -473,7 +473,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15 }}
-                className="font-mono text-sm text-rh-light-muted/70 dark:text-white/35 px-1 leading-relaxed"
+                className="font-mono text-sm text-rh-light-text dark:text-white px-1 leading-relaxed"
               >
                 {response.strategyExplanation}
               </motion.p>
@@ -494,7 +494,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
               </div>
             ) : (
               <div className="bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/60 backdrop-blur-[30px] rounded-[20px] border border-white/[0.08] dark:border-white/[0.08] border-gray-200/40 p-10 text-center">
-                <p className="text-sm text-rh-light-muted/60 dark:text-white/30">
+                <p className="text-sm text-rh-light-text dark:text-white">
                   No matching stocks found. Try rephrasing your question.
                 </p>
               </div>
@@ -508,7 +508,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
                 transition={{ delay: 0.4 }}
                 className="flex flex-wrap items-center gap-2 px-1"
               >
-                <span className="font-mono text-[10px] text-rh-light-muted/40 dark:text-white/30 uppercase tracking-widest font-medium">Sources</span>
+                <span className="font-mono text-[10px] text-rh-light-text dark:text-white uppercase tracking-widest font-medium">Sources</span>
                 {response.citations.slice(0, 6).map((url, i) => {
                   let domain = '';
                   try { domain = new URL(url).hostname.replace('www.', ''); } catch { domain = 'source'; }
@@ -533,7 +533,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
 
             {/* Footer */}
             <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[10px] text-rh-light-muted/40 dark:text-white/30">
+              <span className="font-mono text-[10px] text-rh-light-text dark:text-white">
                 Powered by AI {response.cached ? '(cached)' : ''}
               </span>
               <button
@@ -549,7 +549,7 @@ export default function NalaAIPage({ onTickerClick, initialQuestion, onQuestionC
             </div>
 
             {/* Disclaimer */}
-            <p className="font-mono text-[9px] text-rh-light-muted/40 dark:text-white/25 px-1 leading-relaxed">
+            <p className="font-mono text-[9px] text-rh-light-text dark:text-white/80 px-1 leading-relaxed">
               For informational and educational purposes only. Not financial advice.
               All data sourced from public financial databases. Past performance does not guarantee future results.
             </p>

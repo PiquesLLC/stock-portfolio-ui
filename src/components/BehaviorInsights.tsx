@@ -167,7 +167,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
             </svg>
           </div>
           <h3 className="text-sm font-bold text-rh-light-text dark:text-white mb-1">AI Behavior Coach</h3>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-3">Upgrade to Premium to unlock AI-powered behavior analysis.</p>
+          <p className="text-xs text-rh-light-text dark:text-white mb-3">Upgrade to Premium to unlock AI-powered behavior analysis.</p>
           <a
             href="#tab=pricing"
             onClick={(e) => { e.preventDefault(); navigateToPricing(); }}
@@ -192,7 +192,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
   if (!data || data.holdingCount === 0) {
     return (
       <div className="p-6 text-center">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           Add holdings to your portfolio to receive behavior insights.
         </p>
       </div>
@@ -247,12 +247,12 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
         </div>
 
         {/* Summary text */}
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed mb-3">
+        <p className="text-sm text-rh-light-text dark:text-white leading-relaxed mb-3">
           {data.summary}
         </p>
 
         {/* Disclaimer */}
-        <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 leading-relaxed mb-5">
+        <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed mb-5">
           For educational purposes only. Not financial advice. Always do your own research and consult a qualified financial advisor before making investment decisions.
         </p>
 
@@ -317,7 +317,7 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
 
               {/* Chevron */}
               <svg
-                className={`w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 text-rh-light-text dark:text-white shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -327,14 +327,14 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
             {/* Expandable content */}
             {isExpanded && (
               <div className="px-5 pb-4 space-y-3">
-                <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+                <p className="text-sm text-rh-light-text dark:text-white">
                   {insight.observation}
                 </p>
 
                 {/* Ticker links */}
                 {tickers.length > 0 && onTickerClick && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">Related:</span>
+                    <span className="text-xs text-rh-light-text dark:text-white">Related:</span>
                     {tickers.map(t => (
                       <button
                         key={t}
@@ -349,8 +349,8 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
 
                 {/* Suggestion */}
                 <div className="border-l-2 border-rh-green/40 pl-3 py-1">
-                  <p className="text-xs text-rh-light-muted dark:text-white/50">
-                    <span className="font-medium text-rh-light-text dark:text-white/70">Suggestion: </span>
+                  <p className="text-xs text-rh-light-text dark:text-white/80">
+                    <span className="font-medium text-rh-light-text dark:text-white/80">Suggestion: </span>
                     {insight.suggestion}
                   </p>
                 </div>
@@ -362,11 +362,11 @@ export default function BehaviorInsights({ onTickerClick, portfolioTickers = [],
 
       {/* ── Footer ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
+        <span className="text-xs text-rh-light-text dark:text-white">
           Powered by AI {data.cached ? '(cached)' : ''} &middot; {data.holdingCount} holdings, {data.activityCount} activities analyzed &middot; Not financial advice
         </span>
         {generatedAgo && (
-          <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
+          <span className="text-xs text-rh-light-text dark:text-white">
             Generated {generatedAgo}
           </span>
         )}

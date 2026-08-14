@@ -28,7 +28,7 @@ export function OnboardingModal({ onComplete, hasExistingHoldings }: Props) {
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-rh-card border border-rh-border rounded-xl max-w-lg w-full p-6">
         <h2 className="text-xl font-bold mb-2">Welcome to Stock Portfolio</h2>
-        <p className="text-rh-muted mb-6">
+        <p className="text-white mb-6">
           To track your performance accurately, we need to set a starting point.
         </p>
 
@@ -52,7 +52,7 @@ export function OnboardingModal({ onComplete, hasExistingHoldings }: Props) {
                 </div>
               </button>
 
-              <div className="text-center text-rh-muted text-sm">or</div>
+              <div className="text-center text-white text-sm">or</div>
 
               <button
                 onClick={() => handleSetBaseline('fresh_start')}
@@ -60,7 +60,7 @@ export function OnboardingModal({ onComplete, hasExistingHoldings }: Props) {
                 className="w-full bg-rh-dark hover:bg-rh-border disabled:opacity-50 text-white font-semibold px-4 py-3 rounded-lg transition-colors border border-rh-border text-left"
               >
                 <div className="font-semibold">Fresh start (baseline = $0)</div>
-                <div className="text-sm text-rh-muted mt-1">
+                <div className="text-sm text-white mt-1">
                   Useful if you're adding holdings you just bought. All gains/losses will be counted.
                 </div>
               </button>
@@ -76,7 +76,7 @@ export function OnboardingModal({ onComplete, hasExistingHoldings }: Props) {
           )}
         </div>
 
-        <p className="text-xs text-rh-muted mt-6 text-center">
+        <p className="text-xs text-white mt-6 text-center">
           You can add your broker's lifetime stats later for a complete picture.
         </p>
       </div>

@@ -88,22 +88,22 @@ export function DailyReportModal({ onClose, onTickerClick, hidden }: DailyReport
         className="sticky z-20 flex items-center justify-between px-6 py-3 bg-white dark:bg-black"
         style={{ top: 0, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
       >
-        <button onClick={onClose} className="flex items-center gap-2 text-sm text-rh-light-muted dark:text-white/50 hover:text-rh-light-text dark:hover:text-white transition-colors">
+        <button onClick={onClose} className="flex items-center gap-2 text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
         <div className="flex items-center gap-3" data-exclude-share="true">
-          <button onClick={handleShare} disabled={sharing} className="flex items-center gap-1.5 text-[11px] text-rh-light-muted dark:text-white/40 hover:text-rh-green transition-colors disabled:opacity-50">
+          <button onClick={handleShare} disabled={sharing} className="flex items-center gap-1.5 text-[11px] text-rh-light-text dark:text-white hover:text-rh-green transition-colors disabled:opacity-50">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
             {sharing ? 'Saving...' : 'Share'}
           </button>
-          <button onClick={handleRegenerate} disabled={regenerating} className="flex items-center gap-1.5 text-[11px] text-rh-light-muted dark:text-white/40 hover:text-rh-green transition-colors disabled:opacity-50">
+          <button onClick={handleRegenerate} disabled={regenerating} className="flex items-center gap-1.5 text-[11px] text-rh-light-text dark:text-white hover:text-rh-green transition-colors disabled:opacity-50">
             <svg className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             {regenerating ? 'Generating...' : 'Refresh'}
           </button>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={dontShowAgain} onChange={(e) => setDontShowAgain(e.target.checked)} className="w-3 h-3 accent-rh-green" />
-            <span className="text-[11px] text-rh-light-muted dark:text-white/30">Don't show on startup</span>
+            <span className="text-[11px] text-rh-light-text dark:text-white">Don't show on startup</span>
           </label>
         </div>
       </div>

@@ -17,10 +17,37 @@ visual OK before pushing (never ship styling unseen).
 - **Dividers / hairlines**: `border-gray-200/40 dark:border-white/[0.06]`
 - **Modals**: `bg-white dark:bg-[#1a1a1e]` is legacy — prefer jet black for new ones.
 
+## Text is white — no grey labels (set 2026-08-13, Jon)
+
+Text on black is **white**. Hierarchy comes from size, weight and letter-spacing,
+never from fading text toward the background. Grey labels were rejected outright:
+"grey is too close to black — other apps just use white."
+
+| Role | Dark (on black) | Light (on white) |
+|---|---|---|
+| Values, labels, body | `dark:text-white` / `dark:text-rh-text` | `text-rh-light-text` |
+| Sub-captions under a value | `dark:text-white/80` (#ccc) | `text-rh-light-text` |
+
+- **Do not** reintroduce `text-rh-muted`, `text-rh-light-muted`, or any
+  `text-white/<70` for real text. They read grey. `text-white/25` measures
+  2.0:1 against black; `rh-light-muted/70` is 2.8:1 on white — both unreadable.
+- **Nothing below `/80`.** `/80`–`/95` read as near-white and are fine for a
+  caption sitting under the value it describes; everything else is full white.
+  A hover state must brighten toward white, never toward `/80`.
+- Bracket opacities (`dark:text-white/[0.06]`) are exempt — decorative
+  separators and hairlines, never text meant to be read.
+- Green/red still carry gain/loss and nothing else: `rh-green` 9.3:1,
+  `rh-red` 5.8:1 on black.
+- A bare token with no `dark:` prefix paints both themes. Only use bare
+  `text-white` on a surface that is always dark (`bg-rh-black` with no
+  `bg-white` anywhere in the file); otherwise pair it.
+
 ## Section headers
 
-`<h2 class="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span class="w-0.5 h-3.5 bg-rh-green rounded-full" />Title</h2>`
-Every page section uses this. Card-internal labels: `text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50`.
+`<h2 class="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted dark:text-rh-muted mb-4"><span class="w-0.5 h-3.5 bg-rh-green rounded-full" />Title</h2>`
+Every page section uses this — including collapsible panels (Earnings,
+Financials), where the `<h2>` wraps the toggle button. Card-internal labels:
+`text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted`.
 
 ## Color vocabulary (ONE severity/status language)
 

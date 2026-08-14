@@ -56,12 +56,12 @@ export default function OAuthDobModal() {
       <div className="w-full max-w-sm mx-4 rounded-2xl border border-white/[0.1] bg-black/95 backdrop-blur-md shadow-xl">
         <div className="px-5 pt-5 pb-1">
           <h2 className="text-base font-semibold text-white">One last step</h2>
-          <p className="mt-1.5 text-xs text-rh-muted leading-relaxed">
+          <p className="mt-1.5 text-xs text-white leading-relaxed">
             Nala requires you to be at least 13 years old. Your date of birth is used only for this check and is not stored.
           </p>
         </div>
         <div className="px-5 py-4">
-          <label htmlFor="oauthDateOfBirth" className="block text-sm font-medium text-rh-muted mb-2">Date of Birth</label>
+          <label htmlFor="oauthDateOfBirth" className="block text-sm font-medium text-white mb-2">Date of Birth</label>
           <input
             id="oauthDateOfBirth"
             type="date"
@@ -77,7 +77,7 @@ export default function OAuthDobModal() {
             type="button"
             onClick={cancelOAuthSignup}
             disabled={saving}
-            className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-white/[0.08] text-rh-muted hover:text-white hover:border-white/[0.15] transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-white/[0.08] text-white hover:text-white hover:border-white/[0.15] transition-colors disabled:opacity-50"
           >
             Cancel
           </button>

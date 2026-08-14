@@ -200,7 +200,7 @@ function getSignalColors(grade: string) {
   if (grade.startsWith('A')) return { ring: 'ring-rh-green/40', bg: 'bg-rh-green/15', text: 'text-rh-green', badgeBg: 'bg-rh-green', badgeText: 'text-black', pulse: grade === 'A+' };
   if (grade.startsWith('B')) return { ring: 'ring-blue-500/40', bg: 'bg-blue-500/15', text: 'text-blue-400', badgeBg: 'bg-blue-500', badgeText: 'text-white', pulse: false };
   if (grade.startsWith('C')) return { ring: 'ring-yellow-500/40', bg: 'bg-yellow-500/15', text: 'text-yellow-400', badgeBg: 'bg-yellow-500', badgeText: 'text-black', pulse: false };
-  if (grade === '--') return { ring: 'ring-white/[0.08]', bg: 'bg-white/[0.04]', text: 'text-rh-muted', badgeBg: 'bg-white/[0.08]', badgeText: 'text-rh-muted', pulse: false };
+  if (grade === '--') return { ring: 'ring-white/[0.08]', bg: 'bg-white/[0.04]', text: 'text-rh-light-text dark:text-white', badgeBg: 'bg-white/[0.08]', badgeText: 'text-rh-light-text dark:text-white', pulse: false };
   return { ring: 'ring-rh-red/40', bg: 'bg-rh-red/15', text: 'text-rh-red', badgeBg: 'bg-rh-red', badgeText: 'text-white', pulse: false };
 }
 
@@ -271,7 +271,7 @@ function LockedOverlay({ onClick }: { onClick?: () => void }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
-        <span className="text-sm font-semibold text-rh-light-muted dark:text-white/40">
+        <span className="text-sm font-semibold text-rh-light-text dark:text-white">
           Subscribe to unlock
         </span>
       </div>
@@ -546,7 +546,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
   if (!profile) {
     return (
       <div className="py-8 text-center">
-        <p className="text-rh-light-muted dark:text-rh-muted text-sm">User not found.</p>
+        <p className="text-rh-light-text dark:text-white text-sm">User not found.</p>
         <button onClick={onBack} className="mt-2 text-rh-green text-sm hover:underline">Go back</button>
       </div>
     );
@@ -586,7 +586,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       <motion.button
         variants={itemVariants}
         onClick={onBack}
-        className="flex items-center gap-1.5 text-xs text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors group"
+        className="flex items-center gap-1.5 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors group"
       >
         <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -610,7 +610,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 {profile.displayName}
               </h1>
               {profile.showRegion && profile.region && (
-                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-medium rounded bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted/60 dark:text-rh-muted/60">
+                <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-medium rounded bg-gray-100 dark:bg-white/[0.04] text-rh-light-text dark:text-white">
                   {regionShort(profile.region)}
                 </span>
               )}
@@ -623,10 +623,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 className="shrink-0 ml-auto"
               />
             </div>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+            <p className="text-sm text-rh-light-text dark:text-white">
               @{profile.username}
-              <span className="mx-1.5 text-rh-light-muted/30 dark:text-rh-muted/30">&middot;</span>
-              <span className="text-rh-light-muted/40 dark:text-rh-muted/40">
+              <span className="mx-1.5 text-rh-light-text dark:text-white">&middot;</span>
+              <span className="text-rh-light-text dark:text-white">
                 {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </span>
             </p>
@@ -651,11 +651,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   className="flex-1 text-xs bg-transparent border-b border-rh-green/30 text-rh-light-text dark:text-rh-text focus:outline-none focus:border-rh-green py-0.5 italic"
                   maxLength={80}
                 />
-                <span className="text-[8px] text-rh-light-muted/40 dark:text-rh-muted/40">{bioText.length}/80</span>
+                <span className="text-[8px] text-rh-light-text dark:text-white">{bioText.length}/80</span>
               </div>
             ) : (
               <p
-                className={`text-sm text-rh-light-muted/80 dark:text-rh-muted/80 mt-2.5 font-medium tracking-wide italic ${isOwner ? 'cursor-pointer hover:text-rh-green/60 transition-colors' : ''}`}
+                className={`text-sm text-rh-light-text dark:text-white mt-2.5 font-medium tracking-wide italic ${isOwner ? 'cursor-pointer hover:text-rh-green/60 transition-colors' : ''}`}
                 onClick={() => isOwner && setEditingBio(true)}
                 title={isOwner ? 'Click to edit bio' : undefined}
               >
@@ -686,7 +686,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                   <span className="text-4xl font-black text-rh-green tabular-nums profit-glow">#{rankPosition}</span>
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-rh-green uppercase tracking-wide">This Month</span>
-                    <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">Leaderboard</span>
+                    <span className="text-[10px] text-rh-light-text dark:text-white">Leaderboard</span>
                   </div>
                 </div>
               </div>
@@ -711,7 +711,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 <p className="text-lg font-bold text-rh-green tabular-nums">
                   Top {100 - rankPercentile}%
                 </p>
-                <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-0.5">Rank</p>
+                <p className="text-[9px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mt-0.5">Rank</p>
               </div>
             ) : (
               <PerformanceStat
@@ -733,7 +733,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                     </svg>
                     <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-semibold tabular-nums ${signalColors.text}`}>{signalRating.score}</span>
                   </div>
-                  <p className="text-[9px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-0.5">Nala Score</p>
+                  <p className="text-[9px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mt-0.5">Nala Score</p>
                 </div>
               </>
             )}
@@ -748,7 +748,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           <div className="flex items-center gap-4">
           {isNewAccount ? (
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-rh-muted/60">
+              <div className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white">
                 <span className="w-1.5 h-1.5 rounded-full bg-rh-green/50 animate-pulse" />
                 <span>Performance tracking started — be the first to follow</span>
               </div>
@@ -762,7 +762,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 <span className={`text-base font-bold transition-colors ${socialTab === 'followers' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
                   {profile.followerCount}
                 </span>
-                <span className={`text-sm transition-colors ${socialTab === 'followers' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Followers</span>
+                <span className={`text-sm transition-colors ${socialTab === 'followers' ? 'text-rh-green/70' : 'text-rh-light-text dark:text-white'}`}>Followers</span>
               </button>
               <button
                 onClick={() => handleSocialTab('following')}
@@ -771,14 +771,14 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 <span className={`text-base font-bold transition-colors ${socialTab === 'following' ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text group-hover:text-rh-green'}`}>
                   {profile.followingCount}
                 </span>
-                <span className={`text-sm transition-colors ${socialTab === 'following' ? 'text-rh-green/70' : 'text-rh-light-muted dark:text-rh-muted'}`}>Following</span>
+                <span className={`text-sm transition-colors ${socialTab === 'following' ? 'text-rh-green/70' : 'text-rh-light-text dark:text-white'}`}>Following</span>
               </button>
             </>
           )}
           {profile.creator?.status === 'active' && (
             <div className="flex items-baseline gap-1.5">
               <span className="text-sm font-bold text-rh-light-text dark:text-rh-text">{profile.creator.subscriberCount ?? 0}</span>
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted">Subscribers</span>
+              <span className="text-xs text-rh-light-text dark:text-white">Subscribers</span>
             </div>
           )}
           </div>
@@ -826,7 +826,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 className={`p-1.5 rounded-lg transition-all ${
                   isMuted(userId)
                     ? 'bg-rh-red/10 text-rh-red hover:bg-rh-red/20'
-                    : 'text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40'
+                    : 'text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white'
                 }`}
               >
                 {isMuted(userId) ? (
@@ -843,7 +843,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               <button
                 onClick={() => setShowReportModal(true)}
                 title="Report user"
-                className="p-1.5 rounded-lg text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/40 transition-all"
+                className="p-1.5 rounded-lg text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-all"
               >
                 <svg className="w-3.5 h-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21v-18m0 0l9 4 9-4v12l-9 4-9-4" />
@@ -870,13 +870,13 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-4 rounded-full bg-rh-green" />
-                  <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
+                  <h3 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">
                     {socialTab === 'followers' ? 'Followers' : 'Following'}
                   </h3>
                 </div>
                 <button
                   onClick={() => setSocialTab(null)}
-                  className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -887,10 +887,10 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               {socialLoading ? (
                 <div className="flex items-center justify-center gap-2 py-6">
                   <div className="w-4 h-4 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
-                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">Loading…</span>
+                  <span className="text-xs text-rh-light-text dark:text-white">Loading…</span>
                 </div>
               ) : socialList.length === 0 ? (
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted text-center py-6">
+                <p className="text-xs text-rh-light-text dark:text-white text-center py-6">
                   {socialTab === 'followers' ? 'No followers yet' : 'Not following anyone'}
                 </p>
               ) : (
@@ -909,9 +909,9 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate">{user.displayName}</p>
-                        <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">@{user.username}</p>
+                        <p className="text-[10px] text-rh-light-text dark:text-white">@{user.username}</p>
                       </div>
-                      <svg className="w-3.5 h-3.5 text-rh-light-muted/30 dark:text-rh-muted/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 text-rh-light-text dark:text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </motion.button>
@@ -958,7 +958,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {isCreatorProfile && profile.creator?.pitch && (
         <motion.div variants={itemVariants}
           className="px-1 py-2.5 mb-3 border-b border-gray-200/10 dark:border-white/[0.04]">
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted italic">&ldquo;{profile.creator.pitch}&rdquo;</p>
+          <p className="text-xs text-rh-light-text dark:text-white italic">&ldquo;{profile.creator.pitch}&rdquo;</p>
         </motion.div>
       )}
 
@@ -971,11 +971,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
           className="pb-4 mb-3 border-b border-gray-200/10 dark:border-white/[0.04] px-1 text-center"
         >
           <div className="flex flex-col items-center gap-2 py-3">
-            <svg className="w-6 h-6 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
-            <p className="text-xs font-medium text-rh-light-muted dark:text-rh-muted">Holdings are private</p>
-            <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/50">This user has chosen to keep their holdings private</p>
+            <p className="text-xs font-medium text-rh-light-text dark:text-white">Holdings are private</p>
+            <p className="text-[10px] text-rh-light-text dark:text-white">This user has chosen to keep their holdings private</p>
           </div>
         </motion.div>
       )}
@@ -986,7 +986,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         >
           <div className="flex items-center gap-2 mb-2.5">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
-            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Top Holdings</h3>
+            <h3 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Top Holdings</h3>
           </div>
           {lockHoldings && !holdingsPrivate && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
           <div className={lockHoldings ? 'blur-[8px] select-none pointer-events-none' : ''}>
@@ -1004,7 +1004,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                     style={{ width: `${Math.max(Math.min(Math.abs(h.returnPct) / Math.max(...topHoldings.map(t => Math.abs(t.returnPct)), 1) * 100, 100), 2)}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-rh-light-muted/70 dark:text-rh-muted/60 tabular-nums w-11 text-right shrink-0">{h.weight.toFixed(1)}%</span>
+                <span className="text-[10px] text-rh-light-text dark:text-white tabular-nums w-11 text-right shrink-0">{h.weight.toFixed(1)}%</span>
                 <span className={`text-[11px] tabular-nums w-14 text-right font-bold shrink-0 ${h.returnPct >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {h.returnPct >= 0 ? '+' : ''}{h.returnPct.toFixed(1)}%
                 </span>
@@ -1025,15 +1025,15 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         >
           <div className="flex items-center gap-2.5 mb-3">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
-            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Signal Summary</h3>
-            <span className="text-[9px] font-medium text-rh-light-muted/80 dark:text-rh-muted/70 px-1.5 py-0.5 rounded border border-gray-200/30 dark:border-white/[0.08]">1M</span>
+            <h3 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Signal Summary</h3>
+            <span className="text-[9px] font-medium text-rh-light-text dark:text-white px-1.5 py-0.5 rounded border border-gray-200/30 dark:border-white/[0.08]">1M</span>
           </div>
           {lockSignal && <LockedOverlay onClick={() => setShowSubscribeModal(true)} />}
           <div className={lockSignal ? 'blur-[8px] select-none pointer-events-none' : ''}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
             {intelligence?.topContributor && (
               <div className="flex justify-between items-center gap-2">
-                <span className="text-rh-light-muted dark:text-rh-muted">Top contributor</span>
+                <span className="text-rh-light-text dark:text-white">Top contributor</span>
                 <span className="text-rh-green font-medium whitespace-nowrap">
                   <button onClick={() => onStockClick?.(intelligence.topContributor!.ticker)} className="hover:underline">{intelligence.topContributor.ticker}</button>{' '}
                   <span className="text-rh-green/70">+{(topHoldings.find(h => h.ticker === intelligence.topContributor!.ticker)?.returnPct ?? intelligence.topContributor.pct).toFixed(1)}%</span>
@@ -1042,7 +1042,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             )}
             {intelligence?.largestDrag && (
               <div className="flex justify-between items-center gap-2">
-                <span className="text-rh-light-muted dark:text-rh-muted">Largest drag</span>
+                <span className="text-rh-light-text dark:text-white">Largest drag</span>
                 <span className="text-rh-red font-medium whitespace-nowrap">
                   <button onClick={() => onStockClick?.(intelligence.largestDrag!.ticker)} className="hover:underline">{intelligence.largestDrag.ticker}</button>{' '}
                   <span className="text-rh-red/70">{intelligence.largestDrag.pct.toFixed(1)}%</span>
@@ -1051,17 +1051,17 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             )}
             {intelligence?.topHoldingWeight && (
               <div className="flex justify-between items-center">
-                <span className="text-rh-light-muted dark:text-rh-muted">Largest position</span>
+                <span className="text-rh-light-text dark:text-white">Largest position</span>
                 <span className="text-rh-light-text dark:text-rh-text font-medium">{intelligence.topHoldingWeight.toFixed(1)}%</span>
               </div>
             )}
             <div className="flex justify-between items-center">
-              <span className="text-rh-light-muted dark:text-rh-muted">Risk posture</span>
+              <span className="text-rh-light-text dark:text-white">Risk posture</span>
               <span className={`font-medium ${riskPosture.color}`}>{riskPosture.level}</span>
             </div>
             {perf?.correlation != null && (
               <div className="flex justify-between items-center">
-                <span className="text-rh-light-muted dark:text-rh-muted">SPY correlation</span>
+                <span className="text-rh-light-text dark:text-white">SPY correlation</span>
                 <span className="text-rh-light-text dark:text-rh-text font-medium">{perf.correlation.toFixed(2)}</span>
               </div>
             )}
@@ -1071,7 +1071,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
               const color = level === 'High' ? 'text-amber-400' : level === 'Medium' ? 'text-yellow-400' : 'text-rh-green';
               return (
                 <div className="flex justify-between items-center">
-                  <span className="text-rh-light-muted dark:text-rh-muted">Concentration</span>
+                  <span className="text-rh-light-text dark:text-white">Concentration</span>
                   <span className={`font-medium ${color}`}>{level}</span>
                 </div>
               );
@@ -1102,7 +1102,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         >
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
-            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
+            <h3 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">
               Latest Moves
             </h3>
           </div>
@@ -1114,7 +1114,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
             <div className="space-y-4 pl-6">
               {groupByDate(profile.recentActivity.slice(0, 4)).map((group) => (
                 <div key={group.date}>
-                  <p className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider mb-1.5 -ml-1">{group.date}</p>
+                  <p className="text-[9px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mb-1.5 -ml-1">{group.date}</p>
                   <div className="space-y-2.5">
                     {group.events.map((event, i) => {
                       const { verb, isSell } = getActionInfo(event.type, event.payload);
@@ -1155,7 +1155,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                               >
                                 {event.payload.ticker}
                               </button>
-                              {details && <span className="text-xs text-rh-light-muted dark:text-rh-muted">{details}</span>}
+                              {details && <span className="text-xs text-rh-light-text dark:text-white">{details}</span>}
                             </div>
                             <div className="flex items-center gap-2.5 flex-shrink-0">
                               {notionalValue && notionalValue >= 1000 && (
@@ -1175,7 +1175,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                                       } : prev);
                                     } catch { /* ignore */ }
                                   }}
-                                  className="opacity-0 group-hover:opacity-100 hover:!opacity-100 text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-red transition-all p-0.5"
+                                  className="opacity-0 group-hover:opacity-100 hover:!opacity-100 text-rh-light-text dark:text-white hover:text-rh-red transition-all p-0.5"
                                   title="Remove from activity"
                                 >
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1212,12 +1212,12 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
         >
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
-            <h3 className="text-[10px] font-semibold text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">Profile Settings</h3>
+            <h3 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Profile Settings</h3>
           </div>
 
           {/* Holdings visibility */}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">Holdings</span>
+            <span className="text-xs text-rh-light-text dark:text-white">Holdings</span>
             <HoldingsVisibilityToggle
               value={profile.holdingsVisibility ?? 'all'}
               onChange={async (val) => {
@@ -1233,7 +1233,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
           {/* Region */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">Region</span>
+            <span className="text-xs text-rh-light-text dark:text-white">Region</span>
             <select
               value={`${profile.region ?? ''}|${profile.showRegion ? '1' : '0'}`}
               onChange={async (e) => {
@@ -1262,7 +1262,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
 
           {/* Portfolio management */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">Portfolio</span>
+            <span className="text-xs text-rh-light-text dark:text-white">Portfolio</span>
             <button
               onClick={() => setShowImport(true)}
               className="text-xs text-rh-green hover:text-green-600 font-medium transition-colors"
@@ -1285,11 +1285,11 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       {!profile.profilePublic && (
         <motion.div variants={itemVariants} className="text-center py-12">
           <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] flex items-center justify-center">
-            <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">This profile is private</p>
+          <p className="text-sm text-rh-light-text dark:text-white">This profile is private</p>
         </motion.div>
       )}
 
@@ -1322,7 +1322,7 @@ function PerformanceStat({ value, label, isPercent, primary, formatFn }: {
       : `${value >= 0 ? '+' : ''}${animatedValue.toFixed(2)}${isPercent ? '%' : ''}`
     : '--';
   const color = value === null
-    ? 'text-rh-light-muted dark:text-rh-muted'
+    ? 'text-rh-light-text dark:text-white'
     : formatFn
       ? 'text-rh-light-text dark:text-rh-text'
       : value >= 0 ? 'text-rh-green' : 'text-rh-red';
@@ -1332,7 +1332,7 @@ function PerformanceStat({ value, label, isPercent, primary, formatFn }: {
       <p className={`${primary ? 'text-3xl' : 'text-xl'} font-bold tabular-nums ${color} ${primary && value !== null && value >= 0 ? 'profit-glow' : ''}`}>
         {displayValue}
       </p>
-      <p className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 uppercase tracking-wider mt-1">{label}</p>
+      <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mt-1">{label}</p>
     </div>
   );
 }
@@ -1361,7 +1361,7 @@ function HoldingsVisibilityToggle({ value, onChange }: {
             className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${
               isActive
                 ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm'
-                : 'text-rh-light-muted/50 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/60'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
             }`}
           >
             {opt.label}

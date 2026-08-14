@@ -22,7 +22,7 @@ export function StockLogo({ ticker, size = 'sm', className = '' }: StockLogoProp
   if (failed) {
     return (
       <div className={`${s.container} ${glassClasses} flex items-center justify-center shrink-0 ${className}`}>
-        <span className={`${s.text} font-bold text-gray-400 dark:text-white/50`}>{ticker.slice(0, 2)}</span>
+        <span className={`${s.text} font-bold text-gray-500 dark:text-white/80`}>{ticker.slice(0, 2)}</span>
       </div>
     );
   }

@@ -150,19 +150,19 @@ export function HeroInsights({ data, window: win = '1d', onTickerClick }: Props)
         <div className="flex items-center justify-between py-3 border-b border-gray-200/10 dark:border-white/[0.04]">
           <div className="min-w-0 flex-1">
             {sectorContent}
-            <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{sectorLabel}</p>
+            <p className="text-[11px] text-rh-light-text dark:text-white mt-0.5 truncate">{sectorLabel}</p>
           </div>
         </div>
         <div className="flex items-center justify-between py-3 border-b border-gray-200/10 dark:border-white/[0.04]">
           <div className="min-w-0 flex-1">
             {dragContent}
-            <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{dragLabel}</p>
+            <p className="text-[11px] text-rh-light-text dark:text-white mt-0.5 truncate">{dragLabel}</p>
           </div>
         </div>
         <div className="flex items-center justify-between py-3">
           <div className="min-w-0 flex-1">
             {streakContent}
-            <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5 truncate">{streakLabel}</p>
+            <p className="text-[11px] text-rh-light-text dark:text-white mt-0.5 truncate">{streakLabel}</p>
           </div>
         </div>
       </div>
@@ -171,15 +171,15 @@ export function HeroInsights({ data, window: win = '1d', onTickerClick }: Props)
       <div className="hidden md:grid grid-cols-3 gap-3">
         <div className="pb-3 border-b border-gray-200/10 dark:border-white/[0.04] flex flex-col gap-1">
           {sectorContent}
-          <span className="text-[11px] text-rh-light-muted/80 dark:text-rh-muted/80">{sectorLabel}</span>
+          <span className="text-[11px] text-rh-light-text dark:text-white">{sectorLabel}</span>
         </div>
         <div className="pb-3 border-b border-gray-200/10 dark:border-white/[0.04] flex flex-col gap-1">
           {dragContent}
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">{dragLabel}</span>
+          <span className="text-xs text-rh-light-text dark:text-white">{dragLabel}</span>
         </div>
         <div className="pb-3 border-b border-gray-200/10 dark:border-white/[0.04] flex flex-col gap-1">
           {streakContent}
-          <span className="text-[11px] text-rh-light-muted/80 dark:text-rh-muted/80">{streakLabel}</span>
+          <span className="text-[11px] text-rh-light-text dark:text-white">{streakLabel}</span>
         </div>
       </div>
     </>

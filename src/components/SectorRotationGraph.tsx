@@ -379,7 +379,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="flex items-center gap-3 text-rh-light-muted dark:text-rh-muted text-sm">
+        <div className="flex items-center gap-3 text-rh-light-text dark:text-white text-sm">
           <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -392,7 +392,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
 
   if (!data || allDots.length === 0) {
     return (
-      <div className="text-center py-20 text-rh-light-muted dark:text-rh-muted text-sm">
+      <div className="text-center py-20 text-rh-light-text dark:text-white text-sm">
         No sector data available
       </div>
     );
@@ -402,16 +402,16 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
     <div ref={containerRef}>
       {/* How-to guide */}
       {showGuide && (
-        <div className="mb-4 rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] p-4 text-xs leading-relaxed text-rh-light-muted dark:text-white/50 relative">
+        <div className="mb-4 rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] p-4 text-xs leading-relaxed text-rh-light-text dark:text-white/80 relative">
           <button
             onClick={() => setShowGuide(false)}
-            className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center text-rh-light-muted dark:text-white/40 hover:text-rh-light-text dark:hover:text-white/70 hover:bg-gray-200/60 dark:hover:bg-white/[0.08] transition-colors"
+            className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-white/[0.08] transition-colors"
             title="Close guide"
           >✕</button>
           <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text mb-2">How to read this chart</p>
           <p className="mb-3">
-            Each dot is a market sector plotted relative to the S&P 500 (SPY). The <strong className="text-rh-light-text dark:text-white/70">horizontal position</strong> shows
-            whether a sector is outperforming or underperforming SPY. The <strong className="text-rh-light-text dark:text-white/70">vertical position</strong> shows
+            Each dot is a market sector plotted relative to the S&P 500 (SPY). The <strong className="text-rh-light-text dark:text-white/80">horizontal position</strong> shows
+            whether a sector is outperforming or underperforming SPY. The <strong className="text-rh-light-text dark:text-white/80">vertical position</strong> shows
             whether that gap is growing or shrinking.
           </p>
           <div className="grid grid-cols-2 gap-2 mb-3">
@@ -445,7 +445,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                   {q.label}
                 </span>
                 {q.arrow && (
-                  <svg className="w-3.5 h-3.5 mx-0.5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 mx-0.5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 )}
@@ -473,7 +473,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                   className={`relative px-1 sm:px-1.5 py-2 text-[11px] font-semibold transition-all duration-150 ${
                     viewMode === mode
                       ? 'text-rh-green'
-                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                      : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                   }`}
                 >
                   {mode}
@@ -897,7 +897,7 @@ export function SectorRotationGraph({ onTickerClick }: Props) {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] text-rh-light-muted dark:text-white/40">
+                    <span className="text-[10px] text-rh-light-text dark:text-white">
                       RS {d.current.x >= 0 ? '+' : ''}{d.current.x.toFixed(1)}%
                     </span>
                     <span className="text-[10px] font-semibold" style={{ color: momColor }}>

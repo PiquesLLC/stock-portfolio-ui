@@ -56,7 +56,7 @@ export function LinkedAccountsSection() {
 
   return (
     <section>
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
         Linked Accounts
       </h3>
 
@@ -92,12 +92,12 @@ export function LinkedAccountsSection() {
                     }`}>
                       {item.status}
                     </span>
-                    <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+                    <span className="text-xs text-rh-light-text dark:text-white">
                       {item.plaidAccounts.length} account{item.plaidAccounts.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                   {item.plaidAccounts.length > 0 && (
-                    <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
+                    <p className="text-xs text-rh-light-text dark:text-white mt-0.5">
                       {item.plaidAccounts.map(a => `${a.name || a.type || 'Account'}${a.mask ? ` ••${a.mask}` : ''}`).join(', ')}
                     </p>
                   )}
@@ -119,7 +119,7 @@ export function LinkedAccountsSection() {
             <div className="w-full px-4 py-3 rounded-lg text-sm text-left
               bg-gray-100 dark:bg-rh-border/50 opacity-60 cursor-default">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 <span className="font-medium text-rh-light-text dark:text-rh-text">Import from Brokerage</span>
@@ -128,7 +128,7 @@ export function LinkedAccountsSection() {
                   Coming Soon
                 </span>
               </div>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1.5 ml-6">
+              <p className="text-xs text-rh-light-text dark:text-white mt-1.5 ml-6">
                 Sync holdings from Schwab, Fidelity, TD Ameritrade, and more.
               </p>
             </div>
@@ -210,7 +210,7 @@ export function LinkedAccountsSection() {
             </div>
           )}
 
-          <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 px-1">
+          <p className="text-xs text-rh-light-text dark:text-white px-1">
             Securely link your brokerage via Plaid. We never see your login credentials.
           </p>
         </div>

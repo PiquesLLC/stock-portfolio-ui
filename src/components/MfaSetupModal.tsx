@@ -249,7 +249,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
             {view === 'backup-codes' && 'Backup Codes'}
             {view === 'regenerate-backup' && 'Regenerate Backup Codes'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-muted hover:text-white transition-colors rounded">
+          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-light-text dark:text-white hover:text-white transition-colors rounded">
             <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -274,7 +274,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
               <div className="p-4 bg-rh-dark rounded-lg border border-rh-border">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                     <span className="text-sm font-medium text-white">Authenticator App</span>
@@ -282,10 +282,10 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                   {totpEnabled ? (
                     <span className="text-xs px-2 py-0.5 bg-rh-green/15 text-rh-green rounded-full font-medium">Enabled</span>
                   ) : (
-                    <span className="text-xs px-2 py-0.5 bg-rh-border text-rh-muted rounded-full">Disabled</span>
+                    <span className="text-xs px-2 py-0.5 bg-rh-border text-rh-light-text dark:text-white rounded-full">Disabled</span>
                   )}
                 </div>
-                <p className="text-xs text-rh-muted mb-3">
+                <p className="text-xs text-rh-light-text dark:text-white mb-3">
                   Use Google Authenticator, Authy, or similar app to generate time-based codes.
                 </p>
                 {totpEnabled ? (
@@ -304,7 +304,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                           {disabling ? <Spinner /> : 'Disable'}
                         </button>
                         <button onClick={() => { setDisableTarget(null); setDisablePassword(''); setError(''); }}
-                          className="flex-1 py-1.5 text-xs font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                          className="flex-1 py-1.5 text-xs font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                           Cancel
                         </button>
                       </div>
@@ -327,7 +327,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
               <div className="p-4 bg-rh-dark rounded-lg border border-rh-border">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                     <span className="text-sm font-medium text-white">Email Code</span>
@@ -335,14 +335,14 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                   {emailEnabled ? (
                     <span className="text-xs px-2 py-0.5 bg-rh-green/15 text-rh-green rounded-full font-medium">Enabled</span>
                   ) : (
-                    <span className="text-xs px-2 py-0.5 bg-rh-border text-rh-muted rounded-full">Disabled</span>
+                    <span className="text-xs px-2 py-0.5 bg-rh-border text-rh-light-text dark:text-white rounded-full">Disabled</span>
                   )}
                 </div>
-                <p className="text-xs text-rh-muted mb-1">
+                <p className="text-xs text-rh-light-text dark:text-white mb-1">
                   Receive a one-time code via email when you sign in.
                 </p>
                 {status.email && (
-                  <p className="text-xs text-rh-muted/60 mb-3">
+                  <p className="text-xs text-rh-light-text dark:text-white mb-3">
                     Email: {status.email} {status.emailVerified ? '(verified)' : '(not verified)'}
                   </p>
                 )}
@@ -362,7 +362,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                           {disabling ? <Spinner /> : 'Disable'}
                         </button>
                         <button onClick={() => { setDisableTarget(null); setDisablePassword(''); setError(''); }}
-                          className="flex-1 py-1.5 text-xs font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                          className="flex-1 py-1.5 text-xs font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                           Cancel
                         </button>
                       </div>
@@ -393,9 +393,9 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                 <div className="p-4 bg-rh-dark rounded-lg border border-rh-border">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-white">Backup Codes</span>
-                    <span className="text-xs text-rh-muted">{status.backupCodesRemaining} remaining</span>
+                    <span className="text-xs text-rh-light-text dark:text-white">{status.backupCodesRemaining} remaining</span>
                   </div>
-                  <p className="text-xs text-rh-muted mb-3">
+                  <p className="text-xs text-rh-light-text dark:text-white mb-3">
                     Use these one-time codes if you can't access your authenticator or email.
                   </p>
                   <button onClick={() => { setRegenPassword(''); setError(''); setView('regenerate-backup'); }}
@@ -410,9 +410,9 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
           {/* ═══ TOTP Setup — password gate (before QR) ═══ */}
           {view === 'totp-setup' && !qrData && (
             <div className="space-y-4">
-              <p className="text-sm text-rh-muted">Confirm your password to set up an authenticator app.</p>
+              <p className="text-sm text-rh-light-text dark:text-white">Confirm your password to set up an authenticator app.</p>
               <div>
-                <label className="block text-xs font-medium text-rh-muted mb-1">Confirm Password</label>
+                <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">Confirm Password</label>
                 <input
                   type="password"
                   value={setupPassword}
@@ -424,7 +424,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => { setView('overview'); setSetupPassword(''); setError(''); }}
-                  className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                  className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                   Back
                 </button>
                 <button onClick={handleConfirmTotpPassword} disabled={totpLoading || !setupPassword}
@@ -438,22 +438,22 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
           {/* ═══ TOTP Setup ═══ */}
           {view === 'totp-setup' && qrData && (
             <div className="space-y-4">
-              <p className="text-sm text-rh-muted">
+              <p className="text-sm text-rh-light-text dark:text-white">
                 Scan this QR code with your authenticator app, then enter the 6-digit code it shows.
               </p>
               <div className="flex justify-center p-4 bg-white rounded-lg">
                 <img src={qrData.qrCodeDataUrl} alt="TOTP QR Code" className="w-48 h-48" />
               </div>
               <details className="text-xs">
-                <summary className="text-rh-muted cursor-pointer hover:text-white transition-colors">
+                <summary className="text-rh-light-text dark:text-white cursor-pointer hover:text-white transition-colors">
                   Can't scan? Enter code manually
                 </summary>
-                <div className="mt-2 p-2 bg-rh-dark rounded font-mono text-rh-muted break-all text-[11px]">
+                <div className="mt-2 p-2 bg-rh-dark rounded font-mono text-rh-light-text dark:text-white break-all text-[11px]">
                   {qrData.secret}
                 </div>
               </details>
               <div>
-                <label className="block text-xs font-medium text-rh-muted mb-1">Verification Code</label>
+                <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">Verification Code</label>
                 <input
                   type="text"
                   value={totpCode}
@@ -467,7 +467,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => { setView('overview'); setQrData(null); setSetupPassword(''); }}
-                  className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                  className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                   Back
                 </button>
                 <button onClick={handleVerifyTotp} disabled={totpLoading || totpCode.length !== 6}
@@ -483,9 +483,9 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
             <div className="space-y-4">
               {emailStep === 'enter' && (
                 <>
-                  <p className="text-sm text-rh-muted">Confirm your password to set up email two-factor codes for your account email.</p>
+                  <p className="text-sm text-rh-light-text dark:text-white">Confirm your password to set up email two-factor codes for your account email.</p>
                   <div>
-                    <label className="block text-xs font-medium text-rh-muted mb-1">Email Address</label>
+                    <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">Email Address</label>
                     <input
                       type="email"
                       value={emailInput}
@@ -493,10 +493,10 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                       aria-readonly="true"
                       className={`${inputClasses} opacity-70 cursor-not-allowed`}
                     />
-                    <p className="mt-1 text-xs text-rh-muted">To change your account email, use Settings → Security → Change Email.</p>
+                    <p className="mt-1 text-xs text-rh-light-text dark:text-white">To change your account email, use Settings → Security → Change Email.</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-rh-muted mb-1">Confirm Password</label>
+                    <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">Confirm Password</label>
                     <input
                       type="password"
                       value={setupPassword}
@@ -508,7 +508,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => { setView('overview'); setSetupPassword(''); }}
-                      className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                      className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                       Back
                     </button>
                     <button onClick={handleEmailSubmit} disabled={emailLoading || !setupPassword || !emailInput.includes('@')}
@@ -521,9 +521,9 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
 
               {emailStep === 'verify-email' && (
                 <>
-                  <p className="text-sm text-rh-muted">Enter the 6-digit code sent to {emailInput}</p>
+                  <p className="text-sm text-rh-light-text dark:text-white">Enter the 6-digit code sent to {emailInput}</p>
                   <div>
-                    <label className="block text-xs font-medium text-rh-muted mb-1">Verification Code</label>
+                    <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">Verification Code</label>
                     <input
                       type="text"
                       value={emailCode}
@@ -537,7 +537,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => setEmailStep('enter')}
-                      className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                      className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                       Back
                     </button>
                     <button onClick={handleVerifyEmail} disabled={emailLoading || emailCode.length !== 6}
@@ -550,11 +550,11 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
 
               {emailStep === 'verify-otp' && (
                 <>
-                  <p className="text-sm text-rh-muted">
+                  <p className="text-sm text-rh-light-text dark:text-white">
                     A code was sent to your verified email. Enter it to enable email OTP.
                   </p>
                   <div>
-                    <label className="block text-xs font-medium text-rh-muted mb-1">OTP Code</label>
+                    <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">OTP Code</label>
                     <input
                       type="text"
                       value={emailCode}
@@ -568,7 +568,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => { setView('overview'); setSetupPassword(''); setEmailCode(''); }}
-                      className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                      className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                       Back
                     </button>
                     <button onClick={handleVerifyEmailOtp} disabled={emailLoading || emailCode.length !== 6}
@@ -598,7 +598,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-rh-muted mb-1">Confirm Password</label>
+                <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">Confirm Password</label>
                 <input
                   type="password"
                   value={regenPassword}
@@ -610,7 +610,7 @@ export function MfaSetupModal({ isOpen, onClose }: MfaSetupModalProps) {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setView('overview')}
-                  className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-muted hover:text-white rounded-lg transition-colors">
+                  className="flex-1 py-2 text-sm font-medium bg-rh-border text-rh-light-text dark:text-white hover:text-white rounded-lg transition-colors">
                   Back
                 </button>
                 <button onClick={handleRegenerate} disabled={regenLoading || !regenPassword}

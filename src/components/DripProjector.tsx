@@ -140,7 +140,7 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
       {yTicks.map((tick, i) => (
         <g key={i}>
           <line x1={pad.l} y1={y(tick)} x2={W - pad.r} y2={y(tick)} stroke="currentColor" className="text-gray-200 dark:text-white/[0.06]" strokeWidth="1" />
-          <text x={pad.l - 6} y={y(tick) + 4} textAnchor="end" className="fill-gray-400 dark:fill-white/30" fontSize="9" fontFamily="system-ui">
+          <text x={pad.l - 6} y={y(tick) + 4} textAnchor="end" className="fill-gray-500 dark:fill-white/80" fontSize="9" fontFamily="system-ui">
             {formatCurrency(tick)}
           </text>
         </g>
@@ -150,7 +150,7 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
       {points.filter((_, i) => i % Math.max(1, Math.floor(points.length / 6)) === 0 || i === points.length - 1).map((p) => {
         const idx = points.indexOf(p);
         return (
-          <text key={p.year} x={x(idx)} y={H - 6} textAnchor="middle" className="fill-gray-400 dark:fill-white/30" fontSize="9" fontFamily="system-ui">
+          <text key={p.year} x={x(idx)} y={H - 6} textAnchor="middle" className="fill-gray-500 dark:fill-white/80" fontSize="9" fontFamily="system-ui">
             {p.year}
           </text>
         );
@@ -180,7 +180,7 @@ function ProjectionChart({ points, hoveredIdx, setHoveredIdx }: {
 // ─── Growth Rate Badge ──────────────────────────────────
 function GrowthBadge({ rate, label }: { rate: number | null; label: string }) {
   if (rate == null) return null;
-  const color = rate > 0 ? 'text-rh-green bg-rh-green/10' : rate < 0 ? 'text-rh-red bg-rh-red/10' : 'text-rh-light-muted dark:text-rh-muted bg-gray-100 dark:bg-white/[0.04]';
+  const color = rate > 0 ? 'text-rh-green bg-rh-green/10' : rate < 0 ? 'text-rh-red bg-rh-red/10' : 'text-rh-light-text dark:text-white bg-gray-100 dark:bg-white/[0.04]';
   return (
     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${color}`}>
       {label}: {rate > 0 ? '+' : ''}{rate.toFixed(1)}%
@@ -190,7 +190,7 @@ function GrowthBadge({ rate, label }: { rate: number | null; label: string }) {
 
 // ─── Holding Growth Row ─────────────────────────────────
 function HoldingGrowthRow({ holding, onTickerClick }: { holding: HoldingGrowthData; onTickerClick?: (t: string) => void }) {
-  const streakColor = holding.consecutiveYearsGrowth >= 10 ? 'text-rh-green' : holding.consecutiveYearsGrowth >= 5 ? 'text-yellow-400' : 'text-rh-light-muted dark:text-rh-muted';
+  const streakColor = holding.consecutiveYearsGrowth >= 10 ? 'text-rh-green' : holding.consecutiveYearsGrowth >= 5 ? 'text-yellow-400' : 'text-rh-light-text dark:text-white';
 
   return (
     <div className="flex items-center justify-between py-2 px-1 -mx-1 rounded hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors">
@@ -338,7 +338,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
           </div>
           <div className="flex items-center gap-1.5">
             <label className="flex items-center gap-1.5 cursor-pointer">
-              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">DRIP</span>
+              <span className="text-[10px] text-rh-light-text dark:text-white">DRIP</span>
               <button
                 onClick={() => setReinvest(!reinvest)}
                 className={`w-7 h-4 rounded-full transition-colors relative ${reinvest ? 'bg-rh-green' : 'bg-gray-300 dark:bg-white/[0.12]'}`}
@@ -354,7 +354,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
           <span className="text-2xl font-bold text-rh-light-text dark:text-rh-text">
             {formatCurrencyExact(data.portfolio.totalMonthlyIncome)}
           </span>
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">/mo today</span>
+          <span className="text-xs text-rh-light-text dark:text-white">/mo today</span>
           {finalPoint && (
             <>
               <svg className="w-4 h-4 text-rh-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,7 +363,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
               <span className="text-2xl font-bold text-rh-green">
                 {formatCurrencyExact(finalPoint.monthlyIncome)}
               </span>
-              <span className="text-xs text-rh-light-muted dark:text-rh-muted">/mo in {years}yr</span>
+              <span className="text-xs text-rh-light-text dark:text-white">/mo in {years}yr</span>
             </>
           )}
         </div>
@@ -378,7 +378,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
                 className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all ${
                   years === yr
                     ? 'bg-rh-green text-white shadow-sm'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06]'
                 }`}
               >
                 {yr}Y
@@ -394,7 +394,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
                 className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
                   scenario === s
                     ? 'bg-rh-green/15 text-rh-green'
-                    : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-white/[0.06]'
                 }`}
               >
                 {SCENARIO_RATES[s].label}
@@ -410,34 +410,34 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
       </div>
 
       {/* Disclaimer */}
-      <p className="px-5 pb-2 text-[9px] text-rh-light-muted/50 dark:text-rh-muted/40 leading-tight">
+      <p className="px-5 pb-2 text-[9px] text-rh-light-text dark:text-white leading-tight">
         Projection based on historical dividend growth rates with a {SCENARIO_RATES[scenario].cap}% annual cap. Actual results will vary. Does not include new contributions.
       </p>
 
       {/* Hover tooltip */}
       {hoveredPoint && (
         <div className="px-5 pb-3 flex items-center gap-4 text-xs">
-          <span className="text-rh-light-muted dark:text-rh-muted">{hoveredPoint.year}</span>
+          <span className="text-rh-light-text dark:text-white">{hoveredPoint.year}</span>
           <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrencyExact(hoveredPoint.annualIncome)}/yr</span>
           <span className="text-rh-green font-medium">{formatCurrencyExact(hoveredPoint.monthlyIncome)}/mo</span>
-          <span className="text-rh-light-muted dark:text-rh-muted">Cumulative: {formatCurrency(hoveredPoint.cumulativeIncome)}</span>
+          <span className="text-rh-light-text dark:text-white">Cumulative: {formatCurrency(hoveredPoint.cumulativeIncome)}</span>
         </div>
       )}
 
       {/* Portfolio growth stats */}
       <div className="px-5 py-3 border-t border-gray-200/30 dark:border-white/[0.06] grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <p className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">Proj. Growth</p>
+          <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Proj. Growth</p>
           <p className={`text-sm font-semibold ${projectionRate > 0 ? 'text-rh-green' : 'text-rh-light-text dark:text-rh-text'}`}>
             {projectionRate > 0 ? '+' : ''}{projectionRate.toFixed(1)}%
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">Annual Income</p>
+          <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Annual Income</p>
           <p className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{formatCurrencyExact(data.portfolio.totalAnnualIncome)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">{years}Y Cumulative</p>
+          <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">{years}Y Cumulative</p>
           <p className="text-sm font-semibold text-rh-green">{formatCurrency(finalPoint?.cumulativeIncome ?? 0)}</p>
         </div>
       </div>
@@ -445,7 +445,7 @@ export function DripProjector({ refreshTrigger, onTickerClick, portfolioId }: Pr
       {/* Per-holding growth rates */}
       {sortedHoldings.length > 0 && (
         <div className="px-5 py-3 border-t border-gray-200/30 dark:border-white/[0.06]">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
             Dividend Growth by Holding
           </p>
           <div className="divide-y divide-gray-100/50 dark:divide-white/[0.04]">

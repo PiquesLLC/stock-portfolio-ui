@@ -94,7 +94,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
   const thClass = (key: HoldingSortKey, align: 'left' | 'right' = 'right') => {
     const base = 'px-4 py-3 text-xs font-medium cursor-pointer hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rh-dark/30 transition-colors select-none whitespace-nowrap';
     const alignCls = align === 'right' ? 'text-right' : '';
-    const activeCls = sortKey === key ? 'text-rh-light-text dark:text-white' : 'text-rh-light-muted dark:text-rh-muted';
+    const activeCls = sortKey === key ? 'text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white';
     return `${base} ${alignCls} ${activeCls}`;
   };
 
@@ -233,7 +233,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       {/* Back button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors"
+        className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors"
       >
         <span>&larr;</span> {backLabel ?? 'Back to Leaderboard'}
       </button>
@@ -281,7 +281,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       {/* Status line: last updated + repricing */}
       <div className="flex items-center gap-3 mb-6">
         {lastUpdate && (
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+          <span className="text-xs text-rh-light-text dark:text-white">
             Updated {lastUpdate.toLocaleTimeString()}
           </span>
         )}
@@ -302,7 +302,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       )}
 
       {loading && !portfolio ? (
-        <div className="text-rh-light-muted dark:text-rh-muted text-sm">Loading portfolio...</div>
+        <div className="text-rh-light-text dark:text-white text-sm">Loading portfolio...</div>
       ) : portfolio ? (
         <>
           {!isSectorsOnly && (<>
@@ -345,7 +345,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
           {isSectorsOnly ? (
             <SectorAllocation breakdown={portfolio.sectorBreakdown!} />
           ) : portfolio.holdings.length === 0 ? (
-            <div className="text-rh-light-muted dark:text-rh-muted text-sm">No holdings</div>
+            <div className="text-rh-light-text dark:text-white text-sm">No holdings</div>
           ) : (
             <div className="bg-gray-50/40 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
               <div className="overflow-x-auto">
@@ -417,12 +417,12 @@ function SummaryCard({ label, value, valueColor, sub }: {
 }) {
   return (
     <div className="bg-gray-50/40 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-4">
-      <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">{label}</div>
+      <div className="text-xs text-rh-light-text dark:text-white mb-1">{label}</div>
       <div className={`text-base sm:text-lg font-bold ${valueColor ?? 'text-rh-light-text dark:text-rh-text'}`}>
         {value}
       </div>
       {sub && (
-        <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-muted dark:text-rh-muted'}`}>
+        <div className={`text-xs mt-0.5 ${valueColor ?? 'text-rh-light-text dark:text-white'}`}>
           {sub}
         </div>
       )}
@@ -440,7 +440,7 @@ function SectorAllocation({ breakdown }: { breakdown: { sector: string; exposure
       <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
         Sector Allocation
       </h3>
-      <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-4">
+      <p className="text-xs text-rh-light-text dark:text-white mb-4">
         This user shares only their sector allocation, not individual holdings.
       </p>
       <div className="bg-gray-50/40 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-4 space-y-3">
