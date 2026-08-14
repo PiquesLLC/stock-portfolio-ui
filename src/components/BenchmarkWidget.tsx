@@ -72,7 +72,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
 
   const beating = effectiveAlpha !== null && effectiveAlpha >= 0;
   const alphaColor = effectiveAlpha === null
-    ? 'text-rh-light-muted dark:text-rh-muted'
+    ? 'text-rh-light-text dark:text-white'
     : beating ? 'text-rh-green' : 'text-rh-red';
 
   const windowLabel = perfWindow === '1D' ? 'today' : perfWindow === '1W' ? 'this week' : perfWindow === '1M' ? 'this month' : perfWindow === 'YTD' ? 'YTD' : perfWindow === '1Y' ? 'this year' : perfWindow;
@@ -96,7 +96,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
                   className={`text-[10px] px-1.5 py-0.5 rounded transition-all duration-150 ${
                     benchmark === b
                       ? 'bg-rh-green/15 text-rh-green font-semibold'
-                      : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
+                      : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                   }`}
                 >
                   <Acronym label={b} />
@@ -113,7 +113,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
     <div className="pt-1 pb-4 benchmark-fade-in">
       {/* Header row */}
       <div className="flex items-center gap-3 mb-3">
-        <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">vs Benchmark</h3>
+        <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">vs Benchmark</h3>
         {/* Benchmark selector */}
         <div className="flex gap-1">
           {BENCHMARKS.map(b => (
@@ -123,7 +123,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
               className={`text-[11px] px-2 py-0.5 rounded-md transition-all duration-150 ${
                 benchmark === b
                   ? 'bg-rh-green/15 text-rh-green font-semibold'
-                  : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               <Acronym label={b} />
@@ -137,7 +137,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-rh-green border-t-transparent"></div>
         </div>
       ) : !data || (data.twrPct == null && data.simpleReturnPct == null) ? (
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted text-center py-3">
+        <p className="text-xs text-rh-light-text dark:text-white text-center py-3">
           Add holdings to compare
         </p>
       ) : (
@@ -149,7 +149,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
             }`}>
               {fmt(effectiveAlpha)}
             </span>
-            <span className={`text-xs font-medium ${beating ? 'text-rh-green/70' : effectiveAlpha !== null && effectiveAlpha < 0 ? 'text-rh-red/70' : 'text-rh-light-muted/40 dark:text-rh-muted/40'}`}>
+            <span className={`text-xs font-medium ${beating ? 'text-rh-green/70' : effectiveAlpha !== null && effectiveAlpha < 0 ? 'text-rh-red/70' : 'text-rh-light-text dark:text-white'}`}>
               {effectiveAlpha !== null ? (beating ? 'outperforming' : 'trailing') : 'vs benchmark'} {windowLabel}
             </span>
           </div>
@@ -157,12 +157,12 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
           {/* You vs Benchmark — compact bar */}
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
-              <span className="text-rh-light-muted/40 dark:text-rh-muted/40">You</span>
+              <span className="text-rh-light-text dark:text-white">You</span>
               <span className={`font-semibold ${(youPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{fmt(youPct)}</span>
             </div>
-            <span className="text-rh-light-muted/20 dark:text-rh-muted/20">|</span>
+            <span className="text-rh-light-text dark:text-white">|</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{benchmark}</span>
+              <span className="text-rh-light-text dark:text-white">{benchmark}</span>
               <span className={`font-semibold ${(data.benchmarkReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{fmt(data.benchmarkReturnPct)}</span>
             </div>
           </div>

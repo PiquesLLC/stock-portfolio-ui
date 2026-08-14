@@ -118,13 +118,13 @@ export function DividendDetailDrawer({ credit, open, onClose, onReinvested }: Pr
                 </span>
               )}
             </div>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <p className="text-xs text-rh-light-text dark:text-white">
               {formatDate(credit.creditedAt)}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-text dark:text-white
               hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
             aria-label="Close"
           >
@@ -149,7 +149,7 @@ export function DividendDetailDrawer({ credit, open, onClose, onReinvested }: Pr
             <>
               {/* Timeline */}
               <div className="mb-6">
-                <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-4">
+                <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-4">
                   Timeline
                 </h3>
 
@@ -205,7 +205,7 @@ export function DividendDetailDrawer({ credit, open, onClose, onReinvested }: Pr
 
               {/* Summary */}
               <div className="bg-rh-light-bg dark:bg-rh-dark rounded-xl p-4 mb-6">
-                <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
+                <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
                   Summary
                 </h3>
 
@@ -293,13 +293,13 @@ function TimelineStep({ completed, title, subtitle, value, subValue, dimmed }: T
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">{title}</p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">{subtitle}</p>
+            <p className="text-xs text-rh-light-text dark:text-white">{subtitle}</p>
           </div>
           {value && (
             <div className="text-right">
               <p className="text-sm font-semibold text-rh-green">{value}</p>
               {subValue && (
-                <p className="text-[10px] text-rh-light-muted dark:text-rh-muted">{subValue}</p>
+                <p className="text-[10px] text-rh-light-text dark:text-white">{subValue}</p>
               )}
             </div>
           )}
@@ -319,7 +319,7 @@ interface SummaryRowProps {
 function SummaryRow({ label, value, highlight, green }: SummaryRowProps) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-rh-light-muted dark:text-rh-muted">{label}</span>
+      <span className="text-xs text-rh-light-text dark:text-white">{label}</span>
       <span
         className={`text-sm ${
           highlight

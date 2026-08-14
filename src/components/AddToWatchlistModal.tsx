@@ -107,7 +107,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
             Add {ticker} to Watchlist
           </h3>
           <button onClick={onClose} aria-label="Close" className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rh-light-text dark:text-white" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -123,7 +123,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
           </div>
         ) : watchlists.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-3">No watchlists yet</p>
+            <p className="text-sm text-rh-light-text dark:text-white mb-3">No watchlists yet</p>
             <button
               onClick={() => { onClose(); onCreateNew(); }}
               className="px-4 py-2 rounded-xl text-sm font-bold bg-rh-green/15 text-rh-green hover:bg-rh-green/25 transition-colors"
@@ -151,7 +151,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
                     <div className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate">
                       {wl.name}
                     </div>
-                    <div className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+                    <div className="text-[11px] text-rh-light-text dark:text-white">
                       {wl.holdingsCount} holding{wl.holdingsCount !== 1 ? 's' : ''}
                     </div>
                   </div>
@@ -160,7 +160,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-rh-light-muted/30 dark:text-rh-muted/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   )}
@@ -171,7 +171,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
                   <div className="mt-2 ml-6 p-3 rounded-xl bg-gray-50/80 dark:bg-white/[0.03] border border-gray-200/40 dark:border-white/[0.06] space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Shares</label>
+                        <label className="block text-[10px] font-medium text-rh-light-text dark:text-white mb-1">Shares</label>
                         <input
                           type="number"
                           inputMode="decimal"
@@ -183,7 +183,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-medium text-rh-light-muted dark:text-rh-muted mb-1">Avg Cost</label>
+                        <label className="block text-[10px] font-medium text-rh-light-text dark:text-white mb-1">Avg Cost</label>
                         <input
                           type="number"
                           inputMode="decimal"
@@ -198,7 +198,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={() => setAddingTo(null)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
                       >
                         Cancel
                       </button>
@@ -219,7 +219,7 @@ export function AddToWatchlistModal({ ticker, currentPrice, onClose, onCreateNew
         {!loading && watchlists.length > 0 && (
           <button
             onClick={() => { onClose(); onCreateNew(); }}
-            className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border border-dashed border-gray-300/60 dark:border-white/[0.1] text-rh-light-muted dark:text-rh-muted hover:text-rh-green hover:border-rh-green/30 transition-colors"
+            className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border border-dashed border-gray-300/60 dark:border-white/[0.1] text-rh-light-text dark:text-white hover:text-rh-green hover:border-rh-green/30 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

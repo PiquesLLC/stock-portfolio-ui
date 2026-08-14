@@ -159,8 +159,8 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
   if (error) {
     return (
       <div className="text-center py-20">
-        <p className="text-rh-light-muted dark:text-rh-muted mb-2">Failed to load comparison</p>
-        <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">{error}</p>
+        <p className="text-rh-light-text dark:text-white mb-2">Failed to load comparison</p>
+        <p className="text-xs text-rh-light-text dark:text-white">{error}</p>
         <button onClick={onBack} className="mt-4 px-4 py-2 rounded-lg bg-rh-green text-black text-sm font-medium">
           Go Back
         </button>
@@ -191,7 +191,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             {comparison.overlapPct.toFixed(0)}% overlap
             {comparison.biggestDivergence.sector && (
-              <span className="text-gray-400 dark:text-gray-500">
+              <span className="text-gray-500 dark:text-gray-500">
                 {' · Biggest gap: '}
                 <span className="text-rh-light-text dark:text-rh-text font-medium">{comparison.biggestDivergence.sector}</span>
                 {' ('}
@@ -241,7 +241,7 @@ export function PortfolioCompare({ theirUserId, theirDisplayName, onBack, onTick
               <AllocationDonut holdings={theirPortfolio.holdings} totalValue={theirPortfolio.holdingsValue} onTickerClick={onTickerClick} title={`${theirDisplayName}'s Allocation`} maxSlices={8} />
             </div>
           </div>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 text-center sm:hidden">Tap a segment or legend item for details</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-2 text-center sm:hidden">Tap a segment or legend item for details</p>
         </div>
       ) : (
         <div className="bg-gray-50/40 dark:bg-white/[0.03] rounded-xl border border-gray-200/40 dark:border-white/[0.06] p-6 text-center">

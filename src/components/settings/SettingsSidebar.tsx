@@ -104,7 +104,7 @@ export function SettingsSidebar({
       <nav className="w-full space-y-6">
         {SIDEBAR_GROUPS.map((group) => (
           <div key={group.label}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/60 px-1 mb-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 px-1 mb-1.5">
               {group.label}
             </p>
             <div className="rounded-xl border border-gray-200/40 dark:border-white/[0.06] bg-white/60 dark:bg-white/[0.03] overflow-hidden divide-y divide-gray-100 dark:divide-white/[0.04]">
@@ -114,9 +114,9 @@ export function SettingsSidebar({
                   onClick={() => onSelectSection(item.id)}
                   className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-rh-light-text dark:text-rh-text hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors text-left"
                 >
-                  <span className="text-rh-light-muted dark:text-rh-muted">{item.icon}</span>
+                  <span className="text-rh-light-text dark:text-white">{item.icon}</span>
                   <span className="flex-1">{item.label}</span>
-                  <svg className="w-4 h-4 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -131,7 +131,7 @@ export function SettingsSidebar({
             href="/support"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-xs text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-green transition-colors"
+            className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -140,7 +140,7 @@ export function SettingsSidebar({
           </a>
           <button
             onClick={onPrivacyPolicy}
-            className="text-xs text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+            className="text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
           >
             Privacy Policy & Terms
           </button>
@@ -154,7 +154,7 @@ export function SettingsSidebar({
       <div className="sticky top-24 space-y-5">
         {SIDEBAR_GROUPS.map((group) => (
           <div key={group.label}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 px-3 mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 px-3 mb-1">
               {group.label}
             </p>
             <div className="space-y-px">
@@ -165,7 +165,7 @@ export function SettingsSidebar({
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all text-left
                     ${activeSection === item.id
                       ? 'bg-rh-green/10 text-rh-green'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/50 dark:hover:bg-white/[0.04]'
+                      : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/50 dark:hover:bg-white/[0.04]'
                     }`}
                 >
                   <span className={`flex-shrink-0 ${activeSection === item.id ? 'text-rh-green' : ''}`}>
@@ -184,7 +184,7 @@ export function SettingsSidebar({
             href="/support"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/40
+            className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-rh-light-text dark:text-white
               hover:text-rh-green hover:bg-gray-100/50 dark:hover:bg-white/[0.04] transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,8 +194,8 @@ export function SettingsSidebar({
           </a>
           <button
             onClick={onPrivacyPolicy}
-            className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/40
-              hover:text-rh-light-muted dark:hover:text-rh-muted hover:bg-gray-100/50 dark:hover:bg-white/[0.04] transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-rh-light-text dark:text-white
+              hover:text-rh-light-text dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-white/[0.04] transition-colors text-left"
           >
             Privacy & Terms
           </button>

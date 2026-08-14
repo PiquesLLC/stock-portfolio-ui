@@ -61,7 +61,7 @@ function IntelligenceLoader() {
         </div>
         <div>
           <p className="text-sm font-semibold text-rh-light-text dark:text-white">Gathering Intelligence</p>
-          <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25">Powered by NALA</p>
+          <p className="text-[11px] text-rh-light-text dark:text-white/80">Powered by NALA</p>
         </div>
       </div>
       <div className="space-y-2.5">
@@ -71,7 +71,7 @@ function IntelligenceLoader() {
           return (
             <div key={i} className={`flex items-center gap-2.5 transition-all duration-500 ${isActive ? 'opacity-100' : isDone ? 'opacity-40' : 'opacity-15'}`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-500 ${
-                isDone ? 'bg-rh-green/20 text-rh-green' : isActive ? 'bg-rh-green text-black' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-white/30'
+                isDone ? 'bg-rh-green/20 text-rh-green' : isActive ? 'bg-rh-green text-black' : 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-text dark:text-white'
               }`}>
                 {isDone ? (
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +79,7 @@ function IntelligenceLoader() {
                   </svg>
                 ) : (i + 1)}
               </div>
-              <span className={`text-[12px] transition-all duration-500 ${isActive ? 'text-rh-light-text dark:text-white font-medium' : isDone ? 'text-rh-light-muted dark:text-white/50' : 'text-rh-light-muted/50 dark:text-white/30'}`}>
+              <span className={`text-[12px] transition-all duration-500 ${isActive ? 'text-rh-light-text dark:text-white font-medium' : isDone ? 'text-rh-light-text dark:text-white/80' : 'text-rh-light-text dark:text-white'}`}>
                 {isActive ? typedText : step}
                 {isActive && <span className="inline-block w-[2px] h-[12px] bg-rh-green ml-0.5 align-middle animate-pulse" />}
               </span>
@@ -111,7 +111,7 @@ function InsightsTabBar({ tabs, activeTab, onTabChange }: {
     `relative px-3 first:pl-0 last:pr-0 py-2 text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
       active
         ? 'text-rh-light-text dark:text-white'
-        : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'
+        : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
     }`, []);
 
   return (
@@ -205,7 +205,7 @@ function PerformanceReportCard({ portfolioId, intelligencePeriod }: { portfolioI
             </>
           )}
         </button>
-        <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+        <span className="text-[11px] text-rh-light-text dark:text-white">
           {reportSubtitle(intelligencePeriod)}
         </span>
       </div>
@@ -537,11 +537,11 @@ export function InsightsPage({ onTickerClick, currentValue, refreshTrigger, sess
       {/* Empty State - Only show if no holdings */}
       {!hasAnyData && initialLoadComplete && (
         <div className="p-12 text-center">
-          <svg className="w-14 h-14 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-14 h-14 mx-auto mb-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
           <p className="text-rh-light-text dark:text-rh-text font-medium mb-2">No insights available</p>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+          <p className="text-sm text-rh-light-text dark:text-white">
             Add some holdings to your portfolio to see analytics.
           </p>
         </div>

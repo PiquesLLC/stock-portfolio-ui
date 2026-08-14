@@ -110,7 +110,7 @@ function PentagonChart({ dimensions, availableDimensions }: { dimensions: Record
             y={ly}
             textAnchor="middle"
             dominantBaseline="middle"
-            className={`text-[9px] font-semibold ${available ? 'fill-gray-600 dark:fill-white/70' : 'fill-gray-400/50 dark:fill-white/20'}`}
+            className={`text-[9px] font-semibold ${available ? 'fill-gray-600 dark:fill-white/70' : 'fill-gray-400/50 dark:fill-white/80'}`}
           >
             {label}
           </text>
@@ -129,7 +129,7 @@ function PentagonChart({ dimensions, availableDimensions }: { dimensions: Record
             y={ly + 10}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="text-[7px] fill-gray-400 dark:fill-white/40"
+            className="text-[7px] fill-gray-500 dark:fill-white/80"
           >
             {score}
           </text>
@@ -147,12 +147,12 @@ function SubMetricRow({ metric }: { metric: NalaSubMetric }) {
     <div className="py-2.5">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs font-medium text-rh-light-text dark:text-rh-text">{metric.name}</span>
-        <span className="text-xs text-rh-light-muted dark:text-rh-muted">{metric.rawValue}</span>
+        <span className="text-xs text-rh-light-text dark:text-white">{metric.rawValue}</span>
       </div>
       <div className="h-1.5 rounded-full bg-gray-200/60 dark:bg-white/[0.06] overflow-hidden">
         <div className={`h-full rounded-full ${getBarColor(pct)} transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
-      <p className="text-[10px] text-rh-light-muted/70 dark:text-rh-muted/60 mt-1">{metric.explanation}</p>
+      <p className="text-[10px] text-rh-light-text dark:text-white mt-1">{metric.explanation}</p>
     </div>
   );
 }
@@ -206,7 +206,7 @@ function Drawer({ open, onClose, dimension }: DrawerProps) {
                 <span className={`text-lg font-bold ${getScoreColor(scorePct)}`}>{scorePct}/100</span>
               </div>
             </div>
-            <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-black/5 dark:hover:bg-white/[0.08] transition-colors">
+            <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-text dark:text-white hover:bg-black/5 dark:hover:bg-white/[0.08] transition-colors">
               <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -214,7 +214,7 @@ function Drawer({ open, onClose, dimension }: DrawerProps) {
           </div>
 
           {/* Weight badge */}
-          <div className="text-[10px] uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 mb-4">
+          <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-4">
             Weight: {Math.round(dimension.weight * 100)}% of composite score
           </div>
 
@@ -228,7 +228,7 @@ function Drawer({ open, onClose, dimension }: DrawerProps) {
           {/* Insight */}
           {dimension.insight && (
             <div className="mt-4 p-3 rounded-lg bg-gray-100/50 dark:bg-white/[0.03] border border-gray-200/30 dark:border-white/[0.04]">
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">{dimension.insight}</p>
+              <p className="text-xs text-rh-light-text dark:text-white">{dimension.insight}</p>
             </div>
           )}
         </div>
@@ -260,7 +260,7 @@ function DimensionRow({ dimension, onClick, available }: { dimension: NalaDimens
           <div className={`h-full rounded-full transition-all duration-700 ${getBarColor(pct)}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
-      <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-rh-muted/30 group-hover:text-rh-light-text dark:group-hover:text-rh-text transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-3.5 h-3.5 text-rh-light-text dark:text-white group-hover:text-rh-light-text dark:group-hover:text-rh-text transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
       </svg>
     </button>
@@ -331,7 +331,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
         </div>
         <button
           onClick={() => setShowInfo(!showInfo)}
-          className="w-6 h-6 flex items-center justify-center rounded-full text-rh-light-muted/60 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors"
+          className="w-6 h-6 flex items-center justify-center rounded-full text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors"
           title="About Nala Score"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,7 +346,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
           <p className="text-xs text-rh-light-text/80 dark:text-rh-text/70 leading-relaxed mb-2">
             <span className="font-semibold">Nala Score</span> grades {isETF ? 'ETFs' : 'stocks'} across 5 key dimensions. Each dimension contains 4 data-driven sub-metrics — tap any dimension to see the full breakdown.
           </p>
-          <div className="space-y-1.5 text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <div className="space-y-1.5 text-[11px] text-rh-light-text dark:text-white">
             {isETF ? (<>
               <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">C</span><span><strong>Cost Efficiency</strong> (25%) — Expense ratio, fund size, holdings count, track record</span></div>
               <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">Di</span><span><strong>Diversification</strong> (25%) — Category breadth, holdings depth, underlying valuations, income</span></div>
@@ -361,7 +361,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
               <div className="flex items-start gap-2"><span className="text-rh-green font-bold mt-px">M</span><span><strong>Momentum</strong> (15%) — Market confirming? 52-week position, returns, analyst consensus</span></div>
             </>)}
           </div>
-          <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40 mt-2.5">
+          <p className="text-[10px] text-rh-light-text dark:text-white mt-2.5">
             Scores update daily. {isETF ? 'Cost Efficiency & Diversification' : 'Quality & Value'} are weighted highest. This feature is in beta — scoring methodology may be refined over time.
           </p>
         </div>
@@ -408,7 +408,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
               <span className={`text-[10px] ${
                 dataAge === 'stale'
                   ? 'text-amber-500/80 dark:text-amber-400/70'
-                  : 'text-rh-light-muted/50 dark:text-rh-muted/40'
+                  : 'text-rh-light-text dark:text-white'
               }`}>
                 {dataAge === 'stale' ? 'Data may be stale' : `Updated ${timeAgo(lastUpdated)}`}
               </span>
@@ -434,7 +434,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
         <div className="mt-3 pt-3 border-t border-gray-200/30 dark:border-white/[0.04]">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1.5 text-[11px] font-medium text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-2"
+            className="flex items-center gap-1.5 text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-2"
           >
             <svg className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -444,7 +444,7 @@ export function NalaScore({ ticker }: NalaScoreProps) {
           {expanded && (
             <ul className="space-y-1.5">
               {keyInsights.map((insight, i) => (
-                <li key={i} className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed flex gap-2">
+                <li key={i} className="text-[11px] text-rh-light-text dark:text-white leading-relaxed flex gap-2">
                   <span className="text-rh-green mt-0.5 flex-shrink-0">{i === 0 ? '>' : insight.startsWith('Watch') ? '!' : '+'}</span>
                   <span>{insight}</span>
                 </li>

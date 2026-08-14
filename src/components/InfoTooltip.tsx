@@ -31,7 +31,7 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
         onMouseLeave={() => setShow(false)}
         className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold
           border border-gray-300/60 dark:border-white/[0.12]
-          text-rh-light-muted/70 dark:text-rh-muted/70
+          text-rh-light-text dark:text-white
           hover:text-rh-light-text dark:hover:text-rh-text
           hover:border-gray-400/60 dark:hover:border-white/20
           transition-all cursor-help"

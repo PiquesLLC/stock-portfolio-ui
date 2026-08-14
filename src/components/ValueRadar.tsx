@@ -186,7 +186,7 @@ function DiscountBar({ discountPct }: { discountPct: number }) {
 
 /** Quality score badge with color coding */
 function QualityScoreBadge({ score }: { score: number | null }) {
-  if (score == null) return <span className="text-[10px] text-gray-400 dark:text-white/20">--</span>;
+  if (score == null) return <span className="text-[10px] text-gray-500 dark:text-white/80">--</span>;
   const color = score >= 70 ? 'text-emerald-600 dark:text-emerald-400'
     : score >= 45 ? 'text-yellow-600 dark:text-yellow-400'
     : 'text-red-500 dark:text-red-400';
@@ -205,9 +205,9 @@ function QualityScoreInfo({ show, onClose }: { show: boolean; onClose: () => voi
       >
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Quality Score</h3>
-          <button onClick={onClose} className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text text-lg leading-none">&times;</button>
+          <button onClick={onClose} className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text text-lg leading-none">&times;</button>
         </div>
-        <p className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-relaxed">
+        <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed">
           A 0–100 score measuring business quality, independent of valuation. Higher is better.
         </p>
         <div className="space-y-2">
@@ -223,7 +223,7 @@ function QualityScoreInfo({ show, onClose }: { show: boolean; onClose: () => voi
               <span className="text-[10px] font-bold text-rh-green w-10 text-right shrink-0 tabular-nums">{f.weight}</span>
               <div className="min-w-0">
                 <div className="text-[11px] font-medium text-rh-light-text dark:text-rh-text">{f.label}</div>
-                <div className="text-[10px] text-rh-light-muted dark:text-rh-muted leading-tight">{f.desc}</div>
+                <div className="text-[10px] text-rh-light-text dark:text-white leading-tight">{f.desc}</div>
               </div>
             </div>
           ))}
@@ -231,13 +231,13 @@ function QualityScoreInfo({ show, onClose }: { show: boolean; onClose: () => voi
         <div className="pt-2 border-t border-gray-200/30 dark:border-white/[0.06] space-y-1">
           <div className="flex items-center gap-2 text-[10px]">
             <span className="font-bold text-emerald-600 dark:text-emerald-400">70+</span>
-            <span className="text-rh-light-muted dark:text-rh-muted">Strong business</span>
+            <span className="text-rh-light-text dark:text-white">Strong business</span>
             <span className="font-bold text-yellow-600 dark:text-yellow-400 ml-2">45–69</span>
-            <span className="text-rh-light-muted dark:text-rh-muted">Average</span>
+            <span className="text-rh-light-text dark:text-white">Average</span>
             <span className="font-bold text-red-500 dark:text-red-400 ml-2">&lt;45</span>
-            <span className="text-rh-light-muted dark:text-rh-muted">Weak</span>
+            <span className="text-rh-light-text dark:text-white">Weak</span>
           </div>
-          <p className="text-[9px] text-rh-light-muted/60 dark:text-rh-muted/40">
+          <p className="text-[9px] text-rh-light-text dark:text-white">
             Score requires 60%+ data coverage. Missing metrics are redistributed proportionally.
           </p>
         </div>
@@ -348,8 +348,8 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
   if (stocks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2">
-        <span className="text-sm text-rh-light-muted dark:text-rh-muted">Value Radar data is being computed.</span>
-        <span className="text-xs text-rh-light-muted/60 dark:text-rh-muted/50">Check back in a few minutes.</span>
+        <span className="text-sm text-rh-light-text dark:text-white">Value Radar data is being computed.</span>
+        <span className="text-xs text-rh-light-text dark:text-white">Check back in a few minutes.</span>
       </div>
     );
   }
@@ -359,7 +359,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
       {/* ─── Hero Section: Top Undervalued Gauge Cards ─── */}
       {heroStocks.length > 0 && (
         <div>
-          <h4 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
+          <h4 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white mb-3">
             <span className="w-0.5 h-3.5 bg-rh-green rounded-full" />
             Most Undervalued
           </h4>
@@ -380,7 +380,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                         <span className="text-rh-green text-xs leading-none">&#10003;</span>
                       )}
                     </div>
-                    <div className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted truncate">{stock.name}</div>
+                    <div className="text-[9px] sm:text-[10px] text-rh-light-text dark:text-white truncate">{stock.name}</div>
                   </div>
                 </div>
 
@@ -393,14 +393,14 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                       {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(1)}%
                     </span>
                   </div>
-                  <div className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted tabular-nums">
+                  <div className="text-[9px] sm:text-[10px] text-rh-light-text dark:text-white tabular-nums">
                     10Y Avg {stock.avgPE.toFixed(1)}
                   </div>
                   <div className={`text-[11px] font-bold tabular-nums ${stock.discountPct < 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {stock.discountPct > 0 ? '+' : ''}{stock.discountPct.toFixed(0)}% vs avg
                   </div>
                   {stock.dividendYield != null && stock.dividendYield > 0.1 && (
-                    <div className="text-[9px] sm:text-[10px] text-rh-light-muted dark:text-rh-muted">
+                    <div className="text-[9px] sm:text-[10px] text-rh-light-text dark:text-white">
                       Div {stock.dividendYield.toFixed(1)}%
                     </div>
                   )}
@@ -410,7 +410,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                     </span>
                   )}
                   {stock.qualityScore != null && (
-                    <div className="text-[9px] text-rh-light-muted dark:text-rh-muted mt-0.5">
+                    <div className="text-[9px] text-rh-light-text dark:text-white mt-0.5">
                       Q-Score: <QualityScoreBadge score={stock.qualityScore} />
                     </div>
                   )}
@@ -423,7 +423,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
 
       {/* ─── Freshness + Refresh ─── */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40">
+        <div className="flex items-center gap-2 text-[10px] text-rh-light-text dark:text-white">
           {generatedAt && (
             <>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-rh-green animate-pulse" />
@@ -434,7 +434,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
         <button
           onClick={() => fetchData(true)}
           disabled={refreshing}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md text-rh-light-muted dark:text-rh-muted hover:text-rh-green hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors disabled:opacity-40"
+          className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md text-rh-light-text dark:text-white hover:text-rh-green hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors disabled:opacity-40"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
             <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
@@ -464,7 +464,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               className={`relative px-3 py-1.5 text-[11px] font-medium transition-all whitespace-nowrap ${
                 tierFilter === tier
                   ? 'text-rh-light-text dark:text-white'
-                  : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               {tier === 'all' ? 'All' : TIER_LABELS[tier]?.label || tier}
@@ -480,62 +480,62 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
       {/* ─── Detailed List ─── */}
       <div className="bg-white/60 dark:bg-transparent rounded-xl border border-gray-200/40 dark:border-white/[0.06] overflow-hidden">
         {/* Header row */}
-        <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 border-b border-gray-200/30 dark:border-white/[0.05] text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/40">
-          <button onClick={() => handleSort('ticker')} className={`w-[90px] sm:w-auto sm:flex-1 sm:min-w-0 text-left cursor-pointer transition-colors ${sortKey === 'ticker' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+        <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 border-b border-gray-200/30 dark:border-white/[0.05] text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
+          <button onClick={() => handleSort('ticker')} className={`w-[90px] sm:w-auto sm:flex-1 sm:min-w-0 text-left cursor-pointer transition-colors ${sortKey === 'ticker' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
             Stock{sortIndicator('ticker')}
           </button>
-          <button onClick={() => handleSort('discountPct')} className={`w-[120px] sm:flex-1 sm:min-w-[60px] shrink-0 text-center cursor-pointer transition-colors ${sortKey === 'discountPct' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+          <button onClick={() => handleSort('discountPct')} className={`w-[120px] sm:flex-1 sm:min-w-[60px] shrink-0 text-center cursor-pointer transition-colors ${sortKey === 'discountPct' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
             vs Avg{sortIndicator('discountPct')}
           </button>
           <div className="w-12 flex justify-end">
-            <button onClick={() => handleSort('currentPE')} className={`cursor-pointer transition-colors ${sortKey === 'currentPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('currentPE')} className={`cursor-pointer transition-colors ${sortKey === 'currentPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               P/E{sortIndicator('currentPE')}
             </button>
           </div>
           <div className="hidden md:flex w-16 justify-end pr-[10px]">
-            <button onClick={() => handleSort('avgPE')} className={`cursor-pointer transition-colors ${sortKey === 'avgPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('avgPE')} className={`cursor-pointer transition-colors ${sortKey === 'avgPE' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               10Y Avg{sortIndicator('avgPE')}
             </button>
           </div>
           <span className="hidden lg:flex w-20 justify-center">Trend</span>
           <div className="hidden sm:flex w-16 justify-end">
-            <button onClick={() => handleSort('price')} className={`cursor-pointer transition-colors ${sortKey === 'price' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('price')} className={`cursor-pointer transition-colors ${sortKey === 'price' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               Price{sortIndicator('price')}
             </button>
           </div>
           <div className="hidden sm:flex w-14 justify-end">
-            <button onClick={() => handleSort('changePercent')} className={`cursor-pointer transition-colors ${sortKey === 'changePercent' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('changePercent')} className={`cursor-pointer transition-colors ${sortKey === 'changePercent' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               Today{sortIndicator('changePercent')}
             </button>
           </div>
           <div className="hidden lg:flex w-12 justify-end">
-            <button onClick={() => handleSort('dividendYield')} className={`cursor-pointer transition-colors ${sortKey === 'dividendYield' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('dividendYield')} className={`cursor-pointer transition-colors ${sortKey === 'dividendYield' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               Yield{sortIndicator('dividendYield')}
             </button>
           </div>
           <div className="hidden lg:flex w-20 justify-center">
-            <button onClick={() => handleSort('week52Pos')} className={`cursor-pointer transition-colors ${sortKey === 'week52Pos' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('week52Pos')} className={`cursor-pointer transition-colors ${sortKey === 'week52Pos' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               52W Range{sortIndicator('week52Pos')}
             </button>
           </div>
           <div className="hidden xl:flex w-10 justify-end">
-            <button onClick={() => handleSort('beta')} className={`cursor-pointer transition-colors ${sortKey === 'beta' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('beta')} className={`cursor-pointer transition-colors ${sortKey === 'beta' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               Beta{sortIndicator('beta')}
             </button>
           </div>
           <div className="w-[40px] sm:w-[80px] flex justify-end">
-            <button onClick={() => handleSort('tier')} className={`cursor-pointer transition-colors ${sortKey === 'tier' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('tier')} className={`cursor-pointer transition-colors ${sortKey === 'tier' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               Signal{sortIndicator('tier')}
             </button>
           </div>
           <div className="flex w-10 sm:w-14 justify-center items-center pl-[10px] sm:pl-[15px]">
-            <button onClick={() => handleSort('qualityScore')} className={`cursor-pointer transition-colors ${sortKey === 'qualityScore' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/50'}`}>
+            <button onClick={() => handleSort('qualityScore')} className={`cursor-pointer transition-colors ${sortKey === 'qualityScore' ? 'text-rh-green' : 'hover:text-gray-600 dark:hover:text-white/80'}`}>
               Score
               {sortIndicator('qualityScore')}
             </button>
             <span
               onClick={(e) => { e.stopPropagation(); setShowScoreInfo(true); }}
-              className="ml-0.5 hidden sm:inline-flex items-center justify-center w-3 h-3 rounded-full border border-gray-300 dark:border-white/20 text-[7px] font-bold text-gray-400 dark:text-white/30 hover:text-rh-green hover:border-rh-green transition-colors cursor-pointer shrink-0"
+              className="ml-0.5 hidden sm:inline-flex items-center justify-center w-3 h-3 rounded-full border border-gray-300 dark:border-white/20 text-[7px] font-bold text-gray-500 dark:text-white hover:text-rh-green hover:border-rh-green transition-colors cursor-pointer shrink-0"
               title="How is this calculated?"
             >
               i
@@ -562,7 +562,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                       <span className="text-rh-green text-xs leading-none">&#10003;</span>
                     )}
                   </div>
-                  <div className="text-[10px] text-rh-light-muted dark:text-rh-muted truncate">{stock.name}</div>
+                  <div className="text-[10px] text-rh-light-text dark:text-white truncate">{stock.name}</div>
                 </div>
               </div>
 
@@ -577,7 +577,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               </div>
 
               {/* 10Y Avg — hidden on small */}
-              <div className="hidden md:flex w-16 text-right text-xs text-rh-light-muted dark:text-rh-muted tabular-nums justify-end pr-[15px]">
+              <div className="hidden md:flex w-16 text-right text-xs text-rh-light-text dark:text-white tabular-nums justify-end pr-[15px]">
                 {stock.avgPE.toFixed(1)}
               </div>
 
@@ -587,7 +587,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               </div>
 
               {/* Price — visible from sm */}
-              <div className="hidden sm:flex w-16 text-right text-xs text-rh-light-muted dark:text-rh-muted tabular-nums justify-end">
+              <div className="hidden sm:flex w-16 text-right text-xs text-rh-light-text dark:text-white tabular-nums justify-end">
                 ${stock.price.toFixed(2)}
               </div>
 
@@ -597,7 +597,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               </div>
 
               {/* Dividend Yield — hidden on small/medium */}
-              <div className="hidden lg:flex w-12 text-right text-xs text-rh-light-muted dark:text-rh-muted tabular-nums justify-end">
+              <div className="hidden lg:flex w-12 text-right text-xs text-rh-light-text dark:text-white tabular-nums justify-end">
                 {stock.dividendYield != null ? `${stock.dividendYield.toFixed(1)}%` : '--'}
               </div>
 
@@ -611,16 +611,16 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
                         style={{ left: `${Math.max(0, Math.min(100, stock.week52Pos * 100))}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[8px] text-rh-light-muted/40 dark:text-rh-muted/40 mt-0.5 tabular-nums">
+                    <div className="flex justify-between text-[8px] text-rh-light-text dark:text-white mt-0.5 tabular-nums">
                       <span>${stock.week52Low.toFixed(0)}</span>
                       <span>${stock.week52High.toFixed(0)}</span>
                     </div>
                   </div>
-                ) : <span className="text-xs text-rh-light-muted/30 dark:text-rh-muted/30">--</span>}
+                ) : <span className="text-xs text-rh-light-text dark:text-white">--</span>}
               </div>
 
               {/* Beta — hidden until xl */}
-              <div className="hidden xl:flex w-10 text-right text-[11px] text-rh-light-muted dark:text-rh-muted tabular-nums justify-end">
+              <div className="hidden xl:flex w-10 text-right text-[11px] text-rh-light-text dark:text-white tabular-nums justify-end">
                 {stock.beta != null ? stock.beta.toFixed(2) : '--'}
               </div>
 
@@ -638,7 +638,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
               <div className="hidden sm:flex w-7 justify-center">
                 <button
                   onClick={(e) => { e.stopPropagation(); setWatchlistTicker(stock.ticker); }}
-                  className="opacity-0 group-hover:opacity-100 sm:opacity-40 sm:hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted hover:text-rh-green"
+                  className="opacity-0 group-hover:opacity-100 sm:opacity-40 sm:hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] text-rh-light-text dark:text-white hover:text-rh-green"
                   title="Add to watchlist"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -651,7 +651,7 @@ export function ValueRadar({ onTickerClick, portfolioTickers }: ValueRadarProps)
         </div>
 
         {filtered.length > 50 && (
-          <div className="px-3 py-2 text-center text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40 border-t border-gray-200/10 dark:border-white/[0.04]">
+          <div className="px-3 py-2 text-center text-[10px] text-rh-light-text dark:text-white border-t border-gray-200/10 dark:border-white/[0.04]">
             Showing 50 of {filtered.length} stocks
           </div>
         )}

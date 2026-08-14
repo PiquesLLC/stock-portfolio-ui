@@ -178,7 +178,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+            className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
           >
             <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -188,7 +188,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
 
         {/* Ticker + Price */}
         <div className="mb-4 p-3 bg-rh-light-bg dark:bg-rh-dark rounded-lg">
-          <div className="text-xs text-rh-light-muted dark:text-rh-muted">{ticker}</div>
+          <div className="text-xs text-rh-light-text dark:text-white">{ticker}</div>
           <div className="text-xl font-bold text-rh-light-text dark:text-rh-text">${currentPrice.toFixed(2)}</div>
         </div>
 
@@ -210,7 +210,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
           {isPriceCondition && (
             <div className="mb-3">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted text-sm">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-sm">$</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -241,9 +241,9 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
                   className="w-full pr-8 pl-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text text-sm focus:outline-none focus:ring-2 focus:ring-rh-green/50"
                   ref={inputRef}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-rh-light-muted dark:text-rh-muted text-sm">%</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-sm">%</span>
               </div>
-              <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-1">
+              <p className="text-[11px] text-rh-light-text dark:text-white mt-1">
                 Based on {referencePriceLabel} (${referencePrice.toFixed(2)})
               </p>
             </div>
@@ -257,7 +257,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
               className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 !repeatAlert
                   ? 'bg-rh-green/20 text-rh-green border border-rh-green/30'
-                  : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-rh-border'
+                  : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white border border-rh-light-border dark:border-rh-border'
               }`}
             >
               Trigger once
@@ -268,7 +268,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
               className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 repeatAlert
                   ? 'bg-rh-green/20 text-rh-green border border-rh-green/30'
-                  : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-rh-border'
+                  : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white border border-rh-light-border dark:border-rh-border'
               }`}
             >
               Repeat
@@ -279,7 +279,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1 text-xs text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-3"
+            className="flex items-center gap-1 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-3"
           >
             <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -293,7 +293,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
               {/* Reference price selector (only for percent conditions) */}
               {isPercentCondition && (
                 <div>
-                  <label className="block text-[11px] font-medium text-rh-light-muted dark:text-rh-muted mb-1.5">
+                  <label className="block text-[11px] font-medium text-rh-light-text dark:text-white mb-1.5">
                     Calculate from
                   </label>
                   <div className="flex gap-1.5">
@@ -303,7 +303,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
                       className={`flex-1 py-1 text-[10px] font-medium rounded transition-colors ${
                         referencePriceType === 'current'
                           ? 'bg-rh-green/20 text-rh-green'
-                          : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted'
+                          : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white'
                       }`}
                     >
                       Current
@@ -315,7 +315,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
                         className={`flex-1 py-1 text-[10px] font-medium rounded transition-colors ${
                           referencePriceType === 'open'
                             ? 'bg-rh-green/20 text-rh-green'
-                            : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted'
+                            : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white'
                         }`}
                       >
                         Open
@@ -328,7 +328,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
                         className={`flex-1 py-1 text-[10px] font-medium rounded transition-colors ${
                           referencePriceType === 'avgCost'
                             ? 'bg-rh-green/20 text-rh-green'
-                            : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-muted dark:text-rh-muted'
+                            : 'bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-white'
                         }`}
                       >
                         Avg Cost
@@ -340,7 +340,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
 
               {/* Expiration */}
               <div>
-                <label className="block text-[11px] font-medium text-rh-light-muted dark:text-rh-muted mb-1.5">
+                <label className="block text-[11px] font-medium text-rh-light-text dark:text-white mb-1.5">
                   Expires
                 </label>
                 <select

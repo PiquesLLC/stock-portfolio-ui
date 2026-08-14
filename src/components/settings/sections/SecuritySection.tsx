@@ -138,7 +138,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
   return (
     <div className="space-y-7">
       <div className="space-y-4">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Email Address</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Email Address</h3>
 
         {emailStep === 'idle' ? (
           <button
@@ -152,12 +152,12 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
             <div className="flex flex-col items-start gap-0.5">
               <span>{user?.email ? 'Change Email' : 'Add Email'}</span>
               {user?.email && (
-                <span className="text-[11px] font-normal text-rh-light-muted dark:text-rh-muted truncate max-w-[260px]">
+                <span className="text-[11px] font-normal text-rh-light-text dark:text-white truncate max-w-[260px]">
                   {user.email}{user.emailVerified ? ' · verified' : ' · unverified'}
                 </span>
               )}
             </div>
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -172,7 +172,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
             {emailStep === 'request' ? (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                  <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">
                     New Email Address
                   </label>
                   <input
@@ -187,7 +187,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                  <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">
                     Current Password
                   </label>
                   <input
@@ -205,7 +205,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
                     type="button"
                     onClick={closeEmailForm}
                     className="flex-1 px-3 py-2 rounded-lg text-xs font-medium
-                      text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                      text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text
                       hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
                   >
                     Cancel
@@ -224,11 +224,11 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
               </>
             ) : (
               <>
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+                <p className="text-xs text-rh-light-text dark:text-white">
                   We sent a 6-digit code to <span className="text-rh-light-text dark:text-rh-text font-medium">{emailNew.trim().toLowerCase()}</span>. Enter it below to finish changing your email.
                 </p>
                 <div>
-                  <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+                  <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">
                     Verification Code
                   </label>
                   <input
@@ -249,7 +249,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
                     type="button"
                     onClick={closeEmailForm}
                     className="flex-1 px-3 py-2 rounded-lg text-xs font-medium
-                      text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                      text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text
                       hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
                   >
                     Cancel
@@ -272,7 +272,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Authentication</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Authentication</h3>
 
         {!showPasswordChange ? (
           <button
@@ -287,7 +287,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
               flex items-center justify-between"
           >
             <span>Change Password</span>
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -299,7 +299,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+              <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">
                 Current Password
               </label>
               <input
@@ -312,7 +312,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+              <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">
                 New Password
               </label>
               <input
@@ -326,7 +326,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+              <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">
                 Confirm New Password
               </label>
               <input
@@ -349,7 +349,7 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
                   setPasswordError('');
                 }}
                 className="flex-1 px-3 py-2 rounded-lg text-xs font-medium
-                  text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                  text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text
                   hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
               >
                 Cancel
@@ -386,12 +386,12 @@ export function SecuritySection({ onOpenMfa }: SecuritySectionProps) {
             flex items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <span>Two-Factor Authentication</span>
           </div>
-          <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>

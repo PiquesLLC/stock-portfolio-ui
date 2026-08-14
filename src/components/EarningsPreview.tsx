@@ -58,32 +58,32 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400">Live</span>
             )}
           </div>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
+          <p className="text-xs text-rh-light-text dark:text-white mt-0.5">
             Reports {formatCountdown(item.daysUntil)} · {new Date(item.reportDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
           </p>
 
           {/* Stats row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
             {item.estimatedEPS !== null && (
-              <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+              <span className="text-[11px] text-rh-light-text dark:text-white">
                 Est. <span className="font-medium text-rh-light-text dark:text-rh-text">${item.estimatedEPS.toFixed(2)}</span>
               </span>
             )}
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[11px] text-rh-light-text dark:text-white">
               Beat rate <span className="font-medium text-rh-light-text dark:text-rh-text">{item.beatRate}%</span>
             </span>
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[11px] text-rh-light-text dark:text-white">
               Avg surprise <span className={`font-medium ${item.avgSurprisePct >= 0 ? 'text-rh-green' : 'text-red-400'}`}>{item.avgSurprisePct >= 0 ? '+' : ''}{item.avgSurprisePct.toFixed(1)}%</span>
             </span>
             {item.currentStreak.count > 0 && (
               <div className="flex items-center gap-1.5">
                 <StreakDots type={item.currentStreak.type} count={item.currentStreak.count} />
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+                <span className="text-[10px] text-rh-light-text dark:text-white">
                   {item.currentStreak.count}x {item.currentStreak.type}
                 </span>
               </div>
             )}
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[11px] text-rh-light-text dark:text-white">
               Consistency <span className="font-medium text-rh-light-text dark:text-rh-text">{item.consistencyScore}/100</span>
             </span>
           </div>
@@ -95,7 +95,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
         <div className="border-t border-gray-200/30 dark:border-white/[0.04]">
           {/* What to Watch - always visible */}
           <div className="px-4 pt-3 pb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 mb-1.5">What to Watch</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1.5">What to Watch</p>
             <p className="text-xs text-rh-light-text dark:text-rh-text leading-relaxed">{preview.whatToWatch}</p>
           </div>
 
@@ -104,8 +104,8 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
             <div className="px-4 pb-3 space-y-3">
               {/* Analyst Sentiment */}
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50 mb-1">Analyst Sentiment</p>
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted">{preview.analystSentiment}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">Analyst Sentiment</p>
+                <p className="text-xs text-rh-light-text dark:text-white">{preview.analystSentiment}</p>
               </div>
 
               {/* Catalysts + Risks in 2-col */}
@@ -141,7 +141,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
               {/* Citations */}
               {item.citations.length > 0 && (
                 <div className="pt-1">
-                  <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
+                  <p className="text-[10px] text-rh-light-text dark:text-white">
                     Sources: {item.citations.map((url, i) => {
                       const isSafeUrl = /^https?:\/\//i.test(url);
                       return isSafeUrl ? (
@@ -161,7 +161,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
           {/* Toggle */}
           <button
             onClick={() => setExpanded(!expanded)}
-            className="w-full py-2 text-[11px] font-medium text-rh-light-muted dark:text-rh-muted hover:text-rh-green transition-colors border-t border-gray-200/20 dark:border-white/[0.03]"
+            className="w-full py-2 text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-green transition-colors border-t border-gray-200/20 dark:border-white/[0.03]"
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>
@@ -171,7 +171,7 @@ function PreviewCard({ item, onTickerClick }: { item: EarningsPreviewItem; onTic
       {/* No AI preview fallback */}
       {!preview && (
         <div className="px-4 py-2 border-t border-gray-200/20 dark:border-white/[0.03]">
-          <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30 italic">AI preview unavailable</p>
+          <p className="text-[10px] text-rh-light-text dark:text-white italic">AI preview unavailable</p>
         </div>
       )}
     </div>
@@ -253,7 +253,7 @@ function EarningsPreviewContent({ onTickerClick, portfolioId }: EarningsPreviewP
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-1">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted/60 dark:text-rh-muted/50">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
           AI Earnings Previews
         </h3>
         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/15">

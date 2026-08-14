@@ -115,7 +115,7 @@ export function PostCard({ post, onUserClick, onTickerClick, onDelete, currentUs
                 </span>
               )}
             </div>
-            <span className="text-[11px] text-rh-light-muted/40 dark:text-white/20 leading-tight">
+            <span className="text-[11px] text-rh-light-text dark:text-white/80 leading-tight">
               @{post.user.username} · {timeAgo(post.createdAt)}
             </span>
           </div>
@@ -140,13 +140,13 @@ export function PostCard({ post, onUserClick, onTickerClick, onDelete, currentUs
 
       {/* Actions */}
       <div className="flex items-center gap-1 mt-3 -ml-2">
-        <button onClick={handleLike} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${liked ? 'text-rh-red bg-rh-red/[0.06]' : 'text-rh-light-muted/40 dark:text-white/25 hover:text-rh-red hover:bg-rh-red/[0.04]'}`}>
+        <button onClick={handleLike} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${liked ? 'text-rh-red bg-rh-red/[0.06]' : 'text-rh-light-text dark:text-white/80 hover:text-rh-red hover:bg-rh-red/[0.04]'}`}>
           <svg className="w-[18px] h-[18px]" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
           <span>{likeCount || ''}</span>
         </button>
-        <button onClick={handleToggleComments} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${showComments ? 'text-rh-green bg-rh-green/[0.06]' : 'text-rh-light-muted/40 dark:text-white/25 hover:text-rh-green hover:bg-rh-green/[0.04]'}`}>
+        <button onClick={handleToggleComments} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${showComments ? 'text-rh-green bg-rh-green/[0.06]' : 'text-rh-light-text dark:text-white/80 hover:text-rh-green hover:bg-rh-green/[0.04]'}`}>
           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
@@ -155,7 +155,7 @@ export function PostCard({ post, onUserClick, onTickerClick, onDelete, currentUs
         {isOwner && (
           <button
             onClick={() => { if (window.confirm('Delete this post?')) onDelete?.(post.id); }}
-            className="text-[11px] text-rh-light-muted/20 dark:text-white/10 hover:text-rh-red transition-colors ml-auto px-2 py-1"
+            className="text-[11px] text-rh-light-text dark:text-white/80 hover:text-rh-red transition-colors ml-auto px-2 py-1"
           >
             Delete
           </button>
@@ -178,8 +178,8 @@ export function PostCard({ post, onUserClick, onTickerClick, onDelete, currentUs
                   </div>
                   <div>
                     <span className="text-[11px] font-semibold text-rh-light-text dark:text-white">{c.user.displayName}</span>
-                    <span className="text-[10px] text-rh-light-muted/40 dark:text-white/20 ml-1.5">{timeAgo(c.createdAt)}</span>
-                    <p className="text-xs text-rh-light-text/80 dark:text-white/70 mt-0.5">{c.content}</p>
+                    <span className="text-[10px] text-rh-light-text dark:text-white/80 ml-1.5">{timeAgo(c.createdAt)}</span>
+                    <p className="text-xs text-rh-light-text/80 dark:text-white/80 mt-0.5">{c.content}</p>
                   </div>
                 </div>
               ))}
@@ -267,7 +267,7 @@ function PostAttachment({ post, onTickerClick }: { post: PostData; onTickerClick
           {/* Close */}
           <button
             onClick={() => setExpanded(false)}
-            className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white hover:bg-black/60 transition-all duration-150"
+            className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:bg-black/60 transition-all duration-150"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -285,7 +285,7 @@ function PostAttachment({ post, onTickerClick }: { post: PostData; onTickerClick
                 >
                   View {attachment.ticker} →
                 </button>
-                <span className="text-[11px] text-white/20">Tap chart to explore</span>
+                <span className="text-[11px] text-white/80">Tap chart to explore</span>
               </div>
             </>
           )}
@@ -317,19 +317,19 @@ function PostAttachment({ post, onTickerClick }: { post: PostData; onTickerClick
                 <div className="grid grid-cols-3 gap-4">
                   {attachment.shares != null && (
                     <div className="bg-rh-light-bg/50 dark:bg-white/[0.04] rounded-2xl px-4 py-3">
-                      <div className="text-[11px] text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wide">Shares</div>
+                      <div className="text-[11px] text-rh-light-text dark:text-white/80 uppercase tracking-wide">Shares</div>
                       <div className="text-lg font-bold text-rh-light-text dark:text-white mt-1">{attachment.shares}</div>
                     </div>
                   )}
                   {attachment.price != null && (
                     <div className="bg-rh-light-bg/50 dark:bg-white/[0.04] rounded-2xl px-4 py-3">
-                      <div className="text-[11px] text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wide">Price</div>
+                      <div className="text-[11px] text-rh-light-text dark:text-white/80 uppercase tracking-wide">Price</div>
                       <div className="text-lg font-bold text-rh-light-text dark:text-white mt-1">${attachment.price.toLocaleString()}</div>
                     </div>
                   )}
                   {attachment.shares != null && attachment.price != null && (
                     <div className="bg-rh-light-bg/50 dark:bg-white/[0.04] rounded-2xl px-4 py-3">
-                      <div className="text-[11px] text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wide">Total</div>
+                      <div className="text-[11px] text-rh-light-text dark:text-white/80 uppercase tracking-wide">Total</div>
                       <div className="text-lg font-bold text-rh-light-text dark:text-white mt-1">${(attachment.shares * attachment.price).toLocaleString()}</div>
                     </div>
                   )}
@@ -403,14 +403,14 @@ function PostAttachment({ post, onTickerClick }: { post: PostData; onTickerClick
               <span className="text-[14px] font-bold text-rh-light-text dark:text-white">${attachment.ticker}</span>
             </div>
             <div className="flex items-center gap-2.5 mt-0.5">
-              {attachment.shares != null && <span className="text-[12px] text-rh-light-muted dark:text-white/50">{attachment.shares} shares</span>}
-              {attachment.price != null && <span className="text-[12px] text-rh-light-muted dark:text-white/50">@ ${attachment.price.toLocaleString()}</span>}
+              {attachment.shares != null && <span className="text-[12px] text-rh-light-text dark:text-white/80">{attachment.shares} shares</span>}
+              {attachment.price != null && <span className="text-[12px] text-rh-light-text dark:text-white/80">@ ${attachment.price.toLocaleString()}</span>}
               {attachment.shares != null && attachment.price != null && (
-                <span className="text-[12px] font-semibold text-rh-light-text dark:text-white/70">${(attachment.shares * attachment.price).toLocaleString()}</span>
+                <span className="text-[12px] font-semibold text-rh-light-text dark:text-white/80">${(attachment.shares * attachment.price).toLocaleString()}</span>
               )}
             </div>
           </div>
-          <svg className="w-4 h-4 text-rh-light-muted/20 dark:text-white/10 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <svg className="w-4 h-4 text-rh-light-text dark:text-white/80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </div>
       </>
     );

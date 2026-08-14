@@ -210,18 +210,18 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   <button
                     type="button"
                     onClick={() => setShowInfo(!showInfo)}
-                    className="w-4 h-4 rounded-full inline-flex items-center justify-center text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text border border-gray-300/50 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 transition-colors text-[9px] font-bold leading-none"
+                    className="w-4 h-4 rounded-full inline-flex items-center justify-center text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text border border-gray-300/50 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 transition-colors text-[9px] font-bold leading-none"
                   >
                     i
                   </button>
                   {showInfo && (
-                    <span className="absolute left-0 top-full mt-1 z-30 w-64 p-3 rounded-lg bg-white dark:bg-[#1c1c1f] border border-gray-200/60 dark:border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.3)] text-xs font-normal text-rh-light-muted dark:text-rh-muted block">
+                    <span className="absolute left-0 top-full mt-1 z-30 w-64 p-3 rounded-lg bg-white dark:bg-[#1c1c1f] border border-gray-200/60 dark:border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.3)] text-xs font-normal text-rh-light-text dark:text-white block">
                       Assuming S&P 500 historical total return of{' '}
                       <span className="text-rh-light-text dark:text-white font-medium">
                         {formatPercent(sp500Data.assumptions.annualReturn)}
                       </span>{' '}
                       per year (dividends reinvested), compounded monthly.
-                      <button onClick={() => setShowInfo(false)} className="block mt-2 text-[10px] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text">Dismiss</button>
+                      <button onClick={() => setShowInfo(false)} className="block mt-2 text-[10px] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text">Dismiss</button>
                     </span>
                   )}
                 </span>
@@ -235,7 +235,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
             className={`relative px-2.5 py-2 text-[12px] font-medium transition-all ${
               mode === 'sp500'
                 ? 'text-rh-light-text dark:text-white'
-                : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
           >
             S&P 500
@@ -247,7 +247,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
             className={`relative px-2.5 py-2 text-[12px] font-medium transition-all ${
               mode === 'pace'
                 ? 'text-rh-light-text dark:text-white'
-                : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-rh-text'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
           >
             Current Pace
@@ -259,7 +259,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
       {/* Current Value */}
       <div className="mb-4">
-        <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-1">Current Value</p>
+        <p className="text-rh-light-text dark:text-white text-sm mb-1">Current Value</p>
         <p className="text-2xl font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(data?.currentValue ?? currentValue)}</p>
       </div>
 
@@ -278,7 +278,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
                 return (
                   <div key={horizon} className="border-b border-gray-200/10 dark:border-white/[0.04] pb-3">
-                    <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">{horizonLabels[horizon]}</p>
+                    <p className="text-rh-light-text dark:text-white text-sm mb-2">{horizonLabels[horizon]}</p>
                     <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">{formatCurrency(projected)}</p>
                     <p
                       className={`text-sm ${
@@ -293,7 +293,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
               })}
           </div>
 
-          <p className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50 mt-2">
+          <p className="text-[10px] text-rh-light-text dark:text-white mt-2">
             Past performance does not guarantee future results.
           </p>
         </>
@@ -304,7 +304,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
         <>
           {/* Window selector */}
           <div className="flex items-center gap-2 mb-6">
-            <span className="text-sm text-rh-light-muted dark:text-rh-muted">Window:</span>
+            <span className="text-sm text-rh-light-text dark:text-white">Window:</span>
             <div className="flex gap-1 bg-gray-50/40 dark:bg-white/[0.02] rounded-lg p-1">
               {PACE_WINDOWS.map((w) => (
                 <button
@@ -314,7 +314,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     paceWindow === w.value
                       ? 'bg-white dark:bg-white/[0.1] text-rh-light-text dark:text-white shadow-sm'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                      : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                   } disabled:opacity-50`}
                 >
                   {w.label}
@@ -337,11 +337,11 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
             <div className="border-b border-gray-200/10 dark:border-white/[0.04] pb-3 mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <h4 className="text-sm font-medium text-rh-light-text dark:text-rh-text">True YTD Settings</h4>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">Self-reported</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Self-reported</span>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                  <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1">Net Equity on Jan 1 ($)</label>
+                  <label className="block text-xs text-rh-light-text dark:text-white mb-1">Net Equity on Jan 1 ($)</label>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -353,7 +353,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1">Net Contributions YTD ($)</label>
+                  <label className="block text-xs text-rh-light-text dark:text-white mb-1">Net Contributions YTD ($)</label>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -376,19 +376,19 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                 </button>
                 <button
                   onClick={() => setShowYtdForm(false)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.04] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.04] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
                 >
                   Cancel
                 </button>
               </div>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">
+              <p className="text-xs text-rh-light-text dark:text-white mt-2">
                 Enter your total assets minus margin debt as of Jan 1. Net contributions = deposits − withdrawals since Jan 1.
               </p>
             </div>
           )}
 
           {loading && (
-            <div className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted mb-4">
+            <div className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white mb-4">
               <div className="w-3 h-3 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
               <span>Loading...</span>
             </div>
@@ -396,11 +396,11 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
           {!loading && paceData && paceData.dataStatus !== 'ok' && (
             <div className="text-center py-8">
-              <p className="text-rh-light-muted dark:text-rh-muted">
+              <p className="text-rh-light-text dark:text-white">
                 {paceData.note || 'Not enough data for this window.'}
               </p>
               {paceData.snapshotCount > 0 && (
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-2">
+                <p className="text-xs text-rh-light-text dark:text-white mt-2">
                   {paceData.snapshotCount} snapshot{paceData.snapshotCount !== 1 ? 's' : ''} available
                 </p>
               )}
@@ -420,7 +420,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
               {/* Metrics row */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="border-b border-gray-200/10 dark:border-white/[0.04] pb-3">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Window Return</p>
+                  <p className="text-rh-light-text dark:text-white text-sm mb-2">Window Return</p>
                   <p className={`text-lg font-bold ${
                     (paceData.windowReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
@@ -429,18 +429,18 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                       <span className="text-xs font-normal text-amber-500 ml-1">Est.</span>
                     )}
                     {paceWindow === 'YTD' && paceData.trueYtdAvailable && (
-                      <span className="text-xs font-normal text-rh-light-muted dark:text-rh-muted ml-1">Self-reported basis</span>
+                      <span className="text-xs font-normal text-rh-light-text dark:text-white ml-1">Self-reported basis</span>
                     )}
                   </p>
                 </div>
                 <div className="border-b border-gray-200/10 dark:border-white/[0.04] pb-3">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Annualized Pace (Linear)</p>
+                  <p className="text-rh-light-text dark:text-white text-sm mb-2">Annualized Pace (Linear)</p>
                   <p className={`text-lg font-bold ${
                     (paceData.annualizedPacePct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'
                   }`}>
                     {formatPct(paceData.annualizedPacePct)}
                     {paceData.capped && (
-                      <span className="text-xs text-rh-light-muted dark:text-rh-muted ml-1">Capped for realism</span>
+                      <span className="text-xs text-rh-light-text dark:text-white ml-1">Capped for realism</span>
                     )}
                     {paceData.estimated && !paceData.capped && (
                       <span className="text-xs font-normal text-amber-500 ml-1">Est.</span>
@@ -448,7 +448,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   </p>
                 </div>
                 <div className="border-b border-gray-200/10 dark:border-white/[0.04] pb-3">
-                  <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">Current Assets</p>
+                  <p className="text-rh-light-text dark:text-white text-sm mb-2">Current Assets</p>
                   <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">
                     {formatCurrency(paceData.currentAssets)}
                   </p>
@@ -457,14 +457,14 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
               {/* Horizon projections */}
               <div className="mb-6">
-                <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-3">Projected Values (Current Pace)</p>
+                <p className="text-sm text-rh-light-text dark:text-white mb-3">Projected Values (Current Pace)</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {(['1y', '2y', '5y', '10y'] as const).map((horizon) => {
                     const proj = paceData.projections[horizon];
 
                     return (
                       <div key={horizon} className="border-b border-gray-200/10 dark:border-white/[0.04] pb-3">
-                        <p className="text-rh-light-muted dark:text-rh-muted text-sm mb-2">
+                        <p className="text-rh-light-text dark:text-white text-sm mb-2">
                           {paceHorizonLabels[horizon]}
                         </p>
                         <p className="text-lg font-bold text-rh-light-text dark:text-rh-text">
@@ -483,7 +483,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
               {/* Footer */}
               <div className="border-t border-gray-200/10 dark:border-white/[0.04] pt-4">
-                <div className="flex justify-between text-sm text-rh-light-muted dark:text-rh-muted mb-2">
+                <div className="flex justify-between text-sm text-rh-light-text dark:text-white mb-2">
                   <span>
                     {paceData.snapshotCount > 0
                       ? `Using ${paceData.snapshotCount} snapshots spanning ${Math.round(paceData.daysCovered)} days.`
@@ -495,11 +495,11 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                   <p className="text-xs text-amber-500 mb-1">{paceData.note}</p>
                 )}
                 {session === 'CLOSED' && (
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-1">
+                  <p className="text-xs text-rh-light-text dark:text-white mb-1">
                     Market closed — projections will update on next price refresh.
                   </p>
                 )}
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+                <p className="text-xs text-rh-light-text dark:text-white">
                   Linear projection based on current performance pace. Not a forecast. Past performance does not guarantee future results.
                 </p>
               </div>
@@ -508,7 +508,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
 
           {!loading && !paceData && (
             <div className="text-center py-8">
-              <p className="text-rh-light-muted dark:text-rh-muted">Pace projections not available</p>
+              <p className="text-rh-light-text dark:text-white">Pace projections not available</p>
             </div>
           )}
         </>

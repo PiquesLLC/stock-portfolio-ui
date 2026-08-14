@@ -14,7 +14,7 @@ function formatDollars(v: number): string {
 }
 
 function OverlapCell({ pair, onClick }: { pair: EtfOverlapPair | null; onClick?: () => void }) {
-  if (!pair) return <td className="p-2 text-center text-xs text-rh-light-muted dark:text-rh-muted">—</td>;
+  if (!pair) return <td className="p-2 text-center text-xs text-rh-light-text dark:text-white">—</td>;
   const pct = pair.overlapPercent;
   const bg = pct >= 15 ? 'bg-green-400/30 dark:bg-green-500/20'
     : pct >= 5 ? 'bg-green-300/20 dark:bg-green-500/10'
@@ -67,11 +67,11 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
   if (!data || (data.etfs.length === 0 && data.exposures.length === 0)) {
     return (
       <div className="p-12 text-center">
-        <svg className="w-14 h-14 mx-auto mb-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-14 h-14 mx-auto mb-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
         <p className="text-rh-light-text dark:text-rh-text font-medium mb-2">No ETFs in Portfolio</p>
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           Add ETF holdings to see overlap analysis, exposure breakdown, and concentration warnings.
         </p>
       </div>
@@ -128,7 +128,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
             <table className="w-full text-xs">
               <thead>
                 <tr>
-                  <th className="p-2 text-left text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50"></th>
+                  <th className="p-2 text-left text-[11px] font-medium text-rh-light-text dark:text-white"></th>
                   {etfTickers.map(t => (
                     <th key={t} className="p-2 text-center text-rh-light-text dark:text-rh-text font-semibold">{t}</th>
                   ))}
@@ -142,7 +142,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                       if (rowTicker === colTicker) {
                         return (
                           <td key={colTicker} className="p-2 text-center">
-                            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">—</span>
+                            <span className="text-[10px] text-rh-light-text dark:text-white">—</span>
                           </td>
                         );
                       }
@@ -170,7 +170,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                 </span>
                 <button
                   onClick={() => setSelectedPair(null)}
-                  className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
+                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -188,7 +188,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                   </span>
                 ))}
                 {selectedPair.sharedHoldings.length === 0 && (
-                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">No shared holdings data</span>
+                  <span className="text-xs text-rh-light-text dark:text-white">No shared holdings data</span>
                 )}
               </div>
             </div>
@@ -205,7 +205,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
               className="py-3.5 border-b border-gray-200/10 dark:border-white/[0.04] hover:bg-gray-100/40 dark:hover:bg-white/[0.02] transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
-                <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-rh-light-text dark:text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">
@@ -237,7 +237,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
           <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text mb-3 flex items-center gap-2">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
             Portfolio Exposure
-            <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50 ml-1">
+            <span className="text-[10px] font-normal text-rh-light-text dark:text-white ml-1">
               Direct + ETF combined
             </span>
           </h3>
@@ -311,7 +311,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                     <span className="text-xs tabular-nums font-medium text-rh-light-text dark:text-rh-text w-12 text-right">
                       {exp.exposurePct.toFixed(1)}%
                     </span>
-                    <span className="text-[10px] text-rh-light-muted dark:text-rh-muted w-14 text-right">
+                    <span className="text-[10px] text-rh-light-text dark:text-white w-14 text-right">
                       {formatDollars(exp.totalExposureValue)}
                     </span>
                   </div>
@@ -364,13 +364,13 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
           <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-200/30 dark:border-white/[0.04]">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-rh-green/60" />
-              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Direct holding</span>
+              <span className="text-[10px] text-rh-light-text dark:text-white">Direct holding</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-blue-500/40" />
-              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Via ETF</span>
+              <span className="text-[10px] text-rh-light-text dark:text-white">Via ETF</span>
             </div>
-            <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 ml-auto">Hover for sources</span>
+            <span className="text-[10px] text-rh-light-text dark:text-white ml-auto">Hover for sources</span>
           </div>
         </div>
       )}
@@ -395,12 +395,12 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{etf.ticker}</span>
-                    <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+                    <span className="text-xs text-rh-light-text dark:text-white">
                       {formatDollars(etf.value)} · {etf.holdings.length} holdings · {etf.totalHoldingsPercent.toFixed(0)}% coverage
                     </span>
                   </div>
                   <svg
-                    className={`w-4 h-4 text-rh-light-muted dark:text-rh-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                    className={`w-4 h-4 text-rh-light-text dark:text-white transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -411,10 +411,10 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                     <table className="w-full text-xs">
                       <thead>
                         <tr>
-                          <th className="text-left py-1.5 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Ticker</th>
-                          <th className="text-left py-1.5 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Name</th>
-                          <th className="text-right py-1.5 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Weight</th>
-                          <th className="text-right py-1.5 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Exposure</th>
+                          <th className="text-left py-1.5 text-[11px] font-medium text-rh-light-text dark:text-white">Ticker</th>
+                          <th className="text-left py-1.5 text-[11px] font-medium text-rh-light-text dark:text-white">Name</th>
+                          <th className="text-right py-1.5 text-[11px] font-medium text-rh-light-text dark:text-white">Weight</th>
+                          <th className="text-right py-1.5 text-[11px] font-medium text-rh-light-text dark:text-white">Exposure</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -428,13 +428,13 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                                 {h.ticker}
                               </span>
                             </td>
-                            <td className="py-1.5 text-rh-light-muted dark:text-rh-muted truncate max-w-[160px]">
+                            <td className="py-1.5 text-rh-light-text dark:text-white truncate max-w-[160px]">
                               {h.name ?? '—'}
                             </td>
                             <td className="py-1.5 text-right font-medium text-rh-light-text dark:text-rh-text">
                               {h.weightPct.toFixed(2)}%
                             </td>
-                            <td className="py-1.5 text-right text-rh-light-muted dark:text-rh-muted">
+                            <td className="py-1.5 text-right text-rh-light-text dark:text-white">
                               {formatDollars(h.exposureValue)}
                             </td>
                           </tr>
@@ -442,13 +442,13 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                       </tbody>
                     </table>
                     {etf.unknownExposureValue > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-200/20 dark:border-white/[0.03] text-xs text-rh-light-muted dark:text-rh-muted">
+                      <div className="mt-2 pt-2 border-t border-gray-200/20 dark:border-white/[0.03] text-xs text-rh-light-text dark:text-white">
                         Other undisclosed holdings: {formatDollars(etf.unknownExposureValue)}
                         <span className="ml-1">({(100 - etf.totalHoldingsPercent).toFixed(0)}% not covered)</span>
                       </div>
                     )}
                     {etf.asOfDate && (
-                      <div className="mt-1 text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
+                      <div className="mt-1 text-[10px] text-rh-light-text dark:text-white">
                         Holdings as of {etf.asOfDate}
                       </div>
                     )}

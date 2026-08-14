@@ -131,7 +131,7 @@ export function AnalyticsDashboard({ onBack }: Props) {
               className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
                 period === p
                   ? 'bg-rh-green/10 text-rh-green'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               {p}
@@ -145,7 +145,7 @@ export function AnalyticsDashboard({ onBack }: Props) {
 
       {/* Loading */}
       {loading && !data && (
-        <div className="text-center py-12 text-rh-light-muted dark:text-rh-muted">Loading...</div>
+        <div className="text-center py-12 text-rh-light-text dark:text-white">Loading...</div>
       )}
 
       {/* Error */}
@@ -168,15 +168,15 @@ export function AnalyticsDashboard({ onBack }: Props) {
           {/* Engagement row */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className={`${CARD} px-4 py-3`}>
-              <div className="text-[11px] text-rh-light-muted dark:text-rh-muted mb-1">Registered Users</div>
+              <div className="text-[11px] text-rh-light-text dark:text-white mb-1">Registered Users</div>
               <div className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{formatNumber(data.userEngagement.registeredUsers)}</div>
             </div>
             <div className={`${CARD} px-4 py-3`}>
-              <div className="text-[11px] text-rh-light-muted dark:text-rh-muted mb-1">Total Holdings</div>
+              <div className="text-[11px] text-rh-light-text dark:text-white mb-1">Total Holdings</div>
               <div className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{formatNumber(data.userEngagement.holdingsCount)}</div>
             </div>
             <div className={`${CARD} px-4 py-3`}>
-              <div className="text-[11px] text-rh-light-muted dark:text-rh-muted mb-1">Watchlists</div>
+              <div className="text-[11px] text-rh-light-text dark:text-white mb-1">Watchlists</div>
               <div className="text-lg font-semibold text-rh-light-text dark:text-rh-text">{formatNumber(data.userEngagement.watchlistsCount)}</div>
             </div>
           </div>
@@ -195,7 +195,7 @@ export function AnalyticsDashboard({ onBack }: Props) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[11px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">
+                  <tr className="text-[11px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">
                     <th className="text-left pb-2 pr-3 font-medium">Feature</th>
                     <SortHeader label="Views" sortKey="views" currentKey={sortKey} asc={sortAsc} onSort={handleSort} />
                     <SortHeader label="Users" sortKey="uniqueUsers" currentKey={sortKey} asc={sortAsc} onSort={handleSort} />
@@ -211,7 +211,7 @@ export function AnalyticsDashboard({ onBack }: Props) {
                   ))}
                   {sortedFeatures.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-rh-light-muted dark:text-rh-muted text-xs">
+                      <td colSpan={7} className="text-center py-8 text-rh-light-text dark:text-white text-xs">
                         No analytics data yet. Events will appear as users navigate the app.
                       </td>
                     </tr>
@@ -232,7 +232,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className={`${CARD} px-4 py-3 text-center`}>
       <div className="text-xl font-bold text-rh-light-text dark:text-rh-text">{value}</div>
-      <div className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-0.5">{label}</div>
+      <div className="text-[11px] text-rh-light-text dark:text-white mt-0.5">{label}</div>
     </div>
   );
 }
@@ -268,16 +268,16 @@ function FeatureRow({ feature, maxViews }: { feature: AnalyticsDashboardFeature;
       <td className="py-2.5 pr-3 text-right text-rh-light-text dark:text-rh-text tabular-nums">
         {formatNumber(feature.views)}
       </td>
-      <td className="py-2.5 pr-3 text-right text-rh-light-muted dark:text-rh-muted tabular-nums">
+      <td className="py-2.5 pr-3 text-right text-rh-light-text dark:text-white tabular-nums">
         {feature.uniqueUsers}
       </td>
-      <td className="py-2.5 pr-3 text-right text-rh-light-muted dark:text-rh-muted tabular-nums">
+      <td className="py-2.5 pr-3 text-right text-rh-light-text dark:text-white tabular-nums">
         {formatDuration(feature.totalTimeMs)}
       </td>
-      <td className="py-2.5 pr-3 text-right text-rh-light-muted dark:text-rh-muted tabular-nums">
+      <td className="py-2.5 pr-3 text-right text-rh-light-text dark:text-white tabular-nums">
         {formatDuration(feature.avgTimeMs)}
       </td>
-      <td className="py-2.5 text-right text-rh-light-muted dark:text-rh-muted tabular-nums text-[12px]">
+      <td className="py-2.5 text-right text-rh-light-text dark:text-white tabular-nums text-[12px]">
         {feature.pctOfTotal.toFixed(1)}%
       </td>
       <td className="py-2.5 pl-3">
@@ -335,7 +335,7 @@ function DAUSparkline({ data }: { data: Array<{ date: string; count: number }> }
         </defs>
       </svg>
       {/* X-axis labels */}
-      <div className="flex justify-between text-[10px] text-rh-light-muted dark:text-rh-muted mt-1 px-0.5">
+      <div className="flex justify-between text-[10px] text-rh-light-text dark:text-white mt-1 px-0.5">
         {data.length > 0 && <span>{data[0].date.slice(5)}</span>}
         {data.length > 2 && <span>{data[Math.floor(data.length / 2)].date.slice(5)}</span>}
         {data.length > 0 && <span>{data[data.length - 1].date.slice(5)}</span>}

@@ -61,7 +61,7 @@ export function BottleneckDrawer({ entry, open, onClose, onTickerClick }: Props)
               className="w-1 h-3.5 rounded-full flex-shrink-0"
               style={{ backgroundColor: layerBarColor(entry.layer) }}
             />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text dark:text-rh-text truncate">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-rh-text truncate">
               {entry.layer}
             </span>
             {entry.featured && (
@@ -72,7 +72,7 @@ export function BottleneckDrawer({ entry, open, onClose, onTickerClick }: Props)
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-gray-100/40 dark:hover:bg-white/[0.04] transition-colors flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-rh-light-text dark:text-white hover:bg-gray-100/40 dark:hover:bg-white/[0.04] transition-colors flex-shrink-0"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,13 +110,13 @@ export function BottleneckDrawer({ entry, open, onClose, onTickerClick }: Props)
           {/* Chokepoint metrics */}
           {entry.chokepointMetrics.length > 0 && (
             <div className="mb-6">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
                 Chokepoint metrics
               </div>
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 {entry.chokepointMetrics.map((m, i) => (
                   <div key={i}>
-                    <div className="text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-1">
+                    <div className="text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">
                       {m.label}
                     </div>
                     <div
@@ -165,7 +165,7 @@ export function BottleneckDrawer({ entry, open, onClose, onTickerClick }: Props)
           {/* Related tickers */}
           {entry.relatedTickers.length > 0 && (
             <div className="pt-5 border-t border-rh-light-border dark:border-rh-border">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
                 Related tickers
               </div>
               <div className="flex flex-wrap gap-4">
@@ -187,7 +187,7 @@ export function BottleneckDrawer({ entry, open, onClose, onTickerClick }: Props)
 
           {/* Footer caveat */}
           {entry.lastUpdated && (
-            <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-6 italic">
+            <p className="text-[10px] text-rh-light-text dark:text-white mt-6 italic">
               Last updated {entry.lastUpdated}
             </p>
           )}

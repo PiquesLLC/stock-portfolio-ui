@@ -113,8 +113,8 @@ function TradeRow({
           </button>
           {details && (
             <>
-              <span className="text-rh-light-muted/40 dark:text-white/20">·</span>
-              <span className="text-[13px] text-rh-light-muted/60 dark:text-white/40">{details}</span>
+              <span className="text-rh-light-text dark:text-white/80">·</span>
+              <span className="text-[13px] text-rh-light-text dark:text-white">{details}</span>
             </>
           )}
         </div>
@@ -127,7 +127,7 @@ function TradeRow({
             {formatValue(notionalValue)}
           </span>
         )}
-        <span className="text-[11px] text-rh-light-muted/40 dark:text-white/20 tabular-nums">
+        <span className="text-[11px] text-rh-light-text dark:text-white/80 tabular-nums">
           {formatRelativeTime(event.createdAt)}
         </span>
       </div>
@@ -170,7 +170,7 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute, onRep
 
   if (isMixed) {
     accentRing = 'ring-1 ring-gray-300 dark:ring-white/10';
-    avatarTextColor = 'text-gray-600 dark:text-white/70';
+    avatarTextColor = 'text-gray-600 dark:text-white/80';
   } else if (hasSells) {
     accentRing = 'ring-1 ring-rh-red/25';
     avatarTextColor = 'text-rh-red/80';
@@ -221,7 +221,7 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute, onRep
                   title={`Mute ${firstEvent.displayName}`}
                   className="opacity-0 group-hover/card:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/[0.06]"
                 >
-                  <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                   </svg>
@@ -233,7 +233,7 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute, onRep
                   title={`Report ${firstEvent.displayName}`}
                   className="opacity-0 group-hover/card:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/[0.06]"
                 >
-                  <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted dark:hover:text-white/50" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white/80" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21v-18m0 0l9 4 9-4v12l-9 4-9-4" />
                   </svg>
                 </button>
@@ -251,14 +251,14 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute, onRep
                     <p className="text-[13px] font-semibold text-white/90">
                       Mute {firstEvent.displayName}?
                     </p>
-                    <p className="text-[11px] text-white/40 mt-1 leading-relaxed">
+                    <p className="text-[11px] text-white mt-1 leading-relaxed">
                       Their trades won't appear in your feed. You can unmute anytime from settings.
                     </p>
                   </div>
                   <div className="flex border-t border-white/[0.06]">
                     <button
                       onClick={() => setShowMuteConfirm(false)}
-                      className="flex-1 px-3 py-2.5 text-[12px] font-semibold text-white/50 hover:text-white/70 hover:bg-white/[0.04] transition-colors"
+                      className="flex-1 px-3 py-2.5 text-[12px] font-semibold text-white/80 hover:text-white hover:bg-white/[0.04] transition-colors"
                     >
                       Cancel
                     </button>
@@ -277,7 +277,7 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute, onRep
               )}
             </div>
             {totalNotional >= 1000 && events.length > 1 && (
-              <span className="text-[11px] text-rh-light-muted/40 dark:text-white/20 tabular-nums">
+              <span className="text-[11px] text-rh-light-text dark:text-white/80 tabular-nums">
                 {formatValue(totalNotional)} total
               </span>
             )}
@@ -300,8 +300,8 @@ export function ActivityCard({ events, onUserClick, onTickerClick, onMute, onRep
               onClick={() => setIsExpanded(!isExpanded)}
               className={`mt-1 text-[12px] flex items-center gap-1 transition-colors ${
                 isExpanded
-                  ? 'text-rh-light-muted/45 dark:text-white/25 hover:text-rh-light-muted/60 dark:hover:text-white/40'
-                  : 'text-rh-light-muted/60 dark:text-white/40 hover:text-rh-light-muted/80 dark:hover:text-white/60'
+                  ? 'text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
               }`}
             >
               {isExpanded ? (

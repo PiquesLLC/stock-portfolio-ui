@@ -38,11 +38,11 @@ export function ConfirmModal({ title, message, confirmLabel = 'Confirm', cancelL
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-bold text-rh-light-text dark:text-white mb-2">{title}</h3>
-        <div className="text-sm text-rh-light-muted dark:text-rh-muted mb-6">{message}</div>
+        <div className="text-sm text-rh-light-text dark:text-white mb-6">{message}</div>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-medium text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
           >
             {cancelLabel}
           </button>

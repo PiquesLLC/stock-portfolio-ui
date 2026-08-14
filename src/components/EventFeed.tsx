@@ -92,7 +92,7 @@ export default function EventFeed({ events }: EventFeedProps) {
             Intelligence Feed
           </h2>
         </div>
-        <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-rh-light-muted/40 dark:text-white/20">
+        <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-rh-light-text dark:text-white/80">
           {sorted.length} signals
         </span>
       </div>
@@ -157,10 +157,10 @@ export default function EventFeed({ events }: EventFeedProps) {
                 {/* Top row */}
                 <div className="relative flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[10px] font-mono font-semibold tracking-[0.18em] text-rh-light-muted/40 dark:text-white/20">
+                    <span className="text-[10px] font-mono font-semibold tracking-[0.18em] text-rh-light-text dark:text-white/80">
                       {TYPE_LABELS[event.type] || event.type}
                     </span>
-                    <span className="text-[10px] font-mono text-rh-light-muted/40 dark:text-white/25 tabular-nums">
+                    <span className="text-[10px] font-mono text-rh-light-text dark:text-white/80 tabular-nums">
                       {formatEventDate(event.date)}
                     </span>
                   </div>
@@ -191,7 +191,7 @@ export default function EventFeed({ events }: EventFeedProps) {
                       {getDomainFromUrl(event.source_url)} &#8599;
                     </a>
                   ) : (
-                    <span className="text-[10px] font-mono text-rh-light-muted/50 dark:text-white/25">
+                    <span className="text-[10px] font-mono text-rh-light-text dark:text-white/80">
                       nala ai
                     </span>
                   )}

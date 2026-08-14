@@ -104,13 +104,13 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
               <h3 className="text-base font-bold text-rh-light-text dark:text-rh-text">
                 {creator.displayName || creator.username}
               </h3>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
+              <p className="text-xs text-rh-light-text dark:text-white mt-0.5">
                 {trackAge(creator.createdAt)}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-1 -mr-1 -mt-1 rounded-lg text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+              className="p-1 -mr-1 -mt-1 rounded-lg text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -131,7 +131,7 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
             )}
             {subCount > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-md
-                text-rh-light-muted dark:text-rh-muted bg-gray-100 dark:bg-white/[0.06]">
+                text-rh-light-text dark:text-white bg-gray-100 dark:bg-white/[0.06]">
                 {subCount} subscriber{subCount !== 1 ? 's' : ''}
               </span>
             )}
@@ -141,7 +141,7 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
         {/* Pitch */}
         {creator.pitch && (
           <div className="px-5 pb-3">
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted leading-relaxed">
+            <p className="text-xs text-rh-light-text dark:text-white leading-relaxed">
               "{creator.pitch}"
             </p>
           </div>
@@ -153,7 +153,7 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
         {/* What you unlock */}
         {unlockedSections.length > 0 && (
           <div className="px-5 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
               What you unlock
             </p>
             <div className="grid grid-cols-2 gap-1.5">
@@ -178,7 +178,7 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
           {/* Price */}
           <div className="flex items-baseline gap-1 mb-2">
             <span className="text-2xl font-bold text-rh-green">{price}</span>
-            <span className="text-sm text-rh-light-muted dark:text-rh-muted">/mo</span>
+            <span className="text-sm text-rh-light-text dark:text-white">/mo</span>
           </div>
 
           {/* Subscribe button */}
@@ -192,7 +192,7 @@ export function CreatorSubscribeModal({ creator, performance, onSubscribe, onClo
           </button>
 
           {/* Trust strip */}
-          <div className="flex items-center justify-center gap-2 mt-2 text-[10px] text-rh-light-muted/50 dark:text-rh-muted/40">
+          <div className="flex items-center justify-center gap-2 mt-2 text-[10px] text-rh-light-text dark:text-white">
             <span>Cancel anytime</span>
             <span className="opacity-60">·</span>
             <span>Secure checkout</span>

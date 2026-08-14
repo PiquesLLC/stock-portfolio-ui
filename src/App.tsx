@@ -869,13 +869,13 @@ export default function App() {
             <div className="bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-2xl p-6 shadow-2xl text-center">
               <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-10 w-10 mx-auto mb-3" />
               <h2 className="text-xl font-bold text-rh-light-text dark:text-rh-text mb-2">Email Required</h2>
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-4">
+              <p className="text-sm text-rh-light-text dark:text-white mb-4">
                 Your account needs a verified email to continue. Please contact support or log out and try again.
               </p>
               <a href="mailto:support@nalaai.com" className="block text-sm text-rh-green hover:text-rh-green/80 transition-colors mb-3">
                 support@nalaai.com
               </a>
-              <button onClick={() => logout()} className="text-sm text-rh-light-muted dark:text-rh-muted hover:text-red-400 transition-colors">
+              <button onClick={() => logout()} className="text-sm text-rh-light-text dark:text-white hover:text-red-400 transition-colors">
                 Log out
               </button>
             </div>
@@ -892,10 +892,10 @@ export default function App() {
             <div className="text-center mb-6">
               <img src="/north-signal-logo-transparent.png" alt="Nala" className="h-10 w-10 mx-auto mb-3" />
               <h2 className="text-xl font-bold text-rh-light-text dark:text-rh-text">Verify Your Email</h2>
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted mt-1">
+              <p className="text-sm text-rh-light-text dark:text-white mt-1">
                 Enter the 6-digit code sent to <span className="text-rh-light-text dark:text-rh-text font-medium">{user.email}</span>
               </p>
-              <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mt-1">
+              <p className="text-xs text-rh-light-text dark:text-white mt-1">
                 Check your spam folder if you don't see it
               </p>
             </div>
@@ -913,7 +913,7 @@ export default function App() {
               <div className="text-center">
                 <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-4">
                   <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">Too many attempts</p>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">
+                  <p className="text-xs text-rh-light-text dark:text-white mt-1">
                     Your code has been invalidated. Request a new one below.
                   </p>
                 </div>
@@ -1001,14 +1001,14 @@ export default function App() {
                   } catch { setVerifyError('Failed to resend code. Try again in a moment.'); }
                 }}
                 disabled={verifyResendCooldown > 0 || verifyLocked || !verificationEmail}
-                className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-muted/40 dark:disabled:text-rh-muted/40 transition-colors"
+                className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-text dark:disabled:text-white transition-colors"
               >
                 {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Resend code'}
               </button>
               <button
                 type="button"
                 onClick={() => logout()}
-                className="text-sm text-rh-light-muted dark:text-rh-muted hover:text-red-400 transition-colors"
+                className="text-sm text-rh-light-text dark:text-white hover:text-red-400 transition-colors"
               >
                 Log out
               </button>
@@ -1037,7 +1037,7 @@ export default function App() {
         <div className="relative z-10 text-center max-w-md mx-auto p-6">
           <div className="text-rh-red text-6xl mb-4">!</div>
           <h1 className="text-xl font-semibold text-rh-light-text dark:text-rh-text mb-2">Connection Error</h1>
-          <p className="text-rh-light-muted dark:text-rh-muted mb-4">Unable to reach the server. Check your connection and try again.</p>
+          <p className="text-rh-light-text dark:text-white mb-4">Unable to reach the server. Check your connection and try again.</p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={fetchData}
@@ -1122,7 +1122,7 @@ export default function App() {
             {currentUserId && (
               <button
                 onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
-                className="tap-target p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                className="tap-target p-1.5 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
                 title="Today's Brief"
               >
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1134,7 +1134,7 @@ export default function App() {
             {currentUserId && (
               <button
                 onClick={() => setCreatorView('dashboard')}
-                className="tap-target p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                className="tap-target p-1.5 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
                 title="Creator Dashboard"
               >
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1147,7 +1147,7 @@ export default function App() {
                 Settings → Appearance, and the row is already crowded. */}
             {lastUpdate && (
               <span className={`hidden sm:inline text-[11px] whitespace-nowrap flex items-center gap-1.5 ${
-                isStale ? 'text-yellow-500/70' : 'text-rh-light-muted/50 dark:text-rh-muted/50'
+                isStale ? 'text-yellow-500/70' : 'text-rh-light-text dark:text-white'
               }`}>
                 {isStale && (
                   <span className="relative flex h-1.5 w-1.5">
@@ -1155,7 +1155,7 @@ export default function App() {
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-400" />
                   </span>
                 )}
-                {lastUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} <span className={isStale ? 'text-yellow-500/40' : 'text-rh-light-muted/30 dark:text-rh-muted/30'}>{getLocalTzAbbr()}</span>
+                {lastUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} <span className={isStale ? 'text-yellow-500/40' : 'text-rh-light-text dark:text-white'}>{getLocalTzAbbr()}</span>
               </span>
             )}
           </div>
@@ -1187,7 +1187,7 @@ export default function App() {
                   ${collapseAtSmLg ? 'hidden lg:inline-flex' : ''}
                   ${activeTab === tab.id
                     ? 'text-rh-green font-semibold bg-rh-green/[0.08]'
-                    : 'text-rh-light-muted/60 dark:text-rh-muted/60 font-medium hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                    : 'text-rh-light-text dark:text-white font-medium hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
                   }`}
               >
                 {tab.label}
@@ -1218,8 +1218,8 @@ export default function App() {
                   ${activeInMore
                     ? 'text-rh-green font-semibold bg-rh-green/[0.08]'
                     : activeInCollapsed
-                      ? 'lg:text-rh-light-muted/60 lg:dark:text-rh-muted/60 text-rh-green font-semibold lg:font-medium bg-rh-green/[0.08] lg:bg-transparent lg:hover:text-rh-light-text lg:dark:hover:text-rh-text lg:hover:bg-gray-100/60 lg:dark:hover:bg-white/[0.04]'
-                      : 'text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
+                      ? 'lg:text-rh-light-text lg:dark:text-white text-rh-green font-semibold lg:font-medium bg-rh-green/[0.08] lg:bg-transparent lg:hover:text-rh-light-text lg:dark:hover:text-rh-text lg:hover:bg-gray-100/60 lg:dark:hover:bg-white/[0.04]'
+                      : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100/60 dark:hover:bg-white/[0.04]'
                   }`}
               >
                 {/* sm–lg: show collapsed tab label or 'More' */}
@@ -1311,7 +1311,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setSearchExpanded(false)}
-                className="text-sm text-rh-light-muted dark:text-rh-muted px-2 py-1 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="text-sm text-rh-light-text dark:text-white px-2 py-1 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
               >
                 Cancel
               </button>
@@ -1327,7 +1327,7 @@ export default function App() {
               {currentUserId && (
                 <button
                   onClick={() => setCreatorView('dashboard')}
-                  className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                  className="p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                   title="Creator Dashboard"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1339,7 +1339,7 @@ export default function App() {
                 <>
                   <button
                     onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-waitlist'; }}
-                    className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                    className="p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                     title="Admin — Waitlist"
                   >
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1348,7 +1348,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => { setAdminView('jobs'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-jobs'; }}
-                    className="relative p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                    className="relative p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                     title="Admin — Background Jobs"
                   >
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1360,7 +1360,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => { setAdminView('analytics'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-analytics'; }}
-                    className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                    className="p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                     title="Admin — Analytics"
                   >
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1369,7 +1369,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => { setAdminView('api-usage'); setSettingsView(false); setCreatorView(null); window.location.hash = 'tab=admin-api-usage'; }}
-                    className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                    className="p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                     title="Admin — API Usage"
                   >
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1381,7 +1381,7 @@ export default function App() {
               {currentUserId && (
                 <button
                   onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); }}
-                  className="p-2 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
+                  className="p-2 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-all duration-150"
                   title="Today's Brief"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1393,7 +1393,7 @@ export default function App() {
                 onClick={toggleTheme}
                 className="p-2 rounded-lg transition-all duration-150
                   hover:bg-gray-100 dark:hover:bg-rh-dark
-                  text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
+                  text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text"
                 title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                 aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
@@ -1411,7 +1411,7 @@ export default function App() {
 
             {/* Search icon — sm to lg only, grouped with right controls */}
             <button
-              className="lg:hidden p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+              className="lg:hidden p-1.5 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
               onClick={() => setSearchExpanded(true)}
               title="Search stocks"
             >
@@ -1424,7 +1424,7 @@ export default function App() {
             <div className="relative lg:hidden" ref={utilsMenuRef}>
               <button
                 onClick={() => setUtilsMenuOpen(!utilsMenuOpen)}
-                className="p-1.5 rounded-lg text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
+                className="p-1.5 rounded-lg text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-gray-100 dark:hover:bg-rh-dark transition-colors"
                 title="More options"
               >
                 <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
@@ -1441,7 +1441,7 @@ export default function App() {
                       onClick={() => { setCreatorView('dashboard'); setUtilsMenuOpen(false); }}
                       className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                     >
-                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h4v8H3v-8zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
                       </svg>
                       Creator Dashboard
@@ -1453,7 +1453,7 @@ export default function App() {
                         onClick={() => { setAdminView('waitlist'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-waitlist'; }}
                         className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                       >
-                        <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                         </svg>
                         Admin — Waitlist
@@ -1462,7 +1462,7 @@ export default function App() {
                         onClick={() => { setAdminView('jobs'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-jobs'; }}
                         className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                       >
-                        <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         Admin — Jobs
@@ -1474,7 +1474,7 @@ export default function App() {
                         onClick={() => { setAdminView('analytics'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-analytics'; }}
                         className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                       >
-                        <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                         Admin — Analytics
@@ -1483,7 +1483,7 @@ export default function App() {
                         onClick={() => { setAdminView('api-usage'); setSettingsView(false); setCreatorView(null); setUtilsMenuOpen(false); window.location.hash = 'tab=admin-api-usage'; }}
                         className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                       >
-                        <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Admin — API Usage
@@ -1495,7 +1495,7 @@ export default function App() {
                       onClick={() => { setShowDailyReport(true); setDailyReportHidden(false); setUtilsMenuOpen(false); }}
                       className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                     >
-                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                       </svg>
                       Today's Brief
@@ -1506,11 +1506,11 @@ export default function App() {
                     className="w-full text-left px-4 py-2.5 text-[13px] text-rh-light-text dark:text-rh-text/80 hover:bg-rh-light-bg dark:hover:bg-rh-dark font-medium transition-colors duration-150 flex items-center gap-2.5"
                   >
                     {theme === 'dark' ? (
-                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
                     ) : (
-                      <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-rh-light-text dark:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                       </svg>
                     )}
@@ -1537,7 +1537,10 @@ export default function App() {
       {/* Mobile-only navigation */}
       <div className="sm:hidden">
         <Navigation
-          activeTab={activeTab}
+          // A stock page isn't a tab. Lighting up "Portfolio" (or any other
+          // tab) while you're on one would claim you're somewhere you aren't,
+          // and it makes the tab you came from harder to read as the way back.
+          activeTab={viewingStock ? null : activeTab}
           userPlan={user?.plan}
           portfolioMenuOpen={mobilePortfolioMenuOpen}
           onPortfolioMenuClose={() => setMobilePortfolioMenuOpen(false)}
@@ -1700,8 +1703,8 @@ export default function App() {
             {portfolio && (portfolio.quotesUnavailableCount ?? 0) >= portfolio.holdings.length * 0.5 && portfolio.holdings.length > 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <div className="w-8 h-8 border-2 border-rh-green/30 border-t-rh-green rounded-full animate-spin" />
-                <p className="text-rh-light-muted dark:text-rh-muted text-sm">Loading market data...</p>
-                <p className="text-rh-light-muted/50 dark:text-rh-muted/50 text-xs">Fetching quotes for your holdings. This may take a moment.</p>
+                <p className="text-rh-light-text dark:text-white text-sm">Loading market data...</p>
+                <p className="text-rh-light-text dark:text-white text-xs">Fetching quotes for your holdings. This may take a moment.</p>
               </div>
             )}
 
@@ -1729,19 +1732,19 @@ export default function App() {
               <div className="rounded-xl border border-dashed border-gray-300/60 dark:border-white/[0.08]
                 bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm p-10 text-center">
                 <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
-                  <svg className="w-5 h-5 text-gray-400 dark:text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <svg className="w-5 h-5 text-gray-500 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-white/70 mb-1">No holdings yet</h3>
-                <p className="text-xs text-gray-500 dark:text-white/40 mb-5">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-white/80 mb-1">No holdings yet</h3>
+                <p className="text-xs text-gray-500 dark:text-white mb-5">
                   Add stocks to start tracking this portfolio.
                 </p>
                 <div className="flex items-center justify-center gap-2 flex-wrap">
                   <button
                     onClick={() => holdingsActionsRef.current?.openCashMargin()}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/60 dark:border-white/[0.08]
-                      text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors text-xs font-medium"
+                      text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors text-xs font-medium"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1761,7 +1764,7 @@ export default function App() {
                   <button
                     onClick={() => holdingsActionsRef.current?.openImport()}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200/40 dark:border-white/[0.06]
-                      text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 hover:border-rh-green/30 transition-colors text-xs"
+                      text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-white hover:border-rh-green/30 transition-colors text-xs"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -1819,7 +1822,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => holdingsActionsRef.current?.openCashMargin()}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30 text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rh-light-border/40 dark:border-rh-border/30 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-all duration-150 text-xs hover:scale-[1.02]"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1844,7 +1847,7 @@ export default function App() {
                     <div className="relative mb-1 ml-3 sm:ml-6" ref={desktopPortfolioRef}>
                       <button
                         onClick={() => setDesktopPortfolioOpen(prev => !prev)}
-                        className="flex items-center gap-1 text-[11px] font-medium text-rh-light-muted/70 dark:text-white/35 hover:text-rh-light-text dark:hover:text-white/60 transition-colors"
+                        className="flex items-center gap-1 text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
                       >
                         {userPortfolios.find(p => p.id === selectedPortfolioId)?.name || 'Portfolio 1'}
                         <svg className={`w-2.5 h-2.5 transition-transform duration-150 ${desktopPortfolioOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1899,12 +1902,12 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setHoldingsViewMode('compact')}
-                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
+                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white dark:hover:text-white/80'}`}
                       >Simple</button>
                       <button
                         type="button"
                         onClick={() => setHoldingsViewMode('detailed')}
-                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/50'}`}
+                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white dark:hover:text-white/80'}`}
                       >Detailed</button>
                     </div>
                   </div>
@@ -1930,7 +1933,7 @@ export default function App() {
                   {showMeasure && chartMeasurement && (
                   <div className="absolute inset-0 py-4">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
+                      <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
                         {new Date(chartMeasurement.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         {' → '}
                         {new Date(chartMeasurement.endTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -1950,16 +1953,16 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-4 text-xs mt-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-rh-light-muted/40 dark:text-rh-muted/40">You</span>
+                        <span className="text-rh-light-text dark:text-white">You</span>
                         <span className={`font-semibold ${chartMeasurement.percentChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                           {chartMeasurement.percentChange >= 0 ? '+' : ''}{chartMeasurement.percentChange.toFixed(2)}%
                         </span>
                       </div>
                       {chartMeasurement.outperformance !== null && (
                         <>
-                          <span className="text-rh-light-muted/20 dark:text-rh-muted/20">|</span>
+                          <span className="text-rh-light-text dark:text-white">|</span>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-rh-light-muted/40 dark:text-rh-muted/40">vs SPY</span>
+                            <span className="text-rh-light-text dark:text-white">vs SPY</span>
                             <span className={`font-semibold ${chartMeasurement.outperformance >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                               {chartMeasurement.outperformance >= 0 ? '+' : ''}{chartMeasurement.outperformance.toFixed(2)}%
                             </span>
@@ -1979,7 +1982,7 @@ export default function App() {
                       onMouseDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       onClick={() => setMeasureStatsView(v => v === 'measure' ? 'normal' : 'measure')}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium uppercase tracking-wider text-rh-light-muted/40 dark:text-white/20 hover:text-rh-light-muted/70 dark:hover:text-white/40 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 hover:text-rh-light-text/70 dark:hover:text-white transition-colors"
                       title={showMeasure ? 'Show portfolio stats' : 'Show measurement'}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -1995,7 +1998,7 @@ export default function App() {
                     change, and this block was redundant on narrow viewports. */}
                 <div className="hidden lg:block pt-1 pb-3 space-y-2">
                   <div>
-                    <span className="text-xs font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/50">
+                    <span className="text-xs font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
                       {showMeasure && chartMeasurement ? 'Change' : <Term beginner="Today" advanced="Day" />}
                     </span>
                     <div className="flex items-baseline gap-1.5">
@@ -2024,7 +2027,7 @@ export default function App() {
 
                   {/* Row 2 — Total P/L or vs SPY */}
                   <div>
-                    <span className="text-xs font-medium uppercase tracking-wider text-rh-light-muted/70 dark:text-white/50">
+                    <span className="text-xs font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
                       {showMeasure && chartMeasurement ? 'vs SPY' : <Term beginner="All-Time Gain/Loss" advanced="Total P/L" />}
                     </span>
                     <div className="flex items-baseline gap-1.5">
@@ -2272,20 +2275,20 @@ export default function App() {
       </main>
 
       <footer className="relative z-[3] border-t border-rh-light-border/30 dark:border-rh-border/30 mt-4 py-4">
-        <p className="text-center text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60 max-w-2xl mx-auto px-4">
+        <p className="text-center text-[11px] text-rh-light-text/70 dark:text-white/80 max-w-2xl mx-auto px-4">
           Past performance does not guarantee future results. For informational purposes only. Not financial advice.
         </p>
-        <div className="flex items-center justify-center gap-3 mt-2 text-[11px] text-rh-light-muted/40 dark:text-rh-muted/40">
+        <div className="flex items-center justify-center gap-3 mt-2 text-[11px] text-rh-light-text dark:text-white">
           <button
             onClick={() => { setPrivacyModalTab('privacy'); setShowPrivacyModal(true); }}
-            className="hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+            className="hover:text-rh-light-text dark:hover:text-white transition-colors"
           >
             Privacy Policy
           </button>
           <span>·</span>
           <button
             onClick={() => { setPrivacyModalTab('terms'); setShowPrivacyModal(true); }}
-            className="hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+            className="hover:text-rh-light-text dark:hover:text-white transition-colors"
           >
             Terms of Service
           </button>

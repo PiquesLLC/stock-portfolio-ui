@@ -314,7 +314,7 @@ export function TickerAutocompleteInput({
     <div className="relative">
       <div className="relative">
         {compact && (
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-muted dark:text-rh-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-rh-light-text dark:text-white pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         )}
@@ -346,7 +346,7 @@ export function TickerAutocompleteInput({
             ? `w-full pl-8 pr-3 py-1.5 rounded-lg border border-rh-light-border dark:border-rh-border
               bg-rh-light-bg dark:bg-rh-dark text-base sm:text-sm text-rh-light-text dark:text-rh-text
               focus:outline-none focus:ring-2 focus:ring-rh-green/50
-              placeholder:text-rh-light-muted dark:placeholder:text-rh-muted ${className}`
+              placeholder:text-rh-light-text dark:placeholder:text-white ${className}`
             : `w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
               bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text
               focus:outline-none focus:ring-2 focus:ring-rh-green/50
@@ -362,7 +362,7 @@ export function TickerAutocompleteInput({
 
       {/* Company name hint (not in compact mode) */}
       {!compact && selectedCompany && !isOpen && (
-        <p className="mt-1 text-xs text-rh-light-muted dark:text-rh-muted truncate">
+        <p className="mt-1 text-xs text-rh-light-text dark:text-white truncate">
           {selectedCompany}
         </p>
       )}
@@ -407,7 +407,7 @@ export function TickerAutocompleteInput({
                   </span>
                 )}
 
-                <span className="flex-1 text-sm text-rh-light-muted dark:text-rh-muted truncate">
+                <span className="flex-1 text-sm text-rh-light-text dark:text-white truncate">
                   {highlightMatch(result.description, value)}
                 </span>
 
@@ -417,7 +417,7 @@ export function TickerAutocompleteInput({
                   </span>
                 )}
                 {!result.marketCapB && result.avgVolume && (
-                  <span className="text-xs text-rh-light-muted dark:text-rh-muted flex-shrink-0">
+                  <span className="text-xs text-rh-light-text dark:text-white flex-shrink-0">
                     Vol {formatVolume(result.avgVolume)}
                   </span>
                 )}
@@ -431,7 +431,7 @@ export function TickerAutocompleteInput({
       {isOpen && results.length === 0 && !isLoading && value.length >= 1 && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl px-3.5 py-3 text-center text-sm text-rh-light-muted dark:text-rh-muted ${compact ? 'w-full fixed sm:absolute left-3 right-3 sm:left-auto sm:right-auto' : 'w-full'}`}
+          className={`absolute z-50 mt-1 bg-rh-light-card dark:bg-rh-card border border-rh-light-border dark:border-rh-border rounded-xl shadow-2xl px-3.5 py-3 text-center text-sm text-rh-light-text dark:text-white ${compact ? 'w-full fixed sm:absolute left-3 right-3 sm:left-auto sm:right-auto' : 'w-full'}`}
         >
           No matches
         </div>

@@ -19,7 +19,7 @@ export function CreatorSection({ userId, onCreatorNavigate }: CreatorSectionProp
     <div className="space-y-7">
       {/* Creator Status */}
       <div className="space-y-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Creator Status</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Creator Status</h3>
         {creatorProfile?.status === 'active' ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -30,7 +30,7 @@ export function CreatorSection({ userId, onCreatorNavigate }: CreatorSectionProp
                 </span>
               </div>
             </div>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <p className="text-xs text-rh-light-text dark:text-white">
               Your creator profile is live. Manage your settings and view earnings from the dashboard.
             </p>
             <div className="flex gap-2 mt-2">
@@ -55,7 +55,7 @@ export function CreatorSection({ userId, onCreatorNavigate }: CreatorSectionProp
           <div className="space-y-2">
             <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Creator Status</span>
             <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-red-500/15 text-red-600 dark:text-red-400">suspended</span>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <p className="text-xs text-rh-light-text dark:text-white">
               Your creator profile has been suspended. Contact support for details.
             </p>
           </div>
@@ -64,7 +64,7 @@ export function CreatorSection({ userId, onCreatorNavigate }: CreatorSectionProp
             <p className="text-sm text-rh-light-text dark:text-rh-text mb-1">
               {creatorProfile?.status === 'pending' ? 'Continue Creator Setup' : 'Start Earning as a Creator'}
             </p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-2">
+            <p className="text-xs text-rh-light-text dark:text-white mb-2">
               Share your portfolio insights and earn money from subscribers. Keep 80% of revenue.
             </p>
             <button
@@ -80,7 +80,7 @@ export function CreatorSection({ userId, onCreatorNavigate }: CreatorSectionProp
 
       {/* My Creator Subscriptions */}
       <div className="space-y-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">
           Creator Subscriptions
         </h3>
         <CreatorSubscriptionManager />

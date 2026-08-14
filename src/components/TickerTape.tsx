@@ -64,7 +64,7 @@ function TickerItem({ item, isSelected, onClick }: {
       changeRef.current.textContent = formatChange(item.changePercent);
       // Update color class
       const el = changeRef.current;
-      el.classList.remove('text-rh-green', 'text-rh-red', 'text-rh-light-muted', 'dark:text-rh-muted');
+      el.classList.remove('text-rh-green', 'text-rh-red', 'text-rh-light-text', 'dark:text-white');
       const cls = changeColorClass(item.changePercent);
       cls.split(' ').forEach(c => el.classList.add(c));
     }
@@ -80,13 +80,13 @@ function TickerItem({ item, isSelected, onClick }: {
       }`}
     >
       <span className={`text-[11px] font-semibold whitespace-nowrap ${
-        isSelected ? 'text-rh-green' : 'text-rh-light-text dark:text-white/70'
+        isSelected ? 'text-rh-green' : 'text-rh-light-text dark:text-white/80'
       }`}>
         {item.label || item.ticker}
       </span>
       <span
         ref={priceRef}
-        className="text-[11px] font-medium text-rh-light-muted dark:text-white/50 tabular-nums whitespace-nowrap"
+        className="text-[11px] font-medium text-rh-light-text dark:text-white/80 tabular-nums whitespace-nowrap"
       >
         {formatPrice(item.price)}
       </span>
@@ -96,7 +96,7 @@ function TickerItem({ item, isSelected, onClick }: {
       >
         {formatChange(item.changePercent)}
       </span>
-      <span className="text-[9px] text-rh-light-muted/40 dark:text-white/15 ml-1.5 select-none" aria-hidden="true">
+      <span className="text-[9px] text-rh-light-text dark:text-white/80 ml-1.5 select-none" aria-hidden="true">
         &bull;
       </span>
     </button>
@@ -215,7 +215,7 @@ export function TickerTape({ holdings, indices, onTickerClick, onBackgroundClick
           border-b border-gray-200/60 dark:border-white/[0.04]
           cursor-pointer text-center"
       >
-        <span className="text-[11px] text-rh-light-muted dark:text-white/40">
+        <span className="text-[11px] text-rh-light-text dark:text-white">
           {emptyLabel ? `${emptyLabel} — no data. Tap to change source.` : 'Tap to change ticker source'}
         </span>
       </div>

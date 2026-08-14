@@ -69,7 +69,7 @@ export function MarketStrip({ onTickerClick }: MarketStripProps) {
         bg-gray-50/80 dark:bg-white/[0.015]">
         {INDICES.map(({ label }) => (
           <div key={label} className="flex items-center gap-2">
-            <span className="text-[11px] text-rh-light-muted/50 dark:text-white/20 font-medium">{label}</span>
+            <span className="text-[11px] text-rh-light-text dark:text-white/80 font-medium">{label}</span>
             <div className="w-10 h-3 rounded-sm bg-gray-200/60 dark:bg-white/[0.06] animate-pulse" />
           </div>
         ))}
@@ -95,8 +95,8 @@ export function MarketStrip({ onTickerClick }: MarketStripProps) {
               hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors duration-150
               group cursor-pointer"
           >
-            <span className="text-[11px] font-medium text-rh-light-muted dark:text-white/40
-              group-hover:text-rh-light-text dark:group-hover:text-white/70 transition-colors">
+            <span className="text-[11px] font-medium text-rh-light-text dark:text-white
+              group-hover:text-rh-light-text dark:group-hover:text-white transition-colors">
               {q.label}
             </span>
             <span className={`text-[11px] font-semibold tabular-nums ${color}`}>

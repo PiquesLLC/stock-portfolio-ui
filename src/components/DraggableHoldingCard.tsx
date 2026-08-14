@@ -197,7 +197,7 @@ export function DraggableHoldingCard({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50">
+            <p className="text-[11px] text-rh-light-text dark:text-white">
               {holding.shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares
             </p>
           </div>
@@ -220,7 +220,7 @@ export function DraggableHoldingCard({
               {metric && (
                 <p className={`text-[11px] font-medium ${
                   metric.isNeutral
-                    ? 'text-rh-light-muted dark:text-rh-muted'
+                    ? 'text-rh-light-text dark:text-white'
                     : metric.isPositive
                     ? 'text-rh-green'
                     : 'text-rh-red'
@@ -230,7 +230,7 @@ export function DraggableHoldingCard({
               )}
             </>
           ) : (
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">—</span>
+            <span className="text-xs text-rh-light-text dark:text-white">—</span>
           )}
         </div>
 

@@ -135,7 +135,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="w-7 h-7 -mr-1.5 flex items-center justify-center rounded-lg text-rh-light-muted dark:text-rh-muted
+            className="w-7 h-7 -mr-1.5 flex items-center justify-center rounded-lg text-rh-light-text dark:text-white
               hover:bg-black/5 dark:hover:bg-white/[0.08] hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
           >
             <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,18 +145,18 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
         </div>
 
         {loading ? (
-          <div className="px-5 py-10 text-center text-rh-light-muted dark:text-rh-muted text-sm">Loading alerts...</div>
+          <div className="px-5 py-10 text-center text-rh-light-text dark:text-white text-sm">Loading alerts...</div>
         ) : (
           <div className="px-5">
             {/* Price action — % move presets */}
             <div className="pt-2 pb-4">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">Price action</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">Price action</span>
                 {savingSpike && (
                   <span className="text-[10px] text-rh-green">Saving...</span>
                 )}
               </div>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted leading-relaxed">
+              <p className="text-xs text-rh-light-text dark:text-white leading-relaxed">
                 Notify me when any holding moves more than this % in a day
               </p>
               <div className="flex items-center gap-1.5 mt-2.5">
@@ -168,7 +168,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                       priceSpikePct === preset.value
                         ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
-                        : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+                        : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                     }`}
                   >
                     {preset.label}
@@ -194,7 +194,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                       border border-gray-200/60 dark:border-white/[0.1] text-rh-light-text dark:text-rh-text
                       focus:border-rh-green/50 focus:outline-none"
                   />
-                  <span className="text-xs text-rh-light-muted dark:text-rh-muted">%</span>
+                  <span className="text-xs text-rh-light-text dark:text-white">%</span>
                 </div>
               </div>
             </div>
@@ -209,7 +209,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
 
               return (
                 <div key={group.label} className="pt-3 pb-1 border-t border-gray-200/40 dark:border-white/[0.06]">
-                  <span className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
+                  <span className="block text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
                     {group.label}
                   </span>
                   <div className="divide-y divide-gray-200/40 dark:divide-white/[0.06]">
@@ -220,7 +220,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                         <div key={alert.id} className="py-3 flex items-start justify-between gap-4">
                           <div className={`min-w-0 transition-opacity ${alert.enabled ? '' : 'opacity-50'}`}>
                             <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">{meta.name}</span>
-                            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5 leading-relaxed">{meta.description}</p>
+                            <p className="text-xs text-rh-light-text dark:text-white mt-0.5 leading-relaxed">{meta.description}</p>
                             {THRESHOLD_TYPES.has(alert.type) && alert.enabled && (
                               <div className="flex items-center gap-1.5 mt-2">
                                 <input
@@ -234,7 +234,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
                                     border border-gray-200/60 dark:border-white/[0.1] text-rh-light-text dark:text-rh-text
                                     focus:border-rh-green/50 focus:outline-none"
                                 />
-                                <span className="text-xs text-rh-light-muted dark:text-rh-muted">{meta.unit}</span>
+                                <span className="text-xs text-rh-light-text dark:text-white">{meta.unit}</span>
                               </div>
                             )}
                           </div>
@@ -262,7 +262,7 @@ export function AlertsPanel({ userId, onClose }: AlertsPanelProps) {
           </div>
         )}
 
-        <p className="px-5 pt-1 pb-4 text-[11px] text-rh-light-muted/60 dark:text-rh-muted/50">
+        <p className="px-5 pt-1 pb-4 text-[11px] text-rh-light-text dark:text-white">
           Alerts are evaluated each time your portfolio snapshot updates.
         </p>
       </div>

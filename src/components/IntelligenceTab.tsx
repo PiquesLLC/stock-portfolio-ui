@@ -69,7 +69,7 @@ function SectionHeader({
       <div>
         <SectionLabel>{label}</SectionLabel>
         {title && <h3 className="text-[16px] font-bold tracking-tight mt-2 text-rh-light-text dark:text-rh-text">{title}</h3>}
-        {sub && <p className="text-[12px] text-rh-light-muted dark:text-rh-muted mt-0.5">{sub}</p>}
+        {sub && <p className="text-[12px] text-rh-light-text dark:text-white mt-0.5">{sub}</p>}
       </div>
       {right}
     </div>
@@ -137,7 +137,7 @@ function PeriodSelector({ value, onChange }: {
             className={`relative py-1 text-[13px] font-semibold transition-colors flex-shrink-0 ${
               active
                 ? 'text-rh-light-text dark:text-rh-text'
-                : 'text-rh-light-muted/60 dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-white/70'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
             }`}
           >
             {p.label}
@@ -365,7 +365,7 @@ function InsightRow({ signal }: { signal: InsightSignal }) {
       <span className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[14px] sm:text-[16px] font-bold ${cls}`}>{ch}</span>
       <span className="flex flex-col gap-1 min-w-0">
         <span className="text-[12px] sm:text-[13px] font-semibold text-rh-light-text dark:text-rh-text">{signal.title}</span>
-        <span className="text-[11px] text-rh-light-muted dark:text-rh-muted leading-snug">{signal.sub}</span>
+        <span className="text-[11px] text-rh-light-text dark:text-white leading-snug">{signal.sub}</span>
       </span>
       {signal.cta && (
         <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-rh-green hidden sm:inline-flex items-center gap-1">{signal.cta}<span aria-hidden>→</span></span>
@@ -411,7 +411,7 @@ function SmartActionCard({ action }: { action: SmartAction }) {
         {action.tag}
       </span>
       <span className="text-[14px] font-bold tracking-tight text-rh-light-text dark:text-rh-text">{action.title}</span>
-      <span className="text-[11.5px] sm:text-[12px] leading-[1.55] text-rh-light-muted dark:text-rh-muted">{action.detail}</span>
+      <span className="text-[11.5px] sm:text-[12px] leading-[1.55] text-rh-light-text dark:text-white">{action.detail}</span>
       <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-rh-light-text dark:text-rh-text mt-1" style={{ color: accent }}>
         {action.cta} <span aria-hidden>→</span>
       </span>
@@ -463,13 +463,13 @@ function StatCell({
       className="text-left p-4 sm:p-5 lg:p-6 lg:first:pl-0 lg:last:pr-0 border-l border-t border-white/[0.06] sm:[&:nth-child(2n+1)]:border-l-0 lg:[&:nth-child(2n+1)]:border-l lg:first:border-l-0 sm:[&:nth-child(-n+2)]:border-t-0 lg:border-t-0 enabled:hover:bg-white/[0.02] transition-colors"
     >
       <div className="flex items-center justify-between mb-2.5 sm:mb-3">
-        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">{label}</span>
+        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-rh-light-text dark:text-white">{label}</span>
         {glyph}
       </div>
       <div className="text-[22px] sm:text-[24px] font-bold tracking-tight tabular-nums leading-tight" style={{ color: valueColor }}>
         {value}
       </div>
-      <div className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-rh-light-muted dark:text-rh-muted flex items-center gap-1.5">
+      <div className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-rh-light-text dark:text-white flex items-center gap-1.5">
         {sub}
       </div>
     </button>
@@ -892,7 +892,7 @@ export function IntelligenceTab({
         <div>
           <div className="flex items-center flex-wrap gap-3 mb-4 lg:mb-5">
             <SectionLabel>Portfolio Intelligence</SectionLabel>
-            <span className="inline-flex items-center gap-2.5 text-[10px] text-rh-light-muted dark:text-rh-muted tabular-nums">
+            <span className="inline-flex items-center gap-2.5 text-[10px] text-rh-light-text dark:text-white tabular-nums">
               <LivePulse />
               <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
               {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} ET
@@ -907,11 +907,11 @@ export function IntelligenceTab({
             <div className={`text-[14px] sm:text-[16px] font-semibold tabular-nums ${heroColor}`}>
               {fmtPct(heroPct, 2)}
             </div>
-            <div className="text-[11px] uppercase tracking-[0.12em] text-rh-light-muted dark:text-rh-muted ml-1">
+            <div className="text-[11px] uppercase tracking-[0.12em] text-rh-light-text dark:text-white ml-1">
               {isToday ? 'today' : period === '5d' ? '1-week' : '1-month'}
             </div>
           </div>
-          <div className="text-[11px] sm:text-[12px] text-rh-light-muted dark:text-rh-muted mb-5 sm:mb-6 tabular-nums">
+          <div className="text-[11px] sm:text-[12px] text-rh-light-text dark:text-white mb-5 sm:mb-6 tabular-nums">
             ${netEquity.toLocaleString('en-US', { maximumFractionDigits: 0 })} net equity
             {portfolio?.dayChange != null && !isToday && (
               <>
@@ -930,12 +930,12 @@ export function IntelligenceTab({
               onTickerClick={onTickerClick}
             />
           ) : (
-            <p className="text-[13px] sm:text-[14px] text-rh-light-muted dark:text-rh-muted leading-[1.6]">
+            <p className="text-[13px] sm:text-[14px] text-rh-light-text dark:text-white leading-[1.6]">
               Portfolio analysis is being generated. Refresh in a moment for a personalized briefing.
             </p>
           )}
 
-          <div className="text-[10px] text-rh-light-muted dark:text-rh-muted tracking-wide flex items-center gap-2 mt-4">
+          <div className="text-[10px] text-rh-light-text dark:text-white tracking-wide flex items-center gap-2 mt-4">
             <span className="text-blue-400 font-bold uppercase tracking-[0.12em]">AI Brief</span>
             <span className="block w-[3px] h-[3px] rounded-full bg-white/[0.18]" />
             <span>Generated from your portfolio + market signals</span>
@@ -957,7 +957,7 @@ export function IntelligenceTab({
             periodSelector={
               <div className="flex items-center gap-3">
                 <PeriodSelector value={period} onChange={setPeriod} />
-                {periodLoading && <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Updating…</span>}
+                {periodLoading && <span className="text-[11px] text-rh-light-text dark:text-white">Updating…</span>}
               </div>
             }
             onMetricsLoaded={setChartMetrics}
@@ -971,7 +971,7 @@ export function IntelligenceTab({
         <div className="mt-5 lg:mt-8 lg:pt-6 lg:border-t lg:border-black/[0.06] dark:lg:border-white/[0.06] grid grid-cols-2 lg:grid-cols-4 gap-x-5 lg:gap-x-8 gap-y-3 text-[11px]">
             {intelligence.heroStats?.sectorDriver?.sector && (
               <div className="flex flex-col gap-0.5 border-b border-white/[0.06] pb-2">
-                <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Sector Driver</span>
+                <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-text dark:text-white">Sector Driver</span>
                 <span className="text-[12px] font-bold text-rh-light-text dark:text-rh-text">
                   {intelligence.heroStats.sectorDriver.sector}{' '}
                   <span className="text-rh-green">{fmtPct(intelligence.heroStats.sectorDriver.percent)}</span>
@@ -984,7 +984,7 @@ export function IntelligenceTab({
                 onClick={() => onTickerClick?.(intelligence.heroStats!.largestDriver.ticker!)}
                 className="flex flex-col gap-0.5 border-b border-white/[0.06] pb-2 text-left hover:bg-white/[0.02] transition-colors"
               >
-                <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Largest Driver</span>
+                <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-text dark:text-white">Largest Driver</span>
                 <span className="text-[12px] font-bold text-rh-light-text dark:text-rh-text">
                   {intelligence.heroStats.largestDriver.ticker}{' '}
                   <span className="text-rh-green">{fmtMoney(intelligence.heroStats.largestDriver.gainDollar, { sign: true })}</span>
@@ -997,7 +997,7 @@ export function IntelligenceTab({
                 onClick={() => onTickerClick?.(intelligence.heroStats!.largestDrag.ticker!)}
                 className="flex flex-col gap-0.5 border-b border-white/[0.06] pb-2 text-left hover:bg-white/[0.02] transition-colors"
               >
-                <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Largest Drag</span>
+                <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-text dark:text-white">Largest Drag</span>
                 <span className="text-[12px] font-bold text-rh-light-text dark:text-rh-text">
                   {intelligence.heroStats.largestDrag.ticker}{' '}
                   <span className="text-rh-red">{fmtMoney(intelligence.heroStats.largestDrag.lossDollar, { sign: true })}</span>
@@ -1005,10 +1005,10 @@ export function IntelligenceTab({
               </button>
             )}
             <div className="flex flex-col gap-0.5 border-b border-white/[0.06] pb-2">
-              <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Win Rate</span>
+              <span className="text-[10px] uppercase tracking-[0.14em] text-rh-light-text dark:text-white">Win Rate</span>
               <span className="text-[12px] font-bold text-rh-light-text dark:text-rh-text">
                 {intelligence.winnersCount} <span className="text-rh-green">↑</span>
-                <span className="text-rh-light-muted dark:text-rh-muted mx-1">/</span>
+                <span className="text-rh-light-text dark:text-white mx-1">/</span>
                 {intelligence.losersCount} <span className="text-rh-red">↓</span>
               </span>
             </div>
@@ -1102,7 +1102,7 @@ export function IntelligenceTab({
                     key={m}
                     type="button"
                     onClick={() => setValueMode(m)}
-                    className={`relative py-1 ${valueMode === m ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}
+                    className={`relative py-1 ${valueMode === m ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-text dark:text-white'}`}
                   >
                     {m}
                     {valueMode === m && (
@@ -1119,7 +1119,7 @@ export function IntelligenceTab({
           </div>
           <div>
             {intelligence.contributors.length === 0 && (
-              <div className="text-[12px] text-rh-light-muted dark:text-rh-muted py-3">No contributors {period === '1d' ? 'today' : 'in this window'}.</div>
+              <div className="text-[12px] text-rh-light-text dark:text-white py-3">No contributors {period === '1d' ? 'today' : 'in this window'}.</div>
             )}
             {intelligence.contributors.slice(0, 5).map(c => (
               <MoverRow
@@ -1139,7 +1139,7 @@ export function IntelligenceTab({
           </div>
           <div>
             {intelligence.detractors.length === 0 && (
-              <div className="text-[12px] text-rh-light-muted dark:text-rh-muted py-3">No detractors — clean window.</div>
+              <div className="text-[12px] text-rh-light-text dark:text-white py-3">No detractors — clean window.</div>
             )}
             {intelligence.detractors.slice(0, 5).map(c => (
               <MoverRow
@@ -1164,18 +1164,18 @@ export function IntelligenceTab({
           <RiskRadar values={radarValues} labels={radarLabels} />
           <div className="flex justify-between items-center pt-4 mt-3 border-t border-white/[0.06]">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">Composite Risk</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-rh-light-text dark:text-white">Composite Risk</div>
               <div className="text-[16px] font-bold tabular-nums mt-1.5" style={{ color: compositeRiskColor }}>
                 {compositeRisk != null ? `${compositeRisk.toFixed(1)} / 10` : '—'}
               </div>
               {compositeRisk != null && measuredDims.length < 6 && (
-                <div className="text-[9px] text-rh-light-muted dark:text-rh-muted mt-0.5">
+                <div className="text-[9px] text-rh-light-text dark:text-white mt-0.5">
                   based on {measuredDims.length} of 6 dims
                 </div>
               )}
             </div>
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-rh-light-muted dark:text-rh-muted">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-rh-light-text dark:text-white">
                 Sharpe{sharpeWindowLabel ? ` (${sharpeWindowLabel})` : ''}
               </div>
               <div className="text-[16px] font-bold tabular-nums mt-1.5 text-rh-light-text dark:text-rh-text">
@@ -1219,7 +1219,7 @@ export function IntelligenceTab({
               <SectorDonut slices={sectorSlices} />
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <div className="text-[22px] sm:text-[26px] font-bold tracking-tight tabular-nums">{diversifGrade}</div>
-                <div className="text-[8px] sm:text-[9px] text-rh-light-muted dark:text-rh-muted uppercase tracking-[0.16em] mt-1">grade</div>
+                <div className="text-[8px] sm:text-[9px] text-rh-light-text dark:text-white uppercase tracking-[0.16em] mt-1">grade</div>
               </div>
             </div>
           </div>
@@ -1233,7 +1233,7 @@ export function IntelligenceTab({
                 className="grid grid-cols-[10px_1fr_auto] gap-3 items-center py-2.5 border-b border-white/[0.06] text-left hover:bg-white/[0.02]"
               >
                 <span className="block w-2 h-2 rounded-sm" style={{ background: s.color }} />
-                <span className="text-[11px] sm:text-[12px] text-rh-light-muted dark:text-rh-muted">{s.sector}</span>
+                <span className="text-[11px] sm:text-[12px] text-rh-light-text dark:text-white">{s.sector}</span>
                 <span className="text-[11px] sm:text-[12px] font-bold tabular-nums text-rh-light-text dark:text-rh-text">
                   {s.pct.toFixed(1)}%
                 </span>
@@ -1294,7 +1294,7 @@ export function IntelligenceTab({
               >
                 <div className="flex flex-col gap-1">
                   <span className="text-[12px] sm:text-[13px] font-semibold text-rh-light-text dark:text-rh-text leading-snug">{n.headline}</span>
-                  <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+                  <span className="text-[11px] text-rh-light-text dark:text-white">
                     {n.source}
                     {n.matchedTickers && n.matchedTickers.length > 0 && (
                       <>
@@ -1310,7 +1310,7 @@ export function IntelligenceTab({
                               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onTickerClick?.(t); } }}
                               className="text-rh-green hover:underline font-semibold cursor-pointer"
                             >{t}</span>
-                            {idx < Math.min(3, n.matchedTickers!.length - 1) && <span className="text-rh-light-muted dark:text-rh-muted">, </span>}
+                            {idx < Math.min(3, n.matchedTickers!.length - 1) && <span className="text-rh-light-text dark:text-white">, </span>}
                           </span>
                         ))}
                       </>

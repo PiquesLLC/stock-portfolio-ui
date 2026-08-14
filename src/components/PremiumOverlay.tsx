@@ -37,7 +37,7 @@ export function PremiumOverlay({ featureName, description, requiredPlan = 'premi
               {planLabel}
             </span>
           </div>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">{description}</p>
+          <p className="text-xs text-rh-light-text dark:text-white mt-0.5">{description}</p>
         </div>
         <a
           href="#tab=pricing"

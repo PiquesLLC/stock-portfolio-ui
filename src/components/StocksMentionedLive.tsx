@@ -15,7 +15,7 @@ function DirectionArrow({ changePercent }: { changePercent: number }) {
   if (changePercent < -0.05) {
     return <span className="text-rh-red">↓</span>;
   }
-  return <span className="text-rh-light-muted dark:text-rh-muted">→</span>;
+  return <span className="text-rh-light-text dark:text-white">→</span>;
 }
 
 export function StocksMentionedLive({ tickers, onTickerClick }: StocksMentionedLiveProps) {
@@ -71,7 +71,7 @@ export function StocksMentionedLive({ tickers, onTickerClick }: StocksMentionedL
               </span>
               {price ? (
                 <div className="flex items-center gap-1">
-                  <span className="text-xs tabular-nums text-rh-light-muted dark:text-rh-muted">
+                  <span className="text-xs tabular-nums text-rh-light-text dark:text-white">
                     ${price.price.toFixed(2)}
                   </span>
                   <DirectionArrow changePercent={price.changePercent} />

@@ -51,10 +51,37 @@ interface Props {
   siblings?: string[];
 }
 
+/**
+ * Company blurb. It lands right on the mobile fold and runs five-plus lines of
+ * boilerplate, pushing Key Statistics and Earnings below the scroll line — so
+ * on mobile it clamps to three lines and opens on demand. Desktop is untouched:
+ * the clamp and the toggle both stop at `sm:`.
+ */
+function AboutDescription({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="mb-4">
+      <p className={`text-[12px] leading-[1.6] text-rh-light-text/80 dark:text-white/80 ${expanded ? '' : 'line-clamp-3 sm:line-clamp-none'}`}>
+        {text}
+      </p>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded(e => !e)}
+        className="sm:hidden mt-1.5 text-[11px] font-medium text-rh-light-text/70 dark:text-white/80 underline underline-offset-2 decoration-rh-light-text/30 dark:decoration-white/30"
+      >
+        {expanded ? 'Show less' : 'Show more'}
+      </button>
+    </div>
+  );
+}
+
 function StatItem({ label, value }: { label: React.ReactNode; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[11px] font-medium text-rh-light-muted/60 dark:text-rh-muted/60">{label}</span>
+      {/* Label steps back one notch so the value leads the scan. Still white,
+          not grey — #ccc on black, #5d5d5d on white. */}
+      <span className="text-[11px] font-medium text-rh-light-text/70 dark:text-white/80">{label}</span>
       <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text">{value}</span>
     </div>
   );
@@ -461,7 +488,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   if (!quickLoaded) {
     return (
       <motion.div className="pt-2 pb-6" animate={slideControls}>
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+        {/* `hidden sm:flex` to match the loaded view. Without it this skeleton
+            painted a back arrow that vanished the instant data arrived. */}
+        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="space-y-4 animate-pulse">
@@ -479,13 +508,15 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   if (notFound) {
     return (
       <div className="py-6">
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+        {/* `hidden sm:flex` to match the loaded view. Without it this skeleton
+            painted a back arrow that vanished the instant data arrived. */}
+        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="text-3xl font-bold text-rh-light-muted dark:text-rh-muted mb-2">{ticker}</div>
+          <div className="text-3xl font-bold text-rh-light-text dark:text-white mb-2">{ticker}</div>
           <div className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-1">Stock not found</div>
-          <div className="text-sm text-rh-light-muted dark:text-rh-muted mb-6">
+          <div className="text-sm text-rh-light-text dark:text-white mb-6">
             We couldn't find data for this symbol. Check the ticker, or search for another stock.
           </div>
           <button
@@ -502,7 +533,9 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
   if (error || !data) {
     return (
       <div className="py-6">
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+        {/* `hidden sm:flex` to match the loaded view. Without it this skeleton
+            painted a back arrow that vanished the instant data arrived. */}
+        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="text-rh-red text-sm">{error || 'Failed to load'}</div>
@@ -557,7 +590,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     <div className={className} data-stock-actions-menu>
       <button
         onClick={() => setActionsOpen(prev => !prev)}
-        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border text-rh-light-muted dark:text-rh-muted border-gray-200/60 dark:border-white/[0.08] hover:text-rh-light-text dark:hover:text-rh-text"
+        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border text-rh-light-text dark:text-white border-gray-200/60 dark:border-white/[0.08] hover:text-rh-light-text dark:hover:text-rh-text"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -569,7 +602,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {actionsOpen && (
         <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[220px] rounded-lg border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-[#1a1a1e]/95 backdrop-blur-md shadow-xl py-2 px-1">
           <div className="px-2 pb-1.5 mb-1 border-b border-gray-100 dark:border-white/[0.06]">
-            <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Stock Actions</span>
+            <span className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Stock Actions</span>
           </div>
           <div className="grid grid-cols-2 gap-0.5 px-1 mb-1">
             <button onClick={() => { setShowAddHolding(true); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-green hover:bg-gray-50 dark:hover:bg-white/[0.04]">
@@ -591,14 +624,14 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                   setActionsOpen(false);
                 }
               }}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-text dark:text-white hover:bg-gray-50 dark:hover:bg-white/[0.04]"
             >
               {isFollowingStock ? 'Following' : 'Follow'}
             </button>
-            <button onClick={() => { setShowAlertModal(true); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+            <button onClick={() => { setShowAlertModal(true); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-text dark:text-white hover:bg-gray-50 dark:hover:bg-white/[0.04]">
               Alert
             </button>
-            <button onClick={() => setShowCompareInput(prev => !prev)} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-muted dark:text-rh-muted hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+            <button onClick={() => setShowCompareInput(prev => !prev)} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-rh-light-text dark:text-white hover:bg-gray-50 dark:hover:bg-white/[0.04]">
               Compare
             </button>
             <button onClick={() => { toggleIntelFeed(); setActionsOpen(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold text-blue-400 hover:bg-gray-50 dark:hover:bg-white/[0.04]">
@@ -652,7 +685,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             </div>
           )}
           <div className="border-t border-gray-100 dark:border-white/[0.06] mt-1 pt-1 px-1">
-            <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="!w-full justify-start !rounded-md !border-0 !px-2 !py-1.5 !text-[11px] !font-semibold !text-rh-light-muted dark:!text-rh-muted hover:!bg-gray-50 dark:hover:!bg-white/[0.04]" />
+            <ShareButton type="stock" ticker={ticker} period={chartPeriod} size="md" showLabel className="!w-full justify-start !rounded-md !border-0 !px-2 !py-1.5 !text-[11px] !font-semibold !text-rh-light-text dark:!text-white hover:!bg-gray-50 dark:hover:!bg-white/[0.04]" />
           </div>
         </div>
       )}
@@ -723,8 +756,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         </>,
         document.body
       )}
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
+      {/* Below sm: this whole band is reclaimed — its Back button and actions
+          menu ride on the company-identity line instead. sm:+ is unchanged. */}
+      <div className="hidden sm:flex items-center justify-between gap-3 mb-5">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="flex items-center gap-2">
@@ -806,7 +841,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
               isFollowingStock
                 ? 'border-purple-500/25 text-purple-400 hover:bg-purple-500/10'
-                : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+                : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white hover:border-gray-300/60 dark:hover:border-white/[0.15]'
             }`}
             title={isFollowingStock ? 'Unfollow stock' : 'Follow stock'}
           >
@@ -817,7 +852,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           </button>
           <button
             onClick={() => setShowAlertModal(true)}
-            className="shrink-0 relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
+            className="shrink-0 relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -853,7 +888,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             ) : (
               <button
                 onClick={() => setShowCompareInput(true)}
-                className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
+                className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
                 title="Compare with another ticker"
               >
                 Compare
@@ -881,7 +916,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
                 : showIntelFeed && intelCollapsed
                   ? 'border-blue-500/15 text-blue-400/50 hover:bg-blue-500/10'
-                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
+                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white'
             }`}
             title={!showIntelFeed ? 'Show intelligence feed' : intelCollapsed ? 'Expand intelligence feed (double-click to hide)' : 'Collapse intelligence feed (double-click to hide)'}
           >
@@ -896,20 +931,29 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             )}
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-0.5">
+        {/* Mobile keeps this on one line (nowrap + a truncating name) so the
+            reclaimed Back band can't come back as a wrapped second row on a
+            long company name. sm:+ keeps the original wrapping behaviour. */}
+        <div className="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:gap-3 mb-0.5 min-w-0">
           <StockLogo ticker={ticker} size="lg" />
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-rh-light-text dark:text-rh-text min-w-0 truncate sm:overflow-visible sm:whitespace-normal">
             {profile?.name || ticker}
           </h1>
-          {profile?.name && (
-            <span className="text-sm font-medium text-rh-light-muted dark:text-rh-muted">{ticker}</span>
-          )}
+          {/* No ticker chip beside the name: the logo and company name already
+              identify the stock, and you got here by picking it. The <h1> above
+              still falls back to the ticker when there's no company name. */}
           {exchangeLabel && (
-            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 text-rh-light-muted/60 dark:text-white/25">
+            <span className="hidden sm:inline text-[10px] font-mono px-2 py-0.5 text-rh-light-text dark:text-white/80">
               {exchangeLabel}
             </span>
           )}
           {renderActionsMenu('relative ml-auto hidden lg:block')}
+          {/* No back arrow on mobile: hash navigation already pushes a history
+              entry per stock, so the device's own back — Android's button, an
+              iOS edge swipe, browser back — returns to the list. The tab bar
+              and the Nala logo are the other ways out. Horizontal swipe stays
+              reserved for moving between adjacent holdings. */}
+          {renderActionsMenu('relative ml-auto shrink-0 sm:hidden')}
         </div>
         <div style={{ minHeight: goldenCrossInfo.active ? '22px' : '0px' }}>
           {goldenCrossInfo.active && (
@@ -928,16 +972,37 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         <div className="text-3xl sm:text-4xl font-bold text-rh-light-text dark:text-rh-text tabular-nums">
           {formatCurrency(displayPrice)}
         </div>
-        <div className={`flex items-center gap-2 mt-1 ${changeColor}`}>
+        {/* flex-wrap so a long delta + a session chip can't overflow the row on
+            a narrow phone — it drops to a second line instead, which is where
+            the chip used to live anyway. */}
+        <div className={`flex flex-wrap items-center gap-2 mt-1 ${changeColor}`}>
           <span className="text-lg font-semibold tabular-nums">
             {formatDelta(activeChange)}
           </span>
           <span className="text-sm tabular-nums">
             ({formatPercent(activeChangePct)})
           </span>
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+          <span className="text-xs text-rh-light-text dark:text-white">
             {mainShowsAtClose ? 'At close' : isHovering ? hoverLabel : periodChange.label}
           </span>
+          {/* Inline, not on its own row: the session qualifies this number
+              rather than making a standalone statement, and a full line for one
+              word was the most expensive thing on the screen. */}
+          {quote.session && quote.session !== 'REG' && (
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider bg-gray-100 dark:bg-white/[0.04] text-rh-light-text dark:text-white border border-gray-200/60 dark:border-white/[0.08]"
+              title={getAcronymTitle(quote.session === 'PRE' ? 'PRE' : quote.session === 'POST' ? 'POST' : 'CLOSED') || ''}
+            >
+              {/* Which session you're in is context, not a verdict, so it stays
+                  out of the green/red gain-loss language — emerald here used to
+                  read as "up". Amber, the middle state, flags the one thing that
+                  matters: this price didn't come from the regular session. */}
+              {quote.session !== 'CLOSED' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-yellow-400" />
+              )}
+              {quote.session === 'PRE' ? 'Pre-Market' : quote.session === 'POST' ? 'After Hours' : 'Closed'}
+            </span>
+          )}
         </div>
         {showExtendedLine && (() => {
           // Scrubbing the after-hours segment: sub-line tracks the cursor
@@ -960,25 +1025,20 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <span className="text-xs tabular-nums">
                 ({formatPercent(subChangePct)})
               </span>
-              <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+              <span className="text-[10px] text-rh-light-text dark:text-white">
                 {quote.session === 'PRE' ? 'Pre-Market' : 'After Hours'}{hoverInAH && hoverLabel ? ` · ${hoverLabel}` : ''}
               </span>
             </div>
           );
         })()}
-        {quote.session && quote.session !== 'REG' && (
-          <span className={`inline-block mt-2 px-2 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${
-            quote.session === 'CLOSED' ? 'bg-gray-100 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted border border-gray-200/60 dark:border-white/[0.08]' :
-            quote.session === 'PRE' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20' :
-            'bg-purple-400/10 text-purple-400 border border-purple-400/20'
-          }`} title={getAcronymTitle(quote.session === 'PRE' ? 'PRE' : quote.session === 'POST' ? 'POST' : 'CLOSED') || ''}>
-            {quote.session === 'PRE' ? 'Pre-Market' : quote.session === 'POST' ? 'After Hours' : 'Closed'}
-          </span>
-        )}
       </div>
 
-      {/* Chart */}
-      <div className="mb-0 relative" data-no-swipe>
+      {/* Chart. The bottom gap lives HERE, not on the section below it: Your
+          Position only renders for stocks you actually hold, so hanging the
+          spacing off that section left every unheld stock — most of them —
+          with About butted straight against the period row. Desktop keeps
+          mb-0, where the chart's footer row still supplies the gap. */}
+      <div className="mb-6 sm:mb-0 relative" data-no-swipe>
         <StockPriceChart
           key={ticker}
           ticker={ticker}
@@ -1043,7 +1103,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
               isFollowingStock
                 ? 'border-purple-500/25 text-purple-400 hover:bg-purple-500/10'
-                : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+                : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white hover:border-gray-300/60 dark:hover:border-white/[0.15]'
             }`}
             title={isFollowingStock ? 'Unfollow stock' : 'Follow stock'}
           >
@@ -1054,7 +1114,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           </button>
           <button
             onClick={() => setShowAlertModal(true)}
-            className="shrink-0 relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/70 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
+            className="shrink-0 relative inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white hover:border-gray-300/60 dark:hover:border-white/[0.15] transition-all"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -1090,7 +1150,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             ) : (
               <button
                 onClick={() => setShowCompareInput(true)}
-                className="px-2 py-0.5 rounded-md text-[11px] font-medium text-rh-light-muted dark:text-rh-muted/60 hover:text-rh-light-text dark:hover:text-rh-text border border-gray-200/30 dark:border-white/[0.08] hover:border-rh-green/30 transition-all"
+                className="px-2 py-0.5 rounded-md text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text border border-gray-200/30 dark:border-white/[0.08] hover:border-rh-green/30 transition-all"
                 title="Compare with another ticker"
               >
                 Compare
@@ -1118,7 +1178,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
                 ? 'border-blue-500/25 text-blue-400 hover:bg-blue-500/10'
                 : showIntelFeed && intelCollapsed
                   ? 'border-blue-500/15 text-blue-400/50 hover:bg-blue-500/10'
-                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted/50 dark:text-white/25 hover:text-rh-light-text dark:hover:text-white/60'
+                  : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white'
             }`}
             title={!showIntelFeed ? 'Show intelligence feed' : intelCollapsed ? 'Expand intelligence feed (double-click to hide)' : 'Collapse intelligence feed (double-click to hide)'}
           >
@@ -1138,7 +1198,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* Your Position */}
       {holding && (
         <div id="section-position" className="mb-8 scroll-mt-32">
-          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Your Position</h2>
+          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Your Position</h2>
           {/* Mobile: horizontal snap carousel (swipe for Average Cost) with
               dots below. md+: the original two-column grid, unchanged.
               data-no-swipe keeps the page's stock/tab swipe gestures from
@@ -1154,25 +1214,25 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           >
             {/* Market value + its returns */}
             <div className="w-full shrink-0 snap-center md:w-auto md:shrink rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">Market Value</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">Market Value</p>
               <p className="text-2xl font-semibold tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.currentValue)}</p>
               <div className="border-t border-gray-200/40 dark:border-white/[0.06] my-3" />
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Current Price</span>
+                  <span className="text-sm text-rh-light-text dark:text-white">Current Price</span>
                   <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.currentPrice)}</span>
                 </div>
                 <div
                   className="flex items-baseline justify-between gap-2"
                   title="Your position's gain/loss today. For shares bought today this is measured from your cost basis (not the stock's previous close), so it can differ from the stock's 1D change shown above."
                 >
-                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Today's Return</span>
+                  <span className="text-sm text-rh-light-text dark:text-white">Today's Return</span>
                   <span className={`text-sm font-medium tabular-nums ${holding.dayChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {holding.dayChange >= 0 ? '+' : ''}{formatCurrency(holding.dayChange)} ({formatPercent(holding.dayChangePercent)})
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Total Return</span>
+                  <span className="text-sm text-rh-light-text dark:text-white">Total Return</span>
                   <span className={`text-sm font-medium tabular-nums ${holding.profitLoss >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {holding.profitLoss >= 0 ? '+' : ''}{formatCurrency(holding.profitLoss)} ({formatPercent(holding.profitLossPercent)})
                   </span>
@@ -1182,21 +1242,21 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
             {/* Cost basis + position composition */}
             <div className="w-full shrink-0 snap-center md:w-auto md:shrink rounded-xl border border-gray-200/40 dark:border-white/[0.08] bg-white/80 dark:bg-transparent backdrop-blur-xl p-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">Average Cost</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-1">Average Cost</p>
               <p className="text-2xl font-semibold tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.averageCost)}</p>
               <div className="border-t border-gray-200/40 dark:border-white/[0.06] my-3" />
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Shares</span>
+                  <span className="text-sm text-rh-light-text dark:text-white">Shares</span>
                   <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">{holding.shares.toLocaleString()}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm text-rh-light-muted dark:text-rh-muted">Cost Basis</span>
+                  <span className="text-sm text-rh-light-text dark:text-white">Cost Basis</span>
                   <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">{formatCurrency(holding.totalCost)}</span>
                 </div>
                 <div title="How much of your total portfolio value this position represents.">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-sm text-rh-light-muted dark:text-rh-muted">Portfolio Diversity</span>
+                    <span className="text-sm text-rh-light-text dark:text-white">Portfolio Diversity</span>
                     <span className="text-sm font-medium tabular-nums text-rh-light-text dark:text-rh-text">
                       {portfolioTotal > 0 ? `${((holding.currentValue / portfolioTotal) * 100).toFixed(1)}%` : 'N/A'}
                     </span>
@@ -1237,7 +1297,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <EventFeed events={aiEvents.events} ticker={ticker} />
             ) : (
               <div className="py-3.5">
-                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
+                <div className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white/80">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
                   </svg>
@@ -1252,14 +1312,10 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* About Section */}
       {(about?.description || profile?.name) && (
         <div id="section-about" className="mb-6 scroll-mt-32">
-          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />About</h2>
+          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />About</h2>
 
           {/* Description */}
-          {about?.description && (
-            <p className="text-[12px] leading-[1.6] text-rh-light-text/80 dark:text-white/50 mb-4">
-              {about.description}
-            </p>
-          )}
+          {about?.description && <AboutDescription text={about.description} />}
 
           {/* Horizontal divider */}
           {about?.description && (about?.category || about?.numberOfHoldings || about?.inceptionDate || about?.fundFamily || profile?.industry || about?.headquarters) && (
@@ -1271,66 +1327,66 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
             {/* ETF-specific fields first */}
             {about?.category && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Category</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.category}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Category</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{about.category}</div>
               </div>
             )}
             {about?.numberOfHoldings && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Number of Holdings</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.numberOfHoldings.toLocaleString()}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Number of Holdings</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{about.numberOfHoldings.toLocaleString()}</div>
               </div>
             )}
             {about?.inceptionDate && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Inception Date</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.inceptionDate}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Inception Date</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{about.inceptionDate}</div>
               </div>
             )}
             {about?.fundFamily && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Fund Family</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.fundFamily}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Fund Family</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{about.fundFamily}</div>
               </div>
             )}
 
             {/* Stock-specific fields */}
             {!about?.category && (about?.sector || profile?.industry) && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Industry</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{about?.industry || profile?.industry}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Industry</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{about?.industry || profile?.industry}</div>
               </div>
             )}
             {about?.headquarters && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Headquarters</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.headquarters}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Headquarters</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{about.headquarters}</div>
               </div>
             )}
             {about?.fullTimeEmployees && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Employees</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{about.fullTimeEmployees.toLocaleString()}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Employees</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{about.fullTimeEmployees.toLocaleString()}</div>
               </div>
             )}
 
             {/* Common fields */}
             {profile?.country && !about?.headquarters && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Country</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.country}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Country</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{profile.country}</div>
               </div>
             )}
             {profile?.exchange && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Exchange</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.exchange}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Exchange</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{profile.exchange}</div>
               </div>
             )}
             {!about?.inceptionDate && profile?.ipoDate && (
               <div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5"><Acronym label="IPO" /> Date</div>
-                <div className="text-rh-light-text dark:text-white/85 font-medium">{profile.ipoDate}</div>
+                <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5"><Acronym label="IPO" /> Date</div>
+                <div className="text-rh-light-text dark:text-white font-medium">{profile.ipoDate}</div>
               </div>
             )}
             {profile?.weburl && (() => {
@@ -1339,12 +1395,14 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               try { const u = new URL(href); if (u.protocol !== 'https:' && u.protocol !== 'http:') return null; } catch { return null; }
               return (
                 <div className="col-span-2 md:col-span-1">
-                  <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted/60 dark:text-white/25 mb-0.5">Website</div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-0.5">Website</div>
                   <a
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-rh-green hover:underline font-medium truncate block"
+                    // White, not green: green means gain/loss everywhere else on
+                    // this page, so a green link read as a P&L value at a glance.
+                    className="text-rh-light-text dark:text-white underline underline-offset-2 decoration-rh-light-text/30 dark:decoration-white/30 hover:decoration-rh-light-text dark:hover:decoration-white transition-colors font-medium truncate block"
                   >
                     {raw.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                   </a>
@@ -1358,7 +1416,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* Key Statistics */}
       {!loading && (metrics || quote) && (
         <div id="section-stats" className="scroll-mt-32 mb-6">
-          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Key Statistics</h2>
+          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Key Statistics</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-4">
             {profile && profile.marketCapM > 0 && (
               <StatItem label={<Term beginner="Company Size" advanced="Mkt Cap" />} value={formatLargeNumber(profile.marketCapM)} />
@@ -1442,7 +1500,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {priceAlerts.length > 0 && (
         <div id="section-alerts" className="scroll-mt-32 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Price Alerts</h2>
+            <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Price Alerts</h2>
             <button
               onClick={() => setShowAlertModal(true)}
               className="text-xs font-medium text-rh-green hover:text-rh-green/80 transition-colors"
@@ -1463,7 +1521,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
               <EventFeed events={aiEvents.events} ticker={ticker} />
             ) : (
               <div className="py-3.5">
-                <div className="flex items-center gap-2 text-xs text-rh-light-muted/60 dark:text-white/25">
+                <div className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white/80">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z" />
                   </svg>
@@ -1525,7 +1583,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={() => setConfirmDelete(false)}>
           <div className="bg-white dark:bg-[#1a1a1e] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-rh-light-text dark:text-rh-text mb-2">Remove {ticker}?</h3>
-            <p className="text-sm text-rh-light-muted dark:text-rh-muted mb-5">This will remove {ticker} from your portfolio. This action cannot be undone.</p>
+            <p className="text-sm text-rh-light-text dark:text-white mb-5">This will remove {ticker} from your portfolio. This action cannot be undone.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(false)} className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.1] text-rh-light-text dark:text-rh-text">
                 Cancel

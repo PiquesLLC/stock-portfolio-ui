@@ -53,7 +53,7 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
 
   if (error || !data) {
     return (
-      <div className="p-6 text-center text-sm text-rh-light-muted dark:text-rh-muted">
+      <div className="p-6 text-center text-sm text-rh-light-text dark:text-white">
         {error || 'Unable to load tax harvest data'}
       </div>
     );
@@ -115,13 +115,13 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200/10 dark:border-white/[0.04]">
-                  <th className="px-4 py-2 text-left text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Ticker</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Cost Basis</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Current</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Loss</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Loss %</th>
-                  <th className="px-4 py-2 text-center text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:table-cell">Period</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Tax Savings</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-rh-light-text dark:text-white">Ticker</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-text dark:text-white">Cost Basis</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-text dark:text-white">Current</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-text dark:text-white">Loss</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-text dark:text-white">Loss %</th>
+                  <th className="px-4 py-2 text-center text-[11px] font-medium text-rh-light-text dark:text-white hidden sm:table-cell">Period</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-rh-light-text dark:text-white">Tax Savings</th>
                 </tr>
               </thead>
               <tbody>
@@ -134,7 +134,7 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
                       >
                         {c.ticker}
                       </button>
-                      <span className="ml-1.5 text-[10px] text-rh-light-muted dark:text-rh-muted">{c.sector}</span>
+                      <span className="ml-1.5 text-[10px] text-rh-light-text dark:text-white">{c.sector}</span>
                     </td>
                     <td className="px-4 py-2.5 text-right text-rh-light-text dark:text-rh-text">{formatCurrency(c.costBasis)}</td>
                     <td className="px-4 py-2.5 text-right text-rh-light-text dark:text-rh-text">{formatCurrency(c.currentValue)}</td>
@@ -146,7 +146,7 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
                           ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400'
                           : c.holdingPeriod === 'mixed'
                           ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400'
-                          : 'bg-gray-100 dark:bg-white/[0.08] text-rh-light-muted dark:text-rh-muted'
+                          : 'bg-gray-100 dark:bg-white/[0.08] text-rh-light-text dark:text-white'
                       }`}>
                         {c.holdingPeriod}
                       </span>
@@ -161,7 +161,7 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
       ) : (
         <div className="py-6 text-center">
           <p className="text-sm text-rh-green font-medium">No unrealized losses in your portfolio</p>
-          <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">All your positions are at a gain. Nothing to harvest.</p>
+          <p className="text-xs text-rh-light-text dark:text-white mt-1">All your positions are at a gain. Nothing to harvest.</p>
         </div>
       )}
 
@@ -177,7 +177,7 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
           </div>
           {aiCitations.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-200/10 dark:border-white/[0.04]">
-              <p className="text-[10px] text-rh-light-muted dark:text-rh-muted mb-1">Sources</p>
+              <p className="text-[10px] text-rh-light-text dark:text-white mb-1">Sources</p>
               <div className="flex flex-wrap gap-1">
                 {aiCitations.map((url, i) => (
                   <a
@@ -197,7 +197,7 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
       )}
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-rh-light-muted dark:text-rh-muted text-center italic">
+      <p className="text-[10px] text-rh-light-text dark:text-white text-center italic">
         Not tax advice. Consult a qualified tax professional before making any tax-related decisions. Tax rates shown are estimates.
       </p>
     </div>
@@ -207,7 +207,7 @@ export function TaxHarvest({ onTickerClick, portfolioId }: Props) {
 function SummaryCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="border-l-2 border-gray-200/10 dark:border-white/[0.04] pl-4 py-2">
-      <div className="text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 mb-1">{label}</div>
+      <div className="text-[11px] font-medium text-rh-light-text dark:text-white mb-1">{label}</div>
       <div className={`text-base font-bold ${color}`}>{value}</div>
     </div>
   );

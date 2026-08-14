@@ -925,7 +925,7 @@ function Treemap({
             title="Drag to move"
             className={`px-3 py-2 border-b border-gray-200/60 dark:border-white/5 select-none flex items-center justify-between gap-2 shrink-0 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           >
-            <div className="font-bold text-[10px] tracking-wide uppercase text-rh-light-muted dark:text-rh-muted truncate">
+            <div className="font-bold text-[10px] tracking-wide uppercase text-rh-light-text dark:text-white truncate">
               {popupSubSector.sector.name === popupSubSector.subSector.name
                 ? popupSubSector.sector.name
                 : `${popupSubSector.sector.name} — ${popupSubSector.subSector.name}`}
@@ -935,7 +935,7 @@ function Treemap({
               aria-label="Close"
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); }}
-              className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-rh-light-muted dark:text-rh-muted hover:bg-black/5 dark:hover:bg-white/10 hover:text-rh-light-text dark:hover:text-rh-text cursor-pointer"
+              className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-rh-light-text dark:text-white hover:bg-black/5 dark:hover:bg-white/10 hover:text-rh-light-text dark:hover:text-rh-text cursor-pointer"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6l-12 12" /></svg>
             </button>
@@ -946,12 +946,12 @@ function Treemap({
             <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5 shrink-0">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-sm text-rh-light-text dark:text-rh-text">{(hoveredStock?.ticker ?? tappedStock?.stock.ticker)!}</span>
-                <span className={`text-sm font-bold ${(hoveredStock ?? tappedStock?.stock)!.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero((hoveredStock ?? tappedStock?.stock)!.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                <span className={`text-sm font-bold ${(hoveredStock ?? tappedStock?.stock)!.noTradeData ? 'text-rh-light-text dark:text-white' : isEffectivelyZero((hoveredStock ?? tappedStock?.stock)!.changePercent) ? 'text-rh-light-text dark:text-white' : (hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {(hoveredStock ?? tappedStock?.stock)!.noTradeData ? '--' : `${(hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? '+' : ''}${(hoveredStock ?? tappedStock?.stock)!.changePercent.toFixed(2)}%`}
                 </span>
               </div>
               <div className="flex items-center justify-between mt-0.5">
-                <span className="text-rh-light-muted dark:text-rh-muted truncate mr-2">{(hoveredStock ?? tappedStock?.stock)!.name}</span>
+                <span className="text-rh-light-text dark:text-white truncate mr-2">{(hoveredStock ?? tappedStock?.stock)!.name}</span>
                 <span className="text-rh-light-text dark:text-rh-text font-medium">{formatCurrency((hoveredStock ?? tappedStock?.stock)!.price)}</span>
               </div>
             </div>
@@ -961,12 +961,12 @@ function Treemap({
           {isThemesDefault && (
             <div className="px-3 py-2 border-b border-white/10 dark:border-white/5 bg-white/50 dark:bg-white/5 shrink-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">Avg change</span>
-                <span className={`text-sm font-bold ${isEffectivelyZero((hoveredStock ?? tappedStock?.stock)!.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : (hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                <span className="text-xs text-rh-light-text dark:text-white">Avg change</span>
+                <span className={`text-sm font-bold ${isEffectivelyZero((hoveredStock ?? tappedStock?.stock)!.changePercent) ? 'text-rh-light-text dark:text-white' : (hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                   {(hoveredStock ?? tappedStock?.stock)!.changePercent >= 0 ? '+' : ''}{(hoveredStock ?? tappedStock?.stock)!.changePercent.toFixed(2)}%
                 </span>
               </div>
-              <div className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60 mt-0.5">
+              <div className="text-[10px] text-rh-light-text dark:text-white mt-0.5">
                 {popupSubSector.subSector.stocks.length} stocks in this subtheme
               </div>
             </div>
@@ -985,14 +985,14 @@ function Treemap({
                     onClick={(e) => { e.stopPropagation(); onTickerClick(s.ticker); setTappedStock(null); setHoveredStock(null); setHoveredSubSector(null); }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className={`font-semibold text-[11px] w-[42px] shrink-0 ${isActive ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+                      <span className={`font-semibold text-[11px] w-[42px] shrink-0 ${isActive ? 'text-rh-light-text dark:text-rh-text' : 'text-rh-light-text dark:text-white'}`}>
                         {s.ticker}
                       </span>
-                      <span className="text-[10px] text-rh-light-muted/70 dark:text-rh-muted/70 truncate">
+                      <span className="text-[10px] text-rh-light-text dark:text-white truncate">
                         {formatCurrency(s.price)}
                       </span>
                     </div>
-                    <span className={`text-[11px] font-semibold shrink-0 ${s.noTradeData ? 'text-rh-light-muted/50 dark:text-rh-muted/50' : isEffectivelyZero(s.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : s.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    <span className={`text-[11px] font-semibold shrink-0 ${s.noTradeData ? 'text-rh-light-text dark:text-white' : isEffectivelyZero(s.changePercent) ? 'text-rh-light-text dark:text-white' : s.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {s.noTradeData ? '--' : `${s.changePercent >= 0 ? '+' : ''}${s.changePercent.toFixed(2)}%`}
                     </span>
                   </div>
@@ -1021,7 +1021,7 @@ function ColorLegend() {
               borderRadius: pct === -3 ? '3px 0 0 3px' : pct === 3 ? '0 3px 3px 0' : 0,
             }}
           />
-          <span className="text-[9px] font-medium text-gray-500 dark:text-rh-muted mt-0.5">
+          <span className="text-[9px] font-medium text-gray-500 dark:text-white mt-0.5">
             {pct > 0 ? '+' : ''}{pct}%
           </span>
         </div>
@@ -1060,7 +1060,7 @@ function TopMovers({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
       <div className="p-4">
-        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
+        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white mb-3">
           <span className="w-0.5 h-3.5 bg-rh-green rounded-full" />
           Top Gainers
         </h3>
@@ -1073,10 +1073,10 @@ function TopMovers({
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted truncate max-w-[100px] hidden sm:inline">{s.name}</span>
+                <span className="text-xs text-rh-light-text dark:text-white truncate max-w-[100px] hidden sm:inline">{s.name}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">{formatCurrency(s.price)}</span>
+                <span className="text-xs text-rh-light-text dark:text-white">{formatCurrency(s.price)}</span>
                 <span className="text-xs font-semibold text-rh-green min-w-[52px] text-right">+{s.changePercent.toFixed(2)}%</span>
               </div>
             </button>
@@ -1085,7 +1085,7 @@ function TopMovers({
       </div>
 
       <div className="p-4">
-        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50 mb-3">
+        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white mb-3">
           <span className="w-0.5 h-3.5 bg-rh-red rounded-full" />
           Top Losers
         </h3>
@@ -1098,10 +1098,10 @@ function TopMovers({
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-rh-light-text dark:text-rh-text">{s.ticker}</span>
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted truncate max-w-[100px] hidden sm:inline">{s.name}</span>
+                <span className="text-xs text-rh-light-text dark:text-white truncate max-w-[100px] hidden sm:inline">{s.name}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">{formatCurrency(s.price)}</span>
+                <span className="text-xs text-rh-light-text dark:text-white">{formatCurrency(s.price)}</span>
                 <span className="text-xs font-semibold text-rh-red min-w-[52px] text-right">{s.changePercent.toFixed(2)}%</span>
               </div>
             </button>
@@ -1319,7 +1319,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
       <div className="px-1 py-2 space-y-1">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-rh-light-text dark:text-rh-text shrink-0">
-            Top 100 <span className={`text-sm font-medium ${filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-light-muted dark:text-rh-muted'}`}>
+            Top 100 <span className={`text-sm font-medium ${filter === 'mostFollowed' ? 'text-purple-400' : 'text-rh-light-text dark:text-white'}`}>
               {filter === 'mostFollowed' ? 'by Following' : filter === 'unusual' ? 'Unusual Volume' : 'by Volume'}
             </span>
           </h2>
@@ -1329,7 +1329,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
               <>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] font-bold text-rh-light-text dark:text-rh-text">{heroStock.ticker}</span>
-                  <span className={`text-[11px] font-bold tabular-nums ${isEffectivelyZero(heroStock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                  <span className={`text-[11px] font-bold tabular-nums ${isEffectivelyZero(heroStock.changePercent) ? 'text-rh-light-text dark:text-white' : heroStock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                     {heroStock.changePercent >= 0 ? '+' : ''}{heroStock.changePercent.toFixed(2)}%
                   </span>
                 </div>
@@ -1340,7 +1340,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
             ) : heroLoading ? (
               <div className="w-[80px] h-[24px] rounded animate-pulse bg-gray-200/60 dark:bg-white/[0.04]" />
             ) : (
-              <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">Click a stock to preview</span>
+              <span className="text-[11px] text-rh-light-text dark:text-white">Click a stock to preview</span>
             )}
           </div>
         </div>
@@ -1357,7 +1357,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
               className={`relative flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold whitespace-nowrap transition-all duration-150 ${
                 isActive
                   ? 'text-rh-light-text dark:text-rh-text'
-                  : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
               }`}
             >
               {f.label}
@@ -1371,7 +1371,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
 
       {/* Column header — sortable */}
       <div className="flex items-center gap-3 px-3 pt-1 pb-1 border-b border-rh-light-border/20 dark:border-rh-border/20">
-        <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-400 dark:text-white/30 select-none pl-[30px]" style={{ letterSpacing: '0.08em' }}>Ticker</div>
+        <div className="flex-1 min-w-0 text-[10px] font-bold uppercase text-gray-500 dark:text-white select-none pl-[30px]" style={{ letterSpacing: '0.08em' }}>Ticker</div>
         {([
           { key: 'price' as Top100SortKey, label: 'Price', w: 'w-[52px] sm:w-[72px]', align: 'justify-end', hide: '' },
           { key: 'day' as Top100SortKey, label: 'Day', w: 'w-[52px] sm:w-[68px]', align: 'justify-center', hide: '' },
@@ -1383,7 +1383,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
             key={col.key}
             onClick={() => handleSort(col.key)}
             className={`shrink-0 ${col.w} ${col.hide || 'flex'} items-center ${col.align} gap-0.5 text-[10px] font-bold uppercase select-none cursor-pointer transition-colors ${
-              sortKey === col.key ? 'text-rh-green' : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50'
+              sortKey === col.key ? 'text-rh-green' : 'text-gray-500 dark:text-white hover:text-gray-600 dark:hover:text-white/80'
             }`}
             style={{ letterSpacing: '0.08em' }}
           >
@@ -1406,7 +1406,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
       )}
       {filter === 'mostFollowed' && !mostFollowedLoading && filtered.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-sm text-rh-light-muted dark:text-white/40">No followed stocks yet. Follow stocks to see them here.</p>
+          <p className="text-sm text-rh-light-text dark:text-white">No followed stocks yet. Follow stocks to see them here.</p>
         </div>
       )}
       <div className="space-y-0">
@@ -1463,7 +1463,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                       <span className="text-[10px] font-bold tabular-nums text-rh-light-text dark:text-rh-text">{rank}</span>
                     </div>
                   ) : (
-                    <span className="text-xs font-bold tabular-nums text-gray-500 dark:text-rh-muted/60">{rank}</span>
+                    <span className="text-xs font-bold tabular-nums text-gray-500 dark:text-white">{rank}</span>
                   )}
                 </div>
 
@@ -1498,7 +1498,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                 <div className="shrink-0 w-[52px] sm:w-[68px] flex justify-center">
                   <div className={`inline-flex px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tabular-nums ${
                     isZeroChange
-                      ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted'
+                      ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-text dark:text-white'
                       : isUp
                       ? 'bg-rh-green/10 dark:bg-rh-green/[0.08] text-rh-green'
                       : 'bg-rh-red/10 dark:bg-rh-red/[0.08] text-rh-red'
@@ -1516,7 +1516,7 @@ function Top100View({ stocks, onTickerClick, portfolioTickers }: { stocks: Heatm
                     return (
                       <div className={`inline-flex px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tabular-nums ${
                         wkZero
-                          ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-muted dark:text-rh-muted'
+                          ? 'bg-gray-200/60 dark:bg-white/[0.06] text-rh-light-text dark:text-white'
                           : wkUp
                           ? 'bg-rh-green/10 dark:bg-rh-green/[0.08] text-rh-green'
                           : 'bg-rh-red/10 dark:bg-rh-red/[0.08] text-rh-red'
@@ -1660,7 +1660,7 @@ function FilterDropdown<T extends string>({
         className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/50 ${
           isActive
             ? 'bg-rh-green/[0.10] border-rh-green/50 text-gray-900 dark:bg-rh-green/[0.18] dark:border-rh-green/50 dark:text-white ring-1 ring-rh-green/20'
-            : 'bg-white dark:bg-white/[0.04] border-gray-200 dark:border-white/[0.07] text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/[0.07] hover:border-gray-300 dark:hover:border-white/[0.14] hover:text-gray-900 dark:hover:text-white/90'
+            : 'bg-white dark:bg-white/[0.04] border-gray-200 dark:border-white/[0.07] text-gray-700 dark:text-white/80 hover:bg-gray-50 dark:hover:bg-white/[0.07] hover:border-gray-300 dark:hover:border-white/[0.14] hover:text-gray-900 dark:hover:text-white/90'
         }`}
       >
         <span className="whitespace-nowrap">
@@ -1763,7 +1763,7 @@ function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => vo
     return <span className="ml-0.5 text-[9px]">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>;
   };
 
-  const thClass = 'px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-white/30 cursor-pointer hover:text-gray-600 dark:hover:text-white/50 select-none whitespace-nowrap';
+  const thClass = 'px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-white/80 cursor-pointer hover:text-gray-600 dark:hover:text-white/80 select-none whitespace-nowrap';
 
   const sectorOptions = useMemo(
     () => [
@@ -1831,7 +1831,7 @@ function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => vo
           <button
             type="button"
             onClick={clearAllFilters}
-            className="ml-1 h-8 px-2 text-[12px] font-medium text-gray-500 dark:text-white/40 hover:text-rh-green dark:hover:text-rh-green transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/50 rounded-md"
+            className="ml-1 h-8 px-2 text-[12px] font-medium text-gray-500 dark:text-white hover:text-rh-green dark:hover:text-rh-green transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rh-green/50 rounded-md"
           >
             Clear all ({activeFilterCount})
           </button>
@@ -1839,13 +1839,13 @@ function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => vo
       </div>
 
       {/* Results count */}
-      <div className="text-[11px] text-gray-400 dark:text-white/25 font-medium">
+      <div className="text-[11px] text-gray-500 dark:text-white/80 font-medium">
         {loading ? (
           'Loading universe…'
         ) : universeSize != null && filtered.length !== stocks.length ? (
-          <>{filtered.length.toLocaleString()} of {stocks.length.toLocaleString()} stocks <span className="text-white/15">· {universeSize.toLocaleString()} in universe</span></>
+          <>{filtered.length.toLocaleString()} of {stocks.length.toLocaleString()} stocks <span className="text-white/80">· {universeSize.toLocaleString()} in universe</span></>
         ) : (
-          <>{filtered.length.toLocaleString()} stocks {universeSize != null && <span className="text-white/15">· {universeSize.toLocaleString()} in universe</span>}</>
+          <>{filtered.length.toLocaleString()} stocks {universeSize != null && <span className="text-white/80">· {universeSize.toLocaleString()} in universe</span>}</>
         )}
       </div>
 
@@ -1882,31 +1882,31 @@ function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => vo
                     </div>
                   </td>
                   <td className="px-2 py-2 hidden md:table-cell">
-                    <span className="text-[11px] text-gray-500 dark:text-white/40 truncate max-w-[180px] block">{stock.name}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-white truncate max-w-[180px] block">{stock.name}</span>
                   </td>
                   <td className="px-2 py-2 text-right">
                     <span className="text-xs font-semibold text-gray-700 dark:text-white/80 tabular-nums">${stock.price.toFixed(2)}</span>
                   </td>
                   <td className="px-2 py-2 text-right">
-                    <span className={`text-xs font-bold tabular-nums ${isEffectivelyZero(stock.changePercent) ? 'text-rh-light-muted dark:text-rh-muted' : stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
+                    <span className={`text-xs font-bold tabular-nums ${isEffectivelyZero(stock.changePercent) ? 'text-rh-light-text dark:text-white' : stock.changePercent >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>
                       {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
                     </span>
                   </td>
                   <td className="px-2 py-2 text-right hidden sm:table-cell">
-                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">{formatMktCap(stock.marketCapB)}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-white tabular-nums">{formatMktCap(stock.marketCapB)}</span>
                   </td>
                   <td className="px-2 py-2 text-right hidden lg:table-cell">
-                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">
+                    <span className="text-[11px] text-gray-500 dark:text-white tabular-nums">
                       {stock.pe != null && stock.pe > 0 ? stock.pe.toFixed(1) : '--'}
                     </span>
                   </td>
                   <td className="px-2 py-2 text-right hidden lg:table-cell">
-                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">
+                    <span className="text-[11px] text-gray-500 dark:text-white tabular-nums">
                       {stock.dividendYield != null ? `${stock.dividendYield.toFixed(2)}%` : '--'}
                     </span>
                   </td>
                   <td className="px-2 py-2 text-right hidden xl:table-cell">
-                    <span className="text-[11px] text-gray-500 dark:text-white/40 tabular-nums">
+                    <span className="text-[11px] text-gray-500 dark:text-white tabular-nums">
                       {stock.beta != null ? stock.beta.toFixed(2) : '--'}
                     </span>
                   </td>
@@ -1919,16 +1919,16 @@ function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => vo
                             style={{ width: `${Math.round(w52pos * 100)}%` }}
                           />
                         </div>
-                        <span className="text-[10px] text-gray-400 dark:text-white/30 tabular-nums w-[28px] text-right">
+                        <span className="text-[10px] text-gray-500 dark:text-white tabular-nums w-[28px] text-right">
                           {Math.round(w52pos * 100)}%
                         </span>
                       </div>
                     ) : (
-                      <span className="text-[11px] text-gray-400 dark:text-white/30">--</span>
+                      <span className="text-[11px] text-gray-500 dark:text-white">--</span>
                     )}
                   </td>
                   <td className="px-2 py-2 text-right hidden 2xl:table-cell">
-                    <span className="text-[10px] text-gray-400 dark:text-white/30 truncate max-w-[100px] block text-right">{stock.sector ?? '--'}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-white truncate max-w-[100px] block text-right">{stock.sector ?? '--'}</span>
                   </td>
                 </tr>
               );
@@ -1936,12 +1936,12 @@ function ScreenerView({ onTickerClick }: { onTickerClick: (ticker: string) => vo
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-12 text-center text-sm text-gray-400 dark:text-white/25">
+          <div className="py-12 text-center text-sm text-gray-500 dark:text-white/80">
             No stocks match your filters
           </div>
         )}
         {filtered.length > 200 && (
-          <div className="py-3 text-center text-[11px] text-gray-400 dark:text-white/25">
+          <div className="py-3 text-center text-[11px] text-gray-500 dark:text-white/80">
             Showing 200 of {filtered.length} results
           </div>
         )}
@@ -2121,7 +2121,7 @@ function SwipeCarousel({
         <button
           type="button"
           onClick={onExit}
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
         >
           <span aria-hidden>←</span>
           <span>Back to overview</span>
@@ -2135,7 +2135,7 @@ function SwipeCarousel({
       >
         {grouped.map((g) => (
           <div key={g.label} className="flex-shrink-0 w-full snap-center pr-1">
-            <div className="text-[11px] uppercase tracking-wider font-semibold text-rh-light-muted dark:text-rh-muted text-center mb-2">
+            <div className="text-[11px] uppercase tracking-wider font-semibold text-rh-light-text/70 dark:text-white/80 text-center mb-2">
               {g.label}
             </div>
             <Treemap
@@ -2306,8 +2306,8 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
   if (error && !data) {
     return (
       <div className="text-center py-20">
-        <p className="text-rh-light-muted dark:text-rh-muted mb-2">Failed to load market data</p>
-        <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60">{error}</p>
+        <p className="text-rh-light-text dark:text-white mb-2">Failed to load market data</p>
+        <p className="text-xs text-rh-light-text dark:text-white">{error}</p>
         <button
           onClick={() => { setError(''); setLoading(true); (index === 'THEMES' ? getThemesHeatmap(period) : index === 'ETF' ? getEtfHeatmap(period) : getMarketHeatmap(period, index)).then(setData).catch(e => setError(e.message)).finally(() => setLoading(false)); }}
           className="mt-4 px-4 py-2 rounded-lg bg-rh-green text-black text-sm font-medium hover:brightness-110 transition"
@@ -2326,7 +2326,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
         <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text">
           {INDEXES.find(i => i.id === index)?.fullName ?? 'Market'} Heatmap
         </h2>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+        <p className="text-xs text-rh-light-text dark:text-white">
           {index === 'THEMES'
             ? `${allStocks.length} subthemes across ${data.sectors.length} themes — colored by ${PERIOD_LABELS[period]}`
             : `${allStocks.length} stocks across ${data.sectors.length} sectors — sized by market cap, colored by ${PERIOD_LABELS[period]}`
@@ -2345,7 +2345,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
               className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 flex-shrink-0
                 ${index === idx.id
                   ? 'text-rh-light-text dark:text-white'
-                  : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                 }`}
             >
               {idx.label}
@@ -2367,7 +2367,7 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
                 className={`relative px-1.5 sm:px-2.5 py-2 text-[12px] sm:text-[13px] font-semibold transition-all duration-150
                   ${period === p.id
                     ? 'text-rh-green'
-                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                   }`}
               >
                 {p.label}
@@ -2385,13 +2385,13 @@ function HeatmapView({ onTickerClick, initialIndex, onIndexChange }: {
               <div className="inline-flex items-center rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-0.5" title="After-hours: 1D tiles include extended-hours trading. Switch to the regular-session close.">
                 <button
                   onClick={() => setShowRegular(false)}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${!showRegular ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${!showRegular ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'}`}
                 >
                   After hours
                 </button>
                 <button
                   onClick={() => setShowRegular(true)}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${showRegular ? 'bg-rh-light-text/10 dark:bg-white/10 text-rh-light-text dark:text-white' : 'text-rh-light-muted/70 dark:text-rh-muted/70 hover:text-rh-light-text dark:hover:text-white'}`}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition ${showRegular ? 'bg-rh-light-text/10 dark:bg-white/10 text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'}`}
                 >
                   Regular
                 </button>
@@ -2490,14 +2490,14 @@ export function DiscoverPage({ onTickerClick, onUserClick, subTab: externalSubTa
     `px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
       active
         ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
-        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+        : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
     }`;
 
   const innerTabClass = (active: boolean) =>
     `px-3 py-1 text-[11px] font-medium rounded-md transition-all ${
       active
         ? 'bg-white dark:bg-white/[0.1] text-rh-green shadow-sm'
-        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+        : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
     }`;
 
   return (

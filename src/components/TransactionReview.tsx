@@ -80,7 +80,7 @@ export function TransactionReview({ trades, telemetry, excludedRows, onToggleRow
       <div className="border border-gray-200/40 dark:border-white/[0.08] rounded-xl overflow-hidden max-h-[400px] overflow-y-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-white/[0.04]">
-            <tr className="text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider text-[10px]">
+            <tr className="text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider text-[10px]">
               <th className="px-2 py-2 w-8">
                 <input
                   type="checkbox"
@@ -116,7 +116,7 @@ export function TransactionReview({ trades, telemetry, excludedRows, onToggleRow
                       className="rounded border-gray-300 dark:border-white/20 text-rh-green focus:ring-rh-green/30"
                     />
                   </td>
-                  <td className="px-2 py-1.5 text-rh-light-muted dark:text-rh-muted whitespace-nowrap">{trade.date}</td>
+                  <td className="px-2 py-1.5 text-rh-light-text dark:text-white whitespace-nowrap">{trade.date}</td>
                   <td className="px-2 py-1.5">
                     <span className={`${badge.bg} ${badge.text} px-1.5 py-0.5 rounded text-[10px] font-bold`}>
                       {badge.label}
@@ -125,7 +125,7 @@ export function TransactionReview({ trades, telemetry, excludedRows, onToggleRow
                   <td className="px-2 py-1.5 font-medium text-rh-light-text dark:text-rh-text">{trade.ticker}</td>
                   <td className="px-2 py-1.5 text-right tabular-nums text-rh-light-text dark:text-rh-text">{formatShares(trade.shares)}</td>
                   <td className="px-2 py-1.5 text-right tabular-nums text-rh-light-text dark:text-rh-text">{formatPrice(trade.price)}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums text-rh-light-muted dark:text-rh-muted">{formatPrice(total)}</td>
+                  <td className="px-2 py-1.5 text-right tabular-nums text-rh-light-text dark:text-white">{formatPrice(total)}</td>
                 </tr>
               );
             })}
@@ -134,7 +134,7 @@ export function TransactionReview({ trades, telemetry, excludedRows, onToggleRow
       </div>
 
       {/* Telemetry footer */}
-      <div className="flex items-center gap-4 text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">
+      <div className="flex items-center gap-4 text-[10px] text-rh-light-text dark:text-white">
         <span>Parsed in {telemetry.parseDurationMs}ms</span>
         <span>{telemetry.rowsParsed} rows processed</span>
         {telemetry.brokerDetected && <span>Source: {telemetry.brokerDetected}</span>}

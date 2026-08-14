@@ -98,12 +98,12 @@ function RegionSection({
       <div className="flex flex-wrap items-center justify-between gap-y-1">
         <h3 className="text-sm font-medium text-rh-light-text dark:text-rh-text flex items-center gap-2">
           {label}
-          <span className="text-[10px] font-normal text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:inline">{sublabel}</span>
+          <span className="text-[10px] font-normal text-rh-light-text dark:text-white hidden sm:inline">{sublabel}</span>
         </h3>
         <div className="flex items-center gap-2">
           {extraHeaderRight}
           {lastUpdated && (
-            <span className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/60">
+            <span className="text-[10px] text-rh-light-text dark:text-white">
               {dataAge === 'stale' ? 'Data may be stale' : `Updated ${new Date(lastUpdated).toLocaleDateString()}`}
             </span>
           )}
@@ -261,7 +261,7 @@ export function EconomicIndicators() {
   if (error || !data || usIndicatorList.length === 0) {
     return (
       <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-8 text-center">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+        <p className="text-sm text-rh-light-text dark:text-white">
           {error || 'Economic indicators data not yet available. Data refreshes daily.'}
         </p>
       </div>
@@ -288,7 +288,7 @@ export function EconomicIndicators() {
         onCardClick={handleCardClick}
         onChartClose={() => setSelected(null)}
         extraHeaderRight={
-          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 italic hidden sm:inline">Dates show latest available</span>
+          <span className="text-[10px] text-rh-light-text dark:text-white italic hidden sm:inline">Dates show latest available</span>
         }
       />
 
@@ -350,7 +350,7 @@ export function EconomicIndicators() {
 
       {/* -- Last Sync Footer -- */}
       <div className="border-t border-gray-200/30 dark:border-white/[0.04] pt-4 mt-2">
-        <div className="flex items-center justify-between text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">
+        <div className="flex items-center justify-between text-[10px] text-rh-light-text dark:text-white">
           <div className="flex items-center gap-1">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -129,14 +129,14 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
             className={`group flex items-center w-full px-2.5 py-1 rounded text-[12px] whitespace-nowrap transition-colors
               ${isActive
                 ? 'text-rh-green font-semibold'
-                : 'text-gray-500 dark:text-white/45 font-medium hover:text-gray-800 dark:hover:text-white/75'
+                : 'text-gray-500 dark:text-white font-medium hover:text-gray-800 dark:hover:text-white/80'
               }`}
           >
             <span className="truncate">{p.name}</span>
             {!p.isDefault && (
               <svg
                 onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
-                className="w-3 h-3 ml-auto shrink-0 text-gray-300 dark:text-white/15 group-hover:text-gray-400 dark:group-hover:text-white/30 hover:!text-red-400 cursor-pointer transition-colors"
+                className="w-3 h-3 ml-auto shrink-0 text-gray-300 dark:text-white/80 group-hover:text-gray-500 dark:group-hover:text-white hover:!text-red-400 cursor-pointer transition-colors"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -163,12 +163,12 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
                 placeholder="Name"
                 className="w-full text-[11px] px-2 py-0.5 rounded border border-white/10
                   bg-transparent text-gray-800 dark:text-white/80 focus:outline-none focus:border-rh-green/40
-                  placeholder:text-gray-400 dark:placeholder:text-white/20"
+                  placeholder:text-gray-500 dark:placeholder:text-white/80"
                 maxLength={50}
                 autoComplete="off"
               />
               <div className="flex justify-end gap-2 mt-0.5">
-                <button onClick={() => { setCreating(false); setError(''); }} className="text-[10px] text-gray-400 dark:text-white/30">esc</button>
+                <button onClick={() => { setCreating(false); setError(''); }} className="text-[10px] text-gray-500 dark:text-white">esc</button>
                 <button onClick={handleCreate} disabled={submitting || !newName.trim()} className="text-[10px] text-rh-green font-medium disabled:opacity-30">{submitting ? '...' : 'save'}</button>
               </div>
               {error && <p className="text-[10px] text-red-400 px-1">{error}</p>}
@@ -177,7 +177,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
             <button
               onClick={handleStartCreating}
               className="w-full px-2.5 py-1 rounded text-[11px] text-left
-                text-gray-400 dark:text-white/20 hover:text-rh-green transition-colors"
+                text-gray-500 dark:text-white/80 hover:text-rh-green transition-colors"
             >
               + new
             </button>
@@ -197,7 +197,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
                 </svg>
               </div>
               <h3 className="text-base font-bold text-gray-900 dark:text-white text-center mb-1">Delete Portfolio</h3>
-              <p className="text-sm text-gray-500 dark:text-white/50 text-center mb-5">
+              <p className="text-sm text-gray-500 dark:text-white/80 text-center mb-5">
                 Are you sure you want to delete <strong className="text-gray-800 dark:text-white/80">{p.name}</strong>?
                 {(p.holdingsCount ?? 0) > 0 && (
                   <span className="block text-red-400 text-xs mt-1">{p.holdingsCount} holding{p.holdingsCount === 1 ? '' : 's'} will be permanently removed.</span>
@@ -209,7 +209,7 @@ export default function PortfolioPicker({ selectedPortfolioId, onSelect, userPla
               <div className="flex gap-3">
                 <button
                   onClick={() => { setConfirmDelete(null); setDeleteError(null); }}
-                  className="flex-1 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-colors"
+                  className="flex-1 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-colors"
                 >
                   Cancel
                 </button>

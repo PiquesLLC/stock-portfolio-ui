@@ -179,7 +179,7 @@ export function JobsDashboard({ onBack }: Props) {
         <h1 className="text-lg font-semibold text-rh-light-text dark:text-rh-text">Jobs & Reliability</h1>
         <div className="ml-auto flex items-center gap-3">
           {lastRefresh && (
-            <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[10px] text-rh-light-text dark:text-white">
               Updated {timeAgo(lastRefresh)}
             </span>
           )}
@@ -191,7 +191,7 @@ export function JobsDashboard({ onBack }: Props) {
 
       {/* Loading state */}
       {loading && !jobStats && (
-        <div className="text-center py-12 text-rh-light-muted dark:text-rh-muted">Loading...</div>
+        <div className="text-center py-12 text-rh-light-text dark:text-white">Loading...</div>
       )}
 
       {/* Error */}
@@ -286,7 +286,7 @@ function SummaryStatBox({ label, value, accent }: { label: string; value: string
   return (
     <div className="py-3.5 px-3 text-center">
       <p className={`text-xl font-bold ${color}`}>{value}</p>
-      <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mt-0.5">{label}</p>
+      <p className="text-[10px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mt-0.5">{label}</p>
     </div>
   );
 }
@@ -296,7 +296,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string | num
   return (
     <div className={`${CARD} p-3 text-center`}>
       <div className={`text-lg font-bold ${color}`}>{value}</div>
-      <div className="text-[10px] text-rh-light-muted dark:text-rh-muted uppercase tracking-wider">{label}</div>
+      <div className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">{label}</div>
     </div>
   );
 }
@@ -347,7 +347,7 @@ function AlertBanner({ level, stats, stuckCount, dlqCount, criticalCount }: {
         <p className={`text-sm font-medium ${isCritical ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
           {isCritical ? 'Critical -- Immediate attention needed' : 'Warning -- Issues detected'}
         </p>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-1">{issues.join(' · ')}</p>
+        <p className="text-xs text-rh-light-text dark:text-white mt-1">{issues.join(' · ')}</p>
       </div>
     </div>
   );
@@ -366,7 +366,7 @@ function TabButton({ active, onClick, label, count, alertColor }: {
     <button
       onClick={onClick}
       className={`pb-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-        active ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-muted dark:text-rh-muted'
+        active ? 'border-rh-green text-rh-green' : 'border-transparent text-rh-light-text dark:text-white'
       }`}
     >
       {label} ({count})
@@ -382,7 +382,7 @@ function TabButton({ active, onClick, label, count, alertColor }: {
 function OverviewTab({ jobs }: { jobs: JobStatsResponse['jobs'] }) {
   if (jobs.length === 0) {
     return (
-      <div className="text-center py-12 text-rh-light-muted dark:text-rh-muted text-sm">
+      <div className="text-center py-12 text-rh-light-text dark:text-white text-sm">
         No job runs in the last 24 hours
       </div>
     );
@@ -435,19 +435,19 @@ function JobCard({ job }: { job: JobStatsResponse['jobs'][number] }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <p className="text-base font-bold text-rh-light-text dark:text-rh-text">{job.total}</p>
-          <p className="text-[9px] text-rh-light-muted dark:text-rh-muted uppercase">Runs</p>
+          <p className="text-[9px] text-rh-light-text dark:text-white uppercase">Runs</p>
         </div>
         <div>
           <p className={`text-base font-bold ${failureRate > 10 ? 'text-red-500' : failureRate > 5 ? 'text-amber-500' : 'text-rh-light-text dark:text-rh-text'}`}>
             {failureRate.toFixed(1)}%
           </p>
-          <p className="text-[9px] text-rh-light-muted dark:text-rh-muted uppercase">Fail Rate</p>
+          <p className="text-[9px] text-rh-light-text dark:text-white uppercase">Fail Rate</p>
         </div>
         <div>
           <p className="text-base font-bold text-rh-light-text dark:text-rh-text">
             {job.avgDurationMs > 0 ? `${(job.avgDurationMs / 1000).toFixed(1)}s` : '--'}
           </p>
-          <p className="text-[9px] text-rh-light-muted dark:text-rh-muted uppercase">Avg Time</p>
+          <p className="text-[9px] text-rh-light-text dark:text-white uppercase">Avg Time</p>
         </div>
       </div>
 
@@ -466,7 +466,7 @@ function JobCard({ job }: { job: JobStatsResponse['jobs'][number] }) {
 
       {/* Last run + last error */}
       <div className="mt-3 pt-2 border-t border-gray-200/30 dark:border-white/[0.04]">
-        <p className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+        <p className="text-[10px] text-rh-light-text dark:text-white">
           Last run: {job.lastRun ? timeAgo(job.lastRun) : 'never'}
         </p>
         {job.lastError && (
@@ -490,7 +490,7 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
 }) {
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12 text-rh-light-muted dark:text-rh-muted text-sm">
+      <div className="text-center py-12 text-rh-light-text dark:text-white text-sm">
         No dead letter entries -- all clear
       </div>
     );
@@ -499,7 +499,7 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
   return (
     <div className={`${CARD} divide-y divide-gray-200/40 dark:divide-white/[0.06]`}>
       {/* Header row */}
-      <div className="hidden sm:grid grid-cols-12 gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted">
+      <div className="hidden sm:grid grid-cols-12 gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
         <div className="col-span-2">Job</div>
         <div className="col-span-4">Error</div>
         <div className="col-span-2">Category</div>
@@ -528,7 +528,7 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
               </div>
               <p className="text-xs text-red-600 dark:text-red-400 line-clamp-2">{cleanError}</p>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">
+                <span className="text-[10px] text-rh-light-text dark:text-white">
                   {entry.attempts} attempt{entry.attempts !== 1 ? 's' : ''} · {timeAgo(entry.createdAt)}
                 </span>
                 <div className="flex items-center gap-2">
@@ -542,7 +542,7 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
                   <button
                     onClick={() => onResolve(entry.id)}
                     disabled={isBusy}
-                    className="text-xs text-rh-light-muted dark:text-rh-muted hover:underline disabled:opacity-50"
+                    className="text-xs text-rh-light-text dark:text-white hover:underline disabled:opacity-50"
                   >
                     {isResolving ? 'Resolving...' : 'Resolve'}
                   </button>
@@ -556,7 +556,7 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
                 <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">
                   {humanJobName(entry.jobName)}
                 </span>
-                <span className="block text-[10px] text-rh-light-muted dark:text-rh-muted">
+                <span className="block text-[10px] text-rh-light-text dark:text-white">
                   {entry.attempts} attempt{entry.attempts !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -567,11 +567,11 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
               </div>
               <div className="col-span-2">
                 {category ? <CategoryBadge category={category} /> : (
-                  <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">--</span>
+                  <span className="text-[10px] text-rh-light-text dark:text-white">--</span>
                 )}
               </div>
               <div className="col-span-2">
-                <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+                <span className="text-[11px] text-rh-light-text dark:text-white">
                   {timeAgo(entry.createdAt)}
                 </span>
               </div>
@@ -586,7 +586,7 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
                 <button
                   onClick={() => onResolve(entry.id)}
                   disabled={isBusy}
-                  className="px-2.5 py-1 text-[11px] font-medium rounded-md text-rh-light-muted dark:text-rh-muted hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
+                  className="px-2.5 py-1 text-[11px] font-medium rounded-md text-rh-light-text dark:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
                 >
                   {isResolving ? '...' : 'Resolve'}
                 </button>
@@ -604,7 +604,7 @@ function DeadLetterTab({ entries, resolving, retrying, onResolve, onRetry }: {
 function HealthTab({ entries }: { entries: SnapshotHealthEntry[] }) {
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12 text-rh-light-muted dark:text-rh-muted text-sm">
+      <div className="text-center py-12 text-rh-light-text dark:text-white text-sm">
         No snapshot health data
       </div>
     );
@@ -627,21 +627,21 @@ function HealthTab({ entries }: { entries: SnapshotHealthEntry[] }) {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
             <div>
-              <span className="text-rh-light-muted dark:text-rh-muted">Last snapshot: </span>
+              <span className="text-rh-light-text dark:text-white">Last snapshot: </span>
               <span className="text-rh-light-text dark:text-rh-text">
                 {entry.lastSnapshotAge == null ? '--' : entry.lastSnapshotAge < 1 ? '<1 min' : `${Math.round(entry.lastSnapshotAge)} min`}
               </span>
             </div>
             <div>
-              <span className="text-rh-light-muted dark:text-rh-muted">24h count: </span>
+              <span className="text-rh-light-text dark:text-white">24h count: </span>
               <span className="text-rh-light-text dark:text-rh-text">{entry.snapshotsLast24h}</span>
             </div>
             <div>
-              <span className="text-rh-light-muted dark:text-rh-muted">Gaps: </span>
+              <span className="text-rh-light-text dark:text-white">Gaps: </span>
               <span className="text-rh-light-text dark:text-rh-text">{entry.gapCount}</span>
             </div>
             <div>
-              <span className="text-rh-light-muted dark:text-rh-muted">Longest gap: </span>
+              <span className="text-rh-light-text dark:text-white">Longest gap: </span>
               <span className="text-rh-light-text dark:text-rh-text">
                 {entry.longestGapMinutes > 0 ? `${Math.round(entry.longestGapMinutes)} min` : '--'}
               </span>
@@ -666,7 +666,7 @@ function StuckTab({ stuckJobs, healDryRun, setHealDryRun, healing, healResult, o
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between mb-2">
-        <label className="flex items-center gap-2 text-xs text-rh-light-muted dark:text-rh-muted">
+        <label className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white">
           <input
             type="checkbox"
             checked={healDryRun}
@@ -697,7 +697,7 @@ function StuckTab({ stuckJobs, healDryRun, setHealDryRun, healing, healResult, o
       )}
 
       {stuckJobs.length === 0 ? (
-        <div className="text-center py-12 text-rh-light-muted dark:text-rh-muted text-sm">
+        <div className="text-center py-12 text-rh-light-text dark:text-white text-sm">
           No stuck jobs
         </div>
       ) : (
@@ -711,7 +711,7 @@ function StuckTab({ stuckJobs, healDryRun, setHealDryRun, healing, healResult, o
                 Stuck
               </span>
             </div>
-            <div className="flex items-center gap-4 text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <div className="flex items-center gap-4 text-[11px] text-rh-light-text dark:text-white">
               <span>Attempt: {job.attempt}/{job.maxAttempts}</span>
               <span>Started: {timeAgo(job.startedAt)}</span>
               <span>Running: {Math.round((Date.now() - new Date(job.startedAt).getTime()) / 60000)} min</span>

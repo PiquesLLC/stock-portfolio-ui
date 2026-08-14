@@ -238,13 +238,13 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
             }
           </span>
           {hasMeasure ? (
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <span className="text-xs text-rh-light-text dark:text-white">
               {fmtShort(measureA!.date)}
               {' '}&rarr;{' '}
               {fmtShort(measureB!.date)}
             </span>
           ) : (
-            <span className="text-xs text-rh-light-muted dark:text-rh-muted">{displayDate}</span>
+            <span className="text-xs text-rh-light-text dark:text-white">{displayDate}</span>
           )}
         </div>
       </div>
@@ -252,13 +252,13 @@ export function FullChart({ indicator }: { indicator: EconomicIndicator }) {
       {/* Measure hint */}
       <div className="px-1 mb-1 h-4">
         {!measureA && !hasMeasure && (
-          <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">Click two points to measure</span>
+          <span className="text-[10px] text-rh-light-text dark:text-white">Click two points to measure</span>
         )}
         {measureA && !measureB && (
-          <span className="text-[10px] text-rh-light-muted dark:text-rh-muted">Click a second point to complete measurement</span>
+          <span className="text-[10px] text-rh-light-text dark:text-white">Click a second point to complete measurement</span>
         )}
         {hasMeasure && (
-          <span className="text-[10px] text-rh-light-muted/50 dark:text-rh-muted/50">Click to clear measurement</span>
+          <span className="text-[10px] text-rh-light-text dark:text-white">Click to clear measurement</span>
         )}
       </div>
 
@@ -459,7 +459,7 @@ export function ChartPanel({ indicator, regionLabel, onClose }: { indicator: Eco
   return (
     <div className="bg-gray-50/80 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-5">
       <div className="flex items-start justify-between">
-        <div className="text-xs text-rh-light-muted dark:text-rh-muted mb-1 uppercase tracking-wide font-medium">
+        <div className="text-xs text-rh-light-text dark:text-white mb-1 uppercase tracking-wide font-medium">
           {regionLabel} &middot; {indicator.name}
           <span className="ml-2 normal-case font-normal opacity-60">
             ({indicator.unit === 'percent' ? '% change' : indicator.unit === 'index' ? 'index value' : indicator.unit === 'current usd' ? 'USD' : indicator.unit})
@@ -467,7 +467,7 @@ export function ChartPanel({ indicator, regionLabel, onClose }: { indicator: Eco
         </div>
         <button
           onClick={onClose}
-          className="p-1 -mt-1 -mr-1 rounded text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
+          className="p-1 -mt-1 -mr-1 rounded text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:bg-rh-light-bg dark:hover:bg-rh-dark transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -64,7 +64,7 @@ export function UserMenu({
 
         {/* Chevron - hidden on mobile + landscape phones */}
         <svg
-          className={`hidden lg:block w-3 h-3 text-rh-light-muted dark:text-rh-muted transition-transform duration-150
+          className={`hidden lg:block w-3 h-3 text-rh-light-text dark:text-white transition-transform duration-150
             ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"

@@ -90,12 +90,17 @@ interface Props {
   overrideLineColor?: string; // Force main line to a specific color (used by Compare page)
 }
 
-// Taller plot on phones (Robinhood-scale ≈ half the viewport width as
-// height; 800/410 ≈ 1.95 vs desktop's 800/280). The viewBox height and ALL
-// vertical math use the same value, so scaling stays uniform — SVG text and
-// strokes do NOT stretch (preserveAspectRatio="none" only distorts when the
-// container aspect deviates from the viewBox aspect).
-const MOBILE_CHART_H = 410;
+// Taller plot on phones. The viewBox height and ALL vertical math use the same
+// value, so scaling stays uniform — SVG text and strokes do NOT stretch
+// (preserveAspectRatio="none" only distorts when the container aspect deviates
+// from the viewBox aspect, and the container is pinned to CHART_W/chartH).
+//
+// Raised 410 → 500 (2026-08-13): 410 was tuned to Robinhood's ≈half-the-width
+// proportion (800/410 ≈ 1.95:1), but once the page chrome above the chart came
+// off, that read as short. 800/500 = 1.6:1 spends the reclaimed space on the
+// plot itself. Rendered height is container width × 500/800, so ~224px on a
+// 390pt phone. This is the only knob — change it and everything follows.
+const MOBILE_CHART_H = 500;
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 639px)'; // below Tailwind `sm`
 
 export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandles, hourlyCandles, livePrices, selectedPeriod, onPeriodChange, currentPrice, extendedPrice, previousClose, regularClose: _regularClose, onHoverPrice, goldenCrossDate: _goldenCrossDate, session, earnings, dividendEvents, dividendCredits, tradeEvents, analystEvents, aiEvents, onRequestResolution, zoomData, comparisons, overrideLineColor }: Props) {
@@ -2402,11 +2407,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           </div>
           <div className="space-y-1.5">
             <div className="flex justify-between items-baseline">
-              <span className="text-[9px] text-white/40 uppercase tracking-widest">Date</span>
+              <span className="text-[9px] text-white uppercase tracking-widest">Date</span>
               <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>{hudData.dateLabel}</span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-[9px] text-white/40 uppercase tracking-widest">Price</span>
+              <span className="text-[9px] text-white uppercase tracking-widest">Price</span>
               <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>${hudData.firstEvt.price.toFixed(2)}</span>
             </div>
             {hudData.distances.map(({ period: mp, dist }) => {
@@ -2427,7 +2432,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             })}
           </div>
           <div className="mt-2 pt-1.5 border-t border-white/[0.06]">
-            <span className="text-[8px] text-white/25 italic">Signal only — not financial advice.</span>
+            <span className="text-[8px] text-white/80 italic">Signal only — not financial advice.</span>
           </div>
         </div>
       )}
@@ -2454,11 +2459,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             </div>
             <div className="space-y-1.5">
               <div className="flex justify-between items-baseline">
-                <span className="text-[9px] text-white/40 uppercase tracking-widest">Date</span>
+                <span className="text-[9px] text-white uppercase tracking-widest">Date</span>
                 <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>{dateLabel}</span>
               </div>
               <div className="flex justify-between items-baseline">
-                <span className="text-[9px] text-white/40 uppercase tracking-widest">Price</span>
+                <span className="text-[9px] text-white uppercase tracking-widest">Price</span>
                 <span className="text-[11px] text-white/80 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>${cross.price.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-baseline">
@@ -2471,7 +2476,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               </div>
             </div>
             <div className="mt-2 pt-1.5 border-t border-white/[0.06]">
-              <span className="text-[8px] text-white/25 italic">Signal only — not financial advice.</span>
+              <span className="text-[8px] text-white/80 italic">Signal only — not financial advice.</span>
             </div>
           </div>
         );
@@ -2501,20 +2506,20 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           return (
           <div className="flex items-center gap-4 h-full">
             <span className="flex items-center gap-1 text-[11px] font-semibold text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {comparisons && comparisons.length > 0 && <span className="text-rh-light-muted dark:text-rh-muted font-medium">{ticker}</span>}
+              {comparisons && comparisons.length > 0 && <span className="text-rh-light-text dark:text-white font-medium">{ticker}</span>}
               ${hoverPrice.toFixed(2)}
             </span>
             {hoverMaValues.filter(ma => ma.value != null).map(ma => (
               <span key={ma.period} className="flex items-center gap-1 text-[11px]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ma.color }} />
-                <span className="text-rh-light-muted dark:text-rh-muted">MA{ma.period}</span>
+                <span className="text-rh-light-text dark:text-white">MA{ma.period}</span>
                 <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${ma.value.toFixed(2)}</span>
               </span>
             ))}
             {hoverCompValues.map(cv => (
               <span key={cv.ticker} className="flex items-center gap-1 text-[11px]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cv.color }} />
-                <span className="text-rh-light-muted dark:text-rh-muted">{cv.ticker}</span>
+                <span className="text-rh-light-text dark:text-white">{cv.ticker}</span>
                 <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>${cv.rawPrice.toFixed(2)}</span>
                 <span className={`font-medium ${cv.pctChange >= 0 ? 'text-rh-green' : 'text-rh-red'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {cv.pctChange >= 0 ? '+' : ''}{cv.pctChange.toFixed(2)}%
@@ -2523,7 +2528,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             ))}
             {volumeEnabled && hoverVolume != null && hoverVolume > 0 && (
               <span className="flex items-center gap-1 text-[11px]">
-                <span className="text-rh-light-muted dark:text-rh-muted">Vol</span>
+                <span className="text-rh-light-text dark:text-white">Vol</span>
                 <span className="font-medium text-rh-light-text dark:text-rh-text" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatVolume(hoverVolume)}</span>
               </span>
             )}
@@ -3699,11 +3704,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               >
                 {/* Header: date + close button */}
                 <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
-                  <span className="text-[10px] font-medium text-rh-light-muted/50 dark:text-white/35 tracking-wide uppercase">{dateStr}</span>
+                  <span className="text-[10px] font-medium text-rh-light-text dark:text-white tracking-wide uppercase">{dateStr}</span>
                   {isPinned && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPinnedEventIdx(null); }}
-                      className="text-rh-light-muted/40 dark:text-white/30 hover:text-rh-light-text dark:hover:text-white/70 transition-colors -mr-0.5"
+                      className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors -mr-0.5"
                       style={{ fontSize: '13px', lineHeight: 1 }}
                     >&times;</button>
                   )}
@@ -3725,7 +3730,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
 
                     {/* Detail text */}
                     {item.detail && (
-                      <p className="text-[10.5px] text-rh-light-text/60 dark:text-white/50 leading-snug line-clamp-2">{item.detail}</p>
+                      <p className="text-[10.5px] text-rh-light-text/60 dark:text-white/80 leading-snug line-clamp-2">{item.detail}</p>
                     )}
 
                     {/* Source link */}
@@ -3824,15 +3829,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const gain = s.dollarChange >= 0;
                   return (
                     <div>
-                      <div className="flex items-center gap-2 text-xs text-white/50">
+                      <div className="flex items-center gap-2 text-xs text-white/80">
                         <span>{s.startLabel}</span>
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span>{s.endLabel}</span>
-                        {s.daysBetween > 0 && <span className="text-white/30">· {s.daysBetween}d</span>}
+                        {s.daysBetween > 0 && <span className="text-white">· {s.daysBetween}d</span>}
                       </div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
-                        <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.endPrice.toFixed(2)}</span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -3853,15 +3858,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const gain = s.dollarChange >= 0;
                   return (
                     <div className="mt-1.5 pt-1.5 border-t border-white/[0.06]">
-                      <div className="flex items-center gap-2 text-xs text-white/50">
+                      <div className="flex items-center gap-2 text-xs text-white/80">
                         <span>{s.startLabel}</span>
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span>{s.endLabel}</span>
-                        {s.daysBetween > 0 && <span className="text-white/30">· {s.daysBetween}d</span>}
+                        {s.daysBetween > 0 && <span className="text-white">· {s.daysBetween}d</span>}
                       </div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
-                        <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.endPrice.toFixed(2)}</span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -3882,12 +3887,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const gain = s.dollarChange >= 0;
                   return (
                     <div className="mt-1.5 pt-1.5 border-t border-white/[0.12]">
-                      <div className="flex items-center gap-2 text-[10px] text-white/40 uppercase tracking-wider font-semibold">Total</div>
+                      <div className="flex items-center gap-2 text-[10px] text-white uppercase tracking-wider font-semibold">Total</div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
-                        <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.endPrice.toFixed(2)}</span>
-                        {s.daysBetween > 0 && <span className="text-xs text-white/30 ml-1">· {s.daysBetween}d</span>}
+                        {s.daysBetween > 0 && <span className="text-xs text-white ml-1">· {s.daysBetween}d</span>}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`text-2xl font-bold ${gain ? 'text-rh-green' : 'text-rh-red'}`}>
@@ -3901,7 +3906,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   );
                 })()}
 
-                <div className="text-[9px] text-white/25 mt-0.5">
+                <div className="text-[9px] text-white/80 mt-0.5">
                   {'ontouchstart' in window
                     ? (hasFullMeasurement ? 'Tap to remeasure · Tap outside to clear' : 'Tap a 3rd point for total · Tap outside to clear')
                     : (hasFullMeasurement ? 'Click chart to remeasure · ESC to clear' : 'Click a 3rd point for total · ESC to clear')}
@@ -3928,10 +3933,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
-                <span className="text-xs text-white/70">
+                <span className="text-xs text-white/80">
                   {points[measureAIdx!].label} · ${points[measureAIdx!].price.toFixed(2)}
                 </span>
-                <span className="text-[10px] text-white/30">
+                <span className="text-[10px] text-white">
                   — click another point
                 </span>
               </div>
@@ -3954,13 +3959,16 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                 <button
                   onClick={(e) => { e.stopPropagation(); goBackZoom(); }}
                   className="px-2 py-0.5 rounded text-[10px] font-medium
-                             text-rh-light-muted dark:text-white/50
+                             text-rh-light-text dark:text-white/80
                              bg-gray-100/80 dark:bg-white/[0.06]
                              hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
                              border border-gray-200/40 dark:border-white/[0.08]
                              backdrop-blur transition-all"
                 >
-                  &larr; Back
+                  {/* Not "Back": the page-level Back button sits a few dozen
+                      pixels above this on mobile, and they mean different
+                      things — one leaves the stock, this steps back a zoom. */}
+                  &larr; Zoom Out
                 </button>
               )}
               <button
@@ -3972,7 +3980,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   zoomHistoryRef.current = [];
                 }}
                 className="px-2 py-0.5 rounded text-[10px] font-medium
-                           text-rh-light-muted dark:text-white/50
+                           text-rh-light-text dark:text-white/80
                            bg-gray-100/80 dark:bg-white/[0.06]
                            hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
                            border border-gray-200/40 dark:border-white/[0.08]
@@ -3988,11 +3996,11 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         {!hasData && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-rh-light-muted dark:text-rh-muted text-sm">
+              <div className="text-rh-light-text dark:text-white text-sm">
                 {selectedPeriod === '1D' ? 'Collecting live data...' : 'Chart data loading...'}
               </div>
               {selectedPeriod === '1D' && (
-                <div className="text-[11px] text-rh-light-muted dark:text-rh-muted mt-1 opacity-60">
+                <div className="text-[11px] text-rh-light-text dark:text-white mt-1 opacity-60">
                   Price updates every 10s during market hours
                 </div>
               )}
@@ -4003,7 +4011,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         {/* Live badge - only show when market is actively trading */}
         {selectedPeriod === '1D' && hasData && session && session !== 'CLOSED' && (
           <div className="absolute right-0 top-0">
-            <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-rh-light-muted dark:text-rh-muted font-medium">
+            <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 font-medium">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rh-green opacity-60" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rh-green" />
@@ -4046,9 +4054,9 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         return (
           <div data-chart-area className="border-t-2 border-white/[0.08] mt-1" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
-              <span className="text-[11px] font-bold text-white/60">RSI (14)</span>
+              <span className="text-[11px] font-bold text-white">RSI (14)</span>
               {displayRsi != null && <span className={`text-[11px] font-semibold ${hoverRsi != null ? 'text-white' : 'text-white/90'}`}>{displayRsi.toFixed(2)}</span>}
-              {hoverRsi != null && <span className={`text-[10px] font-semibold ${hoverRsi > 70 ? 'text-rh-red' : hoverRsi < 30 ? 'text-rh-green' : 'text-white/40'}`}>
+              {hoverRsi != null && <span className={`text-[10px] font-semibold ${hoverRsi > 70 ? 'text-rh-red' : hoverRsi < 30 ? 'text-rh-green' : 'text-white'}`}>
                 {hoverRsi > 70 ? 'Overbought' : hoverRsi < 30 ? 'Oversold' : 'Neutral'}
               </span>}
             </div>
@@ -4227,12 +4235,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         return (
           <div data-chart-area className="border-t border-white/[0.12]" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             <div className="flex items-center gap-2.5 px-2 pt-2 pb-1">
-              <span className="text-[11px] font-bold text-white/60">MACD</span>
+              <span className="text-[11px] font-bold text-white">MACD</span>
               {displayMacd != null && <span className={`text-[11px] font-semibold ${hoverMacdVal != null ? 'text-white' : 'text-white/90'}`}>{displayMacd.toFixed(2)}</span>}
               {hoverSigVal != null && <span className="text-[10px] text-rh-red/70">S: {hoverSigVal.toFixed(2)}</span>}
               {hoverHistVal != null && <span className={`text-[10px] ${hoverHistVal >= 0 ? 'text-rh-green/70' : 'text-rh-red/70'}`}>H: {hoverHistVal >= 0 ? '+' : ''}{hoverHistVal.toFixed(2)}</span>}
               {hoverMacdVal == null && (
-                <span className="flex items-center gap-2 text-[9px] text-white/30 ml-1">
+                <span className="flex items-center gap-2 text-[9px] text-white ml-1">
                   <span className="flex items-center gap-1"><span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.macd }} />MACD</span>
                   <span className="flex items-center gap-1"><span className="inline-block w-3 h-[2px] rounded" style={{ backgroundColor: MACD_COLORS.signal }} />Signal</span>
                 </span>
@@ -4378,8 +4386,8 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   selectedPeriod === period
                     ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
                     : disabled
-                      ? 'text-rh-light-muted/30 dark:text-rh-muted/30 cursor-not-allowed'
-                      : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                      ? 'text-rh-light-text dark:text-white cursor-not-allowed'
+                      : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
                 }`}
               >
                 {period}
@@ -4393,7 +4401,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           <div className="flex rounded-md border border-gray-200/40 dark:border-white/[0.08] overflow-hidden">
             <button
               onClick={() => setChartMode('line')}
-              className={`px-1 sm:px-1.5 py-1 transition-all ${chartMode === 'line' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
+              className={`px-1 sm:px-1.5 py-1 transition-all ${chartMode === 'line' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-500 dark:text-white hover:text-gray-600 dark:hover:text-rh-text'}`}
               title="Line chart"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -4402,7 +4410,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             </button>
             <button
               onClick={() => setChartMode('candle')}
-              className={`px-1 sm:px-1.5 py-1 border-l border-gray-200/40 dark:border-white/[0.08] transition-all ${chartMode === 'candle' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'}`}
+              className={`px-1 sm:px-1.5 py-1 border-l border-gray-200/40 dark:border-white/[0.08] transition-all ${chartMode === 'candle' ? 'bg-white/10 text-rh-light-text dark:text-white' : 'text-gray-500 dark:text-white hover:text-gray-600 dark:hover:text-rh-text'}`}
               title="Candlestick chart"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
@@ -4419,7 +4427,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border ${
                 overlayCount > 0
                   ? 'text-rh-green border-rh-green/25 bg-rh-green/[0.06]'
-                  : 'text-rh-light-muted dark:text-rh-muted border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white border-rh-light-border dark:border-rh-border hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4430,7 +4438,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {overlaysOpen && (
             <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[264px] max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200/60 dark:border-white/[0.1] bg-white dark:bg-black/95 backdrop-blur-md shadow-xl py-2 px-1.5">
               <div className="px-2 pb-1.5 mb-1 border-b border-gray-100 dark:border-white/[0.06]">
-                <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Moving Averages</span>
+                <span className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Moving Averages</span>
               </div>
               <div className="grid grid-cols-3 gap-1 px-1 mb-1">
                 {MA_PERIODS.map(ma => {
@@ -4442,7 +4450,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                       className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
                         active
                           ? ''
-                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                       }`}
                       style={active ? { borderColor: `${MA_COLORS[ma]}59`, backgroundColor: `${MA_COLORS[ma]}14`, color: MA_COLORS[ma] } : undefined}
                     >
@@ -4457,7 +4465,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               </div>
               <div className="border-t border-gray-100 dark:border-white/[0.06] mt-1 pt-1 px-1">
                 <div className="px-1 pb-1.5 mb-0.5">
-                  <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Overlays</span>
+                  <span className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Overlays</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1">
                   {([
@@ -4471,7 +4479,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                       className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
                         enabled
                           ? ''
-                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                       }`}
                       style={enabled ? { borderColor: `${color}59`, backgroundColor: `${color}14`, color } : undefined}
                     >
@@ -4486,7 +4494,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               </div>
               {/* Indicators section */}
               <div className="px-2 pb-1 pt-1 mb-0.5 border-t border-gray-100 dark:border-white/[0.06] mt-1">
-                <span className="text-[10px] font-semibold text-rh-light-muted/50 dark:text-white/25 uppercase tracking-wider">Indicators</span>
+                <span className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Indicators</span>
               </div>
               <div className="grid grid-cols-3 gap-1 px-1 mb-1">
                 {([
@@ -4502,7 +4510,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                     className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
                       enabled
                         ? ''
-                        : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
+                        : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text hover:border-gray-300/60 dark:hover:border-white/[0.15]'
                     }`}
                     style={enabled ? { borderColor: `${color}59`, backgroundColor: `${color}14`, color } : undefined}
                   >
@@ -4523,7 +4531,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       {/* Interval selector — candle mode only */}
       {chartMode === 'candle' && (
         <div className="flex items-center gap-1.5 mt-2 px-0.5">
-          <span className="text-[9px] font-semibold text-gray-400/50 dark:text-rh-muted/50 uppercase tracking-wider mr-1">Interval</span>
+          <span className="text-[9px] font-semibold text-gray-400/50 dark:text-white/80 uppercase tracking-wider mr-1">Interval</span>
           {CANDLE_INTERVALS[selectedPeriod].options.map(iv => (
             <button
               key={iv}
@@ -4531,7 +4539,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
                 candleInterval === iv
                   ? `${isGain ? 'bg-rh-green/15 text-rh-green' : 'bg-rh-red/15 text-rh-red'}`
-                  : 'text-gray-400 dark:text-rh-muted hover:text-gray-600 dark:hover:text-rh-text'
+                  : 'text-gray-500 dark:text-white hover:text-gray-600 dark:hover:text-rh-text'
               }`}
             >
               {iv}
@@ -4540,21 +4548,30 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         </div>
       )}
 
-      {/* Micro legend + measure hint */}
-      <div className="flex items-center justify-between mt-1.5">
+      {/* Micro legend + measure hint. Both hints are desktop-only now, so on
+          mobile this row exists solely for the breach legend — without that it
+          would render as an empty 6px band under the chart. Kept as a plain
+          `flex` whenever the legend has something to say, so the "B" markers on
+          the chart are never left unexplained. Desktop is always on. */}
+      <div className={`${signalsEnabled && enabledMAs.size > 0 && breachClusters.length > 0 ? 'flex' : 'hidden sm:flex'} items-center justify-between mt-1.5`}>
         {signalsEnabled && enabledMAs.size > 0 && breachClusters.length > 0 ? (
-          <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+          <span className="text-[10px] text-rh-light-text/70 dark:text-white/80">
             B = MA breach signal
           </span>
         ) : <span />}
         <div className="flex items-center gap-3">
           {zoomRange && (
-            <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+            // Desktop only, like the measure hint below — the gestures work on
+            // touch either way, and the line was just taking up room there.
+            <span className="hidden sm:inline text-[10px] text-rh-light-text/70 dark:text-white/80">
               Drag to pan · Double-click to reset
             </span>
           )}
           {!zoomRange && showMeasureHint && hasData && !isMeasuring && (
-            <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">
+            // Desktop only. The gestures still work on touch — pinch to zoom,
+            // tap to measure — they just aren't spelled out, since phone users
+            // expect them and the line was only taking up room.
+            <span className="hidden sm:inline text-[10px] text-rh-light-text/70 dark:text-white/80">
               Scroll to zoom · Tap to measure
             </span>
           )}

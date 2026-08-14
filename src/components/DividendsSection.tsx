@@ -107,7 +107,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-muted/50 dark:text-rh-muted/50">
+          <h3 className="text-[11px] font-medium uppercase tracking-wider text-rh-light-text/70 dark:text-white/80">
             Dividends
           </h3>
           {/* DRIP Toggle */}
@@ -117,7 +117,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
               dripEnabled
                 ? 'bg-rh-green/10 text-rh-green'
-                : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
             title={dripEnabled ? 'DRIP enabled - dividends will be auto-reinvested' : 'Enable DRIP to auto-reinvest dividends'}
           >
@@ -129,7 +129,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
           {hasData && (
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className={`text-[10px] transition-colors ${showHistory ? 'text-rh-green' : 'text-rh-light-muted/50 dark:text-rh-muted/50 hover:text-rh-light-text dark:hover:text-rh-text'}`}
+              className={`text-[10px] transition-colors ${showHistory ? 'text-rh-green' : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'}`}
             >
               History
             </button>
@@ -137,7 +137,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors disabled:opacity-50"
+            className="text-rh-light-text dark:text-white hover:text-rh-green transition-colors disabled:opacity-50"
             title="Sync dividend data"
           >
             <svg className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,7 +146,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-green transition-colors"
+            className="text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -160,7 +160,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
       )}
 
       {!hasData ? (
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted text-center py-3">
+        <p className="text-sm text-rh-light-text dark:text-white text-center py-3">
           No dividend data yet. Click Sync to fetch from Yahoo Finance.
         </p>
       ) : (
@@ -169,12 +169,12 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
           {summary && (summary.totalYTD > 0 || summary.totalAllTime > 0) && (
             <div className="flex items-center gap-4 mb-3">
               <div>
-                <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">YTD</p>
+                <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">YTD</p>
                 <p className="text-base font-semibold text-rh-green">{formatCurrency(summary.totalYTD)}</p>
               </div>
-              <span className="text-rh-light-muted/15 dark:text-rh-muted/15">|</span>
+              <span className="text-rh-light-text dark:text-white">|</span>
               <div>
-                <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">All-time</p>
+                <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">All-time</p>
                 <p className="text-base font-semibold text-rh-light-text dark:text-rh-text">{formatCurrency(summary.totalAllTime)}</p>
               </div>
             </div>
@@ -206,17 +206,17 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                   className="w-full flex items-center justify-between mb-2 group cursor-pointer"
                 >
                   <div className="flex items-center gap-1.5">
-                    <svg className={`w-3 h-3 text-rh-light-muted/40 dark:text-rh-muted/40 transition-transform ${showUpcoming ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-3 h-3 text-rh-light-text dark:text-white transition-transform ${showUpcoming ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                    <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider">
+                    <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">
                       Upcoming ({sorted.length})
                     </p>
                   </div>
                   {totalEst > 0 && (
                     <div className="text-right">
                       <p className="text-base font-semibold text-rh-green">{formatCurrency(totalEst)}</p>
-                      <p className="text-[9px] text-rh-light-muted/40 dark:text-rh-muted/40 -mt-0.5">estimated</p>
+                      <p className="text-[9px] text-rh-light-text dark:text-white -mt-0.5">estimated</p>
                     </div>
                   )}
                 </button>
@@ -240,7 +240,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                             )}
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-rh-light-muted/50 dark:text-rh-muted/50">{shortDate(ev.payDate)}</span>
+                            <span className="text-rh-light-text dark:text-white">{shortDate(ev.payDate)}</span>
                             {estPayout !== null && (
                               <span className="text-rh-green font-medium">{formatCurrency(estPayout)}</span>
                             )}
@@ -273,7 +273,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                           onClick={(e) => { e.stopPropagation(); onTickerClick?.(c.ticker); }}
                           className="font-medium text-rh-green hover:underline"
                         >{c.ticker}</button>
-                        <span className="text-rh-light-muted/60 dark:text-rh-muted/60">
+                        <span className="text-rh-light-text dark:text-white">
                           {c.sharesEligible} sh
                         </span>
                         {badgeType === 'drip' ? (
@@ -293,8 +293,8 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                             +{c.reinvestment.sharesPurchased.toFixed(4)} sh
                           </span>
                         )}
-                        <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{shortDate(c.creditedAt)}</span>
-                        <svg className="w-3.5 h-3.5 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span className="text-rh-light-text dark:text-white">{shortDate(c.creditedAt)}</span>
+                        <svg className="w-3.5 h-3.5 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
@@ -303,7 +303,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                 })}
               </div>
               {credits.length === 0 && (
-                <p className="text-xs text-rh-light-muted dark:text-rh-muted text-center py-2">
+                <p className="text-xs text-rh-light-text dark:text-white text-center py-2">
                   No dividends credited yet
                 </p>
               )}
@@ -313,7 +313,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
           {/* Per-ticker breakdown */}
           {showHistory && summary && summary.byTicker.length > 0 && (
             <div className="mt-3 pt-3 border-t border-rh-light-border/30 dark:border-rh-border/30">
-              <p className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40 uppercase tracking-wider mb-1.5">By ticker</p>
+              <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mb-1.5">By ticker</p>
               <div className="space-y-1">
                 {summary.byTicker.map(t => (
                   <div key={t.ticker} className="flex items-center justify-between text-xs">
@@ -323,7 +323,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                     >{t.ticker}</button>
                     <div className="flex items-center gap-3">
                       <span className="text-rh-green">{formatCurrency(t.total)}</span>
-                      <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{t.count} payouts</span>
+                      <span className="text-rh-light-text dark:text-white">{t.count} payouts</span>
                     </div>
                   </div>
                 ))}
@@ -349,7 +349,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
         onReinvested={fetchData}
       />
 
-      <p className="text-[9px] text-rh-light-muted/30 dark:text-rh-muted/20 mt-2">
+      <p className="text-[9px] text-rh-light-text dark:text-white mt-2">
         Dividend data may be updated by issuers.
       </p>
     </div>
@@ -415,7 +415,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
               dividendType === 'cash'
                 ? 'bg-rh-green text-white shadow-sm'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
           >
             Cash Dividend
@@ -426,7 +426,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
               dividendType === 'drip'
                 ? 'bg-rh-green text-white shadow-sm'
-                : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
             }`}
           >
             DRIP Reinvest
@@ -434,7 +434,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         </div>
 
         {/* Help text */}
-        <p className="text-[10px] text-rh-light-muted dark:text-rh-muted mb-4 leading-relaxed">
+        <p className="text-[10px] text-rh-light-text dark:text-white mb-4 leading-relaxed">
           {dividendType === 'cash'
             ? 'Cash dividend paid to your account. Does not change your share count.'
             : 'Dividend automatically reinvested to purchase additional shares of the stock.'}
@@ -445,11 +445,11 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
           <input type="number" inputMode="decimal" step="0.0001" placeholder="Amount per share" value={amountPerShare} onChange={e => setAmountPerShare(e.target.value)} className={inputClass} />
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-rh-light-muted dark:text-rh-muted">Ex-Date</label>
+              <label className="text-[10px] text-rh-light-text dark:text-white">Ex-Date</label>
               <input type="date" value={exDate} onChange={e => setExDate(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="text-[10px] text-rh-light-muted dark:text-rh-muted">Pay Date</label>
+              <label className="text-[10px] text-rh-light-text dark:text-white">Pay Date</label>
               <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className={inputClass} />
             </div>
           </div>
@@ -458,7 +458,7 @@ function AddDividendModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-3 py-2 text-sm text-rh-light-muted dark:text-rh-muted border border-rh-light-border dark:border-rh-border rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
+              className="flex-1 px-3 py-2 text-sm text-rh-light-text dark:text-white border border-rh-light-border dark:border-rh-border rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
             >
               Cancel
             </button>

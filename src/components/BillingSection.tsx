@@ -6,7 +6,7 @@ import { navigateToPricing } from '../utils/navigate-to-pricing';
 import { isNativePlatform, platform } from '../utils/platform';
 
 const PLAN_LABELS: Record<PlanTier, { name: string; color: string; bg: string }> = {
-  free: { name: 'Free', color: 'text-rh-light-muted dark:text-rh-muted', bg: 'bg-gray-200/50 dark:bg-white/[0.06]' },
+  free: { name: 'Free', color: 'text-rh-light-text dark:text-white', bg: 'bg-gray-200/50 dark:bg-white/[0.06]' },
   pro: { name: 'Pro', color: 'text-rh-green', bg: 'bg-rh-green/10' },
   premium: { name: 'Premium', color: 'text-amber-500', bg: 'bg-amber-500/10' },
   elite: { name: 'Elite', color: 'text-purple-400', bg: 'bg-purple-500/10' },
@@ -55,7 +55,7 @@ export function BillingSection() {
 
   return (
     <section>
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-muted dark:text-rh-muted mb-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-3">
         Subscription
       </h3>
       <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/40 dark:border-white/[0.06] space-y-3">
@@ -74,7 +74,7 @@ export function BillingSection() {
               Ends {new Date(billing.graceEndsAt).toLocaleDateString()}
             </span>
           ) : billing?.planExpiresAt ? (
-            <span className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+            <span className="text-[11px] text-rh-light-text dark:text-white">
               Renews {new Date(billing.planExpiresAt).toLocaleDateString()}
             </span>
           ) : null}
@@ -120,7 +120,7 @@ export function BillingSection() {
 
         {/* Plan info */}
         {plan === 'free' && (
-          <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">
+          <p className="text-[11px] text-rh-light-text dark:text-white">
             Free plan includes up to 25 holdings, 1 watchlist, and 3 price alerts.
           </p>
         )}

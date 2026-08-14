@@ -90,7 +90,7 @@ function RiskChip({ label, value, level, tooltip }: { label: string; value: stri
   const chip = (
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-gray-200/60 dark:border-white/[0.08] bg-gray-50/60 dark:bg-transparent text-xs cursor-default">
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />
-      <span className="font-medium text-rh-light-muted dark:text-white/50">{label}</span>
+      <span className="font-medium text-rh-light-text dark:text-white/80">{label}</span>
       <span className={`font-semibold tabular-nums ${s.text}`}>{value}</span>
     </div>
   );
@@ -109,15 +109,15 @@ function MetricRow({ title, metric }: { title: string; metric: MetricResult }) {
     >
       <div className="flex items-center gap-2.5">
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />
-        <span className="text-[12px] text-rh-light-text/80 dark:text-white/60 min-w-0 truncate">{title}</span>
+        <span className="text-[12px] text-rh-light-text/80 dark:text-white min-w-0 truncate">{title}</span>
         <span className={`ml-auto text-[12px] font-semibold tabular-nums shrink-0 ${s.text}`}>{metric.value}</span>
         <span className={`text-[9px] font-semibold uppercase tracking-wider shrink-0 w-14 text-right opacity-60 ${s.text}`}>{metric.level}</span>
       </div>
       {showDetail && (
         <div className="mt-1.5 pl-4">
-          <p className="text-[11px] text-rh-light-muted/70 dark:text-white/40 leading-snug">{metric.context}</p>
+          <p className="text-[11px] text-rh-light-text dark:text-white leading-snug">{metric.context}</p>
           {metric.explanation && (
-            <p className="text-[11px] text-rh-light-muted/50 dark:text-white/25 leading-snug mt-0.5">{metric.explanation}</p>
+            <p className="text-[11px] text-rh-light-text dark:text-white/80 leading-snug mt-0.5">{metric.explanation}</p>
           )}
         </div>
       )}
@@ -203,7 +203,7 @@ export function WarningPanel({ ticker }: WarningPanelProps) {
         onClick={() => setExpanded(e => !e)}
         className="w-[calc(100%+1.5rem)] -mx-3 px-3 -mt-2 pt-2 pb-2 mb-1 flex items-center justify-between gap-2 rounded-lg transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02]"
       >
-        <span className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-muted/50 dark:text-rh-muted/50">
+        <span className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white">
           <span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Risk Temperature
         </span>
         <span className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export function WarningPanel({ ticker }: WarningPanelProps) {
             </span>
           )}
           <svg
-            className={`w-4 h-4 text-rh-light-muted/50 dark:text-white/40 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-rh-light-text dark:text-white transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -255,11 +255,6 @@ export function WarningPanel({ ticker }: WarningPanelProps) {
           </div>
         )
       )}
-
-      {/* Disclaimer */}
-      <p className="text-[10px] text-rh-light-muted/40 dark:text-white/20 leading-relaxed">
-        Historical risk context — not a prediction. Not financial advice.
-      </p>
     </div>
   );
 }

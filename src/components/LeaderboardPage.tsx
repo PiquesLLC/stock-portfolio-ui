@@ -192,7 +192,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
           <div className="relative">
             <button
               onClick={() => setShowInfo(!showInfo)}
-              className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+              className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
@@ -204,9 +204,9 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 <div className="fixed inset-0 z-40" onClick={() => setShowInfo(false)} />
                 <div className="absolute left-0 top-7 z-50 w-64 bg-white dark:bg-[#1a1a1e]/95 border border-gray-200/60 dark:border-white/[0.1] rounded-lg shadow-lg p-3">
                   {lastUpdated && (
-                    <p className="text-[11px] text-rh-light-muted dark:text-rh-muted mb-1.5">Updated {formatRelativeTime(lastUpdated)}</p>
+                    <p className="text-[11px] text-rh-light-text dark:text-white mb-1.5">Updated {formatRelativeTime(lastUpdated)}</p>
                   )}
-                  <p className="text-[11px] text-rh-light-muted/70 dark:text-rh-muted/70 leading-relaxed">
+                  <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed">
                     Rankings reflect each portfolio's percentage return over the selected window, measured server-side from market prices. Adding or withdrawing funds during the window can affect this figure.
                   </p>
                 </div>
@@ -225,7 +225,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 className={`relative px-2.5 py-2 text-[12px] font-medium transition-all duration-150 ${
                   region === r.id
                     ? 'text-rh-light-text dark:text-white'
-                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                 }`}
               >
                 {r.label}
@@ -245,7 +245,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
                   window === w.id
                     ? 'text-rh-green'
-                    : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                    : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                 }`}
               >
                 {w.label}
@@ -276,7 +276,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
               ))}
             </div>
           ) : entries.length === 0 ? (
-            <div className="text-rh-light-muted dark:text-rh-muted text-sm">
+            <div className="text-rh-light-text dark:text-white text-sm">
               No verified users found. Run the seed script to add demo users.
             </div>
           ) : (
@@ -302,7 +302,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                 <tbody>
                   {sortedEntries.map((entry, index) => {
                     const twrColor = entry.twrPct == null
-                      ? 'text-rh-light-muted dark:text-rh-muted'
+                      ? 'text-rh-light-text dark:text-white'
                       : entry.twrPct >= 0 ? 'text-rh-green' : 'text-rh-red';
                     return (
                       <tr
@@ -310,7 +310,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                         onClick={() => setSelectedUserId(entry.userId)}
                         className="border-b border-gray-200/10 dark:border-white/[0.04] last:border-b-0 hover:bg-gray-100/40 dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
                       >
-                        <td className="px-2 sm:px-4 py-3.5 text-sm text-rh-light-muted/40 dark:text-rh-muted/40 font-medium tabular-nums">
+                        <td className="px-2 sm:px-4 py-3.5 text-sm text-rh-light-text dark:text-white font-medium tabular-nums">
                           {index + 1}
                         </td>
                         <td className="px-2 sm:px-4 py-3.5">
@@ -324,7 +324,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/50 truncate max-w-[120px] sm:max-w-none">
+                          <div className="text-[11px] text-rh-light-text dark:text-white truncate max-w-[120px] sm:max-w-none">
                             @{entry.username}
                             {entry.sinceStart && (
                               <span className="ml-2 opacity-60 hidden sm:inline">Since start</span>
@@ -354,7 +354,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
                                   e.stopPropagation();
                                   onCompare(entry.userId, entry.displayName);
                                 }}
-                                className="p-1 rounded hover:bg-white/[0.04] text-rh-light-muted/30 dark:text-rh-muted/30 hover:text-rh-green transition-colors"
+                                className="p-1 rounded hover:bg-white/[0.04] text-rh-light-text dark:text-white hover:text-rh-green transition-colors"
                                 title="Compare portfolios"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

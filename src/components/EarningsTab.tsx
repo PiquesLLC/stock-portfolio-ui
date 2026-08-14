@@ -140,10 +140,10 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
               >
                 {next.ticker}
               </button>
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted mt-0.5">
+              <p className="text-sm text-rh-light-text dark:text-white mt-0.5">
                 Reports {formatCountdown(next.daysUntil)}
               </p>
-              <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/50 mt-1">
+              <p className="text-xs text-rh-light-text dark:text-white mt-1">
                 {next.dayLabel}
                 {next.estimatedEPS !== null && (
                   <> · Est. EPS <span className="font-medium text-rh-light-text dark:text-rh-text">${next.estimatedEPS.toFixed(2)}</span></>
@@ -154,7 +154,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
         </div>
       ) : (
         <div className="p-6 text-center">
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted">No upcoming earnings for your holdings</p>
+          <p className="text-sm text-rh-light-text dark:text-white">No upcoming earnings for your holdings</p>
         </div>
       )}
 
@@ -163,7 +163,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1 h-4 rounded-full bg-rh-green" />
-            <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-muted/50 dark:text-rh-muted/50">
+            <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-white">
               This Week
             </h3>
           </div>
@@ -180,9 +180,9 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   )}
                 </div>
-                <p className="text-[11px] text-rh-light-muted dark:text-rh-muted">{e.dayLabel}</p>
+                <p className="text-[11px] text-rh-light-text dark:text-white">{e.dayLabel}</p>
                 {e.estimatedEPS !== null && (
-                  <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/50 mt-0.5">
+                  <p className="text-[10px] text-rh-light-text dark:text-white mt-0.5">
                     Est. ${e.estimatedEPS.toFixed(2)}
                   </p>
                 )}
@@ -196,7 +196,7 @@ export function EarningsTab({ holdings, onTickerClick, portfolioId }: EarningsTa
       <div>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 rounded-full bg-rh-green" />
-          <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-muted/50 dark:text-rh-muted/50">
+          <h3 className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-white">
             All Events
           </h3>
         </div>

@@ -13,7 +13,7 @@ export function PrivacyPage({ initialTab = 'privacy' }: { initialTab?: 'privacy'
             <img src="/north-signal-logo.png" alt="" className="h-7 w-7" />
             <span className="text-lg font-bold text-white tracking-tight">Nala</span>
           </a>
-          <a href="#" className="text-[13px] text-white/50 hover:text-white transition-colors">Back to Nala</a>
+          <a href="#" className="text-[13px] text-white/80 hover:text-white transition-colors">Back to Nala</a>
         </div>
       </nav>
 
@@ -26,7 +26,7 @@ export function PrivacyPage({ initialTab = 'privacy' }: { initialTab?: 'privacy'
             className={`flex-1 px-4 py-2 rounded-md text-xs font-medium transition-colors ${
               activeTab === 'privacy'
                 ? 'bg-white/[0.1] text-white'
-                : 'text-white/40 hover:text-white/60'
+                : 'text-white hover:text-white'
             }`}
           >
             Privacy Policy
@@ -36,7 +36,7 @@ export function PrivacyPage({ initialTab = 'privacy' }: { initialTab?: 'privacy'
             className={`flex-1 px-4 py-2 rounded-md text-xs font-medium transition-colors ${
               activeTab === 'terms'
                 ? 'bg-white/[0.1] text-white'
-                : 'text-white/40 hover:text-white/60'
+                : 'text-white hover:text-white'
             }`}
           >
             Terms of Service
@@ -44,13 +44,13 @@ export function PrivacyPage({ initialTab = 'privacy' }: { initialTab?: 'privacy'
         </div>
 
         {/* Policy content — force dark text styles */}
-        <div className="[&_h2]:text-white [&_h3]:text-white/90 [&_p]:text-white/40 [&_li]:text-white/40 [&_strong]:text-white/60">
+        <div className="[&_h2]:text-white [&_h3]:text-white/90 [&_p]:text-white [&_li]:text-white [&_strong]:text-white">
           {activeTab === 'privacy' ? <PrivacyPolicyContent /> : <TermsOfServiceContent />}
         </div>
 
         {/* Footer */}
         <div className="mt-16 pt-6 border-t border-white/[0.04] text-center">
-          <p className="text-[11px] text-white/15">
+          <p className="text-[11px] text-white/80">
             Effective February 15, 2026 &middot; Version 1.0 &middot; Piques LLC
           </p>
         </div>

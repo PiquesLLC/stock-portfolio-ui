@@ -76,7 +76,7 @@ export function PortfolioDataSection({
     <div className="space-y-7">
       {/* Import & Export — first */}
       <div className="space-y-4">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Import & Export</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Import & Export</h3>
 
         {/* Import */}
         <button
@@ -88,13 +88,13 @@ export function PortfolioDataSection({
             flex items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
             <span>Import Portfolio (CSV)</span>
           </div>
         </button>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted px-1">
+        <p className="text-xs text-rh-light-text dark:text-white px-1">
           Upload a CSV to replace or merge with your current holdings
         </p>
 
@@ -110,13 +110,13 @@ export function PortfolioDataSection({
             flex items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-rh-light-muted dark:text-rh-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             <span>{exporting ? 'Exporting...' : 'Export Portfolio (CSV)'}</span>
           </div>
         </button>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted px-1">
+        <p className="text-xs text-rh-light-text dark:text-white px-1">
           Download your holdings, cost basis, and current values
         </p>
 
@@ -129,13 +129,13 @@ export function PortfolioDataSection({
 
       {/* Portfolio Settings */}
       <div className="space-y-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-muted/80 dark:text-rh-muted/60 pl-3 border-l-2 border-rh-green">Portfolio Settings</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 pl-3 border-l-2 border-rh-green">Portfolio Settings</h3>
 
         {/* DRIP */}
         <label className="flex items-center justify-between cursor-pointer">
           <div>
             <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Dividend Reinvestment (DRIP)</span>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">Automatically reinvest dividends</p>
+            <p className="text-xs text-rh-light-text dark:text-white">Automatically reinvest dividends</p>
           </div>
           <ToggleSwitch checked={dripEnabled} onChange={setDripEnabled} />
         </label>
@@ -145,7 +145,7 @@ export function PortfolioDataSection({
           <div className="flex items-center justify-between mb-1">
             <div>
               <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Cash Interest Rate (APY)</span>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Interest earned on uninvested cash</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Interest earned on uninvested cash</p>
             </div>
           </div>
           <div className="relative w-32">
@@ -160,7 +160,7 @@ export function PortfolioDataSection({
               placeholder="e.g. 4.5"
               className="w-full px-3 py-1.5 pr-7 text-sm bg-white dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08] rounded-lg text-rh-light-text dark:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">%</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-xs">%</span>
           </div>
         </div>
 
@@ -169,11 +169,11 @@ export function PortfolioDataSection({
           <div className="flex items-center justify-between mb-1">
             <div>
               <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Jan 1 Portfolio Value</span>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Your total portfolio value on January 1st — enables accurate YTD returns</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Your total portfolio value on January 1st — enables accurate YTD returns</p>
             </div>
           </div>
           <div className="relative w-40">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-xs">$</span>
             <input
               type="number"
               inputMode="decimal"
@@ -192,11 +192,11 @@ export function PortfolioDataSection({
           <div className="flex items-center justify-between mb-1">
             <div>
               <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Margin Balance</span>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Outstanding margin debt on your account</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Outstanding margin debt on your account</p>
             </div>
           </div>
           <div className="relative w-40">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-xs">$</span>
             <input
               type="number"
               inputMode="decimal"
@@ -215,11 +215,11 @@ export function PortfolioDataSection({
           <div className="flex items-center justify-between mb-1">
             <div>
               <span className="text-sm font-medium text-rh-light-text dark:text-rh-text">Annual Salary</span>
-              <p className="text-xs text-rh-light-muted dark:text-rh-muted">Your annual income — used to calculate dividend salary replacement %</p>
+              <p className="text-xs text-rh-light-text dark:text-white">Your annual income — used to calculate dividend salary replacement %</p>
             </div>
           </div>
           <div className="relative w-40">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-muted/50 dark:text-rh-muted text-xs">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rh-light-text dark:text-white text-xs">$</span>
             <input
               type="number"
               inputMode="decimal"
@@ -245,7 +245,7 @@ export function PortfolioDataSection({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">Delete Account</p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
+            <p className="text-xs text-rh-light-text dark:text-white mt-0.5">
               Permanently delete your account and all associated data. This cannot be undone.
             </p>
           </div>

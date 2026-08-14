@@ -12,12 +12,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed mb-3">{children}</p>;
+  return <p className="text-sm text-rh-light-text dark:text-white leading-relaxed mb-3">{children}</p>;
 }
 
 function BulletList({ items }: { items: React.ReactNode[] }) {
   return (
-    <ul className="list-disc list-inside space-y-1.5 text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed mb-3 ml-1">
+    <ul className="list-disc list-inside space-y-1.5 text-sm text-rh-light-text dark:text-white leading-relaxed mb-3 ml-1">
       {items.map((item, i) => <li key={i}>{item}</li>)}
     </ul>
   );
@@ -27,7 +27,7 @@ export function PrivacyPolicyContent() {
   return (
     <div>
       <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text mb-1">Privacy Policy</h2>
-      <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mb-4">Last updated: February 15, 2026</p>
+      <p className="text-xs text-rh-light-text dark:text-white mb-4">Last updated: February 15, 2026</p>
 
       <SectionTitle>1. Introduction</SectionTitle>
       <P>
@@ -141,7 +141,7 @@ export function TermsOfServiceContent() {
   return (
     <div>
       <h2 className="text-lg font-bold text-rh-light-text dark:text-rh-text mb-1">Terms of Service</h2>
-      <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/60 mb-4">Last updated: February 15, 2026</p>
+      <p className="text-xs text-rh-light-text dark:text-white mb-4">Last updated: February 15, 2026</p>
 
       <SectionTitle>1. Acceptance of Terms</SectionTitle>
       <P>
@@ -270,7 +270,7 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
               aria-label="Close"
               className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
             >
-              <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-rh-light-text dark:text-white" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -282,7 +282,7 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
               className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === 'privacy'
                   ? 'bg-white dark:bg-white/[0.12] text-rh-light-text dark:text-rh-text shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               Privacy Policy
@@ -292,7 +292,7 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
               className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === 'terms'
                   ? 'bg-white dark:bg-white/[0.12] text-rh-light-text dark:text-rh-text shadow-sm'
-                  : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text'
+                  : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text'
               }`}
             >
               Terms of Service
@@ -307,7 +307,7 @@ export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: 
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-gray-200/40 dark:border-white/[0.08] text-center">
-          <p className="text-[11px] text-rh-light-muted/60 dark:text-rh-muted/60">
+          <p className="text-[11px] text-rh-light-text dark:text-white">
             Effective February 15, 2026 · Version 1.0 · Piques LLC
           </p>
         </div>

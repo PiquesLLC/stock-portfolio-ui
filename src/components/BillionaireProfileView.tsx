@@ -255,7 +255,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
       <div className="pt-2 pb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
+          className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -289,14 +289,14 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
       <div className="pt-2 pb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
+          className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Leaderboard
         </button>
-        <p className="text-rh-light-muted dark:text-rh-muted text-sm">Failed to load billionaire data</p>
+        <p className="text-rh-light-text dark:text-white text-sm">Failed to load billionaire data</p>
       </div>
     );
   }
@@ -304,14 +304,14 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
   // Change period data removed — using chart period selector only
 
   const isActiveUp = (activeChange.dollar ?? 0) >= 0;
-  const changeColor = activeChange.dollar == null ? 'text-rh-light-muted dark:text-rh-muted' : isActiveUp ? 'text-rh-green' : 'text-rh-red';
+  const changeColor = activeChange.dollar == null ? 'text-rh-light-text dark:text-white' : isActiveUp ? 'text-rh-green' : 'text-rh-red';
 
   return (
     <div className="pt-2 pb-6">
       {/* ── Back button ─────────────────────────────────────── */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
+        className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors mb-6"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -343,18 +343,18 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
               </span>
             )}
           </div>
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted mt-0.5">
+          <p className="text-sm text-rh-light-text dark:text-white mt-0.5">
             {profile.company}
-            {profile.title && <span className="text-rh-light-muted/50 dark:text-rh-muted/50"> &middot; {profile.title}</span>}
+            {profile.title && <span className="text-rh-light-text dark:text-white"> &middot; {profile.title}</span>}
           </p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {profile.country && (
-              <span className="px-2 py-0.5 text-[10px] font-medium text-rh-light-muted/60 dark:text-rh-muted/60 border border-gray-200/20 dark:border-white/[0.06] rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-medium text-rh-light-text dark:text-white border border-gray-200/20 dark:border-white/[0.06] rounded-full">
                 {profile.country}
               </span>
             )}
             {profile.industry && (
-              <span className="px-2 py-0.5 text-[10px] font-medium text-rh-light-muted/60 dark:text-rh-muted/60 border border-gray-200/20 dark:border-white/[0.06] rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-medium text-rh-light-text dark:text-white border border-gray-200/20 dark:border-white/[0.06] rounded-full">
                 {profile.industry}
               </span>
             )}
@@ -373,7 +373,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
               {hoverChange != null ? fmtChangeBillions(hoverChange) : '--'}
               {hoverChangePct != null && <span className="ml-1">({fmtPct(hoverChangePct)})</span>}
               {hoverTime != null && (
-                <span className="ml-2 text-rh-light-muted/50 dark:text-rh-muted/50 text-xs">
+                <span className="ml-2 text-rh-light-text dark:text-white text-xs">
                   {fmtChartDate(hoverTime, chartPeriod === '1D')}
                 </span>
               )}
@@ -401,7 +401,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
                 key={p}
                 onClick={() => setChartPeriod(p)}
                 className={`relative px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
-                  isActive ? periodColor : 'text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-rh-light-text dark:hover:text-white/60'
+                  isActive ? periodColor : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                 }`}
               >
                 {p}
@@ -480,7 +480,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
           </svg>
         ) : (
           <div
-            className="flex items-center justify-center text-rh-light-muted/40 dark:text-rh-muted/40 text-sm"
+            className="flex items-center justify-center text-rh-light-text dark:text-white text-sm"
             style={{ height: CHART_H }}
           >
             No chart data available
@@ -493,7 +493,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
         {/* Section header with green left bar */}
         <div className="flex items-center gap-2 mb-4">
           <div className="w-[3px] h-4 bg-rh-green rounded-full" />
-          <h2 className="text-[11px] font-bold tracking-wider uppercase text-rh-light-muted/50 dark:text-rh-muted/50">
+          <h2 className="text-[11px] font-bold tracking-wider uppercase text-rh-light-text dark:text-white">
             Public Holdings
           </h2>
         </div>
@@ -505,17 +505,17 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
             ))}
           </div>
         ) : holdingRows.length === 0 ? (
-          <p className="text-sm text-rh-light-muted/40 dark:text-rh-muted/40">No public holdings data available.</p>
+          <p className="text-sm text-rh-light-text dark:text-white">No public holdings data available.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200/10 dark:border-white/[0.04]">
-                  <th className="text-left px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Ticker</th>
-                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Shares</th>
-                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:table-cell">Current Price</th>
-                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50">Value</th>
-                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-muted/50 dark:text-rh-muted/50 hidden sm:table-cell">Weight</th>
+                  <th className="text-left px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-text dark:text-white">Ticker</th>
+                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-text dark:text-white">Shares</th>
+                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-text dark:text-white hidden sm:table-cell">Current Price</th>
+                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-text dark:text-white">Value</th>
+                  <th className="text-right px-2 sm:px-3 py-2 text-[11px] font-medium text-rh-light-text dark:text-white hidden sm:table-cell">Weight</th>
                 </tr>
               </thead>
               <tbody>
@@ -536,7 +536,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
                           {row.ticker}
                         </button>
                         {row.note && (
-                          <span className="ml-1.5 text-[10px] text-rh-light-muted/40 dark:text-rh-muted/40">{row.note}</span>
+                          <span className="ml-1.5 text-[10px] text-rh-light-text dark:text-white">{row.note}</span>
                         )}
                       </td>
                       <td className="px-2 sm:px-3 py-3.5 text-sm text-right text-rh-light-text dark:text-rh-text tabular-nums">
@@ -548,7 +548,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
                       <td className="px-2 sm:px-3 py-3.5 text-sm text-right font-medium text-rh-light-text dark:text-rh-text tabular-nums">
                         {row.value != null ? fmtBillions(row.value) : '--'}
                       </td>
-                      <td className="px-2 sm:px-3 py-3.5 text-sm text-right text-rh-light-muted dark:text-rh-muted tabular-nums hidden sm:table-cell">
+                      <td className="px-2 sm:px-3 py-3.5 text-sm text-right text-rh-light-text dark:text-white tabular-nums hidden sm:table-cell">
                         {weight !== '--' ? `${weight}%` : '--'}
                       </td>
                     </tr>
@@ -558,13 +558,13 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
                 {/* Base Net Worth row — non-public wealth */}
                 {baseNetWorth > 0 && (
                   <tr className="border-t border-gray-200/10 dark:border-white/[0.04]">
-                    <td className="px-2 sm:px-3 py-3.5 text-sm text-rh-light-muted/60 dark:text-rh-muted/60 italic" colSpan={3}>
+                    <td className="px-2 sm:px-3 py-3.5 text-sm text-rh-light-text dark:text-white italic" colSpan={3}>
                       Base Net Worth (non-public assets)
                     </td>
-                    <td className="px-2 sm:px-3 py-3.5 text-sm text-right font-medium text-rh-light-muted/60 dark:text-rh-muted/60 tabular-nums">
+                    <td className="px-2 sm:px-3 py-3.5 text-sm text-right font-medium text-rh-light-text dark:text-white tabular-nums">
                       {fmtBillions(baseNetWorth)}
                     </td>
-                    <td className="px-2 sm:px-3 py-3.5 text-sm text-right text-rh-light-muted/40 dark:text-rh-muted/40 tabular-nums hidden sm:table-cell">
+                    <td className="px-2 sm:px-3 py-3.5 text-sm text-right text-rh-light-text dark:text-white tabular-nums hidden sm:table-cell">
                       {netWorth != null && netWorth > 0 ? `${((baseNetWorth / netWorth) * 100).toFixed(1)}%` : '--'}
                     </td>
                   </tr>
@@ -576,7 +576,7 @@ export function BillionaireProfileView({ slug, onBack, onStockClick }: Billionai
       </div>
 
       {/* ── Data source note ────────────────────────────────── */}
-      <p className="text-[11px] text-rh-light-muted/40 dark:text-rh-muted/40 leading-relaxed">
+      <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed">
         Net worth estimates based on public SEC filings and market data. Private assets estimated.
         {profile.source && <span> Source: {profile.source}</span>}
       </p>

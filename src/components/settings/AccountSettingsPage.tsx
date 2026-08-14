@@ -417,7 +417,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
         <p className="text-rh-red text-sm">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-2 text-sm text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text"
+          className="mt-2 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text"
         >
           Retry
         </button>
@@ -434,7 +434,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       >
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-          <span className="text-xs text-rh-light-muted dark:text-rh-muted">You have unsaved changes</span>
+          <span className="text-xs text-rh-light-text dark:text-white">You have unsaved changes</span>
         </div>
         <button
           onClick={handleSave}
@@ -486,11 +486,11 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
               <div className="flex items-start justify-between mb-5">
                 <div>
                   <h2 className="text-base font-semibold text-rh-light-text dark:text-rh-text">{SECTION_META[activeSection].title}</h2>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">{SECTION_META[activeSection].description}</p>
+                  <p className="text-xs text-rh-light-text dark:text-white mt-0.5">{SECTION_META[activeSection].description}</p>
                 </div>
                 {saveStateLabel && (
                   <span className={`text-[11px] font-medium mt-0.5 flex-shrink-0 ${
-                    isDirty ? 'text-yellow-500' : saving ? 'text-rh-light-muted dark:text-rh-muted' : 'text-rh-green/60'
+                    isDirty ? 'text-yellow-500' : saving ? 'text-rh-light-text dark:text-white' : 'text-rh-green/60'
                   }`}>
                     {saveStateLabel}
                   </span>
@@ -530,11 +530,11 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="text-[15px] font-semibold text-rh-light-text dark:text-rh-text">{SECTION_META[activeSection].title}</h2>
-                  <p className="text-xs text-rh-light-muted/70 dark:text-rh-muted/60 mt-0.5">{SECTION_META[activeSection].description}</p>
+                  <p className="text-xs text-rh-light-text dark:text-white mt-0.5">{SECTION_META[activeSection].description}</p>
                 </div>
                 {saveStateLabel && (
                   <span className={`text-[11px] font-medium flex items-center gap-1.5 flex-shrink-0 ${
-                    isDirty ? 'text-yellow-500' : saving ? 'text-rh-light-muted dark:text-rh-muted' : 'text-rh-green/40'
+                    isDirty ? 'text-yellow-500' : saving ? 'text-rh-light-text dark:text-white' : 'text-rh-green/40'
                   }`}>
                     {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
                     {!isDirty && lastSaved && (
@@ -556,7 +556,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
       {/* Footer */}
       <div className="mt-16 pb-4 text-center">
         <p className="text-[11px] text-gray-400/40 dark:text-white/[0.12]">
-          Nala v{__APP_VERSION__} · <button onClick={() => setShowLegalModal(true)} className="hover:text-gray-500 dark:hover:text-white/30 transition-colors">Privacy & Terms</button>
+          Nala v{__APP_VERSION__} · <button onClick={() => setShowLegalModal(true)} className="hover:text-gray-500 dark:hover:text-white transition-colors">Privacy & Terms</button>
         </p>
       </div>
 
@@ -569,7 +569,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
             <p className="text-sm text-rh-red font-medium mb-1">
               Are you sure? This action cannot be undone.
             </p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted mb-4">
+            <p className="text-xs text-rh-light-text dark:text-white mb-4">
               All your data including portfolio history, follows, and settings will be permanently deleted.
             </p>
             {deleteError && (
@@ -578,7 +578,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
               </div>
             )}
             <div className="mb-4">
-              <label className="block text-xs font-medium text-rh-light-muted dark:text-rh-muted mb-1">
+              <label className="block text-xs font-medium text-rh-light-text dark:text-white mb-1">
                 Enter your password to confirm
               </label>
               <input
@@ -595,7 +595,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
               <button
                 onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError(''); }}
                 className="flex-1 px-3 py-2.5 rounded-lg text-sm font-medium
-                  text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-rh-text
+                  text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text
                   hover:bg-gray-100 dark:hover:bg-rh-border transition-colors"
               >
                 Cancel

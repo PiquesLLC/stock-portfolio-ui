@@ -311,7 +311,7 @@ function Slider({ label, value, onChange, min, max, step, format, autoValue }: {
   const isAuto = autoValue != null && Math.abs(value - autoValue) < step / 2;
   return (
     <div className="flex items-center gap-3 py-1.5">
-      <span className="text-[11px] text-rh-light-text/70 dark:text-white/50 w-[110px] shrink-0">{label}</span>
+      <span className="text-[11px] text-rh-light-text/70 dark:text-white/80 w-[110px] shrink-0">{label}</span>
       <input
         type="range"
         min={min} max={max} step={step}
@@ -319,7 +319,7 @@ function Slider({ label, value, onChange, min, max, step, format, autoValue }: {
         onChange={e => onChange(parseFloat(e.target.value))}
         className="flex-1 h-1 rounded-full appearance-none bg-gray-200/60 dark:bg-white/[0.06] accent-rh-green"
       />
-      <span className="text-[11px] font-mono tabular-nums text-rh-light-text/80 dark:text-white/60 w-[52px] text-right">
+      <span className="text-[11px] font-mono tabular-nums text-rh-light-text/80 dark:text-white w-[52px] text-right">
         {format(value)}
       </span>
       {autoValue != null && (
@@ -328,7 +328,7 @@ function Slider({ label, value, onChange, min, max, step, format, autoValue }: {
           className={`text-[8px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
             isAuto
               ? 'bg-rh-green/15 text-rh-green'
-              : 'bg-gray-200/40 dark:bg-white/[0.04] text-rh-light-muted/40 dark:text-white/20 hover:text-rh-green'
+              : 'bg-gray-200/40 dark:bg-white/[0.04] text-rh-light-text dark:text-white/80 hover:text-rh-green'
           }`}
         >
           AUTO
@@ -482,12 +482,12 @@ function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs;
       <table className="w-full text-[10px] font-mono tabular-nums">
         <thead>
           <tr>
-            <th className="py-1.5 px-1 text-left text-rh-light-muted/40 dark:text-white/20 font-medium">
+            <th className="py-1.5 px-1 text-left text-rh-light-text dark:text-white/80 font-medium">
               <span className="text-[8px]">Growth↓ WACC→</span>
             </th>
             {WACC_STEPS.map(wOff => (
               <th key={wOff} className={`py-1.5 px-1 text-center font-medium ${
-                wOff === 0 ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20'
+                wOff === 0 ? 'text-rh-green' : 'text-rh-light-text dark:text-white/80'
               }`}>
                 {pct(baseInputs.discountRate + wOff)}
               </th>
@@ -498,12 +498,12 @@ function SensitivityTable({ baseInputs, currentPrice }: { baseInputs: DCFInputs;
           {GROWTH_STEPS.map((gOff, ri) => (
             <tr key={ri} className="border-t border-gray-200/15 dark:border-white/[0.03]">
               <td className={`py-1.5 px-1 font-medium ${
-                gOff === 0 ? 'text-rh-green' : 'text-rh-light-muted/40 dark:text-white/20'
+                gOff === 0 ? 'text-rh-green' : 'text-rh-light-text dark:text-white/80'
               }`}>
                 {pct(baseInputs.revenueGrowth + gOff)}
               </td>
               {rows[ri].map((val, ci) => {
-                if (val == null) return <td key={ci} className="py-1.5 px-1 text-center text-rh-light-muted/20 dark:text-white/10">-</td>;
+                if (val == null) return <td key={ci} className="py-1.5 px-1 text-center text-rh-light-text dark:text-white/80">-</td>;
                 const isCenter = gOff === 0 && WACC_STEPS[ci] === 0;
                 const upside = val > currentPrice;
                 return (
@@ -579,7 +579,7 @@ function ProjectedChart({ historicalFCFs, projectedFCFs, labels }: {
       <div className="flex gap-1 px-1 mt-1">
         {labels.map((l, i) => (
           <span key={i} className={`text-[7px] font-mono flex-1 text-center tabular-nums ${
-            i >= histLen ? 'text-rh-green/40' : 'text-rh-light-muted/30 dark:text-white/15'
+            i >= histLen ? 'text-rh-green/40' : 'text-rh-light-text dark:text-white/80'
           }`}>
             {l}
           </span>
@@ -632,7 +632,7 @@ export function DCFCalculator({ data, currentPrice }: {
   // The only genuine dead end: no slider can conjure a revenue line or a share count.
   if (defaults.ttmRevenue <= 0 || defaults.sharesOutstanding <= 0) {
     return (
-      <div className="text-xs text-rh-light-muted/40 dark:text-white/20 py-4 text-center">
+      <div className="text-xs text-rh-light-text dark:text-white/80 py-4 text-center">
         Insufficient data for DCF valuation
       </div>
     );
@@ -697,7 +697,7 @@ export function DCFCalculator({ data, currentPrice }: {
   // inside the band is the honest "the model can't call this" answer, which a point
   // estimate can never give — it always lands on one side or the other.
   const verdict = !range || currentPrice <= 0
-    ? { label: '—', tone: 'text-rh-light-muted/50 dark:text-rh-muted/50', dot: 'bg-gray-400/40 dark:bg-white/20' }
+    ? { label: '—', tone: 'text-rh-light-text dark:text-white', dot: 'bg-gray-400/40 dark:bg-white/20' }
     : currentPrice > range.high
       ? { label: 'Above range', tone: 'text-rh-red', dot: 'bg-rh-red' }
       : currentPrice < range.low
@@ -729,8 +729,8 @@ export function DCFCalculator({ data, currentPrice }: {
           never a background wash. */}
       {blocked ? (
         <div className="py-4 mb-2 text-center">
-          <div className="text-xs text-rh-light-muted/50 dark:text-white/30">{blocked.title}</div>
-          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/40 dark:text-white/20 max-w-[42ch] mx-auto">
+          <div className="text-xs text-rh-light-text dark:text-white">{blocked.title}</div>
+          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-text dark:text-white/80 max-w-[42ch] mx-auto">
             {blocked.body}
           </p>
         </div>
@@ -739,17 +739,17 @@ export function DCFCalculator({ data, currentPrice }: {
         <div>
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold text-rh-light-text dark:text-white tabular-nums font-mono">
-              {range ? <>${range.low.toFixed(2)}<span className="text-rh-light-muted/40 dark:text-white/25 mx-1">–</span>${range.high.toFixed(2)}</> : `$${fairValue.toFixed(2)}`}
+              {range ? <>${range.low.toFixed(2)}<span className="text-rh-light-text dark:text-white/80 mx-1">–</span>${range.high.toFixed(2)}</> : `$${fairValue.toFixed(2)}`}
             </span>
-            <span className="text-[10px] text-rh-light-muted/40 dark:text-white/20">
+            <span className="text-[10px] text-rh-light-text dark:text-white/80">
               {range ? 'Fair Value Range' : 'Fair Value'}
             </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-rh-light-muted/50 dark:text-white/30 font-mono tabular-nums">
+            <span className="text-xs text-rh-light-text dark:text-white font-mono tabular-nums">
               ${currentPrice.toFixed(2)} current
             </span>
-            <span className="text-xs text-rh-light-muted/40 dark:text-white/25 font-mono tabular-nums">
+            <span className="text-xs text-rh-light-text dark:text-white/80 font-mono tabular-nums">
               base ${fairValue.toFixed(2)}
             </span>
           </div>
@@ -758,9 +758,9 @@ export function DCFCalculator({ data, currentPrice }: {
               to what the company actually delivered — a comparison they can
               actually judge. */}
           {reverse && (
-            <div className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/50 dark:text-white/30">
+            <div className="mt-1.5 text-[10px] leading-snug text-rh-light-text dark:text-white">
               At these assumptions, price implies{' '}
-              <span className="font-semibold text-rh-light-text dark:text-white/70 tabular-nums">
+              <span className="font-semibold text-rh-light-text dark:text-white/80 tabular-nums">
                 {reverse.implied}
               </span>{' '}
               revenue CAGR over {inputs.projectionYears}y
@@ -800,7 +800,7 @@ export function DCFCalculator({ data, currentPrice }: {
         aria-expanded={showDetails}
         className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg
                    text-[10px] font-medium uppercase tracking-wider
-                   text-rh-light-muted/50 dark:text-rh-muted/50
+                   text-rh-light-text dark:text-white
                    hover:text-rh-light-text dark:hover:text-rh-text
                    hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors"
       >
@@ -814,16 +814,16 @@ export function DCFCalculator({ data, currentPrice }: {
       {showDetails && (<>
       {/* How the discount rate was built — the input that moves fair value most */}
       <div className="mt-3 mb-4">
-        <h4 className="text-[10px] font-semibold text-rh-light-muted/40 dark:text-white/20 uppercase tracking-wider mb-2">Assumptions</h4>
-        <div className="space-y-1 text-[11px] font-mono tabular-nums text-rh-light-text/60 dark:text-white/40">
+        <h4 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mb-2">Assumptions</h4>
+        <div className="space-y-1 text-[11px] font-mono tabular-nums text-rh-light-text/60 dark:text-white">
           <div className="flex justify-between">
             <span>Risk-free rate (10Y)</span>
             <span>{pct(defaults.assumptions.riskFree)}{defaults.assumptions.riskFreeAssumed &&
-              <span className="text-rh-light-muted/30 dark:text-white/20"> assumed</span>}</span>
+              <span className="text-rh-light-text dark:text-white/80"> assumed</span>}</span>
           </div>
           <div className="flex justify-between">
             <span>Beta (adjusted)</span>
-            <span>{defaults.assumptions.beta.toFixed(2)} <span className="text-rh-light-muted/30 dark:text-white/20">
+            <span>{defaults.assumptions.beta.toFixed(2)} <span className="text-rh-light-text dark:text-white/80">
               {defaults.assumptions.betaAssumed ? 'assumed' : `from ${defaults.assumptions.rawBeta.toFixed(2)}`}
             </span></span>
           </div>
@@ -831,15 +831,15 @@ export function DCFCalculator({ data, currentPrice }: {
             <span>Cost of debt (pre-tax)</span>
             <span>
               {defaults.assumptions.debtWeight < 0.005
-                ? <span className="text-rh-light-muted/30 dark:text-white/20">n/a &middot; no debt</span>
+                ? <span className="text-rh-light-text dark:text-white/80">n/a &middot; no debt</span>
                 : <>{pct(defaults.assumptions.preTaxCostOfDebt)}{defaults.assumptions.costOfDebtAssumed &&
-                    <span className="text-rh-light-muted/30 dark:text-white/20"> assumed</span>}</>}
+                    <span className="text-rh-light-text dark:text-white/80"> assumed</span>}</>}
             </span>
           </div>
           {defaults.assumptions.waccClamped && (
             <div className="flex justify-between">
               <span>Computed WACC</span>
-              <span>{pct(defaults.assumptions.rawWacc)} <span className="text-rh-light-muted/30 dark:text-white/20">clamped</span></span>
+              <span>{pct(defaults.assumptions.rawWacc)} <span className="text-rh-light-text dark:text-white/80">clamped</span></span>
             </div>
           )}
           <div className="flex justify-between">
@@ -848,14 +848,14 @@ export function DCFCalculator({ data, currentPrice }: {
           </div>
         </div>
         {defaults.assumptions.isFinancial && (
-          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/40 dark:text-white/25">
+          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-text dark:text-white/80">
             For banks and insurers interest is an operating cost, not financing, so
             cash flow is left levered. A cash-flow DCF is a poor fit for this sector —
             read this as one scenario, not a valuation.
           </p>
         )}
         {!defaults.assumptions.unlevered && !defaults.assumptions.isFinancial && (
-          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-muted/40 dark:text-white/25">
+          <p className="mt-1.5 text-[10px] leading-snug text-rh-light-text dark:text-white/80">
             Interest expense isn&apos;t broken out for every year, so cash flow couldn&apos;t be
             unlevered — fair value reads low for a company carrying debt.
           </p>
@@ -864,22 +864,22 @@ export function DCFCalculator({ data, currentPrice }: {
 
       {/* Sensitivity table */}
       <div className="mb-4">
-        <h4 className="text-[10px] font-semibold text-rh-light-muted/40 dark:text-white/20 uppercase tracking-wider mb-2">Sensitivity</h4>
+        <h4 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mb-2">Sensitivity</h4>
         <SensitivityTable baseInputs={inputs} currentPrice={currentPrice} />
       </div>
 
       {/* Projected FCF chart */}
       <div className="mb-4">
         <div className="flex items-center gap-3 mb-1">
-          <h4 className="text-[10px] font-semibold text-rh-light-muted/40 dark:text-white/20 uppercase tracking-wider">Free Cash Flow</h4>
+          <h4 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">Free Cash Flow</h4>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-sm bg-rh-green/70" />
-              <span className="text-[8px] text-rh-light-muted/30 dark:text-white/15">Historical</span>
+              <span className="text-[8px] text-rh-light-text dark:text-white/80">Historical</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-sm bg-rh-green/40 border border-dashed border-rh-green/30" />
-              <span className="text-[8px] text-rh-light-muted/30 dark:text-white/15">Projected</span>
+              <span className="text-[8px] text-rh-light-text dark:text-white/80">Projected</span>
             </div>
           </div>
         </div>
@@ -892,7 +892,7 @@ export function DCFCalculator({ data, currentPrice }: {
 
       {/* Breakdown */}
       <div>
-        <h4 className="text-[10px] font-semibold text-rh-light-muted/40 dark:text-white/20 uppercase tracking-wider mb-2">Valuation Breakdown</h4>
+        <h4 className="text-[10px] font-semibold text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider mb-2">Valuation Breakdown</h4>
         <div className="space-y-1 text-[11px] font-mono tabular-nums">
           {[
             ['PV of Projected FCFs', fmt(result.pvProjectedFCFs)],
@@ -909,7 +909,7 @@ export function DCFCalculator({ data, currentPrice }: {
               <div key={i} className={`flex justify-between ${
                 isBold
                   ? 'text-rh-light-text/90 dark:text-white/80 font-semibold pt-1 border-t border-gray-200/20 dark:border-white/[0.04]'
-                  : 'text-rh-light-text/60 dark:text-white/40'
+                  : 'text-rh-light-text/60 dark:text-white'
               }`}>
                 <span>{label}</span>
                 <span>{val}</span>

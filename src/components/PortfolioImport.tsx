@@ -500,7 +500,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               : 'Import Portfolio'}
           </h2>
           {!onboarding && step !== 'uploading' && step !== 'confirming' && step !== 'processing' && (
-            <button onClick={onClose} aria-label="Close" className="text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white p-1">
+            <button onClick={onClose} aria-label="Close" className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1">
               <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -529,7 +529,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
           {/* ── STEP: Choose ── */}
           {step === 'choose' && (
             <div className="space-y-4">
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+              <p className="text-sm text-rh-light-text dark:text-white">
                 {onboarding ? 'Get started by importing your portfolio.' : 'Update your portfolio from a CSV file.'}
               </p>
 
@@ -544,13 +544,13 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     : 'border-gray-200/60 dark:border-white/[0.1] hover:border-rh-green/40'
                 }`}
               >
-                <svg className="w-10 h-10 mx-auto mb-3 text-rh-light-muted/40 dark:text-rh-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 mx-auto mb-3 text-rh-light-text dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">
                   Drop your CSV here or click to browse
                 </p>
-                <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/50 mt-1">
+                <p className="text-xs text-rh-light-text dark:text-white mt-1">
                   Supports Robinhood, Schwab, and custom formats
                 </p>
                 <input
@@ -569,13 +569,13 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 onClick={() => screenshotInputRef.current?.click()}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] hover:border-rh-green/30 transition-colors text-left"
               >
-                <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-rh-light-text dark:text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <div>
                   <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">Upload Screenshot</p>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted">OCR reads your portfolio image (beta)</p>
+                  <p className="text-xs text-rh-light-text dark:text-white">OCR reads your portfolio image (beta)</p>
                 </div>
                 <input
                   ref={screenshotInputRef}
@@ -594,12 +594,12 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   onClick={onManualEntry}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] hover:border-rh-green/30 transition-colors text-left"
                 >
-                  <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-rh-light-text dark:text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                   </svg>
                   <div>
                     <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">Add Manually</p>
-                    <p className="text-xs text-rh-light-muted dark:text-rh-muted">Enter holdings one by one</p>
+                    <p className="text-xs text-rh-light-text dark:text-white">Enter holdings one by one</p>
                   </div>
                 </button>
               )}
@@ -630,7 +630,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   <p className="text-sm font-medium text-rh-light-text dark:text-rh-text">
                     Detected <span className="text-rh-green capitalize">{detectedBroker}</span> format
                   </p>
-                  <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">
+                  <p className="text-xs text-rh-light-text dark:text-white mt-0.5">
                     {csvRows.length.toLocaleString()} rows found. You can auto-import or map columns manually.
                   </p>
                 </div>
@@ -645,7 +645,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 </button>
                 <button
                   onClick={() => setStep('wizard')}
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Map columns manually
                 </button>
@@ -653,7 +653,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
               <button
                 onClick={() => { setStep('choose'); setCsvFile(null); setCsvHeaders([]); setCsvRows([]); setError(''); }}
-                className="text-xs text-rh-light-muted/60 dark:text-rh-muted/40 hover:text-rh-light-muted dark:hover:text-rh-muted transition-colors"
+                className="text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
               >
                 Choose a different file
               </button>
@@ -664,11 +664,11 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
           {step === 'uploading' && (
             <div className="text-center py-12">
               <div className="w-8 h-8 border-2 border-rh-green border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">
+              <p className="text-sm text-rh-light-text dark:text-white">
                 {uploadSource === 'screenshot' ? 'Running OCR on your screenshot...' : 'Parsing your CSV...'}
               </p>
               {uploadSource === 'screenshot' && (
-                <p className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40 mt-2">This may take a few seconds</p>
+                <p className="text-xs text-rh-light-text dark:text-white mt-2">This may take a few seconds</p>
               )}
             </div>
           )}
@@ -688,7 +688,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={handleWizardBack}
-                  className="px-4 py-2 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="px-4 py-2 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Back
                 </button>
@@ -710,7 +710,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     className={`px-5 py-2 rounded-xl font-semibold transition-all text-sm ${
                       wizardCanProceed
                         ? 'bg-rh-green text-black hover:bg-green-600'
-                        : 'bg-gray-200/50 dark:bg-white/[0.06] text-rh-light-muted/40 dark:text-rh-muted/30 cursor-not-allowed'
+                        : 'bg-gray-200/50 dark:bg-white/[0.06] text-rh-light-text dark:text-white cursor-not-allowed'
                     }`}
                   >
                     {wizardStepIndex === WIZARD_STEPS.length - 1
@@ -733,8 +733,8 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
           {step === 'processing' && (
             <div className="text-center py-12">
               <div className="w-8 h-8 border-2 border-rh-green border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">Processing mapped transactions...</p>
-              <p className="text-xs text-rh-light-muted/50 dark:text-rh-muted/40 mt-2">Replaying trade history</p>
+              <p className="text-sm text-rh-light-text dark:text-white">Processing mapped transactions...</p>
+              <p className="text-xs text-rh-light-text dark:text-white mt-2">Replaying trade history</p>
             </div>
           )}
 
@@ -750,12 +750,12 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               )}
 
               {/* Stats bar */}
-              <div className="flex items-center gap-4 text-xs text-rh-light-muted dark:text-rh-muted">
+              <div className="flex items-center gap-4 text-xs text-rh-light-text dark:text-white">
                 <span>{stats.validRows} valid</span>
                 {stats.skippedRows > 0 && (
                   <span className="text-amber-500">{stats.skippedRows} skipped</span>
                 )}
-                <span className="text-rh-light-muted/40 dark:text-rh-muted/40">{stats.totalRows} total rows</span>
+                <span className="text-rh-light-text dark:text-white">{stats.totalRows} total rows</span>
               </div>
 
               {/* Transaction review (if trades present from mapped import) */}
@@ -795,7 +795,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 <>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xs font-semibold text-rh-light-text dark:text-rh-text uppercase tracking-wider">
+                      <h3 className="text-xs font-semibold text-rh-light-text/70 dark:text-rh-text uppercase tracking-wider">
                         Resulting Positions ({includedPositionCount} of {rows.length})
                       </h3>
                       <button
@@ -813,7 +813,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                       className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
                         hideSmallPositions
                           ? 'border-rh-green/40 text-rh-green bg-rh-green/5'
-                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                          : 'border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                       }`}
                     >
                       Hide &lt; 1 share
@@ -822,7 +822,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   <div className="border border-gray-200/40 dark:border-white/[0.08] rounded-xl overflow-visible">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-50 dark:bg-white/[0.03] text-xs text-rh-light-muted/60 dark:text-rh-muted/60 uppercase tracking-wider">
+                        <tr className="bg-gray-50 dark:bg-white/[0.03] text-xs text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">
                           <th className="px-2 py-2 w-8">
                             <input
                               type="checkbox"
@@ -879,7 +879,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                                       className="px-3 py-1.5 cursor-pointer hover:bg-rh-green/10 transition-colors"
                                     >
                                       <span className="font-semibold text-rh-light-text dark:text-rh-text text-sm">{r.symbol}</span>
-                                      <span className="ml-2 text-xs text-rh-light-muted dark:text-rh-muted truncate">{r.description}</span>
+                                      <span className="ml-2 text-xs text-rh-light-text dark:text-white truncate">{r.description}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -907,7 +907,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                             <td className="px-2 py-1.5">
                               <button
                                 onClick={() => removeRow(i)}
-                                className="text-rh-light-muted/40 dark:text-rh-muted/40 hover:text-red-400 transition-colors"
+                                className="text-rh-light-text dark:text-white hover:text-red-400 transition-colors"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -924,7 +924,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
               {/* Mode selector */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">Import mode:</span>
+                <span className="text-xs text-rh-light-text dark:text-white">Import mode:</span>
                 <div className="flex rounded-lg overflow-hidden border border-gray-200/40 dark:border-white/[0.08]">
                   {trades.length > 0 && (
                     <button
@@ -932,7 +932,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                       className={`px-3 py-1 text-xs font-medium transition-colors ${
                         importMode === 'history'
                           ? 'bg-rh-green/10 text-rh-green'
-                          : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                          : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                       }`}
                     >
                       Save History
@@ -943,7 +943,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
                       importMode === 'replace'
                         ? 'bg-rh-green/10 text-rh-green'
-                        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                        : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                     }`}
                   >
                     Replace All
@@ -953,7 +953,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
                       importMode === 'merge'
                         ? 'bg-rh-green/10 text-rh-green'
-                        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                        : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                     }`}
                   >
                     Merge
@@ -963,14 +963,14 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
                       importMode === 'incremental'
                         ? 'bg-rh-green/10 text-rh-green'
-                        : 'text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white'
+                        : 'text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white'
                     }`}
                   >
                     Update
                   </button>
                 </div>
               </div>
-              <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/40">
+              <p className="text-[11px] text-rh-light-text dark:text-white">
                 {importMode === 'history'
                   ? 'Records your trade history for chart reconstruction. Your current holdings will not be changed.'
                   : importMode === 'replace'
@@ -1010,9 +1010,9 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
               {/* Margin balance */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-rh-light-muted dark:text-rh-muted">Margin balance:</span>
+                <span className="text-xs text-rh-light-text dark:text-white">Margin balance:</span>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-rh-light-muted/50 dark:text-rh-muted/40">$</span>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-rh-light-text dark:text-white">$</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -1024,15 +1024,15 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     className="w-32 pl-6 pr-2 py-1 rounded-lg border border-gray-200/40 dark:border-white/[0.08] bg-transparent text-sm text-rh-light-text dark:text-rh-text text-right focus:outline-none focus:border-rh-green/40 tabular-nums"
                   />
                 </div>
-                <span className="text-[10px] text-rh-light-muted/40 dark:text-rh-muted/30">optional</span>
+                <span className="text-[10px] text-rh-light-text dark:text-white">optional</span>
               </div>
 
               {/* Chart accuracy note */}
               <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-100/60 dark:bg-white/[0.03] border border-gray-200/30 dark:border-white/[0.05]">
-                <svg className="w-3.5 h-3.5 text-rh-light-muted/50 dark:text-rh-muted/40 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-rh-light-text dark:text-white shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-[10px] text-rh-light-muted/60 dark:text-rh-muted/40 leading-relaxed">
+                <p className="text-[10px] text-rh-light-text dark:text-white leading-relaxed">
                   {trades.length > 0
                     ? 'Your charts will be reconstructed from your trade history. Accuracy depends on data completeness — small differences from your broker are normal.'
                     : 'Your 1-day chart will be accurate immediately. Weekly and longer charts are estimated from current holdings until enough history is collected.'}
@@ -1064,7 +1064,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     setSkippedSteps(new Set());
                     setWizardStepIndex(0);
                   }}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Start Over
                 </button>
@@ -1085,7 +1085,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
           {step === 'confirming' && (
             <div className="text-center py-12">
               <div className="w-8 h-8 border-2 border-rh-green border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-sm text-rh-light-muted dark:text-rh-muted">Importing holdings...</p>
+              <p className="text-sm text-rh-light-text dark:text-white">Importing holdings...</p>
             </div>
           )}
 
@@ -1106,11 +1106,11 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                   {(result.ledgerEventsRecorded ?? 0) > 0 && <span className="text-rh-green">{result.ledgerEventsRecorded} events recorded</span>}
                   {result.added > 0 && <span className="text-rh-green">{result.added} added</span>}
                   {result.updated > 0 && <span className="text-amber-400">{result.updated} updated</span>}
-                  {result.removed > 0 && <span className="text-rh-light-muted dark:text-rh-muted">{result.removed} removed</span>}
-                  {(result.skippedDuplicates ?? 0) > 0 && <span className="text-rh-light-muted/50 dark:text-rh-muted/50">{result.skippedDuplicates} duplicates skipped</span>}
+                  {result.removed > 0 && <span className="text-rh-light-text dark:text-white">{result.removed} removed</span>}
+                  {(result.skippedDuplicates ?? 0) > 0 && <span className="text-rh-light-text dark:text-white">{result.skippedDuplicates} duplicates skipped</span>}
                 </div>
                 {importMode === 'history' && (
-                  <p className="text-xs text-rh-light-muted/60 dark:text-rh-muted/40 mt-2">Your holdings were not changed.</p>
+                  <p className="text-xs text-rh-light-text dark:text-white mt-2">Your holdings were not changed.</p>
                 )}
               </div>
               <button
@@ -1129,7 +1129,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 <p className="text-sm text-red-400 font-medium">This will permanently remove all holdings and reset cash/margin to $0.</p>
               </div>
               <div>
-                <label className="block text-xs text-rh-light-muted dark:text-rh-muted mb-1.5">
+                <label className="block text-xs text-rh-light-text dark:text-white mb-1.5">
                   Type <span className="font-mono font-bold text-red-400">CLEAR</span> to confirm
                 </label>
                 <input
@@ -1142,7 +1142,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               <div className="flex gap-3">
                 <button
                   onClick={() => { setStep('choose'); setClearText(''); setError(''); }}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-muted dark:text-rh-muted hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Cancel
                 </button>

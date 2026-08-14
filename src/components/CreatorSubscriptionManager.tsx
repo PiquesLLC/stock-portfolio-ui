@@ -52,7 +52,7 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
   if (subscriptions.length === 0) {
     return (
       <div className="text-center py-4">
-        <p className="text-sm text-rh-light-muted dark:text-rh-muted">No creator subscriptions yet.</p>
+        <p className="text-sm text-rh-light-text dark:text-white">No creator subscriptions yet.</p>
         {onClose && (
           <button onClick={onClose} className="mt-2 text-xs text-rh-green hover:underline">Close</button>
         )}
@@ -70,7 +70,7 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
             <p className="text-sm font-medium text-rh-light-text dark:text-rh-text truncate">
               {sub.creatorDisplayName}
             </p>
-            <p className="text-xs text-rh-light-muted dark:text-rh-muted">
+            <p className="text-xs text-rh-light-text dark:text-white">
               {formatPrice(sub.pricingCents)}
               {sub.status === 'canceled' && ' — cancels at end of period'}
             </p>
@@ -80,7 +80,7 @@ export function CreatorSubscriptionManager({ onClose }: CreatorSubscriptionManag
               <span className="w-1.5 h-1.5 rounded-full bg-rh-green" />
             )}
             {sub.status === 'canceled' ? (
-              <span className="text-[10px] font-medium text-rh-light-muted dark:text-rh-muted">Canceled</span>
+              <span className="text-[10px] font-medium text-rh-light-text dark:text-white">Canceled</span>
             ) : (
               <button
                 onClick={() => handleCancel(sub)}

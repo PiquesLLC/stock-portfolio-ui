@@ -79,7 +79,7 @@ export function CsvPreviewTable({ headers, rows, currentStep, mappings, onColumn
           {prompt.title}
           {prompt.required && <span className="text-red-400 ml-1">*</span>}
         </p>
-        <p className="text-xs text-rh-light-muted dark:text-rh-muted mt-0.5">{prompt.description}</p>
+        <p className="text-xs text-rh-light-text dark:text-white mt-0.5">{prompt.description}</p>
       </div>
 
       {/* Table */}
@@ -102,8 +102,8 @@ export function CsvPreviewTable({ headers, rows, currentStep, mappings, onColumn
                       isCurrentSelection
                         ? 'bg-rh-green/15 text-rh-green border-b-2 border-rh-green'
                         : isAssignedElsewhere
-                          ? 'bg-gray-100/50 dark:bg-white/[0.03] text-rh-light-muted/50 dark:text-rh-muted/40 cursor-not-allowed'
-                          : 'bg-gray-50 dark:bg-white/[0.04] text-rh-light-muted dark:text-rh-muted hover:bg-rh-green/5 hover:text-rh-green/80'
+                          ? 'bg-gray-100/50 dark:bg-white/[0.03] text-rh-light-text dark:text-white cursor-not-allowed'
+                          : 'bg-gray-50 dark:bg-white/[0.04] text-rh-light-text dark:text-white hover:bg-rh-green/5 hover:text-rh-green/80'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
@@ -132,8 +132,8 @@ export function CsvPreviewTable({ headers, rows, currentStep, mappings, onColumn
                         isHighlighted
                           ? 'bg-rh-green/5 text-rh-light-text dark:text-rh-text font-medium'
                           : assignedMapping
-                            ? 'bg-gray-50/30 dark:bg-white/[0.01] text-rh-light-muted/60 dark:text-rh-muted/40'
-                            : 'text-rh-light-muted dark:text-rh-muted'
+                            ? 'bg-gray-50/30 dark:bg-white/[0.01] text-rh-light-text dark:text-white'
+                            : 'text-rh-light-text dark:text-white'
                       }`}
                     >
                       {row[header] || ''}
@@ -147,7 +147,7 @@ export function CsvPreviewTable({ headers, rows, currentStep, mappings, onColumn
       </div>
 
       {hasMore && (
-        <p className="text-[11px] text-rh-light-muted/50 dark:text-rh-muted/40 text-center">
+        <p className="text-[11px] text-rh-light-text dark:text-white text-center">
           Showing {MAX_PREVIEW_ROWS} of {rows.length} rows
         </p>
       )}

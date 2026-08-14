@@ -60,7 +60,7 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
             Creator Terms
           </h2>
           <button onClick={onClose} aria-label="Close" className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors">
-            <svg className="w-5 h-5 text-rh-light-muted dark:text-rh-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-rh-light-text dark:text-white" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -69,7 +69,7 @@ export function CreatorApplicationModal({ isOpen, onClose, onSuccess }: CreatorA
         {/* Content */}
         <div className="px-5 py-4 max-h-[60vh] overflow-y-auto scrollbar-minimal space-y-4">
           {/* Description */}
-          <p className="text-sm text-rh-light-muted dark:text-rh-muted leading-relaxed">
+          <p className="text-sm text-rh-light-text dark:text-white leading-relaxed">
             Share your portfolio insights and earn money from subscribers.
             You set your price, and keep 80% of subscription revenue.
           </p>

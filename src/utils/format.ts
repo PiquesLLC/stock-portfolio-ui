@@ -31,7 +31,7 @@ export function isEffectivelyZero(pct: number): boolean {
 
 /** Tailwind color class for a percent change value */
 export function changeColorClass(pct: number): string {
-  if (isEffectivelyZero(pct)) return 'text-rh-light-muted dark:text-rh-muted';
+  if (isEffectivelyZero(pct)) return 'text-rh-light-text dark:text-white';
   return pct >= 0 ? 'text-rh-green' : 'text-rh-red';
 }
 

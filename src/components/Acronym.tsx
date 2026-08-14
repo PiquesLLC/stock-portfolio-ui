@@ -106,7 +106,7 @@ export function Acronym({ label, className = '' }: AcronymProps) {
         <span
           className={`absolute left-1/2 -translate-x-1/2 z-50 w-56 px-3 py-2 rounded-lg text-[11px] leading-relaxed font-normal normal-case tracking-normal text-left
             bg-gray-900/95 dark:bg-white/[0.1] backdrop-blur-xl border border-white/[0.1] dark:border-white/[0.12]
-            text-white/90 dark:text-white/85 shadow-lg
+            text-white/90 dark:text-white shadow-lg
             animate-[fadeIn_150ms_ease-out]
             ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`}
         >
