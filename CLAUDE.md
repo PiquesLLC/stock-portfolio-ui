@@ -49,6 +49,22 @@ Every page section uses this — including collapsible panels (Earnings,
 Financials), where the `<h2>` wraps the toggle button. Card-internal labels:
 `text-[10px] font-medium uppercase tracking-wider text-rh-light-muted dark:text-rh-muted`.
 
+## Section spacing — never hang it off a conditional section
+
+**A section header must never butt against the block above it.** Own that gap
+with a **bottom margin on the element above**, never a top margin on the
+section below.
+
+Most sections are conditional — Your Position renders only when you hold the
+stock, Earnings only when there's data, About only when a description exists.
+Put the gap on one of those and every case where it doesn't render loses the
+spacing silently. That's how the stock page shipped with `About` jammed against
+the chart's period row for every un-held ticker (2026-08-13) while looking
+correct on the one held stock it was tested against.
+
+Corollary: when you check a spacing fix, check it on a screen where the
+optional sections are **absent**, not just the one you were looking at.
+
 ## Color vocabulary (ONE severity/status language)
 
 - Positive/low-risk: `text-rh-green` · Negative/high-risk: `text-rh-red`

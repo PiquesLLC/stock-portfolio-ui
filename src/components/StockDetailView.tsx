@@ -1033,8 +1033,12 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
         })()}
       </div>
 
-      {/* Chart */}
-      <div className="mb-0 relative" data-no-swipe>
+      {/* Chart. The bottom gap lives HERE, not on the section below it: Your
+          Position only renders for stocks you actually hold, so hanging the
+          spacing off that section left every unheld stock — most of them —
+          with About butted straight against the period row. Desktop keeps
+          mb-0, where the chart's footer row still supplies the gap. */}
+      <div className="mb-6 sm:mb-0 relative" data-no-swipe>
         <StockPriceChart
           key={ticker}
           ticker={ticker}
@@ -1193,12 +1197,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
 
       {/* Your Position */}
       {holding && (
-        // Real spacing, not a compensation hack: the chart wrapper above is
-        // `mb-0` and this section only ever declared a bottom margin, so on
-        // mobile — where the chart's footer row no longer renders — nothing
-        // separated the two at all. `mt-6` is the page's standard step.
-        // Desktop still renders that row and its hints, so it keeps mt-0.
-        <div id="section-position" className="mt-6 sm:mt-0 mb-8 scroll-mt-32">
+        <div id="section-position" className="mb-8 scroll-mt-32">
           <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white mb-4"><span className="w-0.5 h-3.5 bg-rh-green rounded-full" />Your Position</h2>
           {/* Mobile: horizontal snap carousel (swipe for Average Cost) with
               dots below. md+: the original two-column grid, unchanged.
