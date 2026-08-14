@@ -494,34 +494,45 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
 
   return (
     <div className="pt-4 pb-5 mb-6 border-b border-gray-200/10 dark:border-white/[0.04]">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between cursor-pointer select-none"
-        onClick={() => setCollapsed(c => !c)}
-      >
-        <div className="flex-1 min-w-0">
-          {/* Section-header recipe, matching Key Statistics and Earnings */}
-          <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white">
-            <span className="w-0.5 h-3.5 bg-rh-green rounded-full" />
-            Financials
-          </h2>
-          {collapsed && (
-            // Indented past the green bar so it aligns with the label text.
-            <p className="pl-2.5 text-[11px] text-rh-light-text dark:text-white/80 mt-1 truncate">{summaryText}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {data?.dataAge === 'stale' && (
-            <span className="text-[10px] text-rh-light-text dark:text-white/80">stale data</span>
-          )}
-          <svg
-            className={`w-4 h-4 text-rh-light-text dark:text-white/80 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
+      {/* Header — was a bare <div onClick>: not focusable, no keyboard access,
+          nothing announced. Now the same APG accordion shape as Earnings, so
+          the two panels behave identically. Renders identically too: the button
+          holds only phrasing content and carries the original classes. */}
+      <h2>
+        <button
+          type="button"
+          aria-expanded={!collapsed}
+          // The name is pinned so the summary line doesn't get read as part of
+          // it, but a stale-data warning still has to reach a screen reader.
+          aria-label={data?.dataAge === 'stale' ? 'Financials — stale data' : 'Financials'}
+          onClick={() => setCollapsed(c => !c)}
+          className="group w-full flex items-center justify-between text-left select-none"
+        >
+          <span className="flex-1 min-w-0">
+            {/* Section-header recipe, matching Key Statistics and Earnings */}
+            <span className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-rh-light-text dark:text-white">
+              <span className="w-0.5 h-3.5 bg-rh-green rounded-full" />
+              Financials
+            </span>
+            {collapsed && (
+              // Indented past the green bar so it aligns with the label text.
+              <span className="block pl-2.5 text-[11px] text-rh-light-text dark:text-white/80 mt-1 truncate">{summaryText}</span>
+            )}
+          </span>
+          <span className="flex items-center gap-2">
+            {data?.dataAge === 'stale' && (
+              <span className="text-[10px] text-rh-light-text dark:text-white/80">stale data</span>
+            )}
+            <svg
+              aria-hidden="true"
+              className={`w-4 h-4 flex-shrink-0 text-rh-light-text dark:text-white/80 transition-transform duration-200 group-hover:text-rh-light-text dark:group-hover:text-white ${collapsed ? '' : 'rotate-180'}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </span>
+        </button>
+      </h2>
 
       {!collapsed && (
         <div className="mt-3">
@@ -541,6 +552,8 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
               {tabs.filter(t => t.available).map(t => (
                 <button
                   key={t.id}
+                  type="button"
+                  aria-pressed={tab === t.id}
                   onClick={(e) => { e.stopPropagation(); setTab(t.id); }}
                   className={`px-2.5 py-1 text-[10px] font-semibold rounded-md transition-colors
                     ${tab === t.id
@@ -558,6 +571,8 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
                 {(['annual', 'quarterly'] as PeriodToggle[]).map(p => (
                   <button
                     key={p}
+                    type="button"
+                    aria-pressed={period === p}
                     onClick={(e) => { e.stopPropagation(); setPeriod(p); }}
                     className={`px-2.5 py-0.5 text-[10px] font-medium rounded-md transition-colors
                       ${period === p
@@ -586,6 +601,8 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
           {tab !== 'dcf' && (
             <>
               <button
+                type="button"
+                aria-expanded={showTable}
                 onClick={(e) => { e.stopPropagation(); setShowTable(t => !t); }}
                 className="text-[10px] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors mb-2"
               >
