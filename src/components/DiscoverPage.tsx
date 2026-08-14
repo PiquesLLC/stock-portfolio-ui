@@ -599,9 +599,12 @@ function Treemap({
                     height={SECTOR_LABEL_H - 1}
                     // Light mode: a solid pale band, not a black wash. The wash
                     // over grey was what made the sector headers look muddy.
+                    // Deliberately a step darker than the sub-sector band
+                    // (#f3f5f8) so the two levels still read apart — going pale
+                    // on both flattened the hierarchy the wash used to carry.
                     fill={isLabelHovered
-                      ? (isDark ? 'rgba(255,255,255,0.12)' : '#dfe3ea')
-                      : (isDark ? 'rgba(0,0,0,0.6)' : '#eceef2')}
+                      ? (isDark ? 'rgba(255,255,255,0.12)' : '#d4dbe5')
+                      : (isDark ? 'rgba(0,0,0,0.6)' : '#e2e7ee')}
                     rx={1}
                     style={{ transition: 'fill 0.15s' }}
                   />
@@ -636,7 +639,7 @@ function Treemap({
                         fontWeight={800}
                         fill={isLabelHovered
                           ? (isDark ? '#fff' : 'rgba(0,0,0,0.95)')
-                          : (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)')}
+                          : (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.88)')}
                         clipPath={`url(#slbl-${sr.sector.name.replace(/[^a-zA-Z]/g, '')})`}
                         style={{
                           pointerEvents: 'none',
