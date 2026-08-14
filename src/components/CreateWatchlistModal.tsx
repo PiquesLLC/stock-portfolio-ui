@@ -81,7 +81,7 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
               onChange={(e) => { setName(e.target.value); setError(''); }}
               placeholder="e.g. Dividend Kings, Tech Watchlist"
               maxLength={50}
-              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors"
+              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors"
             />
             {error && <p className="text-xs text-rh-red mt-1">{error}</p>}
           </div>
@@ -94,7 +94,7 @@ export function CreateWatchlistModal({ onClose, onSave, initialData, isEdit }: C
               placeholder="What's this watchlist for?"
               maxLength={200}
               rows={2}
-              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors resize-none"
+              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green/50 focus:ring-1 focus:ring-rh-green/20 transition-colors resize-none"
             />
           </div>
 

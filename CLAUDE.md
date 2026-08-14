@@ -34,6 +34,13 @@ never from fading text toward the background. Grey labels were rejected outright
 - **Nothing below `/80`.** `/80`–`/95` read as near-white and are fine for a
   caption sitting under the value it describes; everything else is full white.
   A hover state must brighten toward white, never toward `/80`.
+- **Two carve-outs, and only two: placeholders and disabled controls.** Both are
+  *meant* to read as inactive — a placeholder at full white is indistinguishable
+  from typed text, and a disabled button with a full-white label looks
+  clickable. Use `placeholder:text-rh-light-text/60 dark:placeholder:text-white/50`
+  and the same pair for `disabled:`. Still above AA, visibly recessed from live
+  text. (The 2026-08-13 sweep flattened both and had to be repaired — don't
+  re-flatten them.)
 - Bracket opacities (`dark:text-white/[0.06]`) are exempt — decorative
   separators and hairlines, never text meant to be read.
 - Green/red still carry gain/loss and nothing else: `rh-green` 9.3:1,

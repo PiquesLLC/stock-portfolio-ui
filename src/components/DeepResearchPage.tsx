@@ -527,7 +527,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
             placeholder={activePromptPlaceholder}
             rows={3}
             maxLength={2000}
-            className="w-full bg-transparent border-0 text-rh-light-text dark:text-white text-[16px] leading-[1.55] resize-none outline-none placeholder:text-rh-light-text dark:placeholder:text-white"
+            className="w-full bg-transparent border-0 text-rh-light-text dark:text-white text-[16px] leading-[1.55] resize-none outline-none placeholder:text-rh-light-text/60 dark:placeholder:text-white/50"
             style={{ minHeight: 90 }}
           />
 

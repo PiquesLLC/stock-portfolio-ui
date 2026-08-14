@@ -132,7 +132,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Retirement, House Down Payment"
-          className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
+          className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green/50 transition-colors"
         />
       </div>
 
@@ -149,7 +149,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="1000000"
             min="1"
             step="any"
-            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
+            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green/50 transition-colors"
           />
         </div>
 
@@ -165,7 +165,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
             placeholder="500"
             min="0"
             step="any"
-            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
+            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green/50 transition-colors"
           />
         </div>
       </div>
@@ -200,7 +200,7 @@ function GoalForm({ onSubmit, onCancel, initialValues, isEditing }: GoalFormProp
               placeholder="0"
               min="0"
               step="any"
-              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
+              className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green/50 transition-colors"
             />
           </div>
         )}

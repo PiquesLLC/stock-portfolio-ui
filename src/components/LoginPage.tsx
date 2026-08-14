@@ -475,7 +475,7 @@ export function LoginPage() {
                     type="button"
                     onClick={handleResendCode}
                     disabled={resendCooldown > 0}
-                    className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-white disabled:cursor-not-allowed transition-colors"
+                    className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-white/50 disabled:cursor-not-allowed transition-colors"
                   >
                     {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
                   </button>
@@ -634,7 +634,7 @@ export function LoginPage() {
                       }
                     }}
                     disabled={resetCooldown > 0}
-                    className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-white disabled:cursor-not-allowed transition-colors"
+                    className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-white/50 disabled:cursor-not-allowed transition-colors"
                   >
                     {resetCooldown > 0 ? `Resend in ${resetCooldown}s` : 'Resend code'}
                   </button>

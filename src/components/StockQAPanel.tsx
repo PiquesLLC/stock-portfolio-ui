@@ -109,7 +109,7 @@ export default function StockQAPanel({ ticker }: StockQAPanelProps) {
             bg-gray-50/80 dark:bg-white/[0.04]
             backdrop-blur-xl
             text-rh-light-text dark:text-white
-            placeholder:text-rh-light-text dark:placeholder:text-white/80
+            placeholder:text-rh-light-text/60 dark:placeholder:text-white/80
             border border-gray-200/60 dark:border-white/[0.08]
             focus:border-rh-green/50 focus:shadow-lg focus:shadow-green-500/10
             focus:outline-none

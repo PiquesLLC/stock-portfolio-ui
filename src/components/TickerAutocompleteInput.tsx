@@ -346,7 +346,7 @@ export function TickerAutocompleteInput({
             ? `w-full pl-8 pr-3 py-1.5 rounded-lg border border-rh-light-border dark:border-rh-border
               bg-rh-light-bg dark:bg-rh-dark text-base sm:text-sm text-rh-light-text dark:text-rh-text
               focus:outline-none focus:ring-2 focus:ring-rh-green/50
-              placeholder:text-rh-light-text dark:placeholder:text-white ${className}`
+              placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 ${className}`
             : `w-full px-3 py-2 rounded-lg border border-rh-light-border dark:border-rh-border
               bg-rh-light-bg dark:bg-rh-dark text-rh-light-text dark:text-rh-text
               focus:outline-none focus:ring-2 focus:ring-rh-green/50

@@ -339,7 +339,7 @@ export function CreatorSettingsPage({ userId, onBack }: CreatorSettingsPageProps
           placeholder="Tell potential subscribers about your investing approach..."
           className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.1]
             bg-white dark:bg-white/[0.04] text-sm text-rh-light-text dark:text-rh-text
-            placeholder:text-rh-light-text dark:placeholder:text-white
+            placeholder:text-rh-light-text/60 dark:placeholder:text-white/50
             focus:outline-none focus:ring-2 focus:ring-rh-green/50 resize-none"
         />
         <p className="mt-0.5 text-right text-[10px] text-rh-light-text dark:text-white">

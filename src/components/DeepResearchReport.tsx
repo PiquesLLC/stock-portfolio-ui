@@ -218,7 +218,7 @@ export function DeepResearchReport({ result, onFollowUpSubmitted, onTickerClick 
               onChange={e => setFollowUpQ(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !submittingFollowUp) handleFollowUp(); }}
               placeholder="Ask a follow-up question about this research..."
-              className="flex-1 px-3 py-2 rounded-lg text-sm bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-rh-light-text dark:text-white placeholder:text-gray-500 dark:placeholder:text-white focus:outline-none focus:ring-1 focus:ring-rh-green/50"
+              className="flex-1 px-3 py-2 rounded-lg text-sm bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-rh-light-text dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-rh-green/50"
               maxLength={1000}
               disabled={submittingFollowUp}
             />

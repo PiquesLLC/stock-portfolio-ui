@@ -172,7 +172,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
                   placeholder="Amount"
                   min="0"
                   step="0.01"
-                  className="flex-1 text-xs px-2 py-1.5 rounded bg-rh-light-bg dark:bg-white/[0.03] border border-rh-light-border/30 dark:border-white/[0.06] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green"
+                  className="flex-1 text-xs px-2 py-1.5 rounded bg-rh-light-bg dark:bg-white/[0.03] border border-rh-light-border/30 dark:border-white/[0.06] text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green"
                 />
                 <input
                   type="date"

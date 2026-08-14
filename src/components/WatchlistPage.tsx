@@ -454,7 +454,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
                   min="0.01"
                   step="any"
                   placeholder={addCurrentPrice !== null ? `$${addCurrentPrice.toFixed(2)}` : 'Entry price'}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:border-rh-green/50 transition-colors"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] text-sm text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:border-rh-green/50 transition-colors"
                 />
               </div>
             </div>

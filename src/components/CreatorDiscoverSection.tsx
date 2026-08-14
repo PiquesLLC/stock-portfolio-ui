@@ -325,7 +325,7 @@ function FilterBar({
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Search creators..."
           maxLength={100}
-          className="w-full pl-8 pr-3 py-1.5 bg-transparent border border-rh-light-border/20 dark:border-rh-border/20 rounded-lg text-xs text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text dark:placeholder:text-white focus:outline-none focus:ring-1 focus:ring-rh-green/40 focus:border-rh-green/40"
+          className="w-full pl-8 pr-3 py-1.5 bg-transparent border border-rh-light-border/20 dark:border-rh-border/20 rounded-lg text-xs text-rh-light-text dark:text-rh-text placeholder:text-rh-light-text/60 dark:placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-rh-green/40 focus:border-rh-green/40"
         />
       </div>
 

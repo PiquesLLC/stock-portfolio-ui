@@ -1001,7 +1001,7 @@ export default function App() {
                   } catch { setVerifyError('Failed to resend code. Try again in a moment.'); }
                 }}
                 disabled={verifyResendCooldown > 0 || verifyLocked || !verificationEmail}
-                className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-text dark:disabled:text-white transition-colors"
+                className="text-sm text-rh-green hover:text-rh-green/80 disabled:text-rh-light-text/60 dark:disabled:text-white/50 transition-colors"
               >
                 {verifyResendCooldown > 0 ? `Resend in ${verifyResendCooldown}s` : 'Resend code'}
               </button>
@@ -1537,10 +1537,10 @@ export default function App() {
       {/* Mobile-only navigation */}
       <div className="sm:hidden">
         <Navigation
-          // A stock page isn't a tab. Lighting up "Portfolio" (or any other
-          // tab) while you're on one would claim you're somewhere you aren't,
-          // and it makes the tab you came from harder to read as the way back.
-          activeTab={viewingStock ? null : activeTab}
+          // A stock page or the settings screen isn't a tab. Lighting one up
+          // while you're on either would claim you're somewhere you aren't, and
+          // it makes the tab you came from harder to read as the way back.
+          activeTab={viewingStock || settingsView ? null : activeTab}
           userPlan={user?.plan}
           portfolioMenuOpen={mobilePortfolioMenuOpen}
           onPortfolioMenuClose={() => setMobilePortfolioMenuOpen(false)}
