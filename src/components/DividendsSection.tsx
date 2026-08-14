@@ -172,7 +172,7 @@ export function DividendsSection({ refreshTrigger, holdings, onTickerClick }: Pr
                 <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">YTD</p>
                 <p className="text-base font-semibold text-rh-green">{formatCurrency(summary.totalYTD)}</p>
               </div>
-              <span className="text-rh-light-text dark:text-white">|</span>
+              <span className="text-rh-light-text/30 dark:text-white/[0.18]">|</span>
               <div>
                 <p className="text-[10px] text-rh-light-text/70 dark:text-white/80 uppercase tracking-wider">All-time</p>
                 <p className="text-base font-semibold text-rh-light-text dark:text-rh-text">{formatCurrency(summary.totalAllTime)}</p>

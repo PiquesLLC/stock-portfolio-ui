@@ -1960,7 +1960,7 @@ export default function App() {
                       </div>
                       {chartMeasurement.outperformance !== null && (
                         <>
-                          <span className="text-rh-light-text dark:text-white">|</span>
+                          <span className="text-rh-light-text/30 dark:text-white/[0.18]">|</span>
                           <div className="flex items-center gap-1.5">
                             <span className="text-rh-light-text dark:text-white">vs SPY</span>
                             <span className={`font-semibold ${chartMeasurement.outperformance >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>

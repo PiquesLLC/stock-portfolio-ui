@@ -113,7 +113,7 @@ function TradeRow({
           </button>
           {details && (
             <>
-              <span className="text-rh-light-text dark:text-white/80">·</span>
+              <span className="text-rh-light-text/30 dark:text-white/[0.18]">·</span>
               <span className="text-[13px] text-rh-light-text dark:text-white">{details}</span>
             </>
           )}

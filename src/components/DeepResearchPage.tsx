@@ -544,7 +544,7 @@ export function DeepResearchPage({ onTickerClick }: DeepResearchPageProps) {
               <span className={`tabular-nums ${prompt.length > 1800 ? 'text-amber-500 dark:text-amber-400' : ''}`}>
                 {prompt.length} / 2000 chars
               </span>
-              <span className="text-rh-light-text dark:text-white/[0.18]">·</span>
+              <span className="text-rh-light-text/30 dark:text-white/[0.18]">·</span>
               <span>Avg report ~2,400 words</span>
             </div>
             <button

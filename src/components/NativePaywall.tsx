@@ -219,7 +219,7 @@ export function NativePaywall() {
           <button onClick={() => { window.location.hash = '#privacy'; }} className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white underline">
             Privacy Policy
           </button>
-          <span className="text-rh-light-text dark:text-white">·</span>
+          <span className="text-rh-light-text/30 dark:text-white/[0.18]">·</span>
           <button onClick={() => { window.location.hash = '#terms'; }} className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white underline">
             Terms of Service
           </button>

@@ -160,7 +160,7 @@ export function BenchmarkWidget({ refreshTrigger, window: externalWindow, chartR
               <span className="text-rh-light-text dark:text-white">You</span>
               <span className={`font-semibold ${(youPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{fmt(youPct)}</span>
             </div>
-            <span className="text-rh-light-text dark:text-white">|</span>
+            <span className="text-rh-light-text/30 dark:text-white/[0.18]">|</span>
             <div className="flex items-center gap-1.5">
               <span className="text-rh-light-text dark:text-white">{benchmark}</span>
               <span className={`font-semibold ${(data.benchmarkReturnPct ?? 0) >= 0 ? 'text-rh-green' : 'text-rh-red'}`}>{fmt(data.benchmarkReturnPct)}</span>
