@@ -1902,12 +1902,12 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setHoldingsViewMode('compact')}
-                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white dark:hover:text-white/80'}`}
+                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'compact' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-white/60 dark:hover:text-white'}`}
                       >Simple</button>
                       <button
                         type="button"
                         onClick={() => setHoldingsViewMode('detailed')}
-                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white/80' : 'text-gray-400 hover:text-gray-600 dark:text-white dark:hover:text-white/80'}`}
+                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${holdingsViewMode === 'detailed' ? 'bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-white/60 dark:hover:text-white'}`}
                       >Detailed</button>
                     </div>
                   </div>

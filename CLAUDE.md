@@ -34,6 +34,13 @@ never from fading text toward the background. Grey labels were rejected outright
 - **Nothing below `/80`.** `/80`–`/95` read as near-white and are fine for a
   caption sitting under the value it describes; everything else is full white.
   A hover state must brighten toward white, never toward `/80`.
+- **A selected option must be the brightest thing in its control.** In a
+  segmented toggle, selected gets full white and unselected `dark:text-white/60`
+  with a hover that brightens *toward* white. Raising the unselected state to
+  full white inverts the control — the option you are not on looks more active
+  than the one you are (that is exactly how the portfolio Simple/Detailed toggle
+  broke on 2026-08-13). If both states share a text colour, the background must
+  carry the distinction.
 - **Two carve-outs, and only two: placeholders and disabled controls.** Both are
   *meant* to read as inactive — a placeholder at full white is indistinguishable
   from typed text, and a disabled button with a full-white label looks
