@@ -400,7 +400,7 @@ function PostAttachment({ post, onTickerClick }: { post: PostData; onTickerClick
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className={`text-[12px] font-bold uppercase ${isBuy ? 'text-rh-green' : 'text-rh-red'}`}>{attachment.action}</span>
-              <span className="text-[14px] font-bold text-rh-light-text dark:text-white">${attachment.ticker}</span>
+              <span className="text-[14px] font-bold text-rh-light-text dark:text-white/80">${attachment.ticker}</span>
             </div>
             <div className="flex items-center gap-2.5 mt-0.5">
               {attachment.shares != null && <span className="text-[12px] text-rh-light-text dark:text-white/80">{attachment.shares} shares</span>}

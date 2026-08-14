@@ -135,11 +135,11 @@ export function RiskForecast({ data, onRefresh, isRefreshing }: RiskForecastProp
       {/* Metrics Grid - 2x2 */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="p-3 rounded-lg bg-gray-50/60 dark:bg-transparent border border-gray-200/40 dark:border-white/[0.06]">
-          <p className="text-xs text-rh-light-text dark:text-white mb-1">Annual Return</p>
+          <p className="text-xs text-rh-light-text dark:text-white/80 mb-1">Annual Return</p>
           <p className={`text-lg font-semibold tabular-nums ${returnColor}`}>
             {metrics.annualReturn !== null ? `${metrics.annualReturn >= 0 ? '+' : ''}${formatPercent(metrics.annualReturn)}` : '--'}
           </p>
-          <p className="text-[11px] text-rh-light-text dark:text-white mt-0.5">
+          <p className="text-[11px] text-rh-light-text dark:text-white/80 mt-0.5">
             Historical CAGR
           </p>
         </div>

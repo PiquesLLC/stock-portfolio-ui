@@ -767,7 +767,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
           {totalContributions > 0 && (
             <>
               <span className="text-rh-light-text dark:text-white">+</span>
-              <span className="text-rh-light-text dark:text-white">
+              <span className="text-rh-light-text dark:text-white/80">
                 {formatCurrency(totalContributions)} contributed
               </span>
             </>
@@ -830,7 +830,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
 
       {/* Monthly DCA input */}
       <div className="flex items-center gap-2 mb-4 px-1 flex-wrap">
-        <span className="text-[11px] text-rh-light-text dark:text-white whitespace-nowrap">Monthly contribution:</span>
+        <span className="text-[11px] text-rh-light-text dark:text-white/80 whitespace-nowrap">Monthly contribution:</span>
         <div className="flex items-center gap-1">
           <span className="text-[11px] text-rh-light-text dark:text-white">$</span>
           <input
