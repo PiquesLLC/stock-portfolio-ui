@@ -477,7 +477,7 @@ export function WatchlistPage({ onTickerClick }: WatchlistPageProps) {
             <div className="relative md:hidden">
               <button
                 onClick={() => setShowDisplayMenu(!showDisplayMenu)}
-                className="p-1 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="p-1 text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
                 title="Display data"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

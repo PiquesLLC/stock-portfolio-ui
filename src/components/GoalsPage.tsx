@@ -692,7 +692,7 @@ export function GoalsPage({ annualizedPacePct, refreshTrigger, session, portfoli
                   <div className="w-1 h-4 rounded-full bg-rh-green" />
                   <span className="text-[13px] font-bold uppercase tracking-wide text-rh-light-text dark:text-rh-text">Choose a Goal</span>
                 </div>
-                <button onClick={() => setShowForm(false)} className="text-[10px] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors">Cancel</button>
+                <button onClick={() => setShowForm(false)} className="text-[10px] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors">Cancel</button>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {GOAL_TEMPLATES.map(t => (

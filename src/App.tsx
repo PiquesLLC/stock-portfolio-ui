@@ -1311,7 +1311,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setSearchExpanded(false)}
-                className="text-sm text-rh-light-text dark:text-white px-2 py-1 hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="text-sm text-rh-light-text dark:text-white/80 px-2 py-1 hover:text-rh-light-text dark:hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -1847,7 +1847,7 @@ export default function App() {
                     <div className="relative mb-1 ml-3 sm:ml-6" ref={desktopPortfolioRef}>
                       <button
                         onClick={() => setDesktopPortfolioOpen(prev => !prev)}
-                        className="flex items-center gap-1 text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
+                        className="flex items-center gap-1 text-[11px] font-medium text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
                       >
                         {userPortfolios.find(p => p.id === selectedPortfolioId)?.name || 'Portfolio 1'}
                         <svg className={`w-2.5 h-2.5 transition-transform duration-150 ${desktopPortfolioOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

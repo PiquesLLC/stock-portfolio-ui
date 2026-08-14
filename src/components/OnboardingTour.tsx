@@ -144,7 +144,7 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
           </span>
           <button
             onClick={onSkip}
-            className="text-[11px] font-medium text-gray-500 dark:text-white hover:text-gray-600 dark:hover:text-white/80 transition-colors"
+            className="text-[11px] font-medium text-gray-500 dark:text-white/80 hover:text-gray-600 dark:hover:text-white transition-colors"
           >
             Skip tour
           </button>

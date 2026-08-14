@@ -140,7 +140,7 @@ export function SettingsSidebar({
           </a>
           <button
             onClick={onPrivacyPolicy}
-            className="text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
+            className="text-xs text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
           >
             Privacy Policy & Terms
           </button>

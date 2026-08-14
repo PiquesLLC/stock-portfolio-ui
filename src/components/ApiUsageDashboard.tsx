@@ -50,7 +50,7 @@ export function ApiUsageDashboard({ onBack }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors">&larr; Back</button>
+          <button onClick={onBack} className="text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors">&larr; Back</button>
           <h1 className="text-xl font-bold text-rh-light-text dark:text-white">API Usage</h1>
         </div>
         <div className="flex gap-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-0.5">

@@ -205,7 +205,7 @@ function QualityScoreInfo({ show, onClose }: { show: boolean; onClose: () => voi
       >
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Quality Score</h3>
-          <button onClick={onClose} className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text text-lg leading-none">&times;</button>
+          <button onClick={onClose} className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white text-lg leading-none">&times;</button>
         </div>
         <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed">
           A 0–100 score measuring business quality, independent of valuation. Higher is better.

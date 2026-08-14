@@ -480,7 +480,7 @@ export function NotificationBell({ userId, onTickerClick }: Props) {
               )}
               <button
                 onClick={() => { setShowSettings(true); setOpen(false); }}
-                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text"
+                className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white"
                 title="Alert settings"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

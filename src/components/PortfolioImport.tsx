@@ -500,7 +500,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               : 'Import Portfolio'}
           </h2>
           {!onboarding && step !== 'uploading' && step !== 'confirming' && step !== 'processing' && (
-            <button onClick={onClose} aria-label="Close" className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1">
+            <button onClick={onClose} aria-label="Close" className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white p-1">
               <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -645,7 +645,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                 </button>
                 <button
                   onClick={() => setStep('wizard')}
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Map columns manually
                 </button>
@@ -653,7 +653,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
 
               <button
                 onClick={() => { setStep('choose'); setCsvFile(null); setCsvHeaders([]); setCsvRows([]); setError(''); }}
-                className="text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
+                className="text-xs text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
               >
                 Choose a different file
               </button>
@@ -688,7 +688,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={handleWizardBack}
-                  className="px-4 py-2 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="px-4 py-2 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Back
                 </button>
@@ -1064,7 +1064,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
                     setSkippedSteps(new Set());
                     setWizardStepIndex(0);
                   }}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Start Over
                 </button>
@@ -1142,7 +1142,7 @@ export function PortfolioImport({ onClose, onImportComplete, onboarding, onManua
               <div className="flex gap-3">
                 <button
                   onClick={() => { setStep('choose'); setClearText(''); setError(''); }}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors text-sm"
                 >
                   Cancel
                 </button>

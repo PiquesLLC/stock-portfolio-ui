@@ -178,7 +178,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+            className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
           >
             <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -279,7 +279,7 @@ export function CreatePriceAlertModal({ ticker, currentPrice, openPrice, average
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-3"
+            className="flex items-center gap-1 text-xs text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white mb-3"
           >
             <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

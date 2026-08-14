@@ -233,7 +233,7 @@ export function UserPortfolioView({ userId, displayName, returnPct, window, trac
       {/* Back button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors"
+        className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white mb-4 transition-colors"
       >
         <span>&larr;</span> {backLabel ?? 'Back to Leaderboard'}
       </button>

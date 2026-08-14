@@ -2121,7 +2121,7 @@ function SwipeCarousel({
         <button
           type="button"
           onClick={onExit}
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
         >
           <span aria-hidden>←</span>
           <span>Back to overview</span>

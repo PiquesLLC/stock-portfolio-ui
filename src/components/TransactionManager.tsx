@@ -95,7 +95,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
     <div className="mt-4 pt-4 border-t border-rh-light-border/20 dark:border-white/[0.03]">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+        className="flex items-center gap-2 text-xs text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
       >
         <svg
           className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
@@ -196,7 +196,7 @@ export function TransactionManager({ onTransactionChange }: Props) {
                     setShowForm(false);
                     setError('');
                   }}
-                  className="text-xs px-3 py-1.5 rounded text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                  className="text-xs px-3 py-1.5 rounded text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
                 >
                   Cancel
                 </button>

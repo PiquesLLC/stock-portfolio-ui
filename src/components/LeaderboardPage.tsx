@@ -192,7 +192,7 @@ export function LeaderboardPage({ session, currentUserId, onStockClick, selected
           <div className="relative">
             <button
               onClick={() => setShowInfo(!showInfo)}
-              className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
+              className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" strokeWidth={1.5} />

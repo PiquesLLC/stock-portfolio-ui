@@ -586,7 +586,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
       <motion.button
         variants={itemVariants}
         onClick={onBack}
-        className="flex items-center gap-1.5 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-4 transition-colors group"
+        className="flex items-center gap-1.5 text-xs text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white mb-4 transition-colors group"
       >
         <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -876,7 +876,7 @@ export function UserProfileView({ userId, currentUserId, session, onBack, onStoc
                 </div>
                 <button
                   onClick={() => setSocialTab(null)}
-                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                  className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

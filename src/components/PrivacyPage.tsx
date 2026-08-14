@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PrivacyPolicyContent, TermsOfServiceContent } from './PrivacyPolicyModal';
 
 export function PrivacyPage({ initialTab = 'privacy' }: { initialTab?: 'privacy' | 'terms' }) {
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms'>(initialTab);
+
+  // Same trap as PrivacyPolicyModal: App renders this at a fixed position, so
+  // going from #privacy to #terms re-renders rather than remounts and useState
+  // keeps the tab it was first given. Without this, the paywall's "Terms of
+  // Service" link showed the privacy text.
+  useEffect(() => { setActiveTab(initialTab); }, [initialTab]);
 
   return (
     <div className="min-h-screen min-h-dvh bg-black text-white">

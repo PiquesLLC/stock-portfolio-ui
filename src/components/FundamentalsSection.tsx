@@ -587,7 +587,7 @@ export function FundamentalsSection({ ticker, currentPrice }: { ticker: string; 
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowTable(t => !t); }}
-                className="text-[10px] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white/80 transition-colors mb-2"
+                className="text-[10px] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors mb-2"
               >
                 {showTable ? 'Hide details' : 'Show details'}
               </button>

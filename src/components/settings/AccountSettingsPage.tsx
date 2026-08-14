@@ -417,7 +417,7 @@ export default function AccountSettingsPage({ userId, onBack, onSave, healthStat
         <p className="text-rh-red text-sm">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-2 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text"
+          className="mt-2 text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white"
         >
           Retry
         </button>

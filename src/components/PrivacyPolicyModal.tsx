@@ -241,6 +241,16 @@ export function TermsOfServiceContent() {
 export function PrivacyPolicyModal({ isOpen, onClose, initialTab = 'privacy' }: PrivacyPolicyModalProps) {
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms'>(initialTab);
 
+  // useState only reads initialTab on first mount, and this modal never
+  // unmounts — it just renders null while closed. Without this, whichever tab
+  // you opened FIRST was the tab you got forever: clicking "Terms of Service"
+  // after having once opened "Privacy Policy" showed the privacy text.
+  // Re-syncing on open honours the link that was actually clicked, while
+  // leaving in-modal tab switching alone.
+  useEffect(() => {
+    if (isOpen) setActiveTab(initialTab);
+  }, [isOpen, initialTab]);
+
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';

@@ -72,7 +72,7 @@ export function KeyboardCheatSheet({ isOpen, onClose }: KeyboardCheatSheetProps)
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors text-lg leading-none"
+            className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors text-lg leading-none"
           >
             &times;
           </button>

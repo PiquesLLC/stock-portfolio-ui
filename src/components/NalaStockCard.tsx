@@ -139,7 +139,7 @@ export default function NalaStockCard({ stock, rank, index, onTickerClick }: Nal
         <div className="mb-3">
           <button
             onClick={() => setShowRisks(!showRisks)}
-            className="flex items-center gap-1.5 text-xs text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white/80 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
           >
             <motion.svg
               animate={{ rotate: showRisks ? 90 : 0 }}

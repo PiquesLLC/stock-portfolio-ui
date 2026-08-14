@@ -114,7 +114,7 @@ export function PerformanceReportModal({ onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-rh-light-text dark:text-rh-text">Performance Report</h3>
-          <button type="button" aria-label="Close" onClick={onClose} className="p-1 -m-1 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
+          <button type="button" aria-label="Close" onClick={onClose} className="p-1 -m-1 text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors">
             <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

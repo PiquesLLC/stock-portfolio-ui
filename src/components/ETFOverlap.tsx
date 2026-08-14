@@ -170,7 +170,7 @@ export function ETFOverlap({ onTickerClick, portfolioId }: Props) {
                 </span>
                 <button
                   onClick={() => setSelectedPair(null)}
-                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text"
+                  className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

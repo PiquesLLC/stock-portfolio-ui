@@ -252,7 +252,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                   {formatCurrencyFull(simEquity)}
                 </span>
               </div>
-              <button onClick={resetAll} className="text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors flex items-center gap-1">
+              <button onClick={resetAll} className="text-[11px] font-medium text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -350,7 +350,7 @@ function WhatIfMode({ holdings, cashBalance, totalValue, marginDebt = 0, onTicke
                 const allExpanded = allTickers.every(t => expandedTickers.has(t));
                 setExpandedTickers(allExpanded ? new Set() : new Set(allTickers));
               }}
-              className="text-[10px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+              className="text-[10px] font-medium text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
             >
               {entries.every(e => expandedTickers.has(e.ticker)) ? 'Collapse All' : 'Expand All'}
             </button>
@@ -822,7 +822,7 @@ function GrowthProjector({ holdings, cashBalance, totalValue, marginDebt = 0, on
 
         {hasOverrides && (
           <button onClick={clearOverrides}
-            className="text-[11px] font-medium text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
+            className="text-[11px] font-medium text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors">
             Reset overrides
           </button>
         )}

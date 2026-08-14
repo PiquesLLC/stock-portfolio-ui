@@ -324,7 +324,7 @@ export function CompareStocksPage({ tickers, onBack, onTickerClick, onUpdateTick
               </div>
             ) : (
               <button onClick={() => setShowAddInput(true)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200/40 dark:border-white/[0.08] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
               >
                 + Add
               </button>

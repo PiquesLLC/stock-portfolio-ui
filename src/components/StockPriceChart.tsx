@@ -3708,7 +3708,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   {isPinned && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPinnedEventIdx(null); }}
-                      className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors -mr-0.5"
+                      className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors -mr-0.5"
                       style={{ fontSize: '13px', lineHeight: 1 }}
                     >&times;</button>
                   )}

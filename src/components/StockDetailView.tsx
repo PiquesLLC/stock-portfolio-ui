@@ -490,7 +490,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       <motion.div className="pt-2 pb-6" animate={slideControls}>
         {/* `hidden sm:flex` to match the loaded view. Without it this skeleton
             painted a back arrow that vanished the instant data arrived. */}
-        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white mb-6 transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="space-y-4 animate-pulse">
@@ -510,7 +510,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       <div className="py-6">
         {/* `hidden sm:flex` to match the loaded view. Without it this skeleton
             painted a back arrow that vanished the instant data arrived. */}
-        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white mb-6 transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -535,7 +535,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       <div className="py-6">
         {/* `hidden sm:flex` to match the loaded view. Without it this skeleton
             painted a back arrow that vanished the instant data arrived. */}
-        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text mb-6 transition-colors">
+        <button onClick={onBack} className="hidden sm:flex items-center gap-1 text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white mb-6 transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="text-rh-red text-sm">{error || 'Failed to load'}</div>
@@ -590,7 +590,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
     <div className={className} data-stock-actions-menu>
       <button
         onClick={() => setActionsOpen(prev => !prev)}
-        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border text-rh-light-text dark:text-white border-gray-200/60 dark:border-white/[0.08] hover:text-rh-light-text dark:hover:text-rh-text"
+        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold tracking-wide transition-all border text-rh-light-text dark:text-white/80 border-gray-200/60 dark:border-white/[0.08] hover:text-rh-light-text dark:hover:text-white"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -759,7 +759,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
       {/* Below sm: this whole band is reclaimed — its Back button and actions
           menu ride on the company-identity line instead. sm:+ is unchanged. */}
       <div className="hidden sm:flex items-center justify-between gap-3 mb-5">
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors">
           <span>&larr;</span> Back
         </button>
         <div className="flex items-center gap-2">

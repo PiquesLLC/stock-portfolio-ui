@@ -66,7 +66,7 @@ export function AddHoldingModal({ ticker, currentPrice, onAdded, holding, onClos
           <h2 className="text-sm font-bold tracking-tight text-rh-light-text dark:text-white">
             {holding ? 'Update Holding' : 'Add to Portfolio'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2.5 text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors">
             <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

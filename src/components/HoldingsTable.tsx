@@ -818,7 +818,7 @@ export function HoldingsTable({
                     e.stopPropagation();
                     handleCloseModal();
                   }}
-                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1"
+                  className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white p-1"
                   aria-label="Close modal"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -845,7 +845,7 @@ export function HoldingsTable({
                   <p className="text-xs text-rh-light-text mt-0.5 dark:hidden">Used to calculate your net equity and returns.</p>
                 </div>
                 <button type="button" onClick={() => setShowCashMarginModal(false)}
-                  className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
+                  className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
                   <svg className="w-4 h-4 dark:w-5 dark:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -935,7 +935,7 @@ export function HoldingsTable({
               <button
                 type="button"
                 onClick={() => { setShowSortMenu(!showSortMenu); setShowDisplayMenu(false); }}
-                className="p-1 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="p-1 text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
                 title="Sort holdings"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -999,7 +999,7 @@ export function HoldingsTable({
               <button
                 type="button"
                 onClick={() => { setShowDisplayMenu(!showDisplayMenu); setShowSortMenu(false); }}
-                className="p-1 text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text transition-colors"
+                className="p-1 text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white transition-colors"
                 title="Display data"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1462,7 +1462,7 @@ export function HoldingsTable({
                   e.stopPropagation();
                   handleCloseModal();
                 }}
-                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1"
+                className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white p-1"
                 aria-label="Close modal"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1506,7 +1506,7 @@ export function HoldingsTable({
                   e.stopPropagation();
                   handleCloseModal();
                 }}
-                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1"
+                className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white p-1"
                 aria-label="Close modal"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1535,7 +1535,7 @@ export function HoldingsTable({
                 <p className="text-xs text-rh-light-text mt-0.5 dark:hidden">Used to calculate your net equity and returns.</p>
               </div>
               <button type="button" onClick={() => setShowCashMarginModal(false)}
-                className="text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
+                className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white p-1 mt-0.5 transition-colors">
                 <svg className="w-4 h-4 dark:w-5 dark:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>

@@ -221,7 +221,7 @@ export function Projections({ currentValue, refreshTrigger = 0, session, onPaceD
                         {formatPercent(sp500Data.assumptions.annualReturn)}
                       </span>{' '}
                       per year (dividends reinvested), compounded monthly.
-                      <button onClick={() => setShowInfo(false)} className="block mt-2 text-[10px] text-rh-light-text dark:text-white hover:text-rh-light-text dark:hover:text-rh-text">Dismiss</button>
+                      <button onClick={() => setShowInfo(false)} className="block mt-2 text-[10px] text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white">Dismiss</button>
                     </span>
                   )}
                 </span>
