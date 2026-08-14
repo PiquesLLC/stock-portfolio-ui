@@ -569,7 +569,10 @@ function Treemap({
               y={sr.y + 1}
               width={Math.max(0, sr.w - 2)}
               height={Math.max(0, sr.h - 2)}
-              fill={isDark ? '#0a0a0c' : '#e0e0e0'}
+              // Light mode gutters are WHITE, not grey. #e0e0e0 sat a mid-grey
+              // behind saturated red/green tiles and read as dirty — the same
+              // reason light-theme heatmaps elsewhere use white separators.
+              fill={isDark ? '#0a0a0c' : '#ffffff'}
               rx={1}
             />
             {/* Sector label bar — drills into the sector's swipe group when
@@ -594,9 +597,11 @@ function Treemap({
                     y={sr.y + 2}
                     width={Math.max(0, sr.w - 4)}
                     height={SECTOR_LABEL_H - 1}
+                    // Light mode: a solid pale band, not a black wash. The wash
+                    // over grey was what made the sector headers look muddy.
                     fill={isLabelHovered
-                      ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.25)')
-                      : (isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.20)')}
+                      ? (isDark ? 'rgba(255,255,255,0.12)' : '#dfe3ea')
+                      : (isDark ? 'rgba(0,0,0,0.6)' : '#eceef2')}
                     rx={1}
                     style={{ transition: 'fill 0.15s' }}
                   />
@@ -670,7 +675,7 @@ function Treemap({
                       width={subR.w}
                       height={subR.h}
                       fill="none"
-                      stroke={isDark ? '#0a0a0c' : '#ddd'}
+                      stroke={isDark ? '#0a0a0c' : '#e6e8ec'}
                       strokeWidth={0.5}
                     />
                   )}
@@ -690,8 +695,8 @@ function Treemap({
                           width={Math.max(0, subR.w - 2)}
                           height={SUB_SECTOR_LABEL_H - 1}
                           fill={isSubHovered
-                            ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)')
-                            : (isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.05)')}
+                            ? (isDark ? 'rgba(255,255,255,0.08)' : '#e8ebf0')
+                            : (isDark ? 'rgba(0,0,0,0.4)' : '#f3f5f8')}
                           rx={0.5}
                           style={{ transition: 'fill 0.15s', pointerEvents: 'none' }}
                         />
