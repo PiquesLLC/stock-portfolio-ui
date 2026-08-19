@@ -1,5 +1,6 @@
 import { BottleneckEntry, PriceData } from '../api';
 import { changeColorClass, formatPercent } from '../utils/format';
+import { BottleneckRankDelta } from './BottleneckRankDelta';
 
 interface Props {
   entry: BottleneckEntry;
@@ -74,6 +75,11 @@ export function BottleneckCard({ entry, onOpen, onTickerClick, prices }: Props) 
         <span className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-rh-text">
           {entry.layer}
         </span>
+        <BottleneckRankDelta
+          delta={entry.momentum?.rankDelta}
+          sector={entry.sector}
+          className="ml-auto flex-shrink-0"
+        />
       </div>
 
       <h3 className="text-base font-semibold text-rh-light-text dark:text-rh-text mb-1">

@@ -3,6 +3,7 @@ import { BottleneckEntry, BottlenecksResponse, getBottlenecks, getPrices, PriceD
 import { BottleneckCard } from './BottleneckCard';
 import { BottleneckHero } from './BottleneckHero';
 import { BottleneckDrawer } from './BottleneckDrawer';
+import { BottleneckMovers } from './BottleneckMovers';
 
 let cachedResponse: BottlenecksResponse | null = null;
 let cachedAt = 0;
@@ -137,6 +138,23 @@ export function BottlenecksView({ onTickerClick }: Props) {
     return layerFilter === 'all' || sectorFeatured.layer === layerFilter;
   }, [sectorFeatured, layerFilter]);
 
+  // Movers are a sector-level summary, so they only make sense on the unfiltered
+  // view — narrowing to one layer would show movement the visible cards don't explain.
+  const sectorMovers = useMemo(() => {
+    if (!data || layerFilter !== 'all') return [];
+    return data.movers?.[sectorFilter] || [];
+  }, [data, sectorFilter, layerFilter]);
+
+  // Movers carry only an id; resolve it back to the full entry to open the drawer.
+  const openEntryById = (entryId: string) => {
+    if (!data) return;
+    const found =
+      data.entries.find((e) => e.id === entryId) ||
+      Object.values(data.featured).find((e) => e?.id === entryId) ||
+      null;
+    if (found) setDrawerEntry(found);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -195,6 +213,10 @@ export function BottlenecksView({ onTickerClick }: Props) {
           </button>
         ))}
       </div>
+
+      {/* What changed since the user last looked — sits above the catalog so a
+          returning user sees the week's movement before the (slow-moving) copy. */}
+      <BottleneckMovers movers={sectorMovers} onOpen={openEntryById} />
 
       {/* Featured hero — gated on layer filter */}
       {showHero && sectorFeatured && (

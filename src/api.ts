@@ -2510,6 +2510,47 @@ export interface ChokepointMetric {
   value: string;
 }
 
+/**
+ * Weekly ranking signal. `momentum` is benchmark-relative PRICE MOVEMENT, not a
+ * judgement of value — copy built on it describes activity ("moving this week"),
+ * never merit ("strongest", "leaders"). Absent until the weekly job has run.
+ */
+export interface EntryMomentum {
+  /** 0-100 blended Pressure Score (editorial anchor + market momentum). */
+  score: number;
+  /** -1..1 benchmark-relative strength, clamped. */
+  momentum: number;
+  /** Rank within the sector for the scored week, 1 = highest. */
+  rank: number;
+  /**
+   * Movement vs `prevIsoWeek`, measured over entries present in both weeks so
+   * catalog churn doesn't read as movement. Positive = moved up. Null if new.
+   */
+  rankDelta: number | null;
+  /** ISO week the score belongs to, e.g. "2026-W34". */
+  isoWeek: string;
+  /**
+   * The week `rankDelta` compares against — NOT necessarily the immediately
+   * preceding one. Never say "last week" without checking this against isoWeek.
+   */
+  prevIsoWeek: string | null;
+  /**
+   * Tickers that actually contributed to `momentum`. Any factual claim about
+   * price behaviour must name THESE, not the entry's full ticker list.
+   */
+  tickersUsed: string[];
+}
+
+export interface BottleneckMover {
+  id: string;
+  name: string;
+  sector: string;
+  layer: string;
+  primaryTicker: string;
+  rank: number;
+  rankDelta: number;
+}
+
 export interface BottleneckEntry {
   id: string;
   name: string;
@@ -2524,6 +2565,7 @@ export interface BottleneckEntry {
   risks: string[];
   featured: boolean;
   lastUpdated: string;
+  momentum?: EntryMomentum;
 }
 
 export interface BottlenecksResponse {
@@ -2532,6 +2574,10 @@ export interface BottlenecksResponse {
   featured: Record<string, BottleneckEntry | null>;
   entries: BottleneckEntry[];
   generatedAt: string;
+  /** Biggest sector-wide rank movers this week, keyed by sector. */
+  movers: Record<string, BottleneckMover[]>;
+  /** ISO week the attached momentum belongs to, or null if none available. */
+  momentumWeek: string | null;
 }
 
 export async function getBottlenecks(): Promise<BottlenecksResponse> {

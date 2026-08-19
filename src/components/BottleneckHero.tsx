@@ -1,6 +1,7 @@
 import { BottleneckEntry, PriceData } from '../api';
 import { StockLogo } from './StockLogo';
 import { layerBarColor } from './BottleneckCard';
+import { BottleneckRankDelta } from './BottleneckRankDelta';
 import { changeColorClass, formatPercent } from '../utils/format';
 
 interface Props {
@@ -32,6 +33,7 @@ export function BottleneckHero({ entry, onOpen, onTickerClick, prices }: Props) 
             ★ Featured
           </span>
         </div>
+        <BottleneckRankDelta delta={entry.momentum?.rankDelta} sector={entry.sector} />
       </div>
 
       <div className="flex items-center gap-3 mb-3">

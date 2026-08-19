@@ -2,12 +2,77 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { BottleneckEntry } from '../api';
 import { layerBarColor } from './BottleneckCard';
+import { BottleneckRankDelta } from './BottleneckRankDelta';
 
 interface Props {
   entry: BottleneckEntry | null;
   open: boolean;
   onClose: () => void;
   onTickerClick: (ticker: string) => void;
+}
+
+/** "2026-W34" -> "week 34". Used only when the comparison week isn't the prior one. */
+function weekLabel(isoWeek: string): string {
+  const m = /^\d{4}-W(\d{2})$/.exec(isoWeek);
+  return m ? `week ${Number(m[1])}` : isoWeek;
+}
+
+/**
+ * Is `prev` the week immediately before `current`? Compared by parsing both,
+ * since a naive numeric decrement is wrong across a year boundary
+ * (2026-W01's predecessor is 2025-W52 or W53, not 2026-W00).
+ */
+function isImmediatelyPrior(current: string, prev: string): boolean {
+  const c = /^(\d{4})-W(\d{2})$/.exec(current);
+  const p = /^(\d{4})-W(\d{2})$/.exec(prev);
+  if (!c || !p) return false;
+  const [cy, cw] = [Number(c[1]), Number(c[2])];
+  const [py, pw] = [Number(p[1]), Number(p[2])];
+  if (cy === py) return cw - pw === 1;
+  // Year rolled over: the prior week must be the last week of the prior year.
+  return cy - py === 1 && cw === 1 && (pw === 52 || pw === 53);
+}
+
+/**
+ * Plain-language reason for the entry's placement.
+ *
+ * Describes what the market did, never what the reader should do. `momentum` is
+ * benchmark-relative: positive means the measured tickers outpaced the S&P 500
+ * over the windows, which is a statement about price, not value.
+ *
+ * Two accuracy constraints, both load-bearing:
+ *  - Name only `tickersUsed`. The entry's full ticker list may include names
+ *    that were skipped (no usable history, or a stale series), and asserting
+ *    how an unmeasured security traded would simply be false.
+ *  - Don't say "last week" unless the comparison week actually is last week —
+ *    the job diffs against the most recent SCORED week, which can be older.
+ */
+function rankExplanation(entry: BottleneckEntry): string {
+  const m = entry.momentum;
+  if (!m) return '';
+
+  const strength =
+    m.momentum > 0.33 ? 'well ahead of' :
+    m.momentum > 0.05 ? 'ahead of' :
+    m.momentum < -0.33 ? 'well behind' :
+    m.momentum < -0.05 ? 'behind' :
+    'roughly in line with';
+
+  const since =
+    m.prevIsoWeek && !isImmediatelyPrior(m.isoWeek, m.prevIsoWeek)
+      ? `since ${weekLabel(m.prevIsoWeek)}`
+      : 'from last week';
+
+  const movement =
+    m.rankDelta == null ? 'First week in the ranking.' :
+    m.rankDelta > 0 ? `Up ${m.rankDelta} ${since}.` :
+    m.rankDelta < 0 ? `Down ${Math.abs(m.rankDelta)} ${since}.` :
+    `Unchanged ${since}.`;
+
+  const measured = (m.tickersUsed || []).slice(0, 3);
+  if (measured.length === 0) return movement;
+
+  return `${movement} Over the last 4–12 weeks ${measured.join(', ')} traded ${strength} the S&P 500.`;
 }
 
 export function BottleneckDrawer({ entry, open, onClose, onTickerClick }: Props) {
@@ -185,10 +250,35 @@ export function BottleneckDrawer({ entry, open, onClose, onTickerClick }: Props)
             </div>
           )}
 
+          {/* Weekly placement. Framed as activity, never merit — the wording here
+              is load-bearing: it must not read as a view on whether to own this. */}
+          {entry.momentum && (
+            <div className="pt-5 border-t border-rh-light-border dark:border-rh-border">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-rh-light-text/70 dark:text-white/80 mb-2">
+                This week
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold text-rh-light-text dark:text-rh-text tabular-nums">
+                  #{entry.momentum.rank} in {entry.sector}
+                </span>
+                <BottleneckRankDelta delta={entry.momentum.rankDelta} sector={entry.sector} />
+              </div>
+              <p className="text-[11px] text-rh-light-text dark:text-white/80 mt-2 leading-relaxed">
+                {rankExplanation(entry)}
+              </p>
+            </div>
+          )}
+
           {/* Footer caveat */}
-          {entry.lastUpdated && (
+          {(entry.lastUpdated || entry.momentum) && (
             <p className="text-[10px] text-rh-light-text dark:text-white mt-6 italic">
-              Last updated {entry.lastUpdated}
+              {entry.lastUpdated && <>Last updated {entry.lastUpdated}. </>}
+              {entry.momentum && (
+                <>
+                  Placement reflects recent price movement across this chokepoint&apos;s tickers and
+                  our assessment of how binding the chokepoint is. It is not a recommendation.
+                </>
+              )}
             </p>
           )}
         </div>
