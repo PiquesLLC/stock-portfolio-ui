@@ -2774,7 +2774,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.5" />
           )}
 
-
           {/* Session veils at market open/close for 1D (line mode only) */}
           {chartMode === 'line' && hasData && is1D && [stockOpenIdx, stockCloseIdx].map((idx, i) => idx !== null && (() => {
             const veilX = toX(idx);
