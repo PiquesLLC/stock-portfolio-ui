@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { StockDetailsResponse, MarketSession, ETFHoldingsData, AssetAbout, PriceAlert, EarningsResponse, ActivityEvent, AnalystEvent } from '../types';
 import { DividendEvent, DividendCredit } from '../types';
 import {
@@ -19,6 +19,7 @@ import {
   AIEventsResponse,
   getAIEvents,
   getStockFollowStatus,
+  getFullHistory,
 } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { planKnownBelow } from '../utils/plan';
@@ -50,6 +51,8 @@ export function useStockData(ticker: string, chartPeriod: string) {
   // 404 from quote/details — the ticker doesn't exist at any provider
   // (mistyped URL, or a foreign listing search offers but can't resolve).
   const [notFound, setNotFound] = useState(false);
+  /** Full daily history, fetched only once MAX is actually selected. */
+  const [fullHistory, setFullHistory] = useState<StockDetailsResponse['candles']>(null);
   const requestIdRef = useRef(0);
 
   // Abort signal for in-flight fetches. When ticker changes (or hook unmounts)
@@ -365,8 +368,52 @@ export function useStockData(ticker: string, chartPeriod: string) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.quote.session, pollQuote]);
 
+  // Reset when the ticker changes — a cached AAPL history must never be shown
+  // under another symbol.
+  useEffect(() => { setFullHistory(null); }, [ticker]);
+
+  useEffect(() => {
+    if (chartPeriod !== 'MAX' || !ticker || fullHistory) return;
+    let cancelled = false;
+    getFullHistory(ticker)
+      .then(c => {
+        // Guard against a shorter series than /details already gave us: this is
+        // meant to EXTEND history, never truncate it.
+        if (cancelled || !c || c.closes.length === 0) return;
+        if (data?.candles && c.closes.length < data.candles.closes.length) return;
+        setFullHistory(c);
+      })
+      .catch(() => { /* MAX keeps the 10-year series; nothing user-visible breaks */ });
+    return () => { cancelled = true; };
+    // `data?.candles` is read only as a length guard; re-running on every candle
+    // update would refetch a large payload for no gain.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartPeriod, ticker, fullHistory]);
+
+  /**
+   * MAX must mean the same thing everywhere on the page.
+   *
+   * /details is fixed at 10 years, which is right for every other period and
+   * wrong for MAX: the candlestick chart reaches the listing date while the
+   * line chart and the headline "Max" return stopped in 2016 — an AAPL page
+   * drawing back to 1980 above a header quoting +1,060%.
+   *
+   * Fetched lazily on the first MAX selection and cached for the ticker, so a
+   * normal page view never pays for it. Swapped in HERE rather than at each
+   * consumer so the header stat, the line, the moving averages and the Golden
+   * Cross badge cannot disagree about which series they are reading. Still
+   * DAILY bars, so the day-based MA and cross semantics are unchanged.
+   *
+   * On failure `fullHistory` stays null and MAX simply behaves as it did
+   * before — a missing enhancement, never a broken page.
+   */
+  const effectiveData = useMemo(() => {
+    if (chartPeriod !== 'MAX' || !fullHistory || !data) return data;
+    return { ...data, candles: fullHistory };
+  }, [chartPeriod, fullHistory, data]);
+
   return {
-    data,
+    data: effectiveData,
     setData,
     loading,
     quickLoaded,

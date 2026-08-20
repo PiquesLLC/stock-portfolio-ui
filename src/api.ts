@@ -3754,3 +3754,18 @@ export interface EconomicCalendarEvent {
 export async function getEconomicCalendar(): Promise<{ events: EconomicCalendarEvent[] }> {
   return fetchJsonPublic<{ events: EconomicCalendarEvent[] }>(`${API_BASE_URL}/market/economic-calendar`);
 }
+
+/**
+ * Full daily history for the MAX period, in the same shape /details returns.
+ *
+ * Deliberately its own call: /details loads on every stock page view and this
+ * payload is several times larger, so it is requested only when a user actually
+ * selects MAX. Returns null when unavailable — callers keep the 10-year series
+ * they already have.
+ */
+export async function getFullHistory(ticker: string): Promise<StockDetailsResponse['candles']> {
+  const resp = await fetchJson<{ ticker: string; candles: StockDetailsResponse['candles'] }>(
+    `${API_BASE_URL}/market/stock/${encodeURIComponent(ticker)}/full-history`,
+  );
+  return resp.candles;
+}
