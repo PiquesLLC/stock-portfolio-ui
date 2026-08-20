@@ -2837,9 +2837,18 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const compMin = Math.min(...compLows);
                   const compMax = Math.max(...compHighs);
                   const compRange = compMax === compMin ? 2 : compMax - compMin;
-                  const compPaddedMin = compMin - compRange * 0.08;
-                  const compPaddedMax = compMax + compRange * 0.08;
-                  const compToY = (price: number) => PAD_TOP + plotH - ((price - compPaddedMin) / (compPaddedMax - compPaddedMin)) * plotH;
+                  // Must follow the main axis. Drawing the compared ticker
+                  // linear while the main series is log puts two curves on
+                  // incompatible scale types in the one feature whose whole
+                  // purpose is judging relative shape — the comparison would
+                  // look authoritative and mean nothing. (Line-mode
+                  // comparisons avoid this by construction: they are folded
+                  // into the main y-range and share toY.)
+                  const compLog = logAxis && compMin > 0;
+                  const [compYMin, compYMax] = compLog
+                    ? [compMin / LOG_AXIS_PAD, compMax * LOG_AXIS_PAD]
+                    : [compMin - compRange * 0.08, compMax + compRange * 0.08];
+                  const compToY = priceYScale(PAD_TOP, plotH, compYMin, compYMax, compLog);
                   // Same inset as the main series, sized off this ticker's own
                   // candle count so its end bodies aren't clipped either.
                   const compScale = candleXScale(PAD_LEFT, plotW, compCandles.length);
