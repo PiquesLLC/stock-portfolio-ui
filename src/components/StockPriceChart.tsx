@@ -48,13 +48,24 @@ import {
   DIV_COLORS,
 } from '../utils/stock-chart';
 import { CandlestickRenderer } from './CandlestickRenderer';
-import { candleXScale } from '../utils/stock-chart';
+import { candleXScale, priceYScale } from '../utils/stock-chart';
 
 /** Milliseconds per candle interval — used to size a full session's slot count. */
 const CANDLE_INTERVAL_MS: Record<string, number> = {
   '1m': 60_000, '5m': 300_000, '15m': 900_000, '1h': 3_600_000,
   '1D': 86_400_000, '1W': 604_800_000, '1M': 2_592_000_000,
 };
+
+/**
+ * High-to-low ratio at which the price axis switches to log. Below roughly 10x
+ * a linear axis reads better; above it the early history collapses onto the
+ * baseline. AAPL MAX spans ~7,900x, GEV MAX only ~9x — which is the line this
+ * threshold is drawn to sit on.
+ */
+const LOG_AXIS_MIN_RATIO = 10;
+
+/** Multiplicative headroom on a log axis, in place of linear's additive 8%. */
+const LOG_AXIS_PAD = 1.08;
 // RSI and MACD render inline in the main SVG (no external panels)
 import { computeChartGroups } from '../utils/chart-groups';
 
@@ -1190,7 +1201,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   }, [chartMode, effectiveCandleData, candles]);
 
   // Compute stable Y-axis range (includes enabled MA values + comparison overlays)
-  const { paddedMin, paddedMax } = useMemo(() => {
+  const { paddedMin, paddedMax, rawMin, rawMax } = useMemo(() => {
     // Candle mode: Y-axis based on high/low of visible candles
     if (chartMode === 'candle' && effectiveCandleData.length > 0) {
       let visible = effectiveCandleData;
@@ -1219,11 +1230,15 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
         maxP = Math.max(maxP, referencePrice);
       }
       const range = maxP === minP ? 2 : maxP - minP;
-      return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
+      // rawMin/rawMax travel alongside because log mode pads MULTIPLICATIVELY:
+      // this additive 8% drives paddedMin negative on a wide range (AAPL MAX
+      // bottoms near $0.04 against a $316 top) and a negative bound cannot be
+      // logged.
+      return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08, rawMin: minP, rawMax: maxP };
     }
     // When zoomed, rescale Y to visible points only for better detail
     const targetPts = zoomRange ? visiblePoints : points;
-    if (targetPts.length === 0) return { paddedMin: referencePrice - 1, paddedMax: referencePrice + 1 };
+    if (targetPts.length === 0) return { paddedMin: referencePrice - 1, paddedMax: referencePrice + 1, rawMin: referencePrice, rawMax: referencePrice };
     const prices = targetPts.map(p => p.price);
     // The baseline has to stay inside the plot or the dashed reference line clips.
     // On the default window it can sit one candle BEFORE the first visible point
@@ -1270,7 +1285,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       yRangeRef.current = { min: minP, max: maxP, period: selectedPeriod };
     }
     const range = maxP - minP;
-    return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08 };
+    return { paddedMin: minP - range * 0.08, paddedMax: maxP + range * 0.08, rawMin: minP, rawMax: maxP };
   }, [points, referencePrice, selectedPeriod, zoomRange, usesPeriodAnchor, visiblePoints, comparisons, chartMode, effectiveCandleData, candleZoom, candleTimeZoom]);
 
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
@@ -1348,9 +1363,41 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
   };
   // useCallback so the memos depending on toY (candleMeasureCoords, candleHover)
   // actually memoize — a per-render arrow invalidated them every render.
-  const toY = useCallback(
-    (price: number) => PAD_TOP + plotH - ((price - paddedMin) / (paddedMax - paddedMin)) * plotH,
-    [paddedMin, paddedMax, plotH],
+  /**
+   * Log price axis for multi-decade ranges.
+   *
+   * On MAX a long-lived stock spans thousands of times its own starting price
+   * (AAPL: ~$0.04 split-adjusted in 1980 against $316 today). Linearly, two
+   * decades of real price action are pinned flat against the axis and the chart
+   * says nothing about them. A log axis gives equal vertical space to equal
+   * PERCENTAGE moves, which is how a multi-decade history is meant to be read.
+   *
+   * Keyed off the FULL series, not the visible window, so zooming can't flip
+   * the axis type mid-interaction — a scale that silently changes meaning under
+   * a drag is worse than either scale on its own.
+   */
+  const logAxis = useMemo(() => {
+    if (selectedPeriod !== 'MAX') return false;
+    const source = chartMode === 'candle' && effectiveCandleData.length > 0
+      ? effectiveCandleData.map(c => c.low).filter(v => v > 0)
+      : points.map(p => p.price).filter(v => v > 0);
+    if (source.length < 2) return false;
+    const lo = Math.min(...source);
+    const hi = Math.max(...source);
+    return lo > 0 && hi / lo >= LOG_AXIS_MIN_RATIO;
+  }, [selectedPeriod, chartMode, effectiveCandleData, points]);
+
+  // Log mode pads multiplicatively; linear keeps the existing additive padding.
+  const [yMin, yMax] = useMemo((): [number, number] => {
+    if (logAxis && rawMin > 0 && rawMax > rawMin) {
+      return [rawMin / LOG_AXIS_PAD, rawMax * LOG_AXIS_PAD];
+    }
+    return [paddedMin, paddedMax];
+  }, [logAxis, rawMin, rawMax, paddedMin, paddedMax]);
+
+  const toY = useMemo(
+    () => priceYScale(PAD_TOP, plotH, yMin, yMax, logAxis),
+    [logAxis, yMin, yMax, plotH],
   );
 
   // Volume bar scaling
@@ -1574,9 +1621,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       if (d) result.push({ period: ma.period, d, lastPt });
     }
     return result;
-  // toX/toY are inline functions — paddedMin/paddedMax added for toY; remaining toX deps are covered or constant
+  // toX/toY are inline functions — the y-axis bounds are listed for toY (yMin/
+  // yMax, not paddedMin/paddedMax: on a log axis toY reads the former, so
+  // depending on the latter would leave MA paths on a stale scale); remaining
+  // toX deps are covered or constant
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleMaData, interpolatedMaData, enabledMAs, points, selectedPeriod, useHourly, zoomRange, visStartIdx, visEndIdx, paddedMin, paddedMax]);
+  }, [visibleMaData, interpolatedMaData, enabledMAs, points, selectedPeriod, useHourly, zoomRange, visStartIdx, visEndIdx, yMin, yMax, logAxis]);
 
   // ── Technical Indicator Computations ─────────────────────────────
   const indicatorSource = useMemo(() => {
@@ -2696,6 +2746,25 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
           {hasData && (
             <line x1={PAD_LEFT} y1={refY} x2={CHART_W - PAD_RIGHT} y2={refY}
               stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.5" />
+          )}
+
+          {/* An axis that silently changes meaning is worse than either scale,
+              so say when it isn't linear. Equal vertical distance = equal
+              percentage move here, not equal dollar move. */}
+          {logAxis && hasData && (
+            <text
+              x={PAD_LEFT + 4}
+              y={PAD_TOP + 10}
+              fill="currentColor"
+              className="text-rh-light-text dark:text-white"
+              opacity="0.55"
+              fontSize="9"
+              fontWeight="600"
+              letterSpacing="0.08em"
+            >
+              LOG
+              <title>Logarithmic price axis — equal spacing means equal percentage change</title>
+            </text>
           )}
 
           {/* Session veils at market open/close for 1D (line mode only) */}

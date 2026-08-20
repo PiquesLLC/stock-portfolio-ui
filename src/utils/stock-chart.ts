@@ -864,6 +864,34 @@ export interface CandleXScale {
  * Both the renderer and the measurement tool build their positions from this,
  * so markers land on the candles they were dropped on.
  */
+/**
+ * Price -> y mapping, linear or logarithmic.
+ *
+ * A log axis gives equal vertical space to equal PERCENTAGE moves, which is the
+ * only readable way to draw a multi-decade history: AAPL spans ~7,900x from its
+ * 1980 split-adjusted price to today, and linearly the first two decades sit
+ * flat on the axis.
+ *
+ * Non-positive prices are clamped rather than allowed to produce NaN — one bad
+ * tick or a comparison series touching zero would otherwise blank the chart.
+ */
+export function priceYScale(
+  padTop: number,
+  plotH: number,
+  yMin: number,
+  yMax: number,
+  log: boolean,
+): (price: number) => number {
+  if (log && yMin > 0 && yMax > yMin) {
+    const lo = Math.log(yMin);
+    const span = Math.log(yMax) - lo;
+    const floor = yMin / 1000;
+    return (price: number) => padTop + plotH - ((Math.log(Math.max(price, floor)) - lo) / span) * plotH;
+  }
+  const span = yMax - yMin;
+  return (price: number) => padTop + plotH - ((price - yMin) / span) * plotH;
+}
+
 export function candleXScale(padLeft: number, plotW: number, visibleCount: number): CandleXScale {
   const halfBody = candleBodyWidth(plotW, visibleCount) / 2;
   const innerW = Math.max(1, plotW - 2 * halfBody);

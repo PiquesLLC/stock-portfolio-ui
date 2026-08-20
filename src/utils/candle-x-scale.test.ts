@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { candleBodyWidth, candleXScale } from './stock-chart';
+import { candleBodyWidth, candleXScale, priceYScale } from './stock-chart';
 
 /**
  * The invariant this whole helper exists for: a candle is drawn CENTRED on its
@@ -89,5 +89,72 @@ describe('candleBodyWidth', () => {
 
   it('survives a zero count', () => {
     expect(candleBodyWidth(1000, 0)).toBe(20);
+  });
+});
+
+describe('priceYScale', () => {
+  const PAD_TOP = 20;
+  const PLOT_H = 200;
+
+  describe('linear', () => {
+    const at = priceYScale(PAD_TOP, PLOT_H, 100, 200, false);
+
+    it('maps the bounds to the plot edges', () => {
+      expect(at(200)).toBeCloseTo(PAD_TOP, 9);              // top
+      expect(at(100)).toBeCloseTo(PAD_TOP + PLOT_H, 9);     // bottom
+    });
+
+    it('puts the arithmetic midpoint in the middle', () => {
+      expect(at(150)).toBeCloseTo(PAD_TOP + PLOT_H / 2, 9);
+    });
+  });
+
+  describe('logarithmic', () => {
+    const at = priceYScale(PAD_TOP, PLOT_H, 1, 10_000, true);
+
+    it('maps the bounds to the plot edges', () => {
+      expect(at(10_000)).toBeCloseTo(PAD_TOP, 9);
+      expect(at(1)).toBeCloseTo(PAD_TOP + PLOT_H, 9);
+    });
+
+    it('puts the GEOMETRIC midpoint in the middle', () => {
+      // The whole point: 100 is the middle of 1..10,000 on a log axis, where
+      // linearly it would sit at 1% of the height and be unreadable.
+      expect(at(100)).toBeCloseTo(PAD_TOP + PLOT_H / 2, 9);
+      const linear = priceYScale(PAD_TOP, PLOT_H, 1, 10_000, false);
+      expect(linear(100)).toBeGreaterThan(PAD_TOP + PLOT_H * 0.95);
+    });
+
+    it('gives equal space to equal percentage moves', () => {
+      // 1->10 and 1000->10000 are both 10x, so both must span a quarter.
+      const decade1 = at(1) - at(10);
+      const decade4 = at(1000) - at(10_000);
+      expect(decade1).toBeCloseTo(decade4, 9);
+      expect(decade1).toBeCloseTo(PLOT_H / 4, 9);
+    });
+
+    it('clamps non-positive prices instead of returning NaN', () => {
+      // One bad tick must not blank the entire chart.
+      for (const p of [0, -5, -0.0001]) {
+        expect(Number.isFinite(at(p)), `price ${p}`).toBe(true);
+      }
+    });
+
+    it('falls back to linear when the bounds cannot be logged', () => {
+      // A negative lower bound is exactly what linear's additive padding
+      // produces on a wide range, so this path is reachable.
+      const bad = priceYScale(PAD_TOP, PLOT_H, -10, 100, true);
+      expect(bad(100)).toBeCloseTo(PAD_TOP, 9);
+      expect(bad(-10)).toBeCloseTo(PAD_TOP + PLOT_H, 9);
+    });
+
+    it('is monotonically decreasing in y as price rises', () => {
+      let prev = Infinity;
+      for (const p of [1, 5, 25, 250, 2500, 10_000]) {
+        const y = at(p);
+        expect(y).toBeLessThan(prev);
+        prev = y;
+      }
+    });
   });
 });
