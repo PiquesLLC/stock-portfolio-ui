@@ -865,6 +865,41 @@ export interface CandleXScale {
  * so markers land on the candles they were dropped on.
  */
 /**
+ * Format the two ends of a measurement so they read as a pair.
+ *
+ * The axis label drops the year for dates in the current year, which is right
+ * on an axis and wrong here: a measurement from 2018 to today rendered as
+ * "Dec 28, 2018 -> Aug 7", leaving the reader to guess which year the end sits
+ * in. Both ends are therefore decided together — if either falls outside the
+ * current year, or they fall in different years, both carry the year.
+ *
+ * A measurement inside a single day shows times instead, which is what the 1D
+ * chart needs and what the axis label happened to give it before.
+ */
+export function formatMeasureRange(
+  startMs: number,
+  endMs: number,
+  now: Date = new Date(),
+): { start: string; end: string } {
+  const a = new Date(startMs);
+  const b = new Date(endMs);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return { start: '', end: '' };
+
+  if (a.toDateString() === b.toDateString()) {
+    const t: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
+    return { start: a.toLocaleTimeString([], t), end: b.toLocaleTimeString([], t) };
+  }
+
+  const thisYear = now.getFullYear();
+  const needsYear =
+    a.getFullYear() !== thisYear || b.getFullYear() !== thisYear || a.getFullYear() !== b.getFullYear();
+  const opts: Intl.DateTimeFormatOptions = needsYear
+    ? { month: 'short', day: 'numeric', year: 'numeric' }
+    : { month: 'short', day: 'numeric' };
+  return { start: a.toLocaleDateString([], opts), end: b.toLocaleDateString([], opts) };
+}
+
+/**
  * Price -> y mapping, linear or logarithmic.
  *
  * A log axis gives equal vertical space to equal PERCENTAGE moves, which is the

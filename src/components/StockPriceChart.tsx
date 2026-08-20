@@ -46,9 +46,11 @@ import {
   BB_COLORS,
   VWAP_COLOR,
   DIV_COLORS,
+  candleXScale,
+  priceYScale,
+  formatMeasureRange,
 } from '../utils/stock-chart';
 import { CandlestickRenderer } from './CandlestickRenderer';
-import { candleXScale, priceYScale } from '../utils/stock-chart';
 
 /** Milliseconds per candle interval — used to size a full session's slot count. */
 const CANDLE_INTERVAL_MS: Record<string, number> = {
@@ -66,6 +68,12 @@ const LOG_AXIS_MIN_RATIO = 10;
 
 /** Multiplicative headroom on a log axis, in place of linear's additive 8%. */
 const LOG_AXIS_PAD = 1.08;
+
+/**
+ * Span beyond which an axis label needs the year rather than the day-of-month.
+ * Slightly over a year so a 12-month view still labels by day.
+ */
+const MULTI_YEAR_SPAN_MS = 400 * 86_400_000;
 // RSI and MACD render inline in the main SVG (no external panels)
 import { computeChartGroups } from '../utils/chart-groups';
 
@@ -1967,12 +1975,23 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
       const maxLabels = 5;
       const step = Math.max(1, Math.floor(cCount / maxLabels));
       const isDailyOrLonger = candleInterval === '1D' || candleInterval === '1W' || candleInterval === '1M';
+      // A multi-year span needs the YEAR, not the day. Month+day alone turned
+      // a 2018-2026 axis into "Aug 20, Aug 18, Aug 15, Aug 13, Aug 10, Aug 8":
+      // six different years stripped of the only field that distinguished
+      // them, reading as though the dates ran backwards.
+      const spanMs = effectiveCandleData[cEnd].time - effectiveCandleData[cStart].time;
+      const dateOpts: Intl.DateTimeFormatOptions = spanMs > MULTI_YEAR_SPAN_MS
+        ? { month: 'short', year: 'numeric' }
+        : { month: 'short', day: 'numeric' };
+      // Positioned on the same inset scale as the candles, so a label sits
+      // under the bar it names rather than up to half a body off it.
+      const labelScale = candleXScale(PAD_LEFT, plotW, candleVisibleCount(cCount));
       for (let j = 0; j < cCount; j += step) {
         const ci = cStart + j;
-        const x = PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+        const x = labelScale.atIndex(ci - cStart, cCount);
         const d = new Date(effectiveCandleData[ci].time);
         const label = isDailyOrLonger
-          ? d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+          ? d.toLocaleDateString([], dateOpts)
           : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1].label !== label) {
           timeLabels.push({ label, x });
@@ -2282,9 +2301,14 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const pA = points[idxA];
     const pB = points[idxB];
     if (pA.price === 0) return null;
+    // Formatted from `time`, NOT from point.label: the axis label omits the
+    // year for the current year, which rendered "Dec 28, 2018 -> Aug 7" and left
+    // the end date's year to guesswork. formatMeasureRange decides both ends
+    // together so they always match.
+    const abRange = formatMeasureRange(pA.time, pB.time);
     const ab = {
       startPrice: pA.price, endPrice: pB.price,
-      startLabel: pA.label, endLabel: pB.label,
+      startLabel: abRange.start, endLabel: abRange.end,
       dollarChange: pB.price - pA.price,
       percentChange: ((pB.price - pA.price) / pA.price) * 100,
       daysBetween: Math.round(Math.abs(pB.time - pA.time) / 86400000),
@@ -2293,16 +2317,18 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     let ac: typeof ab | null = null;
     if (measureCIdx !== null && points[measureCIdx]) {
       const pC = points[measureCIdx];
+      const bcRange = formatMeasureRange(pB.time, pC.time);
+      const acRange = formatMeasureRange(pA.time, pC.time);
       bc = {
         startPrice: pB.price, endPrice: pC.price,
-        startLabel: pB.label, endLabel: pC.label,
+        startLabel: bcRange.start, endLabel: bcRange.end,
         dollarChange: pC.price - pB.price,
         percentChange: pB.price !== 0 ? ((pC.price - pB.price) / pB.price) * 100 : 0,
         daysBetween: Math.round(Math.abs(pC.time - pB.time) / 86400000),
       };
       ac = {
         startPrice: pA.price, endPrice: pC.price,
-        startLabel: pA.label, endLabel: pC.label,
+        startLabel: acRange.start, endLabel: acRange.end,
         dollarChange: pC.price - pA.price,
         percentChange: ((pC.price - pA.price) / pA.price) * 100,
         daysBetween: Math.round(Math.abs(pC.time - pA.time) / 86400000),
@@ -2748,24 +2774,6 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
               stroke="#6B7280" strokeWidth="0.8" strokeDasharray="4,4" opacity="0.5" />
           )}
 
-          {/* An axis that silently changes meaning is worse than either scale,
-              so say when it isn't linear. Equal vertical distance = equal
-              percentage move here, not equal dollar move. */}
-          {logAxis && hasData && (
-            <text
-              x={PAD_LEFT + 4}
-              y={PAD_TOP + 10}
-              fill="currentColor"
-              className="text-rh-light-text dark:text-white"
-              opacity="0.55"
-              fontSize="9"
-              fontWeight="600"
-              letterSpacing="0.08em"
-            >
-              LOG
-              <title>Logarithmic price axis — equal spacing means equal percentage change</title>
-            </text>
-          )}
 
           {/* Session veils at market open/close for 1D (line mode only) */}
           {chartMode === 'line' && hasData && is1D && [stockOpenIdx, stockCloseIdx].map((idx, i) => idx !== null && (() => {
@@ -3932,12 +3940,19 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const gain = s.dollarChange >= 0;
                   return (
                     <div>
+                      {/* Duration sits on its own line: with both years present
+                          the date row is long enough that trailing it inline
+                          crowds the end date and wraps on narrow screens. */}
                       <div className="flex items-center gap-2 text-xs text-white/80">
                         <span>{s.startLabel}</span>
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span>{s.endLabel}</span>
-                        {s.daysBetween > 0 && <span className="text-white">· {s.daysBetween}d</span>}
                       </div>
+                      {s.daysBetween > 0 && (
+                        <div className="text-[10px] text-white/80" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {s.daysBetween.toLocaleString()} days
+                        </div>
+                      )}
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-lg font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -3965,8 +3980,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                         <span>{s.startLabel}</span>
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span>{s.endLabel}</span>
-                        {s.daysBetween > 0 && <span className="text-white">· {s.daysBetween}d</span>}
                       </div>
+                      {s.daysBetween > 0 && (
+                        <div className="text-[10px] text-white/80" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {s.daysBetween.toLocaleString()} days
+                        </div>
+                      )}
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -3995,8 +4014,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                         <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.startPrice.toFixed(2)}</span>
                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         <span className="text-base font-bold text-white/90" style={{ fontVariantNumeric: 'tabular-nums' }}>${s.endPrice.toFixed(2)}</span>
-                        {s.daysBetween > 0 && <span className="text-xs text-white ml-1">· {s.daysBetween}d</span>}
                       </div>
+                      {s.daysBetween > 0 && (
+                        <div className="text-[10px] text-white/80" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {s.daysBetween.toLocaleString()} days
+                        </div>
+                      )}
                       <div className="flex items-center gap-3">
                         <span className={`text-2xl font-bold ${gain ? 'text-rh-green' : 'text-rh-red'}`}>
                           {s.percentChange >= 0 ? '+' : ''}{s.percentChange.toFixed(2)}%

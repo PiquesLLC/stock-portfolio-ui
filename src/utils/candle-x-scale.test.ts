@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { candleBodyWidth, candleXScale, priceYScale } from './stock-chart';
+import { candleBodyWidth, candleXScale, priceYScale, formatMeasureRange } from './stock-chart';
 
 /**
  * The invariant this whole helper exists for: a candle is drawn CENTRED on its
@@ -156,5 +156,58 @@ describe('priceYScale', () => {
         prev = y;
       }
     });
+  });
+});
+
+describe('formatMeasureRange', () => {
+  // The reported bug: measuring from 2018 to today rendered
+  // "Dec 28, 2018 -> Aug 7" — one end carrying a year, the other not, leaving
+  // the reader to guess which year the end sat in.
+  const NOW = new Date('2026-08-20T12:00:00');
+  const d = (iso: string) => new Date(iso).getTime();
+
+  it('puts the year on BOTH ends when the range spans years', () => {
+    const r = formatMeasureRange(d('2018-12-28T12:00:00'), d('2026-08-07T12:00:00'), NOW);
+    expect(r.start).toContain('2018');
+    expect(r.end).toContain('2026');
+  });
+
+  it('omits the year on both ends inside the current year', () => {
+    const r = formatMeasureRange(d('2026-03-02T12:00:00'), d('2026-08-07T12:00:00'), NOW);
+    expect(r.start).not.toMatch(/20\d\d/);
+    expect(r.end).not.toMatch(/20\d\d/);
+  });
+
+  it('never carries a year on one end only', () => {
+    // The actual defect. Whatever the range, both ends must agree.
+    const ranges: [string, string][] = [
+      ['2018-12-28T12:00:00', '2026-08-07T12:00:00'],
+      ['2025-12-31T12:00:00', '2026-01-02T12:00:00'],
+      ['2026-01-02T12:00:00', '2026-08-07T12:00:00'],
+      ['2024-05-01T12:00:00', '2024-09-01T12:00:00'],
+    ];
+    for (const [a, b] of ranges) {
+      const r = formatMeasureRange(d(a), d(b), NOW);
+      const startHasYear = /20\d\d/.test(r.start);
+      const endHasYear = /20\d\d/.test(r.end);
+      expect(startHasYear, `${a} -> ${b}`).toBe(endHasYear);
+    }
+  });
+
+  it('carries the year when both ends share a PAST year', () => {
+    const r = formatMeasureRange(d('2024-05-01T12:00:00'), d('2024-09-01T12:00:00'), NOW);
+    expect(r.start).toContain('2024');
+    expect(r.end).toContain('2024');
+  });
+
+  it('shows times, not dates, within a single day (the 1D chart)', () => {
+    const r = formatMeasureRange(d('2026-08-20T09:45:00'), d('2026-08-20T14:30:00'), NOW);
+    expect(r.start).toMatch(/\d{1,2}:\d{2}/);
+    expect(r.end).toMatch(/\d{1,2}:\d{2}/);
+    expect(r.start).not.toMatch(/Aug/);
+  });
+
+  it('returns empty strings on unparseable input rather than "Invalid Date"', () => {
+    expect(formatMeasureRange(NaN, d('2026-08-07T12:00:00'), NOW)).toEqual({ start: '', end: '' });
   });
 });
