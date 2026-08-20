@@ -942,6 +942,15 @@ export interface StockDetailsResponse {
     extendedPrice?: number;
     extendedChange?: number;
     extendedChangePercent?: number;
+    /**
+     * The API has always sent these; the type just never declared them. A
+     * delisted listing is detectable only from here — the API freezes the last
+     * known bar rather than erroring, so price fields alone look perfectly live.
+     * See isDeadListing() in DelistedNotice.tsx.
+     */
+    isStale?: boolean;
+    isRepricing?: boolean;
+    quoteAgeSeconds?: number;
   };
   profile: StockProfile | null;
   metrics: StockMetrics | null;

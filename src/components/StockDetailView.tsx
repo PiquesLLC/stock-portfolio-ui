@@ -5,6 +5,7 @@ import { Holding, ChartPeriod } from '../types';
 import { hapticSelection, hapticLight } from '../utils/haptics';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useStockData } from '../hooks/useStockData';
+import { DelistedNotice, isDeadListing } from './DelistedNotice';
 import { useStockChart } from '../hooks/useStockChart';
 import { periodStartClose, trimToPeriodWindow } from '../utils/stock-chart';
 import { Acronym, getAcronymTitle } from './Acronym';
@@ -1039,6 +1040,16 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           with About butted straight against the period row. Desktop keeps
           mb-0, where the chart's footer row still supplies the gap. */}
       <div className="mb-6 sm:mb-0 relative" data-no-swipe>
+        {/* A delisted listing returns a frozen quote but empty candles for every
+            short period, so the chart renders blank under a live-looking price.
+            Say what actually happened instead. */}
+        {isDeadListing(quote.quoteAgeSeconds, quote.isStale) ? (
+          <DelistedNotice
+            ticker={ticker}
+            lastPrice={quote.currentPrice}
+            lastTradedAtSec={quote.timestamp}
+          />
+        ) : (
         <StockPriceChart
           key={ticker}
           ticker={ticker}
@@ -1066,6 +1077,7 @@ export function StockDetailView({ ticker, holding, portfolioTotal, onBack, onHol
           zoomData={zoomData}
           comparisons={compareData.length > 0 ? compareData : undefined}
         />
+        )}
 
       {/* Compare tickers UI */}
         <div className="hidden items-center gap-2 mt-2 flex-wrap">
