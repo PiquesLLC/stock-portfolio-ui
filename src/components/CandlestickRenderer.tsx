@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { CandleDataPoint } from '../utils/stock-chart';
+import { candleBodyWidth, type CandleDataPoint } from '../utils/stock-chart';
 
 interface Props {
   candles: CandleDataPoint[];
@@ -29,7 +29,7 @@ export function CandlestickRenderer({ candles, toX, toY, plotW, visibleCount, ho
     return result;
   }, [candles]);
 
-  const bodyW = Math.max(1, Math.min(20, (plotW / Math.max(1, visibleCount)) * 0.65));
+  const bodyW = candleBodyWidth(plotW, visibleCount);
   const wickW = Math.max(0.5, bodyW > 4 ? 1 : 0.5);
 
   return (

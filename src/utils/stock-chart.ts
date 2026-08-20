@@ -823,3 +823,54 @@ export function clusterGlowOpacity(cluster: BreachCluster): number {
   if (allPeriods.has(100)) return 0.18;
   return 0.12;
 }
+
+/**
+ * Width of a candle body, in px.
+ *
+ * Lives here rather than in CandlestickRenderer because the x-scale needs it
+ * too, and tests mock that component wholesale — importing it from there makes
+ * the chart throw under any such mock.
+ *
+ * A candle is drawn CENTRED on its x, so a scale that puts the first candle at
+ * the left edge and the last at the right edge slices half a body off each end.
+ * Callers inset their scale by half of this, which only works while both sides
+ * compute the same number — so this is the single source of truth.
+ */
+export function candleBodyWidth(plotW: number, visibleCount: number): number {
+  return Math.max(1, Math.min(20, (plotW / Math.max(1, visibleCount)) * 0.65));
+}
+
+export interface CandleXScale {
+  /** Half a body width — how far each end is pulled in. */
+  halfBody: number;
+  /** x for a 0..1 position across the series. Values outside are allowed. */
+  at(ratio: number): number;
+  /** x for index `i` of `count` candles; the centre when count <= 1. */
+  atIndex(i: number, count: number): number;
+}
+
+/**
+ * The x-scale for candle rendering: a point scale inset by half a body at each
+ * end, so the first and last candles sit fully inside the plot rather than
+ * being sliced in half by its bounds.
+ *
+ * An inset rather than a band scale, deliberately. The moving-average overlay
+ * is drawn from the LINE series on the point-scale toX and is NOT gated on
+ * chart mode, so candles and MAs stay aligned only because both scales span the
+ * same width. A band scale would displace candles by up to a whole slot against
+ * them; this displaces by at most half a body (10px, as bodyW caps at 20) and
+ * by nothing at the centre.
+ *
+ * Both the renderer and the measurement tool build their positions from this,
+ * so markers land on the candles they were dropped on.
+ */
+export function candleXScale(padLeft: number, plotW: number, visibleCount: number): CandleXScale {
+  const halfBody = candleBodyWidth(plotW, visibleCount) / 2;
+  const innerW = Math.max(1, plotW - 2 * halfBody);
+  const at = (ratio: number) => padLeft + halfBody + ratio * innerW;
+  return {
+    halfBody,
+    at,
+    atIndex: (i: number, count: number) => (count > 1 ? at(i / (count - 1)) : at(0.5)),
+  };
+}

@@ -48,6 +48,13 @@ import {
   DIV_COLORS,
 } from '../utils/stock-chart';
 import { CandlestickRenderer } from './CandlestickRenderer';
+import { candleXScale } from '../utils/stock-chart';
+
+/** Milliseconds per candle interval — used to size a full session's slot count. */
+const CANDLE_INTERVAL_MS: Record<string, number> = {
+  '1m': 60_000, '5m': 300_000, '15m': 900_000, '1h': 3_600_000,
+  '1D': 86_400_000, '1W': 604_800_000, '1M': 2_592_000_000,
+};
 // RSI and MACD render inline in the main SVG (no external panels)
 import { computeChartGroups } from '../utils/chart-groups';
 
@@ -1301,6 +1308,24 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     dayEndMs = new Date(`${etDateStr}T20:00:00Z`).getTime() - etOffsetMs;
   }
   const dayRangeMs = dayEndMs - dayStartMs;
+
+  /**
+   * How many candle slots the plot is divided into — which sets body width and
+   * therefore the x-scale inset.
+   *
+   * On an unzoomed 1D the count is the number of slots the SESSION holds, not
+   * the number of bars received: early in the day only a handful have printed,
+   * and sizing off those would draw a few enormous candles that then shrink all
+   * day. Everywhere else it is simply the visible candle count.
+   *
+   * Both the renderer and the measurement tool derive positions from this, so
+   * it lives in one place.
+   */
+  const candleVisibleCount = (visibleCandles: number): number =>
+    is1D && dayRangeMs > 0 && !candleZoom
+      ? Math.round(dayRangeMs / (CANDLE_INTERVAL_MS[candleInterval] ?? CANDLE_INTERVAL_MS['5m']))
+      : visibleCandles;
+
   const toX = (i: number) => {
     if (i < 0 || i >= points.length) return PAD_LEFT;
     if (zoomRange) {
@@ -2252,9 +2277,12 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
     const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
     const tz1DRange = tz1DEnd - tz1DStart;
     const use1DTime = is1D && tz1DRange > 0;
+    // Same scale as the renderer, or markers land off the candles they were
+    // dropped on.
+    const xScale = candleXScale(PAD_LEFT, plotW, candleVisibleCount(cCount));
     const candleToX = use1DTime
-      ? (time: number) => PAD_LEFT + Math.max(0, Math.min(1, (time - tz1DStart) / tz1DRange)) * plotW
-      : (ci: number) => PAD_LEFT + (cCount > 1 ? ((ci - cStart) / (cCount - 1)) * plotW : plotW / 2);
+      ? (time: number) => xScale.at(Math.max(0, Math.min(1, (time - tz1DStart) / tz1DRange)))
+      : (ci: number) => xScale.atIndex(ci - cStart, cCount);
     const resolve = (m: { time: number; price: number } | null) => {
       if (!m) return null;
       let best = 0, bestDist = Infinity;
@@ -2708,12 +2736,17 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
             const tz1DStart = candleTimeZoom?.startMs ?? dayStartMs;
             const tz1DEnd = candleTimeZoom?.endMs ?? dayEndMs;
             const tz1DRange = tz1DEnd - tz1DStart;
+            // Inset by half a body so the first and last candles sit fully
+            // inside the plot instead of being sliced by its bounds. See
+            // candleXScale for why an inset and not a band scale.
+            const visibleCandleCount = candleVisibleCount(cCount);
+            const xScale = candleXScale(PAD_LEFT, plotW, visibleCandleCount);
             const candleToX = is1D && tz1DRange > 0
               ? (i: number) => {
                   const t = effectiveCandleData[Math.max(0, Math.min(i, effectiveCandleData.length - 1))].time;
-                  return PAD_LEFT + Math.max(-0.1, Math.min(1.1, (t - tz1DStart) / tz1DRange)) * plotW;
+                  return xScale.at(Math.max(-0.1, Math.min(1.1, (t - tz1DStart) / tz1DRange)));
                 }
-              : (i: number) => PAD_LEFT + (cCount > 1 ? ((i - cStart) / (cCount - 1)) * plotW : plotW / 2);
+              : (i: number) => xScale.atIndex(i - cStart, cCount);
             return (
               <g clipPath="url(#plot-clip)">
                 {/* Comparison candles (behind main candles) */}
@@ -2731,7 +2764,10 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   const compPaddedMin = compMin - compRange * 0.08;
                   const compPaddedMax = compMax + compRange * 0.08;
                   const compToY = (price: number) => PAD_TOP + plotH - ((price - compPaddedMin) / (compPaddedMax - compPaddedMin)) * plotH;
-                  const compToX = (i: number) => PAD_LEFT + (compCandles.length > 1 ? (i / (compCandles.length - 1)) * plotW : plotW / 2);
+                  // Same inset as the main series, sized off this ticker's own
+                  // candle count so its end bodies aren't clipped either.
+                  const compScale = candleXScale(PAD_LEFT, plotW, compCandles.length);
+                  const compToX = (i: number) => compScale.atIndex(i, compCandles.length);
                   return (
                     <g key={comp.ticker} opacity={0.45}>
                       <CandlestickRenderer
@@ -2751,9 +2787,7 @@ export function StockPriceChart({ ticker, candles, candlesLoaded, intradayCandle
                   toX={(_i: number, origIdx?: number) => candleToX(origIdx ?? (_i + cStart))}
                   toY={toY}
                   plotW={plotW}
-                  visibleCount={is1D && dayRangeMs > 0 && !candleZoom
-                    ? Math.round(dayRangeMs / ({ '1m': 60000, '5m': 300000, '15m': 900000, '1h': 3600000, '1D': 86400000, '1W': 604800000, '1M': 2592000000 }[candleInterval] || 300000))
-                    : cCount}
+                  visibleCount={visibleCandleCount}
                   hoverIndex={hoverIndex !== null && hoverIndex >= cStart && hoverIndex <= cEnd ? hoverIndex - cStart : null}
                 />
               </g>
