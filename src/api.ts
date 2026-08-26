@@ -687,8 +687,17 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     }
     // Carry the HTTP status (same shape as the 403 plan error above) so
     // callers can branch on it — e.g. 404 = ticker doesn't exist.
-    const httpError = new Error(msg) as Error & { status: number };
+    //
+    // `code` carries the backend's machine-readable discriminator alongside it.
+    // Status alone is not enough for the Apple billing endpoints: a 409 from
+    // /billing/apple-verify is either `billing_rail_conflict` (finish the
+    // StoreKit transaction — Apple already took the money) or
+    // `apple_ownership_conflict` (must NOT be finished), and those require
+    // opposite handling. Additive: existing callers that only read `.status`
+    // and `.message` are unaffected.
+    const httpError = new Error(msg) as Error & { status: number; code?: string };
     httpError.status = response.status;
+    if (typeof error.code === 'string') httpError.code = error.code;
     throw httpError;
   }
 
@@ -2885,6 +2894,55 @@ export async function createCheckoutSession(priceId: string): Promise<{ url: str
 export async function createPortalSession(): Promise<{ url: string }> {
   return fetchJson(`${API_BASE_URL}/billing/portal`, {
     method: 'POST',
+  });
+}
+
+// ─── Apple IAP ──────────────────────────────────────────────────────────────
+//
+// Three narrow calls. None of them returns an entitlement, and nothing here
+// may be used to set a plan: `getBillingStatus()` above stays the only
+// authority the UI reads. A StoreKit transaction proves a purchase happened;
+// the backend decides what the account is entitled to.
+
+/**
+ * PRE-CHARGE authorization, called immediately before every StoreKit purchase.
+ *
+ * The returned token is a server-issued opaque UUID and is the ONLY value that
+ * may be passed to StoreKit as `.appAccountToken(...)`. It must never be
+ * derived on the device — not from the user id, not from the email, not via
+ * uuidv5, not by `generateUuid()`. It is the ownership credential: the backend
+ * resolves a purchase to an account by looking this exact value up.
+ */
+export async function getApplePurchaseContext(): Promise<{ ok: boolean; appAccountToken: string }> {
+  return fetchJson(`${API_BASE_URL}/billing/apple-purchase-context`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * POST-CHARGE verification. The signed JWS is the only purchase payload sent —
+ * no plan, no expiry, no product-derived claim, no separate ownership claim.
+ * Answers 202 `{ status: 'pending' }`; entitlement appears via billing/status.
+ */
+export async function verifyApplePurchase(
+  signedTransaction: string,
+): Promise<{ ok: boolean; status: string }> {
+  return fetchJson(`${API_BASE_URL}/billing/apple-verify`, {
+    method: 'POST',
+    body: JSON.stringify({ signedTransaction }),
+  });
+}
+
+/**
+ * Restore. Every ownership-qualifying signed transaction is sent; the backend
+ * decides which subscription is current. The client never picks a winner.
+ */
+export async function restoreApplePurchases(
+  signedTransactions: string[],
+): Promise<{ ok: boolean; status?: string }> {
+  return fetchJson(`${API_BASE_URL}/billing/apple-restore`, {
+    method: 'POST',
+    body: JSON.stringify({ signedTransactions }),
   });
 }
 

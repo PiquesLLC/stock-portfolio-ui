@@ -1,45 +1,114 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth, PlanTier } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getProducts, purchaseProduct, restorePurchases, IAPProduct } from '../utils/iap';
+import { getBillingStatus } from '../api';
+import {
+  getProducts,
+  purchaseProduct,
+  restorePurchases,
+  openManageSubscriptions,
+  IAPProduct,
+  AppleProductId,
+  ApplePurchaseFailure,
+} from '../utils/iap';
 
 /**
- * Native iOS paywall component using StoreKit 2.
- * Shows Apple-localized prices and triggers the Apple payment sheet.
- * Used on iOS only — web uses Stripe checkout via PricingPage.
+ * Native iOS paywall (StoreKit 2). Web uses Stripe via PricingPage.
+ *
+ * Prices come from StoreKit, localized. Access does not: a purchase here only
+ * ever results in "we sent it to the server". The plan shown to the user comes
+ * from the authenticated backend, exactly as it does everywhere else.
  */
+
+/** How long we will wait for the backend to project the new entitlement. */
+const REFRESH_DELAYS_MS = [0, 1500, 3000, 5000];
+
+const PURCHASE_MESSAGES: Record<ApplePurchaseFailure, string> = {
+  cancelled: '',
+  'not-available': 'In-app purchases are not available on this device.',
+  'product-unavailable': 'That plan is not available from the App Store right now.',
+  'iap-disabled': 'App Store subscriptions are not available yet. Please try again later.',
+  'worker-unavailable': 'Purchases are temporarily unavailable. Please try again shortly.',
+  'billing-rail-conflict':
+    'This account already has a subscription managed on the web. Contact support so we can move it to the App Store.',
+  'ownership-conflict': 'That purchase belongs to a different Nala account.',
+  'verification-pending':
+    'We could not confirm your purchase yet. It is safe — reopen the app shortly and it will finish.',
+  'verification-failed': 'We could not verify that purchase. Contact support and nothing will be lost.',
+  'missing-jws': 'We could not read the receipt for that purchase. Try Restore Purchases.',
+  unknown: 'Something went wrong. Your purchase was not charged twice.',
+};
+
 export function NativePaywall() {
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const [products, setProducts] = useState<IAPProduct[]>([]);
+  const [unavailable, setUnavailable] = useState<AppleProductId[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [billing, setBilling] = useState<'yearly' | 'monthly'>('yearly');
   const currentPlan = user?.plan || 'free';
 
-  // Load products from App Store
   useEffect(() => {
-    getProducts().then((prods) => {
-      setProducts(prods);
+    let cancelled = false;
+    getProducts().then((catalog) => {
+      if (cancelled) return;
+      setProducts(catalog.products);
+      setUnavailable(catalog.unavailable);
+      setLoadFailed(catalog.loadFailed);
       setLoading(false);
     });
+    return () => { cancelled = true; };
   }, []);
+
+  /**
+   * Bounded wait for the backend to project the purchase. Not a failure path:
+   * if it has not landed by the end of the window the app picks it up on the
+   * next ordinary refresh.
+   */
+  const awaitEntitlement = useCallback(async (before: string) => {
+    for (const delay of REFRESH_DELAYS_MS) {
+      if (delay) await new Promise((r) => setTimeout(r, delay));
+      try {
+        const status = await getBillingStatus();
+        if (String(status.plan) !== String(before)) {
+          await refreshUser();
+          return true;
+        }
+      } catch {
+        // Keep waiting — a failed poll is not a failed purchase.
+      }
+    }
+    await refreshUser();
+    return false;
+  }, [refreshUser]);
 
   const handlePurchase = async (product: IAPProduct) => {
     setPurchasing(product.id);
+    const before = currentPlan;
     try {
-      const result = await purchaseProduct(product.id, user?.id);
-      if (result.ok) {
-        showToast(`Upgraded to ${result.plan}!`, 'success');
-        await refreshUser();
-      } else if (result.error === 'cancelled') {
-        // User cancelled — do nothing
-      } else {
-        showToast(result.error || 'Purchase failed', 'error');
+      const result = await purchaseProduct(product.id);
+
+      if (result.status === 'accepted') {
+        showToast('Purchase received. Your subscription is being activated.', 'success');
+        const projected = await awaitEntitlement(before);
+        if (!projected) {
+          showToast('Still activating — this can take a moment.', 'info');
+        }
+        return;
       }
-    } catch (err: any) {
-      showToast(err?.message || 'Purchase failed', 'error');
+
+      if (result.status === 'charged-conflict') {
+        showToast(PURCHASE_MESSAGES['billing-rail-conflict'], 'error');
+        await refreshUser();
+        return;
+      }
+
+      // User closed the sheet: not an error, say nothing.
+      if (result.reason === 'cancelled') return;
+      showToast(PURCHASE_MESSAGES[result.reason], 'error');
     } finally {
       setPurchasing(null);
     }
@@ -47,28 +116,51 @@ export function NativePaywall() {
 
   const handleRestore = async () => {
     setRestoring(true);
+    const before = currentPlan;
     try {
       const result = await restorePurchases();
-      if (result.ok) {
-        showToast(`Restored ${result.plan} subscription!`, 'success');
-        await refreshUser();
-      } else {
-        showToast(result.message || 'No active subscription found', 'info');
+      switch (result.status) {
+        case 'pending':
+          showToast('Restoring your purchases…', 'success');
+          await awaitEntitlement(before);
+          break;
+        case 'no-restorable-purchases':
+          showToast('No purchases associated with this Nala account were found.', 'info');
+          break;
+        case 'incomplete':
+          showToast('We could not fully verify your purchases. Please try again shortly.', 'error');
+          break;
+        case 'too-many':
+          showToast('Too many purchases to restore automatically. Please contact support.', 'error');
+          break;
+        case 'conflict':
+          showToast(PURCHASE_MESSAGES['ownership-conflict'], 'error');
+          break;
+        case 'retry-later':
+          showToast('Restore is temporarily unavailable. Please try again shortly.', 'error');
+          break;
+        case 'unavailable':
+          showToast(PURCHASE_MESSAGES['not-available'], 'error');
+          break;
+        default:
+          showToast('Restore failed. Please try again.', 'error');
       }
-    } catch (err: any) {
-      showToast(err?.message || 'Restore failed', 'error');
     } finally {
       setRestoring(false);
     }
   };
 
+  const handleManage = async () => {
+    const opened = await openManageSubscriptions();
+    if (!opened) showToast('Could not open subscription settings.', 'error');
+  };
+
   const planRank: Record<PlanTier, number> = { free: 0, pro: 1, premium: 2, elite: 3 };
 
-  // Group products by plan tier, filter by billing period
   const filteredProducts = products.filter(p => p.period === billing);
   const planOrder: ('pro' | 'premium' | 'elite')[] = ['pro', 'premium', 'elite'];
   const sortedProducts = planOrder
-    .map(plan => filteredProducts.find(p => p.plan === plan))
+    .map(plan => filteredProducts.find(p => p.tier === plan))
     .filter((p): p is IAPProduct => !!p);
 
   if (loading) {
@@ -93,10 +185,11 @@ export function NativePaywall() {
 
         {/* Billing toggle */}
         <div className="flex items-center justify-center gap-3 mt-5">
-          <span className={`text-sm font-medium ${billing === 'monthly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white'}`}>
+          <span className="text-sm font-medium text-rh-light-text dark:text-white">
             Monthly
           </span>
           <button
+            type="button"
             onClick={() => setBilling(b => b === 'yearly' ? 'monthly' : 'yearly')}
             className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
               billing === 'yearly' ? 'bg-rh-green' : 'bg-gray-300 dark:bg-white/20'
@@ -106,7 +199,7 @@ export function NativePaywall() {
               billing === 'yearly' ? 'translate-x-7' : 'translate-x-0'
             }`} />
           </button>
-          <span className={`text-sm font-medium ${billing === 'yearly' ? 'text-rh-light-text dark:text-white' : 'text-rh-light-text dark:text-white'}`}>
+          <span className="text-sm font-medium text-rh-light-text dark:text-white">
             Yearly
           </span>
           {billing === 'yearly' && (
@@ -120,10 +213,10 @@ export function NativePaywall() {
       {/* Plan cards */}
       <div className="space-y-3">
         {sortedProducts.map((product) => {
-          const isCurrent = currentPlan === product.plan;
-          const isUpgrade = planRank[product.plan] > planRank[currentPlan];
-          const isPro = product.plan === 'pro';
-          const isElite = product.plan === 'elite';
+          const isCurrent = currentPlan === product.tier;
+          const isUpgrade = planRank[product.tier] > planRank[currentPlan];
+          const isPro = product.tier === 'pro';
+          const isElite = product.tier === 'elite';
           const isPurchasing = purchasing === product.id;
 
           return (
@@ -148,7 +241,7 @@ export function NativePaywall() {
                   <h3 className={`text-base font-semibold ${
                     isPro ? 'text-rh-green' : isElite ? 'text-purple-400' : 'text-rh-light-text dark:text-white/80'
                   }`}>
-                    {product.plan.charAt(0).toUpperCase() + product.plan.slice(1)}
+                    {product.tier.charAt(0).toUpperCase() + product.tier.slice(1)}
                   </h3>
                   <p className="text-xs text-rh-light-text dark:text-white mt-0.5">{product.description}</p>
                 </div>
@@ -170,6 +263,7 @@ export function NativePaywall() {
                   </div>
                 ) : isUpgrade ? (
                   <button
+                    type="button"
                     onClick={() => handlePurchase(product)}
                     disabled={!!purchasing}
                     className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
@@ -200,15 +294,38 @@ export function NativePaywall() {
         })}
       </div>
 
+      {/*
+        Unavailable state. StoreKit did not return these, so there is no
+        localized price and nothing to buy — we say so rather than invent one.
+      */}
+      {(loadFailed || unavailable.length > 0) && (
+        <p className="mt-4 text-xs text-center text-rh-light-text dark:text-white/80">
+          {loadFailed || sortedProducts.length === 0
+            ? 'Plans are unavailable from the App Store right now. Please try again shortly.'
+            : 'Some plans are unavailable from the App Store right now.'}
+        </p>
+      )}
+
       {/* Restore purchases + trust signals */}
       <div className="mt-8 text-center space-y-4">
-        <button
-          onClick={handleRestore}
-          disabled={restoring}
-          className="text-sm text-rh-green hover:text-rh-green/80 font-medium transition-colors"
-        >
-          {restoring ? 'Restoring...' : 'Restore Purchases'}
-        </button>
+        <div className="flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={handleRestore}
+            disabled={restoring}
+            className="text-sm text-rh-green hover:text-rh-green/80 font-medium transition-colors"
+          >
+            {restoring ? 'Restoring...' : 'Restore Purchases'}
+          </button>
+          <span className="text-rh-light-text/30 dark:text-white/[0.18]">·</span>
+          <button
+            type="button"
+            onClick={handleManage}
+            className="text-sm text-rh-green hover:text-rh-green/80 font-medium transition-colors"
+          >
+            Manage Subscription
+          </button>
+        </div>
 
         <p className="text-[11px] text-rh-light-text dark:text-white leading-relaxed px-4">
           Payment will be charged to your Apple ID account. Subscriptions automatically renew
@@ -216,11 +333,11 @@ export function NativePaywall() {
           Manage subscriptions in your device Settings.
         </p>
         <div className="flex items-center justify-center gap-3 text-[11px]">
-          <button onClick={() => { window.location.hash = '#privacy'; }} className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white underline">
+          <button type="button" onClick={() => { window.location.hash = '#privacy'; }} className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white underline">
             Privacy Policy
           </button>
           <span className="text-rh-light-text/30 dark:text-white/[0.18]">·</span>
-          <button onClick={() => { window.location.hash = '#terms'; }} className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white underline">
+          <button type="button" onClick={() => { window.location.hash = '#terms'; }} className="text-rh-light-text dark:text-white/80 hover:text-rh-light-text dark:hover:text-white underline">
             Terms of Service
           </button>
         </div>
