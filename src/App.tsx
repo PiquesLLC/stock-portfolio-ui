@@ -5,6 +5,7 @@ import { isNative } from './utils/platform';
 import { getPortfolio, getPortfolioChart, getUserByUsername, EmailVerifyError, listPortfolios, PortfolioRecord, getFastQuote, getWatchlists, getWatchlistDetail, getMarketHeatmap, getPrices, MarketIndex } from './api';
 import { useTickerTapeSource, TICKER_TAPE_SOURCE_LABELS } from './hooks/useTickerTapeSource';
 import { useBiometricUnlock } from './hooks/useBiometricUnlock';
+import { useAppleTransactions } from './hooks/useAppleTransactions';
 import { HoldingsTable, HoldingsTableActions } from './components/HoldingsTable';
 import { OptionsTable } from './components/OptionsTable';
 import { PerformanceSummary } from './components/PerformanceSummary';
@@ -239,6 +240,9 @@ export default function App() {
   const isOnline = useOnlineStatus();
   // Auto-unlock with biometric auth when resuming from background (native only)
   useBiometricUnlock();
+  // StoreKit crash recovery + renewals (native iOS only). Entitlement still
+  // comes from the backend — this only re-submits transactions for verification.
+  useAppleTransactions(isAuthenticated, refreshUser);
   const initialNav = savedInitialNav;
   const currentUserId = user?.id || '';
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | undefined>(undefined);
