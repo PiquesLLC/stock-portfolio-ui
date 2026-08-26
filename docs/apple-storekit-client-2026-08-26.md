@@ -68,17 +68,48 @@ leaves it unfinished"* rule **cannot be honoured on-device in 8.1.2**: by the
 time our listener runs, StoreKit has already dropped the transaction and will
 not redeliver it.
 
-What this PR does about it:
+Concretely, the crash we designed recovery for — charge succeeds, app dies
+before we POST the JWS, relaunch delivers the transaction, our backend happens
+to answer 503 — ends with StoreKit having already dropped it.
 
-- The **purchase** path is fully compliant — we own the finishing there.
-- The listener still submits the JWS (that is how renewals and
-  crash-window purchases reach the backend), and we still never call
-  `acknowledgePurchase` ourselves on failure, so the rule holds the moment the
-  plugin stops auto-finishing.
-- Until then the real recovery path for a failed update is **Restore
-  Purchases**, which reads full history and is therefore not affected.
+What this PR does about it, without forking the plugin:
 
-This was not worked around silently, and no plugin patch was vendored.
+- The **purchase** path is fully compliant: we own the finishing there.
+- The listener retries a transient backend failure with a **bounded backoff**
+  (0 / 1.5s / 4s), because Apple will not retry it for us. Permanent rejections
+  and ownership conflicts are not retried — the answer would not change.
+- **A startup recovery sweep is the durable safety net.** On every authenticated
+  native launch, after the listeners are registered, `recoverUnverifiedPurchases()`
+  calls `getPurchases({ productType: SUBS })` — no token filter, and
+  deliberately **not** `restorePurchases()`, which can prompt for an Apple ID
+  password and must not fire silently at startup. Any recognised Nala
+  transaction carrying a JWS is re-submitted through the same safe path. No
+  purchase-context: these are already post-charge. The backend is idempotent, so
+  replay is safe, and the in-memory dedupe means anything already handled this
+  session is a no-op.
+- We still never call `acknowledgePurchase` ourselves on failure, so the frozen
+  rule holds the moment the plugin stops auto-finishing.
+
+This recovers transaction **facts**. It reads no `isActive`, compares no expiry,
+and picks no winner — the backend decides entitlement.
+
+No plugin patch was vendored and nothing was worked around silently.
+
+## Listener lifecycle
+
+Registration is asynchronous, so "am I started?" cannot be a boolean: a logout
+can land between claiming the slot and the native listeners actually existing.
+The callback carries no immutable user identity, so a listener that outlived its
+session would submit transactions under whichever account authenticates next.
+The backend's ownership checks would refuse to move entitlement, but stale Apple
+listeners across an account transition are not something to rely on being
+harmless.
+
+So the module uses a **generation counter**. `stop()` bumps it, which invalidates
+any start still in flight; that start then removes whatever it created instead of
+publishing it. A partial registration failure — second `addListener` throws after
+the first succeeded — unwinds the same way rather than leaking a handle that a
+retry would duplicate. A superseded handler that still fires does nothing.
 
 ## Ownership
 
@@ -97,13 +128,30 @@ server's business.
 
 ## Acknowledgement policy
 
+Finishing a transaction is irreversible, so it **fails closed**: it happens only
+for a response we positively recognise, never merely for the absence of an error.
+
 | Backend response | Finish the transaction? | Unlock? |
 |---|---|---|
-| 202 `pending` | yes | no — wait for billing/status |
-| 409 `billing_rail_conflict` (post-charge) | **yes** | no |
+| 202 `{ ok: true, status: 'pending' }` | yes | no — wait for billing/status |
+| 409 with **exactly** `code: billing_rail_conflict` | **yes** | no |
+| 409 with no code, or any other code | **no** | no |
 | 409 `apple_ownership_conflict` | no | no |
 | 400 permanent verification failure | no | no |
 | 503 transient / 500 | no | no |
+| any 2xx whose body is not the frozen contract | **no** | no |
+
+Two details make that real rather than aspirational:
+
+- The permission to finish is read **straight off the error's `code`**, not off
+  the classifier, so a future edit to `classify()` cannot widen it. `classify()`
+  itself deliberately does not map a bare 409 by status — both Apple conflicts
+  are 409 and they require opposite handling, so an unrecognised one lands in
+  the fail-closed bucket.
+- A 2xx is not acceptance. `verify` must return `{ ok: true, status: 'pending' }`
+  and purchase-context must return `{ ok: true, appAccountToken: <uuid> }`
+  before either is acted on; anything else is `unexpected-response`, which never
+  finishes a transaction and never opens a payment sheet.
 
 The 409 split is why `fetchJson` now carries the backend's `code` alongside
 `status`: both conflicts are 409 and they require opposite handling. That is the
@@ -119,6 +167,17 @@ would reintroduce exactly the array-order bug the backend rewrite removed.
 A recognised purchase with no JWS reports `incomplete`, never
 `no-restorable-purchases`; and an empty result never sets `plan = free`.
 
+That holds **regardless of what the backend answered about the rest**. If one
+purchase carried a JWS and another did not, the backend's "no restorable
+purchases" is a statement about the transactions it was given — the unverifiable
+one was never checkable, so the client cannot present the answer as complete.
+
+Because "incomplete" and "some of it was queued" are both true at once, the
+result carries a separate `queued` flag. Collapsing them would either hide a
+partial success from the entitlement refresh, or overstate an incomplete restore
+as a clean one. The paywall refreshes billing status whenever `queued` is true,
+including on the `incomplete` path.
+
 ## Platform scope
 
 iOS only, gated on `Capacitor.isNativePlatform() && getPlatform() === 'ios'`.
@@ -128,11 +187,13 @@ inside the native app after an Apple preflight rejection.
 
 ## Verification
 
-49 new tests, each of the security-critical ones mutation-verified with a no-op
-control mutation to prove the harness reports real kills: re-enabling automatic
-finishing, deriving the token on-device, acknowledging after a backend
-rejection, truncating restore at the cap, and filtering restore by account token
-were all killed.
+79 new tests, each of the security-critical ones mutation-verified with a no-op
+control mutation to prove the harness reports real kills. Killed mutations:
+re-enabling automatic finishing; deriving the token on-device; acknowledging
+after a backend rejection; truncating restore at the cap; filtering restore by
+account token; letting any 409 authorise finishing; trusting any 2xx from
+verify; checking only the token shape instead of the contract; disabling the
+recovery sweep; and publishing listeners without the generation guard.
 
 **No Xcode/iOS compile was performed** — development is on Windows.
 `npx cap sync ios` succeeds and registers `@capgo/native-purchases@8.1.2`, but

@@ -3,6 +3,7 @@ import {
   isIAPAvailable,
   startAppleTransactionListeners,
   stopAppleTransactionListeners,
+  recoverUnverifiedPurchases,
 } from '../utils/iap';
 
 /**
@@ -29,9 +30,23 @@ export function useAppleTransactions(
     if (!isAuthenticated || !isIAPAvailable()) return;
 
     let active = true;
-    void startAppleTransactionListeners(() => {
-      if (active) callbackRef.current();
-    });
+    const notify = () => { if (active) callbackRef.current(); };
+
+    void (async () => {
+      await startAppleTransactionListeners(notify);
+      if (!active) return;
+      /**
+       * Startup recovery sweep, AFTER the listeners exist.
+       *
+       * Capgo 8.1.2 finishes a Transaction.updates transaction before JS sees
+       * it, so a purchase that was charged while the app was dying can be gone
+       * from the unfinished queue by the time we could react. getPurchases()
+       * still has it, so this re-submits it silently. Without this, the user's
+       * only recovery is finding "Restore Purchases" themselves — not good
+       * enough for a path where money already moved.
+       */
+      await recoverUnverifiedPurchases(notify);
+    })();
 
     return () => {
       active = false;

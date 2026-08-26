@@ -46,6 +46,8 @@ import {
   restorePurchases,
   submitTransaction,
   startAppleTransactionListeners,
+  stopAppleTransactionListeners,
+  recoverUnverifiedPurchases,
   openManageSubscriptions,
   isIAPAvailable,
   __resetAppleIapState,
@@ -111,7 +113,19 @@ describe('purchase context', () => {
   it('refuses a token that is not syntactically a UUID', async () => {
     (getApplePurchaseContext as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, appAccountToken: 'user-42' });
     const result = await purchaseProduct('nala_pro_monthly');
-    expect(result).toEqual({ status: 'failed', reason: 'unknown' });
+    expect(result).toEqual({ status: 'failed', reason: 'unexpected-response' });
+    expect(mockPlugin.purchaseProduct).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['ok missing', { appAccountToken: TOKEN }],
+    ['ok false', { ok: false, appAccountToken: TOKEN }],
+    ['token missing', { ok: true }],
+    ['empty body', {}],
+  ])('never opens StoreKit when the success body is not the contract (%s)', async (_l, body) => {
+    (getApplePurchaseContext as ReturnType<typeof vi.fn>).mockResolvedValue(body);
+    const result = await purchaseProduct('nala_pro_monthly');
+    expect(result).toEqual({ status: 'failed', reason: 'unexpected-response' });
     expect(mockPlugin.purchaseProduct).not.toHaveBeenCalled();
   });
 
@@ -187,6 +201,36 @@ describe('purchase', () => {
     // transaction is finished — but the outcome is not "accepted".
     expect(result).toEqual({ status: 'charged-conflict' });
     expect(mockPlugin.acknowledgePurchase).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Finishing is irreversible. Only the exact billing_rail_conflict code earns
+   * it, because only that backend path guarantees the purchase was durably
+   * enqueued first. Everything else must fail CLOSED.
+   */
+  it.each([
+    ['409 with no code at all', httpError(409)],
+    ['409 with an unrecognised code', httpError(409, 'some_future_conflict')],
+    ['409 with an empty code', httpError(409, '')],
+  ])('does NOT finish on %s', async (_label, err) => {
+    (verifyApplePurchase as ReturnType<typeof vi.fn>).mockRejectedValue(err);
+    const result = await purchaseProduct('nala_pro_monthly');
+    expect(result).toEqual({ status: 'failed', reason: 'unknown' });
+    expect(mockPlugin.acknowledgePurchase).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['ok missing', { status: 'pending' }],
+    ['ok false', { ok: false, status: 'pending' }],
+    ['status missing', { ok: true }],
+    ['unexpected status', { ok: true, status: 'activated' }],
+    ['empty body', {}],
+    ['null body', null],
+  ])('does NOT finish when a 2xx body is not the contract (%s)', async (_label, body) => {
+    (verifyApplePurchase as ReturnType<typeof vi.fn>).mockResolvedValue(body);
+    const result = await purchaseProduct('nala_pro_monthly');
+    expect(result).toEqual({ status: 'failed', reason: 'unexpected-response' });
+    expect(mockPlugin.acknowledgePurchase).not.toHaveBeenCalled();
   });
 
   it('treats closing the sheet as a cancellation, not a failure', async () => {
@@ -366,8 +410,50 @@ describe('restore', () => {
     mockPlugin.getPurchases.mockResolvedValue({ purchases: [purchase()] });
     (restoreApplePurchases as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 'no-restorable-purchases' });
     const result = await restorePurchases();
-    expect(result).toEqual({ status: 'no-restorable-purchases', count: 0 });
+    expect(result).toEqual({ status: 'no-restorable-purchases', queued: false, count: 0 });
     expect(JSON.stringify(result)).not.toContain('free');
+  });
+
+  /**
+   * "I checked everything and found nothing" is a different statement from
+   * "I could not check everything". A purchase with no JWS was never checkable,
+   * so the backend's answer about the REST cannot be reported as complete.
+   */
+  it('never reports "no purchases" when a recognised purchase was unverifiable', async () => {
+    mockPlugin.getPurchases.mockResolvedValue({
+      purchases: [
+        purchase({ transactionId: '1', jwsRepresentation: 'jws-a' }),
+        purchase({ transactionId: '2', jwsRepresentation: undefined }),
+      ],
+    });
+    (restoreApplePurchases as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 'no-restorable-purchases' });
+
+    const result = await restorePurchases();
+    expect(restoreApplePurchases).toHaveBeenCalledWith(['jws-a']);
+    expect(result.status).toBe('incomplete');
+    expect(result.status).not.toBe('no-restorable-purchases');
+    expect(result.queued).toBe(false);
+  });
+
+  it('reports a partial restore as incomplete AND queued, so entitlement still refreshes', async () => {
+    mockPlugin.getPurchases.mockResolvedValue({
+      purchases: [
+        purchase({ transactionId: '1', jwsRepresentation: 'jws-a' }),
+        purchase({ transactionId: '2', jwsRepresentation: undefined }),
+      ],
+    });
+    (restoreApplePurchases as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 'pending', queued: 1 });
+
+    const result = await restorePurchases();
+    expect(result.status).toBe('incomplete');
+    // Both facts are true at once, and the caller needs both.
+    expect(result.queued).toBe(true);
+  });
+
+  it('claims nothing when restore returns a 2xx body it does not recognise', async () => {
+    mockPlugin.getPurchases.mockResolvedValue({ purchases: [purchase()] });
+    (restoreApplePurchases as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, status: 'something-new' });
+    expect((await restorePurchases()).status).toBe('failed');
   });
 
   it('does not claim a purchase on an ownership conflict', async () => {
@@ -472,6 +558,206 @@ describe('platform boundaries', () => {
     expect(isIAPAvailable()).toBe(false);
     await purchaseProduct('nala_pro_monthly');
     expect(mockPlugin.purchaseProduct).not.toHaveBeenCalled();
+  });
+});
+
+describe('startup recovery sweep', () => {
+  const purchase = (over = {}) => ({
+    transactionId: '1', productIdentifier: 'nala_pro_monthly',
+    jwsRepresentation: 'jws-a', willCancel: null, purchaseDate: '2026-01-01T00:00:00Z', ...over,
+  });
+
+  /**
+   * The crash this exists for: StoreKit charges, the app dies before we POST
+   * the JWS, and on relaunch Capgo 8.1.2 finishes the transaction BEFORE the
+   * JS listener sees it. Transaction.updates will never offer it again, but
+   * getPurchases() still has it.
+   */
+  it('re-submits a recognised purchase Capgo already finished', async () => {
+    mockPlugin.getPurchases.mockResolvedValue({ purchases: [purchase({ transactionId: '900' })] });
+    const onAccepted = vi.fn();
+
+    const accepted = await recoverUnverifiedPurchases(onAccepted);
+
+    expect(verifyApplePurchase).toHaveBeenCalledWith('jws-a');
+    expect(accepted).toBe(1);
+    expect(onAccepted).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads full history WITHOUT a token filter, and never prompts a restore', async () => {
+    mockPlugin.getPurchases.mockResolvedValue({ purchases: [purchase()] });
+    await recoverUnverifiedPurchases();
+
+    expect(mockPlugin.getPurchases).toHaveBeenCalledWith({ productType: 'subs' });
+    expect(mockPlugin.getPurchases.mock.calls[0][0]).not.toHaveProperty('appAccountToken');
+    // restorePurchases() can prompt for an Apple ID password. A silent startup
+    // sweep must never do that.
+    expect(mockPlugin.restorePurchases).not.toHaveBeenCalled();
+  });
+
+  it('never calls purchase-context - these transactions are already charged', async () => {
+    mockPlugin.getPurchases.mockResolvedValue({ purchases: [purchase()] });
+    await recoverUnverifiedPurchases();
+    expect(getApplePurchaseContext).not.toHaveBeenCalled();
+  });
+
+  it('ignores foreign products and entries with no JWS', async () => {
+    mockPlugin.getPurchases.mockResolvedValue({
+      purchases: [
+        purchase({ transactionId: '1', productIdentifier: 'other_app_sub', jwsRepresentation: 'x' }),
+        purchase({ transactionId: '2', jwsRepresentation: undefined }),
+        purchase({ transactionId: '3', jwsRepresentation: 'mine' }),
+      ],
+    });
+    await recoverUnverifiedPurchases();
+    expect(verifyApplePurchase).toHaveBeenCalledTimes(1);
+    expect(verifyApplePurchase).toHaveBeenCalledWith('mine');
+  });
+
+  it('does not double-submit something the purchase path already handled', async () => {
+    mockPlugin.purchaseProduct.mockResolvedValue(txn({ transactionId: '4242' }));
+    await purchaseProduct('nala_pro_monthly');
+    expect(verifyApplePurchase).toHaveBeenCalledTimes(1);
+
+    mockPlugin.getPurchases.mockResolvedValue({ purchases: [purchase({ transactionId: '4242' })] });
+    await recoverUnverifiedPurchases();
+    expect(verifyApplePurchase).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not acknowledge anything the backend refused', async () => {
+    (verifyApplePurchase as ReturnType<typeof vi.fn>).mockRejectedValue(httpError(400));
+    mockPlugin.getPurchases.mockResolvedValue({ purchases: [purchase({ transactionId: '55' })] });
+    expect(await recoverUnverifiedPurchases()).toBe(0);
+    expect(mockPlugin.acknowledgePurchase).not.toHaveBeenCalled();
+  });
+
+  it('is silent on web and Android', async () => {
+    platformState.platform = 'android';
+    expect(await recoverUnverifiedPurchases()).toBe(0);
+    expect(mockPlugin.getPurchases).not.toHaveBeenCalled();
+  });
+});
+
+describe('listener lifecycle', () => {
+  const handle = () => ({ remove: vi.fn().mockResolvedValue(undefined) });
+
+  it('does not leave a listener installed when logout lands mid-registration', async () => {
+    const first = handle();
+    const second = handle();
+    let releaseFirst: () => void = () => {};
+    mockPlugin.addListener
+      .mockImplementationOnce(() => new Promise((res) => { releaseFirst = () => res(first); }))
+      .mockImplementationOnce(async () => second);
+
+    const starting = startAppleTransactionListeners(() => {});
+    // Wait until registration is genuinely in flight, otherwise the deferred is
+    // released before it exists and this proves nothing.
+    await vi.waitFor(() => expect(mockPlugin.addListener).toHaveBeenCalled());
+    // Logout lands here — mid-registration.
+    await stopAppleTransactionListeners();
+    releaseFirst();
+    await starting;
+
+    // Whatever got created must have been torn down, not published.
+    expect(first.remove).toHaveBeenCalledTimes(1);
+    expect(second.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('logging back in after that still registers exactly one pair', async () => {
+    const a = handle();
+    const b = handle();
+    let release: () => void = () => {};
+    mockPlugin.addListener
+      .mockImplementationOnce(() => new Promise((res) => { release = () => res(a); }))
+      .mockImplementationOnce(async () => b);
+
+    const stale = startAppleTransactionListeners(() => {});
+    await vi.waitFor(() => expect(mockPlugin.addListener).toHaveBeenCalled());
+    await stopAppleTransactionListeners();
+    release();
+    await stale;
+
+    mockPlugin.addListener.mockReset();
+    mockPlugin.addListener.mockResolvedValue(handle());
+    await startAppleTransactionListeners(() => {});
+    expect(mockPlugin.addListener).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes an already-registered listener when the second registration throws', async () => {
+    const first = handle();
+    mockPlugin.addListener
+      .mockImplementationOnce(async () => first)
+      .mockImplementationOnce(async () => { throw new Error('native failure'); });
+
+    await startAppleTransactionListeners(() => {});
+
+    // Otherwise the handle leaks and a retry installs a second copy.
+    expect(first.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('can retry cleanly after a partial registration failure', async () => {
+    mockPlugin.addListener
+      .mockImplementationOnce(async () => handle())
+      .mockImplementationOnce(async () => { throw new Error('native failure'); });
+    await startAppleTransactionListeners(() => {});
+
+    mockPlugin.addListener.mockReset();
+    mockPlugin.addListener.mockResolvedValue(handle());
+    await startAppleTransactionListeners(() => {});
+    expect(mockPlugin.addListener).toHaveBeenCalledTimes(2);
+  });
+
+  it('a superseded listener does nothing if it still fires', async () => {
+    const onAccepted = vi.fn();
+    await startAppleTransactionListeners(onAccepted);
+    const handler = mockPlugin.addListener.mock.calls.find((c) => c[0] === 'transactionUpdated')![1];
+
+    await stopAppleTransactionListeners();
+    handler(txn({ transactionId: '31337' }));
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(verifyApplePurchase).not.toHaveBeenCalled();
+    expect(onAccepted).not.toHaveBeenCalled();
+  });
+});
+
+describe('bounded retry on a redelivered transaction', () => {
+  it('retries a transient backend failure, since Apple will not redeliver', async () => {
+    vi.useFakeTimers();
+    try {
+      (verifyApplePurchase as ReturnType<typeof vi.fn>)
+        .mockRejectedValueOnce(httpError(503))
+        .mockResolvedValueOnce({ ok: true, status: 'pending' });
+
+      const onAccepted = vi.fn();
+      await startAppleTransactionListeners(onAccepted);
+      const handler = mockPlugin.addListener.mock.calls.find((c) => c[0] === 'transactionUpdated')![1];
+
+      handler(txn({ transactionId: '7001' }));
+      await vi.advanceTimersByTimeAsync(8000);
+
+      expect(verifyApplePurchase).toHaveBeenCalledTimes(2);
+      expect(onAccepted).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does NOT retry a permanent rejection', async () => {
+    vi.useFakeTimers();
+    try {
+      (verifyApplePurchase as ReturnType<typeof vi.fn>).mockRejectedValue(httpError(400));
+      await startAppleTransactionListeners(() => {});
+      const handler = mockPlugin.addListener.mock.calls.find((c) => c[0] === 'transactionUpdated')![1];
+
+      handler(txn({ transactionId: '7002' }));
+      await vi.advanceTimersByTimeAsync(8000);
+
+      expect(verifyApplePurchase).toHaveBeenCalledTimes(1);
+      expect(mockPlugin.acknowledgePurchase).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

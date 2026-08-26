@@ -36,6 +36,8 @@ const PURCHASE_MESSAGES: Record<ApplePurchaseFailure, string> = {
     'We could not confirm your purchase yet. It is safe — reopen the app shortly and it will finish.',
   'verification-failed': 'We could not verify that purchase. Contact support and nothing will be lost.',
   'missing-jws': 'We could not read the receipt for that purchase. Try Restore Purchases.',
+  'unexpected-response':
+    'We could not confirm your purchase. Nothing is lost — reopen the app shortly or contact support.',
   unknown: 'Something went wrong. Your purchase was not charged twice.',
 };
 
@@ -128,7 +130,16 @@ export function NativePaywall() {
           showToast('No purchases associated with this Nala account were found.', 'info');
           break;
         case 'incomplete':
-          showToast('We could not fully verify your purchases. Please try again shortly.', 'error');
+          // Partial restore. Some transactions may have been queued even though
+          // another could not be verified — say so honestly AND still pick up
+          // whatever the backend accepted.
+          showToast(
+            result.queued
+              ? 'Some purchases were restored, but we could not verify all of them.'
+              : 'We could not fully verify your purchases. Please try again shortly.',
+            result.queued ? 'info' : 'error',
+          );
+          if (result.queued) await awaitEntitlement(before);
           break;
         case 'too-many':
           showToast('Too many purchases to restore automatically. Please contact support.', 'error');
