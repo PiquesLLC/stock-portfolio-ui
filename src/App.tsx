@@ -1088,7 +1088,26 @@ export default function App() {
           />
         </LazyPage>
       )}
-      <div className={isNative ? 'z-30' : 'sticky z-30'} style={{ top: isNative ? undefined : 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden', ...(isNative ? { overflow: 'visible' } : {}) }}>
+      {/* App chrome (top bar + mobile tab nav).
+       *
+       * This wrapper — not the nav, and not the dropdowns — is the stacking
+       * context that decides whether an open nav dropdown paints above page
+       * content. The dropdowns' own `z-50` only orders them INSIDE it.
+       *
+       * `relative` on the native branch is load-bearing: z-index is ignored on
+       * a static, non-flex-item box, so the old bare `z-30` was inert on iOS
+       * and sank this whole subtree into the normal-flow paint layer. Ordinary
+       * page controls — even ones with no z-index of their own — then drew over
+       * the open More/Portfolio dropdown and swallowed its taps. The web branch
+       * escaped it only because `sticky` made its z-index apply.
+       *
+       * z-[45] sits above the page-content band (which reaches z-40) and below
+       * the modal/dialog band (which starts at z-50), so modals, drawer panels
+       * and the status-bar shield all still cover the chrome. Keep both
+       * branches on the SAME value — a divergent z-index here is what caused
+       * this bug.
+       */}
+      <div className={isNative ? 'relative z-[45]' : 'sticky z-[45]'} style={{ top: isNative ? undefined : 'env(safe-area-inset-top)', WebkitBackfaceVisibility: 'hidden', ...(isNative ? { overflow: 'visible' } : {}) }}>
       <header className={`relative z-20 border-b border-rh-light-border/40 dark:border-rh-border/40 bg-rh-light-bg ${isNative ? 'dark:bg-black' : 'dark:bg-black/95 backdrop-blur-xl'}`} style={isNative ? { overflow: 'visible' } : undefined}>
         <div className="px-3 py-2 flex sm:hidden items-center gap-2">
           {/* Mobile: logo + controls inline */}
