@@ -40,6 +40,40 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { Navigation } from './Navigation';
 
+// ── The layer bands this app is built on ─────────────────────────────────────
+// page content/controls <= 40  |  app chrome 45  |  modal backdrop 49  |
+// modal/dialog panel 50  |  above-modal UI > 50
+/** Highest z-index used by ordinary page content and page controls. */
+const PAGE_BAND_MAX = 40;
+/** Lowest z-index used by modal/dialog panels and the iOS status-bar shield. */
+const MODAL_PANEL_Z = 50;
+
+const zOf = (cls: string): number | null => {
+  const m = cls.match(/\bz-\[?(\d+)\]?\b/);
+  return m ? Number(m[1]) : null;
+};
+
+const appSource = readFileSync(
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'App.tsx'),
+  'utf8',
+);
+
+/** The `isNative ? … : …` className expression on the chrome wrapper. */
+const chrome = (() => {
+  const m = appSource.match(
+    /className=\{isNative \? '([^']*)' : '([^']*)'\}\s+style=\{\{ top: isNative/,
+  );
+  if (!m) throw new Error('chrome wrapper className expression not found in App.tsx');
+  return { native: m[1], web: m[2] };
+})();
+
+/** Chrome z-index read from App.tsx, so these tests track the real value. */
+const CHROME_Z = (() => {
+  const z = zOf(chrome.native);
+  if (z === null) throw new Error('chrome wrapper has no z-index');
+  return z;
+})();
+
 /**
  * Navigation renders the desktop row AND the mobile row into the DOM (Tailwind
  * `hidden sm:flex` / `flex sm:hidden` are CSS-only), so every tab label appears
@@ -153,25 +187,7 @@ describe('Navigation — dropdown stacking contract', () => {
 });
 
 describe('App chrome wrapper — stacking-context contract', () => {
-  const appSource = readFileSync(
-    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'App.tsx'),
-    'utf8',
-  );
-
-  /** The `isNative ? … : …` className expression on the chrome wrapper. */
-  const chrome = (() => {
-    const m = appSource.match(
-      /className=\{isNative \? '([^']*)' : '([^']*)'\}\s+style=\{\{ top: isNative/,
-    );
-    if (!m) throw new Error('chrome wrapper className expression not found in App.tsx');
-    return { native: m[1], web: m[2] };
-  })();
-
   const POSITIONED = /\b(relative|absolute|fixed|sticky)\b/;
-  const zOf = (cls: string) => {
-    const m = cls.match(/\bz-\[?(\d+)\]?\b/);
-    return m ? Number(m[1]) : null;
-  };
 
   it('is POSITIONED on both branches — a bare z-index is inert and was the bug', () => {
     // `z-30` alone on a static, non-flex-item box does nothing. This single
@@ -191,7 +207,88 @@ describe('App chrome wrapper — stacking-context contract', () => {
     expect(z).not.toBeNull();
     // Page content/controls in this codebase top out at z-40; modals, drawer
     // panels and the iOS status-bar shield start at z-50.
-    expect(z as number).toBeGreaterThan(40);
-    expect(z as number).toBeLessThan(50);
+    expect(z as number).toBeGreaterThan(PAGE_BAND_MAX);
+    expect(z as number).toBeLessThan(MODAL_PANEL_Z);
+  });
+});
+
+/**
+ * The full layer hierarchy, pinned end to end.
+ *
+ * Raising the chrome to z-[45] put it ABOVE the z-40 backdrops that true modal
+ * drawers use. Those backdrops are not decoration: each carries
+ * `onClick={onClose}`, so chrome painting above one meant the backdrop could no
+ * longer receive the dismiss tap over the header/nav, and the nav stayed
+ * interactive behind an open `role="dialog"`. The delta raises those backdrops
+ * — and only those — to z-[49].
+ *
+ * Deliberately NOT raised: the three transparent full-screen click-outside
+ * catchers for ordinary dropdown menus (HoldingsTable, LeaderboardPage,
+ * WatchlistPage). They have no dimming background, no `aria-hidden`, and no
+ * `role="dialog"` partner; their job is outside-click detection for a
+ * non-modal menu, not blocking interaction. Raising them above the chrome would
+ * make a transparent sheet swallow nav taps whenever a display/sort menu was
+ * open — a new bug, not a fix. That exclusion is pinned below so it stays a
+ * decision rather than an oversight.
+ *
+ * Still not a hit-test proof: jsdom neither paints nor dispatches by geometry.
+ * This pins the ordering the runtime behaviour depends on.
+ */
+describe('overlay layer hierarchy', () => {
+  const read = (rel: string) =>
+    readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), rel), 'utf8');
+
+  /** Drawers whose dimming backdrop sits behind a role="dialog" panel. */
+  const TRUE_MODAL_DRAWERS = [
+    'BottleneckDrawer',
+    'DividendDetailDrawer',
+    'ETFDetailsPanel',
+    'IncomeInsights',
+  ] as const;
+
+  /** Transparent outside-click catchers for non-modal dropdown menus. */
+  const MENU_CLICK_CATCHERS = [
+    'HoldingsTable',
+    'LeaderboardPage',
+    'WatchlistPage',
+  ] as const;
+
+  const backdropOf = (name: string) => {
+    const m = read(`./${name}.tsx`).match(/fixed inset-0 bg-black\/\d+ z-\[?(\d+)\]?/);
+    return m ? Number(m[1]) : null;
+  };
+
+  it.each(TRUE_MODAL_DRAWERS)('%s backdrop sits between the chrome and its panel', (name) => {
+    const z = backdropOf(name);
+    expect(z).not.toBeNull();
+    expect(z as number).toBeGreaterThan(CHROME_Z);
+    expect(z as number).toBeLessThan(MODAL_PANEL_Z);
+  });
+
+  it.each(TRUE_MODAL_DRAWERS)('%s backdrop still dismisses and still fronts a z-50 dialog', (name) => {
+    const src = read(`./${name}.tsx`);
+    // The reason the layer matters at all — losing this makes the whole fix
+    // moot. Deliberately value-agnostic: the z-index itself is pinned by the
+    // test above, so a legitimate re-layer changes one assertion, not two.
+    expect(src).toMatch(/fixed inset-0 bg-black\/\d+ z-\[?\d+\]?[^"]*"\s*\n\s*onClick=\{onClose\}/);
+    expect(src).toMatch(/role="dialog"/);
+    expect(src).toMatch(/\bz-50\b/);
+  });
+
+  it.each(MENU_CLICK_CATCHERS)('%s keeps its non-modal click catcher at z-40', (name) => {
+    // Guards the exclusion: these must NOT be swept up in a future
+    // "raise every z-40 backdrop" pass.
+    expect(read(`./${name}.tsx`)).toMatch(/className="fixed inset-0 z-40"/);
+  });
+
+  it('orders the whole stack: page <= 40 < chrome < modal backdrop < panel', () => {
+    const backdrops = TRUE_MODAL_DRAWERS.map(backdropOf) as number[];
+    const backdropZ = backdrops[0];
+    // One shared value across every true modal backdrop.
+    expect(new Set(backdrops).size).toBe(1);
+    expect(PAGE_BAND_MAX).toBeLessThan(CHROME_Z);
+    expect(CHROME_Z).toBeLessThan(backdropZ);
+    expect(backdropZ).toBeLessThan(MODAL_PANEL_Z);
+    expect(MODAL_PANEL_Z).toBeGreaterThanOrEqual(50);
   });
 });
