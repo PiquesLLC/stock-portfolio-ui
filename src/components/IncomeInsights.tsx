@@ -93,7 +93,7 @@ function Drawer({ open, onClose, categoryKey, details }: DrawerProps) {
   return createPortal(
     <>
       <div
-        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/40 z-[49] transition-opacity"
         onClick={onClose}
         aria-hidden
       />
