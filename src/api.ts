@@ -560,78 +560,99 @@ export function resetAuthState(): void {
   broadcastAuth({ type: 'auth-cleared', at: Date.now() });
 }
 
+/**
+ * The single native-aware authenticated transport.
+ *
+ * Native: attaches the stored Bearer access token plus `X-Nala-Native: 1` and
+ * dispatches via CapacitorHttp. Web: a plain `credentials: 'include'` fetch.
+ *
+ * Returns the raw Response rather than parsed JSON so each caller keeps its own
+ * error contract. `fetchJson` layers the generic ApiError mapping on top, while
+ * endpoints carrying endpoint-specific failure metadata (email verification's
+ * remainingAttempts / lockout) map their own and must NOT route through
+ * `fetchJson`, which would flatten that metadata into a generic Error.
+ *
+ * Both headers are load-bearing against the backend CSRF middleware
+ * (stock-portfolio-api src/app.ts): a cookie-bearing mutation with no Origin,
+ * no Bearer and no native marker is rejected 403 "Forbidden: missing Origin
+ * header". CapacitorHttp does not send an Origin header, so any native
+ * mutation routed around this transport fails that check.
+ */
+async function authedRequest(url: string, options?: RequestInit): Promise<Response> {
+  const shortUrl = url.replace(API_BASE_URL, '');
+  const nativeSession = readNativeAuthSession();
+  const nativeRuntime = isNativePlatform();
+  const refreshToken = nativeSession?.refreshToken ?? readStoredNativeRefreshToken();
+  const hasBearer = !!nativeSession?.accessToken;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Bypass-Tunnel-Reminder': 'true',
+    ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
+    ...(nativeSession?.accessToken ? { Authorization: `Bearer ${nativeSession.accessToken}` } : {}),
+    ...(options?.headers as Record<string, string> || {}),
+  };
+  nativeLog('FETCH', `→ ${options?.method || 'GET'} ${shortUrl}`, {
+    nativeRuntime,
+    hasBearer,
+    hasNativeSession: !!refreshToken,
+    refreshRecentlyFailed: refreshRecentlyFailed(),
+  });
+  if (nativeRuntime) {
+    // Use CapacitorHttp.request() on native — bypass WebKit fetch quirks
+    // fetch() on WKWebView throws "string did not match expected pattern"
+    const signal = options?.signal;
+    // Honor pre-aborted signal synchronously.
+    if (signal?.aborted) {
+      throw new DOMException('Request aborted', 'AbortError');
+    }
+    let data: unknown = undefined;
+    if (options?.body && typeof options.body === 'string') {
+      try { data = JSON.parse(options.body); } catch { data = options.body; }
+    }
+    const httpPromise = CapacitorHttp.request({
+      url,
+      method: options?.method || 'GET',
+      headers,
+      data,
+      responseType: 'json',
+    });
+    // CapacitorHttp has no native cancellation, but we can fake-abort by
+    // racing the request against the signal. The underlying HTTP call still
+    // completes on the device (so any server-side write already happened —
+    // don't assume aborted = no-op for non-GET methods), but our promise
+    // rejects so the caller stops waiting and we can short-circuit before
+    // processing the response. Makes rapid-swipe rate-limit optimization
+    // semantically consistent between web and native.
+    //
+    // The listener must be detached after the race resolves either way —
+    // `{ once: true }` only auto-removes after the event FIRES, not after
+    // the http path wins the race, so without explicit removeEventListener
+    // long-lived AbortControllers accumulate one orphan listener per call.
+    let result: Awaited<typeof httpPromise>;
+    if (signal) {
+      result = await new Promise<Awaited<typeof httpPromise>>((resolve, reject) => {
+        const onAbort = () => reject(new DOMException('Request aborted', 'AbortError'));
+        signal.addEventListener('abort', onAbort);
+        httpPromise.then(
+          r => { signal.removeEventListener('abort', onAbort); resolve(r); },
+          e => { signal.removeEventListener('abort', onAbort); reject(e); },
+        );
+      });
+    } else {
+      result = await httpPromise;
+    }
+    return new Response(JSON.stringify(result.data), { status: result.status, headers: { 'Content-Type': 'application/json' } });
+  }
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers,
+  });
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const shortUrl = url.replace(API_BASE_URL, '');
-  const doFetch = async () => {
-    const nativeSession = readNativeAuthSession();
-    const nativeRuntime = isNativePlatform();
-    const refreshToken = nativeSession?.refreshToken ?? readStoredNativeRefreshToken();
-    const hasBearer = !!nativeSession?.accessToken;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true',
-      ...(nativeRuntime ? { 'X-Nala-Native': '1' } : {}),
-      ...(nativeSession?.accessToken ? { Authorization: `Bearer ${nativeSession.accessToken}` } : {}),
-      ...(options?.headers as Record<string, string> || {}),
-    };
-    nativeLog('FETCH', `→ ${options?.method || 'GET'} ${shortUrl}`, {
-      nativeRuntime,
-      hasBearer,
-      hasNativeSession: !!refreshToken,
-      refreshRecentlyFailed: refreshRecentlyFailed(),
-    });
-    if (nativeRuntime) {
-      // Use CapacitorHttp.request() on native — bypass WebKit fetch quirks
-      // fetch() on WKWebView throws "string did not match expected pattern"
-      const signal = options?.signal;
-      // Honor pre-aborted signal synchronously.
-      if (signal?.aborted) {
-        throw new DOMException('Request aborted', 'AbortError');
-      }
-      let data: unknown = undefined;
-      if (options?.body && typeof options.body === 'string') {
-        try { data = JSON.parse(options.body); } catch { data = options.body; }
-      }
-      const httpPromise = CapacitorHttp.request({
-        url,
-        method: options?.method || 'GET',
-        headers,
-        data,
-        responseType: 'json',
-      });
-      // CapacitorHttp has no native cancellation, but we can fake-abort by
-      // racing the request against the signal. The underlying HTTP call still
-      // completes on the device (so any server-side write already happened —
-      // don't assume aborted = no-op for non-GET methods), but our promise
-      // rejects so the caller stops waiting and we can short-circuit before
-      // processing the response. Makes rapid-swipe rate-limit optimization
-      // semantically consistent between web and native.
-      //
-      // The listener must be detached after the race resolves either way —
-      // `{ once: true }` only auto-removes after the event FIRES, not after
-      // the http path wins the race, so without explicit removeEventListener
-      // long-lived AbortControllers accumulate one orphan listener per call.
-      let result: Awaited<typeof httpPromise>;
-      if (signal) {
-        result = await new Promise<Awaited<typeof httpPromise>>((resolve, reject) => {
-          const onAbort = () => reject(new DOMException('Request aborted', 'AbortError'));
-          signal.addEventListener('abort', onAbort);
-          httpPromise.then(
-            r => { signal.removeEventListener('abort', onAbort); resolve(r); },
-            e => { signal.removeEventListener('abort', onAbort); reject(e); },
-          );
-        });
-      } else {
-        result = await httpPromise;
-      }
-      return new Response(JSON.stringify(result.data), { status: result.status, headers: { 'Content-Type': 'application/json' } });
-    }
-    return fetch(url, {
-      ...options,
-      credentials: 'include',
-      headers,
-    });
-  };
+  const doFetch = () => authedRequest(url, options);
 
   let response = await doFetch();
   nativeLog('FETCH', `← ${response.status} ${shortUrl}`);
@@ -1175,11 +1196,19 @@ export class EmailVerifyError extends Error {
 }
 
 export async function verifySignupEmail(_email: string, code: string): Promise<{ message: string }> {
-  // email param kept for API compat but server resolves from authenticated session
-  const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+  // email param kept for API compat but server resolves from authenticated session.
+  //
+  // Must go through `authedRequest`, not raw fetch: on native this is a
+  // cookie-bearing POST with no Origin header (CapacitorHttp does not send one),
+  // which the backend CSRF middleware rejects with 403 "Forbidden: missing
+  // Origin header" before verifyEmailHandler ever runs. The Bearer token and
+  // `X-Nala-Native: 1` that `authedRequest` attaches are what exempt it.
+  //
+  // It deliberately does NOT go through `fetchJson`: that maps every non-2xx
+  // into a generic Error carrying only status/code, which would discard the
+  // remainingAttempts and lockout metadata this screen depends on.
+  const response = await authedRequest(`${API_BASE_URL}/auth/verify-email`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
     body: JSON.stringify({ code }),
   });
   if (!response.ok) {
